@@ -1,19 +1,19 @@
 //****************************************Copyright (c)***********************************//
-//Ô­×Ó¸çÔÚÏß½ÌÑ§Æ½Ì¨£ºwww.yuanzige.com
-//¼¼ÊõÖ§³Ö£ºwww.openedv.com
-//ÌÔ±¦µêÆÌ£ºhttp://openedv.taobao.com
-//¹Ø×¢Î¢ĞÅ¹«ÖÚÆ½Ì¨Î¢ĞÅºÅ£º"ÕıµãÔ­×Ó"£¬Ãâ·Ñ»ñÈ¡ZYNQ & FPGA & STM32 & LINUX×ÊÁÏ¡£
-//°æÈ¨ËùÓĞ£¬µÁ°æ±Ø¾¿¡£
-//Copyright(C) ÕıµãÔ­×Ó 2018-2028
+//åŸå­å“¥åœ¨çº¿æ•™å­¦å¹³å°ï¼šwww.yuanzige.com
+//æŠ€æœ¯æ”¯æŒï¼šwww.openedv.com
+//æ·˜å®åº—é“ºï¼šhttp://openedv.taobao.com
+//å…³æ³¨å¾®ä¿¡å…¬ä¼—å¹³å°å¾®ä¿¡å·ï¼š"æ­£ç‚¹åŸå­"ï¼Œå…è´¹è·å–ZYNQ & FPGA & STM32 & LINUXèµ„æ–™ã€‚
+//ç‰ˆæƒæ‰€æœ‰ï¼Œç›—ç‰ˆå¿…ç©¶ã€‚
+//Copyright(C) æ­£ç‚¹åŸå­ 2018-2028
 //All rights reserved
 //----------------------------------------------------------------------------------------
 // File name:           dvi_transmitter_top
 // Last modified Date:  2020/05/04 9:19:08
 // Last Version:        V1.0
-// Descriptions:        HDMIÇı¶¯Ä£¿é
+// Descriptions:        HDMIé©±åŠ¨æ¨¡å—
 //                      
 //----------------------------------------------------------------------------------------
-// Created by:          ÕıµãÔ­×Ó
+// Created by:          æ­£ç‚¹åŸå­
 // Created date:        2019/05/04 9:19:08
 // Version:             V1.0
 // Descriptions:        The original version
@@ -31,16 +31,16 @@ module dvi_transmitter_top(
     input        video_vsync,    // vsync data
     input        video_de,       // data enable
     
-    output       tmds_clk_p,     // TMDS Ê±ÖÓÍ¨µÀ
+    output       tmds_clk_p,     // TMDS æ—¶é’Ÿé€šé“
     output       tmds_clk_n,
-    output [2:0] tmds_data_p,    // TMDS Êı¾İÍ¨µÀ
+    output [2:0] tmds_data_p,    // TMDS æ•°æ®é€šé“
     output [2:0] tmds_data_n
    );
     
 //wire define
 wire        reset;
     
-//²¢ĞĞÊı¾İ
+//å¹¶è¡Œæ•°æ®
 wire [9:0]  red_10bit;
 wire [9:0]  green_10bit;
 wire [9:0]  blue_10bit;
@@ -52,15 +52,15 @@ wire [9:0]  clk_10bit;
 
 assign clk_10bit = 10'b1111100000;
 
-//Òì²½¸´Î»£¬Í¬²½ÊÍ·Å
+//å¼‚æ­¥å¤ä½ï¼ŒåŒæ­¥é‡Šæ”¾
 asyn_rst_syn reset_syn(
     .reset_n    (reset_n),
     .clk        (pclk),
     
-    .syn_reset  (reset)    //¸ßÓĞĞ§
+    .syn_reset  (reset)    //é«˜æœ‰æ•ˆ
     );
   
-//¶ÔÈı¸öÑÕÉ«Í¨µÀ½øĞĞ±àÂë
+//å¯¹ä¸‰ä¸ªé¢œè‰²é€šé“è¿›è¡Œç¼–ç 
 dvi_encoder encoder_b (
     .clkin      (pclk),
     .rstin      (reset),
@@ -94,41 +94,41 @@ dvi_encoder encoder_r (
     .dout       (red_10bit)
     );
 
-//¶Ô±àÂëºóµÄÊı¾İ½øĞĞ²¢´®×ª»»
+//å¯¹ç¼–ç åçš„æ•°æ®è¿›è¡Œå¹¶ä¸²è½¬æ¢
 serializer_10_to_1 serializer_b(
-    .serial_clk_5x      (pclk_x5),              // ÊäÈë´®ĞĞ¸ßËÙÊı¾İÊ±ÖÓ
-	.serial_clk         (pclk),                 // ÊäÈë´®ĞĞµÍËÙÊı¾İÊ±ÖÓ	
-    .paralell_data      (blue_10bit),           // ÊäÈë²¢ĞĞÊı¾İ
+    .serial_clk_5x      (pclk_x5),              // è¾“å…¥ä¸²è¡Œé«˜é€Ÿæ•°æ®æ—¶é’Ÿ
+	.serial_clk         (pclk),                 // è¾“å…¥ä¸²è¡Œä½é€Ÿæ•°æ®æ—¶é’Ÿ
+    .paralell_data      (blue_10bit),           // è¾“å…¥å¹¶è¡Œæ•°æ®
     .reset_n            (reset),
-    .serial_data_p      (tmds_data_p[0]),       // Êä³ö´®ĞĞÊı¾İP
-    .serial_data_n      (tmds_data_n[0])        // Êä³ö´®ĞĞÊı¾İN
+    .serial_data_p      (tmds_data_p[0]),       // è¾“å‡ºä¸²è¡Œæ•°æ®P
+    .serial_data_n      (tmds_data_n[0])        // è¾“å‡ºä¸²è¡Œæ•°æ®N
     );
 
 serializer_10_to_1 serializer_g(
-    .serial_clk_5x      (pclk_x5),              // ÊäÈë´®ĞĞ¸ßËÙÊı¾İÊ±ÖÓ
-	.serial_clk         (pclk),                 // ÊäÈë´®ĞĞµÍËÙÊı¾İÊ±ÖÓ	
-    .paralell_data      (green_10bit),          // ÊäÈë²¢ĞĞÊı¾İ
+    .serial_clk_5x      (pclk_x5),              // è¾“å…¥ä¸²è¡Œé«˜é€Ÿæ•°æ®æ—¶é’Ÿ
+	.serial_clk         (pclk),                 // è¾“å…¥ä¸²è¡Œä½é€Ÿæ•°æ®æ—¶é’Ÿ
+    .paralell_data      (green_10bit),          // è¾“å…¥å¹¶è¡Œæ•°æ®
     .reset_n            (reset),
-    .serial_data_p      (tmds_data_p[1]),       // Êä³ö´®ĞĞÊı¾İP
-    .serial_data_n      (tmds_data_n[1])        // Êä³ö´®ĞĞÊı¾İN
+    .serial_data_p      (tmds_data_p[1]),       // è¾“å‡ºä¸²è¡Œæ•°æ®P
+    .serial_data_n      (tmds_data_n[1])        // è¾“å‡ºä¸²è¡Œæ•°æ®N
     );
 
 serializer_10_to_1 serializer_r(
-    .serial_clk_5x      (pclk_x5),              // ÊäÈë´®ĞĞ¸ßËÙÊı¾İÊ±ÖÓ
-	.serial_clk         (pclk),                 // ÊäÈë´®ĞĞµÍËÙÊı¾İÊ±ÖÓ	
-    .paralell_data      (red_10bit),            // ÊäÈë²¢ĞĞÊı¾İ
+    .serial_clk_5x      (pclk_x5),              // è¾“å…¥ä¸²è¡Œé«˜é€Ÿæ•°æ®æ—¶é’Ÿ
+	.serial_clk         (pclk),                 // è¾“å…¥ä¸²è¡Œä½é€Ÿæ•°æ®æ—¶é’Ÿ
+    .paralell_data      (red_10bit),            // è¾“å…¥å¹¶è¡Œæ•°æ®
     .reset_n            (reset),
-    .serial_data_p      (tmds_data_p[2]),       // Êä³ö´®ĞĞÊı¾İP
-    .serial_data_n      (tmds_data_n[2])        // Êä³ö´®ĞĞÊı¾İN
+    .serial_data_p      (tmds_data_p[2]),       // è¾“å‡ºä¸²è¡Œæ•°æ®P
+    .serial_data_n      (tmds_data_n[2])        // è¾“å‡ºä¸²è¡Œæ•°æ®N
     );
 
 serializer_10_to_1 serializer_clk(
-    .serial_clk_5x      (pclk_x5),              // ÊäÈë´®ĞĞ¸ßËÙÊı¾İÊ±ÖÓ
-	.serial_clk         (pclk),                 // ÊäÈë´®ĞĞµÍËÙÊı¾İÊ±ÖÓ	
+    .serial_clk_5x      (pclk_x5),              // è¾“å…¥ä¸²è¡Œé«˜é€Ÿæ•°æ®æ—¶é’Ÿ
+	.serial_clk         (pclk),                 // è¾“å…¥ä¸²è¡Œä½é€Ÿæ•°æ®æ—¶é’Ÿ
     .paralell_data      (clk_10bit),
     .reset_n            (reset),
-    .serial_data_p      (tmds_clk_p),           // Êä³ö´®ĞĞÊ±ÖÓP
-    .serial_data_n      (tmds_clk_n)            // Êä³ö´®ĞĞÊ±ÖÓN
+    .serial_data_p      (tmds_clk_p),           // è¾“å‡ºä¸²è¡Œæ—¶é’ŸP
+    .serial_data_n      (tmds_clk_n)            // è¾“å‡ºä¸²è¡Œæ—¶é’ŸN
     );
 
 endmodule

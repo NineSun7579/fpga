@@ -1,19 +1,19 @@
 //****************************************Copyright (c)***********************************//
-//Ô­×Ó¸çÔÚÏß½ÌÑ§Æ½Ì¨£ºwww.yuanzige.com
-//¼¼ÊõÖ§³Ö£ºwww.openedv.com
-//ÌÔ±¦µêÆÌ£ºhttp://openedv.taobao.com
-//¹Ø×¢Î¢ĞÅ¹«ÖÚÆ½Ì¨Î¢ĞÅºÅ£º"ÕıµãÔ­×Ó"£¬Ãâ·Ñ»ñÈ¡ZYNQ & FPGA & STM32 & LINUX×ÊÁÏ¡£
-//°æÈ¨ËùÓĞ£¬µÁ°æ±Ø¾¿¡£
-//Copyright(C) ÕıµãÔ­×Ó 2018-2028
+//åŸå­å“¥åœ¨çº¿æ•™å­¦å¹³å°ï¼šwww.yuanzige.com
+//æŠ€æœ¯æ”¯æŒï¼šwww.openedv.com
+//æ·˜å®åº—é“ºï¼šhttp://openedv.taobao.com
+//å…³æ³¨å¾®ä¿¡å…¬ä¼—å¹³å°å¾®ä¿¡å·ï¼š"æ­£ç‚¹åŸå­"ï¼Œå…è´¹è·å–ZYNQ & FPGA & STM32 & LINUXèµ„æ–™ã€‚
+//ç‰ˆæƒæ‰€æœ‰ï¼Œç›—ç‰ˆå¿…ç©¶ã€‚
+//Copyright(C) æ­£ç‚¹åŸå­ 2018-2028
 //All rights reserved
 //----------------------------------------------------------------------------------------
 // File name:           ov7725_hdmi
 // Last modified Date:  2020/05/04 9:19:08
 // Last Version:        V1.0
-// Descriptions:        ov7725_hdmi¶¥²ãÄ£¿é
+// Descriptions:        ov7725_hdmié¡¶å±‚æ¨¡å—
 //                      
 //----------------------------------------------------------------------------------------
-// Created by:          ÕıµãÔ­×Ó
+// Created by:          æ­£ç‚¹åŸå­
 // Created date:        2019/05/04 9:19:08
 // Version:             V1.0
 // Descriptions:        The original version
@@ -25,20 +25,20 @@ module ov7725_hdmi(
     input                   sys_clk          ,
     input                   sys_rst_n        ,
                                        
-    output                  tmds_clk_p       ,  // TMDS Ê±ÖÓÍ¨µÀ
+    output                  tmds_clk_p       ,  // TMDS æ—¶é’Ÿé€šé“
     output                  tmds_clk_n       ,
-    output         [2:0]    tmds_data_p      ,  // TMDS Êı¾İÍ¨µÀ
+    output         [2:0]    tmds_data_p      ,  // TMDS æ•°æ®é€šé“
     output         [2:0]    tmds_data_n      ,
-    //ÉãÏñÍ·½Ó¿Ú                     
-    input                   cam_pclk         ,  //cmos Êı¾İÏñËØÊ±ÖÓ
-    input                   cam_vsync        ,  //cmos ³¡Í¬²½ĞÅºÅ
-    input                   cam_href         ,  //cmos ĞĞÍ¬²½ĞÅºÅ
-    input          [7:0]    cam_data         ,  //cmos Êı¾İ
-    output                  cam_rst_n        ,  //cmos ¸´Î»ĞÅºÅ£¬µÍµçÆ½ÓĞĞ§
-    output                  cam_sgm_ctrl     ,  //cmos Ê±ÖÓÑ¡ÔñĞÅºÅ, 1:Ê¹ÓÃÉãÏñÍ·×Ô´øµÄ¾§Õñ
-    output                  cam_scl          ,  //cmos SCCB_SCLÏß
-    inout                   cam_sda          ,  //cmos SCCB_SDAÏß
-    //DDR¿ØÖÆÆ÷½Ó¿Ú
+    //æ‘„åƒå¤´æ¥å£
+    input                   cam_pclk         ,  //cmos æ•°æ®åƒç´ æ—¶é’Ÿ
+    input                   cam_vsync        ,  //cmos åœºåŒæ­¥ä¿¡å·
+    input                   cam_href         ,  //cmos è¡ŒåŒæ­¥ä¿¡å·
+    input          [7:0]    cam_data         ,  //cmos æ•°æ®
+    output                  cam_rst_n        ,  //cmos å¤ä½ä¿¡å·ï¼Œä½ç”µå¹³æœ‰æ•ˆ
+    output                  cam_sgm_ctrl     ,  //cmos æ—¶é’Ÿé€‰æ‹©ä¿¡å·, 1:ä½¿ç”¨æ‘„åƒå¤´è‡ªå¸¦çš„æ™¶æŒ¯
+    output                  cam_scl          ,  //cmos SCCB_SCLçº¿
+    inout                   cam_sda          ,  //cmos SCCB_SDAçº¿
+    //DDRæ§åˆ¶å™¨æ¥å£
     output                  mem_rst_n       ,                       
     output                  mem_ck          ,
     output                  mem_ck_n        ,
@@ -57,60 +57,60 @@ module ov7725_hdmi(
    );
 
 //parameter define
-parameter  APP_ADDR_MIN = 27'd0       ; //ddr3¶ÁĞ´ÆğÊ¼µØÖ·£¬ÒÔÒ»¸ö16bitµÄÊı¾İÎªÒ»¸öµ¥Î»
-parameter  APP_ADDR_MAX = 27'd307200  ; //ddr3¶ÁĞ´½áÊøµØÖ·£¬ÒÔÒ»¸ö16bitµÄÊı¾İÎªÒ»¸öµ¥Î»
-parameter  V_CMOS_DISP = 11'd480;         //CMOS·Ö±æÂÊ--ĞĞ
-parameter  H_CMOS_DISP = 11'd640;         //CMOS·Ö±æÂÊ--ÁĞ
+parameter  APP_ADDR_MIN = 27'd0       ; //ddr3è¯»å†™èµ·å§‹åœ°å€ï¼Œä»¥ä¸€ä¸ª16bitçš„æ•°æ®ä¸ºä¸€ä¸ªå•ä½
+parameter  APP_ADDR_MAX = 27'd307200  ; //ddr3è¯»å†™ç»“æŸåœ°å€ï¼Œä»¥ä¸€ä¸ª16bitçš„æ•°æ®ä¸ºä¸€ä¸ªå•ä½
+parameter  V_CMOS_DISP = 11'd480;         //CMOSåˆ†è¾¨ç‡--è¡Œ
+parameter  H_CMOS_DISP = 11'd640;         //CMOSåˆ†è¾¨ç‡--åˆ—
 
 //wire define
 //PLL
-wire        pixel_clk       ;  //ÏñËØÊ±ÖÓ75M
-wire        pixel_clk_5x    ;  //5±¶ÏñËØÊ±ÖÓ375M
+wire        pixel_clk       ;  //åƒç´ æ—¶é’Ÿ75M
+wire        pixel_clk_5x    ;  //5å€åƒç´ æ—¶é’Ÿ375M
 wire        clk_50m         ;  //output 50M
 wire        clk_locked      ;
 //OV7725
-wire        cam_init_done   ;  //ÉãÏñÍ·³õÊ¼»¯Íê³É
-wire        cmos_frame_vsync;  //Ö¡ÓĞĞ§ĞÅºÅ
-wire        cmos_frame_href ;  //ĞĞÓĞĞ§ĞÅºÅ
-wire        cmos_frame_valid;  //Êı¾İÓĞĞ§Ê¹ÄÜĞÅºÅ
-wire [15:0] wr_data         ;  //OV7725Ğ´ÈëDDR3¿ØÖÆÆ÷Ä£¿éµÄÊı¾İ
+wire        cam_init_done   ;  //æ‘„åƒå¤´åˆå§‹åŒ–å®Œæˆ
+wire        cmos_frame_vsync;  //å¸§æœ‰æ•ˆä¿¡å·
+wire        cmos_frame_href ;  //è¡Œæœ‰æ•ˆä¿¡å·
+wire        cmos_frame_valid;  //æ•°æ®æœ‰æ•ˆä½¿èƒ½ä¿¡å·
+wire [15:0] wr_data         ;  //OV7725å†™å…¥DDR3æ§åˆ¶å™¨æ¨¡å—çš„æ•°æ®
 //HDMI
-wire        video_vs        ;  //³¡Í¬²½ĞÅºÅ
-wire [15:0] rd_data         ;  //DDR3¿ØÖÆÆ÷Ä£¿é¶ÁÊı¾İ¸øHDMI
-wire        rdata_req       ;  //DDR3¿ØÖÆÆ÷Ä£¿é¶ÁÊ¹ÄÜ
+wire        video_vs        ;  //åœºåŒæ­¥ä¿¡å·
+wire [15:0] rd_data         ;  //DDR3æ§åˆ¶å™¨æ¨¡å—è¯»æ•°æ®ç»™HDMI
+wire        rdata_req       ;  //DDR3æ§åˆ¶å™¨æ¨¡å—è¯»ä½¿èƒ½
 //DDR3
-wire        ddr3_init_done   ; //ddr3³õÊ¼»¯Íê³É
+wire        ddr3_init_done   ; //ddr3åˆå§‹åŒ–å®Œæˆ
 
 //*****************************************************
 //**                    main code
 //*****************************************************
 
-//´ıÊ±ÖÓËø¶¨ºó²úÉú½áÊø¸´Î»ĞÅºÅ
+//å¾…æ—¶é’Ÿé”å®šåäº§ç”Ÿç»“æŸå¤ä½ä¿¡å·
 assign rst_n = sys_rst_n & clk_locked;
 
-//ÏµÍ³³õÊ¼»¯Íê³É£ºDDR3ºÍÉãÏñÍ·¶¼³õÊ¼»¯Íê³É
-//±ÜÃâÁËÔÚDDR3³õÊ¼»¯¹ı³ÌÖĞÏòÀïÃæĞ´ÈëÊı¾İ
+//ç³»ç»Ÿåˆå§‹åŒ–å®Œæˆï¼šDDR3å’Œæ‘„åƒå¤´éƒ½åˆå§‹åŒ–å®Œæˆ
+//é¿å…äº†åœ¨DDR3åˆå§‹åŒ–è¿‡ç¨‹ä¸­å‘é‡Œé¢å†™å…¥æ•°æ®
 assign  sys_init_done = ddr3_init_done;
  
 
-//²»¶ÔÉãÏñÍ·Ó²¼ş¸´Î»,¹Ì¶¨¸ßµçÆ½
+//ä¸å¯¹æ‘„åƒå¤´ç¡¬ä»¶å¤ä½,å›ºå®šé«˜ç”µå¹³
 assign  cam_rst_n    = 1'b1;
 
-//cmos Ê±ÖÓÑ¡ÔñĞÅºÅ, 1:Ê¹ÓÃÉãÏñÍ·×Ô´øµÄ¾§Õñ
+//cmos æ—¶é’Ÿé€‰æ‹©ä¿¡å·, 1:ä½¿ç”¨æ‘„åƒå¤´è‡ªå¸¦çš„æ™¶æŒ¯
 assign  cam_sgm_ctrl = 1'b1;
 
-//Àı»¯PLL IPºË
+//ä¾‹åŒ–PLL IPæ ¸
 pll_clk  u_pll_clk(
     .rst            (~sys_rst_n  ),
     .clkin1         (sys_clk     ),
-    .clkout0        (pixel_clk   ), //ÏñËØÊ±ÖÓ65M
-    .clkout1        (pixel_clk_5x), //5±¶ÏñËØÊ±ÖÓ325M
+    .clkout0        (pixel_clk   ), //åƒç´ æ—¶é’Ÿ65M
+    .clkout1        (pixel_clk_5x), //5å€åƒç´ æ—¶é’Ÿ325M
     .clkout2        (clk_50m     ), //output 50M
     .lock           (clk_locked  )
 );
 
 
-//OV7725ÅäÖÃÄ£¿é    
+//OV7725é…ç½®æ¨¡å—
 ov7725_dri u_ov7725_dri(
     .clk              (sys_clk          ),
     .rst_n            (rst_n            ),
@@ -135,24 +135,24 @@ ddr3_ctrl_top u_ddr3_ctrl_top(
     .wd_clk          (cam_pclk),
     .rd_clk          (pixel_clk),
     .rst_n           (rst_n),
-    .ddr3_init_done  (ddr3_init_done),       //ddr3³õÊ¼»¯Íê³É±êÖ¾
-    // Íâ²¿Êı¾İ½Ó¿Ú   
-    .wd_en           (cmos_frame_valid),       //Ğ´Ê¹ÄÜ
-    .wd_data         (wr_data),       //Ğ´Êı¾İ
-    .rd_en           (rdata_req),       //¶ÁÊ¹ÄÜ
-    .rd_data         (rd_data),       //¶ÁÊı¾İ
-    .wr_load         (cmos_frame_vsync),       //ÊäÈëÔ´¸üĞÂĞÅºÅ
-    .rd_load         (video_vs),       //Êä³öÔ´¸üĞÂĞÅºÅ
-    .ddr3_pingpang_en(1'b1),       //DDR3Æ¹ÅÒ²Ù×÷
+    .ddr3_init_done  (ddr3_init_done),       //ddr3åˆå§‹åŒ–å®Œæˆæ ‡å¿—
+    // å¤–éƒ¨æ•°æ®æ¥å£
+    .wd_en           (cmos_frame_valid),       //å†™ä½¿èƒ½
+    .wd_data         (wr_data),       //å†™æ•°æ®
+    .rd_en           (rdata_req),       //è¯»ä½¿èƒ½
+    .rd_data         (rd_data),       //è¯»æ•°æ®
+    .wr_load         (cmos_frame_vsync),       //è¾“å…¥æºæ›´æ–°ä¿¡å·
+    .rd_load         (video_vs),       //è¾“å‡ºæºæ›´æ–°ä¿¡å·
+    .ddr3_pingpang_en(1'b1),       //DDR3ä¹’ä¹“æ“ä½œ
     .ddr3_read_valid (1'b1),
-    // ddrµØÖ·³¤¶È¿ØÖÆ½Ó¿Ú                  
+    // ddråœ°å€é•¿åº¦æ§åˆ¶æ¥å£
     .addr_rd_min     (0),
     .addr_rd_max     (APP_ADDR_MAX[26:1]),
     .rd_burst_len    (H_CMOS_DISP[10:2]),
     .addr_wd_min     (0),
     .addr_wd_max     (APP_ADDR_MAX[26:1]),
     .wd_burst_len    (H_CMOS_DISP[10:2]),
-    //DDR¿ØÖÆÆ÷½Ó¿Ú
+    //DDRæ§åˆ¶å™¨æ¥å£
     .mem_rst_n       (mem_rst_n ),                       
     .mem_ck          (mem_ck    ),
     .mem_ck_n        (mem_ck_n  ),
@@ -169,7 +169,7 @@ ddr3_ctrl_top u_ddr3_ctrl_top(
     .mem_dq          (mem_dq    ),
     .mem_dm          (mem_dm    )     
 );
-//HDMI¶¥²ãÄ£¿é
+//HDMIé¡¶å±‚æ¨¡å—
 hdmi_top u_hdmi_top(
     .hdmi_clk        (pixel_clk ),
     .hdmi_clk_5      (pixel_clk_5x),

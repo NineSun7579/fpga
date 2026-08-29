@@ -1,19 +1,19 @@
 //****************************************Copyright (c)***********************************//
-//Ô­×Ó¸çÔÚÏß½ÌÑ§Æ½Ì¨£ºwww.yuanzige.com
-//¼¼ÊõÖ§³Ö£ºwww.openedv.com
-//ÌÔ±¦µêÆÌ£ºhttp://openedv.taobao.com
-//¹Ø×¢Î¢ĞÅ¹«ÖÚÆ½Ì¨Î¢ĞÅºÅ£º"ÕıµãÔ­×Ó"£¬Ãâ·Ñ»ñÈ¡ZYNQ & FPGA & STM32 & LINUX×ÊÁÏ¡£
-//°æÈ¨ËùÓĞ£¬µÁ°æ±Ø¾¿¡£
-//Copyright(C) ÕıµãÔ­×Ó 2018-2028
+//åŸå­å“¥åœ¨çº¿æ•™å­¦å¹³å°ï¼šwww.yuanzige.com
+//æŠ€æœ¯æ”¯æŒï¼šwww.openedv.com
+//æ·˜å®åº—é“ºï¼šhttp://openedv.taobao.com
+//å…³æ³¨å¾®ä¿¡å…¬ä¼—å¹³å°å¾®ä¿¡å·ï¼š"æ­£ç‚¹åŸå­"ï¼Œå…è´¹è·å–ZYNQ & FPGA & STM32 & LINUXèµ„æ–™ã€‚
+//ç‰ˆæƒæ‰€æœ‰ï¼Œç›—ç‰ˆå¿…ç©¶ã€‚
+//Copyright(C) æ­£ç‚¹åŸå­ 2018-2028
 //All rights reserved
 //----------------------------------------------------------------------------------------
 // File name:           ov5640_dri
 // Last modified Date:  2020/05/04 9:19:08
 // Last Version:        V1.0
-// Descriptions:        OV5640ÉãÏñÍ·Çı¶¯
+// Descriptions:        OV5640æ‘„åƒå¤´é©±åŠ¨
 //                      
 //----------------------------------------------------------------------------------------
-// Created by:          ÕıµãÔ­×Ó
+// Created by:          æ­£ç‚¹åŸå­
 // Created date:        2019/05/04 9:19:08
 // Version:             V1.0
 // Descriptions:        The original version
@@ -22,42 +22,42 @@
 //****************************************************************************************//
 
 module ov7725_dri (
-    input           clk             ,  //Ê±ÖÓ
-    input           rst_n           ,  //¸´Î»ĞÅºÅ,µÍµçÆ½ÓĞĞ§
-    //ÉãÏñÍ·½Ó¿Ú 
-    input           cam_pclk        ,  //cmos Êı¾İÏñËØÊ±ÖÓ
-    input           cam_vsync       ,  //cmos ³¡Í¬²½ĞÅºÅ
-    input           cam_href        ,  //cmos ĞĞÍ¬²½ĞÅºÅ
-    input    [7:0]  cam_data        ,  //cmos Êı¾İ  
-    output          cam_scl         ,  //cmos SCCB_SCLÏß
-    inout           cam_sda         ,  //cmos SCCB_SDAÏß
+    input           clk             ,  //æ—¶é’Ÿ
+    input           rst_n           ,  //å¤ä½ä¿¡å·,ä½ç”µå¹³æœ‰æ•ˆ
+    //æ‘„åƒå¤´æ¥å£
+    input           cam_pclk        ,  //cmos æ•°æ®åƒç´ æ—¶é’Ÿ
+    input           cam_vsync       ,  //cmos åœºåŒæ­¥ä¿¡å·
+    input           cam_href        ,  //cmos è¡ŒåŒæ­¥ä¿¡å·
+    input    [7:0]  cam_data        ,  //cmos æ•°æ®
+    output          cam_scl         ,  //cmos SCCB_SCLçº¿
+    inout           cam_sda         ,  //cmos SCCB_SDAçº¿
     
-    //ÓÃ»§½Ó¿Ú
-    input           capture_start   ,  //Í¼Ïñ²É¼¯¿ªÊ¼ĞÅºÅ
-    output          cam_init_done   ,  //ÉãÏñÍ·³õÊ¼»¯Íê³É
-    output          cmos_frame_vsync,  //Ö¡ÓĞĞ§ĞÅºÅ    
-    output          cmos_frame_href ,  //ĞĞÓĞĞ§ĞÅºÅ
-    output          cmos_frame_valid,  //Êı¾İÓĞĞ§Ê¹ÄÜĞÅºÅ
-    output  [15:0]  cmos_frame_data    //ÓĞĞ§Êı¾İ  
+    //ç”¨æˆ·æ¥å£
+    input           capture_start   ,  //å›¾åƒé‡‡é›†å¼€å§‹ä¿¡å·
+    output          cam_init_done   ,  //æ‘„åƒå¤´åˆå§‹åŒ–å®Œæˆ
+    output          cmos_frame_vsync,  //å¸§æœ‰æ•ˆä¿¡å·
+    output          cmos_frame_href ,  //è¡Œæœ‰æ•ˆä¿¡å·
+    output          cmos_frame_valid,  //æ•°æ®æœ‰æ•ˆä½¿èƒ½ä¿¡å·
+    output  [15:0]  cmos_frame_data    //æœ‰æ•ˆæ•°æ®
 );
 
 //parameter define
-parameter SLAVE_ADDR = 7'h21          ; //OV7725µÄÆ÷¼şµØÖ·7'h3c
-parameter BIT_CTRL   = 1'b0           ; //OV7725µÄ×Ö½ÚµØÖ·Îª8Î»  0:8Î» 1:16Î»
-parameter CLK_FREQ   = 27'd50_000_000 ; //i2c_driÄ£¿éµÄÇı¶¯Ê±ÖÓÆµÂÊ 
-parameter I2C_FREQ   = 18'd250_000    ; //I2CµÄSCLÊ±ÖÓÆµÂÊ,²»³¬¹ı400KHz
+parameter SLAVE_ADDR = 7'h21          ; //OV7725çš„å™¨ä»¶åœ°å€7'h3c
+parameter BIT_CTRL   = 1'b0           ; //OV7725çš„å­—èŠ‚åœ°å€ä¸º8ä½  0:8ä½ 1:16ä½
+parameter CLK_FREQ   = 27'd50_000_000 ; //i2c_driæ¨¡å—çš„é©±åŠ¨æ—¶é’Ÿé¢‘ç‡
+parameter I2C_FREQ   = 18'd250_000    ; //I2Cçš„SCLæ—¶é’Ÿé¢‘ç‡,ä¸è¶…è¿‡400KHz
 
 //wire difine
-wire        i2c_exec       ;  //I2C´¥·¢Ö´ĞĞĞÅºÅ
-wire [15:0] i2c_data       ;  //I2CÒªÅäÖÃµÄµØÖ·ÓëÊı¾İ(¸ß8Î»µØÖ·,µÍ8Î»Êı¾İ)          
-wire        i2c_done       ;  //I2C¼Ä´æÆ÷ÅäÖÃÍê³ÉĞÅºÅ
-wire        i2c_dri_clk    ;  //I2C²Ù×÷Ê±ÖÓ
+wire        i2c_exec       ;  //I2Cè§¦å‘æ‰§è¡Œä¿¡å·
+wire [15:0] i2c_data       ;  //I2Cè¦é…ç½®çš„åœ°å€ä¸æ•°æ®(é«˜8ä½åœ°å€,ä½8ä½æ•°æ®)
+wire        i2c_done       ;  //I2Cå¯„å­˜å™¨é…ç½®å®Œæˆä¿¡å·
+wire        i2c_dri_clk    ;  //I2Cæ“ä½œæ—¶é’Ÿ
 
 //*****************************************************
 //**                    main code                      
 //*****************************************************
     
-//I2CÅäÖÃÄ£¿é
+//I2Cé…ç½®æ¨¡å—
 i2c_ov7725_rgb565_cfg u_i2c_cfg(
     .clk                (i2c_dri_clk),
     .rst_n              (rst_n),
@@ -68,9 +68,9 @@ i2c_ov7725_rgb565_cfg u_i2c_cfg(
     .init_done          (cam_init_done) 
     );    
 
-//I2CÇı¶¯Ä£¿é
+//I2Cé©±åŠ¨æ¨¡å—
 i2c_dri #(
-    .SLAVE_ADDR         (SLAVE_ADDR),       //²ÎÊı´«µİ
+    .SLAVE_ADDR         (SLAVE_ADDR),       //å‚æ•°ä¼ é€’
     .CLK_FREQ           (CLK_FREQ  ),              
     .I2C_FREQ           (I2C_FREQ  ) 
     )
@@ -80,7 +80,7 @@ u_i2c_dri(
 
     .i2c_exec           (i2c_exec  ),   
     .bit_ctrl           (BIT_CTRL  ),   
-    .i2c_rh_wl          (1'b0),        //¹Ì¶¨Îª0£¬Ö»ÓÃµ½ÁËIICÇı¶¯µÄĞ´²Ù×÷   
+    .i2c_rh_wl          (1'b0),        //å›ºå®šä¸º0ï¼Œåªç”¨åˆ°äº†IICé©±åŠ¨çš„å†™æ“ä½œ
     .i2c_addr           (i2c_data[15:8]),   
     .i2c_data_w         (i2c_data[7:0]),   
     .i2c_data_r         (),   
@@ -88,11 +88,11 @@ u_i2c_dri(
     
     .scl                (cam_scl   ),   
     .sda                (cam_sda   ),   
-    .dri_clk            (i2c_dri_clk)       //I2C²Ù×÷Ê±ÖÓ
+    .dri_clk            (i2c_dri_clk)       //I2Cæ“ä½œæ—¶é’Ÿ
     );
 
-//CMOSÍ¼ÏñÊı¾İ²É¼¯Ä£¿é
-cmos_capture_data u_cmos_capture_data(      //ÏµÍ³³õÊ¼»¯Íê³ÉÖ®ºóÔÙ¿ªÊ¼²É¼¯Êı¾İ 
+//CMOSå›¾åƒæ•°æ®é‡‡é›†æ¨¡å—
+cmos_capture_data u_cmos_capture_data(      //ç³»ç»Ÿåˆå§‹åŒ–å®Œæˆä¹‹åå†å¼€å§‹é‡‡é›†æ•°æ®
     .rst_n              (rst_n & capture_start),
     
     .cam_pclk           (cam_pclk),
@@ -102,8 +102,8 @@ cmos_capture_data u_cmos_capture_data(      //ÏµÍ³³õÊ¼»¯Íê³ÉÖ®ºóÔÙ¿ªÊ¼²É¼¯Êı¾İ
     
     .cmos_frame_vsync   (cmos_frame_vsync),
     .cmos_frame_href    (cmos_frame_href ),
-    .cmos_frame_valid   (cmos_frame_valid), //Êı¾İÓĞĞ§Ê¹ÄÜĞÅºÅ
-    .cmos_frame_data    (cmos_frame_data )  //ÓĞĞ§Êı¾İ 
+    .cmos_frame_valid   (cmos_frame_valid), //æ•°æ®æœ‰æ•ˆä½¿èƒ½ä¿¡å·
+    .cmos_frame_data    (cmos_frame_data )  //æœ‰æ•ˆæ•°æ®
     );
 
-endmodule 
+endmodule

@@ -1,18 +1,18 @@
 //****************************************Copyright (c)***********************************//
-//Ô­×Ó¸çÔÚÏß½ÌÑ§Æ½Ì¨£ºwww.yuanzige.com
-//¼¼ÊõÖ§³Ö£ºwww.openedv.com
-//ÌÔ±¦µêÆÌ£ºhttp://openedv.taobao.com 
-//¹Ø×¢Î¢ĞÅ¹«ÖÚÆ½Ì¨Î¢ĞÅºÅ£º"ÕıµãÔ­×Ó"£¬Ãâ·Ñ»ñÈ¡ZYNQ & FPGA & STM32 & LINUX×ÊÁÏ¡£
-//°æÈ¨ËùÓĞ£¬µÁ°æ±Ø¾¿¡£
-//Copyright(C) ÕıµãÔ­×Ó 2018-2028
+//åŸå­å“¥åœ¨çº¿æ•™å­¦å¹³å°ï¼šwww.yuanzige.com
+//æŠ€æœ¯æ”¯æŒï¼šwww.openedv.com
+//æ·˜å®åº—é“ºï¼šhttp://openedv.taobao.com
+//å…³æ³¨å¾®ä¿¡å…¬ä¼—å¹³å°å¾®ä¿¡å·ï¼š"æ­£ç‚¹åŸå­"ï¼Œå…è´¹è·å–ZYNQ & FPGA & STM32 & LINUXèµ„æ–™ã€‚
+//ç‰ˆæƒæ‰€æœ‰ï¼Œç›—ç‰ˆå¿…ç©¶ã€‚
+//Copyright(C) æ­£ç‚¹åŸå­ 2018-2028
 //All rights reserved
 //----------------------------------------------------------------------------------------
 // File name:           serializer_10_to_1
 // Last modified Date:  2021/4/7 9:30:00
 // Last Version:        V1.1
-// Descriptions:        ÓÃÓÚÊµÏÖ10:1²¢´®×ª»»
+// Descriptions:        ç”¨äºå®ç°10:1å¹¶ä¸²è½¬æ¢
 //----------------------------------------------------------------------------------------
-// Created by:          ÕıµãÔ­×Ó
+// Created by:          æ­£ç‚¹åŸå­
 // Created date:        2021/4/7 9:30:00
 // Version:             V1.0
 // Descriptions:        The original version
@@ -23,13 +23,13 @@
 `timescale 1ns / 1ps
 
 module serializer_10_to_1(
-    input           serial_clk_5x,      // ÊäÈë´®ĞĞ¸ßËÙÊı¾İÊ±ÖÓ
-    input           serial_clk,         // ÊäÈë´®ĞĞµÍËÙÊı¾İÊ±ÖÓ	
-    input   [9:0]   paralell_data,      // ÊäÈë²¢ĞĞÊı¾İ
+    input           serial_clk_5x,      // è¾“å…¥ä¸²è¡Œé«˜é€Ÿæ•°æ®æ—¶é’Ÿ
+    input           serial_clk,         // è¾“å…¥ä¸²è¡Œä½é€Ÿæ•°æ®æ—¶é’Ÿ
+    input   [9:0]   paralell_data,      // è¾“å…¥å¹¶è¡Œæ•°æ®
     input           reset_n,
 
-    output          serial_data_p,      // Êä³ö´®ĞĞ²î·ÖÊı¾İP
-    output          serial_data_n       // Êä³ö´®ĞĞ²î·ÖÊı¾İN
+    output          serial_data_p,      // è¾“å‡ºä¸²è¡Œå·®åˆ†æ•°æ®P
+    output          serial_data_n       // è¾“å‡ºä¸²è¡Œå·®åˆ†æ•°æ®N
     );
    
 GTP_OSERDES_E2 #

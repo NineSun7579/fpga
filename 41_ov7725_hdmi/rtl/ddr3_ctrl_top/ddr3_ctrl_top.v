@@ -1,15 +1,15 @@
 //****************************************Copyright (c)***********************************//
-//Ô­×Ó¸çÔÚÏß½ÌÑ§Æ½Ì¨£ºwww.yuanzige.com
-//¼¼ÊõÖ§³Ö£ºhttp://www.openedv.com/forum.php
-//ÌÔ±¦µêÆÌ£ºhttps://zhengdianyuanzi.tmall.com
-//¹Ø×¢Î¢ĞÅ¹«ÖÚÆ½Ì¨Î¢ĞÅºÅ£º"ÕıµãÔ­×Ó"£¬Ãâ·Ñ»ñÈ¡ZYNQ & FPGA & STM32 & LINUX×ÊÁÏ¡£
-//°æÈ¨ËùÓĞ£¬µÁ°æ±Ø¾¿¡£
-//Copyright(C) ÕıµãÔ­×Ó 2023-2033
+//åŸå­å“¥åœ¨çº¿æ•™å­¦å¹³å°ï¼šwww.yuanzige.com
+//æŠ€æœ¯æ”¯æŒï¼šhttp://www.openedv.com/forum.php
+//æ·˜å®åº—é“ºï¼šhttps://zhengdianyuanzi.tmall.com
+//å…³æ³¨å¾®ä¿¡å…¬ä¼—å¹³å°å¾®ä¿¡å·ï¼š"æ­£ç‚¹åŸå­"ï¼Œå…è´¹è·å–ZYNQ & FPGA & STM32 & LINUXèµ„æ–™ã€‚
+//ç‰ˆæƒæ‰€æœ‰ï¼Œç›—ç‰ˆå¿…ç©¶ã€‚
+//Copyright(C) æ­£ç‚¹åŸå­ 2023-2033
 //All rights reserved                                  
 //----------------------------------------------------------------------------------------
 // File name:           ddr3_ctrl_top
-// Created by:          ÕıµãÔ­×Ó
-// Created date:        2023Äê2ÔÂ3ÈÕ14:17:02
+// Created by:          æ­£ç‚¹åŸå­
+// Created date:        2023å¹´2æœˆ3æ—¥14:17:02
 // Version:             V1.0
 // Descriptions:        ddr3_ctrl_top
 //
@@ -21,24 +21,24 @@ module ddr3_ctrl_top(
     input                   wd_clk          ,
     input                   rd_clk          ,
     input                   rst_n           ,
-    // Íâ²¿Êı¾İ½Ó¿Ú   
-    input                   wd_en           ,   //Ğ´Ê¹ÄÜ
-    input       [15:0]      wd_data         ,   //Ğ´Êı¾İ
-    input                   rd_en           ,   //¶ÁÊ¹ÄÜ
-    output      [15:0]      rd_data         ,   //¶ÁÊı¾İ
-    input                   wr_load         ,   //ÊäÈëÔ´¸üĞÂĞÅºÅ
-    input                   rd_load         ,   //Êä³öÔ´¸üĞÂĞÅºÅ
-    input                   ddr3_pingpang_en,   //DDR3Æ¹ÅÒ²Ù×÷
+    // å¤–éƒ¨æ•°æ®æ¥å£
+    input                   wd_en           ,   //å†™ä½¿èƒ½
+    input       [15:0]      wd_data         ,   //å†™æ•°æ®
+    input                   rd_en           ,   //è¯»ä½¿èƒ½
+    output      [15:0]      rd_data         ,   //è¯»æ•°æ®
+    input                   wr_load         ,   //è¾“å…¥æºæ›´æ–°ä¿¡å·
+    input                   rd_load         ,   //è¾“å‡ºæºæ›´æ–°ä¿¡å·
+    input                   ddr3_pingpang_en,   //DDR3ä¹’ä¹“æ“ä½œ
     input                   ddr3_read_valid ,
-    // ddrµØÖ·³¤¶È¿ØÖÆ½Ó¿Ú                  
+    // ddråœ°å€é•¿åº¦æ§åˆ¶æ¥å£
     input       [26:0]      addr_rd_min     ,
     input       [26:0]      addr_rd_max     ,
     input       [9:0]       rd_burst_len    ,
     input       [26:0]      addr_wd_min     ,
     input       [26:0]      addr_wd_max     ,
     input       [9:0]       wd_burst_len    ,
-    output  reg             ddr3_init_done  ,   //ddr3³õÊ¼»¯Íê³É±êÖ¾
-    //DDR¿ØÖÆÆ÷½Ó¿Ú
+    output  reg             ddr3_init_done  ,   //ddr3åˆå§‹åŒ–å®Œæˆæ ‡å¿—
+    //DDRæ§åˆ¶å™¨æ¥å£
     output                  mem_rst_n       ,                       
     output                  mem_ck          ,
     output                  mem_ck_n        ,
@@ -102,7 +102,7 @@ reg            ddr3_init_done_c1;
 //**                    main code
 //*****************************************************
 
-// ÎÈ¶¨³õÊ¼»¯ĞÅºÅ
+// ç¨³å®šåˆå§‹åŒ–ä¿¡å·
 always@ (posedge ui_clk or negedge rst_n ) begin
     if(!rst_n)begin
         ddr3_init_done_c0 <= 1'b0;
@@ -122,7 +122,7 @@ always@(posedge ui_clk or negedge rst_n)begin
         ddr3_init_done <= ddr3_init_done;
 end
 
-// DDR3¶ÁĞ´¿ØÖÆÄ£¿é 
+// DDR3è¯»å†™æ§åˆ¶æ¨¡å—
 ddr3_rw_ctrl u_ddr3_rw_ctrl(
     .rst_n                  (rst_n      ),
     .clk                    (ui_clk     ),
@@ -149,7 +149,7 @@ ddr3_rw_ctrl u_ddr3_rw_ctrl(
     .ddr3_read_valid        (ddr3_read_valid)
 );
 
-// axi ¿ØÖÆÄ£¿é
+// axi æ§åˆ¶æ¨¡å—
 aq_axi_master u_aq_axi_master
 	(
 	.rst_n                  (rst_n  && ddr3_init_done),
@@ -309,7 +309,7 @@ ddr3_ip u_ddr3_ip (
     .debug_cpd_state            ( )                	// output [3:0]
 );
  
-// FIFO¿ØÖÆÄ£¿é
+// FIFOæ§åˆ¶æ¨¡å—
 ctrl_fifo u_ctrl_fifo(
     .rst_n                  (rst_n      ),
     .wd_clk                 (wd_clk     ),
