@@ -1,4 +1,4 @@
-# DDR3 bring-up compile 基线
+# DDR3 bring-up 实现基线
 
 ## 当前定位
 
@@ -32,6 +32,23 @@ powershell -ExecutionPolicy Bypass -File .\scripts\run.ps1 `
   -RunTo gen_bit_stream
 ```
 
+严格检查完整构建：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\run.ps1 `
+  -Action check-build
+```
+
+当前历史基线包含已知发布阻断。仅为了确认实现和产物可重复时，可显式运行：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\run.ps1 `
+  -Action check-build `
+  -AllowKnownBaselineIssues
+```
+
+baseline 放行不会把结果标记为发布候选。
+
 生成物统一写入本目录的 `build/`，不提交版本库。
 
 ## 已验证基线
@@ -42,12 +59,32 @@ powershell -ExecutionPolicy Bypass -File .\scripts\run.ps1 `
 - 成功加入 18 个示例 RTL、`ddr3.idf`、FDC 和 RCF。
 - 日志共有 272 条 warning；其中 `test_ddr.v:855` 有两条 BIST 错误数据端口位宽不匹配，其余告警按厂商 IP 基线保留并等待完整实现 gate 分类。
 
-该结果只证明源码和约束输入可重复编译，不证明 synthesis、PNR、板级时序、DDR 训练或功能仿真通过。
+已从空 `build/` 继续完成完整实现：
+
+- PDS 退出码为 0，完整日志没有 `E:`。
+- 最终报告为 `All Constraints Met`。
+- 慢角 setup WNS 为 `0.678 ns`、TNS 为 `0`；慢角 hold、recovery、removal 最差值分别为 `0.137 ns`、`4.578 ns`、`0.351 ns`。
+- 资源约为 4820 个 LUT、5327 个 FF 和 55 个 I/O。
+- 生成非零综合网表、PNR 网表、SDF、`.sbit` 和 `.bin`。
+
+产物基线：
+
+| 产物 | 大小（字节） |
+|---|---:|
+| `test_ddr_syn.vm` | 5,914,586 |
+| `test_ddr_sim.v` | 9,734,239 |
+| `test_ddr_sta.sdf` | 9,130,393 |
+| `test_ddr.sbit` | 3,791,112 |
+| `test_ddr.bin` | 3,789,476 |
+
+严格 gate 实测返回非零；显式使用 `-AllowKnownBaselineIssues` 时返回 0，并明确标记当前结果不可发布。`All Constraints Met` 只证明已建模的内部路径通过，不证明板级 I/O 时序、DDR 训练或功能仿真通过。
 
 ## 当前阻断项
 
 - 未根据实际板卡核对 DDR3 颗粒、容量、byte lane、VREF、终端、电源和 PCB 拓扑。
-- UART RX/TX 没有板级引脚和 I/O 标准约束。
+- 缺少经审核的板级参数清单，严格 gate 尚不能核对 IDF/FDC 与原理图的一致性。
+- `rst_board` 使用 M15 share pin，且 BANKR4 的 3.3 V VCCIO 与当前放置不兼容。
+- UART RX/TX 没有板级引脚和 I/O 标准约束；顶层输入/输出时序也未完整约束。
 - 当前 testbench 仍连接旧版顶层已经删除的 5 个端口，无法直接 elaboration。
 - 当前 BIST 持续随机读写，没有天然有限 `done`；`bist_run_led` 是翻转指示而不是完成信号。
 - `test_ddr.v:855` 的 `err_data_pre`、`err_data_aft` 与 BIST 模块端口位宽不一致。

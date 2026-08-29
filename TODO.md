@@ -1,8 +1,8 @@
 # 三项目整改 TODO
 
-更新日期：2026-08-29
+更新日期：2026-08-30
 
-状态：实施中。PCIe 可重复构建基线已完成；DDR3 compile-only 基线已提交；当前进入 DDR3 完整实现与严格 gate；OV7725 尚未开始整改。
+状态：实施中。PCIe 可重复构建基线已完成；DDR3 D1 全流程实现与 gate 已收口；当前进入 OV7725 O0-A CDC/RDC 清单批次。
 
 ## 1. 总体验收目标
 
@@ -39,8 +39,24 @@
 - [x] DDR3 新脚本显式加载 18 个示例 RTL、`ddr3.idf`、PG2L100H FDC 和 RCF。
 - [x] DDR3 compile-only 在 SP6.4 下成功，日志 `E:` 为 0。
 - [x] DDR3 compile-only 基线完成文档同步、静态验证并提交（`848ca4c`）。
+- [x] DDR3 从空 `build/` 完成到 `gen_bit_stream`，日志无 `E:`，内部 STA 为 `All Constraints Met`。
+- [x] DDR3 生成非零综合网表、PNR 网表、SDF、`.sbit` 和 `.bin`。
+- [x] DDR3 gate 已验证：严格模式因已知发布阻断返回非零，显式 baseline 放行模式返回 0 并标记不可发布。
 - [ ] OV7725 建立 SP6.4 可重复构建基线并开始 CDC/RDC 整改。
-- [ ] 安装 QuestaSim/ModelSim，编译 Logos2 USIM/VSIM 并完成三项目四级仿真。
+- [ ] 安装 QuestaSim/ModelSim 并记录版本和路径。
+- [ ] 编译 Logos2 USIM/VSIM。
+- [ ] 完成三项目分级自检仿真。
+
+### 近期执行顺序
+
+1. **P0：D1 已完成。** DDR3 gate、README、实施记录、TODO 和 `.nexus-map` 已作为独立批次收口。
+2. **P1：执行 O0-A。** 只建立 OV7725 CDC/RDC 清单和决策表，不改 RTL、IP 或约束。
+3. **P1：执行 O0-B。** 只建立 OV7725 相对路径 compile 基线和 warning 分类，不与 CDC 修复混提。
+4. **P1：评审 D2。** 确定 DDR3 有限 done/error 契约和测试顶层方案；该项与 O0 无技术依赖。
+5. **P2：实施 O1。** 仅在 O0-A/O0-B 证据齐全并经审核后，修改手写 RTL 的隐式网络和位宽问题。
+6. **持续泳道：H0-H3、S0。** 板级资料或仿真器一旦到位，立即关闭对应阻断；不因此阻塞前述静态工作。
+
+停止条件：未经用户审核，不进入 O1 及后续 RTL/IP/FDC 修改；缺少板级事实时不猜测管脚、电压、IP 参数或 I/O delay。
 
 ## 4. 主执行链
 
@@ -61,25 +77,26 @@
 
 验收：从干净 `build/` 重跑 compile 得到相同输入集；严格区分“可编译基线”与“产品/板级验收”。
 
-### D1：DDR3 完整实现与严格 gate（当前批次）
+### D1：DDR3 完整实现与严格 gate（已完成）
 
 依赖 D0；仍不宣称发布候选。
 
-- [ ] 为 DDR3 新增独立 `scripts/check_build.ps1`。
-- [ ] gate 检查 PDS `E:`、阶段完成标志、100H 器件、时序摘要和非零产物。
-- [ ] gate 将 UART、未约束关键 I/O、share pin、SCBV/板级参数和 BIST 位宽问题视为严格阻断。
-- [ ] 允许显式 baseline 模式验证历史设计可重复实现，但输出必须标记“不可发布”。
-- [ ] 分阶段执行 synthesize、dev_map、PNR、report_timing、gen_netlist 和 bitstream。
-- [ ] 记录新构建的 WNS、TNS、hold/recovery/removal、资源和 constraint warning。
-- [ ] 确认综合网表、PNR 网表、SDF、`.sbit`、`.bin` 均存在且非零。
-- [ ] 验证 baseline gate 通过、严格 gate 对未关闭项返回非零。
-- [ ] 同步 README、实现日志、`.nexus-map` 后独立提交。
+- [x] 为 DDR3 新增独立 `scripts/check_build.ps1`。
+- [x] gate 检查 PDS `E:`、阶段完成标志、100H 器件、时序摘要和非零产物。
+- [x] gate 将日志中出现的 UART、未约束关键 I/O、share pin、VCCIO/SCBV 和 BIST 位宽问题视为严格阻断。
+- [x] 允许显式 baseline 模式验证历史设计可重复实现，但输出必须标记“不可发布”。
+- [x] 从空 `build/` 执行 synthesize、dev_map、PNR、report_timing、gen_netlist 和 bitstream。
+- [x] 记录新构建结果：慢角 setup WNS `0.678 ns`、TNS `0`，hold `0.137 ns`，recovery `4.578 ns`，removal `0.351 ns`。
+- [x] 确认综合网表、PNR 网表、SDF、`.sbit`、`.bin` 均存在且非零。
+- [x] 验证 baseline gate 返回 0、严格 gate 因 7 类已知阻断返回非零。
+- [x] 将 `check_build.ps1` 的局部 `$Matches` 改为普通变量名，避免覆盖 PowerShell 自动变量，并重跑 AST 与 gate 双分支。
+- [x] 同步 README、实现日志、`.nexus-map`，作为本批独立提交收口。
 
 验收：完整 PDS 流程可重复执行，内部时序和产物检查有机器可判定结果；未获板级确认的问题仍被严格 gate 拦截。
 
 ### D2：定义 DDR3 有限自检契约
 
-该批先做设计评审，不要求 QuestaSim 已安装。
+该批先做设计评审，不要求 QuestaSim 已安装。技术上只依赖 D0，可与 D1 收口或 O0 并行；当前为避免交叉改动，排在 D1 提交之后。
 
 - [ ] 确定有限事务数、地址范围、数据模式、最大完成时间和错误统计语义。
 - [ ] 决定采用“修改 bring-up BIST 暴露 done/error”还是“建立更小的专用 AXI 测试顶层”。
@@ -93,7 +110,7 @@
 
 ### O0：OV7725 CDC/RDC 清单与 SP6.4 构建基线
 
-依赖 D1 完成后开始；本批不修改功能 RTL。
+本批不修改功能 RTL。它与 D1 无技术依赖；当前仅作为资源排期，在 D1 收口提交后开始。
 
 - [ ] 建立 CDC/RDC 表，覆盖 `sys_clk`、`cam_pclk`、`pixel_clk`、`pixel_clk_5x` 和 DDR `ui_clk`。
 - [ ] 每条跨域记录源域、目标域、信号类型、协议、事件频率、复位行为和验证方法。
@@ -157,6 +174,8 @@
 - [ ] 确认是否统一为 `Logos2 / PG2L100H / FBG484 / -6`。
 - [ ] 提供配置 bank 电压、启动模式和 share pin 使用条件。
 
+验收：原理图、BOM、芯片丝印或等价的一手资料已归档；每个器件/IP/管脚/电气参数能追溯到具体版本，相关约束或 waiver 已记录审核状态。
+
 ### H1：DDR3 板级参数
 
 - [ ] 提供 DDR3 完整料号、数量、容量、rank、x16/x32 组织和目标速率。
@@ -164,6 +183,7 @@
 - [ ] 确认 `free_clk` 频率、电气标准、精度和 `rst_board` 极性。
 - [ ] 提供 VCCIO/VREF、ODT、终端、拓扑和 PCB 走线时延依据。
 - [ ] 决定 UART/ADC 是否保留；若保留，提供管脚、电压和波特率。
+- [ ] 建立经审核的板级参数清单；清单不存在或与 IDF/FDC 不一致时，严格发布 gate 必须失败。
 
 ### H2：PCIe 板级参数与严格 gate
 
@@ -174,7 +194,8 @@
 - [ ] 用 SP6.4 IP Compiler 为 PG2L100H 重生成 PCIe IP，消除 50H/100H IDF 不一致。
 - [ ] 按决策处理 UART，消除无驱动 `rxd` 和隐式网络。
 - [ ] 为 HSST/refclk/lane/share pin 建立有官方模板和原理图依据的精确约束或 waiver。
-- [ ] 完整重建并使 `check_build.ps1` 不带 baseline 放行参数返回 0。
+- [x] 使用 baseline 放行完成全流程重建并保留产物、STA 和阻断证据。
+- [ ] 关闭前述 H2 阻断后，完整重建并使 `check_build.ps1` 不带 baseline 放行参数返回 0。
 
 ### H3：OV7725/HDMI 板级参数
 
@@ -201,9 +222,11 @@
 - [ ] PNR 后功能自检通过。
 - [ ] PNR 后时序自检通过且 SDF 层级正确。
 
+共同验收：每级测试有超时 `$fatal`，失败退出非零，成功只输出一次 `TEST PASS`；时序仿真日志不存在 SDF annotation error、实例匹配错误或未批准 timing violation。
+
 ### S2：PCIe 集成仿真
 
-依赖 H2、S0。
+行为级 smoke 依赖 S0、项目级 TB/filelist 和器件一致的 PCIe IP；不要求先关闭全部板级约束。综合后和 PNR 两级仿真还依赖 PCIe 严格构建闭环及对应网表/SDF。
 
 - [ ] 新建 `tb_pcie_dma_test.sv`，先覆盖复位、链路建立和超时 smoke。
 - [ ] 新建可移植 filelist 和行为级 DO，不改厂商示例 TB。
@@ -213,7 +236,7 @@
 
 ### S3：OV7725 集成仿真
 
-依赖 O4、H3、S0。
+摄像头模型、行为级 TB 和纯 RTL 数据通路自检依赖 S0 与已确认的输入格式契约，可先于全部板级约束开发。PNR 后功能/时序仿真依赖 O4、H3 和器件一致的网表/SDF。
 
 - [ ] 建立可重复摄像头帧输入模型和 `tb_ov7725_hdmi.sv`。
 - [ ] 覆盖 DDR 初始化延迟、帧写入/切换/读出、HDMI 有效区和 FIFO 边界。
@@ -244,10 +267,12 @@
 
 ## 9. 每个提交的完成定义
 
-- [ ] 修改范围单一，可独立说明和回退。
-- [ ] 新增 RTL/TB、Tcl、DO 和 PowerShell 包含必要注释与阶段日志。
-- [ ] 不新增工程内绝对路径、隐式 net 或仅打印但不失败的错误处理。
-- [ ] 对应最低级别测试已通过；不能运行的测试明确记录阻断原因。
-- [ ] README、实现日志、`.nexus-map` 和 TODO 状态同步。
-- [ ] `git diff --check`、PowerShell 语法和 JSON 检查通过。
-- [ ] 不提交 `build/`、transcript、临时库或其他工具生成物。
+以下为每批提交必须重复检查的验收条款，不作为一次性待办：
+
+- 修改范围单一，可独立说明和回退。
+- 新增 RTL/TB、Tcl、DO 和 PowerShell 包含必要注释与阶段日志。
+- 不新增工程内绝对路径、隐式 net 或仅打印但不失败的错误处理。
+- 对应最低级别测试已通过；不能运行的测试明确记录阻断原因。
+- README、实现日志、`.nexus-map` 和 TODO 状态同步。
+- `git diff --check`、PowerShell 语法和 JSON 检查通过。
+- 不提交 `build/`、transcript、临时库或其他工具生成物。

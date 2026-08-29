@@ -1,6 +1,6 @@
 > generated_by: Codex manual bootstrap
-> verified_at: 2026-08-29
-> provenance: existing PDS logs/reports, new DDR3 compile-only log, and static audit; no simulator execution in this repository session
+> verified_at: 2026-08-30
+> provenance: existing PDS logs/reports, new DDR3 full-build log, timing report, artifact gate runs, and static audit; no simulator execution in this repository session
 
 # Test Coverage
 
@@ -15,15 +15,17 @@
 | 项目 | PDS 实现证据 | 时序证据 | 行为仿真 | 综合后仿真 | PNR 功能仿真 | PNR 时序仿真 |
 |---|---|---|---|---|---|---|
 | OV7725 HDMI | 已有综合网表和非零 `.sbit` | 失败：慢角 setup WNS `-7.056 ns`，recovery WNS `-4.857 ns` | 未就绪 | 未就绪 | 未就绪 | 未就绪，无 SDF |
-| DDR3 外层 | 临时 `test_ddr` bring-up 顶层的 SP6.4 compile-only 已通过，日志无 `E:`、有 272 条 warning；完整实现未运行 | 仅旧 IP 示例内部通过，不证明新 bring-up 或最终板级工程 | 示例资产失配，未运行 | 未运行 | 未运行、无新网表 | 未运行、无新 SDF |
+| DDR3 外层 | 从空 `build/` 完成 SP6.4 七阶段全流程，日志无 `E:`；综合网表 `5,914,586`、PNR 网表 `9,734,239`、SDF `9,130,393`、`.sbit` `3,791,112`、`.bin` `3,789,476` 字节 | `All Constraints Met`；慢角 setup WNS `0.678 ns`、TNS `0`，hold `0.137 ns`、recovery `4.578 ns`、removal `0.351 ns` | 示例资产失配，未运行 | 综合网表已生成，未运行 | PNR 网表已生成，未运行 | SDF 已生成，未标注验证 |
 | PCIe DMA | 新 SP6.4 全流程完成，日志无 `E:`；新网表、SDF、`.sbit/.bin` 非零 | 新最终报告通过：慢角 setup WNS `0.584 ns`、TNS `0`，hold WHS `0.138 ns` | 仅 IP 示例 | 顶层未闭环 | 生成网表但未运行 | SDF 已生成但未标注验证 |
 
 ## 已知功能与覆盖缺口
 
 - OV7725：现有实现报告暴露真实 CDC/复位与时序风险，不能以位流存在作为验收结果。
-- DDR3：新脚本已能重建临时 `test_ddr` bring-up 的 compile-only 基线，但日志仍有 272 条 warning；该结果不验收 synthesis/PNR/STA/位流、板级参数与约束或功能。testbench 端口失配，且 BIST 无天然有限完成状态，缺少可靠 `$fatal`、超时、`TEST PASS` 和 CI 退出码。
+- DDR3：临时 `test_ddr` bring-up 已完成全流程与内部 STA/产物基线。严格 gate 因 7 类问题返回 1：BIST error-data 位宽不匹配、BIST dangling cleanup、`rst_board` 使用 share pin、BANKR4 VCCIO 3.3 不兼容、UART I/O 约束缺失、顶层输入 timing 缺失、顶层输出 timing 缺失。显式 baseline 放行返回 0，但明确标记不可发布。
+- DDR3：本次完整构建日志没有 SCBV 命中；这不替代板级批准参数清单。DDR3 颗粒/组织、VCCIO/VREF、ODT、拓扑、走线、UART/ADC 决策等仍缺少审核依据。
+- DDR3：testbench 端口仍失配，BIST 无天然有限完成状态，缺少可靠 `$fatal`、超时、唯一 `TEST PASS` 和四级仿真证据；当前结果只验收可重复实现基线，不验收板级功能或产品状态。
 - PCIe：现有 ModelSim 资产只覆盖 PCIe IP 示例，不覆盖 `pcie_dma_test` 集成顶层；UART2APB 的无驱动输入属于已知功能缺陷。
-- PCIe 新流程已生成顶层 PNR SDF，但尚未由 QuestaSim 验证实例层级；另外两个项目仍无顶层 SDF。
+- PCIe 与 DDR3 新流程均已生成顶层 PNR SDF，但尚未由 QuestaSim 验证实例层级；OV7725 仍无顶层 SDF。
 - 本机未找到 ModelSim/QuestaSim，因此本轮未运行任何仿真。
 - PDS 可能在日志含 `E:` 时仍返回退出码 0；新 PowerShell 入口必须同时检查退出码和错误日志。
 - PCIe 位流阶段报告 SCBV 未配置，这是当前发布阻断项。

@@ -1,5 +1,5 @@
 > generated_by: Codex manual bootstrap
-> verified_at: 2026-08-29
+> verified_at: 2026-08-30
 > provenance: current source tree, PDS project files, reports, and root audit notes
 
 # Systems
@@ -9,7 +9,7 @@
 - implementation_status: documented
 - code_path: null
 - evidence_path: `README.md`, `TODO.md`
-- evidence_gap: PCIe 相对路径构建入口已落地但尚待新构建验证；另外两个工程、仿真库和 CI Gate 尚未落地。
+- evidence_gap: PCIe 与 DDR3 已建立可重复全流程和严格/baseline gate；OV7725、仿真库和三项目四级仿真尚未完成。
 - responsibility: 定义 PDS 2022.2-SP6.4 的实现流程、ModelSim/QuestaSim 四级仿真流程及三工程整改门槛。
 
 ## Verilog/SystemVerilog 注释规范
@@ -34,15 +34,21 @@
 
 ## DDR3 外层工程
 
-- implementation_status: bringup_compile_baseline
+- implementation_status: bringup_full_implementation_baseline
 - code_path: `ddr3_test/ddr3_test/`
 - project_path: `ddr3_test/ddr3_test/ddr3_test.pds`
-- evidence_path: `ddr3_test/ddr3_test/scripts/build.tcl`, `ddr3_test/ddr3_test/build/logs/pds-compile.log`
-- evidence_gap: 仅 compile-only 已验证，日志无 `E:`但有 272 条 warning；synthesis、PNR、STA、网表/SDF、位流、板级参数与约束、产品功能和四级仿真均未验收。
+- evidence_path: `ddr3_test/ddr3_test/build/logs/pds-gen_bit_stream.log`, `ddr3_test/ddr3_test/build/pds/report_timing/test_ddr.rtr`, `ddr3_test/ddr3_test/scripts/check_build.ps1`
+- evidence_gap: SP6.4 全流程、STA、综合网表、PNR 网表、SDF 和位流已验证；严格 gate 因 7 类已知阻断返回 1，显式 baseline 放行返回 0 但不可发布。板级批准参数清单、产品功能和四级仿真仍未验收。
 - responsibility: 当前以厂商 `test_ddr` 作为临时 DDR3 board bring-up 顶层；后续必须明确真正产品顶层和板级功能范围。
 - provisional_build_entry: `ddr3_test/ddr3_test/scripts/run.ps1`
+- build_definition: `ddr3_test/ddr3_test/scripts/build.tcl`
+- build_gate: `ddr3_test/ddr3_test/scripts/check_build.ps1`
 - provisional_top: `ddr3_test/ddr3_test/ip_core/ddr3/example_design/rtl/test_ddr.v`
 - constraint_baseline: `ddr3_test/ddr3_test/ip_core/ddr3/pnr/ddr_test.fdc`, `ddr3_test/ddr3_test/ip_core/ddr3/pnr/ddr3.rcf`
+- timing_evidence: `All Constraints Met`; slow-corner setup WNS `0.678 ns`, TNS `0`; hold `0.137 ns`; recovery `4.578 ns`; removal `0.351 ns`
+- artifact_evidence: synthesis netlist `5,914,586` bytes; PNR netlist `9,734,239` bytes; SDF `9,130,393` bytes; `.sbit` `3,791,112` bytes; `.bin` `3,789,476` bytes
+- strict_gate_blockers: BIST error-data width mismatch, BIST dangling cleanup, `rst_board` share pin, BANKR4 VCCIO 3.3 incompatibility, UART I/O constraints missing, input timing missing, output timing missing
+- scbv_status: 当前 DDR3 完整构建日志无 SCBV 命中
 
 ## DDR3 IP 示例
 
@@ -51,7 +57,7 @@
 - entry_path: `ddr3_test/ddr3_test/ip_core/ddr3/example_design/rtl/test_ddr.v`
 - project_path: `ddr3_test/ddr3_test/ip_core/ddr3/pnr/ddr3.pds`
 - evidence_path: `ddr3_test/ddr3_test/ip_core/ddr3/pnr/place_route/test_ddr_timing_summary_after_hold_fix.txt`
-- evidence_gap: 示例 testbench 与当前顶层失配，且没有 PNR 功能网表或 SDF；板级 I/O 时序覆盖不足。
+- evidence_gap: 外层重建已生成当前 `test_ddr` 的 PNR 网表与 SDF，但示例 testbench 仍与顶层失配，SDF 尚未由外部仿真器标注验证，板级 I/O 时序覆盖不足。
 - responsibility: 厂商 DDR3 Controller/PHY 的参考写读测试设计，不等同于外层产品工程。
 
 ## PCIe DMA 顶层

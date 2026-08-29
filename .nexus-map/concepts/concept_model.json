@@ -1,6 +1,6 @@
 {
   "$schema": "nexus-mapper/concept-model/v1",
-  "generated_at": "2026-08-29T00:00:00+08:00",
+  "generated_at": "2026-08-30T00:00:00+08:00",
   "repo_path": ".",
   "generator": "Codex manual bootstrap",
   "nodes": [
@@ -12,7 +12,7 @@
       "implementation_status": "documented",
       "code_path": null,
       "evidence_path": "README.md",
-      "evidence_gap": "PCIe 构建与严格 gate 已验证；DDR3 仅完成 compile-only；OV7725、仿真库和三项目四级仿真尚未完成。",
+      "evidence_gap": "PCIe 与 DDR3 可重复全流程和严格/baseline gate 已验证；OV7725、仿真库和三项目四级仿真尚未完成。",
       "tech_stack": ["PDS Tcl", "PowerShell", "ModelSim/QuestaSim"],
       "related_reqs": ["可重复构建", "四级仿真", "时序闭环"],
       "complexity": "medium",
@@ -37,12 +37,12 @@
       "type": "System",
       "label": "DDR3 外层工程",
       "responsibility": "承载最终板级 DDR3 测试顶层、IP 和约束。",
-      "implementation_status": "bringup_compile_baseline",
+      "implementation_status": "bringup_full_implementation_baseline",
       "code_path": "ddr3_test/ddr3_test/",
-      "evidence_path": "ddr3_test/ddr3_test/scripts/build.tcl",
-      "evidence_gap": "当前以厂商 test_ddr 作为临时 bring-up 顶层并已通过 SP6.4 compile-only，日志无 E:、有 272 条 warning；synthesis、PNR、STA、网表/SDF、位流、产品顶层、板级参数与约束、严格 gate 和四级仿真均未验收。",
+      "evidence_path": "ddr3_test/ddr3_test/build/logs/pds-gen_bit_stream.log",
+      "evidence_gap": "厂商 test_ddr 临时 bring-up 已从空 build 完成 SP6.4 七阶段全流程，日志无 E:、STA 为 All Constraints Met，且五类产物非零；严格 gate 因 7 类已知阻断返回 1，显式 baseline 放行返回 0 但不可发布。日志无 SCBV 命中；板级批准参数清单、产品功能和四级仿真仍未验收。",
       "tech_stack": ["PDS", "DDR3 IP"],
-      "related_reqs": ["明确板级顶层", "板级约束", "写读回自检"],
+      "related_reqs": ["关闭严格 gate", "板级批准参数", "有限写读回自检"],
       "complexity": "medium",
       "hotspot": true
     },
@@ -54,7 +54,7 @@
       "implementation_status": "implemented_example_only",
       "code_path": "ddr3_test/ddr3_test/ip_core/ddr3/pnr/",
       "evidence_path": "ddr3_test/ddr3_test/ip_core/ddr3/pnr/place_route/test_ddr_timing_summary_after_hold_fix.txt",
-      "evidence_gap": "示例通过不代表外层产品工程；testbench 失配且无 PNR SDF。",
+      "evidence_gap": "外层重建已生成当前 test_ddr 的 PNR 网表与 SDF，但示例通过仍不代表产品工程；testbench 失配且 SDF 未标注验证。",
       "tech_stack": ["Verilog", "Pango Logos2", "DDR3 IP"],
       "related_reqs": ["示例迁移", "端口匹配", "四级仿真"],
       "complexity": "high",
@@ -116,7 +116,7 @@
       "source": "ddr3-outer-project",
       "target": "pds-workflow-guide",
       "type": "built_by",
-      "description": "DDR3 外层工程需要按统一流程完成产品级闭环。"
+      "description": "DDR3 临时 bring-up 已完成统一实现流程；仍需关闭严格 gate、补齐板级批准参数和产品级功能/仿真闭环。"
     },
     {
       "source": "pcie-dma-system",
@@ -163,10 +163,10 @@
   ],
   "metadata": {
     "analysis_mode": "manual bootstrap",
-    "git_commits_analyzed": 3,
+    "git_commits_analyzed": 6,
     "raw_ast_available": false,
     "limitations": [
-      "Only three repository commits are available; churn analysis remains too shallow for reliable hotspot ranking.",
+      "Only six repository commits are available; churn analysis remains too shallow for reliable hotspot ranking.",
       "No AST extraction was run.",
       "No ModelSim or QuestaSim execution was available."
     ]

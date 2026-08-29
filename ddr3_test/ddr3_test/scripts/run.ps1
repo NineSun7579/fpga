@@ -2,6 +2,7 @@ param(
     [ValidateSet(
         'env-check',
         'build',
+        'check-build',
         'clean-build'
     )]
     [string]$Action = 'build',
@@ -17,7 +18,9 @@ param(
     )]
     [string]$RunTo = 'compile',
 
-    [string]$PdsBin = 'E:\pango\PDS_2022.2-SP6.4\bin'
+    [string]$PdsBin = 'E:\pango\PDS_2022.2-SP6.4\bin',
+
+    [switch]$AllowKnownBaselineIssues
 )
 
 $ErrorActionPreference = 'Stop'
@@ -108,6 +111,11 @@ switch ($Action) {
     }
     'build' {
         Invoke-PdsBuild
+    }
+    'check-build' {
+        $CheckScript = Join-Path $PSScriptRoot 'check_build.ps1'
+        & $CheckScript `
+            -AllowKnownBaselineIssues:$AllowKnownBaselineIssues
     }
     'clean-build' {
         Remove-BuildDirectory
