@@ -9,7 +9,7 @@
 - implementation_status: documented
 - code_path: null
 - evidence_path: `README.md`, `TODO.md`
-- evidence_gap: PCIe 与 DDR3 已建立可重复全流程和严格/baseline gate；OV7725 O0-A CDC/RDC 审计已完成，O0-B SP6.4 构建基线、仿真库和三项目四级仿真尚未完成。
+- evidence_gap: 三项目均已建立 SP6.4 可重复全流程与严格/baseline gate 证据；OV7725 当前因明确负时序不可发布，仿真库和三项目四级仿真尚未完成。
 - responsibility: 定义 PDS 2022.2-SP6.4 的实现流程、ModelSim/QuestaSim 四级仿真流程及三工程整改门槛。
 
 ## Verilog/SystemVerilog 注释规范
@@ -27,15 +27,18 @@
 - entry_path: `41_ov7725_hdmi/rtl/ov7725_hdmi.v`
 - project_path: `41_ov7725_hdmi/prj/ov7725_hdmi.pds`
 - constraint_path: `41_ov7725_hdmi/prj/source/ov7725_hdmi.fdc`
-- evidence_path: `41_ov7725_hdmi/doc/CDC_RDC_AUDIT.md`, `41_ov7725_hdmi/prj/report_timing/ov7725_hdmi.rtr`
-- evidence_gap: O0-A 已完成静态 CDC/RDC 审计；O0-B SP6.4 可重复构建、顶层自检 testbench、PNR 功能网表和 SDF 尚未完成，现有位流不能证明时序合格。
+- evidence_path: `41_ov7725_hdmi/doc/CDC_RDC_AUDIT.md`, `41_ov7725_hdmi/build/logs/pds-gen_bit_stream.log`, `41_ov7725_hdmi/build/pds/report_timing/ov7725_hdmi.rtr`, `41_ov7725_hdmi/scripts/check_build.ps1`
+- evidence_gap: O0-A 静态 CDC/RDC 审计与 O0-B SP6.4 七阶段实现、网表/SDF/位流及 gate 基线已完成；最终 STA 明确失败，顶层自检和四级仿真尚未完成，当前结果不可发布。
 - responsibility: 将 OV7725 像素流经异步 FIFO 和 DDR3 帧缓存送往 HDMI/TMDS 输出。
 - clock_domains: `sys_clk`, `i2c_dri_clk`, `cam_pclk`, `pixel_clk`, `pixel_clk_5x`, `clk_50m/ref_clk`, `ui_clk`
 - cdc_findings: `wr_load`/`rd_load` 被多个逻辑独立采样；write FIFO 为 `cam_pclk → ui_clk`，read FIFO 为 `ui_clk → pixel_clk`
 - rdc_findings: 两个异步 FIFO 的帧复位从单一源域同时驱动两侧；`ddr3_init_done` 和组合顶层复位未逐域同步释放
-- timing_findings: 裸 `rd_load` CDC WNS `-7.056 ns`；read FIFO 指针路径 WNS `-2.279 ns`；`ddr3_init_done` 到 pixel reset recovery WNS `-4.857 ns`
+- build_inputs: 16 个手写 RTL、4 个活动 IDF、1 个顶层 FDC；器件固定为 `Logos2 / PG2L100H / FBG484 / -6`
+- build_status: SP6.4 七阶段进程退出 0，日志 `E: 0`；严格 gate 失败，显式 baseline gate 通过并标记不可发布
+- timing_findings: `Some Constraints Violated`；慢角 setup `-7.344 ns / TNS -132.832 ns / 20`、read FIFO 方向 setup `-2.275 ns / TNS -24.111 ns / 11`、recovery `-4.263 ns / TNS -202.445 ns / 53`；快角仍为相同三组失败端点
+- artifact_evidence: synthesis netlist `6,873,287` bytes; PNR netlist `11,600,361` bytes; SDF `8,894,116` bytes; `.sbit` `3,791,112` bytes; `.bin` `3,789,476` bytes
 - remediation_contract: 逐域异步置位/同步释放复位；帧事件只同步一次后在目标域扇出；FIFO 两侧复位分别在本地域释放；仅在结构闭环后对厂商认证路径添加精确例外
-- next_step: O0-B SP6.4 可重复构建基线
+- next_step: D2 有限自检契约评审；OV7725 O1-A 只读 RTL 卫生评审
 - high_attention: `i2c_dri_clk` 逻辑生成时钟、`cam_pclk`/DDR `ui_clk`/`pixel_clk` 间业务 CDC、FIFO 分侧复位，以及 `ddr3_init_done` 参与的复位释放。
 
 ## DDR3 外层工程

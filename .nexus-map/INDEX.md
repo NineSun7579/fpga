@@ -6,7 +6,7 @@
 
 本仓库汇集三个 Pango FPGA 工程，并以根目录文档约束后续整改方式：
 
-- `41_ov7725_hdmi/`：OV7725 采集、DDR3 帧缓存与 HDMI/TMDS 输出；已有实现和位流，但最终时序失败。
+- `41_ov7725_hdmi/`：OV7725 采集、DDR3 帧缓存与 HDMI/TMDS 输出；已完成 SP6.4 七阶段可重复实现和产物/gate 基线，但最终时序失败。
 - `ddr3_test/`：已用厂商 `test_ddr` 临时 bring-up 顶层完成 SP6.4 全流程实现、STA、网表/SDF、位流与构建 gate 验证；严格 gate 仍被板级和 RTL 已知问题阻断，它不是已验收的产品顶层。
 - `pcie_dma_test_100h/`：PCIe x2 DMA 集成顶层；实现和时序通过，但 UART2APB 通道存在未连接顶层端口的功能缺口。
 
@@ -21,6 +21,8 @@
 - DDR3 已从空 `build/` 完成 `compile → synthesize → dev_map → pnr → report_timing → gen_netlist → gen_bit_stream`，日志无 `E:`；最终报告为 `All Constraints Met`，慢角 setup WNS `0.678 ns`、TNS `0`，hold `0.137 ns`、recovery `4.578 ns`、removal `0.351 ns`。
 - DDR3 已生成非零综合网表、PNR 网表、SDF、`.sbit` 和 `.bin`；严格 gate 因 7 类已知阻断返回 1，显式 baseline 放行返回 0 但明确不可发布。日志没有 SCBV 命中，板级批准参数清单仍缺失，功能与四级仿真仍未验收。
 - OV7725 O0-A 已形成 [CDC/RDC 审计与整改契约](../41_ov7725_hdmi/doc/CDC_RDC_AUDIT.md)，覆盖七类时钟域、帧事件多点采样、两个异步 FIFO 的数据方向/分侧复位风险及三条旧 STA 失败路径；本批只建立事实和契约，未修改 RTL、IP 或 FDC。
+- OV7725 O0-B 已固定 `16 RTL + 4 IDF + 1 FDC`，从空 `build/` 完成 SP6.4 七阶段流程，进程退出 0 且日志 `E: 0`；最终 STA 为 `Some Constraints Violated`。慢角失败为 setup `-7.344 ns / -132.832 ns / 20`、read FIFO 方向 setup `-2.275 ns / -24.111 ns / 11`、recovery `-4.263 ns / -202.445 ns / 53`，快角仍命中相同三组失败端点。
+- OV7725 已生成非零综合网表 `6,873,287`、PNR 网表 `11,600,361`、SDF `8,894,116`、`.sbit` `3,791,112` 和 `.bin` `3,789,476` 字节；严格 gate 返回非零，显式 baseline gate 返回 0 并标记不可发布。
 - 根目录 [README](../README.md) 是 PDS 外部实现与仿真指南。
 - 根目录 [TODO](../TODO.md) 是当前整改顺序和验收门槛。
 - 新增或修改 Verilog/SystemVerilog 时必须遵循 [VSCS](../VERILOG_SYSTEMVERILOG_COMMENTING_STANDARD.md)。
@@ -38,8 +40,8 @@
 
 ## 当前优先级
 
-1. 执行 OV7725 O0-B：建立 SP6.4 相对路径构建、compile/完整实现和严格 gate 基线；O0-A CDC/RDC 决策已完成，后续约束必须服从已审核结构。
-2. 评审 DDR3 有限自检契约；板级批准参数到位后再关闭 BIST、share pin、VCCIO、UART 和 I/O timing 等严格 gate 阻断。
+1. 评审 DDR3 D2 有限自检契约，明确有限事务、done/error 和项目级 testbench 边界。
+2. 对 OV7725 O1-A 做只读 RTL 卫生评审；未经审核不修改 RTL、IP 或 FDC，后续约束必须服从 O0-A CDC/RDC 契约。
 3. PCIe 等待板级资料关闭 IDF、UART、share pin、HSST 约束和 SCBV 阻断项。
 4. QuestaSim 可用后，三个工程分别补齐集成顶层四级仿真和 SDF 标注验证。
 

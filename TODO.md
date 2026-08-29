@@ -2,7 +2,7 @@
 
 更新日期：2026-08-29
 
-状态：实施中。PCIe 可重复构建基线已完成；DDR3 D1 全流程实现与 gate 已收口；OV7725 O0-A CDC/RDC 审计已完成，当前进入 O0-B SP6.4 构建基线。
+状态：实施中。PCIe 与 DDR3 可重复构建基线已收口；OV7725 O0-A/O0-B 已完成事实审计、SP6.4 全流程基线和严格/baseline gate，下一批先评审 DDR3 D2，再提请审核 OV7725 O1-A。
 
 ## 1. 总体验收目标
 
@@ -43,7 +43,7 @@
 - [x] DDR3 生成非零综合网表、PNR 网表、SDF、`.sbit` 和 `.bin`。
 - [x] DDR3 gate 已验证：严格模式因已知发布阻断返回非零，显式 baseline 放行模式返回 0 并标记不可发布。
 - [x] OV7725 完成 O0-A CDC/RDC 事实清单与整改契约。
-- [ ] OV7725 建立 O0-B SP6.4 可重复构建基线。
+- [x] OV7725 建立 O0-B SP6.4 可重复全流程构建基线和严格/baseline gate。
 - [ ] 安装 QuestaSim/ModelSim 并记录版本和路径。
 - [ ] 编译 Logos2 USIM/VSIM。
 - [ ] 完成三项目分级自检仿真。
@@ -52,12 +52,13 @@
 
 1. **P0：D1 已完成。** DDR3 gate、README、实施记录、TODO 和 `.nexus-map` 已作为独立批次收口。
 2. **P1：O0-A 已完成。** OV7725 CDC/RDC 清单和决策表已收口，未改 RTL、IP 或约束。
-3. **P1：执行 O0-B。** 只建立 OV7725 相对路径 compile 基线和 warning 分类，不与 CDC 修复混提。
-4. **P1：评审 D2。** 确定 DDR3 有限 done/error 契约和测试顶层方案；该项与 O0 无技术依赖。
-5. **P2：实施 O1。** 仅在 O0-A/O0-B 证据齐全并经审核后，修改手写 RTL 的隐式网络和位宽问题。
-6. **持续泳道：H0-H3、S0。** 板级资料或仿真器一旦到位，立即关闭对应阻断；不因此阻塞前述静态工作。
+3. **P1：O0-B 已完成。** OV7725 已固定 16 个手写 RTL、4 个 IDF、唯一 FDC，并完成 SP6.4 七阶段实现、产物检查和双模式 gate；当前结果明确不可发布。
+4. **P1：评审 D2。** 只定义 DDR3 有限 done/error 契约和测试顶层方案，不修改 RTL/TB；该项不依赖仿真器或板级资料。
+5. **P2：评审 O1-A。** 逐条归属 OV7725 的 39 条手写 RTL 位宽告警、隐式网络和 OSERDES reset 问题，形成最小修改清单。
+6. **P2：实施 O1-B。** 仅在 O1-A 经用户审核后修改手写 RTL；本批不混入 CDC、复位或约束整改。
+7. **持续泳道：H0-H3、S0。** 板级资料或仿真器一旦到位，立即关闭对应阻断；H3 不阻塞 D2/O1，但阻塞 O4 和 PNR 后时序验收。
 
-停止条件：未经用户审核，不进入 O1 及后续 RTL/IP/FDC 修改；缺少板级事实时不猜测管脚、电压、IP 参数或 I/O delay。
+停止条件：未经用户审核，不进入 O1-B 及后续 RTL/IP/FDC 修改；缺少板级事实时不猜测管脚、电压、IP 参数或 I/O delay。
 
 ## 4. 主执行链
 
@@ -122,19 +123,34 @@
 
 验收：跨域与复位决策先于 RTL/约束修改；不存在“先加宽泛 false path，后判断结构”的未决项。
 
-### O0-B：OV7725 SP6.4 构建基线（当前批次）
+### O0-B：OV7725 SP6.4 构建基线（已完成）
 
 本批建立可重复构建入口，不修功能 RTL，也不移动厂商 IP。
 
-- [ ] 新建相对路径 `scripts/build.tcl`、PowerShell 入口和产物/日志检查器。
-- [ ] 显式固定 `Logos2 / PG2L100H / FBG484 / -6`、15 个业务 RTL、4 个 IP 和唯一 FDC。
-- [ ] 禁止依赖包含旧器件和失效绝对路径的 `prj/impl.tcl`。
-- [ ] 在干净 `build/` 中完成 SP6.4 compile 基线，并记录全部 warning。
-- [ ] 不修改 RTL 的前提下尝试完整实现，固化旧 WNS/TNS/recovery 基线和非零产物状态。
+- [x] 新建相对路径 `scripts/build.tcl`、PowerShell 入口和产物/日志检查器。
+- [x] 显式固定 `Logos2 / PG2L100H / FBG484 / -6`、16 个手写 RTL（顶层 + 15 个子模块）、4 个 IP 和唯一 FDC。
+- [x] 禁止依赖包含旧器件和失效绝对路径的 `prj/impl.tcl`，并排除 `ip_backup/**`、IP 内部 RTL/VP、模板和示例约束。
+- [x] 在干净 `build/` 中完成 SP6.4 compile 基线：退出码 0、日志无 `E:`，共 1139 条 warning，其中 39 条为手写 RTL 端口位宽告警。
+- [x] 在不修改 RTL/IP/FDC/RCF 的前提下完成 compile、synthesize、dev_map、PNR、report_timing、gen_netlist 和 bitstream。
+- [x] 固化当前失败基线：慢角 setup WNS `-7.344 ns`、TNS `-132.832 ns`；read FIFO 指针路径 WNS `-2.275 ns`、TNS `-24.111 ns`；recovery WNS `-4.263 ns`、TNS `-202.445 ns`。
+- [x] 确认综合网表、PNR 网表、SDF、`.sbit`、`.bin` 均存在且非零。
+- [x] gate 硬检查器件、20 个设计输入、唯一 FDC、七阶段标志、日志 `^E:` 和产物；严格模式拦截 10 类发布阻断，baseline 模式仅放行已知六组时序失败端点并明确不可发布。
 
-验收：所有工程输入可追溯，构建入口可重复；日志 `^E:` 和阶段标志均受机器 gate 检查。
+验收：所有工程输入可追溯，构建入口和失败基线可重复；严格 gate 返回非零，显式 baseline gate 返回 0 并输出 `not release-ready` 等价警告。
 
-### O1：OV7725 RTL 卫生修复
+### O1-A：OV7725 RTL 卫生修复方案评审
+
+本批只读，不修改 RTL、IP 或约束。
+
+- [ ] 将 39 条手写 RTL 位宽告警逐条映射到文件、实例、端口和正确宽度来源。
+- [ ] 核对 `rst_n`、`sys_init_done` 等隐式 net 的驱动、扇出和预期类型。
+- [ ] 依据 DDR3 IDF/template 确认顶层地址、burst、`mem_a` 等接口宽度；不以告警消失代替接口正确性。
+- [ ] 评审 `serializer_10_to_1.reset_n` 的真实意图，决定接入 OSERDES 还是删除无效输入。
+- [ ] 形成按文件拆分的最小修改清单、回归命令和回退边界，提请用户审核。
+
+验收：每个拟改动都有一手接口依据、明确预期和可执行验证；未经审核不进入实现。
+
+### O1-B：OV7725 RTL 卫生修复实现
 
 - [ ] 显式声明 `rst_n`、`sys_init_done` 等隐式 net。
 - [ ] 按端口宽度书写所有常量，消除顶层地址、burst 和 serializer RST 位宽警告。
@@ -142,7 +158,7 @@
 - [ ] 使 `serializer_10_to_1.reset_n` 真正控制 OSERDES，或经设计评审删除无效输入。
 - [ ] 不在本批修改 CDC 结构或时序约束。
 
-验收：compile 不再报告上述手写 RTL 的隐式网络和端口位宽问题；接口宽度与 IDF/template 一致。
+验收：compile 不再报告上述手写 RTL 的隐式网络和端口位宽问题；接口宽度与 IDF/template 一致；O0-B 全流程基线除预期告警减少外无新增阻断。
 
 ### O2：OV7725 分时钟域复位
 

@@ -10,15 +10,39 @@
 Logos2 / PG2L100H / FBG484 / -6
 ```
 
-现有 PDS 工程和报告由较旧的 PDS/IP 版本生成，且 `prj/impl.tcl` 含历史绝对路径；它们只作为现状证据，不是后续可重复构建入口。
+`prj/impl.tcl` 含历史绝对路径和旧器件操作，只作为现状证据。当前可重复构建入口为 `scripts/build.tcl` 和 `scripts/run.ps1`。
 
 ## 当前状态
 
-- 旧实现生成了非零 `.sbit`，但最终报告为 `Some Constraints Violated`。
-- 慢角 setup 最差 WNS 为 `-7.056 ns`，对应 `pixel_clk → ui_clk` 的 `video_vs/rd_load` 业务跨域。
-- read FIFO 内部指针路径 WNS 为 `-2.279 ns`，需要按厂商异步 FIFO 方法学核验。
-- 慢角 recovery 最差 WNS 为 `-4.857 ns`，对应 `ui_clk` 域 `ddr3_init_done` 进入 pixel 域异步复位。
-- 尚未建立 PDS 2022.2-SP6.4 相对路径构建脚本，也未运行项目级四级自检仿真。
+- 已从空 `build/` 在 PDS 2022.2-SP6.4 下完成七阶段实现，退出码为 0，日志无 `E:`。
+- 构建固定 16 个手写 RTL、4 个活动 IDF 和唯一 FDC，不依赖 `prj/impl.tcl`、`ip_backup/**` 或 IP 内部生成 RTL。
+- 最终报告仍为 `Some Constraints Violated`：慢角 setup 最差 WNS `-7.344 ns`、TNS `-132.832 ns`；read FIFO 指针路径 WNS `-2.275 ns`、TNS `-24.111 ns`；recovery 最差 WNS `-4.263 ns`、TNS `-202.445 ns`。
+- 完整日志包含 81 条 critical 和 4105 条 warning；其中有 39 条手写 RTL 端口位宽告警、88 条 `STA-3011`、4 条 `SDC-2025`、3 条 `Route-2036` 和 72 条 share-pin critical。
+- 已生成非零综合网表、PNR 网表、slow-corner SDF、`.sbit` 和 `.bin`。
+- 严格 gate 会因已知发布阻断返回非零；显式 baseline 模式仅证明当前失败基线可重复，并明确标记不可发布。
+- 本机尚无 ModelSim/QuestaSim，因此项目级四级自检仿真未运行。
+
+## 构建与检查
+
+```powershell
+# 从空生成目录执行完整实现。
+powershell.exe -ExecutionPolicy Bypass -File .\scripts\run.ps1 `
+    -Action clean-build
+powershell.exe -ExecutionPolicy Bypass -File .\scripts\run.ps1 `
+    -Action build `
+    -RunTo gen_bit_stream
+
+# 严格模式：当前预期返回非零。
+powershell.exe -ExecutionPolicy Bypass -File .\scripts\run.ps1 `
+    -Action check-build `
+    -RunTo gen_bit_stream
+
+# 基线模式：预期返回 0，但明确不可发布。
+powershell.exe -ExecutionPolicy Bypass -File .\scripts\run.ps1 `
+    -Action check-build `
+    -RunTo gen_bit_stream `
+    -AllowKnownBaselineIssues
+```
 
 ## CDC/RDC 决策
 
@@ -32,11 +56,6 @@ Logos2 / PG2L100H / FBG484 / -6
 
 ## 下一步
 
-下一批 O0-B 将建立：
+下一批 O1-A 只做 RTL 卫生修复方案评审：逐条归属 39 条位宽告警、隐式网络和 `serializer_10_to_1.reset_n` 问题，形成最小修改清单后提请审核。
 
-- 相对路径 `scripts/build.tcl`；
-- PowerShell 构建入口和日志 gate；
-- 明确的 15 个手写 RTL、4 个 IP 和唯一 FDC 输入清单；
-- 从干净 `build/` 执行的 SP6.4 compile 基线。
-
-O0-B 不修改功能 RTL。进入 O1 后，新增或修改的手写 RTL/TB 必须遵守根目录 `VERILOG_SYSTEMVERILOG_COMMENTING_STANDARD.md`。
+未经审核不进入 O1-B，也不修改 RTL/IP/FDC/RCF。后续新增或修改的手写 RTL/TB 必须遵守根目录 `VERILOG_SYSTEMVERILOG_COMMENTING_STANDARD.md`。

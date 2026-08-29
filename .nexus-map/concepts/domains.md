@@ -38,6 +38,8 @@ OV7725 已确定 sys、I2C、camera、pixel 和 DDR UI 域需要各自的本地�
 
 GUI 原生工程目录中的日志、数据库和绝对路径脚本是历史证据，不是可移植构建入口。目标结构应以相对路径脚本和统一 `build/` 目录隔离生成物。
 
+OV7725 O0-B 已按该边界固定 16 个手写 RTL、4 个活动 IDF 和唯一顶层 FDC，在 SP6.4 下完成七阶段实现并生成非零综合网表、PNR 网表、SDF 和位流。进程退出 0、日志无 `E:` 只能证明流程可重复；由于慢角 setup/recovery 及快角相同端点组仍为负裕量，严格 gate 必须失败，baseline gate 只能显式标记为不可发布。
+
 ## VSCS 注释治理
 
 后续手写 Verilog/SystemVerilog 应记录设计意图、接口契约、FSM、复位、CDC/RDC 和风险，不重复可以从代码、Git 或工具报告自动推导的事实。
