@@ -15,9 +15,9 @@ flowchart TD
   OVTop --> HDMI["HDMI/TMDS"]
   OVTop --> OVFdc["ov7725_hdmi.fdc"]
 
-  DDRShell["ddr3_test.pds\n外层 IP 壳"] --> DDRIdf["ddr3.idf"]
-  DDRIdf --> DDRExample["test_ddr\n厂商示例"]
-  DDRExample --> DDRFdc["ddr_test.fdc"]
+  DDRBringup["ddr3_test\n临时 bring-up 工程"] --> DDRIdf["ddr3.idf\n厂商 IP"]
+  DDRBringup --> DDRExample["test_ddr\n临时 bring-up 顶层"]
+  DDRBringup --> DDRFdc["ddr_test.fdc + ddr3.rcf\n约束基线"]
 
   PCIeTop["pcie_dma_test\n顶层"] --> PCIeIP["PCIe x2 IP"]
   PCIeTop --> DMA["DMA + RAM/FIFO"]
@@ -37,6 +37,6 @@ flowchart TD
 - 三工程的有效器件目标应与板卡实物一致；当前审计基线为 `Logos2 / PG2L100H / FBG484 / -6`。
 - 厂商 `.idf`、生成 RTL 和 PDS 仿真库属于外部生成依赖，不应被误当作独立手写逻辑。
 - OV7725 工程的摄像头、DDR UI 与 HDMI 时钟域互相依赖 CDC 和复位策略，必须先修结构再声明时序例外。
-- DDR3 外层工程依赖 IP 示例，但示例通过不能替代外层顶层、板级约束和产品自检。
+- DDR3 新入口已用 `test_ddr` 和 `ddr3.idf` 通过 compile-only；这只证明输入清单与编译入口可重复，不能替代完整实现、板级约束、产品自检或仿真验收。
 - PCIe 顶层依赖专用 HSST/IP 约束；UART2APB 是否保留是后续 RTL 与 FDC 的共同决策点。
 - 仿真流程依赖编译后的 Logos2 USIM/VSIM 库和可用的 `vsim.exe`/`vlog.exe`；当前环境不满足该依赖。

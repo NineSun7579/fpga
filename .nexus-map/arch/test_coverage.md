@@ -1,6 +1,6 @@
 > generated_by: Codex manual bootstrap
 > verified_at: 2026-08-29
-> provenance: existing PDS logs/reports and static audit; no simulator execution in this repository session
+> provenance: existing PDS logs/reports, new DDR3 compile-only log, and static audit; no simulator execution in this repository session
 
 # Test Coverage
 
@@ -15,13 +15,13 @@
 | 项目 | PDS 实现证据 | 时序证据 | 行为仿真 | 综合后仿真 | PNR 功能仿真 | PNR 时序仿真 |
 |---|---|---|---|---|---|---|
 | OV7725 HDMI | 已有综合网表和非零 `.sbit` | 失败：慢角 setup WNS `-7.056 ns`，recovery WNS `-4.857 ns` | 未就绪 | 未就绪 | 未就绪 | 未就绪，无 SDF |
-| DDR3 外层 | 无外层实现产物；IP 示例有实现和 `.sbit` | IP 示例内部通过，但不证明外层板级工程 | 示例资产失配 | 未闭环 | 未就绪 | 未就绪，无 SDF |
+| DDR3 外层 | 临时 `test_ddr` bring-up 顶层的 SP6.4 compile-only 已通过，日志无 `E:`、有 272 条 warning；完整实现未运行 | 仅旧 IP 示例内部通过，不证明新 bring-up 或最终板级工程 | 示例资产失配，未运行 | 未运行 | 未运行、无新网表 | 未运行、无新 SDF |
 | PCIe DMA | 新 SP6.4 全流程完成，日志无 `E:`；新网表、SDF、`.sbit/.bin` 非零 | 新最终报告通过：慢角 setup WNS `0.584 ns`、TNS `0`，hold WHS `0.138 ns` | 仅 IP 示例 | 顶层未闭环 | 生成网表但未运行 | SDF 已生成但未标注验证 |
 
 ## 已知功能与覆盖缺口
 
 - OV7725：现有实现报告暴露真实 CDC/复位与时序风险，不能以位流存在作为验收结果。
-- DDR3：现有 `test_ddr` 是厂商示例；testbench 端口失配，缺少可靠 `$fatal`、超时、`TEST PASS` 和 CI 退出码。
+- DDR3：新脚本已能重建临时 `test_ddr` bring-up 的 compile-only 基线，但日志仍有 272 条 warning；该结果不验收 synthesis/PNR/STA/位流、板级参数与约束或功能。testbench 端口失配，且 BIST 无天然有限完成状态，缺少可靠 `$fatal`、超时、`TEST PASS` 和 CI 退出码。
 - PCIe：现有 ModelSim 资产只覆盖 PCIe IP 示例，不覆盖 `pcie_dma_test` 集成顶层；UART2APB 的无驱动输入属于已知功能缺陷。
 - PCIe 新流程已生成顶层 PNR SDF，但尚未由 QuestaSim 验证实例层级；另外两个项目仍无顶层 SDF。
 - 本机未找到 ModelSim/QuestaSim，因此本轮未运行任何仿真。

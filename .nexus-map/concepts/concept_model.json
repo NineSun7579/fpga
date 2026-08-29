@@ -12,7 +12,7 @@
       "implementation_status": "documented",
       "code_path": null,
       "evidence_path": "README.md",
-      "evidence_gap": "PCIe 构建入口已创建但尚待新构建验证；另外两个工程、仿真库和 CI Gate 尚未实现。",
+      "evidence_gap": "PCIe 构建与严格 gate 已验证；DDR3 仅完成 compile-only；OV7725、仿真库和三项目四级仿真尚未完成。",
       "tech_stack": ["PDS Tcl", "PowerShell", "ModelSim/QuestaSim"],
       "related_reqs": ["可重复构建", "四级仿真", "时序闭环"],
       "complexity": "medium",
@@ -37,10 +37,10 @@
       "type": "System",
       "label": "DDR3 外层工程",
       "responsibility": "承载最终板级 DDR3 测试顶层、IP 和约束。",
-      "implementation_status": "incomplete_shell",
+      "implementation_status": "bringup_compile_baseline",
       "code_path": "ddr3_test/ddr3_test/",
-      "evidence_path": "ddr3_test/ddr3_test/ddr3_test.pds",
-      "evidence_gap": "当前只引用 DDR3 IP，没有外层产品实现产物。",
+      "evidence_path": "ddr3_test/ddr3_test/scripts/build.tcl",
+      "evidence_gap": "当前以厂商 test_ddr 作为临时 bring-up 顶层并已通过 SP6.4 compile-only，日志无 E:、有 272 条 warning；synthesis、PNR、STA、网表/SDF、位流、产品顶层、板级参数与约束、严格 gate 和四级仿真均未验收。",
       "tech_stack": ["PDS", "DDR3 IP"],
       "related_reqs": ["明确板级顶层", "板级约束", "写读回自检"],
       "complexity": "medium",
@@ -110,7 +110,7 @@
       "source": "ddr3-outer-project",
       "target": "ddr3-ip-example",
       "type": "depends_on",
-      "description": "外层产品工程当前只引用 DDR3 IP，并可能以厂商 test_ddr 示例为初始顶层。"
+      "description": "当前外层重建入口同时依赖 DDR3 IDF 与厂商 test_ddr，并将 test_ddr 明确限定为临时 bring-up 顶层。"
     },
     {
       "source": "ddr3-outer-project",
@@ -163,10 +163,10 @@
   ],
   "metadata": {
     "analysis_mode": "manual bootstrap",
-    "git_commits_analyzed": 1,
+    "git_commits_analyzed": 3,
     "raw_ast_available": false,
     "limitations": [
-      "Only the root baseline commit is available; churn analysis would be misleading.",
+      "Only three repository commits are available; churn analysis remains too shallow for reliable hotspot ranking.",
       "No AST extraction was run.",
       "No ModelSim or QuestaSim execution was available."
     ]

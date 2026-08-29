@@ -17,7 +17,7 @@
 - `41_ov7725_hdmi/rtl/ov7725_hdmi.v`：视频链路顶层、跨域控制和复位组合点。
 - `41_ov7725_hdmi/prj/source/ov7725_hdmi.fdc`：时钟、CDC 例外和板级 I/O 约束入口。
 - `ddr3_test/ddr3_test/ddr3_test.pds`：外层工程边界不完整。
-- `ddr3_test/ddr3_test/ip_core/ddr3/pnr/example_design/rtl/test_ddr.v`：可能升级为板级基线的厂商示例顶层。
+- `ddr3_test/ddr3_test/ip_core/ddr3/example_design/rtl/test_ddr.v`：当前临时 bring-up 顶层；compile-only 通过不代表产品或板级验收。
 - `pcie_dma_test_100h/hdl/pcie_dma_test.v`：UART2APB 隐式 `rxd/txd` 连接与 PCIe DMA 集成入口。
 - `pcie_dma_test_100h/fdc/pcie_dma_test.fdc`：PCIe 专用资源、复位和普通 I/O 约束入口。
 

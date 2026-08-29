@@ -7,7 +7,7 @@
 本仓库汇集三个 Pango FPGA 工程，并以根目录文档约束后续整改方式：
 
 - `41_ov7725_hdmi/`：OV7725 采集、DDR3 帧缓存与 HDMI/TMDS 输出；已有实现和位流，但最终时序失败。
-- `ddr3_test/`：外层工程目前只是 DDR3 IP 壳；真正完成实现的是 IP 自带 `test_ddr` 示例。
+- `ddr3_test/`：已用厂商 `test_ddr` 建立临时板级 bring-up 顶层，并通过 SP6.4 compile-only；它仍不是已验收的产品顶层。
 - `pcie_dma_test_100h/`：PCIe x2 DMA 集成顶层；实现和时序通过，但 UART2APB 通道存在未连接顶层端口的功能缺口。
 
 三个工程当前有效器件目标均按 `Logos2 / PG2L100H / FBG484 / -6` 审计。PDS 负责实现，外部 ModelSim/QuestaSim 负责仿真；本机当前未发现 `vsim.exe`，所以本地图只记录静态证据，不声称仿真已运行。
@@ -16,8 +16,9 @@
 
 - Git 分支：`main`。
 - Git 基线提交：`1a2d493`（三个原始工程、已有报告和整改文档）。
-- 现有 PDS 生成物位于各 GUI 工程目录中，尚未统一隔离到 `build/`。
-- PCIe 工程已新增相对路径构建入口，正在以新 `build/` 产物验证。
+- 原始 PDS 生成物仍位于各 GUI 工程目录中；新增流程统一输出到被忽略的 `build/`。
+- PCIe 已完成新 `build/` 全流程、STA、网表/SDF/位流和严格 gate 验证。
+- DDR3 已建立相对路径入口并通过 SP6.4 compile-only，日志无 `E:`、有 272 条 warning；synthesis/PNR/STA/位流、板级参数与约束、四级仿真均未验收。
 - 根目录 [README](../README.md) 是 PDS 外部实现与仿真指南。
 - 根目录 [TODO](../TODO.md) 是当前整改顺序和验收门槛。
 - 新增或修改 Verilog/SystemVerilog 时必须遵循 [VSCS](../VERILOG_SYSTEMVERILOG_COMMENTING_STANDARD.md)。
@@ -35,10 +36,10 @@
 
 ## 当前优先级
 
-1. 先验证 PCIe 相对路径构建入口，再建立集成仿真并处理 UART2APB 死通道。
-2. 明确 DDR3 外层板级顶层，不能把 IP 示例结果当作产品工程结果。
-3. 修复 OV7725 工程的真实 CDC、复位释放和负时序。
-4. 三个工程统一补齐顶层四级仿真、PNR 功能网表、SDF 与 CI Gate。
+1. 收口 DDR3 compile-only 提交，再完成全流程实现与严格 gate。
+2. 为 OV7725 建立 CDC/RDC 清单和 SP6.4 可重建基线，再分批修复复位与业务 CDC。
+3. PCIe 等待板级资料关闭 IDF、UART、share pin、HSST 约束和 SCBV 阻断项。
+4. QuestaSim 可用后，三个工程分别补齐集成顶层四级仿真和 SDF 标注验证。
 
 ## 更新规则
 

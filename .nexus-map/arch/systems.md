@@ -34,18 +34,21 @@
 
 ## DDR3 外层工程
 
-- implementation_status: incomplete_shell
+- implementation_status: bringup_compile_baseline
 - code_path: `ddr3_test/ddr3_test/`
 - project_path: `ddr3_test/ddr3_test/ddr3_test.pds`
-- evidence_path: `ddr3_test/ddr3_test/ip_core/ddr3/ddr3.idf`
-- evidence_gap: 外层没有明确产品 RTL、逻辑约束或实现产物。
-- responsibility: 当前仅承载 DDR3 IP 引用；后续必须明确真正板级顶层和功能范围。
+- evidence_path: `ddr3_test/ddr3_test/scripts/build.tcl`, `ddr3_test/ddr3_test/build/logs/pds-compile.log`
+- evidence_gap: 仅 compile-only 已验证，日志无 `E:`但有 272 条 warning；synthesis、PNR、STA、网表/SDF、位流、板级参数与约束、产品功能和四级仿真均未验收。
+- responsibility: 当前以厂商 `test_ddr` 作为临时 DDR3 board bring-up 顶层；后续必须明确真正产品顶层和板级功能范围。
+- provisional_build_entry: `ddr3_test/ddr3_test/scripts/run.ps1`
+- provisional_top: `ddr3_test/ddr3_test/ip_core/ddr3/example_design/rtl/test_ddr.v`
+- constraint_baseline: `ddr3_test/ddr3_test/ip_core/ddr3/pnr/ddr_test.fdc`, `ddr3_test/ddr3_test/ip_core/ddr3/pnr/ddr3.rcf`
 
 ## DDR3 IP 示例
 
 - implementation_status: implemented_example_only
 - code_path: `ddr3_test/ddr3_test/ip_core/ddr3/pnr/`
-- entry_path: `ddr3_test/ddr3_test/ip_core/ddr3/pnr/example_design/rtl/test_ddr.v`
+- entry_path: `ddr3_test/ddr3_test/ip_core/ddr3/example_design/rtl/test_ddr.v`
 - project_path: `ddr3_test/ddr3_test/ip_core/ddr3/pnr/ddr3.pds`
 - evidence_path: `ddr3_test/ddr3_test/ip_core/ddr3/pnr/place_route/test_ddr_timing_summary_after_hold_fix.txt`
 - evidence_gap: 示例 testbench 与当前顶层失配，且没有 PNR 功能网表或 SDF；板级 I/O 时序覆盖不足。
