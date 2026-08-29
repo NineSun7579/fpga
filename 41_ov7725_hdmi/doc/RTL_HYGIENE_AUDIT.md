@@ -1,6 +1,6 @@
 # OV7725 O1-A RTL 卫生修复评审
 
-状态：O1-A 只读评审，待 O1-B 实现审核
+状态：O1-A 评审与 O1-B 实现均已完成；O2/RDC 与 O1-C/H3 仍未完成
 
 适用日期：2026-08-29
 
@@ -99,11 +99,11 @@ O1-A 不处理 O0-A 已识别的 CDC/RDC、FIFO 分侧复位、时序例外或�
 
 ## 5. 地址与 burst 的协议语义
 
-`ddr3_rw_ctrl` 与 `aq_axi_master` 之间的左移 3 不能简单删除：
+`ddr3_rw_ctrl` 与 `aq_axi_master` 之间的左移 3 不能简单删除。手写 RTL 能证明编码关系，但没有给出足以确认物理字节单位的接口规格：
 
-- `ddr3_rw_ctrl` 的 `wd_addr/rd_addr` 按 256-bit beat 索引推进；
-- `aq_axi_master` 向 DDR3 AXI 端口发送低 3 位为 0 的控制器地址；
-- `aq_axi_master` 使用 `wr_len[10:3]` 和 `rd_len[10:3]` 还原 beat 数；
+- `ddr3_rw_ctrl` 产生当前控制器地址计数值，并按配置的长度值推进；
+- `aq_axi_master` 接收低 3 位为 0 的编码地址；O1-B 只保留该 legacy 编码，不把低 3 位解释成未经规格确认的字节偏移；
+- `aq_axi_master` 使用 `wr_len[10:3]` 和 `rd_len[10:3]` 还原输入长度值；
 - 当前 `H_CMOS_DISP=640`，`H_CMOS_DISP[10:2]=160`，编码后长度为 1280，能放入 11 bit。
 
 当前 `wd_addr/rd_addr[26:24]` 由 `ddr3_rw_ctrl` 固定为 `3'b000`，因此显式连接低 24 bit 后追加 3 个 0 与现有有效行为一致。当前 burst 160 小于 256，因此显式使用低 8 bit 后追加 3 个 0 也与现有有效行为一致。
@@ -111,7 +111,7 @@ O1-A 不处理 O0-A 已识别的 CDC/RDC、FIFO 分侧复位、时序例外或�
 O1-B 必须在注释中记录以下接口假设：
 
 - AXI 地址源不得超过 24 bit，否则左移 3 会溢出 27-bit formal；
-- 单次 `wd_len/rd_len` 必须小于等于 255 beats；
+- 编码前的 `wd_len/rd_len` 值必须小于等于 255；
 - 这些上界由当前参数和编译检查证明，不得只依赖截断行为。
 
 由于工程仍是 Verilog-2001，O1-B 不为这一小批次改写成 SystemVerilog assertion。最低机器证据为 PDS elaboration、定向参数扫描和现有参数值检查；未来迁移 SystemVerilog 时再加入 elaboration assertion。
@@ -241,6 +241,16 @@ compile 验收：
 
 随后从空 `build/` 执行七阶段完整回归。因 O0-A 的 CDC/RDC 和负时序尚未修复，严格 gate 仍应失败；显式 baseline gate 只能在已知时序端点和单一 `mem_a` warning 精确匹配时通过，并继续输出不可发布标记。
 
+O1-B 实测结果：
+
+- compile 与七阶段实现的 PDS 退出码均为 0，完整日志无 `E:`；
+- 手写 RTL 位宽告警由 39 条降为 1 条，唯一剩余项为 `ddr3_ip.mem_a`；
+- 完整日志 warning 由 O0-B 的 4105 条降为 4067 条，critical 保持 81 条且没有新增未分类项；
+- 综合网表、PNR 网表、slow-corner SDF、`.sbit` 和 `.bin` 均存在且非零；
+- 严格 gate 返回 1，baseline gate 在精确匹配 7 组失败指纹后返回 0，并明确输出不可发布标记。
+
+接入八个 OSERDES 的 `RST` 后，最终 STA 新增一组 Slow/Recovery：`pixel_clk → pixel_clk_5x`、WNS `-0.643 ns`、TNS `-4.191 ns`、8/8 端点。详细报告将 startpoint 指向 `reset_syn/reset_1`，八个 endpoint 对应四个 serializer 的 master/slave OSERDES。该组只作为当前失败状态指纹进入 baseline，不构成 waiver；O2-B 必须通过 `pixel_clk_5x` 域同步释放复位关闭它。
+
 QuestaSim 当前不可用，因此 O1-B 不能声明 HDMI 串化功能或四级仿真通过。OSERDES reset 的动态行为必须在 S0/S3 就绪后补测。
 
 ## 11. 回退边界
@@ -260,3 +270,16 @@ O1-A 只有在以下条件同时满足时完成：
 4. 隐式网络与 OSERDES reset 的功能语义已明确；
 5. O1-B 修改清单、回归命令、停止条件和回退边界无需再次猜测；
 6. O1-A 本身没有修改 RTL、IP 或约束。
+
+## 13. O1-B 完成与后续边界
+
+O1-B 已完成以下事实闭环：
+
+1. 38 条确定性位宽告警消失，`mem_a` 保持为唯一板级阻断；
+2. `rst_n` 显式声明，`sys_init_done` 死网删除；
+3. 四个 serializer 的八个 OSERDES 均连接高有效本地复位；
+4. gate 同时检查参数上界、唯一 `mem_a` 告警和 7 组精确时序失败签名；
+5. 厂商 IP、FDC、RCF、FIFO 和时序例外未修改；
+6. QuestaSim 未安装，因此没有声明行为级、综合后或 PNR 后仿真通过。
+
+下一批必须先做 O2-A 契约确认，再以独立 O2-B 提交把 OSERDES reset 的释放同步到 `pixel_clk_5x`。不得把 O2-B 扩展为顶层、camera、DDR UI 或 FIFO 的全量复位重构；这些属于 O2-C。

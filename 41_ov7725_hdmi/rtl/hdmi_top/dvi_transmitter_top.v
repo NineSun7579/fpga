@@ -38,7 +38,7 @@ module dvi_transmitter_top(
    );
     
 //wire define
-wire        reset;
+wire        reset;  // 同步到 pclk 的高有效复位；相对 pclk_x5 的释放仍属于 O2/RDC。
     
 //并行数据
 wire [9:0]  red_10bit;
@@ -99,7 +99,7 @@ serializer_10_to_1 serializer_b(
     .serial_clk_5x      (pclk_x5),              // 输入串行高速数据时钟
 	.serial_clk         (pclk),                 // 输入串行低速数据时钟
     .paralell_data      (blue_10bit),           // 输入并行数据
-    .reset_n            (reset),
+    .reset              (reset),
     .serial_data_p      (tmds_data_p[0]),       // 输出串行数据P
     .serial_data_n      (tmds_data_n[0])        // 输出串行数据N
     );
@@ -108,7 +108,7 @@ serializer_10_to_1 serializer_g(
     .serial_clk_5x      (pclk_x5),              // 输入串行高速数据时钟
 	.serial_clk         (pclk),                 // 输入串行低速数据时钟
     .paralell_data      (green_10bit),          // 输入并行数据
-    .reset_n            (reset),
+    .reset              (reset),
     .serial_data_p      (tmds_data_p[1]),       // 输出串行数据P
     .serial_data_n      (tmds_data_n[1])        // 输出串行数据N
     );
@@ -117,7 +117,7 @@ serializer_10_to_1 serializer_r(
     .serial_clk_5x      (pclk_x5),              // 输入串行高速数据时钟
 	.serial_clk         (pclk),                 // 输入串行低速数据时钟
     .paralell_data      (red_10bit),            // 输入并行数据
-    .reset_n            (reset),
+    .reset              (reset),
     .serial_data_p      (tmds_data_p[2]),       // 输出串行数据P
     .serial_data_n      (tmds_data_n[2])        // 输出串行数据N
     );
@@ -126,7 +126,7 @@ serializer_10_to_1 serializer_clk(
     .serial_clk_5x      (pclk_x5),              // 输入串行高速数据时钟
 	.serial_clk         (pclk),                 // 输入串行低速数据时钟
     .paralell_data      (clk_10bit),
-    .reset_n            (reset),
+    .reset              (reset),
     .serial_data_p      (tmds_clk_p),           // 输出串行时钟P
     .serial_data_n      (tmds_clk_n)            // 输出串行时钟N
     );

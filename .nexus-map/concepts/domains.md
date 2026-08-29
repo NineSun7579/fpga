@@ -32,6 +32,8 @@ OV7725 的帧同步当前是长电平而非单周期脉冲，且 `wr_load`/`rd_l
 
 OV7725 已确定 sys、I2C、camera、pixel 和 DDR UI 域需要各自的本地复位；`ddr3_init_done` 只作为同步后的状态/使能，不得直接组合到其他域异步复位脚。
 
+O1-B 将高有效 reset 接入四个 serializer 内的八个 OSERDES 后，PDS 新报告 Slow Recovery `pixel_clk → pixel_clk_5x` `-0.643 ns / TNS -4.191 ns / 8/8`。这证明 pclk 域同步释放不能直接视为 pclk_5x 域已闭环；下一步必须按 O2-A → O2-B → O2-C 分离 reset 契约、局部实现和其余逐域复位，不能用宽泛 false path 掩盖。
+
 ## 时序闭环
 
 `All Constraints Met` 只覆盖已建模路径。验收还需检查未约束时钟、未约束关键 I/O、CDC 报告、setup/hold/recovery/removal、SDF 标注与板级接口假设。
@@ -40,13 +42,13 @@ OV7725 已确定 sys、I2C、camera、pixel 和 DDR UI 域需要各自的本地�
 
 GUI 原生工程目录中的日志、数据库和绝对路径脚本是历史证据，不是可移植构建入口。目标结构应以相对路径脚本和统一 `build/` 目录隔离生成物。
 
-OV7725 O0-B 已按该边界固定 16 个手写 RTL、4 个活动 IDF 和唯一顶层 FDC，在 SP6.4 下完成七阶段实现并生成非零综合网表、PNR 网表、SDF 和位流。进程退出 0、日志无 `E:` 只能证明流程可重复；由于慢角 setup/recovery 及快角相同端点组仍为负裕量，严格 gate 必须失败，baseline gate 只能显式标记为不可发布。
+OV7725 O1-B 已按该边界固定 16 个手写 RTL、4 个活动 IDF 和唯一顶层 FDC，在 SP6.4 下完成七阶段实现：进程退出 0、日志 `E: 0`、warning `4067`、critical `81`，五类产物均非零。严格 gate 返回 1；baseline 只有在七组 corner/check/clock pair/endpoints 精确匹配时返回 0，并继续标记不可发布。
 
 ## RTL 卫生与板级接口边界
 
-OV7725 O1-A 以 `RTL_HYGIENE_AUDIT.md` 固定手写 RTL 卫生契约：39 条位宽告警按 `1 + 4 + 26 + 6 + 2` 分组，38 条可通过显式零扩展、定宽 tie-off、地址/长度编码和 serializer reset 连接确定修复。`rst_n` 应显式声明，只有赋值而无读取者的 `sys_init_done` 应删除。
+OV7725 O1-A 以 `RTL_HYGIENE_AUDIT.md` 固定手写 RTL 卫生契约，O1-B 已完成其中 38 条确定性修复：显式零扩展、定宽 tie-off、地址/长度编码、`rst_n` 声明、删除 `sys_init_done` 死网及 serializer reset 连接均已落地。
 
-serializer 接收的是高有效 reset；O1-B 若获审核，应让该信号驱动四个 serializer 内共八个 OSERDES 的高有效 `RST`。这属于局部功能修复，但不替代 O2 的逐域复位/RDC 整改。
+serializer 接收高有效 reset；O1-B 已让该信号驱动四个 serializer 内共八个 OSERDES 的高有效 `RST`。该局部功能修复暴露了新的 pclk→pclk_5x recovery 失败，因此必须继续进入 O2-A/O2-B，而不能视为复位闭环。
 
 `mem_a` 是板级接口冲突而非机械消警：活动 IP 为 14 bit，顶层/FDC 为 15 bit，当前综合网表将第 15 bit 绑 0。它必须等待 H3 板级 DDR3 事实并在 O1-C 独立处理；O1-B 不修改 `mem_a`、IP、FDC、CDC/RDC 或时序例外。
 

@@ -26,7 +26,9 @@ module serializer_10_to_1(
     input           serial_clk_5x,      // 输入串行高速数据时钟
     input           serial_clk,         // 输入串行低速数据时钟
     input   [9:0]   paralell_data,      // 输入并行数据
-    input           reset_n,
+    // 高有效 OSERDES 复位；LRS_TYPE_*="ASYNC_RESET" 决定原语复位行为。
+    // 相对 serial_clk_5x 的释放仍由 O2/RDC 验证。
+    input           reset,
 
     output          serial_data_p,      // 输出串行差分数据P
     output          serial_data_n       // 输出串行差分数据N
@@ -56,7 +58,7 @@ GTP_OSERDES_E2 #
 . OCASCADE_EN   ( "FALSE"      )    //"FALSE","TRUE"
 ) 
 GTP_OSERDES_E2_data_master (
-. RST           ( 0     ),
+. RST           ( reset         ),
 . OCE           ( 1'b1           ),
 . TCE           ( 1'b0           ),
 . OCLKDIV       ( serial_clk   ),
@@ -102,7 +104,7 @@ GTP_OSERDES_E2 #
 ) 
 GTP_OSERDES_E2_data_slave
 (
-. RST           ( 0    ),
+. RST           ( reset        ),
 . OCE           ( 1'b1          ),
 . TCE           ( 1'b0          ),
 . OCLKDIV       ( serial_clk   ),

@@ -28,19 +28,19 @@
 - project_path: `41_ov7725_hdmi/prj/ov7725_hdmi.pds`
 - constraint_path: `41_ov7725_hdmi/prj/source/ov7725_hdmi.fdc`
 - evidence_path: `41_ov7725_hdmi/doc/CDC_RDC_AUDIT.md`, `41_ov7725_hdmi/doc/RTL_HYGIENE_AUDIT.md`, `41_ov7725_hdmi/build/logs/pds-gen_bit_stream.log`, `41_ov7725_hdmi/build/pds/report_timing/ov7725_hdmi.rtr`, `41_ov7725_hdmi/scripts/check_build.ps1`
-- evidence_gap: O0-A CDC/RDC、O0-B SP6.4 实现/gate 与 O1-A RTL 卫生评审已完成；O1-B 的 38 条确定修复尚未审核实施，`mem_a` 仍受 H3/O1-C 板级事实阻断，最终 STA、顶层自检和四级仿真均未闭环，当前结果不可发布。
+- evidence_gap: O1-B 的 38 条确定修复和七阶段回归已完成，仅剩 `mem_a` 1 条受 H3/O1-C 板级事实阻断；新增八个 OSERDES Slow Recovery 失败转入 O2-A/O2-B，最终 STA、顶层自检和 QuestaSim/S3 四级仿真仍未闭环，当前结果不可发布。
 - responsibility: 将 OV7725 像素流经异步 FIFO 和 DDR3 帧缓存送往 HDMI/TMDS 输出。
 - clock_domains: `sys_clk`, `i2c_dri_clk`, `cam_pclk`, `pixel_clk`, `pixel_clk_5x`, `clk_50m/ref_clk`, `ui_clk`
 - cdc_findings: `wr_load`/`rd_load` 被多个逻辑独立采样；write FIFO 为 `cam_pclk → ui_clk`，read FIFO 为 `ui_clk → pixel_clk`
 - rdc_findings: 两个异步 FIFO 的帧复位从单一源域同时驱动两侧；`ddr3_init_done` 和组合顶层复位未逐域同步释放
 - build_inputs: 16 个手写 RTL、4 个活动 IDF、1 个顶层 FDC；器件固定为 `Logos2 / PG2L100H / FBG484 / -6`
-- build_status: SP6.4 七阶段进程退出 0，日志 `E: 0`；严格 gate 失败，显式 baseline gate 通过并标记不可发布
-- timing_findings: `Some Constraints Violated`；慢角 setup `-7.344 ns / TNS -132.832 ns / 20`、read FIFO 方向 setup `-2.275 ns / TNS -24.111 ns / 11`、recovery `-4.263 ns / TNS -202.445 ns / 53`；快角仍为相同三组失败端点
-- artifact_evidence: synthesis netlist `6,873,287` bytes; PNR netlist `11,600,361` bytes; SDF `8,894,116` bytes; `.sbit` `3,791,112` bytes; `.bin` `3,789,476` bytes
-- rtl_hygiene_findings: 39 条 `Verilog-2019` 按 `1 + 4 + 26 + 6 + 2` 分组；38 条可确定修复；活动 DDR3 IP `mem_a[13:0]` 与顶层/FDC `mem_a[14:0]` 冲突，综合网表将 `mem_a[14]` 绑 0
-- rtl_hygiene_contract: O1-B 显式声明 `rst_n`、删除无消费者 `sys_init_done`、修复 38 条确定告警，并使用高有效 reset 驱动四个 serializer 内的八个 OSERDES；不修改 `mem_a`、厂商 IP、FDC 或 CDC/RDC
+- build_status: O1-B SP6.4 七阶段进程退出 0，日志 `E: 0`、warning `4067`、critical `81`；严格 gate 返回 1，baseline 精确匹配七组 corner/check/clock pair/endpoints 后返回 0 并标记不可发布
+- timing_findings: `Some Constraints Violated`；七组 baseline 为 Slow Setup `pixel_clk → ddrphy_sysclk` 20/20、`ddrphy_sysclk → pixel_clk` 11/11，Slow Recovery `pixel_clk → pixel_clk_5x` `-0.643 ns / TNS -4.191 ns / 8/8`、`ddrphy_sysclk → pixel_clk` 53/53，以及对应 Fast Setup 20/20、11/11 与 Fast Recovery 53/53
+- artifact_evidence: synthesis netlist `6,873,482` bytes; PNR netlist `11,604,756` bytes; SDF `8,898,464` bytes; `.sbit` `3,791,112` bytes; `.bin` `3,789,476` bytes
+- rtl_hygiene_findings: 39 条 `Verilog-2019` 中 38 条确定性告警已在 O1-B 消失；仅保留活动 DDR3 IP `mem_a[13:0]` 与顶层/FDC `mem_a[14:0]` 冲突的 1 条，综合网表仍将 `mem_a[14]` 绑 0
+- rtl_hygiene_result: 已显式声明 `rst_n`、删除无消费者 `sys_init_done`、修复定宽连接，并使用高有效 reset 驱动四个 serializer 内的八个 OSERDES；未修改 `mem_a`、厂商 IP、FDC 或 CDC/RDC
 - remediation_contract: 逐域异步置位/同步释放复位；帧事件只同步一次后在目标域扇出；FIFO 两侧复位分别在本地域释放；仅在结构闭环后对厂商认证路径添加精确例外
-- next_step: OV7725 O1-B 与 DDR3 D3 均待审核；一次只进入一条 RTL 实现泳道
+- next_step: O2-A 固定 serializer reset 域契约 → O2-B 关闭八个 OSERDES recovery 失败 → O2-C 处理其余逐域复位；与 DDR3 D3 一次只进入一条 RTL 实现泳道
 - high_attention: `i2c_dri_clk` 逻辑生成时钟、`cam_pclk`/DDR `ui_clk`/`pixel_clk` 间业务 CDC、FIFO 分侧复位，以及 `ddr3_init_done` 参与的复位释放。
 
 ## DDR3 外层工程

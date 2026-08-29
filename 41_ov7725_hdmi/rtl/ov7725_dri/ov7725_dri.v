@@ -81,7 +81,8 @@ u_i2c_dri(
     .i2c_exec           (i2c_exec  ),   
     .bit_ctrl           (BIT_CTRL  ),   
     .i2c_rh_wl          (1'b0),        //固定为0，只用到了IIC驱动的写操作
-    .i2c_addr           (i2c_data[15:8]),   
+    // 接口契约：OV7725 使用 8 bit 寄存器地址；零扩展到 I2C 模块的 16 bit 地址端口。
+    .i2c_addr           ({8'b0, i2c_data[15:8]}),
     .i2c_data_w         (i2c_data[7:0]),   
     .i2c_data_r         (),   
     .i2c_done           (i2c_done  ),

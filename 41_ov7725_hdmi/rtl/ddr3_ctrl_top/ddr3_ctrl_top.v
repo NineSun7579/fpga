@@ -176,9 +176,11 @@ aq_axi_master u_aq_axi_master
 	.m_axi_rlast            (axi_rlast     ),                                                          
 	.m_axi_rvalid           (axi_rvalid    ),
     // User control interface
+	// 地址契约：保留旧控制器的低 24 bit 加三个 0 编码；gate 要求顶层保持乒乓模式。
+	// 长度契约：保留旧控制器的低 8 bit 加三个 0 编码；输入值不得超过 255。
 	.wr_start               (wd_req        ),      
-	.wr_adrs                ({wd_addr,3'd0}),         
-	.wr_len                 ({wd_len,3'd0} ),         
+	.wr_adrs                ({wd_addr[23:0],3'b000}),
+	.wr_len                 ({wd_len[7:0],3'b000} ),
 	.wr_ready               ( ),         
 	.wr_fifo_re             (wfifo_ren     ),         
 	.wr_fifo_empty          (1'b0          ),         
@@ -186,8 +188,8 @@ aq_axi_master u_aq_axi_master
 	.wr_fifo_data           (wfifo_rdata   ),//I
 	.wr_done                (wd_finish     ),
 	.rd_start               (rd_req        ),	  
-	.rd_adrs                ({rd_addr,3'd0}),
-	.rd_len                 ({rd_len,3'd0} ),
+	.rd_adrs                ({rd_addr[23:0],3'b000}),
+	.rd_len                 ({rd_len[7:0],3'b000} ),
 	.rd_ready               ( ),
 	.rd_fifo_we             (rfifo_wen     ),
 	.rd_fifo_full           (1'b0          ),
@@ -209,8 +211,8 @@ ddr3_ip u_ddr3_ip (
     .ddr_init_done         	(ddr_init_done),        // output
 	
     .axi_awaddr            	(axi_awaddr),           // input [26:0]
-    .axi_awuser_ap         	(0),                    // input
-    .axi_awuser_id         	(0),                    // input [3:0]
+    .axi_awuser_ap         	(1'b0),                 // input
+    .axi_awuser_id         	(4'd0),                 // input [3:0]
     .axi_awlen             	(axi_awlen),            // input [3:0]
     .axi_awready           	(axi_awready),          // output
     .axi_awvalid           	(axi_awvalid),          // input
@@ -222,8 +224,8 @@ ddr3_ip u_ddr3_ip (
     .axi_wusero_last       	(axi_wlast),            // output
     
     .axi_araddr            	(axi_araddr),           // input [26:0]
-    .axi_aruser_ap         	(0),                    // input
-    .axi_aruser_id         	(0),                    // input [3:0]
+    .axi_aruser_ap         	(1'b0),                 // input
+    .axi_aruser_id         	(4'd0),                 // input [3:0]
     .axi_arlen             	(axi_arlen),            // input [3:0]
     .axi_arready           	(axi_arready),          // output
     .axi_arvalid           	(axi_arvalid),          // input
@@ -233,14 +235,14 @@ ddr3_ip u_ddr3_ip (
     .axi_rlast             	(axi_rlast),            // output
     .axi_rvalid            	(axi_rvalid),           // output
 		
-    .apb_clk               	(0),                    // input
-    .apb_rst_n             	(0),                    // input
-    .apb_sel               	(0),                    // input
-    .apb_enable            	(0),                    // input
-    .apb_addr              	(0),                    // input [7:0]
-    .apb_write             	(0),                    // input
+    .apb_clk               	(1'b0),                 // input
+    .apb_rst_n             	(1'b0),                 // input
+    .apb_sel               	(1'b0),                 // input
+    .apb_enable            	(1'b0),                 // input
+    .apb_addr              	(8'd0),                 // input [7:0]
+    .apb_write             	(1'b0),                 // input
     .apb_ready             	( ),                    // output
-    .apb_wdata             	(0),                    // input [15:0]
+    .apb_wdata             	(16'd0),                // input [15:0]
     .apb_rdata             	( ),                    // output [15:0]
 		
     .mem_cs_n              	(mem_cs_n),             // output
@@ -276,18 +278,18 @@ ddr3_ip u_ddr3_ip (
     //.dfi_phyupd_req( ),                           // output
     //.dfi_phyupd_ack(0),                           // input
     //.dfi_error( ),                                // output
-    .dbg_gate_start         	(0),               	// input
-    .dbg_cpd_start          	(1),               	// input
-    .dbg_ddrphy_rst_n       	(1),               	// input
-    .dbg_gpll_scan_rst      	(0),               	// input
-    .samp_position_dyn_adj  	(0),               	// input
+    .dbg_gate_start         	(1'b0),            	// input
+    .dbg_cpd_start          	(1'b1),            	// input
+    .dbg_ddrphy_rst_n       	(1'b1),            	// input
+    .dbg_gpll_scan_rst      	(1'b0),            	// input
+    .samp_position_dyn_adj  	(1'b0),            	// input
     .init_samp_position_even	(0),               	// input [31:0]
     .init_samp_position_odd 	(0),               	// input [31:0]
-    .wrcal_position_dyn_adj 	(0),               	// input
+    .wrcal_position_dyn_adj 	(1'b0),            	// input
     .init_wrcal_position    	(0),               	// input [31:0]
-    .force_read_clk_ctrl    	(0),               	// input
-    .init_slip_step         	(0),               	// input [15:0]
-    .init_read_clk_ctrl     	(0),               	// input [11:0]
+    .force_read_clk_ctrl    	(1'b0),            	// input
+    .init_slip_step         	(16'd0),           	// input [15:0]
+    .init_read_clk_ctrl     	(12'd0),           	// input [11:0]
     .debug_calib_ctrl       	( ),               	// output [33:0]
     .dbg_slice_state        	( ),               	// output [87:0]
     .debug_data             	( ),               	// output [275:0]
@@ -296,13 +298,13 @@ ddr3_ip u_ddr3_ip (
     .dbg_rst_dps_state          ( ),               	// output [2:0]
     .dbg_tran_err_rst_cnt       ( ),               	// output [5:0]
     .dbg_ddrphy_init_fail       ( ),               	// output
-    .debug_cpd_offset_adj       (0),               	// input
-    .debug_cpd_offset_dir       (0),               	// input
-    .debug_cpd_offset           (0),               	// input [9:0]
+    .debug_cpd_offset_adj       (1'b0),            	// input
+    .debug_cpd_offset_dir       (1'b0),            	// input
+    .debug_cpd_offset           (10'd0),           	// input [9:0]
     .debug_dps_cnt_dir0         ( ),               	// output [9:0]
     .debug_dps_cnt_dir1         ( ),               	// output [9:0]
-    .ck_dly_en                  (1),               	// input
-    .init_ck_dly_step           (0),               	// input [7:0]
+    .ck_dly_en                  (1'b1),            	// input
+    .init_ck_dly_step           (8'd0),            	// input [7:0]
     .ck_dly_set_bin             ( ),               	// output [7:0]
     .align_error                ( ),               	// output
     .debug_rst_state            ( ),               	// output [3:0]

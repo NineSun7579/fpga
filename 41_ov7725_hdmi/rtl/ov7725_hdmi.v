@@ -68,6 +68,7 @@ wire        pixel_clk       ;  //像素时钟75M
 wire        pixel_clk_5x    ;  //5倍像素时钟375M
 wire        clk_50m         ;  //output 50M
 wire        clk_locked      ;
+wire        rst_n           ;  // 组合生成的低有效复位；分域释放仍属于 O2/RDC。
 //OV7725
 wire        cam_init_done   ;  //摄像头初始化完成
 wire        cmos_frame_vsync;  //帧有效信号
@@ -87,11 +88,6 @@ wire        ddr3_init_done   ; //ddr3初始化完成
 
 //待时钟锁定后产生结束复位信号
 assign rst_n = sys_rst_n & clk_locked;
-
-//系统初始化完成：DDR3和摄像头都初始化完成
-//避免了在DDR3初始化过程中向里面写入数据
-assign  sys_init_done = ddr3_init_done;
- 
 
 //不对摄像头硬件复位,固定高电平
 assign  cam_rst_n    = 1'b1;
@@ -146,12 +142,14 @@ ddr3_ctrl_top u_ddr3_ctrl_top(
     .ddr3_pingpang_en(1'b1),       //DDR3乒乓操作
     .ddr3_read_valid (1'b1),
     // ddr地址长度控制接口
-    .addr_rd_min     (0),
-    .addr_rd_max     (APP_ADDR_MAX[26:1]),
-    .rd_burst_len    (H_CMOS_DISP[10:2]),
-    .addr_wd_min     (0),
-    .addr_wd_max     (APP_ADDR_MAX[26:1]),
-    .wd_burst_len    (H_CMOS_DISP[10:2]),
+    // 地址契约：APP_ADDR_MIN 当前必须为 0；非零基地址需要另行审核地址单位。
+    // 长度契约：当前 H_CMOS_DISP[10:2] 为 160；保留旧编码且值不得超过 255。
+    .addr_rd_min     (APP_ADDR_MIN),
+    .addr_rd_max     ({1'b0, APP_ADDR_MAX[26:1]}),
+    .rd_burst_len    ({1'b0, H_CMOS_DISP[10:2]}),
+    .addr_wd_min     (APP_ADDR_MIN),
+    .addr_wd_max     ({1'b0, APP_ADDR_MAX[26:1]}),
+    .wd_burst_len    ({1'b0, H_CMOS_DISP[10:2]}),
     //DDR控制器接口
     .mem_rst_n       (mem_rst_n ),                       
     .mem_ck          (mem_ck    ),

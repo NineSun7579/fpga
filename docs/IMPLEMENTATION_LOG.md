@@ -110,3 +110,16 @@
 - PDS SP6.4 原语模型和官方 PG2L100H 示例确认 `GTP_OSERDES_E2.RST` 高有效；当前四个 serializer 共八个 OSERDES 的本地复位均被绑 0，后续应连接现有高有效 reset。
 - `mem_a` 存在真实冲突：活动 IDF/module/template 为 14 bit，手写顶层和 FDC 为 15 bit，综合网表把 `mem_a[14]` 固定为 0。该项必须等待 DDR3 料号和原理图，转入 H3/O1-C。
 - 本批新增 `RTL_HYGIENE_AUDIT.md` 并同步状态，没有修改 RTL、厂商 IP、FDC 或 RCF，也没有运行 PDS 或四级仿真。
+
+## 2026-08-29：OV7725 O1-B RTL 卫生修复
+
+- 将 5 个目标历史 RTL 无损转换为无 BOM UTF-8，并以独立提交 `963a2e5` 固化编码准备；逻辑修改随后单独实施。
+- I2C 地址显式 8→16 bit 零扩展；DDR 地址/长度保留 legacy 左移 3 编码，并显式限制为地址低 24 bit、长度低 8 bit；25 个 DDR3 IP tie-off 改为 formal 对应的定宽常量。
+- 顶层显式声明 `rst_n`、删除无消费者 `sys_init_done`，并把六个地址/长度连接改为显式定宽。
+- serializer 端口统一为高有效 `reset`；四个 serializer 的 master/slave 共八个 `GTP_OSERDES_E2.RST` 均获得受控复位。新增注释按 VSCS 记录极性、原语 `ASYNC_RESET` 行为和 O2/RDC 剩余责任。
+- `check_build.ps1` 新增参数上界检查，并把手写 RTL 位宽白名单收紧为唯一 `ddr3_ip.mem_a`；即使 baseline 模式也拒绝其他位宽告警。
+- 从空 `build/` 完成 compile：PDS 退出码 0、日志无 `E:`，compile warning 从 1139 降为 1101，38 条确定性手写 RTL 位宽告警全部消失。
+- 随后完成七阶段实现：完整日志无 `E:`，warning 从 4105 降为 4067，critical 保持 81；综合网表 6,873,482 字节、PNR 网表 11,604,756 字节、SDF 8,898,464 字节、`.sbit` 3,791,112 字节、`.bin` 3,789,476 字节。
+- 接入 OSERDES reset 后新增 Slow/Recovery `pixel_clk → pixel_clk_5x`，WNS `-0.643 ns`、TNS `-4.191 ns`、8/8 endpoint；详细报告确认对应八个 OSERDES。baseline gate 改为精确匹配 `corner/check/clock pair/endpoints` 的 7 组失败指纹，不把该路径视为 waiver。
+- PowerShell AST 为 0 个错误；严格 gate 返回 1，baseline gate 返回 0 并明确不可发布。`mem_a`、厂商 IP、FDC、RCF、FIFO、CDC/RDC 结构和时序例外均未修改。
+- 下一步拆为 O2-A 只读复位契约、O2-B serializer 高速域复位、O2-C 其余分域复位；QuestaSim 未安装，不能声明 HDMI 动态复位或四级仿真通过。

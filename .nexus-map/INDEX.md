@@ -22,9 +22,9 @@
 - DDR3 已生成非零综合网表、PNR 网表、SDF、`.sbit` 和 `.bin`；严格 gate 因 7 类已知阻断返回 1，显式 baseline 放行返回 0 但明确不可发布。日志没有 SCBV 命中，板级批准参数清单仍缺失，功能与四级仿真仍未验收。
 - DDR3 D2 只读决策已完成：厂商 `test_ddr`、持续运行 BIST 和失配 testbench 保持原样；后续项目自有顶层固定为 `rtl/ddr3_bringup_top.sv` 与 `rtl/ddr3_finite_bist.sv`。首版契约执行 16 个单 beat 写读比较 pair，控制器地址为 `0x0..0x78`、步长 8，单 pair timeout 为 4096 周期、整次 run timeout 为 131072 周期，并公开稳定的 `test_done`、`test_failed`、`failure_code`、`error_count`、`completed_pairs` 和首错信息。该设计尚未实现或仿真，D3 待审核。
 - OV7725 O0-A 已形成 [CDC/RDC 审计与整改契约](../41_ov7725_hdmi/doc/CDC_RDC_AUDIT.md)，覆盖七类时钟域、帧事件多点采样、两个异步 FIFO 的数据方向/分侧复位风险及三条旧 STA 失败路径；本批只建立事实和契约，未修改 RTL、IP 或 FDC。
-- OV7725 O0-B 已固定 `16 RTL + 4 IDF + 1 FDC`，从空 `build/` 完成 SP6.4 七阶段流程，进程退出 0 且日志 `E: 0`；最终 STA 为 `Some Constraints Violated`。慢角失败为 setup `-7.344 ns / -132.832 ns / 20`、read FIFO 方向 setup `-2.275 ns / -24.111 ns / 11`、recovery `-4.263 ns / -202.445 ns / 53`，快角仍命中相同三组失败端点。
-- OV7725 已生成非零综合网表 `6,873,287`、PNR 网表 `11,600,361`、SDF `8,894,116`、`.sbit` `3,791,112` 和 `.bin` `3,789,476` 字节；严格 gate 返回非零，显式 baseline gate 返回 0 并标记不可发布。
-- OV7725 O1-A 已形成 [RTL 卫生修复评审](../41_ov7725_hdmi/doc/RTL_HYGIENE_AUDIT.md)：39 条手写 RTL 位宽告警按 `1 + 4 + 26 + 6 + 2` 全部归属，其中 38 条可确定修复；`mem_a` 因活动 IP 为 14 bit、顶层/FDC 为 15 bit 且综合网表将第 15 bit 绑 0，转入 H3/O1-C。O1-B 只计划显式声明 `rst_n`、删除死网 `sys_init_done`、修复 38 条告警并让高有效 reset 驱动四个 serializer 内的八个 OSERDES；未经审核不实施，也不修改 `mem_a`、IP、FDC 或 CDC/RDC。
+- OV7725 O1-B 已按 [RTL 卫生修复评审](../41_ov7725_hdmi/doc/RTL_HYGIENE_AUDIT.md) 完成：原 39 条手写 RTL 位宽告警中的 38 条确定性问题已消失，只保留活动 IP 14 bit 与顶层/FDC 15 bit 冲突的 `ddr3_ip.mem_a` 1 条；该项仍属于 H3/O1-C。
+- O1-B 已从空 `build/` 完成 SP6.4 七阶段，进程退出 0、日志 `E: 0`，warning `4067`、critical `81`；非零产物为综合网表 `6,873,482`、PNR 网表 `11,604,756`、SDF `8,898,464`、`.sbit` `3,791,112` 和 `.bin` `3,789,476` 字节。
+- O1-B 严格 gate 返回 `1`；baseline gate 只在 corner、check、clock pair 与 endpoint 数量精确匹配七组已知失败时返回 `0`，并明确标记不可发布。新 Slow Recovery `pixel_clk → pixel_clk_5x` 为 `-0.643 ns / -4.191 ns / 8/8`，端点正是四个 serializer 内的八个 OSERDES，转入 O2-A/O2-B；QuestaSim/S3 动态验证仍未完成。
 - 根目录 [README](../README.md) 是 PDS 外部实现与仿真指南。
 - 根目录 [TODO](../TODO.md) 是当前整改顺序和验收门槛。
 - 新增或修改 Verilog/SystemVerilog 时必须遵循 [VSCS](../VERILOG_SYSTEMVERILOG_COMMENTING_STANDARD.md)。
@@ -42,8 +42,8 @@
 
 ## 当前优先级
 
-1. 审核 OV7725 O1-B 实现批次；O1-A 已固定 38 条确定修复与 `mem_a` 单项 H3/O1-C 阻断，O1-B 不得修改 IP、FDC 或 CDC/RDC。
-2. 审核 DDR3 D3 实现批次；D2 只读决策已经固定有限事务和公开结果契约，但项目自有顶层尚未创建。两条 RTL 泳道只选择一条实施。
+1. OV7725 按 O2-A → O2-B → O2-C 推进：先固定 serializer reset 域契约，再关闭八个 OSERDES 的 recovery 失败，最后处理其余逐域复位；不得用宽泛时序例外替代结构修复。
+2. 审核 DDR3 D3 实现批次；D2 只读决策已经固定有限事务和公开结果契约，但项目自有顶层尚未创建。与 OV7725 的 O2 RTL 泳道一次只选择一条实施。
 3. PCIe 等待板级资料关闭 IDF、UART、share pin、HSST 约束和 SCBV 阻断项。
 4. QuestaSim 可用后，三个工程分别补齐集成顶层四级仿真和 SDF 标注验证。
 

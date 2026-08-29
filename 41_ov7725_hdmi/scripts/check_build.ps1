@@ -105,6 +105,34 @@ foreach ($RelativePath in $ExpectedSources) {
     }
 }
 
+# O1-B keeps the legacy address encoding only while the top-level assumptions
+# that make the explicit slices lossless remain true.
+$TopRtlPath = Join-Path $ProjectRoot 'rtl\ov7725_hdmi.v'
+$TopRtlText = Get-Content -Raw -Encoding UTF8 -LiteralPath $TopRtlPath
+if ($TopRtlText -notmatch "(?m)^\s*parameter\s+APP_ADDR_MIN\s*=\s*27'd0\s*;") {
+    throw 'APP_ADDR_MIN must remain zero until nonzero address units are reviewed.'
+}
+if ($TopRtlText -notmatch
+    "(?m)\.ddr3_pingpang_en\s*\(\s*1'b1\s*\)") {
+    throw 'The 24-bit AXI address slice requires ping-pong addressing to remain enabled.'
+}
+$HorizontalMatch = [regex]::Match(
+    $TopRtlText,
+    "(?m)^\s*parameter\s+H_CMOS_DISP\s*=\s*11'd(\d+)\s*;"
+)
+if (-not $HorizontalMatch.Success) {
+    throw 'H_CMOS_DISP could not be parsed from the top-level RTL.'
+}
+$HorizontalPixels = [int]$HorizontalMatch.Groups[1].Value
+if (($HorizontalPixels % 4) -ne 0) {
+    throw 'H_CMOS_DISP must be divisible by four for the current burst encoding.'
+}
+$EncodedLength = $HorizontalPixels / 4
+if ($EncodedLength -gt 255) {
+    throw "Current length encoding supports at most 255, found $EncodedLength."
+}
+Write-Host "INFO: O1-B parameter guards passed: APP_ADDR_MIN=0, encoded_length=$EncodedLength"
+
 $DesignInputCount = [regex]::Matches(
     $BuildText,
     '(?m)^Executing : add_design .* successfully\.\s*$'
@@ -172,9 +200,30 @@ foreach ($Artifact in $RequiredArtifacts.GetEnumerator()) {
     Assert-NonEmptyFile -Path $Artifact.Value -Description $Artifact.Key
 }
 
+$HandWrittenWidthPattern =
+    '(?m)^W:\s+Verilog-2019:.*[\\/]41_ov7725_hdmi[\\/]rtl[\\/].*Width mismatch between port.*$'
+$MemAWidthPattern =
+    '(?m)^W:\s+Verilog-2019:.*[\\/]41_ov7725_hdmi[\\/]rtl[\\/]ddr3_ctrl_top[\\/]ddr3_ctrl_top\.v\(line number:\s*\d+\)\]\s+Width mismatch between port mem_a and signal bound to it for instantiated module ddr3_ip\s*$'
+$HandWrittenWidthLines = @(
+    [regex]::Matches($BuildText, $HandWrittenWidthPattern) |
+        ForEach-Object { $_.Value }
+)
+$UnexpectedWidthLines = @($HandWrittenWidthLines | Where-Object {
+    $_ -notmatch $MemAWidthPattern
+})
+if ($UnexpectedWidthLines) {
+    throw "Unexpected hand-written RTL width mismatch(es):`n$($UnexpectedWidthLines -join "`n")"
+}
+$MemAWidthLines = @($HandWrittenWidthLines | Where-Object {
+    $_ -match $MemAWidthPattern
+})
+if ($MemAWidthLines.Count -ne 1) {
+    throw "Expected exactly one ddr3_ip.mem_a width mismatch, found $($MemAWidthLines.Count)."
+}
+Write-Host 'INFO: O1-B width gate passed: only ddr3_ip.mem_a remains'
+
 $KnownIssuePatterns = [ordered]@{
-    'Hand-written RTL width mismatch' =
-        '(?m)^W:\s+Verilog-2019:.*[\\/]41_ov7725_hdmi[\\/]rtl[\\/].*Width mismatch between port'
+    'DDR3 mem_a board-width mismatch' = $MemAWidthPattern
 }
 
 $FailedTimingRows = @()
@@ -189,21 +238,70 @@ if ($FinalStageIndex -ge [Array]::IndexOf($StageOrder, 'report_timing')) {
     }
 
     $TimingSummaryLines = Get-Content -LiteralPath $TimingReport |
-        Select-Object -First 253
-    $TimingRows = foreach ($Line in $TimingSummaryLines) {
+        Select-Object -First 270
+    $TimingRows = @()
+    $CurrentCheckType = $null
+    $CurrentCorner = $null
+    $PendingClocks = @()
+    foreach ($Line in $TimingSummaryLines) {
         if ($Line -match
-            '^\s*(?:\S+\s+){0,2}(-?\d+\.\d+)\s+(-?\d+\.\d+)\s+(\d+)\s+(\d+)\s*$') {
-            [pscustomobject]@{
+            '^(Setup|Hold|Recovery|Removal) Summary\((Slow|Fast) Corner\):\s*$') {
+            $CurrentCheckType = $Matches[1]
+            $CurrentCorner = $Matches[2]
+            $PendingClocks = @()
+            continue
+        }
+        if ($Line -match '^\S.*Summary\(') {
+            $CurrentCheckType = $null
+            $CurrentCorner = $null
+            $PendingClocks = @()
+            continue
+        }
+        if (-not $CurrentCheckType) {
+            continue
+        }
+
+        if ($Line -match
+            '^\s*(?:(\S+)\s+)?(?:(\S+)\s+)?(-?\d+\.\d+)\s+(-?\d+\.\d+)\s+(\d+)\s+(\d+)\s*$') {
+            $ClockNames = @($PendingClocks)
+            if ($Matches[1]) {
+                $ClockNames += $Matches[1]
+            }
+            if ($Matches[2]) {
+                $ClockNames += $Matches[2]
+            }
+            if ($ClockNames.Count -ne 2) {
+                throw "Could not resolve timing clock pair for summary row: $Line"
+            }
+
+            $TimingRows += [pscustomobject]@{
+                CheckType = $CurrentCheckType
+                Corner = $CurrentCorner
+                LaunchClock = $ClockNames[0]
+                CaptureClock = $ClockNames[1]
                 Slack = [double]::Parse(
-                    $Matches[1],
+                    $Matches[3],
                     [Globalization.CultureInfo]::InvariantCulture
                 )
                 TotalNegativeSlack = [double]::Parse(
-                    $Matches[2],
+                    $Matches[4],
                     [Globalization.CultureInfo]::InvariantCulture
                 )
-                FailingEndpoints = [int]$Matches[3]
-                TotalEndpoints = [int]$Matches[4]
+                FailingEndpoints = [int]$Matches[5]
+                TotalEndpoints = [int]$Matches[6]
+            }
+            $PendingClocks = @()
+            continue
+        }
+
+        if ($Line -match '^\s*(\S+)(?:\s+(\S+))?\s*$' -and
+            $Matches[1] -notmatch '^[*=\-]+$') {
+            $PendingClocks += $Matches[1]
+            if ($Matches[2]) {
+                $PendingClocks += $Matches[2]
+            }
+            if ($PendingClocks.Count -gt 2) {
+                throw "Too many pending timing clocks before summary row: $Line"
             }
         }
     }
@@ -227,21 +325,28 @@ if ($FinalStageIndex -ge [Array]::IndexOf($StageOrder, 'report_timing')) {
     }
 
     if ($AllowKnownBaselineIssues -and $FailedTimingRows) {
-        $ActualEndpointSets = @($FailedTimingRows |
-            ForEach-Object { "$($_.FailingEndpoints)/$($_.TotalEndpoints)" } |
+        $ActualTimingSignatures = @($FailedTimingRows |
+            ForEach-Object {
+                "$($_.Corner)|$($_.CheckType)|$($_.LaunchClock)|" +
+                    "$($_.CaptureClock)|$($_.FailingEndpoints)/$($_.TotalEndpoints)"
+            } |
             Sort-Object)
-        $ExpectedEndpointSets = @(
-            '11/11',
-            '11/11',
-            '20/20',
-            '20/20',
-            '53/53',
-            '53/53'
-        )
-        if (($ActualEndpointSets -join ',') -ne
-            ($ExpectedEndpointSets -join ',')) {
-            throw "Baseline timing failures changed: $($ActualEndpointSets -join ', ')"
+        $PixelClock = 'sys_clk|u_pll_clk/u_gpll/CLKOUT0_Inferred'
+        $PixelClock5x = 'sys_clk|u_pll_clk/u_gpll/CLKOUT1_Inferred'
+        $ExpectedTimingSignatures = @(
+            "Fast|Recovery|ddrphy_sysclk|$PixelClock|53/53",
+            "Fast|Setup|$PixelClock|ddrphy_sysclk|20/20",
+            "Fast|Setup|ddrphy_sysclk|$PixelClock|11/11",
+            "Slow|Recovery|$PixelClock|$PixelClock5x|8/8",
+            "Slow|Recovery|ddrphy_sysclk|$PixelClock|53/53",
+            "Slow|Setup|$PixelClock|ddrphy_sysclk|20/20",
+            "Slow|Setup|ddrphy_sysclk|$PixelClock|11/11"
+        ) | Sort-Object
+        if (($ActualTimingSignatures -join "`n") -ne
+            ($ExpectedTimingSignatures -join "`n")) {
+            throw "Baseline timing failures changed:`n$($ActualTimingSignatures -join "`n")"
         }
+        Write-Host 'INFO: baseline timing fingerprint matched 7 exact failure groups'
     }
 
     $KnownIssuePatterns['Clock pins without timing propagation'] =
