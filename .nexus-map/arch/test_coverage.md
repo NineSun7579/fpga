@@ -16,16 +16,17 @@
 |---|---|---|---|---|---|---|
 | OV7725 HDMI | 已有综合网表和非零 `.sbit` | 失败：慢角 setup WNS `-7.056 ns`，recovery WNS `-4.857 ns` | 未就绪 | 未就绪 | 未就绪 | 未就绪，无 SDF |
 | DDR3 外层 | 无外层实现产物；IP 示例有实现和 `.sbit` | IP 示例内部通过，但不证明外层板级工程 | 示例资产失配 | 未闭环 | 未就绪 | 未就绪，无 SDF |
-| PCIe DMA | 新脚本 compile-only 已通过且日志无 `E:`；历史顶层实现和非零 `.sbit/.sfc` 存在 | 历史报告通过：慢角 setup WNS `0.648 ns`，hold WHS `0.073 ns`；新流程未到 STA | 仅 IP 示例 | 顶层未闭环 | 顶层未就绪 | 顶层未就绪，无 SDF |
+| PCIe DMA | 新 SP6.4 全流程完成，日志无 `E:`；新网表、SDF、`.sbit/.bin` 非零 | 新最终报告通过：慢角 setup WNS `0.584 ns`、TNS `0`，hold WHS `0.138 ns` | 仅 IP 示例 | 顶层未闭环 | 生成网表但未运行 | SDF 已生成但未标注验证 |
 
 ## 已知功能与覆盖缺口
 
 - OV7725：现有实现报告暴露真实 CDC/复位与时序风险，不能以位流存在作为验收结果。
 - DDR3：现有 `test_ddr` 是厂商示例；testbench 端口失配，缺少可靠 `$fatal`、超时、`TEST PASS` 和 CI 退出码。
 - PCIe：现有 ModelSim 资产只覆盖 PCIe IP 示例，不覆盖 `pcie_dma_test` 集成顶层；UART2APB 的无驱动输入属于已知功能缺陷。
-- 三项目均未发现顶层 PNR SDF，无法证明指南要求的 SDF 标注成功。
+- PCIe 新流程已生成顶层 PNR SDF，但尚未由 QuestaSim 验证实例层级；另外两个项目仍无顶层 SDF。
 - 本机未找到 ModelSim/QuestaSim，因此本轮未运行任何仿真。
 - PDS 可能在日志含 `E:` 时仍返回退出码 0；新 PowerShell 入口必须同时检查退出码和错误日志。
+- PCIe 位流阶段报告 SCBV 未配置，这是当前发布阻断项。
 
 ## 统一验收门槛
 

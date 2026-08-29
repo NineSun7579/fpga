@@ -6,6 +6,7 @@ param(
         'sim-post-syn',
         'sim-post-pnr-func',
         'sim-post-pnr-timing',
+        'check-build',
         'clean-build'
     )]
     [string]$Action = 'build',
@@ -22,7 +23,9 @@ param(
     [string]$RunTo = 'gen_bit_stream',
 
     [string]$PdsBin = 'E:\pango\PDS_2022.2-SP6.4\bin',
-    [string]$QuestaBin = 'C:\questasim64\win64'
+    [string]$QuestaBin = 'C:\questasim64\win64',
+
+    [switch]$AllowKnownBaselineIssues
 )
 
 $ErrorActionPreference = 'Stop'
@@ -32,6 +35,7 @@ $BuildRoot = Join-Path $ProjectRoot 'build'
 $PdsWorkDir = Join-Path $BuildRoot 'pds'
 $LogDir = Join-Path $BuildRoot 'logs'
 $BuildScript = Join-Path $PSScriptRoot 'build.tcl'
+$CheckBuildScript = Join-Path $PSScriptRoot 'check_build.ps1'
 $PdsShell = Join-Path $PdsBin 'pds_shell.exe'
 $Vsim = Join-Path $QuestaBin 'vsim.exe'
 
@@ -153,6 +157,13 @@ switch ($Action) {
     }
     'sim-post-pnr-timing' {
         Invoke-ModelSim -DoFileName 'run_post_pnr_timing.do'
+    }
+    'check-build' {
+        if ($AllowKnownBaselineIssues) {
+            & $CheckBuildScript -AllowKnownBaselineIssues
+        } else {
+            & $CheckBuildScript
+        }
     }
     'clean-build' {
         Remove-BuildDirectory

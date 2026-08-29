@@ -9,7 +9,8 @@
 - UART2APB 当前连接隐式 `rxd/txd`，其中 `rxd` 被编译器绑为 0；硬件接口决策前不修改该功能。
 - PCIe IDF 由 PG2L50H 配置生成，与当前 PG2L100H 顶层工程不一致，需重新生成或评审偏离。
 - 集成顶层 testbench 和四级仿真尚未完成。
-- 新相对路径脚本已经通过 compile-only 重建；完整综合、PNR 和 STA 尚待执行。
+- 新相对路径脚本已完成一次完整 SP6.4 重建：最终 STA WNS `0.584 ns`、TNS `0`，并生成 PNR 仿真网表、SDF、`.sbit` 和 `.bin`。
+- 严格发布 gate 当前仍会失败，因为器件不匹配、UART 死通道、未约束端口和未设置 SCBV 尚未关闭。
 
 ## 构建
 
@@ -32,6 +33,22 @@ powershell -ExecutionPolicy Bypass -File .\scripts\run.ps1 `
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\run.ps1 -Action build
 ```
+
+执行严格产物和时序检查：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\run.ps1 -Action check-build
+```
+
+仅用于确认当前历史基线可复现时，可以显式允许已知问题：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\run.ps1 `
+  -Action check-build `
+  -AllowKnownBaselineIssues
+```
+
+允许已知问题不代表发布验收通过。
 
 全部新生成物位于本目录的 `build/` 下，不应提交版本库。
 
