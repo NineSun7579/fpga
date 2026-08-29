@@ -42,10 +42,12 @@
 
 ## 当前优先级
 
-1. OV7725 按 O2-A → O2-B → O2-C 推进：先固定 serializer reset 域契约，再关闭八个 OSERDES 的 recovery 失败，最后处理其余逐域复位；不得用宽泛时序例外替代结构修复。
-2. 审核 DDR3 D3 实现批次；D2 只读决策已经固定有限事务和公开结果契约，但项目自有顶层尚未创建。与 OV7725 的 O2 RTL 泳道一次只选择一条实施。
-3. PCIe 等待板级资料关闭 IDF、UART、share pin、HSST 约束和 SCBV 阻断项。
-4. QuestaSim 可用后，三个工程分别补齐集成顶层四级仿真和 SDF 标注验证。
+1. OV7725 先执行 O2-A，联合证明同一 OSERDES `RST` 相对 `OCLK/SERCLK=pixel_clk_5x` 与 `OCLKDIV=pixel_clk` 的释放契约；随后 O2-B 只实现已证明的 serializer reset 结构，不预设仅在高速域同步即可闭环。
+2. OV7725 按 O3-A → O2-C1 推进：先同步 `ddr3_init_done` 作为 camera/pixel 状态与使能，再解除其对异步复位释放的直接控制，并建立普通时钟域本地复位。
+3. OV7725 按 O2-C2 → O3-B → O4 推进：先依据厂商语义独立处理 FIFO reset/flush，再修复帧事件 CDC；O4 同时依赖 O2-C2 与 O3-B，结构闭环前不得添加宽泛时序例外。
+4. 审核 DDR3 D3 实现批次；D2 只读决策已经固定有限事务和公开结果契约，但项目自有顶层尚未创建。与 OV7725 的 RTL 实现泳道一次只选择一条实施。
+5. PCIe 等待板级资料关闭 IDF、UART、share pin、HSST 约束和 SCBV 阻断项。
+6. QuestaSim 可用后，三个工程分别补齐集成顶层四级仿真和 SDF 标注验证。
 
 ## 更新规则
 

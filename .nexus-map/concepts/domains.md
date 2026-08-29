@@ -30,9 +30,11 @@ OV7725 的帧同步当前是长电平而非单周期脉冲，且 `wr_load`/`rd_l
 
 各时钟域应明确复位来源和释放方式。外部异步条件或其他时钟域状态直接释放复位会形成 recovery/removal 风险，应采用异步置位、同步释放或等效的经验证结构。
 
-OV7725 已确定 sys、I2C、camera、pixel 和 DDR UI 域需要各自的本地复位；`ddr3_init_done` 只作为同步后的状态/使能，不得直接组合到其他域异步复位脚。
+OV7725 已确定 sys、I2C、camera、pixel 和 DDR UI 域需要各自的本地复位。O3-A 必须先将 `ddr3_init_done` 同步为 camera/pixel 域的状态与使能，O2-C1 才能解除它对其他域异步复位释放的直接控制并建立普通时钟域本地复位。
 
-O1-B 将高有效 reset 接入四个 serializer 内的八个 OSERDES 后，PDS 新报告 Slow Recovery `pixel_clk → pixel_clk_5x` `-0.643 ns / TNS -4.191 ns / 8/8`。这证明 pclk 域同步释放不能直接视为 pclk_5x 域已闭环；下一步必须按 O2-A → O2-B → O2-C 分离 reset 契约、局部实现和其余逐域复位，不能用宽泛 false path 掩盖。
+O1-B 将高有效 reset 接入四个 serializer 内的八个 OSERDES 后，PDS 新报告 Slow Recovery `pixel_clk → pixel_clk_5x` `-0.643 ns / TNS -4.191 ns / 8/8`。SP6.4 对同一 `RST` 同时建立 `OCLK/SERCLK=pixel_clk_5x` 与 `OCLKDIV=pixel_clk` 的 recovery/removal 检查，因此 O2-A 必须先证明联合释放契约，O2-B 不得预设仅在高速域同步即可闭环。
+
+两个厂商异步 FIFO 的 reset/flush 属于独立的 O2-C2，不与 O2-C1 的普通寄存器复位混批；帧事件 CDC 归 O3-B。O4 只有在 O2-C2 与 O3-B 都完成后才可进入约束和最终时序闭环。
 
 ## 时序闭环
 

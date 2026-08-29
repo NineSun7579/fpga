@@ -61,8 +61,10 @@ powershell.exe -ExecutionPolicy Bypass -File .\scripts\run.ps1 `
 
 O1-B 已按 [RTL 卫生修复评审](doc/RTL_HYGIENE_AUDIT.md) 实现并完成七阶段回归。下一批拆为：
 
-1. O2-A：只读确认 `GTP_OSERDES_E2.RST` 相对 `pixel_clk_5x` 的同步释放契约，并将八个 recovery endpoint 逐项映射到设计实例。
-2. O2-B：保留 encoder 的 `pixel_clk` 域复位，独立增加 `pixel_clk_5x` 域异步置位、同步释放复位，只驱动八个 OSERDES。
-3. O2-C：再处理顶层、camera、pixel、DDR UI 和 FIFO 两侧的完整分域复位，不与 O2-B 混为一个大提交。
+1. O2-A：只读确认同一 `GTP_OSERDES_E2.RST` 相对 `OCLK/SERCLK=pixel_clk_5x` 与 `OCLKDIV=pixel_clk` 的联合释放契约，并将八个 recovery endpoint 逐项映射到设计实例。
+2. O2-B：保留 encoder 的 `pixel_clk` 域复位，只实现 O2-A 已证明的 OSERDES reset 方案；不得预设“仅同步到 `pixel_clk_5x`”一定不会把违例转移到 `pixel_clk`。
+3. O3-A → O2-C1：先同步 `ddr3_init_done` 作为 camera/pixel enable，再处理 sys、I2C、camera、pixel、DDR UI 等普通时钟域本地复位。
+4. O2-C2：单独依据厂商 FIFO reset/flush 语义处理两个异步 FIFO 的读写侧复位。
+5. O3-B → O4：修复两条帧事件 CDC；只有 O2-C2 与 O3-B 都完成后才进入约束和最终时序闭环。
 
 O2 不修改 `mem_a`、DDR3 IP 或板级 FDC，不通过 `false_path` 掩盖 recovery。新增或修改的 RTL 注释必须遵守根目录 `VERILOG_SYSTEMVERILOG_COMMENTING_STANDARD.md`；QuestaSim 未就绪前不声明 HDMI 动态复位或串化功能通过。

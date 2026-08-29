@@ -2,7 +2,7 @@
 
 更新日期：2026-08-29
 
-状态：实施中。三项目 SP6.4 可重复构建基线均已建立；DDR3 D2 和 OV7725 O1-A 设计评审已完成。下一实现批次在 OV7725 O1-B 与 DDR3 D3 之间只选择一条，经审核后执行。
+状态：实施中。三项目 SP6.4 可重复构建基线均已建立；DDR3 D2 与 OV7725 O1-B 已完成。下一工程批次为 OV7725 O2-A serializer reset 只读契约；契约审核前不进入 O2-B RTL，也不并行开启 DDR3 D3 功能 RTL。
 
 ## 1. 总体验收目标
 
@@ -53,12 +53,13 @@
 
 ### 近期执行顺序
 
-1. **P0：O1-B 已完成。** 功能 RTL、完整构建、双模式 gate、状态文档和 `.nexus-map` 已作为独立批次收口。
-2. **P0：执行 O2-A。** 只读确认 OSERDES 的 `pixel_clk_5x` 复位释放契约，不修改 RTL 或时序例外。
-3. **P1：执行 O2-B。** 只修改 serializer 的高速时钟域复位，关闭新增 recovery `8/8`，不混入 camera/UI/FIFO 复位。
-4. **P1：准备 DDR3 D3-0。** 明确公开 core/物理 board wrapper 边界和 Pango DDR 用户接口握手；任一时刻只开启一条功能 RTL 泳道。
-5. **P2：PCIe H2-A/H2-B。** 在板级资料缺失时只做证据矩阵、IP 再生成契约和 baseline gate 精确化，不修改 IP/RTL/FDC。
-6. **持续泳道：H0-H3、S0。** 板级资料或仿真器一旦到位，立即关闭对应阻断；H3 阻塞 O1-C/O4，S0 阻塞三项目动态仿真签核。
+1. **P0：执行 O2-A。** 先证明同一 OSERDES `RST` 相对 `OCLK/SERCLK=pixel_clk_5x` 与 `OCLKDIV=pixel_clk` 的联合释放契约；不修改 RTL/FDC。
+2. **P1：执行 O2-B。** 只实现 O2-A 已证明的 serializer reset 方案并完成七阶段回归；不得预设“只同步到 `pixel_clk_5x`”必然正确。
+3. **P1：执行 O3-A → O2-C1。** 先把 `ddr3_init_done` 作为状态同步到 camera/pixel 域，再解除它对异步复位释放的直接控制并建立普通时钟域本地复位。
+4. **P1：执行 O2-C2 → O3-B → O4。** FIFO reset/flush 单独依据厂商语义处理，随后修帧事件 CDC，最后才添加最窄时序例外并闭合 STA。
+5. **P1：准备 DDR3 D3-0。** 仅做公开 core/物理 wrapper 和 Pango DDR 用户接口握手评审；任一时刻只开启一条功能 RTL 泳道。
+6. **P2：PCIe H2-A/H2-B。** 板级资料缺失时只做证据矩阵、IP 再生成契约和 baseline gate 精确化，不修改 IP/RTL/FDC。
+7. **持续泳道：H0-H3、S0。** 板级资料或仿真器一旦到位，立即关闭对应阻断；H3 阻塞 O1-C 与最终 O4 发布闭环，S0 阻塞三项目动态仿真签核。
 
 停止条件：缺少板级事实时不猜测管脚、电压、IP 参数或 I/O delay；任何 baseline 仅代表失败状态可重复，不得作为时序 waiver 或发布批准。
 
@@ -111,29 +112,30 @@
 
 验收：D3/D4 无需猜测事务、地址、数据、超时、`test_done/test_failed` 或 PASS/FAIL 语义；本批没有 RTL/TB/IP/约束修改。
 
-### D3：实现 DDR3 项目自有限 BIST（待审核）
+### D3：实现 DDR3 项目自有限 BIST（先完成 D3-0 评审）
 
-依赖 D2；本批修改项目自有 RTL 和 PDS 输入，不修改厂商 `ip_core/ddr3/**` 生成文件。
+依赖 D2。D3-0 是只读评审，不修改 RTL/IP/约束；D3-A 以后才修改项目自有 RTL 和 PDS 输入，始终不修改厂商 `ip_core/ddr3/**` 生成文件。
 
 - [ ] D3-0：明确公开 core 与物理 board wrapper 边界；统计状态只作为 core 公开接口，不新增 FPGA 物理 I/O。
 - [ ] D3-0：确认活动 DDR UI 的 `axi_wready`、`axi_wusero_id/last` 等非标准 AXI 握手和完成语义。
 - [ ] D3-0：新物理顶层保持现有物理端口，并保留 FDC/RCF 依赖的 DDR IP 实例名 `I_ips_ddr_top`。
+- [ ] D3-0：固定 D3-A 的文件范围、顶层切换、compile 验收和回退边界；若 AXI 语义或层级约束无法从活动 IP/模板唯一确认，则停止在评审。
 - [ ] D3-A：新增 `rtl/ddr3_bringup_top.sv` 与 `rtl/ddr3_finite_bist.sv` 接口/FSM 骨架，并按 VSCS 完成注释。
 - [ ] D3-A：直接实例化活动 DDR3 IP，自动在初始化完成后启动一次有限测试。
 - [ ] D3-A：原子更新 PDS 顶层、输入清单和 gate 中的产物基名，完成 compile/elaboration，禁止新增端口或位宽告警。
 - [ ] D3-B：实现 16 个单 beat 写读比较 pair、watchdog、错误统计和首错信息。
 - [ ] D3-C：从空 `build/` 完成七阶段回归，更新严格/baseline gate 和产物证据，不再修改功能 RTL。
 
-验收：公开接口满足 D2 契约；compile/PDS 无新增未分类问题；厂商示例和生成 IP 保持原样。
+验收：D3-0 后 D3-A 无需猜测 wrapper、握手或约束层级；D3-A/B/C 的公开接口满足 D2 契约，compile/PDS 无新增未分类问题，厂商示例和生成 IP 保持原样。
 
 ### D4：建立 DDR3 自检 testbench
 
 依赖 D3；测试文件可先评审，实际运行依赖 S0。
 
-- [ ] 新建 `tb_ddr3_finite_bist.sv`，用最小 AXI 响应模型覆盖正常、数据错误、写超时和读超时。
-- [ ] 新建 `tb_ddr3_bringup.sv`，连接项目顶层与厂商 DDR3 memory model，不读取 DUT 私有层级。
-- [ ] 新建相对路径 filelist/DO，去除强制 FSDB、Verdi PLI 和盘符绝对路径。
-- [ ] 正向用例只输出一次 `TEST PASS`；训练、自检、数据或协议失败必须 `$fatal`。
+- [ ] D4-A：新建 `tb_ddr3_finite_bist.sv`，用最小 AXI 响应模型覆盖正常、数据错误、写超时和读超时。
+- [ ] D4-A：正向用例只输出一次 `TEST PASS`；数据、协议或超时失败必须 `$fatal`。
+- [ ] D4-B：新建 `tb_ddr3_bringup.sv`，连接项目顶层与厂商 DDR3 memory model，不读取 DUT 私有层级。
+- [ ] D4-B：新建相对路径 filelist/DO，去除强制 FSDB、Verdi PLI 和盘符绝对路径；训练或自检失败必须 `$fatal`。
 
 验收：文件静态评审通过；QuestaSim 可用后，正向退出 0，全部负向用例按预期判定并返回可靠退出码。
 
@@ -203,28 +205,33 @@
 
 ### O2：OV7725 分时钟域复位
 
-- [ ] O2-A：只读确认 `GTP_OSERDES_E2.RST` 对 `OCLK=pixel_clk_5x`、`OCLKDIV=pixel_clk` 的释放契约，逐项映射八个 recovery endpoint。
-- [ ] O2-A：固定 serializer 双域复位的文件范围、极性、实例数量、STA 和仿真验收，不修改 RTL/FDC。
-- [ ] O2-B：保留 encoder 的 `pixel_clk` 域复位，新增 `pixel_clk_5x` 域异步置位、同步释放复位，只驱动八个 OSERDES。
-- [ ] O2-B：重跑七阶段，要求新增 slow recovery `8/8` 消失或 WNS/TNS 非负，且 removal 不新增失败。
-- [ ] O2-C：再为 sys、camera、pixel、DDR UI 和 FIFO 两侧建立各自异步置位、同步释放复位。
-- [ ] O2-C：`ddr3_init_done` 只作为同步后的状态/使能，不再直接参与其他域异步复位释放。
-- [ ] O2-C：消除复位重汇聚和组合异步释放；新增或修改的手写 RTL 按 VSCS 记录 RDC 契约和验证证据。
+- [ ] O2-A：建立 `doc/SERIALIZER_RESET_CONTRACT.md`，交叉核对 SP6.4 `GTP_OSERDES_E2` 仿真模型、`V_OSERDES_E2` timing model、PG2L100H 官方示例、当前 RTL 与最终 STA；本批不修改 RTL/FDC。
+- [ ] O2-A：确认 `RST` 高有效，且同一端口对 `OCLK/SERCLK=pixel_clk_5x` 与 `OCLKDIV=pixel_clk` 都存在 recovery/removal 要求；比较候选释放结构，禁止把“仅高速域同步”写成未经证明的结论。
+- [ ] O2-A：逐项映射 `serializer_b/g/r/clk × opit_2/opit_2_com` 八个 `OSR_IOLHR` endpoint，无遗漏或重复；记录 Slow Recovery `-0.643 ns / -4.191 ns / 8/8`、Slow Removal `+0.305 ns / 0/8`、Fast Recovery `+0.123 ns / 0/8`。
+- [ ] O2-A：固定 O2-B 的复位源、释放基准、同步级数、极性、扇出、文件范围、gate 修改、仿真补测和回退边界。
+- [ ] O2-B：保留 TMDS encoder 的 `pixel_clk` 域复位，只实现 O2-A 已证明的 OSERDES reset 结构，并且只扇出到四个 serializer 内八个 OSERDES。
+- [ ] O2-B：从空 `build/` 重跑七阶段；要求 serializer Slow/Fast Recovery 与 Removal 全部非负，且不得把失败转移为 `pixel_clk_5x → pixel_clk` 或其他新 clock pair。
+- [ ] O2-B：PDS 退出 0、日志无 `E:`、五类产物非零，无新增未分类 warning/critical；严格 gate 仍可因其他既有阻断失败，baseline 不得新增 waiver。
+- [ ] O2-C1：在 O3-A 的同步状态可用后，为 sys、I2C、camera、pixel、DDR UI 等普通时钟域建立本地复位，解除 `ddr3_init_done` 对其他域异步复位释放的直接控制。
+- [ ] O2-C2：单独核验两个厂商 FIFO 的 reset/flush 语义，再分别处理读写侧复位；不把 FIFO 复位与普通寄存器复位混为一个提交。
 
-验收：O2-B 不使用 false path 即关闭八个 OSERDES recovery；O2-C 完成后 RTL 中不存在跨域状态直接接异步复位脚，STA recovery/removal 全部非负。
+O2-A 停止条件：厂商模型无法确定释放基准、八个 STA endpoint 不能唯一对应、或方案必须先修改 PLL/IP/FDC 才能定义。O2-B 停止并回退条件：recovery/removal 转移或恶化、需要宽泛 `false_path`、或必须扩面修改 camera/UI/FIFO/业务 CDC。
+
+验收：O2-B 不使用时序 waiver 即关闭 serializer 的全部 recovery/removal；O2-C1/C2 完成后不存在跨域状态直接释放其他域复位，FIFO 两侧复位符合对应 IP 语义。
 
 ### O3：OV7725 业务 CDC 修复
 
-- [ ] 将 `video_vs/rd_load` 转为可靠的 `pixel_clk → ui_clk` 事件传输。
-- [ ] 将 `cmos_frame_vsync/wr_load` 转为可靠的 `cam_pclk → ui_clk` 事件传输。
-- [ ] 将 `ddr3_init_done` 稳定电平分别同步到 camera 和 pixel 域。
-- [ ] 同一跨域事件只同步一次后在目标域扇出，避免多同步器重汇聚。
-- [ ] 覆盖复位期间不产生伪事件、每个合法事件恰好生成一次目标域脉冲。
+- [ ] O3-A：将 `ddr3_init_done` 稳定电平分别同步到 camera 和 pixel 域，作为 capture/HDMI 的 enable/status；该批必须先于 O2-C1 删除旧复位耦合。
+- [ ] O3-B：将 `video_vs/rd_load` 转为可靠的 `pixel_clk → ui_clk` 事件传输。
+- [ ] O3-B：将 `cmos_frame_vsync/wr_load` 转为可靠的 `cam_pclk → ui_clk` 事件传输。
+- [ ] O3-B：同一跨域事件只同步一次后在目标域扇出，避免多同步器重汇聚。
+- [ ] O3-A/O3-B：覆盖复位期间不产生伪状态/伪事件，每个合法事件恰好生成一次目标域脉冲。
 
-验收：旧 `pixel_clk → ui_clk` WNS `-7.056 ns` 的裸业务路径不再作为同步时序路径出现；CDC 检查只剩批准结构。
+验收：O3-A 为 O2-C1 提供稳定替代 enable；O3-B 后旧 `pixel_clk → ui_clk` WNS `-7.056 ns` 的裸业务路径不再作为同步时序路径出现，CDC 检查只剩批准结构。
 
 ### O4：OV7725 FIFO、约束与时序闭环
 
+- [ ] 依赖 O2-C2、O3-B；最终发布闭环还依赖 H3 的板级时钟与 I/O 事实。
 - [ ] 核验 `wr_fifo`、`rd_fifo` 的时钟、指针同步和复位连接，不改厂商生成 RTL。
 - [ ] 只对厂商认证的同步器/FIFO 内部路径添加最窄范围例外。
 - [ ] 根据已落地结构声明异步时钟关系；禁止覆盖整个模块或时钟域的宽泛 false path。
@@ -257,6 +264,8 @@
 
 ### H2：PCIe 板级参数与严格 gate
 
+- [ ] H2-A：建立 lane/refclk/PERST#/share pin/UART/SCBV/IP 目标的板级证据矩阵和 SP6.4 IP 再生成契约；不修改 RTL/IDF/FDC。
+- [ ] H2-B：将 baseline gate 收紧为已知对象、类别和数量的精确指纹；任何新增、消失或漂移默认失败，并继续输出不可发布标记。
 - [ ] 确认 PCIe x2 lane 映射/极性、100 MHz refclk、PERST# 和 M15/M16 share pin。
 - [ ] 决定 UART2APB 保留或删除；保留则提供 RX/TX 管脚、电气标准和波特率。
 - [ ] 提供 SCBV 所需配置 bank 电压。

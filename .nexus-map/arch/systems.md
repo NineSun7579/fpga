@@ -39,8 +39,8 @@
 - artifact_evidence: synthesis netlist `6,873,482` bytes; PNR netlist `11,604,756` bytes; SDF `8,898,464` bytes; `.sbit` `3,791,112` bytes; `.bin` `3,789,476` bytes
 - rtl_hygiene_findings: 39 条 `Verilog-2019` 中 38 条确定性告警已在 O1-B 消失；仅保留活动 DDR3 IP `mem_a[13:0]` 与顶层/FDC `mem_a[14:0]` 冲突的 1 条，综合网表仍将 `mem_a[14]` 绑 0
 - rtl_hygiene_result: 已显式声明 `rst_n`、删除无消费者 `sys_init_done`、修复定宽连接，并使用高有效 reset 驱动四个 serializer 内的八个 OSERDES；未修改 `mem_a`、厂商 IP、FDC 或 CDC/RDC
-- remediation_contract: 逐域异步置位/同步释放复位；帧事件只同步一次后在目标域扇出；FIFO 两侧复位分别在本地域释放；仅在结构闭环后对厂商认证路径添加精确例外
-- next_step: O2-A 固定 serializer reset 域契约 → O2-B 关闭八个 OSERDES recovery 失败 → O2-C 处理其余逐域复位；与 DDR3 D3 一次只进入一条 RTL 实现泳道
+- remediation_contract: O2-A 联合核对 OSERDES `RST` 对 `OCLK/SERCLK` 与 `OCLKDIV` 的释放要求；O2-B 只实现已证明的 serializer reset 结构且不预设仅高速域同步；O3-A 先同步 `ddr3_init_done`；O2-C1 处理普通时钟域本地复位；O2-C2 独立处理 FIFO reset/flush；O3-B 修复帧事件 CDC；结构闭环后才允许对厂商认证路径添加精确例外
+- next_step: O2-A → O2-B → O3-A → O2-C1 → O2-C2 → O3-B → O4；O4 同时依赖 O2-C2 与 O3-B，与 DDR3 D3 一次只进入一条 RTL 实现泳道
 - high_attention: `i2c_dri_clk` 逻辑生成时钟、`cam_pclk`/DDR `ui_clk`/`pixel_clk` 间业务 CDC、FIFO 分侧复位，以及 `ddr3_init_done` 参与的复位释放。
 
 ## DDR3 外层工程
