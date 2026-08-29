@@ -2,208 +2,252 @@
 
 更新日期：2026-08-29
 
-状态：待审核。本文只定义任务与验收门槛，尚未授权修改三个项目。
+状态：实施中。PCIe 可重复构建基线已完成；DDR3 compile-only 基线已提交；当前进入 DDR3 完整实现与严格 gate；OV7725 尚未开始整改。
 
-## 目标
+## 1. 总体验收目标
 
-将以下三个工程整理为可重复构建、可自动验证、可以明确判断成功或失败的 PDS 工程：
+三个工程最终都必须满足：
 
-- `pcie_dma_test_100h`
-- `ddr3_test`
-- `41_ov7725_hdmi`
+- 使用 PDS `2022.2-SP6.4` 从明确的源码、IP 和约束完成可重复构建。
+- PDS 各阶段退出码为 0，且日志不存在 `^E:`；不能只信任进程退出码。
+- 最终 STA 为 `All Constraints Met`、`WNS >= 0`、`TNS = 0`，setup、hold、recovery、removal 均通过。
+- 行为级、综合后、PNR 后功能、PNR 后时序仿真均返回可靠退出码。
+- 时序仿真成功标注 SDF，不存在实例层级匹配错误或未批准的 timing violation。
+- 自检 testbench 失败使用 `$fatal`，成功只输出一次 `TEST PASS`。
+- 项目使用的 PNR 网表、SDF 和位流文件存在且大小非零。
+- 板级参数、管脚、电气标准、时序例外和批准的 warning 均有可追溯依据。
 
-最终验收门槛：
+## 2. 执行原则
 
-- 使用 PDS `2022.2-SP6.4` 从源码和约束完成全流程构建。
-- PDS 各阶段退出码为 0。
-- 最终时序满足 `WNS >= 0`、`TNS = 0`。
-- 行为级、综合后、PNR 后功能及 PNR 后时序仿真均有明确结果。
-- 时序仿真成功标注 SDF，无实例匹配错误。
-- testbench 输出 `TEST PASS`，失败时使用 `$fatal` 返回非零退出码。
-- 位流文件存在且大小非零。
+1. 每批只解决一个可独立验证的问题，并形成独立提交。
+2. 不因缺少板卡资料或 QuestaSim 阻塞可重复构建、日志 gate、静态 CDC/RDC 审计等工作。
+3. 不把厂商示例顶层、内部 STA 通过或非零位流描述为产品验收完成。
+4. 修改手写 RTL/TB 时遵守 `VERILOG_SYSTEMVERILOG_COMMENTING_STANDARD.md`；厂商生成 IP 不批量改写。
+5. 不直接修改厂商示例 TB 来伪装集成测试；新增项目级自检 TB。
+6. 不用宽泛 `false_path`、虚假 I/O delay 或总开关掩盖真实 CDC、板级约束与工具告警。
+7. 每批同步项目 README、`docs/IMPLEMENTATION_LOG.md` 和 `.nexus-map`，但不提交 `build/`。
 
-## 执行顺序
+## 3. 当前完成状态
 
-```text
-环境与公共脚本
-      ↓
-PCIe：建立可工作的基准流水线
-      ↓
-DDR3：明确板级顶层并完成闭环
-      ↓
-OV7725：修复 CDC、复位和负时序
-      ↓
-统一 CI Gate 与文档
-```
+- [x] 建立 Git 基线、根目录指南、`.gitignore` 和 repo-local `.nexus-map`。
+- [x] 明确 VSCS 只强制覆盖后续修改的手写 RTL/TB，排除厂商生成 IP。
+- [x] PCIe 建立相对路径 `build.tcl`、PowerShell 入口和严格产物检查器。
+- [x] PCIe 在 SP6.4 下完成全流程重建，慢角 setup WNS `0.584 ns`、TNS `0`。
+- [x] PCIe 生成非零 PNR 时序网表、SDF、`.sbit` 和 `.bin`。
+- [x] PCIe 严格 gate 能拦截 6 类已知发布阻断；baseline 放行模式仅用于复现旧设计。
+- [x] DDR3 明确暂用厂商 `test_ddr` 作为板级 bring-up 顶层，不声称为产品顶层。
+- [x] DDR3 新脚本显式加载 18 个示例 RTL、`ddr3.idf`、PG2L100H FDC 和 RCF。
+- [x] DDR3 compile-only 在 SP6.4 下成功，日志 `E:` 为 0。
+- [x] DDR3 compile-only 基线完成文档同步、静态验证并提交（`848ca4c`）。
+- [ ] OV7725 建立 SP6.4 可重复构建基线并开始 CDC/RDC 整改。
+- [ ] 安装 QuestaSim/ModelSim，编译 Logos2 USIM/VSIM 并完成三项目四级仿真。
 
-说明：OV7725 风险最高，但 PCIe 已通过当前时序，适合先用于验证公共脚本、仿真库和 CI 判定逻辑，避免把环境问题误判为 OV7725 RTL 问题。
+## 4. 主执行链
 
-## 已完成里程碑
+### D0：收口 DDR3 compile-only 基线（已完成）
 
-- [x] 建立 Git 基线提交和 repo-local `.nexus-map`。
-- [x] 明确 VSCS 仅强制覆盖后续修改的手写 RTL/TB，厂商生成 IP 不直接改写。
-- [x] 建立 PCIe 相对路径 `build.tcl`、PowerShell 入口和严格产物检查器。
-- [x] 在 PDS SP6.4 下从新 `build/` 完成 PCIe 全流程重建。
-- [x] PCIe 新构建达到 WNS `0.584 ns`、TNS `0`，并生成非零 PNR 网表、SDF、`.sbit` 和 `.bin`。
-- [ ] 关闭 PCIe 严格 gate 的器件 IDF、UART、外部约束、share pin 和 SCBV 阻断项。
-- [ ] 安装 QuestaSim 后验证 PCIe SDF 标注和四级集成仿真。
+范围只包含 DDR3 README、构建脚本和状态文档，不改 RTL、IP、FDC 或 RCF。
 
-## P0：开始编码前的决策
+- [x] 新建 `ddr3_test/ddr3_test/scripts/build.tcl`。
+- [x] 新建 `ddr3_test/ddr3_test/scripts/run.ps1`。
+- [x] 新建 DDR3 README，说明 bring-up 边界和一键命令。
+- [x] 验证 `-RunTo compile`：退出码 0、日志无 `^E:`、顶层为 `test_ddr`。
+- [x] 验证 18 个示例 RTL、IDF、正确 FDC 和 RCF 均被加载。
+- [x] 记录 compile 基线的 272 条 warning 分类：173 条无编号环路类、34 条 `Verilog-2023`、28 条 `Verilog-2006`、19 条 `Verilog-2019`、15 条 `Sdm-2000`、3 条 `Verilog-2039`。
+- [x] 将 `test_ddr.v:855` 的两条 BIST 错误数据端口位宽告警列为后续明确处置项。
+- [x] 同步 `docs/IMPLEMENTATION_LOG.md`、`.nexus-map` 和本 TODO。
+- [x] 验证 PowerShell 语法、Markdown、JSON、`git diff --check` 和 `build/` 忽略状态。
+- [x] 提交 `848ca4c build: 建立 DDR3 compile-only bring-up 基线`。
 
-- [ ] 确认三个工程实际使用的板卡、芯片丝印和原理图版本。
-- [ ] 确认器件统一为 `Logos2 / PG2L100H / FBG484 / -6`。
-- [ ] 确认 DDR3 器件型号、数据宽度、容量、速率和板级走线配置。
-- [ ] 确认 PCIe UART 管理通道是否需要保留：保留则增加正式顶层端口；不保留则删除 UART2APB 死代码。
-- [ ] 确认 OV7725 输入格式、分辨率、帧率以及 HDMI 输出模式。
-- [ ] 安装 ModelSim/QuestaSim，并记录包含 `vsim.exe`、`vlog.exe` 的实际目录。
-- [ ] 决定是否先在侧装环境验证 `PDS_2022.2-SP6.4-Patch2`；不得覆盖现有安装。
+验收：从干净 `build/` 重跑 compile 得到相同输入集；严格区分“可编译基线”与“产品/板级验收”。
 
-完成条件：所有硬件参数都有原理图、芯片手册或 IP 配置文件作为依据，不再依赖工程名称推断。
+### D1：DDR3 完整实现与严格 gate（当前批次）
 
-## P0：公共工程基础设施
+依赖 D0；仍不宣称发布候选。
 
-原则：暂不大规模移动厂商生成的 IP 文件，先建立干净的脚本入口和统一生成目录。
+- [ ] 为 DDR3 新增独立 `scripts/check_build.ps1`。
+- [ ] gate 检查 PDS `E:`、阶段完成标志、100H 器件、时序摘要和非零产物。
+- [ ] gate 将 UART、未约束关键 I/O、share pin、SCBV/板级参数和 BIST 位宽问题视为严格阻断。
+- [ ] 允许显式 baseline 模式验证历史设计可重复实现，但输出必须标记“不可发布”。
+- [ ] 分阶段执行 synthesize、dev_map、PNR、report_timing、gen_netlist 和 bitstream。
+- [ ] 记录新构建的 WNS、TNS、hold/recovery/removal、资源和 constraint warning。
+- [ ] 确认综合网表、PNR 网表、SDF、`.sbit`、`.bin` 均存在且非零。
+- [ ] 验证 baseline gate 通过、严格 gate 对未关闭项返回非零。
+- [ ] 同步 README、实现日志、`.nexus-map` 后独立提交。
 
-- [ ] 为每个项目建立 `scripts/`、`tb/`、`sim/` 和 `build/`。
-- [ ] 将全部新脚本改为相对工程根目录寻址，禁止新增机器相关绝对路径。
-- [ ] 为每个项目编写最小化 `scripts/build.tcl`：
-  - [ ] 只包含当前有效器件配置。
-  - [ ] 显式添加 RTL、IP 和约束。
-  - [ ] 依次执行 compile、synthesize、dev_map、pnr、report_timing、gen_netlist 和 gen_bit_stream。
-  - [ ] 每个阶段输出清晰日志。
-- [ ] 编写统一 PowerShell 入口，至少支持：
-  - [ ] `build`
-  - [ ] `sim-behav`
-  - [ ] `sim-post-syn`
-  - [ ] `sim-post-pnr-func`
-  - [ ] `sim-post-pnr-timing`
-  - [ ] `clean-build`
-- [ ] 编译 Logos2 的 USIM/VSIM 仿真库到仓库根目录 `build/simlib/`。
-- [ ] 禁止提交 `build/`、transcript、临时库和 PDS 中间数据库。
+验收：完整 PDS 流程可重复执行，内部时序和产物检查有机器可判定结果；未获板级确认的问题仍被严格 gate 拦截。
 
-完成条件：从任意工程根目录执行一个 PowerShell 命令即可重建，脚本中不存在旧盘符路径。
+### D2：定义 DDR3 有限自检契约
 
-## P0：`pcie_dma_test_100h`
+该批先做设计评审，不要求 QuestaSim 已安装。
 
-### RTL 与约束
+- [ ] 确定有限事务数、地址范围、数据模式、最大完成时间和错误统计语义。
+- [ ] 决定采用“修改 bring-up BIST 暴露 done/error”还是“建立更小的专用 AXI 测试顶层”。
+- [ ] 明确初始化、写、读回、比较、完成和失败的状态机契约。
+- [ ] 禁止把 `bist_run_led` 或 `err_flag_led` 直接解释为测试完成。
+- [ ] 修正现有 TB 与当前 `test_ddr` 的五个端口失配。
+- [ ] 移除 FSDB/Verdi PLI 和 `D:/pango` 等机器路径依赖。
+- [ ] 新 TB 必须有超时、training/BIST error 的 `$fatal` 和唯一 `TEST PASS`。
 
-- [ ] 处理 UART2APB 管理通道决策。
-- [ ] 若保留 UART：
-  - [ ] 在顶层显式声明 `uart_rxd`、`uart_txd`。
-  - [ ] 禁用隐式 net，消除 `rxd` 被绑 0 的编译警告。
-  - [ ] 添加引脚位置、方向和 I/O 标准约束。
-- [ ] 若删除 UART：移除 UART2APB 实例及对应无用 APB 信号。
-- [ ] 按 PCIe IP 官方模板核对 RX/TX、参考时钟、PERST# 和 HSST 专用资源约束。
-- [ ] 明确 `button_rst_n`、`perst_n` 的异步输入和同步释放策略。
-- [ ] 对 LED 输出作出明确处理：补合理约束或记录为无外部时序要求。
-- [ ] 将 constraint check 的 critical warning 逐项复核并形成说明。
+验收：TB 设计无需猜测即可实现，done/error 有稳定、可观察、可自动判定的协议。
 
-### 仿真与验收
+### O0：OV7725 CDC/RDC 清单与 SP6.4 构建基线
 
-- [ ] 新建集成顶层 `tb_pcie_dma_test.sv`，不得只复用 PCIe IP 示例 TB。
-- [ ] 覆盖复位、链路建立、基础 DMA 读写和错误路径。
-- [ ] 将现有仅 `$display` 的失败分支改为 `$fatal`。
-- [ ] 增加仿真超时和唯一的 `TEST PASS` 标记。
-- [ ] 生成顶层 PNR 功能网表和 SDF。
-- [ ] 完成四级仿真脚本并验证退出码。
-- [x] 在 SP6.4 下重新跑 PDS 全流程。
+依赖 D1 完成后开始；本批不修改功能 RTL。
 
-完成条件：UART 不再是无驱动死通道；PCIe 集成顶层四级仿真通过；最终时序继续满足约束。
+- [ ] 建立 CDC/RDC 表，覆盖 `sys_clk`、`cam_pclk`、`pixel_clk`、`pixel_clk_5x` 和 DDR `ui_clk`。
+- [ ] 每条跨域记录源域、目标域、信号类型、协议、事件频率、复位行为和验证方法。
+- [ ] 明确 `wr_load`、`rd_load`、`ddr3_init_done`、`capture_start` 和两个异步 FIFO 的跨域关系。
+- [ ] 新建相对路径 `scripts/build.tcl`、PowerShell 入口和产物/日志检查器。
+- [ ] 显式固定 `Logos2 / PG2L100H / FBG484 / -6`、15 个业务 RTL、4 个 IP 和唯一 FDC。
+- [ ] 禁止依赖包含旧器件和失效绝对路径的 `prj/impl.tcl`。
+- [ ] 在干净 `build/` 中完成 SP6.4 compile 基线，并记录全部 warning。
+- [ ] 不修改 RTL 的前提下尝试完整实现，固化旧 WNS/TNS/recovery 基线和非零产物状态。
 
-## P0：`ddr3_test`
+验收：所有工程输入可追溯，构建入口可重复；CDC/RDC 决策先于时序例外。
 
-### 工程定义
+### O1：OV7725 RTL 卫生修复
 
-- [ ] 明确真正的板级顶层名称和功能范围，不能继续把 IP 壳工程视为产品工程。
-- [ ] 决定是否以 IP 自带 `test_ddr` 为初始顶层。
-- [ ] 将选定顶层、DDR3 IP、测试逻辑和约束显式加入外层工程。
-- [ ] 删除或隔离与当前配置不匹配的旧示例脚本，避免误执行。
-- [ ] 将嵌套目录整理为一个明确工程入口，不复制大体积 IP 生成物。
+- [ ] 显式声明 `rst_n`、`sys_init_done` 等隐式 net。
+- [ ] 按端口宽度书写所有常量，消除顶层地址、burst 和 serializer RST 位宽警告。
+- [ ] 核对顶层 `mem_a` 宽度与 DDR IP 配置。
+- [ ] 使 `serializer_10_to_1.reset_n` 真正控制 OSERDES，或经设计评审删除无效输入。
+- [ ] 不在本批修改 CDC 结构或时序约束。
 
-### RTL、约束与仿真
+验收：compile 不再报告上述手写 RTL 的隐式网络和端口位宽问题；接口宽度与 IDF/template 一致。
 
-- [ ] 核对 DDR3 IP 参数与板载颗粒：位宽、地址、bank、速率和时钟。
-- [ ] 补齐 DDR3、参考时钟、复位及可选 UART 的板级管脚约束。
-- [ ] 根据器件和板级要求补齐 I/O 时序约束；不能只依赖内部 PHY 时序通过。
-- [ ] 修正 testbench 与当前顶层的端口失配。
-- [ ] 移除仿真脚本中的 `D:/pango` 等绝对路径。
-- [ ] 增加初始化完成等待、写读回校验、超时、`$fatal` 和 `TEST PASS`。
-- [ ] 生成综合后网表、PNR 功能网表和 SDF。
-- [ ] 完成四级仿真和全流程构建。
+### O2：OV7725 分时钟域复位
 
-完成条件：外层工程本身具备源码、约束和实现产物；DDR3 写读回自检通过；板级约束覆盖完整。
+- [ ] 为 sys、camera、pixel、DDR UI 时钟域分别建立异步置位、同步释放复位。
+- [ ] `ddr3_init_done` 只作为同步后的状态/使能，不再直接参与其他域异步复位释放。
+- [ ] FIFO 两侧复位分别在各自读写时钟域释放。
+- [ ] 消除复位重汇聚和组合异步释放。
+- [ ] 新增或修改的手写 RTL 按 VSCS 记录 RDC 契约和验证证据。
 
-## P0：`41_ov7725_hdmi`
+验收：RTL 中不存在跨域状态直接接异步复位脚；后续 STA recovery/removal 全部非负。
 
-### CDC 与复位
+### O3：OV7725 业务 CDC 修复
 
-- [ ] 列出 `sys_clk`、`cam_pclk`、DDR `ui_clk`、`pixel_clk` 和串行时钟之间的全部跨域信号。
-- [ ] 为 `video_vs`、`rd_load` 等脉冲跨域使用 toggle、握手或经过验证的脉冲同步器。
-- [ ] 检查异步 FIFO 的指针同步结构和工具识别情况。
-- [ ] 为每个时钟域建立独立复位：异步置位、同步释放。
-- [ ] 禁止 `ddr3_init_done` 直接作为其他时钟域的异步复位释放信号。
-- [ ] 消除业务 RTL 中的隐式 net。
-- [ ] 修正所有常量位宽和端口位宽警告，重点核对 DDR 地址宽度。
-- [ ] 连接或删除未实际使用的 serializer 复位输入。
+- [ ] 将 `video_vs/rd_load` 转为可靠的 `pixel_clk → ui_clk` 事件传输。
+- [ ] 将 `cmos_frame_vsync/wr_load` 转为可靠的 `cam_pclk → ui_clk` 事件传输。
+- [ ] 将 `ddr3_init_done` 稳定电平分别同步到 camera 和 pixel 域。
+- [ ] 同一跨域事件只同步一次后在目标域扇出，避免多同步器重汇聚。
+- [ ] 覆盖复位期间不产生伪事件、每个合法事件恰好生成一次目标域脉冲。
 
-### 约束与时序
+验收：旧 `pixel_clk → ui_clk` WNS `-7.056 ns` 的裸业务路径不再作为同步时序路径出现；CDC 检查只剩批准结构。
 
-- [ ] 根据真实 CDC 结构声明异步时钟关系。
-- [ ] 仅对认证同步器或异步 FIFO 同步路径添加必要例外，禁止整体屏蔽业务 CDC。
-- [ ] 为 OV7725 输入补充相对 `cam_pclk` 的 input delay。
-- [ ] 核对 TMDS 输出、DDR3 和其他板级接口的外部时序要求。
-- [ ] 复核 `cam_pclk` 使用非专用时钟路由是否符合原理图和器件规则。
-- [ ] 清理 constraint check critical warning，无法消除的必须有板级依据和说明。
-- [ ] 在 SP6.4 下重新生成或核验 DDR3、PLL、FIFO IP。
-- [ ] 反复执行 PNR/时序分析，直到 setup、hold、recovery、removal 全部通过。
+### O4：OV7725 FIFO、约束与时序闭环
 
-### 仿真与功能验收
+- [ ] 核验 `wr_fifo`、`rd_fifo` 的时钟、指针同步和复位连接，不改厂商生成 RTL。
+- [ ] 只对厂商认证的同步器/FIFO 内部路径添加最窄范围例外。
+- [ ] 根据已落地结构声明异步时钟关系；禁止覆盖整个模块或时钟域的宽泛 false path。
+- [ ] 确认所有约束对象匹配，无失效对象。
+- [ ] 重跑 PNR，直到 setup、hold、recovery、removal 全部通过。
+- [ ] 新增严格 gate，检查时序、未约束关键端口、SDF、位流和批准 waiver。
 
-- [ ] 建立自检 `tb_ov7725_hdmi.sv`。
-- [ ] 提供可重复的摄像头帧输入模型。
-- [ ] 检查帧写入 DDR、跨帧切换、读出顺序和 HDMI 有效区数据。
-- [ ] 覆盖 DDR 初始化延迟、复位中断、FIFO 接近满/空和仿真超时。
-- [ ] 生成综合后网表、PNR 功能网表和 SDF。
-- [ ] 完成四级仿真和非零位流生成。
+验收：最终 `All Constraints Met`、WNS 非负、TNS 为 0；旧 FIFO `ui_clk → pixel_clk` WNS `-2.279 ns` 不再被当作普通同步路径。
 
-完成条件：慢角 setup WNS 从 `-7.056 ns` 提升到非负，recovery 无违规，视频链路自检通过。
+## 5. 外部阻断泳道
 
-## P1：统一 CI Gate
+这些任务需要用户或实验环境提供事实，但不阻塞前述脚本、静态审计和内部实现基线。
 
-- [ ] 行为级仿真失败时立即停止后续流程。
-- [ ] 检查 PDS 每个阶段的退出码。
+### H0：三项目板级资料
+
+- [ ] 确认三个工程对应的板卡型号、原理图版本、BOM 和 FPGA 完整丝印。
+- [ ] 确认是否统一为 `Logos2 / PG2L100H / FBG484 / -6`。
+- [ ] 提供配置 bank 电压、启动模式和 share pin 使用条件。
+
+### H1：DDR3 板级参数
+
+- [ ] 提供 DDR3 完整料号、数量、容量、rank、x16/x32 组织和目标速率。
+- [ ] 核对 A/BA/CK/DQ/DQS/DM byte-lane 映射及 bit/byte swap。
+- [ ] 确认 `free_clk` 频率、电气标准、精度和 `rst_board` 极性。
+- [ ] 提供 VCCIO/VREF、ODT、终端、拓扑和 PCB 走线时延依据。
+- [ ] 决定 UART/ADC 是否保留；若保留，提供管脚、电压和波特率。
+
+### H2：PCIe 板级参数与严格 gate
+
+- [ ] 确认 PCIe x2 lane 映射/极性、100 MHz refclk、PERST# 和 M15/M16 share pin。
+- [ ] 决定 UART2APB 保留或删除；保留则提供 RX/TX 管脚、电气标准和波特率。
+- [ ] 提供 SCBV 所需配置 bank 电压。
+- [ ] 确认 LED 属于人眼状态灯且无外部同步时序要求，或提供正式时序要求。
+- [ ] 用 SP6.4 IP Compiler 为 PG2L100H 重生成 PCIe IP，消除 50H/100H IDF 不一致。
+- [ ] 按决策处理 UART，消除无驱动 `rxd` 和隐式网络。
+- [ ] 为 HSST/refclk/lane/share pin 建立有官方模板和原理图依据的精确约束或 waiver。
+- [ ] 完整重建并使 `check_build.ps1` 不带 baseline 放行参数返回 0。
+
+### H3：OV7725/HDMI 板级参数
+
+- [ ] 确认 OV7725 输入格式、RGB565 字节序、分辨率、帧率和像素时钟范围。
+- [ ] 确认 HDMI 输出模式及外部时序要求。
+- [ ] 核对 DDR3 型号、32-bit 配置、800 MT/s 和 PCB 拓扑。
+- [ ] 依据传感器和 PCB 数据补 `cam_pclk` input delay。
+- [ ] 复核 `PAP_CLOCK_DEDICATED_ROUTE FALSE`、TMDS/DDR/share pin 和 I/O 电压。
+
+## 6. 仿真器阻断泳道
+
+### S0：公共仿真环境
+
+- [ ] 安装 ModelSim/QuestaSim，记录 `vsim.exe`、`vlog.exe` 的实际目录和版本。
+- [ ] 编译 Logos2 USIM/VSIM 到仓库根 `build/simlib/`。
+- [ ] 将仿真器安装路径作为可覆盖外部参数，不写入工程源清单。
+
+### S1：DDR3 四级仿真
+
+依赖 D1、D2、S0。
+
+- [ ] 行为级自检通过。
+- [ ] 综合后自检通过。
+- [ ] PNR 后功能自检通过。
+- [ ] PNR 后时序自检通过且 SDF 层级正确。
+
+### S2：PCIe 集成仿真
+
+依赖 H2、S0。
+
+- [ ] 新建 `tb_pcie_dma_test.sv`，先覆盖复位、链路建立和超时 smoke。
+- [ ] 新建可移植 filelist 和行为级 DO，不改厂商示例 TB。
+- [ ] 单独增加一次可预测的基础 DMA 写读回。
+- [ ] 再完成综合后、PNR 功能和 PNR 时序仿真。
+- [ ] 每级成功只输出一个 `TEST PASS`，失败或超时返回非零。
+
+### S3：OV7725 集成仿真
+
+依赖 O4、H3、S0。
+
+- [ ] 建立可重复摄像头帧输入模型和 `tb_ov7725_hdmi.sv`。
+- [ ] 覆盖 DDR 初始化延迟、帧写入/切换/读出、HDMI 有效区和 FIFO 边界。
+- [ ] 覆盖复位中断、仿真超时和数据错误 `$fatal`。
+- [ ] 完成行为级、综合后、PNR 功能和 PNR 时序仿真。
+
+## 7. 公共 CI 与维护性
+
+在三个项目各自 gate 稳定后再抽取共享逻辑，避免过早抽象。
+
+- [ ] 行为级仿真失败立即停止后续流程。
+- [ ] 同时检查 PDS 退出码、日志 `^E:` 和阶段完成标志。
 - [ ] 解析最终时序摘要，要求 `All Constraints Met`、`WNS >= 0`、`TNS = 0`。
-- [ ] 将未约束时钟和未约束关键 I/O 视为失败；允许项必须进入项目白名单并写明理由。
-- [ ] 检查 SDF 日志不存在以下内容：
-  - [ ] `SDF annotation error`
-  - [ ] `Failed to find instance`
-  - [ ] 未批准的 timing violation
-- [ ] 检查 testbench 输出唯一 `TEST PASS`。
-- [ ] 检查 `.sbit`、`.bit`、`.bin` 或项目实际使用的位流文件存在且非零。
-- [ ] 将日志和报告保存为 CI artifact，不提交到源码仓库。
+- [ ] 未约束关键时钟/I/O 默认失败；批准项必须精确匹配并记录理由。
+- [ ] SDF 日志不得包含 annotation error、实例匹配错误或未批准 timing violation。
+- [ ] 检查唯一 `TEST PASS` 和非零网表/SDF/位流。
+- [ ] 日志与报告作为 CI artifact 保存，不提交源码仓库。
+- [ ] 每个项目 README 记录器件、临时/产品顶层、时钟、接口、命令、IP 版本和已知阻断。
+- [ ] 每个时序例外记录对象、原因、IP/板级依据和审核状态。
+- [ ] 仅在三个工程均验证后抽取公共 PowerShell/Tcl 小模块。
 
-## P1：文档与维护性
+## 8. 可选增强
 
-- [ ] 每个项目增加简短 README，说明器件、板卡、顶层、时钟、接口和一键命令。
-- [ ] 记录 IP 生成版本及重新生成步骤。
-- [ ] 记录各时钟域、CDC 方法和复位策略。
-- [ ] 记录所有时序例外的对象、原因和审核依据。
-- [ ] 在源码中为关键状态机、CDC、复位和外部协议增加必要注释与错误日志。
-- [ ] 删除确认无用的旧路径脚本、备份网表和重复生成物；删除前单独审核清单。
+- [ ] DDR3 增加长时间随机地址/数据压力测试。
+- [ ] PCIe DMA 增加不同长度、非对齐地址和错误恢复测试。
+- [ ] OV7725 增加多分辨率、帧中断和丢帧统计测试。
+- [ ] 在 SP6.4 与侧装 SP6.4-Patch2 中比较 QoR 和工具缺陷；不得覆盖现有安装。
 
-## P2：可选增强
-
-- [ ] 为 DDR3 增加长时间随机地址/数据压力测试。
-- [ ] 为 PCIe DMA 增加不同长度、非对齐地址及错误恢复测试。
-- [ ] 为 OV7725 增加多分辨率、帧中断和丢帧统计测试。
-- [ ] 在 SP6.4、SP6.4-Patch2 的侧装环境中比较 QoR 和工具缺陷。
-- [ ] 将公共 PowerShell/Tcl 逻辑抽取为小型共享模块，但仅在三个工程均验证后执行。
-
-## 每个提交的完成定义
+## 9. 每个提交的完成定义
 
 - [ ] 修改范围单一，可独立说明和回退。
-- [ ] 新增 RTL、Tcl、DO 和 PowerShell 代码包含必要注释和阶段日志。
-- [ ] 不新增绝对路径、隐式 net 或仅打印但不失败的错误处理。
-- [ ] 对应的最低级别测试已经通过。
-- [ ] 更新项目 README、约束说明或测试说明。
-- [ ] 不提交 `build/` 和工具生成物。
+- [ ] 新增 RTL/TB、Tcl、DO 和 PowerShell 包含必要注释与阶段日志。
+- [ ] 不新增工程内绝对路径、隐式 net 或仅打印但不失败的错误处理。
+- [ ] 对应最低级别测试已通过；不能运行的测试明确记录阻断原因。
+- [ ] README、实现日志、`.nexus-map` 和 TODO 状态同步。
+- [ ] `git diff --check`、PowerShell 语法和 JSON 检查通过。
+- [ ] 不提交 `build/`、transcript、临时库或其他工具生成物。
