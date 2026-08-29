@@ -1,5 +1,5 @@
 > generated_by: Codex manual bootstrap
-> verified_at: 2026-08-30
+> verified_at: 2026-08-29
 > provenance: current worktree, PDS project files, implementation reports, root audit notes, and manual inspection; no AST extraction or Git-history statistics
 
 # Embedded Completion Nexus Map
@@ -20,6 +20,7 @@
 - PCIe 已完成新 `build/` 全流程、STA、网表/SDF/位流和严格 gate 验证。
 - DDR3 已从空 `build/` 完成 `compile → synthesize → dev_map → pnr → report_timing → gen_netlist → gen_bit_stream`，日志无 `E:`；最终报告为 `All Constraints Met`，慢角 setup WNS `0.678 ns`、TNS `0`，hold `0.137 ns`、recovery `4.578 ns`、removal `0.351 ns`。
 - DDR3 已生成非零综合网表、PNR 网表、SDF、`.sbit` 和 `.bin`；严格 gate 因 7 类已知阻断返回 1，显式 baseline 放行返回 0 但明确不可发布。日志没有 SCBV 命中，板级批准参数清单仍缺失，功能与四级仿真仍未验收。
+- OV7725 O0-A 已形成 [CDC/RDC 审计与整改契约](../41_ov7725_hdmi/doc/CDC_RDC_AUDIT.md)，覆盖七类时钟域、帧事件多点采样、两个异步 FIFO 的数据方向/分侧复位风险及三条旧 STA 失败路径；本批只建立事实和契约，未修改 RTL、IP 或 FDC。
 - 根目录 [README](../README.md) 是 PDS 外部实现与仿真指南。
 - 根目录 [TODO](../TODO.md) 是当前整改顺序和验收门槛。
 - 新增或修改 Verilog/SystemVerilog 时必须遵循 [VSCS](../VERILOG_SYSTEMVERILOG_COMMENTING_STANDARD.md)。
@@ -37,7 +38,7 @@
 
 ## 当前优先级
 
-1. 为 OV7725 建立 CDC/RDC 清单和 SP6.4 可重建基线，再分批修复复位与业务 CDC。
+1. 执行 OV7725 O0-B：建立 SP6.4 相对路径构建、compile/完整实现和严格 gate 基线；O0-A CDC/RDC 决策已完成，后续约束必须服从已审核结构。
 2. 评审 DDR3 有限自检契约；板级批准参数到位后再关闭 BIST、share pin、VCCIO、UART 和 I/O timing 等严格 gate 阻断。
 3. PCIe 等待板级资料关闭 IDF、UART、share pin、HSST 约束和 SCBV 阻断项。
 4. QuestaSim 可用后，三个工程分别补齐集成顶层四级仿真和 SDF 标注验证。

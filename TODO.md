@@ -1,8 +1,8 @@
 # 三项目整改 TODO
 
-更新日期：2026-08-30
+更新日期：2026-08-29
 
-状态：实施中。PCIe 可重复构建基线已完成；DDR3 D1 全流程实现与 gate 已收口；当前进入 OV7725 O0-A CDC/RDC 清单批次。
+状态：实施中。PCIe 可重复构建基线已完成；DDR3 D1 全流程实现与 gate 已收口；OV7725 O0-A CDC/RDC 审计已完成，当前进入 O0-B SP6.4 构建基线。
 
 ## 1. 总体验收目标
 
@@ -42,7 +42,8 @@
 - [x] DDR3 从空 `build/` 完成到 `gen_bit_stream`，日志无 `E:`，内部 STA 为 `All Constraints Met`。
 - [x] DDR3 生成非零综合网表、PNR 网表、SDF、`.sbit` 和 `.bin`。
 - [x] DDR3 gate 已验证：严格模式因已知发布阻断返回非零，显式 baseline 放行模式返回 0 并标记不可发布。
-- [ ] OV7725 建立 SP6.4 可重复构建基线并开始 CDC/RDC 整改。
+- [x] OV7725 完成 O0-A CDC/RDC 事实清单与整改契约。
+- [ ] OV7725 建立 O0-B SP6.4 可重复构建基线。
 - [ ] 安装 QuestaSim/ModelSim 并记录版本和路径。
 - [ ] 编译 Logos2 USIM/VSIM。
 - [ ] 完成三项目分级自检仿真。
@@ -50,7 +51,7 @@
 ### 近期执行顺序
 
 1. **P0：D1 已完成。** DDR3 gate、README、实施记录、TODO 和 `.nexus-map` 已作为独立批次收口。
-2. **P1：执行 O0-A。** 只建立 OV7725 CDC/RDC 清单和决策表，不改 RTL、IP 或约束。
+2. **P1：O0-A 已完成。** OV7725 CDC/RDC 清单和决策表已收口，未改 RTL、IP 或约束。
 3. **P1：执行 O0-B。** 只建立 OV7725 相对路径 compile 基线和 warning 分类，不与 CDC 修复混提。
 4. **P1：评审 D2。** 确定 DDR3 有限 done/error 契约和测试顶层方案；该项与 O0 无技术依赖。
 5. **P2：实施 O1。** 仅在 O0-A/O0-B 证据齐全并经审核后，修改手写 RTL 的隐式网络和位宽问题。
@@ -108,20 +109,30 @@
 
 验收：TB 设计无需猜测即可实现，done/error 有稳定、可观察、可自动判定的协议。
 
-### O0：OV7725 CDC/RDC 清单与 SP6.4 构建基线
+### O0-A：OV7725 CDC/RDC 清单（已完成）
 
-本批不修改功能 RTL。它与 D1 无技术依赖；当前仅作为资源排期，在 D1 收口提交后开始。
+本批只建立事实与设计契约，不修改 RTL、IP 或 FDC。
 
-- [ ] 建立 CDC/RDC 表，覆盖 `sys_clk`、`cam_pclk`、`pixel_clk`、`pixel_clk_5x` 和 DDR `ui_clk`。
-- [ ] 每条跨域记录源域、目标域、信号类型、协议、事件频率、复位行为和验证方法。
-- [ ] 明确 `wr_load`、`rd_load`、`ddr3_init_done`、`capture_start` 和两个异步 FIFO 的跨域关系。
+- [x] 建立 CDC/RDC 表，覆盖 `sys_clk`、`i2c_dri_clk`、`cam_pclk`、`pixel_clk`、`pixel_clk_5x` 和 DDR `ui_clk`。
+- [x] 每条跨域记录源域、目标域、信号类型、当前结构、风险、整改契约和验证方法。
+- [x] 明确 `wr_load`、`rd_load`、`ddr3_init_done`、`capture_start` 和两个异步 FIFO 的跨域关系。
+- [x] 将旧 STA 的 `-7.056 ns` setup、`-2.279 ns` FIFO 指针 setup 和 `-4.857 ns` recovery 路径映射到具体结构。
+- [x] 明确逐域复位、单点事件同步、FIFO 分侧复位和最窄时序例外原则。
+- [x] 同步项目状态、实现记录和 `.nexus-map` 后独立提交。
+
+验收：跨域与复位决策先于 RTL/约束修改；不存在“先加宽泛 false path，后判断结构”的未决项。
+
+### O0-B：OV7725 SP6.4 构建基线（当前批次）
+
+本批建立可重复构建入口，不修功能 RTL，也不移动厂商 IP。
+
 - [ ] 新建相对路径 `scripts/build.tcl`、PowerShell 入口和产物/日志检查器。
 - [ ] 显式固定 `Logos2 / PG2L100H / FBG484 / -6`、15 个业务 RTL、4 个 IP 和唯一 FDC。
 - [ ] 禁止依赖包含旧器件和失效绝对路径的 `prj/impl.tcl`。
 - [ ] 在干净 `build/` 中完成 SP6.4 compile 基线，并记录全部 warning。
 - [ ] 不修改 RTL 的前提下尝试完整实现，固化旧 WNS/TNS/recovery 基线和非零产物状态。
 
-验收：所有工程输入可追溯，构建入口可重复；CDC/RDC 决策先于时序例外。
+验收：所有工程输入可追溯，构建入口可重复；日志 `^E:` 和阶段标志均受机器 gate 检查。
 
 ### O1：OV7725 RTL 卫生修复
 

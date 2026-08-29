@@ -1,5 +1,5 @@
 > generated_by: Codex manual bootstrap
-> verified_at: 2026-08-30
+> verified_at: 2026-08-29
 > provenance: `git status`, `git log`, current worktree, and static project audit
 
 # Git Forensics
@@ -8,13 +8,15 @@
 
 - 分支为 `main`。
 - 根提交为 `1a2d493`，保存三个原始工程、已有 PDS 产物和整改文档。
-- 本次 DDR3 全流程与 gate 收口提交完成后，历史共有六个提交。样本仍不足以计算可信的 churn、共同变更或历史热点；本文件不提供伪统计。
+- 本次 OV7725 O0-A 审计批次提交完成后，历史共有七个提交。样本仍不足以计算可信的 churn、共同变更或历史热点；本文件不提供伪统计。
 
 ## 人工高关注区
 
 以下仅来自当前缺陷证据，不是 Git 统计热点：
 
 - `41_ov7725_hdmi/rtl/ov7725_hdmi.v`：视频链路顶层、跨域控制和复位组合点。
+- `41_ov7725_hdmi/doc/CDC_RDC_AUDIT.md`：O0-A CDC/RDC 事实、旧 STA 映射和后续整改契约的首要证据；下一步为 O0-B SP6.4 构建基线。
+- `41_ov7725_hdmi/rtl/ddr3_ctrl_top/ctrl_fifo.v`：`wr_load`/`rd_load` 多点采样、两个异步 FIFO 数据方向和跨两侧复位分发点。
 - `41_ov7725_hdmi/prj/source/ov7725_hdmi.fdc`：时钟、CDC 例外和板级 I/O 约束入口。
 - `ddr3_test/ddr3_test/scripts/build.tcl`：当前临时 bring-up 的可重复七阶段实现定义，仍依赖厂商 `test_ddr` 而非产品顶层。
 - `ddr3_test/ddr3_test/scripts/check_build.ps1`：严格模式拦截 7 类已知阻断；baseline 放行只证明历史设计可重复实现，不表示可发布。

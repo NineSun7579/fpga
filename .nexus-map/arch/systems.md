@@ -1,5 +1,5 @@
 > generated_by: Codex manual bootstrap
-> verified_at: 2026-08-30
+> verified_at: 2026-08-29
 > provenance: current source tree, PDS project files, reports, and root audit notes
 
 # Systems
@@ -9,7 +9,7 @@
 - implementation_status: documented
 - code_path: null
 - evidence_path: `README.md`, `TODO.md`
-- evidence_gap: PCIe 与 DDR3 已建立可重复全流程和严格/baseline gate；OV7725、仿真库和三项目四级仿真尚未完成。
+- evidence_gap: PCIe 与 DDR3 已建立可重复全流程和严格/baseline gate；OV7725 O0-A CDC/RDC 审计已完成，O0-B SP6.4 构建基线、仿真库和三项目四级仿真尚未完成。
 - responsibility: 定义 PDS 2022.2-SP6.4 的实现流程、ModelSim/QuestaSim 四级仿真流程及三工程整改门槛。
 
 ## Verilog/SystemVerilog 注释规范
@@ -27,10 +27,16 @@
 - entry_path: `41_ov7725_hdmi/rtl/ov7725_hdmi.v`
 - project_path: `41_ov7725_hdmi/prj/ov7725_hdmi.pds`
 - constraint_path: `41_ov7725_hdmi/prj/source/ov7725_hdmi.fdc`
-- evidence_path: `41_ov7725_hdmi/prj/report_timing/ov7725_hdmi.rtr`
-- evidence_gap: 无顶层自检 testbench、PNR 功能网表或 SDF；现有位流不能证明时序合格。
+- evidence_path: `41_ov7725_hdmi/doc/CDC_RDC_AUDIT.md`, `41_ov7725_hdmi/prj/report_timing/ov7725_hdmi.rtr`
+- evidence_gap: O0-A 已完成静态 CDC/RDC 审计；O0-B SP6.4 可重复构建、顶层自检 testbench、PNR 功能网表和 SDF 尚未完成，现有位流不能证明时序合格。
 - responsibility: 将 OV7725 像素流经异步 FIFO 和 DDR3 帧缓存送往 HDMI/TMDS 输出。
-- high_attention: `cam_pclk`、DDR `ui_clk`、`pixel_clk` 间 CDC，以及 `ddr3_init_done` 参与的复位释放。
+- clock_domains: `sys_clk`, `i2c_dri_clk`, `cam_pclk`, `pixel_clk`, `pixel_clk_5x`, `clk_50m/ref_clk`, `ui_clk`
+- cdc_findings: `wr_load`/`rd_load` 被多个逻辑独立采样；write FIFO 为 `cam_pclk → ui_clk`，read FIFO 为 `ui_clk → pixel_clk`
+- rdc_findings: 两个异步 FIFO 的帧复位从单一源域同时驱动两侧；`ddr3_init_done` 和组合顶层复位未逐域同步释放
+- timing_findings: 裸 `rd_load` CDC WNS `-7.056 ns`；read FIFO 指针路径 WNS `-2.279 ns`；`ddr3_init_done` 到 pixel reset recovery WNS `-4.857 ns`
+- remediation_contract: 逐域异步置位/同步释放复位；帧事件只同步一次后在目标域扇出；FIFO 两侧复位分别在本地域释放；仅在结构闭环后对厂商认证路径添加精确例外
+- next_step: O0-B SP6.4 可重复构建基线
+- high_attention: `i2c_dri_clk` 逻辑生成时钟、`cam_pclk`/DDR `ui_clk`/`pixel_clk` 间业务 CDC、FIFO 分侧复位，以及 `ddr3_init_done` 参与的复位释放。
 
 ## DDR3 外层工程
 

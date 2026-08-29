@@ -1,6 +1,6 @@
 {
   "$schema": "nexus-mapper/concept-model/v1",
-  "generated_at": "2026-08-30T00:00:00+08:00",
+  "generated_at": "2026-08-29T00:00:00+08:00",
   "repo_path": ".",
   "generator": "Codex manual bootstrap",
   "nodes": [
@@ -12,7 +12,7 @@
       "implementation_status": "documented",
       "code_path": null,
       "evidence_path": "README.md",
-      "evidence_gap": "PCIe 与 DDR3 可重复全流程和严格/baseline gate 已验证；OV7725、仿真库和三项目四级仿真尚未完成。",
+      "evidence_gap": "PCIe 与 DDR3 可重复全流程和严格/baseline gate 已验证；OV7725 O0-A CDC/RDC 审计已完成，O0-B SP6.4 构建、仿真库和三项目四级仿真尚未完成。",
       "tech_stack": ["PDS Tcl", "PowerShell", "ModelSim/QuestaSim"],
       "related_reqs": ["可重复构建", "四级仿真", "时序闭环"],
       "complexity": "medium",
@@ -25,10 +25,24 @@
       "responsibility": "采集 OV7725 像素，经异步 FIFO 和 DDR3 帧缓存后输出 HDMI/TMDS。",
       "implementation_status": "implemented_with_timing_failures",
       "code_path": "41_ov7725_hdmi/rtl/",
-      "evidence_path": "41_ov7725_hdmi/prj/report_timing/ov7725_hdmi.rtr",
-      "evidence_gap": "慢角 setup/recovery 失败，且无顶层四级仿真或 SDF。",
+      "evidence_path": "41_ov7725_hdmi/doc/CDC_RDC_AUDIT.md",
+      "evidence_gap": "O0-A 已映射七类时钟域、帧事件多点采样、FIFO 分侧复位和三条旧 STA 失败路径；O0-B SP6.4 可重复构建、顶层四级仿真和 SDF 尚未完成。",
       "tech_stack": ["Verilog", "Pango Logos2", "DDR3", "TMDS"],
-      "related_reqs": ["CDC 修复", "复位同步", "WNS 非负", "视频链路自检"],
+      "related_reqs": ["逐域复位", "单点事件同步", "FIFO 分侧复位", "结构后精确例外", "O0-B SP6.4 构建"],
+      "complexity": "high",
+      "hotspot": true
+    },
+    {
+      "id": "ov7725-cdc-rdc-audit",
+      "type": "Domain",
+      "label": "OV7725 CDC/RDC 审计契约",
+      "responsibility": "记录 sys、i2c_dri、cam、pixel、pixel_5x、ref/clk50、ui 时钟域，帧事件与 FIFO 跨域事实，以及逐域复位和精确例外决策。",
+      "implementation_status": "documented",
+      "code_path": null,
+      "evidence_path": "41_ov7725_hdmi/doc/CDC_RDC_AUDIT.md",
+      "evidence_gap": "结构整改和 SP6.4 动态 CDC/STA 验证尚未执行；当前三条旧失败证据为 -7.056 ns、-2.279 ns 和 -4.857 ns。",
+      "tech_stack": ["Verilog", "PDS STA", "CDC", "RDC"],
+      "related_reqs": ["O0-B", "逐域复位", "事件不丢不重", "FIFO reset/flush"],
       "complexity": "high",
       "hotspot": true
     },
@@ -107,6 +121,12 @@
       "description": "OV7725 顶层按 PDS 实现与外部仿真规范整改。"
     },
     {
+      "source": "ov7725-cdc-rdc-audit",
+      "target": "ov7725-hdmi-system",
+      "type": "governs_future_changes",
+      "description": "O0-A 审计要求逐域复位、帧事件单点同步、FIFO 分侧复位，并在结构闭环后添加精确时序例外；O0-B 为下一步。"
+    },
+    {
       "source": "ddr3-outer-project",
       "target": "ddr3-ip-example",
       "type": "depends_on",
@@ -163,10 +183,10 @@
   ],
   "metadata": {
     "analysis_mode": "manual bootstrap",
-    "git_commits_analyzed": 6,
+    "git_commits_analyzed": 7,
     "raw_ast_available": false,
     "limitations": [
-      "Only six repository commits are available; churn analysis remains too shallow for reliable hotspot ranking.",
+      "Only seven repository commits are available; churn analysis remains too shallow for reliable hotspot ranking.",
       "No AST extraction was run.",
       "No ModelSim or QuestaSim execution was available."
     ]
