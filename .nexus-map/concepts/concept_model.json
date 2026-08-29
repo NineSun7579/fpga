@@ -54,9 +54,44 @@
       "implementation_status": "bringup_full_implementation_baseline",
       "code_path": "ddr3_test/ddr3_test/",
       "evidence_path": "ddr3_test/ddr3_test/build/logs/pds-gen_bit_stream.log",
-      "evidence_gap": "厂商 test_ddr 临时 bring-up 已从空 build 完成 SP6.4 七阶段全流程，日志无 E:、STA 为 All Constraints Met，且五类产物非零；严格 gate 因 7 类已知阻断返回 1，显式 baseline 放行返回 0 但不可发布。日志无 SCBV 命中；板级批准参数清单、产品功能和四级仿真仍未验收。",
+      "evidence_gap": "厂商 test_ddr 临时 bring-up 已从空 build 完成 SP6.4 七阶段全流程，日志无 E:、STA 为 All Constraints Met，且五类产物非零；严格 gate 因 7 类已知阻断返回 1，显式 baseline 放行返回 0 但不可发布。D2 只读契约决策已完成，但项目自有有限 BIST 顶层尚未实现；板级批准参数清单、产品功能和四级仿真仍未验收。",
       "tech_stack": ["PDS", "DDR3 IP"],
       "related_reqs": ["关闭严格 gate", "板级批准参数", "有限写读回自检"],
+      "complexity": "medium",
+      "hotspot": true
+    },
+    {
+      "id": "ddr3-finite-bist-contract",
+      "type": "System",
+      "label": "DDR3 有限自检契约",
+      "responsibility": "以项目自有顶层执行有限、确定且可由 CI 判定的 DDR3 写读比较测试，不修改厂商 test_ddr、持续运行 BIST 和旧 testbench。",
+      "implementation_status": "designed_pending_implementation",
+      "code_path": null,
+      "planned_code_paths": [
+        "ddr3_test/ddr3_test/rtl/ddr3_bringup_top.sv",
+        "ddr3_test/ddr3_test/rtl/ddr3_finite_bist.sv"
+      ],
+      "evidence_path": "ddr3_test/ddr3_test/doc/FINITE_SELF_TEST_CONTRACT.md",
+      "evidence_gap": "D2 只完成只读决策；两个项目自有 RTL 文件尚未创建，D3 待审核，且本机无可用 QuestaSim。",
+      "transaction_contract": {
+        "pair_count": 16,
+        "burst": "single-beat write/read compare",
+        "controller_address_start": "0x0",
+        "controller_address_end": "0x78",
+        "controller_address_step": 8,
+        "pair_timeout_cycles": 4096,
+        "run_timeout_cycles": 131072
+      },
+      "public_results": [
+        "test_done",
+        "test_failed",
+        "error_count",
+        "completed_pairs",
+        "failure_code",
+        "first_error_info"
+      ],
+      "tech_stack": ["SystemVerilog", "DDR3 AXI", "ModelSim/QuestaSim"],
+      "related_reqs": ["D2 complete", "D3 pending review", "VSCS", "finite self-check"],
       "complexity": "medium",
       "hotspot": true
     },
@@ -139,6 +174,18 @@
       "description": "DDR3 临时 bring-up 已完成统一实现流程；仍需关闭严格 gate、补齐板级批准参数和产品级功能/仿真闭环。"
     },
     {
+      "source": "ddr3-finite-bist-contract",
+      "target": "ddr3-outer-project",
+      "type": "planned_replacement_boundary",
+      "description": "D2 已固定项目自有有限自检边界；D3 若获审核，将新增 bring-up 顶层与有限 BIST，同时保持厂商 test_ddr/BIST/TB 原样。"
+    },
+    {
+      "source": "ddr3-finite-bist-contract",
+      "target": "ddr3-ip-example",
+      "type": "depends_on",
+      "description": "项目自有有限自检仍依赖厂商 DDR3 Controller/PHY，但不继承厂商持续运行 BIST 的完成语义。"
+    },
+    {
       "source": "pcie-dma-system",
       "target": "pds-workflow-guide",
       "type": "built_by",
@@ -155,6 +202,12 @@
       "target": "ddr3-outer-project",
       "type": "tests",
       "description": "计划覆盖 DDR3 产品顶层写读回与四级仿真。"
+    },
+    {
+      "source": "external-simulation-suite",
+      "target": "ddr3-finite-bist-contract",
+      "type": "tests",
+      "description": "QuestaSim 可用且 D3 实现完成后，验证 16 个 pair、两级 timeout、公开结果与首错信息。"
     },
     {
       "source": "external-simulation-suite",
@@ -176,6 +229,12 @@
     },
     {
       "source": "vscs-commenting-standard",
+      "target": "ddr3-finite-bist-contract",
+      "type": "governs_future_changes",
+      "description": "计划新增的 ddr3_bringup_top.sv 与 ddr3_finite_bist.sv 必须遵循 VSCS；厂商生成文件保持原样。"
+    },
+    {
+      "source": "vscs-commenting-standard",
       "target": "pcie-dma-system",
       "type": "governs_future_changes",
       "description": "后续手写 PCIe 顶层和 TB 需遵循 VSCS。"
@@ -183,10 +242,10 @@
   ],
   "metadata": {
     "analysis_mode": "manual bootstrap",
-    "git_commits_analyzed": 8,
+    "git_commits_analyzed": 9,
     "raw_ast_available": false,
     "limitations": [
-      "Only eight repository commits are available after the O0-B baseline batch; churn analysis remains too shallow for reliable hotspot ranking.",
+      "Only nine repository commits are available after the DDR3 D2 decision batch. Churn analysis remains too shallow for reliable hotspot ranking.",
       "No AST extraction was run.",
       "No ModelSim or QuestaSim execution was available."
     ]

@@ -23,6 +23,12 @@ flowchart TD
   DDRBringup --> DDRFdc["ddr_test.fdc + ddr3.rcf\n约束基线"]
   DDRBringup --> DDRGate["check_build.ps1\n严格 / baseline gate"]
   DDRBoard["板级批准参数清单\n当前缺失"] -. "关闭已知阻断" .-> DDRGate
+  DDRContract["D2 有限自检契约\n只读决策完成"] --> DDRTop["ddr3_bringup_top.sv\n计划新增"]
+  DDRContract --> DDRBist["ddr3_finite_bist.sv\n计划新增"]
+  DDRBist --> DDRIdf
+  Standard --> DDRTop
+  Standard --> DDRBist
+  Questa -. "D3 后待验证" .-> DDRContract
 
   PCIeTop["pcie_dma_test\n顶层"] --> PCIeIP["PCIe x2 IP"]
   PCIeTop --> DMA["DMA + RAM/FIFO"]
@@ -48,5 +54,8 @@ flowchart TD
 - OV7725 结构契约仍固定为逐域复位、单点事件同步、FIFO 分侧复位和结构闭环后的精确例外；O1-A 只做只读 RTL 卫生评审，不提前修改 RTL/IP/FDC 或添加宽泛 `false_path`。
 - DDR3 新入口已用 `test_ddr`、`ddr3.idf`、FDC 和 RCF 从空 `build/` 完成七阶段全流程，内部 STA 为 `All Constraints Met`，且综合网表、PNR 网表、SDF 和位流均非零。
 - DDR3 严格 gate 因 BIST 位宽/dangling、`rst_board` share pin、BANKR4 VCCIO 3.3、UART I/O 以及输入/输出 timing 共 7 类阻断返回 1；显式 baseline 放行返回 0 但不可发布。日志无 SCBV 命中不等同于板级参数获批，批准清单仍是关闭 gate 的前置依赖。
+- DDR3 D2 只读决策不依赖修改厂商示例：`test_ddr`、持续运行 BIST 和旧 testbench 保持原样；D3 若获审核，只新增项目自有 `ddr3_bringup_top.sv` 与 `ddr3_finite_bist.sv`。
+- 有限自检契约固定 16 个单 beat 写读比较 pair，地址 `0x0..0x78`、步长 8，pair/run timeout 分别为 4096/131072 周期；签核依赖稳定的 `test_done`、`test_failed`、`failure_code`、`error_count`、`completed_pairs` 和首错信息，而不是厂商 LED 或内部层级。
+- 新项目自有 DDR3 RTL 依赖根目录 VSCS；厂商 `ip_core/ddr3/**` 仍作为外部生成依赖，不因 D2 决策被改写。
 - PCIe 顶层依赖专用 HSST/IP 约束；UART2APB 是否保留是后续 RTL 与 FDC 的共同决策点。
 - 仿真流程依赖编译后的 Logos2 USIM/VSIM 库和可用的 `vsim.exe`/`vlog.exe`；当前环境不满足该依赖。

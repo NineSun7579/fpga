@@ -20,6 +20,7 @@
 - PCIe 已完成新 `build/` 全流程、STA、网表/SDF/位流和严格 gate 验证。
 - DDR3 已从空 `build/` 完成 `compile → synthesize → dev_map → pnr → report_timing → gen_netlist → gen_bit_stream`，日志无 `E:`；最终报告为 `All Constraints Met`，慢角 setup WNS `0.678 ns`、TNS `0`，hold `0.137 ns`、recovery `4.578 ns`、removal `0.351 ns`。
 - DDR3 已生成非零综合网表、PNR 网表、SDF、`.sbit` 和 `.bin`；严格 gate 因 7 类已知阻断返回 1，显式 baseline 放行返回 0 但明确不可发布。日志没有 SCBV 命中，板级批准参数清单仍缺失，功能与四级仿真仍未验收。
+- DDR3 D2 只读决策已完成：厂商 `test_ddr`、持续运行 BIST 和失配 testbench 保持原样；后续项目自有顶层固定为 `rtl/ddr3_bringup_top.sv` 与 `rtl/ddr3_finite_bist.sv`。首版契约执行 16 个单 beat 写读比较 pair，控制器地址为 `0x0..0x78`、步长 8，单 pair timeout 为 4096 周期、整次 run timeout 为 131072 周期，并公开稳定的 `test_done`、`test_failed`、`failure_code`、`error_count`、`completed_pairs` 和首错信息。该设计尚未实现或仿真，D3 待审核。
 - OV7725 O0-A 已形成 [CDC/RDC 审计与整改契约](../41_ov7725_hdmi/doc/CDC_RDC_AUDIT.md)，覆盖七类时钟域、帧事件多点采样、两个异步 FIFO 的数据方向/分侧复位风险及三条旧 STA 失败路径；本批只建立事实和契约，未修改 RTL、IP 或 FDC。
 - OV7725 O0-B 已固定 `16 RTL + 4 IDF + 1 FDC`，从空 `build/` 完成 SP6.4 七阶段流程，进程退出 0 且日志 `E: 0`；最终 STA 为 `Some Constraints Violated`。慢角失败为 setup `-7.344 ns / -132.832 ns / 20`、read FIFO 方向 setup `-2.275 ns / -24.111 ns / 11`、recovery `-4.263 ns / -202.445 ns / 53`，快角仍命中相同三组失败端点。
 - OV7725 已生成非零综合网表 `6,873,287`、PNR 网表 `11,600,361`、SDF `8,894,116`、`.sbit` `3,791,112` 和 `.bin` `3,789,476` 字节；严格 gate 返回非零，显式 baseline gate 返回 0 并标记不可发布。
@@ -40,8 +41,8 @@
 
 ## 当前优先级
 
-1. 评审 DDR3 D2 有限自检契约，明确有限事务、done/error 和项目级 testbench 边界。
-2. 对 OV7725 O1-A 做只读 RTL 卫生评审；未经审核不修改 RTL、IP 或 FDC，后续约束必须服从 O0-A CDC/RDC 契约。
+1. 对 OV7725 O1-A 做只读 RTL 卫生评审；未经审核不修改 RTL、IP 或 FDC，后续约束必须服从 O0-A CDC/RDC 契约。
+2. 审核 DDR3 D3 实现批次；D2 只读决策已经固定有限事务和公开结果契约，但项目自有顶层尚未创建。
 3. PCIe 等待板级资料关闭 IDF、UART、share pin、HSST 约束和 SCBV 阻断项。
 4. QuestaSim 可用后，三个工程分别补齐集成顶层四级仿真和 SDF 标注验证。
 

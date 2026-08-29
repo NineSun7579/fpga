@@ -8,7 +8,7 @@
 
 - 分支为 `main`。
 - 根提交为 `1a2d493`，保存三个原始工程、已有 PDS 产物和整改文档。
-- 本次 OV7725 O0-B 构建基线提交完成后，历史预记为八个提交。样本仍不足以计算可信的 churn、共同变更或历史热点；本文件不提供伪统计。
+- DDR3 D2 决策提交完成后，历史共九个提交。样本仍不足以计算可信的 churn、共同变更或历史热点；本文件不提供伪统计。
 
 ## 人工高关注区
 
@@ -23,9 +23,11 @@
 - `ddr3_test/ddr3_test/scripts/build.tcl`：当前临时 bring-up 的可重复七阶段实现定义，仍依赖厂商 `test_ddr` 而非产品顶层。
 - `ddr3_test/ddr3_test/scripts/check_build.ps1`：严格模式拦截 7 类已知阻断；baseline 放行只证明历史设计可重复实现，不表示可发布。
 - `ddr3_test/ddr3_test/ip_core/ddr3/example_design/rtl/test_ddr.v`：存在 BIST error-data 位宽不匹配及后续 dangling cleanup，是当前严格 gate 阻断项。
+- `ddr3_test/ddr3_test/ip_core/ddr3/example_design/rtl/test_main_ctrl_v1_0.v`、`axi_bist_top_v1_0.v` 与旧 `ddr3_test_top_tb.v`：D2 已确认其持续运行、无稳定 done 契约、端口失配及外部仿真依赖；均保持厂商原样，只作为静态证据。
+- `ddr3_test/ddr3_test/rtl/ddr3_bringup_top.sv`、`ddr3_test/ddr3_test/rtl/ddr3_finite_bist.sv`：D2 规划的项目自有实现热点，当前文件尚不存在，D3 未审核前不得标记为已实现。
 - `pcie_dma_test_100h/hdl/pcie_dma_test.v`：UART2APB 隐式 `rxd/txd` 连接与 PCIe DMA 集成入口。
 - `pcie_dma_test_100h/fdc/pcie_dma_test.fdc`：PCIe 专用资源、复位和普通 I/O 约束入口。
 
 ## 后续更新
 
-只有积累足够多、内容独立的提交后，才适合增加真实 churn 与共同变更分析。构建脚本、RTL 功能修改和约束修改应保持独立提交，便于形成可靠历史。
+只有积累足够多、内容独立的提交后，才适合增加真实 churn 与共同变更分析。D3 有限自检实现、构建脚本、RTL 功能修改和约束修改应保持独立提交，便于形成可靠历史；当前下一批为 OV7725 O1-A 只读评审。

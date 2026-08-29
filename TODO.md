@@ -2,7 +2,7 @@
 
 更新日期：2026-08-29
 
-状态：实施中。PCIe 与 DDR3 可重复构建基线已收口；OV7725 O0-A/O0-B 已完成事实审计、SP6.4 全流程基线和严格/baseline gate，下一批先评审 DDR3 D2，再提请审核 OV7725 O1-A。
+状态：实施中。三项目 SP6.4 可重复构建基线均已建立；DDR3 D2 有限自检契约已完成，下一批执行 OV7725 O1-A 只读评审，同时等待 DDR3 D3 实现审核。
 
 ## 1. 总体验收目标
 
@@ -42,6 +42,7 @@
 - [x] DDR3 从空 `build/` 完成到 `gen_bit_stream`，日志无 `E:`，内部 STA 为 `All Constraints Met`。
 - [x] DDR3 生成非零综合网表、PNR 网表、SDF、`.sbit` 和 `.bin`。
 - [x] DDR3 gate 已验证：严格模式因已知发布阻断返回非零，显式 baseline 放行模式返回 0 并标记不可发布。
+- [x] DDR3 完成 D2 有限自检契约，确定项目自有 AXI 测试顶层、16 个有限写读比较 pair、稳定 done/error 和 TB 退出语义。
 - [x] OV7725 完成 O0-A CDC/RDC 事实清单与整改契约。
 - [x] OV7725 建立 O0-B SP6.4 可重复全流程构建基线和严格/baseline gate。
 - [ ] 安装 QuestaSim/ModelSim 并记录版本和路径。
@@ -53,12 +54,12 @@
 1. **P0：D1 已完成。** DDR3 gate、README、实施记录、TODO 和 `.nexus-map` 已作为独立批次收口。
 2. **P1：O0-A 已完成。** OV7725 CDC/RDC 清单和决策表已收口，未改 RTL、IP 或约束。
 3. **P1：O0-B 已完成。** OV7725 已固定 16 个手写 RTL、4 个 IDF、唯一 FDC，并完成 SP6.4 七阶段实现、产物检查和双模式 gate；当前结果明确不可发布。
-4. **P1：评审 D2。** 只定义 DDR3 有限 done/error 契约和测试顶层方案，不修改 RTL/TB；该项不依赖仿真器或板级资料。
-5. **P2：评审 O1-A。** 逐条归属 OV7725 的 39 条手写 RTL 位宽告警、隐式网络和 OSERDES reset 问题，形成最小修改清单。
-6. **P2：实施 O1-B。** 仅在 O1-A 经用户审核后修改手写 RTL；本批不混入 CDC、复位或约束整改。
-7. **持续泳道：H0-H3、S0。** 板级资料或仿真器一旦到位，立即关闭对应阻断；H3 不阻塞 D2/O1，但阻塞 O4 和 PNR 后时序验收。
+4. **P1：D2 已完成。** DDR3 选择新增项目自有有限 AXI 测试顶层，不修改厂商示例；D3 实现需先审核契约。
+5. **P1：执行 O1-A。** 逐条归属 OV7725 的 39 条手写 RTL 位宽告警、隐式网络和 OSERDES reset 问题，形成最小修改清单。
+6. **P2：实施 D3 或 O1-B。** 只进入已审核的一条 RTL 修改泳道，避免两个工程同时产生功能改动。
+7. **持续泳道：H0-H3、S0。** 板级资料或仿真器一旦到位，立即关闭对应阻断；H3 不阻塞 O1-A，但阻塞 O4 和 PNR 后时序验收。
 
-停止条件：未经用户审核，不进入 O1-B 及后续 RTL/IP/FDC 修改；缺少板级事实时不猜测管脚、电压、IP 参数或 I/O delay。
+停止条件：未经用户审核，不进入 DDR3 D3、OV7725 O1-B 及后续 RTL/IP/FDC 修改；缺少板级事实时不猜测管脚、电压、IP 参数或 I/O delay。
 
 ## 4. 主执行链
 
@@ -96,19 +97,41 @@
 
 验收：完整 PDS 流程可重复执行，内部时序和产物检查有机器可判定结果；未获板级确认的问题仍被严格 gate 拦截。
 
-### D2：定义 DDR3 有限自检契约
+### D2：定义 DDR3 有限自检契约（已完成）
 
-该批先做设计评审，不要求 QuestaSim 已安装。技术上只依赖 D0，可与 D1 收口或 O0 并行；当前为避免交叉改动，排在 D1 提交之后。
+该批只做设计评审，不修改 RTL/TB/IP/约束，也不要求 QuestaSim 已安装。完整契约见 `ddr3_test/ddr3_test/doc/FINITE_SELF_TEST_CONTRACT.md`。
 
-- [ ] 确定有限事务数、地址范围、数据模式、最大完成时间和错误统计语义。
-- [ ] 决定采用“修改 bring-up BIST 暴露 done/error”还是“建立更小的专用 AXI 测试顶层”。
-- [ ] 明确初始化、写、读回、比较、完成和失败的状态机契约。
-- [ ] 禁止把 `bist_run_led` 或 `err_flag_led` 直接解释为测试完成。
-- [ ] 修正现有 TB 与当前 `test_ddr` 的五个端口失配。
-- [ ] 移除 FSDB/Verdi PLI 和 `D:/pango` 等机器路径依赖。
-- [ ] 新 TB 必须有超时、training/BIST error 的 `$fatal` 和唯一 `TEST PASS`。
+- [x] 固定 16 个单 beat 写读比较 pair、地址 `0x0..0x78`、步长 8、确定数据函数和 131072 周期运行上限。
+- [x] 选择新增项目自有 `ddr3_bringup_top.sv` 与 `ddr3_finite_bist.sv`，不修改或复制厂商示例 BIST。
+- [x] 明确初始化、写、读回、比较、完成、超时和失败的 FSM/接口契约。
+- [x] 定义稳定 `test_done/test_failed/failure_code/error_count/completed_pairs` 和首错信息；禁止用 LED 作为签核接口。
+- [x] 记录旧 TB 的五个失配端口、私有层级、FSDB/Verdi 和绝对路径问题，并移入 D4 处理。
+- [x] 明确新 RTL/TB 的 VSCS 模块、接口、FSM、复位和机器验证要求。
 
-验收：TB 设计无需猜测即可实现，done/error 有稳定、可观察、可自动判定的协议。
+验收：D3/D4 无需猜测事务、地址、数据、超时、`test_done/test_failed` 或 PASS/FAIL 语义；本批没有 RTL/TB/IP/约束修改。
+
+### D3：实现 DDR3 项目自有限 BIST（待审核）
+
+依赖 D2；本批修改项目自有 RTL 和 PDS 输入，不修改厂商 `ip_core/ddr3/**` 生成文件。
+
+- [ ] D3-A：新增 `rtl/ddr3_bringup_top.sv` 与 `rtl/ddr3_finite_bist.sv` 接口/FSM 骨架，并按 VSCS 完成注释。
+- [ ] D3-A：直接实例化活动 DDR3 IP，自动在初始化完成后启动一次有限测试。
+- [ ] D3-A：更新 PDS 顶层和输入清单，完成 compile/elaboration，禁止新增端口或位宽告警。
+- [ ] D3-B：实现 16 个单 beat 写读比较 pair、watchdog、错误统计和首错信息。
+- [ ] D3-B：从空 `build/` 完成七阶段回归，更新严格/baseline gate 和产物证据。
+
+验收：公开接口满足 D2 契约；compile/PDS 无新增未分类问题；厂商示例和生成 IP 保持原样。
+
+### D4：建立 DDR3 自检 testbench
+
+依赖 D3；测试文件可先评审，实际运行依赖 S0。
+
+- [ ] 新建 `tb_ddr3_finite_bist.sv`，用最小 AXI 响应模型覆盖正常、数据错误、写超时和读超时。
+- [ ] 新建 `tb_ddr3_bringup.sv`，连接项目顶层与厂商 DDR3 memory model，不读取 DUT 私有层级。
+- [ ] 新建相对路径 filelist/DO，去除强制 FSDB、Verdi PLI 和盘符绝对路径。
+- [ ] 正向用例只输出一次 `TEST PASS`；训练、自检、数据或协议失败必须 `$fatal`。
+
+验收：文件静态评审通过；QuestaSim 可用后，正向退出 0，全部负向用例按预期判定并返回可靠退出码。
 
 ### O0-A：OV7725 CDC/RDC 清单（已完成）
 
@@ -242,7 +265,7 @@
 
 ### S1：DDR3 四级仿真
 
-依赖 D1、D2、S0。
+行为级依赖 D3、D4、S0；综合后和两个 PNR 后级别还依赖 D3-B 的新顶层网表/SDF 与严格构建证据。
 
 - [ ] 行为级自检通过。
 - [ ] 综合后自检通过。

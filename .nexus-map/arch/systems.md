@@ -38,7 +38,7 @@
 - timing_findings: `Some Constraints Violated`；慢角 setup `-7.344 ns / TNS -132.832 ns / 20`、read FIFO 方向 setup `-2.275 ns / TNS -24.111 ns / 11`、recovery `-4.263 ns / TNS -202.445 ns / 53`；快角仍为相同三组失败端点
 - artifact_evidence: synthesis netlist `6,873,287` bytes; PNR netlist `11,600,361` bytes; SDF `8,894,116` bytes; `.sbit` `3,791,112` bytes; `.bin` `3,789,476` bytes
 - remediation_contract: 逐域异步置位/同步释放复位；帧事件只同步一次后在目标域扇出；FIFO 两侧复位分别在本地域释放；仅在结构闭环后对厂商认证路径添加精确例外
-- next_step: D2 有限自检契约评审；OV7725 O1-A 只读 RTL 卫生评审
+- next_step: OV7725 O1-A 只读 RTL 卫生评审；DDR3 D3 待审核
 - high_attention: `i2c_dri_clk` 逻辑生成时钟、`cam_pclk`/DDR `ui_clk`/`pixel_clk` 间业务 CDC、FIFO 分侧复位，以及 `ddr3_init_done` 参与的复位释放。
 
 ## DDR3 外层工程
@@ -47,7 +47,7 @@
 - code_path: `ddr3_test/ddr3_test/`
 - project_path: `ddr3_test/ddr3_test/ddr3_test.pds`
 - evidence_path: `ddr3_test/ddr3_test/build/logs/pds-gen_bit_stream.log`, `ddr3_test/ddr3_test/build/pds/report_timing/test_ddr.rtr`, `ddr3_test/ddr3_test/scripts/check_build.ps1`
-- evidence_gap: SP6.4 全流程、STA、综合网表、PNR 网表、SDF 和位流已验证；严格 gate 因 7 类已知阻断返回 1，显式 baseline 放行返回 0 但不可发布。板级批准参数清单、产品功能和四级仿真仍未验收。
+- evidence_gap: SP6.4 全流程、STA、综合网表、PNR 网表、SDF 和位流已验证；严格 gate 因 7 类已知阻断返回 1，显式 baseline 放行返回 0 但不可发布。D2 已完成只读契约决策，但项目自有有限 BIST 顶层尚未实现；板级批准参数清单、产品功能和四级仿真仍未验收。
 - responsibility: 当前以厂商 `test_ddr` 作为临时 DDR3 board bring-up 顶层；后续必须明确真正产品顶层和板级功能范围。
 - provisional_build_entry: `ddr3_test/ddr3_test/scripts/run.ps1`
 - build_definition: `ddr3_test/ddr3_test/scripts/build.tcl`
@@ -58,6 +58,18 @@
 - artifact_evidence: synthesis netlist `5,914,586` bytes; PNR netlist `9,734,239` bytes; SDF `9,130,393` bytes; `.sbit` `3,791,112` bytes; `.bin` `3,789,476` bytes
 - strict_gate_blockers: BIST error-data width mismatch, BIST dangling cleanup, `rst_board` share pin, BANKR4 VCCIO 3.3 incompatibility, UART I/O constraints missing, input timing missing, output timing missing
 - scbv_status: 当前 DDR3 完整构建日志无 SCBV 命中
+
+## DDR3 有限自检契约
+
+- implementation_status: designed_pending_implementation
+- code_path: planned `ddr3_test/ddr3_test/rtl/ddr3_bringup_top.sv`, `ddr3_test/ddr3_test/rtl/ddr3_finite_bist.sv`
+- evidence_path: D2 只读评审决策；厂商 `test_ddr`、BIST 和 testbench 源码静态证据
+- evidence_gap: 两个项目自有 RTL 文件尚未创建；QuestaSim 缺失，行为级、综合后和 PNR 后仿真均未执行；D3 尚待审核。
+- responsibility: 在不修改厂商 `test_ddr`、持续运行 BIST 和旧 testbench 的前提下，提供有限、确定且可由 CI 判定的 DDR3 写读比较测试。
+- transaction_contract: 16 个单 beat 写读比较 pair；控制器地址 `0x0..0x78`、步长 8；每 pair timeout 4096 周期；整次 run timeout 131072 周期。
+- result_contract: 稳定公开 `test_done`、`test_failed`、`failure_code`、`error_count`、`completed_pairs`，并提供首错地址/期望值/实际值等首错信息。
+- ownership_boundary: 厂商 `ip_core/ddr3/**` 保持原样；新增项目自有 RTL 必须遵循根目录 VSCS。
+- next_step: D3 实现批次待审核
 
 ## DDR3 IP 示例
 

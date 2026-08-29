@@ -91,3 +91,16 @@ baseline 放行不会把结果标记为发布候选。
 - 行为级、综合后和两个 PNR 后仿真尚未建立可靠的 `$fatal`、超时、`TEST PASS` 和退出码。
 
 在这些信息确认前，不修改 DDR3 IP 参数、FDC、顶层接口或 LED 语义。
+
+## D2 有限自检决策
+
+完整设计契约见 [DDR3 有限自检契约](doc/FINITE_SELF_TEST_CONTRACT.md)。D2 已确认：
+
+- 不修改或复制 `ip_core/ddr3/**` 下的厂商示例 BIST/TB；
+- 后续新增项目自有 `ddr3_bringup_top.sv` 和 `ddr3_finite_bist.sv`，直接实例化活动 DDR3 IP；
+- 首版执行 16 个单 beat 写读比较 pair，地址为控制器地址单位 `0x0..0x78`、步长 8；
+- 数据模式、131072 周期运行上限、稳定 `test_done/test_failed/failure_code/error_count/completed_pairs` 和首错信息已经固定；
+- LED 只能显示公开状态，不能作为完成或 PASS/FAIL 的原始依据；
+- 新 TB 必须使用公开端口、相对路径、Questa WLF、`$fatal` 和唯一 `TEST PASS`，FSDB 仅作为显式可选功能。
+
+D2 是文档决策批次，没有修改 RTL、TB、IDF、FDC 或 RCF。D3 功能实现需先审核本契约；当前仓库的下一可执行批次为 OV7725 O1-A 只读评审。
