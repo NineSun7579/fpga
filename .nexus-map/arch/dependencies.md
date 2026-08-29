@@ -19,8 +19,8 @@ flowchart TD
   OVBuild --> OVGate["O1-B: strict=1 / baseline=0\n七组精确失败，不可发布"]
   OVHygiene["RTL_HYGIENE_AUDIT.md\nO1-A: 39 = 1+4+26+6+2"] --> OVTop
   OVHygiene --> OVFix["O1-B 已完成\n38 条消失 / mem_a 1 条"]
-  OVFix --> OVResetAudit["O2-A\n联合检查 OCLK/SERCLK 与 OCLKDIV"]
-  OVResetAudit --> OVResetFix["O2-B\n实现已证明的 serializer reset 结构"]
+  OVFix --> OVResetAudit["O2-A 已完成\n联合释放契约 / 8 endpoints"]
+  OVResetAudit --> OVResetFix["O2-B 下一批\npixel_clk 2级 → pixel_clk_5x 2级"]
   OVResetFix --> OVInitSync["O3-A\n同步 ddr3_init_done"]
   OVInitSync --> OVDomainReset["O2-C1\n普通时钟域本地复位"]
   OVDomainReset --> OVFifoReset["O2-C2\nFIFO reset/flush"]
@@ -62,7 +62,8 @@ flowchart TD
 - `wr_load` 与 `rd_load` 当前被多个逻辑独立采样；write FIFO 数据方向为 `cam_pclk → ui_clk`，read FIFO 为 `ui_clk → pixel_clk`，两者均需把复位分别在读写时钟域同步释放。
 - OV7725 O1-B 已固定 16 个手写 RTL、4 个活动 IDF 和唯一顶层 FDC，从空 `build/` 完成 SP6.4 七阶段，进程退出 0、日志 `E: 0`、warning `4067`、critical `81`，并生成非零综合网表、PNR 网表、SDF、`.sbit` 和 `.bin`。
 - OV7725 O1-B 已消除 38 条确定性手写 RTL 位宽告警，只剩精确的 `ddr3_ip.mem_a` 1 条；严格 gate 返回 1，baseline 仅在七组 corner/check/clock pair/endpoints 精确匹配时返回 0，且继续标记不可发布。
-- 高有效 reset 已驱动四个 serializer 内的八个 OSERDES，并新增 Slow Recovery `pixel_clk → pixel_clk_5x` `-0.643 ns / -4.191 ns / 8/8`。该组不是批准例外；O2-A 必须联合检查同一 `RST` 相对 `OCLK/SERCLK=pixel_clk_5x` 与 `OCLKDIV=pixel_clk` 的 recovery/removal，O2-B 只实现契约证明的结构，不预设“仅高速域同步”。
+- 高有效 reset 已驱动四个 serializer 内的八个 OSERDES，并新增 Slow Recovery `pixel_clk → pixel_clk_5x` `-0.643 ns / -4.191 ns / 8/8`。O2-A 已确认同一 `RST` 同时受 `OCLK/SERCLK=pixel_clk_5x` 与 `OCLKDIV=pixel_clk` 的 recovery/removal 检查；O2-B 首选结构固定为现有 `pixel_clk` 两级释放后再级联 `pixel_clk_5x` 两级释放，只驱动八个 OSERDES。
+- O2-B 必须保留八个 endpoint 的 Recovery/Removal 正向覆盖并使其全部非负；禁止 false path、multicycle、clock-group waiver 或新增 baseline 失败签名。O2-A 后尚未运行新的 PDS 或 QuestaSim，因此当前 `8/8` 失败基线和不可发布状态不变。
 - `mem_a` 不属于 O1-B：活动 IP 是 14 bit，顶层/FDC 是 15 bit，综合网表把第 15 bit 绑 0。该冲突转入 H3/O1-C，必须依据 DDR3 料号、组织和原理图决定收窄 RTL/FDC 或重生成 IP。
 - OV7725 O1-B 未修改 `mem_a`、厂商 IP、FDC、CDC/RDC、FIFO 或时序例外；后续依赖固定为 O2-A → O2-B → O3-A → O2-C1 → O2-C2 → O3-B，O4 同时依赖 O2-C2 与 O3-B。O3-A 先提供同步后的 `ddr3_init_done`，O2-C1 只处理普通时钟域复位，O2-C2 单独处理厂商 FIFO reset/flush；全程禁止用宽泛 false path 代替结构整改。
 - DDR3 新入口已用 `test_ddr`、`ddr3.idf`、FDC 和 RCF 从空 `build/` 完成七阶段全流程，内部 STA 为 `All Constraints Met`，且综合网表、PNR 网表、SDF 和位流均非零。

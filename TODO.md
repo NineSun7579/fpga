@@ -2,7 +2,7 @@
 
 更新日期：2026-08-29
 
-状态：实施中。三项目 SP6.4 可重复构建基线均已建立；DDR3 D2 与 OV7725 O1-B 已完成。下一工程批次为 OV7725 O2-A serializer reset 只读契约；契约审核前不进入 O2-B RTL，也不并行开启 DDR3 D3 功能 RTL。
+状态：实施中。三项目 SP6.4 可重复构建基线均已建立；DDR3 D2、OV7725 O1-B 与 O2-A 已完成。下一工程批次为 OV7725 O2-B serializer reset 局部实现；该批完成前不并行开启 DDR3 D3 功能 RTL。
 
 ## 1. 总体验收目标
 
@@ -47,14 +47,15 @@
 - [x] OV7725 建立 O0-B SP6.4 可重复全流程构建基线和严格/baseline gate。
 - [x] OV7725 完成 O1-B RTL 卫生修复：38 条确定性位宽告警消失，仅保留 `mem_a` 单项板级阻断。
 - [x] OV7725 完成 O1-B 七阶段回归；严格 gate 返回非零，baseline 精确匹配 7 组失败指纹后返回 0 并标记不可发布。
+- [x] OV7725 完成 O2-A serializer reset 联合释放契约，闭合快慢时钟检查、八个 OSERDES endpoint、O2-B 文件范围和回退条件。
 - [ ] 安装 QuestaSim/ModelSim 并记录版本和路径。
 - [ ] 编译 Logos2 USIM/VSIM。
 - [ ] 完成三项目分级自检仿真。
 
 ### 近期执行顺序
 
-1. **P0：执行 O2-A。** 先证明同一 OSERDES `RST` 相对 `OCLK/SERCLK=pixel_clk_5x` 与 `OCLKDIV=pixel_clk` 的联合释放契约；不修改 RTL/FDC。
-2. **P1：执行 O2-B。** 只实现 O2-A 已证明的 serializer reset 方案并完成七阶段回归；不得预设“只同步到 `pixel_clk_5x`”必然正确。
+1. **P0：O2-A 已完成。** 已证明同一 OSERDES `RST` 相对 `OCLK/SERCLK=pixel_clk_5x` 与 `OCLKDIV=pixel_clk` 的联合释放契约，并唯一映射八个 endpoint。
+2. **P0：执行 O2-B。** 只实现 O2-A 固定的级联双域 serializer reset 方案并完成七阶段回归；任一 recovery/removal 转移或负裕量均立即回退。
 3. **P1：执行 O3-A → O2-C1。** 先把 `ddr3_init_done` 作为状态同步到 camera/pixel 域，再解除它对异步复位释放的直接控制并建立普通时钟域本地复位。
 4. **P1：执行 O2-C2 → O3-B → O4。** FIFO reset/flush 单独依据厂商语义处理，随后修帧事件 CDC，最后才添加最窄时序例外并闭合 STA。
 5. **P1：准备 DDR3 D3-0。** 仅做公开 core/物理 wrapper 和 Pango DDR 用户接口握手评审；任一时刻只开启一条功能 RTL 泳道。
@@ -205,13 +206,13 @@
 
 ### O2：OV7725 分时钟域复位
 
-- [ ] O2-A：建立 `doc/SERIALIZER_RESET_CONTRACT.md`，交叉核对 SP6.4 `GTP_OSERDES_E2` 仿真模型、`V_OSERDES_E2` timing model、PG2L100H 官方示例、当前 RTL 与最终 STA；本批不修改 RTL/FDC。
-- [ ] O2-A：确认 `RST` 高有效，且同一端口对 `OCLK/SERCLK=pixel_clk_5x` 与 `OCLKDIV=pixel_clk` 都存在 recovery/removal 要求；比较候选释放结构，禁止把“仅高速域同步”写成未经证明的结论。
-- [ ] O2-A：逐项映射 `serializer_b/g/r/clk × opit_2/opit_2_com` 八个 `OSR_IOLHR` endpoint，无遗漏或重复；记录 Slow Recovery `-0.643 ns / -4.191 ns / 8/8`、Slow Removal `+0.305 ns / 0/8`、Fast Recovery `+0.123 ns / 0/8`。
-- [ ] O2-A：固定 O2-B 的复位源、释放基准、同步级数、极性、扇出、文件范围、gate 修改、仿真补测和回退边界。
-- [ ] O2-B：保留 TMDS encoder 的 `pixel_clk` 域复位，只实现 O2-A 已证明的 OSERDES reset 结构，并且只扇出到四个 serializer 内八个 OSERDES。
-- [ ] O2-B：从空 `build/` 重跑七阶段；要求 serializer Slow/Fast Recovery 与 Removal 全部非负，且不得把失败转移为 `pixel_clk_5x → pixel_clk` 或其他新 clock pair。
-- [ ] O2-B：PDS 退出 0、日志无 `E:`、五类产物非零，无新增未分类 warning/critical；严格 gate 仍可因其他既有阻断失败，baseline 不得新增 waiver。
+- [x] O2-A：建立 `doc/SERIALIZER_RESET_CONTRACT.md`，交叉核对 SP6.4 `GTP_OSERDES_E2` 仿真模型、`V_OSERDES_E2` timing model、PG2L100H 官方示例、当前 RTL 与最终 STA；本批不修改 RTL/FDC。
+- [x] O2-A：确认 `RST` 高有效，且同一端口对 `OCLK/SERCLK=pixel_clk_5x` 与 `OCLKDIV=pixel_clk` 都存在 recovery/removal 要求；比较候选释放结构，禁止把“仅高速域同步”写成未经证明的结论。
+- [x] O2-A：逐项映射 `serializer_b/g/r/clk × opit_2/opit_2_com` 八个 `OSR_IOLHR` endpoint，无遗漏或重复；记录 Slow Recovery `-0.643 ns / -4.191 ns / 8/8`、Slow Removal `+0.305 ns / 0/8`、Fast Recovery `+0.123 ns / 0/8`。
+- [x] O2-A：固定 O2-B 的复位源、释放基准、同步级数、极性、扇出、文件范围、gate 修改、仿真补测和回退边界。
+- [ ] O2-B：仅修改 `dvi_transmitter_top.v`；保留现有 `pixel_clk` 两级 reset 驱动三个 encoder，再级联一个 `pixel_clk_5x` 两级同步释放器生成高有效 `serializer_reset`，只驱动四个 serializer 内八个 OSERDES。
+- [ ] O2-B：从空 `build/` 重跑七阶段；逐项证明八个 endpoint 相对 `OCLK`、`SERCLK`、`OCLKDIV` 的 Slow/Fast Recovery 与 Removal 全部非负，且不得把失败转移为 `pixel_clk_5x → pixel_clk` 或其他新 clock pair。
+- [ ] O2-B：PDS 退出 0、日志无 `E:`、五类产物非零，无新增未分类 warning/critical；真实 STA 通过后删除旧 `8/8` 失败签名并增加八端点正向覆盖检查，baseline 不得新增 waiver。
 - [ ] O2-C1：在 O3-A 的同步状态可用后，为 sys、I2C、camera、pixel、DDR UI 等普通时钟域建立本地复位，解除 `ddr3_init_done` 对其他域异步复位释放的直接控制。
 - [ ] O2-C2：单独核验两个厂商 FIFO 的 reset/flush 语义，再分别处理读写侧复位；不把 FIFO 复位与普通寄存器复位混为一个提交。
 

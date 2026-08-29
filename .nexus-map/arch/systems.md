@@ -28,7 +28,7 @@
 - project_path: `41_ov7725_hdmi/prj/ov7725_hdmi.pds`
 - constraint_path: `41_ov7725_hdmi/prj/source/ov7725_hdmi.fdc`
 - evidence_path: `41_ov7725_hdmi/doc/CDC_RDC_AUDIT.md`, `41_ov7725_hdmi/doc/RTL_HYGIENE_AUDIT.md`, `41_ov7725_hdmi/build/logs/pds-gen_bit_stream.log`, `41_ov7725_hdmi/build/pds/report_timing/ov7725_hdmi.rtr`, `41_ov7725_hdmi/scripts/check_build.ps1`
-- evidence_gap: O1-B 的 38 条确定修复和七阶段回归已完成，仅剩 `mem_a` 1 条受 H3/O1-C 板级事实阻断；新增八个 OSERDES Slow Recovery 失败转入 O2-A/O2-B，最终 STA、顶层自检和 QuestaSim/S3 四级仿真仍未闭环，当前结果不可发布。
+- evidence_gap: O1-B 的 38 条确定修复和七阶段回归已完成，仅剩 `mem_a` 1 条受 H3/O1-C 板级事实阻断；O2-A serializer reset 联合释放契约已完成，但 O2-B RTL、PDS 七阶段和 QuestaSim/S3 尚未执行，八个 OSERDES Slow Recovery 失败仍未关闭，当前结果不可发布。
 - responsibility: 将 OV7725 像素流经异步 FIFO 和 DDR3 帧缓存送往 HDMI/TMDS 输出。
 - clock_domains: `sys_clk`, `i2c_dri_clk`, `cam_pclk`, `pixel_clk`, `pixel_clk_5x`, `clk_50m/ref_clk`, `ui_clk`
 - cdc_findings: `wr_load`/`rd_load` 被多个逻辑独立采样；write FIFO 为 `cam_pclk → ui_clk`，read FIFO 为 `ui_clk → pixel_clk`
@@ -39,8 +39,9 @@
 - artifact_evidence: synthesis netlist `6,873,482` bytes; PNR netlist `11,604,756` bytes; SDF `8,898,464` bytes; `.sbit` `3,791,112` bytes; `.bin` `3,789,476` bytes
 - rtl_hygiene_findings: 39 条 `Verilog-2019` 中 38 条确定性告警已在 O1-B 消失；仅保留活动 DDR3 IP `mem_a[13:0]` 与顶层/FDC `mem_a[14:0]` 冲突的 1 条，综合网表仍将 `mem_a[14]` 绑 0
 - rtl_hygiene_result: 已显式声明 `rst_n`、删除无消费者 `sys_init_done`、修复定宽连接，并使用高有效 reset 驱动四个 serializer 内的八个 OSERDES；未修改 `mem_a`、厂商 IP、FDC 或 CDC/RDC
-- remediation_contract: O2-A 联合核对 OSERDES `RST` 对 `OCLK/SERCLK` 与 `OCLKDIV` 的释放要求；O2-B 只实现已证明的 serializer reset 结构且不预设仅高速域同步；O3-A 先同步 `ddr3_init_done`；O2-C1 处理普通时钟域本地复位；O2-C2 独立处理 FIFO reset/flush；O3-B 修复帧事件 CDC；结构闭环后才允许对厂商认证路径添加精确例外
-- next_step: O2-A → O2-B → O3-A → O2-C1 → O2-C2 → O3-B → O4；O4 同时依赖 O2-C2 与 O3-B，与 DDR3 D3 一次只进入一条 RTL 实现泳道
+- serializer_reset_contract: O2-A 已完成；保留 encoder 的 `pixel_clk` 两级 reset，serializer reset 在其后级联 `pixel_clk_5x` 两级同步释放，只驱动四个 serializer 内八个 OSERDES；八个 `opit_2/opit_2_com/OSR_IOLHR` endpoint 必须全部保持 Recovery/Removal 覆盖
+- remediation_contract: O2-B 不修改 PLL/IP/FDC，不使用 false path、multicycle、clock-group waiver 或新增 baseline 失败；O3-A 先同步 `ddr3_init_done`；O2-C1 处理普通时钟域本地复位；O2-C2 独立处理 FIFO reset/flush；O3-B 修复帧事件 CDC；结构闭环后才允许对厂商认证路径添加精确例外
+- next_step: O2-B → O3-A → O2-C1 → O2-C2 → O3-B → O4；O4 同时依赖 O2-C2 与 O3-B，与 DDR3 D3 一次只进入一条 RTL 实现泳道
 - high_attention: `i2c_dri_clk` 逻辑生成时钟、`cam_pclk`/DDR `ui_clk`/`pixel_clk` 间业务 CDC、FIFO 分侧复位，以及 `ddr3_init_done` 参与的复位释放。
 
 ## DDR3 外层工程

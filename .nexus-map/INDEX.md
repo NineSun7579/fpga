@@ -25,6 +25,7 @@
 - OV7725 O1-B 已按 [RTL 卫生修复评审](../41_ov7725_hdmi/doc/RTL_HYGIENE_AUDIT.md) 完成：原 39 条手写 RTL 位宽告警中的 38 条确定性问题已消失，只保留活动 IP 14 bit 与顶层/FDC 15 bit 冲突的 `ddr3_ip.mem_a` 1 条；该项仍属于 H3/O1-C。
 - O1-B 已从空 `build/` 完成 SP6.4 七阶段，进程退出 0、日志 `E: 0`，warning `4067`、critical `81`；非零产物为综合网表 `6,873,482`、PNR 网表 `11,604,756`、SDF `8,898,464`、`.sbit` `3,791,112` 和 `.bin` `3,789,476` 字节。
 - O1-B 严格 gate 返回 `1`；baseline gate 只在 corner、check、clock pair 与 endpoint 数量精确匹配七组已知失败时返回 `0`，并明确标记不可发布。新 Slow Recovery `pixel_clk → pixel_clk_5x` 为 `-0.643 ns / -4.191 ns / 8/8`，端点正是四个 serializer 内的八个 OSERDES，转入 O2-A/O2-B；QuestaSim/S3 动态验证仍未完成。
+- OV7725 O2-A 已形成 [Serializer Reset 联合释放契约](../41_ov7725_hdmi/doc/SERIALIZER_RESET_CONTRACT.md)：确认同一高有效 `RST` 同时受 `OCLK/SERCLK=pixel_clk_5x` 与 `OCLKDIV=pixel_clk` 的 recovery/removal 检查，并固定 O2-B 首选为现有 `pixel_clk` 两级释放后再级联 `pixel_clk_5x` 两级释放，只驱动八个 OSERDES。本批未修改 RTL/FDC、未运行 PDS 或 QuestaSim。
 - 根目录 [README](../README.md) 是 PDS 外部实现与仿真指南。
 - 根目录 [TODO](../TODO.md) 是当前整改顺序和验收门槛。
 - 新增或修改 Verilog/SystemVerilog 时必须遵循 [VSCS](../VERILOG_SYSTEMVERILOG_COMMENTING_STANDARD.md)。
@@ -42,7 +43,7 @@
 
 ## 当前优先级
 
-1. OV7725 先执行 O2-A，联合证明同一 OSERDES `RST` 相对 `OCLK/SERCLK=pixel_clk_5x` 与 `OCLKDIV=pixel_clk` 的释放契约；随后 O2-B 只实现已证明的 serializer reset 结构，不预设仅在高速域同步即可闭环。
+1. OV7725 O2-A 联合释放契约已完成；下一批为 O2-B，只实现契约固定的 `pixel_clk` 两级 → `pixel_clk_5x` 两级级联释放并完成七阶段验证。禁止 false path、multicycle、clock-group waiver 或新增 baseline 失败签名。
 2. OV7725 按 O3-A → O2-C1 推进：先同步 `ddr3_init_done` 作为 camera/pixel 状态与使能，再解除其对异步复位释放的直接控制，并建立普通时钟域本地复位。
 3. OV7725 按 O2-C2 → O3-B → O4 推进：先依据厂商语义独立处理 FIFO reset/flush，再修复帧事件 CDC；O4 同时依赖 O2-C2 与 O3-B，结构闭环前不得添加宽泛时序例外。
 4. 审核 DDR3 D3 实现批次；D2 只读决策已经固定有限事务和公开结果契约，但项目自有顶层尚未创建。与 OV7725 的 RTL 实现泳道一次只选择一条实施。

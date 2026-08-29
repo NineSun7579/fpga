@@ -20,6 +20,7 @@ Logos2 / PG2L100H / FBG484 / -6
 - O1-B 已显式声明 `rst_n`、删除无消费者 `sys_init_done`，并把四个 serializer 内八个 OSERDES 接入高有效复位。
 - 最终报告仍为 `Some Constraints Violated`：慢角 setup 两组失败分别为 `-6.965 ns / 20/20` 和 `-2.273 ns / 11/11`；原有 DDR/FIFO recovery 为 `-4.957 ns / 53/53`。
 - 接入 OSERDES 复位后新增一组慢角 recovery：`pixel_clk → pixel_clk_5x`，WNS `-0.643 ns`、TNS `-4.191 ns`、8/8 端点；详细端点正好是八个 OSERDES，转入 O2/RDC 修复。
+- O2-A 已完成 [Serializer Reset 联合释放契约](doc/SERIALIZER_RESET_CONTRACT.md)：首选 O2-B 保留 encoder 的 `pixel_clk` reset，再级联 `pixel_clk_5x` 两级释放，仅驱动八个 OSERDES；该结构尚未实施或通过 STA。
 - 完整日志包含 81 条 critical 和 4067 条 warning；其中仅 1 条项目手写 RTL 位宽告警，另有 88 条 `STA-3011`、4 条 `SDC-2025`、3 条 `Route-2036` 和 72 条 share-pin critical。
 - 已生成非零综合网表、PNR 网表、slow-corner SDF、`.sbit` 和 `.bin`。
 - 严格 gate 会因已知发布阻断返回非零；显式 baseline 模式精确核对 7 组 `corner/check/clock pair/endpoints` 失败指纹，只证明当前失败基线可重复，并明确标记不可发布。
@@ -61,8 +62,8 @@ powershell.exe -ExecutionPolicy Bypass -File .\scripts\run.ps1 `
 
 O1-B 已按 [RTL 卫生修复评审](doc/RTL_HYGIENE_AUDIT.md) 实现并完成七阶段回归。下一批拆为：
 
-1. O2-A：只读确认同一 `GTP_OSERDES_E2.RST` 相对 `OCLK/SERCLK=pixel_clk_5x` 与 `OCLKDIV=pixel_clk` 的联合释放契约，并将八个 recovery endpoint 逐项映射到设计实例。
-2. O2-B：保留 encoder 的 `pixel_clk` 域复位，只实现 O2-A 已证明的 OSERDES reset 方案；不得预设“仅同步到 `pixel_clk_5x`”一定不会把违例转移到 `pixel_clk`。
+1. O2-A：已完成 [Serializer Reset 联合释放契约](doc/SERIALIZER_RESET_CONTRACT.md)，并将 `serializer_b/g/r/clk × master/slave` 八个 endpoint 唯一映射到 `opit_2/opit_2_com`。
+2. O2-B：下一批仅修改 `dvi_transmitter_top.v`，保留 encoder 的 `pixel_clk` reset，再级联 `pixel_clk_5x` 两级释放生成 serializer reset；必须用完整 STA 同时证明 `OCLK`、`SERCLK`、`OCLKDIV` 检查非负。
 3. O3-A → O2-C1：先同步 `ddr3_init_done` 作为 camera/pixel enable，再处理 sys、I2C、camera、pixel、DDR UI 等普通时钟域本地复位。
 4. O2-C2：单独依据厂商 FIFO reset/flush 语义处理两个异步 FIFO 的读写侧复位。
 5. O3-B → O4：修复两条帧事件 CDC；只有 O2-C2 与 O3-B 都完成后才进入约束和最终时序闭环。

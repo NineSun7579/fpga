@@ -26,7 +26,7 @@
       "implementation_status": "implemented_with_timing_failures",
       "code_path": "41_ov7725_hdmi/rtl/",
       "evidence_path": "41_ov7725_hdmi/doc/RTL_HYGIENE_AUDIT.md",
-      "evidence_gap": "O1-B 的 38 条确定修复和七阶段回归已完成，仅剩 mem_a 1 条受 H3/O1-C 阻断；新增八个 OSERDES Slow Recovery 失败转入 O2-A/O2-B，STA 与 QuestaSim/S3 四级仿真仍未闭环。",
+      "evidence_gap": "O1-B 的 38 条确定修复和七阶段回归已完成，仅剩 mem_a 1 条受 H3/O1-C 阻断；O2-A serializer reset 联合释放契约已完成，O2-B RTL、PDS 七阶段与 QuestaSim/S3 尚未执行，八个 OSERDES Slow Recovery 失败仍未关闭。",
       "tech_stack": ["Verilog", "Pango Logos2", "DDR3", "TMDS"],
       "related_reqs": ["逐域复位", "单点事件同步", "FIFO 分侧复位", "结构后精确例外", "O1-B complete", "O2-A/O2-B/O3-A/O2-C1/O2-C2/O3-B/O4", "H3/O1-C mem_a"],
       "complexity": "high",
@@ -89,7 +89,7 @@
         "failing_endpoints": 8,
         "total_endpoints": 8,
         "endpoint_scope": "four serializers, eight OSERDES",
-        "next_steps": ["O2-A", "O2-B", "O3-A", "O2-C1", "O2-C2", "O3-B", "O4"]
+        "next_steps": ["O2-B", "O3-A", "O2-C1", "O2-C2", "O3-B", "O4"]
       },
       "decisions": [
         "显式声明 rst_n",
@@ -111,7 +111,26 @@
       "implementation_status": "documented",
       "code_path": null,
       "evidence_path": "41_ov7725_hdmi/doc/CDC_RDC_AUDIT.md",
-      "evidence_gap": "O1-B 后 baseline 精确匹配七组失败；新增 Slow Recovery pixel_clk→pixel_clk_5x 为 -0.643/-4.191/8/8，端点为八个 OSERDES。O2-A 需联合检查 OCLK/SERCLK 与 OCLKDIV，O2-B 不预设仅高速域同步；随后依次执行 O3-A、O2-C1、O2-C2、O3-B，O4 依赖 O2-C2 与 O3-B。",
+      "evidence_gap": "O2-A 已完成 OCLK/SERCLK 与 OCLKDIV 联合释放契约；O2-B 级联两级释放尚未实现，未运行新的 PDS 或 QuestaSim。随后依次执行 O3-A、O2-C1、O2-C2、O3-B，O4 依赖 O2-C2 与 O3-B。",
+      "o2a_serializer_reset_contract": {
+        "status": "complete_read_only",
+        "evidence_path": "41_ov7725_hdmi/doc/SERIALIZER_RESET_CONTRACT.md",
+        "release_scheme": "existing pixel_clk two-stage reset followed by pixel_clk_5x two-stage synchronized release",
+        "endpoint_count": 8,
+        "endpoints": [
+          "serializer_b/GTP_OUTBUFDS_data_lane/opit_2/OSR_IOLHR",
+          "serializer_b/GTP_OUTBUFDS_data_lane/opit_2_com/OSR_IOLHR",
+          "serializer_g/GTP_OUTBUFDS_data_lane/opit_2/OSR_IOLHR",
+          "serializer_g/GTP_OUTBUFDS_data_lane/opit_2_com/OSR_IOLHR",
+          "serializer_r/GTP_OUTBUFDS_data_lane/opit_2/OSR_IOLHR",
+          "serializer_r/GTP_OUTBUFDS_data_lane/opit_2_com/OSR_IOLHR",
+          "serializer_clk/GTP_OUTBUFDS_data_lane/opit_2/OSR_IOLHR",
+          "serializer_clk/GTP_OUTBUFDS_data_lane/opit_2_com/OSR_IOLHR"
+        ],
+        "prohibited_acceptance_shortcuts": ["false_path", "multicycle", "clock_group_waiver", "new_baseline_failure"],
+        "pds_rerun_completed": false,
+        "questa_completed": false
+      },
       "tech_stack": ["Verilog", "PDS STA", "CDC", "RDC"],
       "related_reqs": ["O1-A", "逐域复位", "事件不丢不重", "FIFO reset/flush"],
       "complexity": "high",
@@ -230,13 +249,13 @@
       "source": "ov7725-cdc-rdc-audit",
       "target": "ov7725-hdmi-system",
       "type": "governs_future_changes",
-      "description": "O1-B 已完成 RTL 卫生修复并暴露八个 OSERDES Slow Recovery 端点；O2-A 联合检查 OCLK/SERCLK 与 OCLKDIV，O2-B 只实现已证明的 serializer reset 结构且不预设仅高速域同步。随后 O3-A 先同步 ddr3_init_done，O2-C1 处理普通时钟域复位，O2-C2 单独处理 FIFO reset/flush，O3-B 修复帧事件 CDC；O4 依赖 O2-C2 与 O3-B，禁止用宽泛时序例外替代结构整改。"
+      "description": "O2-A 已完成 OCLK/SERCLK 与 OCLKDIV 联合释放契约并固定八个 OSERDES endpoint；下一批 O2-B 采用 pixel_clk 两级后级联 pixel_clk_5x 两级释放，只驱动八个 OSERDES。O2-B 禁止 false path 或新增 baseline 失败，且尚未运行 PDS/Questa。随后 O3-A 先同步 ddr3_init_done，O2-C1 处理普通时钟域复位，O2-C2 单独处理 FIFO reset/flush，O3-B 修复帧事件 CDC；O4 依赖 O2-C2 与 O3-B。"
     },
     {
       "source": "ov7725-rtl-hygiene-audit",
       "target": "ov7725-hdmi-system",
       "type": "records_completed_change",
-      "description": "O1-B 已完成 38 条确定修复、rst_n/sys_init_done 清理与八个 OSERDES reset 连接；mem_a 仍转 H3/O1-C，新增 recovery 8/8 转 O2-A/O2-B。"
+      "description": "O1-B 已完成 38 条确定修复、rst_n/sys_init_done 清理与八个 OSERDES reset 连接；mem_a 仍转 H3/O1-C。O2-A 已完成新增 recovery 8/8 的联合释放契约，O2-B 为下一实现批次。"
     },
     {
       "source": "ddr3-outer-project",
@@ -319,10 +338,10 @@
   ],
   "metadata": {
     "analysis_mode": "manual bootstrap",
-    "git_commits_analyzed": 13,
+    "git_commits_analyzed": 14,
     "raw_ast_available": false,
     "limitations": [
-      "Thirteen repository commits are counted after the TODO planning batch. Churn analysis remains too shallow for reliable hotspot ranking.",
+      "Fourteen repository commits are counted after the O2-A serializer reset contract batch. Churn analysis remains too shallow for reliable hotspot ranking.",
       "No AST extraction was run.",
       "No ModelSim or QuestaSim execution was available."
     ]

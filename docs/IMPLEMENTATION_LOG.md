@@ -123,3 +123,13 @@
 - 接入 OSERDES reset 后新增 Slow/Recovery `pixel_clk → pixel_clk_5x`，WNS `-0.643 ns`、TNS `-4.191 ns`、8/8 endpoint；详细报告确认对应八个 OSERDES。baseline gate 改为精确匹配 `corner/check/clock pair/endpoints` 的 7 组失败指纹，不把该路径视为 waiver。
 - PowerShell AST 为 0 个错误；严格 gate 返回 1，baseline gate 返回 0 并明确不可发布。`mem_a`、厂商 IP、FDC、RCF、FIFO、CDC/RDC 结构和时序例外均未修改。
 - 下一步依次拆为 O2-A 只读联合释放契约、O2-B serializer 局部实现、O3-A 同步初始化状态、O2-C1 普通时钟域复位、O2-C2 FIFO reset/flush、O3-B 帧事件 CDC 与 O4 时序闭环。SP6.4 timing model 对同一 `RST` 同时建立 `OCLK`、`OCLKDIV`、`SERCLK` 的 recovery/removal 检查，因此 O2-A 必须先证明方案，不能预设“只同步到高速域”必然闭环；QuestaSim 未安装，不能声明 HDMI 动态复位或四级仿真通过。
+
+## 2026-08-29：OV7725 O2-A Serializer Reset 联合释放契约
+
+- 本批只新增契约和同步状态，不修改 RTL、厂商 IP、FDC、RCF 或 gate，也未运行新的 PDS/QuestaSim 流程。
+- SP6.4 功能/timing model、PG2L100H 示例和当前 RTL 共同确认：OSERDES `RST` 高有效；同一端口相对 `OCLK/SERCLK=pixel_clk_5x` 与 `OCLKDIV=pixel_clk` 均有 recovery/removal 要求。
+- 最终 STA 的 serializer 组为 Slow Recovery `-0.643 ns / -4.191 ns / 8/8`、Slow Removal `+0.305 ns / 0/8`、Fast Recovery `+0.123 ns / 0/8`、Fast Removal `+0.114 ns / 0/8`。
+- Device-map 与 STA 已将 `serializer_b/g/r/clk` 各自 master=`opit_2`、slave=`opit_2_com` 的八个 `OSR_IOLHR` endpoint 唯一闭合。
+- O2-B 首选最小结构固定为：保留现有 `pixel_clk` 两级 reset 驱动 encoder，再级联现有两级同步器到 `pixel_clk_5x`，生成只驱动八个 OSERDES 的高有效 `serializer_reset`；功能 RTL 只允许修改 `dvi_transmitter_top.v`。
+- O2-B 必须由完整 PDS 同时证明八端点相对 `OCLK`、`SERCLK`、`OCLKDIV` 的 Slow/Fast Recovery 与 Removal 全部非负；若违例转移、需要 false path/waiver 或扩大到 PLL/IP/FDC/FIFO/业务 CDC，则回退并重新评审。
+- 当前只能声明 O2-A 设计契约完成，不能声明 serializer reset、HDMI 动态复位或四级仿真已经通过。
