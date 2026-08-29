@@ -22,6 +22,8 @@
 
 - OV7725：`41_ov7725_hdmi/doc/CDC_RDC_AUDIT.md` 已记录七类时钟域、`wr_load`/`rd_load` 多点采样、两个异步 FIFO 数据方向和分侧复位风险，以及三条旧 STA 失败路径。
 - OV7725：O0-B 已证明 SP6.4 七阶段实现和五类产物可重复；严格 gate 因负时序返回非零，显式 baseline gate 返回 0 但明确不可发布。整改顺序仍是逐域复位、单点事件同步、FIFO 分侧复位，再对结构已验证的厂商路径添加精确例外。
+- OV7725：O1-A 已将 39 条手写 RTL 位宽告警按 `1 + 4 + 26 + 6 + 2` 全部闭合；38 条可在 O1-B 确定修复，`mem_a` 单项因活动 IP 14 bit 与顶层/FDC 15 bit 冲突转入 H3/O1-C，当前综合网表把 `mem_a[14]` 绑 0。
+- OV7725：O1-B 尚未审核或执行；计划显式声明 `rst_n`、删除死网 `sys_init_done`，并让高有效 reset 驱动四个 serializer 内的八个 OSERDES。该评审不构成功能、时序或仿真覆盖，O1-B 不得修改 `mem_a`、IP、FDC 或 CDC/RDC。
 - DDR3：临时 `test_ddr` bring-up 已完成全流程与内部 STA/产物基线。严格 gate 因 7 类问题返回 1：BIST error-data 位宽不匹配、BIST dangling cleanup、`rst_board` 使用 share pin、BANKR4 VCCIO 3.3 不兼容、UART I/O 约束缺失、顶层输入 timing 缺失、顶层输出 timing 缺失。显式 baseline 放行返回 0，但明确标记不可发布。
 - DDR3：本次完整构建日志没有 SCBV 命中；这不替代板级批准参数清单。DDR3 颗粒/组织、VCCIO/VREF、ODT、拓扑、走线、UART/ADC 决策等仍缺少审核依据。
 - DDR3：testbench 端口仍失配，BIST 无天然有限完成状态，缺少可靠 `$fatal`、超时、唯一 `TEST PASS` 和四级仿真证据；当前结果只验收可重复实现基线，不验收板级功能或产品状态。

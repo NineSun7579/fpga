@@ -24,6 +24,7 @@
 - OV7725 O0-A 已形成 [CDC/RDC 审计与整改契约](../41_ov7725_hdmi/doc/CDC_RDC_AUDIT.md)，覆盖七类时钟域、帧事件多点采样、两个异步 FIFO 的数据方向/分侧复位风险及三条旧 STA 失败路径；本批只建立事实和契约，未修改 RTL、IP 或 FDC。
 - OV7725 O0-B 已固定 `16 RTL + 4 IDF + 1 FDC`，从空 `build/` 完成 SP6.4 七阶段流程，进程退出 0 且日志 `E: 0`；最终 STA 为 `Some Constraints Violated`。慢角失败为 setup `-7.344 ns / -132.832 ns / 20`、read FIFO 方向 setup `-2.275 ns / -24.111 ns / 11`、recovery `-4.263 ns / -202.445 ns / 53`，快角仍命中相同三组失败端点。
 - OV7725 已生成非零综合网表 `6,873,287`、PNR 网表 `11,600,361`、SDF `8,894,116`、`.sbit` `3,791,112` 和 `.bin` `3,789,476` 字节；严格 gate 返回非零，显式 baseline gate 返回 0 并标记不可发布。
+- OV7725 O1-A 已形成 [RTL 卫生修复评审](../41_ov7725_hdmi/doc/RTL_HYGIENE_AUDIT.md)：39 条手写 RTL 位宽告警按 `1 + 4 + 26 + 6 + 2` 全部归属，其中 38 条可确定修复；`mem_a` 因活动 IP 为 14 bit、顶层/FDC 为 15 bit 且综合网表将第 15 bit 绑 0，转入 H3/O1-C。O1-B 只计划显式声明 `rst_n`、删除死网 `sys_init_done`、修复 38 条告警并让高有效 reset 驱动四个 serializer 内的八个 OSERDES；未经审核不实施，也不修改 `mem_a`、IP、FDC 或 CDC/RDC。
 - 根目录 [README](../README.md) 是 PDS 外部实现与仿真指南。
 - 根目录 [TODO](../TODO.md) 是当前整改顺序和验收门槛。
 - 新增或修改 Verilog/SystemVerilog 时必须遵循 [VSCS](../VERILOG_SYSTEMVERILOG_COMMENTING_STANDARD.md)。
@@ -41,8 +42,8 @@
 
 ## 当前优先级
 
-1. 对 OV7725 O1-A 做只读 RTL 卫生评审；未经审核不修改 RTL、IP 或 FDC，后续约束必须服从 O0-A CDC/RDC 契约。
-2. 审核 DDR3 D3 实现批次；D2 只读决策已经固定有限事务和公开结果契约，但项目自有顶层尚未创建。
+1. 审核 OV7725 O1-B 实现批次；O1-A 已固定 38 条确定修复与 `mem_a` 单项 H3/O1-C 阻断，O1-B 不得修改 IP、FDC 或 CDC/RDC。
+2. 审核 DDR3 D3 实现批次；D2 只读决策已经固定有限事务和公开结果契约，但项目自有顶层尚未创建。两条 RTL 泳道只选择一条实施。
 3. PCIe 等待板级资料关闭 IDF、UART、share pin、HSST 约束和 SCBV 阻断项。
 4. QuestaSim 可用后，三个工程分别补齐集成顶层四级仿真和 SDF 标注验证。
 

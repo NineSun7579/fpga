@@ -56,6 +56,14 @@ powershell.exe -ExecutionPolicy Bypass -File .\scripts\run.ps1 `
 
 ## 下一步
 
-下一批 O1-A 只做 RTL 卫生修复方案评审：逐条归属 39 条位宽告警、隐式网络和 `serializer_10_to_1.reset_n` 问题，形成最小修改清单后提请审核。
+O1-A 评审已完成，完整结果见 [RTL 卫生修复评审](doc/RTL_HYGIENE_AUDIT.md)：
 
-未经审核不进入 O1-B，也不修改 RTL/IP/FDC/RCF。后续新增或修改的手写 RTL/TB 必须遵守根目录 `VERILOG_SYSTEMVERILOG_COMMENTING_STANDARD.md`。
+- 39 条手写 RTL 位宽告警已按 `1 + 4 + 26 + 6 + 2` 全部归属；
+- 38 条可依据当前 RTL、活动 IDF/template 和 PDS SP6.4 原语定义确定修复；
+- `mem_a` 单项存在活动 IP 14 bit 与顶层/FDC 15 bit 的冲突，必须等待 DDR3 料号和原理图，转入 H3/O1-C；
+- `rst_n` 应显式声明，`sys_init_done` 是无消费者死网；
+- serializer 实际接收高有效 reset，后续应驱动四个 serializer 内的八个 OSERDES。
+
+推荐下一批为 O1-B：只修复 38 条确定性 warning、两个隐式 net 问题和 OSERDES reset，同时更新 gate 仅允许精确的 `mem_a` 单项阻断。
+
+未经审核不进入 O1-B，也不修改 RTL/IP/FDC/RCF。O1-B 不声明历史第三方文件整体符合 VSCS；新增或修改的设计意图、地址单位、burst 上界和 reset 极性注释必须遵守根目录 `VERILOG_SYSTEMVERILOG_COMMENTING_STANDARD.md`。

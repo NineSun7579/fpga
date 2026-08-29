@@ -42,6 +42,14 @@ GUI 原生工程目录中的日志、数据库和绝对路径脚本是历史证�
 
 OV7725 O0-B 已按该边界固定 16 个手写 RTL、4 个活动 IDF 和唯一顶层 FDC，在 SP6.4 下完成七阶段实现并生成非零综合网表、PNR 网表、SDF 和位流。进程退出 0、日志无 `E:` 只能证明流程可重复；由于慢角 setup/recovery 及快角相同端点组仍为负裕量，严格 gate 必须失败，baseline gate 只能显式标记为不可发布。
 
+## RTL 卫生与板级接口边界
+
+OV7725 O1-A 以 `RTL_HYGIENE_AUDIT.md` 固定手写 RTL 卫生契约：39 条位宽告警按 `1 + 4 + 26 + 6 + 2` 分组，38 条可通过显式零扩展、定宽 tie-off、地址/长度编码和 serializer reset 连接确定修复。`rst_n` 应显式声明，只有赋值而无读取者的 `sys_init_done` 应删除。
+
+serializer 接收的是高有效 reset；O1-B 若获审核，应让该信号驱动四个 serializer 内共八个 OSERDES 的高有效 `RST`。这属于局部功能修复，但不替代 O2 的逐域复位/RDC 整改。
+
+`mem_a` 是板级接口冲突而非机械消警：活动 IP 为 14 bit，顶层/FDC 为 15 bit，当前综合网表将第 15 bit 绑 0。它必须等待 H3 板级 DDR3 事实并在 O1-C 独立处理；O1-B 不修改 `mem_a`、IP、FDC、CDC/RDC 或时序例外。
+
 ## VSCS 注释治理
 
 后续手写 Verilog/SystemVerilog 应记录设计意图、接口契约、FSM、复位、CDC/RDC 和风险，不重复可以从代码、Git 或工具报告自动推导的事实。

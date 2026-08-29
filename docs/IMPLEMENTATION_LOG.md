@@ -100,3 +100,13 @@
 - 完成接口固定为稳定 `test_done/test_failed/error_count/completed_pairs`、失败码和首错地址/期望值/实际值；最终比较及 outstanding 清零后的下一周期才允许置位 `test_done`。
 - 新 RTL/TB 必须遵守 VSCS 的模块边界、接口、FSM、复位和验证证据条款；文件不得维护作者/日期历史，注释不得替代 elaboration、assertion、仿真或 PDS 报告。
 - 本批只新增契约并同步状态，没有修改 RTL、TB、IDF、FDC 或 RCF。D3 实现待审核；下一批转入 OV7725 O1-A 只读评审。
+
+## 2026-08-29：OV7725 O1-A RTL 卫生修复评审
+
+- 从 SP6.4 完整日志精确复现 39 条项目根 `rtl/` 的 `Verilog-2019`：I2C 1 条、AXI 适配 4 条、DDR3 IP 实例 26 条、顶层参数 6 条、OSERDES 2 条。
+- 38 条已有确定修复：I2C 零扩展、地址/长度编码的显式低位选择、25 个 DDR3 IP 定宽 tie-off、顶层参数零扩展及高有效 OSERDES reset。
+- 地址和长度左移 3 是现有协议的一部分；当前地址高 3 位固定为 0，burst 为 160。后续必须显式固化低 24/8 bit 及上界，不能直接删除拼接。
+- `rst_n` 是有实际扇出的隐式 wire，应显式声明；`sys_init_done` 只有赋值没有读取者，应删除死网。复位跨域结构仍留在 O2，不在 O1-B 顺带重构。
+- PDS SP6.4 原语模型和官方 PG2L100H 示例确认 `GTP_OSERDES_E2.RST` 高有效；当前四个 serializer 共八个 OSERDES 的本地复位均被绑 0，后续应连接现有高有效 reset。
+- `mem_a` 存在真实冲突：活动 IDF/module/template 为 14 bit，手写顶层和 FDC 为 15 bit，综合网表把 `mem_a[14]` 固定为 0。该项必须等待 DDR3 料号和原理图，转入 H3/O1-C。
+- 本批新增 `RTL_HYGIENE_AUDIT.md` 并同步状态，没有修改 RTL、厂商 IP、FDC 或 RCF，也没有运行 PDS 或四级仿真。

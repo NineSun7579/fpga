@@ -8,14 +8,16 @@
 
 - 分支为 `main`。
 - 根提交为 `1a2d493`，保存三个原始工程、已有 PDS 产物和整改文档。
-- DDR3 D2 决策提交完成后，历史共九个提交。样本仍不足以计算可信的 churn、共同变更或历史热点；本文件不提供伪统计。
+- OV7725 O1-A 只读评审提交完成后，历史预记为十个提交。样本仍不足以计算可信的 churn、共同变更或历史热点；本文件不提供伪统计。
 
 ## 人工高关注区
 
 以下仅来自当前缺陷证据，不是 Git 统计热点：
 
 - `41_ov7725_hdmi/rtl/ov7725_hdmi.v`：视频链路顶层、跨域控制和复位组合点。
-- `41_ov7725_hdmi/doc/CDC_RDC_AUDIT.md`：O0-A CDC/RDC 事实、旧/新 STA 映射和后续整改契约的首要证据；O0-B 已验证，下一步为 O1-A 只读评审。
+- `41_ov7725_hdmi/doc/CDC_RDC_AUDIT.md`：O0-A CDC/RDC 事实、旧/新 STA 映射和后续整改契约的首要证据；O1-B 不得顺带修改该结构。
+- `41_ov7725_hdmi/doc/RTL_HYGIENE_AUDIT.md`：O1-A 的 39 条告警归属、38 条确定修复、`mem_a` H3/O1-C 阻断、隐式网络和 serializer reset 契约的首要证据。
+- `41_ov7725_hdmi/rtl/ov7725_dri/ov7725_dri.v`、`rtl/ddr3_ctrl_top/ddr3_ctrl_top.v`、`rtl/ov7725_hdmi.v`、`rtl/hdmi_top/serializer_10_to_1.v`、`rtl/hdmi_top/dvi_transmitter_top.v`：O1-B 待审核修改边界；不得包含 `mem_a`、IP、FDC 或 CDC/RDC 改动。
 - `41_ov7725_hdmi/scripts/build.tcl`：固定 16 RTL、4 IDF、1 FDC 和 PG2L100H 器件目标的七阶段相对路径实现定义。
 - `41_ov7725_hdmi/scripts/check_build.ps1`：严格模式因负时序返回非零；baseline 模式只证明产物与流程可重复，并明确标记不可发布。
 - `41_ov7725_hdmi/rtl/ddr3_ctrl_top/ctrl_fifo.v`：`wr_load`/`rd_load` 多点采样、两个异步 FIFO 数据方向和跨两侧复位分发点。
@@ -30,4 +32,4 @@
 
 ## 后续更新
 
-只有积累足够多、内容独立的提交后，才适合增加真实 churn 与共同变更分析。D3 有限自检实现、构建脚本、RTL 功能修改和约束修改应保持独立提交，便于形成可靠历史；当前下一批为 OV7725 O1-A 只读评审。
+只有积累足够多、内容独立的提交后，才适合增加真实 churn 与共同变更分析。O1-B RTL 卫生实现、O1-C `mem_a` 板级决策、D3 有限自检实现和约束修改必须保持独立提交；当前 O1-B 与 D3 均待审核，一次只进入一条 RTL 泳道。

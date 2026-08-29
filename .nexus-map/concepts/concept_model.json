@@ -25,11 +25,42 @@
       "responsibility": "采集 OV7725 像素，经异步 FIFO 和 DDR3 帧缓存后输出 HDMI/TMDS。",
       "implementation_status": "implemented_with_timing_failures",
       "code_path": "41_ov7725_hdmi/rtl/",
-      "evidence_path": "41_ov7725_hdmi/build/pds/report_timing/ov7725_hdmi.rtr",
-      "evidence_gap": "O0-A CDC/RDC 契约与 O0-B SP6.4 七阶段实现、五类非零产物和严格/baseline gate 已验证；STA 为 Some Constraints Violated，慢角三组失败为 -7.344/-132.832/20、-2.275/-24.111/11、-4.263/-202.445/53，快角相同端点组仍失败；顶层四级仿真尚未完成。",
+      "evidence_path": "41_ov7725_hdmi/doc/RTL_HYGIENE_AUDIT.md",
+      "evidence_gap": "O0-A CDC/RDC、O0-B SP6.4 实现/gate 与 O1-A RTL 卫生评审已完成；O1-B 的 38 条确定修复尚未审核实施，mem_a 仍受 H3/O1-C 阻断，STA 和四级仿真均未闭环。",
       "tech_stack": ["Verilog", "Pango Logos2", "DDR3", "TMDS"],
-      "related_reqs": ["逐域复位", "单点事件同步", "FIFO 分侧复位", "结构后精确例外", "O1-A 只读评审"],
+      "related_reqs": ["逐域复位", "单点事件同步", "FIFO 分侧复位", "结构后精确例外", "O1-B pending review", "H3/O1-C mem_a"],
       "complexity": "high",
+      "hotspot": true
+    },
+    {
+      "id": "ov7725-rtl-hygiene-audit",
+      "type": "Domain",
+      "label": "OV7725 RTL 卫生修复契约",
+      "responsibility": "将 SP6.4 的 39 条手写 RTL 位宽告警、隐式网络与 serializer reset 归属为可审核的最小修改，并隔离 mem_a 板级冲突。",
+      "implementation_status": "documented_pending_implementation",
+      "code_path": null,
+      "evidence_path": "41_ov7725_hdmi/doc/RTL_HYGIENE_AUDIT.md",
+      "evidence_gap": "O1-A 仅完成只读评审；O1-B 尚未审核实施。mem_a 需 H3 板级事实并在 O1-C 独立处理，QuestaSim 仍不可用。",
+      "warning_groups": {
+        "i2c": 1,
+        "axi_adapter": 4,
+        "ddr3_ip_boundary": 26,
+        "top_parameters": 6,
+        "oserdes_reset": 2,
+        "total": 39,
+        "deterministic_fixes": 38,
+        "board_blocked": 1
+      },
+      "decisions": [
+        "显式声明 rst_n",
+        "删除无消费者 sys_init_done",
+        "高有效 reset 驱动四个 serializer 内的八个 OSERDES",
+        "mem_a 从 O1-B 排除并转 H3/O1-C",
+        "O1-B 不修改 IP、FDC、CDC/RDC"
+      ],
+      "tech_stack": ["Verilog-2001", "PDS SP6.4 elaboration", "DDR3 IP", "GTP_OSERDES_E2"],
+      "related_reqs": ["O1-A complete", "O1-B pending review", "H3/O1-C", "VSCS"],
+      "complexity": "medium",
       "hotspot": true
     },
     {
@@ -159,7 +190,13 @@
       "source": "ov7725-cdc-rdc-audit",
       "target": "ov7725-hdmi-system",
       "type": "governs_future_changes",
-      "description": "O0-A 审计要求逐域复位、帧事件单点同步、FIFO 分侧复位，并在结构闭环后添加精确时序例外；O0-B 已验证现有结构在 SP6.4 下仍有三组负时序，下一步为 O1-A 只读评审。"
+      "description": "O0-A 审计要求逐域复位、帧事件单点同步、FIFO 分侧复位，并在结构闭环后添加精确时序例外；O1-B 仅实施 RTL 卫生契约，不得顺带修改 CDC/RDC。"
+    },
+    {
+      "source": "ov7725-rtl-hygiene-audit",
+      "target": "ov7725-hdmi-system",
+      "type": "governs_next_changes",
+      "description": "O1-A 固定 39=1+4+26+6+2、38 条确定修复、rst_n/sys_init_done 与八个 OSERDES reset 契约；mem_a 转 H3/O1-C，O1-B 待审核。"
     },
     {
       "source": "ddr3-outer-project",
@@ -242,10 +279,10 @@
   ],
   "metadata": {
     "analysis_mode": "manual bootstrap",
-    "git_commits_analyzed": 9,
+    "git_commits_analyzed": 10,
     "raw_ast_available": false,
     "limitations": [
-      "Only nine repository commits are available after the DDR3 D2 decision batch. Churn analysis remains too shallow for reliable hotspot ranking.",
+      "Only ten repository commits are available after the OV7725 O1-A audit batch. Churn analysis remains too shallow for reliable hotspot ranking.",
       "No AST extraction was run.",
       "No ModelSim or QuestaSim execution was available."
     ]
