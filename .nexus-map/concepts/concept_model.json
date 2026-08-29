@@ -26,9 +26,9 @@
       "implementation_status": "implemented_with_timing_failures",
       "code_path": "41_ov7725_hdmi/rtl/",
       "evidence_path": "41_ov7725_hdmi/doc/RTL_HYGIENE_AUDIT.md",
-      "evidence_gap": "O1-B 的 38 条确定修复和七阶段回归已完成，仅剩 mem_a 1 条受 H3/O1-C 阻断；O2-A serializer reset 联合释放契约已完成，O2-B RTL、PDS 七阶段与 QuestaSim/S3 尚未执行，八个 OSERDES Slow Recovery 失败仍未关闭。",
+      "evidence_gap": "O1-B 的 38 条确定修复和七阶段回归已完成，仅剩 mem_a 1 条受 H3/O1-C 阻断；O2-B 已完成 compile/七阶段实验但被 Slow/Fast Recovery 否决并回退，baseline/gate 未放宽。O2-D1 只读备选架构评审和 QuestaSim/S3 尚未完成。",
       "tech_stack": ["Verilog", "Pango Logos2", "DDR3", "TMDS"],
-      "related_reqs": ["逐域复位", "单点事件同步", "FIFO 分侧复位", "结构后精确例外", "O1-B complete", "O2-A/O2-B/O3-A/O2-C1/O2-C2/O3-B/O4", "H3/O1-C mem_a"],
+      "related_reqs": ["逐域复位", "单点事件同步", "FIFO 分侧复位", "结构后精确例外", "O1-B complete", "O2-A/O2-B rejected/O2-D1/O2-D2/O3-A/O2-C1/O2-C2/O3-B/O4", "H3/O1-C mem_a"],
       "complexity": "high",
       "hotspot": true
     },
@@ -40,7 +40,7 @@
       "implementation_status": "implemented_validated_non_release",
       "code_path": "41_ov7725_hdmi/rtl/",
       "evidence_path": "41_ov7725_hdmi/doc/RTL_HYGIENE_AUDIT.md",
-      "evidence_gap": "O1-B 已完成 38 条确定修复和七阶段回归；mem_a 需 H3 板级事实并在 O1-C 独立处理，新增八个 OSERDES recovery 失败需 O2-A/O2-B，QuestaSim/S3 仍不可用。",
+      "evidence_gap": "O1-B 已完成 38 条确定修复和七阶段回归；mem_a 需 H3 板级事实并在 O1-C 独立处理。O2-B 已完成实验但被 Recovery 否决并回退，后续由 O2-D1/O2-D2 处理；QuestaSim/S3 仍不可用。",
       "warning_groups": {
         "i2c": 1,
         "axi_adapter": 4,
@@ -89,7 +89,7 @@
         "failing_endpoints": 8,
         "total_endpoints": 8,
         "endpoint_scope": "four serializers, eight OSERDES",
-        "next_steps": ["O2-B", "O3-A", "O2-C1", "O2-C2", "O3-B", "O4"]
+        "next_steps": ["O2-D1", "O2-D2", "O3-A", "O2-C1", "O2-C2", "O3-B", "O4"]
       },
       "decisions": [
         "显式声明 rst_n",
@@ -99,7 +99,7 @@
         "O1-B 不修改 IP、FDC、CDC/RDC"
       ],
       "tech_stack": ["Verilog-2001", "PDS SP6.4 elaboration", "DDR3 IP", "GTP_OSERDES_E2"],
-      "related_reqs": ["O1-A complete", "O1-B complete", "O2-A/O2-B/O3-A/O2-C1/O2-C2/O3-B/O4", "H3/O1-C", "VSCS"],
+      "related_reqs": ["O1-A complete", "O1-B complete", "O2-A/O2-B rejected/O2-D1/O2-D2/O3-A/O2-C1/O2-C2/O3-B/O4", "H3/O1-C", "VSCS"],
       "complexity": "medium",
       "hotspot": true
     },
@@ -111,7 +111,7 @@
       "implementation_status": "documented",
       "code_path": null,
       "evidence_path": "41_ov7725_hdmi/doc/CDC_RDC_AUDIT.md",
-      "evidence_gap": "O2-A 已完成 OCLK/SERCLK 与 OCLKDIV 联合释放契约；O2-B 级联两级释放尚未实现，未运行新的 PDS 或 QuestaSim。随后依次执行 O3-A、O2-C1、O2-C2、O3-B，O4 依赖 O2-C2 与 O3-B。",
+      "evidence_gap": "O2-B 级联两级释放已完成 compile/七阶段实验，但 Slow/Fast Recovery 否决该结构且 RTL 已回退；旧 baseline/gate 未放宽。下一批 O2-D1 只读比较备选架构，O2-D2 审核前不实现；QuestaSim 尚未执行。",
       "o2a_serializer_reset_contract": {
         "status": "complete_read_only",
         "evidence_path": "41_ov7725_hdmi/doc/SERIALIZER_RESET_CONTRACT.md",
@@ -128,8 +128,25 @@
           "serializer_clk/GTP_OUTBUFDS_data_lane/opit_2_com/OSR_IOLHR"
         ],
         "prohibited_acceptance_shortcuts": ["false_path", "multicycle", "clock_group_waiver", "new_baseline_failure"],
-        "pds_rerun_completed": false,
+        "pds_rerun_completed": true,
         "questa_completed": false
+      },
+      "o2b_experiment": {
+        "status": "rejected_rolled_back",
+        "compile_completed": true,
+        "seven_stage_pds_completed": true,
+        "pds_error_records": 0,
+        "rtl_rolled_back": true,
+        "gate_relaxed": false,
+        "baseline_failure_groups": 7,
+        "slow_recovery": [
+          {"launch_clock": "pixel_clk_5x", "capture_clock": "pixel_clk_5x", "wns_ns": -0.349, "failing_endpoints": 8, "total_endpoints": 8},
+          {"launch_clock": "pixel_clk", "capture_clock": "pixel_clk_5x", "wns_ns": 1.111, "failing_endpoints": 0, "total_endpoints": 1},
+          {"launch_clock": "pixel_clk_5x", "capture_clock": "pixel_clk", "wns_ns": -2.173, "failing_endpoints": 8, "total_endpoints": 8}
+        ],
+        "fast_reverse_recovery": {"launch_clock": "pixel_clk_5x", "capture_clock": "pixel_clk", "wns_ns": -1.464, "failing_endpoints": 8, "total_endpoints": 8},
+        "reverse_endpoint_scope": "serializer_b/g/r/clk x opit_2/opit_2_com OSERDES OCLKDIV",
+        "next_phase": "O2-D1 read-only architecture review; O2-D2 only after approval"
       },
       "tech_stack": ["Verilog", "PDS STA", "CDC", "RDC"],
       "related_reqs": ["O1-A", "逐域复位", "事件不丢不重", "FIFO reset/flush"],
@@ -249,13 +266,13 @@
       "source": "ov7725-cdc-rdc-audit",
       "target": "ov7725-hdmi-system",
       "type": "governs_future_changes",
-      "description": "O2-A 已完成 OCLK/SERCLK 与 OCLKDIV 联合释放契约并固定八个 OSERDES endpoint；下一批 O2-B 采用 pixel_clk 两级后级联 pixel_clk_5x 两级释放，只驱动八个 OSERDES。O2-B 禁止 false path 或新增 baseline 失败，且尚未运行 PDS/Questa。随后 O3-A 先同步 ddr3_init_done，O2-C1 处理普通时钟域复位，O2-C2 单独处理 FIFO reset/flush，O3-B 修复帧事件 CDC；O4 依赖 O2-C2 与 O3-B。"
+      "description": "O2-B 已按 O2-A 契约完成 compile/七阶段实验，但 Slow/Fast Recovery 否决级联释放且 RTL 已回退；baseline/gate 未放宽。下一批 O2-D1 只读比较备选架构并固定唯一候选，O2-D2 审核后才实现；随后执行 O3-A、O2-C1、O2-C2、O3-B，O4 依赖 O2-C2 与 O3-B。"
     },
     {
       "source": "ov7725-rtl-hygiene-audit",
       "target": "ov7725-hdmi-system",
       "type": "records_completed_change",
-      "description": "O1-B 已完成 38 条确定修复、rst_n/sys_init_done 清理与八个 OSERDES reset 连接；mem_a 仍转 H3/O1-C。O2-A 已完成新增 recovery 8/8 的联合释放契约，O2-B 为下一实现批次。"
+      "description": "O1-B 已完成 38 条确定修复、rst_n/sys_init_done 清理与八个 OSERDES reset 连接；mem_a 仍转 H3/O1-C。O2-B 实验已由真实 STA 否决并回退，下一批为 O2-D1 只读架构评审。"
     },
     {
       "source": "ddr3-outer-project",
@@ -338,10 +355,10 @@
   ],
   "metadata": {
     "analysis_mode": "manual bootstrap",
-    "git_commits_analyzed": 14,
+    "git_commits_analyzed": 15,
     "raw_ast_available": false,
     "limitations": [
-      "Fourteen repository commits are counted after the O2-A serializer reset contract batch. Churn analysis remains too shallow for reliable hotspot ranking.",
+      "Fifteen repository commits are counted after the O2-B rejection/rollback and nexus synchronization batch. Churn analysis remains too shallow for reliable hotspot ranking.",
       "No AST extraction was run.",
       "No ModelSim or QuestaSim execution was available."
     ]

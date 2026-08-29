@@ -34,7 +34,9 @@ OV7725 已确定 sys、I2C、camera、pixel 和 DDR UI 域需要各自的本地�
 
 O1-B 将高有效 reset 接入四个 serializer 内的八个 OSERDES 后，PDS 新报告 Slow Recovery `pixel_clk → pixel_clk_5x` `-0.643 ns / TNS -4.191 ns / 8/8`。O2-A 已确认 SP6.4 对同一 `RST` 同时建立 `OCLK/SERCLK=pixel_clk_5x` 与 `OCLKDIV=pixel_clk` 的 recovery/removal 检查，并将八个唯一 `opit_2/opit_2_com/OSR_IOLHR` endpoint 固定为验收集合。
 
-O2-B 首选结构是保留 encoder 的现有 `pixel_clk` 两级 reset，再以其为来源级联 `pixel_clk_5x` 两级同步释放，最终 reset 只驱动八个 OSERDES。该结构仍须由新的 PDS STA 接受；不得用 false path 或新增 baseline 失败代替验证。O2-A 后尚未运行 PDS 或 QuestaSim，不能声明静态修复或动态功能通过。
+O2-B 已实现上述级联结构并完成 compile/七阶段实验，但 Slow Recovery 同时出现 `pixel_clk_5x → pixel_clk_5x -0.349 ns / 8/8` 和 `pixel_clk_5x → pixel_clk -2.173 ns / 8/8`，Fast Recovery 反向组仍为 `-1.464 ns / 8/8`。八个反向 endpoint 均为 OSERDES `OCLKDIV` 检查；方案已否决、RTL 已回退，baseline/gate 未放宽。
+
+下一批 O2-D1 只读比较显式释放相位 sequencer、统一复位控制器和厂商推荐结构，先固定唯一候选及联合 `OCLK/SERCLK/OCLKDIV` 验收；O2-D2 才允许实现。不得用 false path、新 baseline 失败或多方案同批试探代替架构评审。
 
 两个厂商异步 FIFO 的 reset/flush 属于独立的 O2-C2，不与 O2-C1 的普通寄存器复位混批；帧事件 CDC 归 O3-B。O4 只有在 O2-C2 与 O3-B 都完成后才可进入约束和最终时序闭环。
 
@@ -52,7 +54,7 @@ OV7725 O1-B 已按该边界固定 16 个手写 RTL、4 个活动 IDF 和唯一�
 
 OV7725 O1-A 以 `RTL_HYGIENE_AUDIT.md` 固定手写 RTL 卫生契约，O1-B 已完成其中 38 条确定性修复：显式零扩展、定宽 tie-off、地址/长度编码、`rst_n` 声明、删除 `sys_init_done` 死网及 serializer reset 连接均已落地。
 
-serializer 接收高有效 reset；O1-B 已让该信号驱动四个 serializer 内共八个 OSERDES 的高有效 `RST`。O2-A 已完成只读联合释放契约，下一批 O2-B 才负责实现和验证级联释放，因此当前仍不能视为复位闭环。
+serializer 接收高有效 reset；O1-B 已让该信号驱动四个 serializer 内共八个 OSERDES 的高有效 `RST`。O2-B 级联释放实验已由 STA 否决并回退，当前仍是旧七组失败基线；O2-D1 完成前不得启动新的 serializer RTL。
 
 `mem_a` 是板级接口冲突而非机械消警：活动 IP 为 14 bit，顶层/FDC 为 15 bit，当前综合网表将第 15 bit 绑 0。它必须等待 H3 板级 DDR3 事实并在 O1-C 独立处理；O1-B 不修改 `mem_a`、IP、FDC、CDC/RDC 或时序例外。
 

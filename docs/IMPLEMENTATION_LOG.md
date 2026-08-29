@@ -130,6 +130,17 @@
 - SP6.4 功能/timing model、PG2L100H 示例和当前 RTL 共同确认：OSERDES `RST` 高有效；同一端口相对 `OCLK/SERCLK=pixel_clk_5x` 与 `OCLKDIV=pixel_clk` 均有 recovery/removal 要求。
 - 最终 STA 的 serializer 组为 Slow Recovery `-0.643 ns / -4.191 ns / 8/8`、Slow Removal `+0.305 ns / 0/8`、Fast Recovery `+0.123 ns / 0/8`、Fast Removal `+0.114 ns / 0/8`。
 - Device-map 与 STA 已将 `serializer_b/g/r/clk` 各自 master=`opit_2`、slave=`opit_2_com` 的八个 `OSR_IOLHR` endpoint 唯一闭合。
-- O2-B 首选最小结构固定为：保留现有 `pixel_clk` 两级 reset 驱动 encoder，再级联现有两级同步器到 `pixel_clk_5x`，生成只驱动八个 OSERDES 的高有效 `serializer_reset`；功能 RTL 只允许修改 `dvi_transmitter_top.v`。
+- O2-A 当时把 O2-B 首选最小结构固定为：保留现有 `pixel_clk` 两级 reset 驱动 encoder，再级联现有两级同步器到 `pixel_clk_5x`，生成只驱动八个 OSERDES 的高有效 `serializer_reset`；该结构后来已由 O2-B 真实 STA 否决并回退。
 - O2-B 必须由完整 PDS 同时证明八端点相对 `OCLK`、`SERCLK`、`OCLKDIV` 的 Slow/Fast Recovery 与 Removal 全部非负；若违例转移、需要 false path/waiver 或扩大到 PLL/IP/FDC/FIFO/业务 CDC，则回退并重新评审。
 - 当前只能声明 O2-A 设计契约完成，不能声明 serializer reset、HDMI 动态复位或四级仿真已经通过。
+
+## 2026-08-29：OV7725 O2-B 级联复位实验否决与回退
+
+- O2-B 曾仅修改 `rtl/hdmi_top/dvi_transmitter_top.v`：保留 encoder 的 `pixel_clk` reset，再级联现有两级同步器到 `pixel_clk_5x`，生成只驱动四个 serializer、八个 OSERDES 的高有效 `serializer_reset`。
+- 从空 `build/` 完成 compile 和七阶段流程，PDS 退出码均为 0，日志无 `E:`；compile warning 为 1101，与 O1-B 基线一致。完整实现 warning 4067、critical 81，五类关键产物均非零。
+- 产物大小为：`ov7725_hdmi_syn.vm` 6,895,395 字节、`ov7725_hdmi_sim.v` 11,594,515 字节、`ov7725_hdmi_sta.sdf` 8,897,235 字节、`ov7725_hdmi.sbit` 3,791,112 字节、`ov7725_hdmi.bin` 3,789,476 字节。
+- Slow Recovery 为 `pixel_clk_5x → pixel_clk_5x -0.349 ns / -1.599 ns / 8/8`、`pixel_clk → pixel_clk_5x +1.111 ns / 0/1`、`pixel_clk_5x → pixel_clk -2.173 ns / -16.191 ns / 8/8`。
+- Fast Recovery 的同域组为 `+0.310 ns / 0/8`，单同步器组为 `+1.830 ns / 0/1`，但反向 `pixel_clk_5x → pixel_clk` 仍为 `-1.464 ns / -10.863 ns / 8/8`。Slow/Fast Removal 均为正，不能抵消 Recovery 失败。
+- 八个反向 endpoint 正好是 `serializer_b/g/r/clk × opit_2/opit_2_com` 的 OSERDES `OCLKDIV` 检查；原 `pixel_clk → pixel_clk_5x` 失败没有被结构性关闭，而是转移并在慢角增加同域失败。
+- O2-B 已按契约停止条件完整回退；未修改 `check_build.ps1`、baseline、FDC、RCF、PLL/IP，也未加入任何时序例外或 waiver。
+- 下一批为 O2-D1 只读架构评审，比较显式释放相位 sequencer、统一复位控制器和厂商推荐结构；审核前不启动新的 serializer RTL。

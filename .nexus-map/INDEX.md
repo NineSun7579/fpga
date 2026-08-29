@@ -26,6 +26,9 @@
 - O1-B 已从空 `build/` 完成 SP6.4 七阶段，进程退出 0、日志 `E: 0`，warning `4067`、critical `81`；非零产物为综合网表 `6,873,482`、PNR 网表 `11,604,756`、SDF `8,898,464`、`.sbit` `3,791,112` 和 `.bin` `3,789,476` 字节。
 - O1-B 严格 gate 返回 `1`；baseline gate 只在 corner、check、clock pair 与 endpoint 数量精确匹配七组已知失败时返回 `0`，并明确标记不可发布。新 Slow Recovery `pixel_clk → pixel_clk_5x` 为 `-0.643 ns / -4.191 ns / 8/8`，端点正是四个 serializer 内的八个 OSERDES，转入 O2-A/O2-B；QuestaSim/S3 动态验证仍未完成。
 - OV7725 O2-A 已形成 [Serializer Reset 联合释放契约](../41_ov7725_hdmi/doc/SERIALIZER_RESET_CONTRACT.md)：确认同一高有效 `RST` 同时受 `OCLK/SERCLK=pixel_clk_5x` 与 `OCLKDIV=pixel_clk` 的 recovery/removal 检查，并固定 O2-B 首选为现有 `pixel_clk` 两级释放后再级联 `pixel_clk_5x` 两级释放，只驱动八个 OSERDES。本批未修改 RTL/FDC、未运行 PDS 或 QuestaSim。
+- OV7725 O2-B 已按该契约完成 compile 和从空 `build/` 的七阶段实验，但最终 STA 报告 Slow Recovery `pixel_clk_5x → pixel_clk_5x -0.349 ns / 8/8`、`pixel_clk_5x → pixel_clk -2.173 ns / 8/8`，Fast Recovery 反向组仍为 `-1.464 ns / 8/8`。该方案已被否决，功能 RTL 已回退；旧七组 baseline 和 gate 均未放宽。
+- 下一批为 O2-D1 只读备选架构评审，仅比较显式释放相位 sequencer、统一复位控制器和厂商推荐结构并固定唯一候选；审核后才允许进入 O2-D2 实现。
+- 本次 O2-B 否决、回退和知识图同步批次提交后，仓库累计 15 个 Git 提交；样本仍不足以计算可信的历史热点。
 - 根目录 [README](../README.md) 是 PDS 外部实现与仿真指南。
 - 根目录 [TODO](../TODO.md) 是当前整改顺序和验收门槛。
 - 新增或修改 Verilog/SystemVerilog 时必须遵循 [VSCS](../VERILOG_SYSTEMVERILOG_COMMENTING_STANDARD.md)。
@@ -43,12 +46,11 @@
 
 ## 当前优先级
 
-1. OV7725 O2-A 联合释放契约已完成；下一批为 O2-B，只实现契约固定的 `pixel_clk` 两级 → `pixel_clk_5x` 两级级联释放并完成七阶段验证。禁止 false path、multicycle、clock-group waiver 或新增 baseline 失败签名。
-2. OV7725 按 O3-A → O2-C1 推进：先同步 `ddr3_init_done` 作为 camera/pixel 状态与使能，再解除其对异步复位释放的直接控制，并建立普通时钟域本地复位。
-3. OV7725 按 O2-C2 → O3-B → O4 推进：先依据厂商语义独立处理 FIFO reset/flush，再修复帧事件 CDC；O4 同时依赖 O2-C2 与 O3-B，结构闭环前不得添加宽泛时序例外。
+1. OV7725 O2-B 级联复位实验已被 STA 否决并回退；下一批 O2-D1 只读比较备选架构，固定唯一候选、释放波形、文件范围、STA/仿真覆盖和回退条件，不启动新的 serializer RTL。
+2. O2-D1 审核后才进入 O2-D2；只实现唯一候选，并要求八个 OSERDES endpoint 的 `OCLK`、`SERCLK`、`OCLKDIV` Slow/Fast Recovery/Removal 全部覆盖且非负。禁止 false path、multicycle、clock-group waiver、多个方案同批试探或新增 baseline 失败签名。
+3. OV7725 后续按 O3-A → O2-C1 → O2-C2 → O3-B → O4 推进；O4 同时依赖 O2-C2 与 O3-B，结构闭环前不得添加宽泛时序例外。
 4. 审核 DDR3 D3 实现批次；D2 只读决策已经固定有限事务和公开结果契约，但项目自有顶层尚未创建。与 OV7725 的 RTL 实现泳道一次只选择一条实施。
-5. PCIe 等待板级资料关闭 IDF、UART、share pin、HSST 约束和 SCBV 阻断项。
-6. QuestaSim 可用后，三个工程分别补齐集成顶层四级仿真和 SDF 标注验证。
+5. PCIe 等待板级资料关闭 IDF、UART、share pin、HSST 约束和 SCBV 阻断项；QuestaSim 可用后，三个工程分别补齐集成顶层四级仿真和 SDF 标注验证。
 
 ## 更新规则
 

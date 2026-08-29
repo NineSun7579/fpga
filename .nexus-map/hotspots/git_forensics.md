@@ -8,7 +8,7 @@
 
 - 分支为 `main`。
 - 根提交为 `1a2d493`，保存三个原始工程、已有 PDS 产物和整改文档。
-- 本 TODO 规划批次提交后，仓库累计十三个提交。样本仍不足以计算可信的 churn、共同变更或历史热点；本文件不提供伪统计。
+- 本次 O2-B 否决、回退和知识图同步批次提交后，仓库累计十五个提交。样本仍不足以计算可信的 churn、共同变更或历史热点。
 
 ## 人工高关注区
 
@@ -17,8 +17,8 @@
 - `41_ov7725_hdmi/rtl/ov7725_hdmi.v`：视频链路顶层、跨域控制和复位组合点。
 - `41_ov7725_hdmi/doc/CDC_RDC_AUDIT.md`：O0-A CDC/RDC 事实、旧/新 STA 映射和后续整改契约的首要证据；O1-B 不得顺带修改该结构。
 - `41_ov7725_hdmi/doc/RTL_HYGIENE_AUDIT.md`：O1-A 的 39 条告警归属、38 条确定修复、`mem_a` H3/O1-C 阻断、隐式网络和 serializer reset 契约的首要证据。
-- `41_ov7725_hdmi/doc/SERIALIZER_RESET_CONTRACT.md`：O2-A 已完成的只读证据与决策入口，固定联合时钟检查、八个 endpoint、级联两级释放方案及 O2-B 验收/回退边界。
-- `41_ov7725_hdmi/rtl/ov7725_dri/ov7725_dri.v`、`rtl/ddr3_ctrl_top/ddr3_ctrl_top.v`、`rtl/ov7725_hdmi.v`、`rtl/hdmi_top/serializer_10_to_1.v`、`rtl/hdmi_top/dvi_transmitter_top.v`：O1-B 已完成 38 条确定修复；O2-B 功能 RTL 只允许修改 `dvi_transmitter_top.v`，复用现有两级同步器并保持 serializer 内八个 `RST` 连接不变。
+- `41_ov7725_hdmi/doc/SERIALIZER_RESET_CONTRACT.md`：记录 O2-A 契约、O2-B compile/七阶段实验、Slow/Fast Recovery 否决、RTL 回退以及 O2-D1/O2-D2 边界的首要证据。
+- `41_ov7725_hdmi/rtl/ov7725_dri/ov7725_dri.v`、`rtl/ddr3_ctrl_top/ddr3_ctrl_top.v`、`rtl/ov7725_hdmi.v`、`rtl/hdmi_top/serializer_10_to_1.v`、`rtl/hdmi_top/dvi_transmitter_top.v`：O1-B 的 38 条确定修复保留；O2-B 对 `dvi_transmitter_top.v` 的失败实验已完整回退，O2-D1 完成前不得再修改 serializer RTL。
 - `41_ov7725_hdmi/scripts/build.tcl`：固定 16 RTL、4 IDF、1 FDC 和 PG2L100H 器件目标的七阶段相对路径实现定义。
 - `41_ov7725_hdmi/scripts/check_build.ps1`：严格模式因负时序返回非零；baseline 模式只证明产物与流程可重复，并明确标记不可发布。
 - `41_ov7725_hdmi/rtl/ddr3_ctrl_top/ctrl_fifo.v`：`wr_load`/`rd_load` 多点采样、两个异步 FIFO 数据方向和跨两侧复位分发点。
@@ -33,4 +33,4 @@
 
 ## 后续更新
 
-只有积累足够多、内容独立的提交后，才适合增加真实 churn 与共同变更分析。O1-B RTL 卫生实现、已完成的 O2-A 契约、O2-B、O3-A、O2-C1、O2-C2、O3-B、O4、O1-C `mem_a` 板级决策、D3 有限自检实现和约束修改必须保持独立提交；OV7725 下一步顺序为 O2-B → O3-A → O2-C1 → O2-C2 → O3-B → O4，其中 O4 依赖 O2-C2 与 O3-B，与 D3 一次只进入一条 RTL 泳道。
+只有积累足够多、内容独立的提交后，才适合增加真实 churn 与共同变更分析。O2-B 否决/回退记录、O2-D1 只读评审、O2-D2 唯一候选实现、O3-A、O2-C1、O2-C2、O3-B、O4、O1-C `mem_a` 板级决策和 D3 有限自检必须保持独立批次；OV7725 下一步顺序为 O2-D1 → O2-D2 → O3-A → O2-C1 → O2-C2 → O3-B → O4。

@@ -2,7 +2,7 @@
 
 ## 1. 目的与边界
 
-本文定义 OV7725 HDMI 工程中四个 TMDS serializer、八个 `GTP_OSERDES_E2` 的复位契约，并固定 O2-B 的最小实现范围与验收条件。
+本文定义 OV7725 HDMI 工程中四个 TMDS serializer、八个 `GTP_OSERDES_E2` 的复位契约，记录 O2-B 最小方案的实现、真实 STA 否决与回退，并为后续 O2-D1 备选架构评审提供事实基线。
 
 O2-A 仅完成证据核验和设计决策，不修改 RTL、厂商 IP、FDC、RCF、gate 或生成物，也不声明动态仿真通过。
 
@@ -92,12 +92,14 @@ Device-map 日志把四个 `GTP_OSERDES_E2_data_master` 打包到 `opit_2`，把
 | 保持当前 `pixel_clk` reset 直接驱动 OSERDES | 拒绝 | 已有 Slow Recovery 8/8 失败 |
 | 从顶层 `reset_n` 独立生成 `pixel_clk_5x` reset | 拒绝作为首选 | 可能使 OSERDES 早于 encoder 退出复位，破坏现有先后关系；仍需单独证明 `OCLKDIV` 检查 |
 | 将两个独立同步 reset 组合后驱动 OSERDES | 拒绝 | 形成复位重汇聚；最终释放由最后变化分支决定，增加 RDC 分析复杂度 |
-| 现有 `pixel_clk` reset 后级联 `pixel_clk_5x` 两级释放同步器 | O2-B 首选 | 保留 encoder 复位；OSERDES 只在 encoder reset 已释放后再经高速时钟同步释放；修改范围最小 |
-| 显式相位计数或专用复位 sequencer | 仅作回退方案 | 只有首选方案经 STA 证明失败后才有必要，O2-B 不预先增加状态机 |
+| 现有 `pixel_clk` reset 后级联 `pixel_clk_5x` 两级释放同步器 | O2-B 已否决 | 实现范围最小，但真实 STA 把八个 OSERDES 的失败转移到 `pixel_clk_5x → pixel_clk`，慢角同域检查也仍为负 |
+| 显式相位计数、统一复位控制器或厂商推荐结构 | 进入 O2-D1 评审 | 只读比较释放边沿、状态顺序、原语检查和实现边界；评审前不预设状态机结构 |
 
 首选方案利用两个 PLL 输出固定的 1:5 相关关系，但不把相位关系写成安全保证。只有实现后的 PDS recovery/removal 结果可以接受或否决该方案。
 
-## 7. O2-B 实现契约
+## 7. O2-B 历史实现契约（已否决）
+
+本节保留 O2-B 实施时的输入、输出、文件和验收边界，作为失败实验的可追溯记录。对应 RTL 已回退，不代表当前设计仍包含 `serializer_reset`。
 
 ### 7.1 复位语义
 
@@ -112,7 +114,7 @@ Device-map 日志把四个 `GTP_OSERDES_E2_data_master` 打包到 `opit_2`，把
 
 ### 7.2 资料性连接草图
 
-下列片段只描述 O2-B 连接意图，尚未经过 compile、STA 或仿真，不能作为已验证 RTL：
+下列片段描述 O2-B 曾实现并完成 compile/STA 的连接；该实现已由真实 STA 否决并回退，不能作为后续候选模板直接复用：
 
 ```verilog
 wire serializer_reset;
@@ -149,7 +151,7 @@ O2-B 不修改：
 
 ### 7.4 VSCS 注释要求
 
-未来 RTL 注释必须说明：
+O2-B 实施时的 RTL 注释必须说明：
 
 - `serializer_reset` 是高有效、异步断言、相对 `pclk_x5` 同步释放；
 - 它级联在 encoder 的 `pclk` reset 之后，用于保持释放顺序；
@@ -209,12 +211,36 @@ O2-B 出现以下任一情况必须停止并回退功能 RTL，不得扩大本�
 
 回退后重新进入契约评审，评估显式相位 sequencer 或厂商推荐结构；不得在同一提交中试探多种方案。
 
-## 10. O2-A 完成定义
+## 10. O2-B 实施结果与否决
+
+O2-B 仅修改 `dvi_transmitter_top.v`，新增级联的 `serializer_reset_syn` 并把四个 serializer 改接其输出。Compile 与从空 `build/` 的七阶段流程均退出 0，日志无 `E:`，五类关键产物存在且非零；这些结果只证明实现流程完成，不证明复位时序安全。
+
+最终 Recovery 摘要如下：
+
+| Corner | Launch → Capture | WNS | TNS | Failing/Total | 归属 |
+|---|---|---:|---:|---:|---|
+| Slow | `pixel_clk_5x → pixel_clk_5x` | `-0.349 ns` | `-1.599 ns` | `8/8` | 八个 OSERDES 的高速时钟检查 |
+| Slow | `pixel_clk → pixel_clk_5x` | `+1.111 ns` | `0` | `0/1` | `serializer_reset_syn/reset_1` |
+| Slow | `pixel_clk_5x → pixel_clk` | `-2.173 ns` | `-16.191 ns` | `8/8` | 八个 OSERDES 的 `OCLKDIV` 检查 |
+| Fast | `pixel_clk_5x → pixel_clk_5x` | `+0.310 ns` | `0` | `0/8` | 八个 OSERDES 的高速时钟检查 |
+| Fast | `pixel_clk → pixel_clk_5x` | `+1.830 ns` | `0` | `0/1` | `serializer_reset_syn/reset_1` |
+| Fast | `pixel_clk_5x → pixel_clk` | `-1.464 ns` | `-10.863 ns` | `8/8` | 八个 OSERDES 的 `OCLKDIV` 检查 |
+
+Slow/Fast Removal 对上述三组均为正，但不能抵消 Recovery 失败。详细报告将反向八个 endpoint 唯一映射到 `serializer_b/g/r/clk × opit_2/opit_2_com`；因此 O2-B 明确触发第 9 节“失败转移或任一裕量为负”的停止条件。
+
+处理结论：
+
+- 已回退全部 O2-B 功能 RTL，不提交失败结构；
+- 不删除旧 `pixel_clk → pixel_clk_5x 8/8` baseline，不新增失败签名、false path、multicycle 或 clock-group waiver；
+- `ddrphy_sysclk → pixel_clk` Recovery 总 endpoint 在本次实现中由 53 变为 54，当前报告可分为 read FIFO 34、原 `reset_syn` 1、video display 1、video driver 18；历史详细报告不足以做集合差分，留待回退后的等价基线重建确认；
+- 下一批 O2-D1 只读比较显式释放相位 sequencer、统一复位控制器与厂商推荐结构，不在同一批实现试探方案。
+
+## 11. O2-A 完成定义
 
 O2-A 完成仅表示：
 
 - `RST` 极性、快慢时钟检查和八个 endpoint 已由一手证据闭合；
-- O2-B 首选结构、文件范围、注释责任、验收与回退条件已经固定；
+- O2-B 当时的首选结构、文件范围、注释责任、验收与回退条件已经固定；该结构后来已由第 10 节真实 STA 否决；
 - 没有修改功能 RTL、IP、约束或 gate，也没有运行新的实现/仿真。
 
 O2-A 不表示 serializer reset 已修复，也不改变当前设计不可发布的结论。

@@ -2,7 +2,7 @@
 
 更新日期：2026-08-29
 
-状态：实施中。三项目 SP6.4 可重复构建基线均已建立；DDR3 D2、OV7725 O1-B 与 O2-A 已完成。下一工程批次为 OV7725 O2-B serializer reset 局部实现；该批完成前不并行开启 DDR3 D3 功能 RTL。
+状态：实施中。三项目 SP6.4 可重复构建基线均已建立；DDR3 D2、OV7725 O1-B 与 O2-A 已完成。O2-B 级联 serializer reset 方案已由真实 STA 否决并回退；下一工程批次为 O2-D1 备选架构只读评审，在其完成前不启动新的 serializer RTL。
 
 ## 1. 总体验收目标
 
@@ -48,19 +48,21 @@
 - [x] OV7725 完成 O1-B RTL 卫生修复：38 条确定性位宽告警消失，仅保留 `mem_a` 单项板级阻断。
 - [x] OV7725 完成 O1-B 七阶段回归；严格 gate 返回非零，baseline 精确匹配 7 组失败指纹后返回 0 并标记不可发布。
 - [x] OV7725 完成 O2-A serializer reset 联合释放契约，闭合快慢时钟检查、八个 OSERDES endpoint、O2-B 文件范围和回退条件。
+- [x] OV7725 完成 O2-B 最小实现与七阶段实验；方案因 Slow/Fast Recovery 转移到 `pixel_clk_5x → pixel_clk` 且慢角同域仍为负而被否决，失败 RTL 已回退。
 - [ ] 安装 QuestaSim/ModelSim 并记录版本和路径。
 - [ ] 编译 Logos2 USIM/VSIM。
 - [ ] 完成三项目分级自检仿真。
 
 ### 近期执行顺序
 
-1. **P0：O2-A 已完成。** 已证明同一 OSERDES `RST` 相对 `OCLK/SERCLK=pixel_clk_5x` 与 `OCLKDIV=pixel_clk` 的联合释放契约，并唯一映射八个 endpoint。
-2. **P0：执行 O2-B。** 只实现 O2-A 固定的级联双域 serializer reset 方案并完成七阶段回归；任一 recovery/removal 转移或负裕量均立即回退。
-3. **P1：执行 O3-A → O2-C1。** 先把 `ddr3_init_done` 作为状态同步到 camera/pixel 域，再解除它对异步复位释放的直接控制并建立普通时钟域本地复位。
-4. **P1：执行 O2-C2 → O3-B → O4。** FIFO reset/flush 单独依据厂商语义处理，随后修帧事件 CDC，最后才添加最窄时序例外并闭合 STA。
-5. **P1：准备 DDR3 D3-0。** 仅做公开 core/物理 wrapper 和 Pango DDR 用户接口握手评审；任一时刻只开启一条功能 RTL 泳道。
-6. **P2：PCIe H2-A/H2-B。** 板级资料缺失时只做证据矩阵、IP 再生成契约和 baseline gate 精确化，不修改 IP/RTL/FDC。
-7. **持续泳道：H0-H3、S0。** 板级资料或仿真器一旦到位，立即关闭对应阻断；H3 阻塞 O1-C 与最终 O4 发布闭环，S0 阻塞三项目动态仿真签核。
+1. **P0：O2-B 已否决并回退。** 级联双域 reset 完成 compile 与七阶段实验，但把八个 OSERDES 的失败转移到 `pixel_clk_5x → pixel_clk`，不得提交失败 RTL、修改 baseline 或增加 waiver。
+2. **P0：执行 O2-D1。** 只读比较显式释放相位 sequencer、统一复位控制器和厂商推荐结构；固定唯一候选、释放波形、文件范围、STA 覆盖、仿真和回退条件。
+3. **P0：审核后执行 O2-D2。** 只实现 O2-D1 选定的一种结构；不得在同一提交试探多个状态机、修改 PLL/IP/FDC/RCF 或扩大到 camera/UI/FIFO。
+4. **P1：执行 O3-A → O2-C1。** 先把 `ddr3_init_done` 作为状态同步到 camera/pixel 域，再解除它对异步复位释放的直接控制并建立普通时钟域本地复位。
+5. **P1：执行 O2-C2 → O3-B → O4。** FIFO reset/flush 单独依据厂商语义处理，随后修帧事件 CDC，最后才添加最窄时序例外并闭合 STA。
+6. **P1：准备 DDR3 D3-0。** 仅做公开 core/物理 wrapper 和 Pango DDR 用户接口握手评审；任一时刻只开启一条功能 RTL 泳道。
+7. **P2：PCIe H2-A/H2-B。** 板级资料缺失时只做证据矩阵、IP 再生成契约和 baseline gate 精确化，不修改 IP/RTL/FDC。
+8. **持续泳道：H0-H3、S0。** 板级资料或仿真器一旦到位，立即关闭对应阻断；H3 阻塞 O1-C 与最终 O4 发布闭环，S0 阻塞三项目动态仿真签核。
 
 停止条件：缺少板级事实时不猜测管脚、电压、IP 参数或 I/O delay；任何 baseline 仅代表失败状态可重复，不得作为时序 waiver 或发布批准。
 
@@ -210,15 +212,18 @@
 - [x] O2-A：确认 `RST` 高有效，且同一端口对 `OCLK/SERCLK=pixel_clk_5x` 与 `OCLKDIV=pixel_clk` 都存在 recovery/removal 要求；比较候选释放结构，禁止把“仅高速域同步”写成未经证明的结论。
 - [x] O2-A：逐项映射 `serializer_b/g/r/clk × opit_2/opit_2_com` 八个 `OSR_IOLHR` endpoint，无遗漏或重复；记录 Slow Recovery `-0.643 ns / -4.191 ns / 8/8`、Slow Removal `+0.305 ns / 0/8`、Fast Recovery `+0.123 ns / 0/8`。
 - [x] O2-A：固定 O2-B 的复位源、释放基准、同步级数、极性、扇出、文件范围、gate 修改、仿真补测和回退边界。
-- [ ] O2-B：仅修改 `dvi_transmitter_top.v`；保留现有 `pixel_clk` 两级 reset 驱动三个 encoder，再级联一个 `pixel_clk_5x` 两级同步释放器生成高有效 `serializer_reset`，只驱动四个 serializer 内八个 OSERDES。
-- [ ] O2-B：从空 `build/` 重跑七阶段；逐项证明八个 endpoint 相对 `OCLK`、`SERCLK`、`OCLKDIV` 的 Slow/Fast Recovery 与 Removal 全部非负，且不得把失败转移为 `pixel_clk_5x → pixel_clk` 或其他新 clock pair。
-- [ ] O2-B：PDS 退出 0、日志无 `E:`、五类产物非零，无新增未分类 warning/critical；真实 STA 通过后删除旧 `8/8` 失败签名并增加八端点正向覆盖检查，baseline 不得新增 waiver。
+- [x] O2-B：曾仅修改 `dvi_transmitter_top.v`，保留 encoder 的 `pixel_clk` reset，并级联 `pixel_clk_5x` 两级释放生成 `serializer_reset`；compile 与七阶段 PDS 均退出 0，日志无 `E:`，五类产物非零。
+- [x] O2-B：真实 STA 否决该结构。Slow Recovery 为 `pixel_clk_5x → pixel_clk_5x -0.349 ns / 8/8`、`pixel_clk_5x → pixel_clk -2.173 ns / 8/8`；Fast Recovery 的反向组仍为 `-1.464 ns / 8/8`。
+- [x] O2-B：八个反向 endpoint 正好是四个 serializer 的 master/slave OSERDES `OCLKDIV` 检查；失败 RTL 已回退，旧 `pixel_clk → pixel_clk_5x 8/8` baseline 保持不变，未增加 waiver、时序例外或新失败指纹。
+- [ ] O2-D1：只读评审显式相位 sequencer、统一复位控制器和厂商推荐结构；先用 SP6.4 原语/timing model、PLL 相位和现有 STA 固定唯一候选，不修改 RTL/IP/FDC/RCF/gate。
+- [ ] O2-D1：在回退后的等价基线重建中比较 `ddrphy_sysclk → pixel_clk` 的 53/54 endpoint 漂移；若不能稳定复现，不把该漂移归因于 serializer reset。
+- [ ] O2-D2：仅在 O2-D1 审核后实现唯一候选；八个 endpoint 的 Slow/Fast Recovery/Removal 必须全部被覆盖且非负，不能出现新的 clock pair、未分类 warning/critical 或 gate 漂移。
 - [ ] O2-C1：在 O3-A 的同步状态可用后，为 sys、I2C、camera、pixel、DDR UI 等普通时钟域建立本地复位，解除 `ddr3_init_done` 对其他域异步复位释放的直接控制。
 - [ ] O2-C2：单独核验两个厂商 FIFO 的 reset/flush 语义，再分别处理读写侧复位；不把 FIFO 复位与普通寄存器复位混为一个提交。
 
-O2-A 停止条件：厂商模型无法确定释放基准、八个 STA endpoint 不能唯一对应、或方案必须先修改 PLL/IP/FDC 才能定义。O2-B 停止并回退条件：recovery/removal 转移或恶化、需要宽泛 `false_path`、或必须扩面修改 camera/UI/FIFO/业务 CDC。
+O2-A 停止条件：厂商模型无法确定释放基准、八个 STA endpoint 不能唯一对应、或方案必须先修改 PLL/IP/FDC 才能定义。O2-B 已因 recovery 转移并恶化触发停止条件。O2-D1/D2 继续禁止宽泛 `false_path`、多方案试探和扩面修改 camera/UI/FIFO/业务 CDC。
 
-验收：O2-B 不使用时序 waiver 即关闭 serializer 的全部 recovery/removal；O2-C1/C2 完成后不存在跨域状态直接释放其他域复位，FIFO 两侧复位符合对应 IP 语义。
+验收：O2-D2 不使用时序 waiver 即关闭 serializer 的全部 recovery/removal；O2-C1/C2 完成后不存在跨域状态直接释放其他域复位，FIFO 两侧复位符合对应 IP 语义。
 
 ### O3：OV7725 业务 CDC 修复
 
