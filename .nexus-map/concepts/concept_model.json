@@ -1,0 +1,174 @@
+{
+  "$schema": "nexus-mapper/concept-model/v1",
+  "generated_at": "2026-08-29T00:00:00+08:00",
+  "repo_path": ".",
+  "generator": "Codex manual bootstrap",
+  "nodes": [
+    {
+      "id": "pds-workflow-guide",
+      "type": "System",
+      "label": "PDS 实现与外部仿真规范",
+      "responsibility": "定义 PDS 2022.2-SP6.4 实现、四级外部仿真和 CI 验收门槛。",
+      "implementation_status": "documented",
+      "code_path": null,
+      "evidence_path": "README.md",
+      "evidence_gap": "PCIe 构建入口已创建但尚待新构建验证；另外两个工程、仿真库和 CI Gate 尚未实现。",
+      "tech_stack": ["PDS Tcl", "PowerShell", "ModelSim/QuestaSim"],
+      "related_reqs": ["可重复构建", "四级仿真", "时序闭环"],
+      "complexity": "medium",
+      "hotspot": false
+    },
+    {
+      "id": "ov7725-hdmi-system",
+      "type": "System",
+      "label": "OV7725 HDMI 顶层",
+      "responsibility": "采集 OV7725 像素，经异步 FIFO 和 DDR3 帧缓存后输出 HDMI/TMDS。",
+      "implementation_status": "implemented_with_timing_failures",
+      "code_path": "41_ov7725_hdmi/rtl/",
+      "evidence_path": "41_ov7725_hdmi/prj/report_timing/ov7725_hdmi.rtr",
+      "evidence_gap": "慢角 setup/recovery 失败，且无顶层四级仿真或 SDF。",
+      "tech_stack": ["Verilog", "Pango Logos2", "DDR3", "TMDS"],
+      "related_reqs": ["CDC 修复", "复位同步", "WNS 非负", "视频链路自检"],
+      "complexity": "high",
+      "hotspot": true
+    },
+    {
+      "id": "ddr3-outer-project",
+      "type": "System",
+      "label": "DDR3 外层工程",
+      "responsibility": "承载最终板级 DDR3 测试顶层、IP 和约束。",
+      "implementation_status": "incomplete_shell",
+      "code_path": "ddr3_test/ddr3_test/",
+      "evidence_path": "ddr3_test/ddr3_test/ddr3_test.pds",
+      "evidence_gap": "当前只引用 DDR3 IP，没有外层产品实现产物。",
+      "tech_stack": ["PDS", "DDR3 IP"],
+      "related_reqs": ["明确板级顶层", "板级约束", "写读回自检"],
+      "complexity": "medium",
+      "hotspot": true
+    },
+    {
+      "id": "ddr3-ip-example",
+      "type": "System",
+      "label": "DDR3 test_ddr IP 示例",
+      "responsibility": "提供厂商 DDR3 Controller/PHY 的参考写读测试实现。",
+      "implementation_status": "implemented_example_only",
+      "code_path": "ddr3_test/ddr3_test/ip_core/ddr3/pnr/",
+      "evidence_path": "ddr3_test/ddr3_test/ip_core/ddr3/pnr/place_route/test_ddr_timing_summary_after_hold_fix.txt",
+      "evidence_gap": "示例通过不代表外层产品工程；testbench 失配且无 PNR SDF。",
+      "tech_stack": ["Verilog", "Pango Logos2", "DDR3 IP"],
+      "related_reqs": ["示例迁移", "端口匹配", "四级仿真"],
+      "complexity": "high",
+      "hotspot": false
+    },
+    {
+      "id": "pcie-dma-system",
+      "type": "System",
+      "label": "PCIe DMA 顶层",
+      "responsibility": "集成 PCIe x2 IP、DMA、RAM/FIFO 和 UART2APB 管理路径。",
+      "implementation_status": "implemented_with_known_functional_gap",
+      "code_path": "pcie_dma_test_100h/hdl/",
+      "evidence_path": "pcie_dma_test_100h/place_route/pcie_dma_test_timing_summary_after_hold_fix.txt",
+      "evidence_gap": "新脚本 compile-only 已通过，但尚未完成新流程综合/PNR/STA；UART2APB 输入被绑 0，且缺少集成顶层四级仿真和 SDF。",
+      "tech_stack": ["Verilog", "Pango Logos2", "PCIe x2", "DMA"],
+      "related_reqs": ["UART 决策", "集成自检", "保持时序通过"],
+      "complexity": "high",
+      "hotspot": true
+    },
+    {
+      "id": "external-simulation-suite",
+      "type": "TestSuite",
+      "label": "外部四级仿真套件",
+      "responsibility": "覆盖行为级、综合后、PNR 功能和 PNR 时序仿真。",
+      "implementation_status": "planned",
+      "code_path": null,
+      "evidence_path": "TODO.md",
+      "evidence_gap": "本机无可用 ModelSim/QuestaSim；三项目均无完整顶层套件。",
+      "tech_stack": ["SystemVerilog", "ModelSim/QuestaSim", "USIM", "VSIM", "SDF"],
+      "related_reqs": ["TEST PASS", "失败非零退出", "SDF 标注"],
+      "complexity": "high",
+      "hotspot": false
+    },
+    {
+      "id": "vscs-commenting-standard",
+      "type": "Domain",
+      "label": "VSCS 注释规范",
+      "responsibility": "约束后续 Verilog/SystemVerilog 的设计意图、接口、FSM、复位和 CDC/RDC 注释。",
+      "implementation_status": "documented",
+      "code_path": null,
+      "evidence_path": "VERILOG_SYSTEMVERILOG_COMMENTING_STANDARD.md",
+      "evidence_gap": "尚未对历史 RTL 做全量合规审查。"
+    }
+  ],
+  "edges": [
+    {
+      "source": "ov7725-hdmi-system",
+      "target": "pds-workflow-guide",
+      "type": "built_by",
+      "description": "OV7725 顶层按 PDS 实现与外部仿真规范整改。"
+    },
+    {
+      "source": "ddr3-outer-project",
+      "target": "ddr3-ip-example",
+      "type": "depends_on",
+      "description": "外层产品工程当前只引用 DDR3 IP，并可能以厂商 test_ddr 示例为初始顶层。"
+    },
+    {
+      "source": "ddr3-outer-project",
+      "target": "pds-workflow-guide",
+      "type": "built_by",
+      "description": "DDR3 外层工程需要按统一流程完成产品级闭环。"
+    },
+    {
+      "source": "pcie-dma-system",
+      "target": "pds-workflow-guide",
+      "type": "built_by",
+      "description": "PCIe 工程将作为公共构建和仿真流水线的首个基准。"
+    },
+    {
+      "source": "external-simulation-suite",
+      "target": "ov7725-hdmi-system",
+      "type": "tests",
+      "description": "计划覆盖 OV7725 集成顶层四级仿真。"
+    },
+    {
+      "source": "external-simulation-suite",
+      "target": "ddr3-outer-project",
+      "type": "tests",
+      "description": "计划覆盖 DDR3 产品顶层写读回与四级仿真。"
+    },
+    {
+      "source": "external-simulation-suite",
+      "target": "pcie-dma-system",
+      "type": "tests",
+      "description": "计划覆盖 PCIe DMA 集成顶层四级仿真。"
+    },
+    {
+      "source": "vscs-commenting-standard",
+      "target": "ov7725-hdmi-system",
+      "type": "governs_future_changes",
+      "description": "后续手写 OV7725 RTL/TB 需遵循 VSCS。"
+    },
+    {
+      "source": "vscs-commenting-standard",
+      "target": "ddr3-outer-project",
+      "type": "governs_future_changes",
+      "description": "后续手写 DDR3 顶层和 TB 需遵循 VSCS。"
+    },
+    {
+      "source": "vscs-commenting-standard",
+      "target": "pcie-dma-system",
+      "type": "governs_future_changes",
+      "description": "后续手写 PCIe 顶层和 TB 需遵循 VSCS。"
+    }
+  ],
+  "metadata": {
+    "analysis_mode": "manual bootstrap",
+    "git_commits_analyzed": 1,
+    "raw_ast_available": false,
+    "limitations": [
+      "Only the root baseline commit is available; churn analysis would be misleading.",
+      "No AST extraction was run.",
+      "No ModelSim or QuestaSim execution was available."
+    ]
+  }
+}
