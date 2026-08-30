@@ -18,6 +18,10 @@ ModelSim/QuestaSim 分别承担行为级、综合后、PNR 后功能和 PNR 后�
 
 厂商 IP 自带 `example_design`、testbench 或 PNR 工程只能证明示例自身状态。只有产品顶层显式包含所需 RTL、IP、板级约束和集成测试后，结果才能归属于产品工程。
 
+DDR3 D3-0（2026-08-30）进一步固定只读边界：活动 IP 是 `ddr3_test/ddr3_test/ip_core/ddr3/ddr3.v` 的公开 `module ddr3`，其端口包含 `core_clk`、`ddr_init_done` 以及自定义 AXI-like AW/W/AR/R 接口；`test_ddr.v` 的物理 board wrapper 实例名必须保留为 `I_ips_ddr_top`。静态端口事实不等于握手语义已签核。
+
+D3-A 必须单独明确 `axi_wready`、`axi_wusero_id`、`axi_wusero_last` 的时序/消费规则，以及核心缺少 `axi_rready` 时 `axi_rvalid`、`axi_rdata` 的保持、完成和背压语义。当前 `test_wr_ctrl_v1_0` 将 `axi_wready` 用作写执行/接受指示，而 BIST 未消费 `axi_wusero_id`/`axi_wusero_last`；这些观察只作为评审输入，不可在 D3-0 擅自解释成标准 AXI ready/valid。D3-0 只更新文档，不修改 RTL、IP 或约束。
+
 DDR3 D2 已进一步固定该边界：厂商 `test_ddr`、持续运行 BIST 与旧 testbench 保持原样；后续有限自检由项目自有 `ddr3_bringup_top.sv` 和 `ddr3_finite_bist.sv` 承担。首版仅执行 16 个单 beat 写读比较 pair，地址 `0x0..0x78`、步长 8，并通过稳定公开的 `test_done`、`test_failed`、`failure_code`、`error_count`、`completed_pairs` 和首错信息完成签核。
 
 ## CDC 与异步 FIFO

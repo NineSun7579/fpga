@@ -179,3 +179,10 @@
 
 - 复核 PDS 与外部仿真器可执行文件：`E:/pango/PDS_2022.2-SP6.4/bin/pds_shell.exe` 存在；PATH、`C:/questasim64/win64` 及常见 ModelSim/Questa 安装目录均未找到 `vsim.exe`、`vlog.exe` 或 `vlib.exe`。
 - 结论：S0 仍为外部环境阻断。未运行 `compile_simlib`、行为级仿真或门级 SDF 仿真；不得把 PDS 生成网表/SDF 误记为仿真通过。安装并记录实际版本/路径后，再编译 Logos2 USIM/VSIM。
+
+## 2026-08-30：DDR3 D3-0 core/wrapper 只读评审
+
+- 本批只读检查活动 `ip_core/ddr3/ddr3.v`、`ddr3_tmpl.v`、`example_design/rtl/test_ddr.v`、`axi_bist_top_v1_0.v`、`test_wr_ctrl_v1_0.v` 和 `test_rd_ctrl_v1_0.v`，未修改 RTL、IP、FDC、RCF、TB 或构建脚本。
+- `ddr3` core 的公开接口包含 `core_clk`、`ddr_init_done`、128-bit AXI-like 数据通路和 Pango 扩展状态；`test_ddr` 保留物理板级端口，并以 `I_ips_ddr_top` 实例化该 core。
+- 该用户接口不是完整 AXI4：写地址以 `axi_awvalid & axi_awready` 握手，写数据由 core 的 `axi_wready` 表示接受并返回 `axi_wusero_id/axi_wusero_last`；读地址以 `axi_arvalid & axi_arready` 握手，读数据仅用 `axi_rvalid/axi_rlast` 返回，接口没有 `axi_rready`。示例控制器分别以 `axi_wready` 与 `axi_rvalid` 计数完成。
+- D3-A 因此只能在审核后新增项目自有 top/BIST、切换 PDS 顶层和输入清单并完成 compile/elaboration；不得修改厂商 `ip_core/ddr3/**`、物理端口、FDC/RCF 或 `I_ips_ddr_top` 名称。地址单位或握手语义若在 IP 重生成后变化，必须停止并重新审核。

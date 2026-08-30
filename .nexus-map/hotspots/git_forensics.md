@@ -8,7 +8,7 @@
 
 - 分支为 `main`。
 - 根提交为 `1a2d493`，保存三个原始工程、已有 PDS 产物和整改文档。
-- O2-D1-R 证据与知识图同步后为 17 个提交；O2-D1-G 契约收口批次预期为 18 个提交；本次 S0 环境复核与知识图同步批次提交后预期为 19 个提交。样本仍不足以计算可信的 churn、共同变更或历史热点。
+- O2-D1-R 证据与知识图同步后为 17 个提交；O2-D1-G 契约收口批次预期为 18 个提交；S0 环境复核批次预期为 19 个提交；本次 DDR3 D3-0 只读评审与知识图同步批次提交后预期为 20 个提交。样本仍不足以计算可信的 churn、共同变更或历史热点。
 
 ## 人工高关注区
 
@@ -26,6 +26,7 @@
 - `ddr3_test/ddr3_test/scripts/build.tcl`：当前临时 bring-up 的可重复七阶段实现定义，仍依赖厂商 `test_ddr` 而非产品顶层。
 - `ddr3_test/ddr3_test/scripts/check_build.ps1`：严格模式拦截 7 类已知阻断；baseline 放行只证明历史设计可重复实现，不表示可发布。
 - `ddr3_test/ddr3_test/ip_core/ddr3/example_design/rtl/test_ddr.v`：存在 BIST error-data 位宽不匹配及后续 dangling cleanup，是当前严格 gate 阻断项。
+- `ddr3_test/ddr3_test/ip_core/ddr3/ddr3.v` 与 `.../example_design/rtl/test_ddr.v`：D3-0 的活动 IP 端口和 `I_ips_ddr_top` board wrapper 实例边界；`axi_wready`/`axi_wusero_id`/`axi_wusero_last` 及无 `axi_rready` 的语义必须在 D3-A 冻结，D3-0 不修改这些文件。
 - `ddr3_test/ddr3_test/ip_core/ddr3/example_design/rtl/test_main_ctrl_v1_0.v`、`axi_bist_top_v1_0.v` 与旧 `ddr3_test_top_tb.v`：D2 已确认其持续运行、无稳定 done 契约、端口失配及外部仿真依赖；均保持厂商原样，只作为静态证据。
 - `ddr3_test/ddr3_test/rtl/ddr3_bringup_top.sv`、`ddr3_test/ddr3_test/rtl/ddr3_finite_bist.sv`：D2 规划的项目自有实现热点，当前文件尚不存在，D3 未审核前不得标记为已实现。
 - `pcie_dma_test_100h/hdl/pcie_dma_test.v`：UART2APB 隐式 `rxd/txd` 连接与 PCIe DMA 集成入口。
@@ -34,4 +35,4 @@
 
 ## 后续更新
 
-只有积累足够多、内容独立的提交后，才适合增加真实 churn 与共同变更分析。O2-B 否决/回退、O2-D1-R 基线重建、O2-D1-G 契约收口、单次 O2-D2、O3-A、O2-C1、O2-C2、O3-B、O4、O1-C `mem_a` 板级决策和 DDR3 D3 必须保持独立批次；O2-D1-R 已完成，O2-D1-G 为预期第 18 个提交，OV7725 下一步顺序为 O2-D1-G → 用户审核 → 单次 O2-D2 → O3-A → O2-C1 → O2-C2 → O3-B → O4。DDR3 D3-0 与 PCIe H2 当前保持只读泳道。
+只有积累足够多、内容独立的提交后，才适合增加真实 churn 与共同变更分析。O2-B 否决/回退、O2-D1-R 基线重建、O2-D1-G 契约收口、S0 环境复核、DDR3 D3-0 只读评审、单次 O2-D2、O3-A、O2-C1、O2-C2、O3-B、O4、O1-C `mem_a` 板级决策和 DDR3 D3-A 必须保持独立批次；本次 D3-0 为预期第 20 个提交，下一步先完成 D3-A 握手契约，再提请 D3 实现审核。DDR3 与 PCIe 继续保持只读泳道。

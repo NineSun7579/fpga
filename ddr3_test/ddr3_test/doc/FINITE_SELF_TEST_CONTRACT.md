@@ -299,3 +299,14 @@ D2 只在以下事实成立时完成：
 - 厂商示例 RTL/TB 保持不变；
 - TODO、README、实施记录和知识图同步；
 - D2 提交中没有 RTL、TB、IDF、FDC、RCF 或 `build/` 生成物。
+
+## 13. D3-0 core/wrapper 评审结论
+
+2026-08-30 依据活动 IP、实例模板和示例 wrapper 完成只读复核。D3-A 的接口事实固定如下：
+
+- `ip_core/ddr3/ddr3.v` 的 `ddr3` 是公开 core；`core_clk`、`ddr_init_done`、PLL/PHY 状态和 128-bit 用户数据通路属于可用接口。`ip_core/ddr3/example_design/rtl/test_ddr.v` 是物理 board wrapper，保留 DDR3、时钟、复位和 UART 物理端口。
+- wrapper 中的 core 实例名固定为 `I_ips_ddr_top`。后续 FDC/RCF、网表层级和 gate 检查均以此名称为边界；不得为改名或简化层级而修改该实例名。
+- 用户接口为 Pango 定制 AXI-like 端口，不是完整 AXI4：写地址握手为 `axi_awvalid & axi_awready`，写数据接受由 core 输出 `axi_wready` 表示，并返回 `axi_wusero_id/axi_wusero_last`；读地址握手为 `axi_arvalid & axi_arready`，读数据仅返回 `axi_rvalid/axi_rlast`，没有 `axi_rready`。
+- 当前示例用 `axi_wready` 与 `axi_rvalid` 分别累计写/读完成数；这只是活动 IP 的已观察语义，D3-A 必须在项目自有 BIST 中显式建模并加入 timeout/assertion，不得套用标准 AXI4 的 B/R 通道假设。
+
+D3-A 允许新增项目自有 top/BIST 并切换 PDS 顶层和输入清单，首轮仅做 compile/elaboration。若 IP 重生成后端口、地址单位、握手语义或 `I_ips_ddr_top` 层级发生变化，立即停止并重新审核；厂商 `ip_core/ddr3/**`、FDC、RCF、物理端口和生成 Verilog 继续禁止修改。

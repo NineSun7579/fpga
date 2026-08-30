@@ -214,7 +214,25 @@
       "implementation_status": "bringup_full_implementation_baseline",
       "code_path": "ddr3_test/ddr3_test/",
       "evidence_path": "ddr3_test/ddr3_test/build/logs/pds-gen_bit_stream.log",
-      "evidence_gap": "厂商 test_ddr 临时 bring-up 已从空 build 完成 SP6.4 七阶段全流程，日志无 E:、STA 为 All Constraints Met，且五类产物非零；严格 gate 因 7 类已知阻断返回 1，显式 baseline 放行返回 0 但不可发布。D2 只读契约决策已完成，但项目自有有限 BIST 顶层尚未实现；板级批准参数清单、产品功能和四级仿真仍未验收。",
+      "evidence_gap": "厂商 test_ddr 临时 bring-up 已从空 build 完成 SP6.4 七阶段全流程，日志无 E:、STA 为 All Constraints Met，且五类产物非零；严格 gate 因 7 类已知阻断返回 1，显式 baseline 放行返回 0 但不可发布。D2 与 D3-0 只读契约决策已完成，但项目自有有限 BIST 顶层尚未实现；D3-A 握手语义、板级批准参数清单、产品功能和四级仿真仍未验收。",
+      "d3_0_read_only_review": {
+        "date": "2026-08-30",
+        "active_ip": "ddr3_test/ddr3_test/ip_core/ddr3/ddr3.v",
+        "public_module": "ddr3",
+        "public_clock_and_status_ports": ["core_clk", "ddr_init_done"],
+        "public_custom_interface": ["AW", "W", "AR", "R"],
+        "board_wrapper": "ddr3_test/ddr3_test/ip_core/ddr3/example_design/rtl/test_ddr.v",
+        "required_instance_name": "I_ips_ddr_top",
+        "read_only_scope": ["RTL", "active DDR3 IP", "FDC/RCF", "build scripts"],
+        "status": "documentation_only"
+      },
+      "d3_0_handshake_gap": {
+        "axi_wready": "现有 test_wr_ctrl_v1_0 将其作为写执行/接受指示；D3-A 必须确认是脉冲还是可保持电平以及与 W 数据的对应关系",
+        "axi_wusero_id": "核心输出，当前 BIST 结果路径未消费；D3-A 决定是否纳入响应契约",
+        "axi_wusero_last": "核心输出，当前 BIST 结果路径未消费；D3-A 决定是否纳入响应契约",
+        "axi_rready": "公开 ddr3 端口不存在；D3-A 必须定义无读背压时 axi_rvalid/axi_rdata 的保持与完成语义",
+        "status": "unresolved_pending_d3_a"
+      },
       "tech_stack": ["PDS", "DDR3 IP"],
       "related_reqs": ["关闭严格 gate", "板级批准参数", "有限写读回自检"],
       "complexity": "medium",
@@ -232,7 +250,7 @@
         "ddr3_test/ddr3_test/rtl/ddr3_finite_bist.sv"
       ],
       "evidence_path": "ddr3_test/ddr3_test/doc/FINITE_SELF_TEST_CONTRACT.md",
-      "evidence_gap": "D2 只完成只读决策；两个项目自有 RTL 文件尚未创建，D3 待审核，且本机无可用 QuestaSim。",
+      "evidence_gap": "D2 与 D3-0 只完成只读决策；两个项目自有 RTL 文件尚未创建，D3-A 仍需先冻结 AXI-like 握手语义，D3 待审核，且本机无可用 QuestaSim。",
       "transaction_contract": {
         "pair_count": 16,
         "burst": "single-beat write/read compare",
@@ -251,7 +269,7 @@
         "first_error_info"
       ],
       "tech_stack": ["SystemVerilog", "DDR3 AXI", "ModelSim/QuestaSim"],
-      "related_reqs": ["D2 complete", "D3 pending review", "VSCS", "finite self-check"],
+      "related_reqs": ["D2 complete", "D3-0 read-only review", "D3-A handshake contract", "D3 pending review", "VSCS", "finite self-check"],
       "complexity": "medium",
       "hotspot": true
     },
@@ -410,10 +428,10 @@
   "metadata": {
     "analysis_mode": "manual bootstrap",
     "verified_at": "2026-08-30",
-    "git_commits_analyzed": 19,
+    "git_commits_analyzed": 20,
     "raw_ast_available": false,
     "limitations": [
-      "Nineteen repository commits are expected after the O2-D1-G, S0 environment review and nexus synchronization batches; the count remains too shallow for reliable hotspot ranking.",
+      "Twenty repository commits are expected after the O2-D1-G, S0 environment review, DDR3 D3-0 and nexus synchronization batches; the count remains too shallow for reliable hotspot ranking.",
       "No AST extraction was run.",
       "No ModelSim or QuestaSim execution was available."
     ]

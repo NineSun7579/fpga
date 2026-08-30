@@ -72,6 +72,8 @@ flowchart TD
 - DDR3 新入口已用 `test_ddr`、`ddr3.idf`、FDC 和 RCF 从空 `build/` 完成七阶段全流程，内部 STA 为 `All Constraints Met`，且综合网表、PNR 网表、SDF 和位流均非零。
 - DDR3 严格 gate 因 BIST 位宽/dangling、`rst_board` share pin、BANKR4 VCCIO 3.3、UART I/O 以及输入/输出 timing 共 7 类阻断返回 1；显式 baseline 放行返回 0 但不可发布。日志无 SCBV 命中不等同于板级参数获批，批准清单仍是关闭 gate 的前置依赖。
 - DDR3 D2 只读决策不依赖修改厂商示例：`test_ddr`、持续运行 BIST 和旧 testbench 保持原样；D3 若获审核，只新增项目自有 `ddr3_bringup_top.sv` 与 `ddr3_finite_bist.sv`。
+- DDR3 D3-0（2026-08-30）静态确认活动 IP 为 `ip_core/ddr3/ddr3.v` 的公开 `ddr3` 核，含 `ddr_init_done`/`core_clk` 与自定义 AXI-like AW/W/AR/R 端口；`test_ddr.v` 的物理 board wrapper 实例名固定为 `I_ips_ddr_top`。`axi_wready`、`axi_wusero_id`、`axi_wusero_last` 和无 `axi_rready` 的握手语义必须在 D3-A 单独决策。
+- D3-0 只读边界：本批不修改 `test_ddr.v`、`ddr3.v`、任何 DDR3 IDF、FDC/RCF 或构建入口；D3-A 明确握手契约前不得实现项目自有顶层。
 - 有限自检契约固定 16 个单 beat 写读比较 pair，地址 `0x0..0x78`、步长 8，pair/run timeout 分别为 4096/131072 周期；签核依赖稳定的 `test_done`、`test_failed`、`failure_code`、`error_count`、`completed_pairs` 和首错信息，而不是厂商 LED 或内部层级。
 - 新项目自有 DDR3 RTL 依赖根目录 VSCS；厂商 `ip_core/ddr3/**` 仍作为外部生成依赖，不因 D2 决策被改写。
 - DDR3 当前只推进 D3-0 只读 wrapper、非标准 Pango DDR UI 握手和 `I_ips_ddr_top` 层级评审；PCIe 当前只推进 H2-A/H2-B 板级证据矩阵、IP 再生成契约和 baseline gate 精确化，不修改两项目的 IP/RTL/FDC。

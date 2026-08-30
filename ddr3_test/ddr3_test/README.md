@@ -104,3 +104,14 @@ baseline 放行不会把结果标记为发布候选。
 - 新 TB 必须使用公开端口、相对路径、Questa WLF、`$fatal` 和唯一 `TEST PASS`，FSDB 仅作为显式可选功能。
 
 D2 是文档决策批次，没有修改 RTL、TB、IDF、FDC 或 RCF。D3 功能实现需先完成 D3-0 的 core/wrapper、非标准 Pango DDR UI 握手和 `I_ips_ddr_top` 层级评审；当前仓库的唯一功能主线仍为 OV7725 O2-D1 只读评审，D3-0 可作为独立只读泳道准备，但不得并行启动 D3-A 功能 RTL。
+
+## D3-0 只读评审结果
+
+2026-08-30 已从活动 IP、实例模板和示例 wrapper 唯一确认 D3-A 的接口边界：
+
+- 公开 core 是 `ip_core/ddr3/ddr3.v` 的 `ddr3` 模块，提供 `core_clk`、`ddr_init_done`、PLL/PHY 状态以及 128-bit 用户数据通路；生成文件保持不改。
+- 物理 board wrapper 是 `ip_core/ddr3/example_design/rtl/test_ddr.v`，保留现有 `free_clk`、`rst_board`、UART 和 DDR3 物理端口。它以实例名 `I_ips_ddr_top` 连接活动 `ddr3` core；FDC/RCF 与后续层级检查依赖该名字。
+- 用户接口是 Pango 定制的 AXI-like 端口，而不是完整 AXI4：写地址用 `axi_awvalid & axi_awready`，写数据完成由 core 输出 `axi_wready` 表示；`axi_wusero_id`、`axi_wusero_last` 为返回标记。读地址用 `axi_arvalid & axi_arready`，读数据由 `axi_rvalid`/`axi_rlast` 返回，接口没有 `axi_rready`。
+- 当前示例控制器把写 outstanding 计数与 `axi_wready` 接受次数比较，把读请求计数与 `axi_rvalid` 返回次数比较；D3-A 必须将这些事实转换为有限 BIST 的明确握手/超时契约，不得假设标准 `AWREADY/WREADY/BVALID/ARREADY/RREADY` 语义。
+
+D3-A 允许的首批边界仅为新增项目自有 `ddr3_bringup_top.sv`、`ddr3_finite_bist.sv`，切换 PDS 顶层和输入清单，并完成 compile/elaboration。不得修改 `ip_core/ddr3/**`、FDC、RCF、物理端口或 `I_ips_ddr_top` 实例名。若重新生成 IP 后端口、地址单位、`axi_wready` 完成语义或层级不再唯一，立即停止并重新审核。

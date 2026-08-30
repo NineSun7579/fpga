@@ -58,6 +58,9 @@
 - evidence_path: `ddr3_test/ddr3_test/build/logs/pds-gen_bit_stream.log`, `ddr3_test/ddr3_test/build/pds/report_timing/test_ddr.rtr`, `ddr3_test/ddr3_test/scripts/check_build.ps1`
 - evidence_gap: SP6.4 全流程、STA、综合网表、PNR 网表、SDF 和位流已验证；严格 gate 因 7 类已知阻断返回 1，显式 baseline 放行返回 0 但不可发布。D2 已完成只读契约决策，但项目自有有限 BIST 顶层尚未实现；板级批准参数清单、产品功能和四级仿真仍未验收。
 - responsibility: 当前以厂商 `test_ddr` 作为临时 DDR3 board bring-up 顶层；后续必须明确真正产品顶层和板级功能范围。
+- d3_0_read_only_review: `2026-08-30` 已确认活动 IP 为 `ddr3_test/ddr3_test/ip_core/ddr3/ddr3.v` 的 `module ddr3`；公开端口包含 `ddr_init_done`、`core_clk` 和自定义 AXI-like AW/W/AR/R 接口。`test_ddr.v` 的物理 board wrapper 实例名 `I_ips_ddr_top` 必须保持不变。
+- d3_0_handshake_gap: `axi_wready` 被现有写控制器作为执行/接受指示使用；`axi_wusero_id`、`axi_wusero_last` 虽由核心输出但当前 BIST 控制器未纳入结果契约；核心没有 `axi_rready`，读侧直接消费 `axi_rvalid`。这些不是本批可推定的标准 ready/valid 语义，D3-A 必须先明确握手、保持和背压规则。
+- d3_0_boundary: 只更新文档和评审事实；D3-0 不修改 RTL、活动 IP、FDC/RCF 或构建脚本。
 - provisional_build_entry: `ddr3_test/ddr3_test/scripts/run.ps1`
 - build_definition: `ddr3_test/ddr3_test/scripts/build.tcl`
 - build_gate: `ddr3_test/ddr3_test/scripts/check_build.ps1`
@@ -78,7 +81,7 @@
 - transaction_contract: 16 个单 beat 写读比较 pair；控制器地址 `0x0..0x78`、步长 8；每 pair timeout 4096 周期；整次 run timeout 131072 周期。
 - result_contract: 稳定公开 `test_done`、`test_failed`、`failure_code`、`error_count`、`completed_pairs`，并提供首错地址/期望值/实际值等首错信息。
 - ownership_boundary: 厂商 `ip_core/ddr3/**` 保持原样；新增项目自有 RTL 必须遵循根目录 VSCS。
-- next_step: D3 实现批次待审核
+- next_step: D3-A 先明确 AXI-like AW/W/AR/R 握手契约（含 `axi_wready`、`axi_wusero_id`、`axi_wusero_last` 和缺少 `axi_rready` 的语义），再提请 D3 实现批次审核；在此之前保持 RTL/IP/约束只读
 
 ## DDR3 IP 示例
 
