@@ -280,6 +280,11 @@
 - 只读核对活动 `ip_core/ddr3/ddr3.v`、`example_design/rtl/test_ddr.v` 与 D2 契约，确认参数默认值、128-bit 用户数据、28-bit 控制器地址、DDR 物理端口和 `I_ips_ddr_top` 实例边界。
 - 明确活动接口不是完整 AXI4：写地址使用 `axi_awvalid && axi_awready`，写数据接受依赖 core 输出 `axi_wready`，读返回使用 `axi_rvalid/axi_rlast`，没有 `axi_rready`。
 - 形成 [`D3A_PORT_MAP.md`](../ddr3_test/ddr3_test/doc/D3A_PORT_MAP.md)。本批只新增只读文档与 TODO 状态，不修改厂商 IP、RTL、FDC、RCF 或物理端口；D3-A 仍等待审核。
+
+## 2026-08-30：CI-6 DDR3 D3-0-R 契约一致性门禁
+
+- 仓库一致性脚本现静态核对活动 `ddr3.v`、`test_ddr.v` 和 `D3A_PORT_MAP.md` 的模块、参数、端口、实例层级事实，并拒绝 `ddr3.v` 出现 `axi_rready`。
+- 当前门禁通过；该检查只防止 D3-0-R 文档与源码漂移，不执行 D3-A RTL、PDS 或仿真。
 - DDR3 只读复核发现活动 IDF 同时记录 `DESIRED_DDR3_RATE=1066.000` 与另一处 1050 速率参数；wrapper 默认 `MEM_ROW_WIDTH=15`、`COLUMN=10`、`BANK=3`、`DQ=16`、`DQS=2`。在确认参数语义、颗粒料号和 PCB 拓扑前，H1 继续阻断。
 
 ## 2026-08-30：S0-0 仿真器路径扩展复核

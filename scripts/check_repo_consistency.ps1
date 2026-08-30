@@ -296,6 +296,46 @@ foreach ($Script in $PowerShellScripts) {
     }
 }
 
+$Ddr3CorePath = Join-Path $RepoRoot 'ddr3_test\ddr3_test\ip_core\ddr3\ddr3.v'
+$Ddr3WrapperPath = Join-Path $RepoRoot 'ddr3_test\ddr3_test\ip_core\ddr3\example_design\rtl\test_ddr.v'
+$Ddr3PortMapPath = Join-Path $RepoRoot 'ddr3_test\ddr3_test\doc\D3A_PORT_MAP.md'
+$Ddr3CoreExists = Require-File -Path $Ddr3CorePath -Description 'DDR3 core source for D3-0-R gate'
+$Ddr3WrapperExists = Require-File -Path $Ddr3WrapperPath -Description 'DDR3 wrapper source for D3-0-R gate'
+$Ddr3PortMapExists = Require-File -Path $Ddr3PortMapPath -Description 'DDR3 D3-A port map'
+if ($Ddr3CoreExists -and $Ddr3WrapperExists -and $Ddr3PortMapExists) {
+    $Ddr3CoreText = Get-Content -Raw -Encoding UTF8 -LiteralPath $Ddr3CorePath
+    $Ddr3WrapperText = Get-Content -Raw -Encoding UTF8 -LiteralPath $Ddr3WrapperPath
+    $Ddr3PortMapText = Get-Content -Raw -Encoding UTF8 -LiteralPath $Ddr3PortMapPath
+
+    Require-Pattern -Text $Ddr3CoreText -Pattern '(?m)^module\s+ddr3\b' `
+        -Description 'DDR3 core module declaration' | Out-Null
+    foreach ($Pattern in @(
+            'parameter\s+MEM_ROW_WIDTH\s*=\s*15',
+            'parameter\s+MEM_COLUMN_WIDTH\s*=\s*10',
+            'parameter\s+MEM_BANK_WIDTH\s*=\s*3',
+            'parameter\s+MEM_DQ_WIDTH\s*=\s*16',
+            'parameter\s+MEM_DQS_WIDTH\s*=\s*2',
+            'axi_wdata',
+            'axi_rdata',
+            'ddr_init_done',
+            'core_clk')) {
+        Require-Pattern -Text $Ddr3CoreText -Pattern $Pattern `
+            -Description "DDR3 core contract pattern '$Pattern'" | Out-Null
+    }
+    if ($Ddr3CoreText -match '(?i)axi_rready') {
+        Add-Failure 'DDR3 core unexpectedly declares axi_rready; D3-0-R contract must be re-reviewed'
+    }
+
+    foreach ($Pattern in @('(?m)^module\s+test_ddr\b', 'I_ips_ddr_top', '\.ddr_init_done', '\.core_clk', '\.axi_wready')) {
+        Require-Pattern -Text $Ddr3WrapperText -Pattern $Pattern `
+            -Description "DDR3 wrapper contract pattern '$Pattern'" | Out-Null
+    }
+    foreach ($Pattern in @('CTRL_ADDR_WIDTH', '128', 'I_ips_ddr_top', 'axi_wready', 'axi_rvalid', 'axi_rready', 'byte/word')) {
+        Require-Pattern -Text $Ddr3PortMapText -Pattern ([regex]::Escape($Pattern)) `
+            -Description "DDR3 port map evidence '$Pattern'" | Out-Null
+    }
+}
+
 if ($Failures.Count -gt 0) {
     Write-Error ("Repository consistency gate failed with {0} issue(s):`n- {1}" -f `
         $Failures.Count, ($Failures -join "`n- "))
