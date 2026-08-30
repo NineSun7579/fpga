@@ -111,7 +111,7 @@
       "implementation_status": "documented",
       "code_path": null,
       "evidence_path": "41_ov7725_hdmi/doc/CDC_RDC_AUDIT.md",
-      "evidence_gap": "O2-B 级联两级释放已被 Slow/Fast Recovery 否决且 RTL 已回退；O2-D1-R 已精确复现旧七组 baseline，Slow/Fast ddrphy_sysclk 到 pixel_clk 均为 53/53。O2-D1-G 和用户审核完成前不实现 O2-D2，QuestaSim 尚未执行。",
+      "evidence_gap": "O2-B 级联两级释放已被 Slow/Fast Recovery 否决且 RTL 已回退；O2-D1-R 已精确复现旧七组 baseline，Slow/Fast ddrphy_sysclk 到 pixel_clk 均为 53/53。O2-D1-G 已冻结实现契约但尚未实现；用户审核完成前不实现 O2-D2，QuestaSim 尚未执行。",
       "o2a_serializer_reset_contract": {
         "status": "complete_read_only",
         "evidence_path": "41_ov7725_hdmi/doc/SERIALIZER_RESET_CONTRACT.md",
@@ -149,7 +149,7 @@
         "next_phase": "O2-D1-G generated-clock/state contract and user review; one O2-D2 attempt only"
       },
       "o2d1_architecture_decision": {
-        "status": "read_only_partial_complete",
+        "status": "contract_frozen_pending_implementation",
         "dynamic_ioclkbuf_gating": "rejected",
         "gating_rejection_reason": "SP6.4 PG2L100H Liberty has no DI clock-gating check and cannot statically prove stop-reset-release-restart ordering",
         "only_candidate": {
@@ -161,7 +161,33 @@
           "validated": false
         },
         "o2d1_r": "complete: rebuilt the rolled-back seven-group baseline; Slow/Fast ddrphy_sysclk to pixel_clk are 53/53 with endpoint classes 26+8+17+1+1",
-        "o2d1_g": "close odd-divide-by-5 generated-clock waveform, pre/post-buffer clock points, controller states, hard/business reset ownership, first valid TMDS symbol and stop conditions",
+        "o2d1_g": {
+          "status": "contract_frozen",
+          "generated_clock": {
+            "name": "pixel_clk",
+            "count": 1,
+            "source_pin": "u_pll_clk/clkout1",
+            "target_pin": "唯一 GTP_IOCLKDIV_E2.CLKDIVOUT primitive pin",
+            "waveform": "-edges {1 5 11} -edge_shift {0 0 0}",
+            "expected_period_ns": 15.380,
+            "expected_high_ns": 6.152,
+            "master_clock": "唯一 CLKOUT1_Inferred",
+            "old_clkout0_pixel_consumers": 0,
+            "divider_post_buffer": false
+          },
+          "control_clock": "PLL CLKOUT3, 65.0026 MHz, approximately +0.192 ns phase",
+          "states": ["HARD_HOLD", "QUALIFY", "ARM", "SER_RELEASE", "RUN"],
+          "cycle_thresholds": {"qualify_control_cycles": 4, "encoder_warmup_pixel_cycles": 3, "serializer_fill_control_cycles": 2, "counter_semantics": "completed cycles, saturating, compare N-1"},
+          "reset_ownership": {
+            "hard_reset_condition": "!sys_rst_n || !pll_lock",
+            "hard_reset_targets": ["divider reset", "pixel/business reset", "four local serializer reset registers", "controller counter"],
+            "business_reset": "exit RUN and re-warm up; never asynchronously or combinationally drive OSERDES local reset",
+            "ddr3_init_done": "excluded from hard reset, QUALIFY, ARM, OSERDES reset and state transitions; later synchronized as business enable/status",
+            "fifo_reset_flush": "reserved for O2-C2"
+          },
+          "first_valid_tmds_symbol": "first OCLKDIV rising edge after serializer reset deassertion that captures a simultaneously determined complete TMDS parallel word across all four lanes; not the first active video pixel; RUN is delayed at least two control cycles",
+          "stop_conditions": ["generated-clock object resolves to zero or multiple objects", "source count is not one", "automatic/explicit clock name collision", "waveform mismatch", "divider connected to post-buffer", "any required Slow/Fast Recovery or Removal endpoint missing or negative", "new baseline failure signature", "PDS/gate/artifact failure" ]
+        },
         "o2d2_policy": "one user-approved implementation attempt; rollback on any stop condition; no second phase scan or waiver"
       },
       "tech_stack": ["Verilog", "PDS STA", "CDC", "RDC"],
@@ -372,10 +398,10 @@
   "metadata": {
     "analysis_mode": "manual bootstrap",
     "verified_at": "2026-08-30",
-    "git_commits_analyzed": 17,
+    "git_commits_analyzed": 18,
     "raw_ast_available": false,
     "limitations": [
-      "Seventeen repository commits are counted after the O2-D1-R evidence and nexus synchronization batch. Churn analysis remains too shallow for reliable hotspot ranking.",
+      "Eighteen repository commits are expected after the O2-D1-G contract and nexus synchronization batch; the count remains too shallow for reliable hotspot ranking.",
       "No AST extraction was run.",
       "No ModelSim or QuestaSim execution was available."
     ]

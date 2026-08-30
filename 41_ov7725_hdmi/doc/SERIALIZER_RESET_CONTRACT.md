@@ -2,9 +2,9 @@
 
 ## 1. 目的与边界
 
-本文定义 OV7725 HDMI 工程中四个 TMDS serializer、八个 `GTP_OSERDES_E2` 的复位契约，记录 O2-B 最小方案的实现、真实 STA 否决与回退，并为后续 O2-D1 备选架构评审提供事实基线。
+本文定义 OV7725 HDMI 工程中四个 TMDS serializer、八个 `GTP_OSERDES_E2` 的复位契约，记录 O2-B 最小方案的实现、真实 STA 否决与回退，并为 O2-D1-G/O2-D2 提供唯一可执行的时钟、状态和复位边界。
 
-O2-A 仅完成证据核验和设计决策，不修改 RTL、厂商 IP、FDC、RCF、gate 或生成物，也不声明动态仿真通过。
+O2-A/O2-D1 仅完成证据核验和设计决策，不修改 RTL、厂商 IP、FDC、RCF、gate 或生成物，也不声明动态仿真通过。O2-D1-G 的内容是 O2-D2 编码前的冻结契约，未经用户审核不得据此开始实现。
 
 本文只处理 serializer 局部复位。以下问题仍属于后续批次：
 
@@ -341,3 +341,77 @@ O2-D1-G 仍需把异步断言条件、资格确认、ARM、OSERDES 释放、pixe
 因此 O2-B 的 `54` 没有在回退后复现。O2-B 记录的类别差分是 `video_driver` endpoint 从 17 增至 18；新增 `serializer_reset_syn/reset_1` 属于单独的 `pixel_clk → pixel_clk_5x` 检查，不是 `ddrphy_sysclk → pixel_clk` 的第 54 项。结论是该计数变化属于 O2-B 实验结构经综合/布局后的 endpoint delta，不应改写旧 53/53 baseline，也不构成 serializer reset 修复证据。
 
 O2-D1-R 至此完成；下一批为 O2-D1-G 文档契约收口，仍不得直接编码 O2-D2。
+
+## 14. O2-D1-G 实现前冻结契约
+
+本节是 O2-D2 的唯一实现输入。若实现者无法从本节确定对象、边沿、状态或文件边界，必须停止并提请复核；不得在编码中自行补充第二套方案。
+
+### 14.1 唯一 generated-clock 契约
+
+候选拓扑只有一条 pixel 时钟路径：
+
+```text
+PLL u_pll_clk/clkout1（raw/pre-buffer）
+  ├─> 唯一 GTP_IOCLKBUF.CLKIN
+  │     └─> CLKOUT -> 八个 OSERDES 的 OCLK/SERCLK
+  └─> 唯一 GTP_IOCLKDIV_E2.CLKIN, DIV_FACTOR="5"
+        └─> CLKDIVOUT -> 完整 pixel 域
+```
+
+FDC/时钟对象必须满足以下全部条件：
+
+1. 只显式创建一个名为 `pixel_clk` 的 generated clock；不得与 PDS 自动对象重名，也不得保留第二条等价声明。
+2. source 必须是唯一 PLL wrapper 输出 `u_pll_clk/clkout1`；source count 必须为 1。
+3. target 必须是唯一 `GTP_IOCLKDIV_E2` primitive 的 `CLKDIVOUT` pin；divider 取点固定在 IOCLKBUF 之前，禁止改接 post-buffer `CLKOUT`。
+4. waveform 必须为 `-edges {1 5 11} -edge_shift {0 0 0}`。不得用只表达 40% duty 的 `-divide_by 5` 替代。
+5. 预期周期约 `15.380 ns`、高电平约 `6.152 ns`；这些是建模目标，不是 STA 已通过的结论。
+6. master 必须是唯一 `CLKOUT1_Inferred`；预期另有唯一 `CLKOUT3_Inferred` 控制时钟。旧 `CLKOUT0_Inferred` 对 pixel 域必须为零消费者。
+7. 对象解析为 0 个、多个、source count 非 1、自动/显式重名、waveform 不符或 divider 误接 post-buffer 时，立即停止并完整回退。
+
+### 14.2 控制器状态与计数
+
+新增控制器只允许以下状态序列，计数器表示“已完成的完整周期数”，且饱和不回卷：
+
+| 状态 | 进入条件 | 状态内行为 | 退出条件 |
+|---|---|---|---|
+| `HARD_HOLD` | `!sys_rst_n || !pll_lock` 异步成立 | 异步断言 divider reset、pixel/business reset、四路本地 serializer reset；counter 清零 | `sys_rst_n && pll_lock` 后进入 `QUALIFY` |
+| `QUALIFY` | `HARD_HOLD` 解除 | 连续观察 4 个 `control_clk` 上升沿；任一周期条件失效立即回 `HARD_HOLD` | 完成第 4 个边沿后进入 `ARM` |
+| `ARM` | 资格满足 | 释放 `/5` divider；pixel 域 reset 仅相对 `pixel_clk` 同步释放；encoder 输入强制 `de=0,c0=0,c1=0,din=0` | 完成 3 个 `pixel_clk` 上升沿后产生 `arm_req`，经两级同步到 control 域 |
+| `SER_RELEASE` | control 域收到同步后的 `arm_req` | 在下一个 `control_clk` 上升沿同步清除四只本地 reset 寄存器；每只寄存器只驱动对应 serializer 的 master/slave 两个 OSERDES；驻留 2 个完整 control 周期 | 完成 `SERIALIZER_FILL=2` 后进入 `RUN` |
+| `RUN` | serializer reset 已释放且填充完成 | 撤销 encoder 输入强制，允许正常 TMDS 数据；保持运行 | 仅硬复位重新断言时回 `HARD_HOLD` |
+
+统一常量为 `QUALIFY=4`、`ENCODER_WARMUP=3`、`SERIALIZER_FILL=2`。N 周期等待统一在 `counter == N-1` 时完成；禁止使用混合的“当前周期/剩余周期”语义。普通 video/business reset 只能撤销 `RUN` 并重新进入 warm-up，不得直接异步驱动 OSERDES 本地 reset。`ddr3_init_done` 不得参与 hard-reset 条件、`QUALIFY`、`ARM`、OSERDES reset 或控制器状态转移，后续仅作为同步后的业务 enable/status。
+
+### 14.3 Encoder warm-up 与首个有效 symbol
+
+首个有效 TMDS symbol 定义为四个 lane 同时确定的完整并行 symbol，不等同于首个活动视频像素。`ARM` 和 `SER_RELEASE` 期间必须保持 encoder 输入 `de=0,c0=0,c1=0,din=0`，对应 `CTRLTOKEN0` 条件。
+
+`dvi_encoder.v` 的 `n1d`、`din_q`、`n1q_m`、`n0q_m`、`q_m_reg` 等流水寄存器未复位，因此 serializer reset 下降并不自动意味着 symbol 已确定。首个有效 symbol 是 serializer reset 下降后，第一个 `OCLKDIV` 上升沿采入的四路确定并行字；`RUN` 必须至少延后两个完整 control 周期，确保该 symbol 完成串行发送后再撤销 encoder 输入强制。
+
+### 14.4 O2-D2 文件边界与验收
+
+允许修改的手写/约束文件仅限：
+
+- `rtl/hdmi_top/tmds_clock_reset_ctrl.v`（新增控制器）；
+- `rtl/ov7725_hdmi.v`、`rtl/hdmi_top/hdmi_top.v`、`rtl/hdmi_top/dvi_transmitter_top.v`；
+- IP Compiler 重生成的 `prj/ipcore/pll_clk/pll_clk.idf` 及其 wrapper；
+- `scripts/build.tcl`；
+- `prj/source/ov7725_hdmi.fdc`（仅在 generated-clock 对象唯一且必要时精确修改）；
+- 经验证后才可修改 `scripts/check_build.ps1`，以及对应 README、TODO、实施日志和 `.nexus-map/**`。
+
+原则上不得修改 `serializer_10_to_1.v`、encoder、video、FIFO、DDR wrapper、RCF 或任何时序例外；FIFO 本批只迁移 `rd_clk` 时钟归属，不改变 reset/flush 语义。不得手改厂商生成的 PLL Verilog。
+
+O2-D2 必须从空 `build/` 完成 compile、synthesize、dev_map、pnr、report_timing、gen_netlist、gen_bit_stream，并验证：17 个手写源、1 个 IOCLKBUF、1 个 `/5` IOCLKDIV、4 个 serializer、8 个 OSERDES、唯一 pixel generated clock；旧 `CLKOUT0` 对 pixel 域零消费者；八端点 Slow/Fast × Recovery/Removal × `OCLK` 双边沿、`OCLKDIV`、`SERCLK` 覆盖完整且 slack 非负；日志无未分类 error/critical，关键产物非零。QuestaSim 可用后补测异步断言、业务 reset 顺序、warm-up、唯一首个有效 symbol、超时和 SDF 标注。
+
+### 14.5 单次试验停止与回退
+
+O2-D2 只允许一次实现试验，不扫描第二相位。出现以下任一情况即停止、回退全部本批功能/IP/FDC 修改，并恢复 O2-D1-R 基线：
+
+- generated-clock 或控制相位无法唯一识别；
+- 本地 reset 复制后任一 Slow/Fast Recovery 或 Removal 为负；
+- 八个 endpoint、双边沿或 `OCLKDIV`/`SERCLK` 覆盖不完整；
+- 出现旧/新同频 pixel clock CDC、未列出的 clock pair、reset endpoint delta、warning/critical 或 baseline 漂移；
+- 需要 `false_path`、`multicycle`、clock group、waiver、未审核 LOC、第二相位或修改禁止文件才能继续；
+- PDS 进程虽为 0 但日志含 `^E:`、关键产物缺失/为零，或 QuestaSim SDF 层级无法标注。
+
+回退后不得通过放宽 gate、删除失败指纹或保留半成品进入下一阶段；重新评审后才可提出新方案。当前工程在 O2-D2 成功前继续标记为不可发布。

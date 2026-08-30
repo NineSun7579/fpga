@@ -165,3 +165,12 @@
 - O2-B 的 `54` 来自 video-driver 物理 endpoint 增为 18；新增 `serializer_reset_syn/reset_1` 属于另一 clock pair。该漂移未在回退后保留，因此不修改旧 baseline，也不归为已修复问题。
 - 五类产物大小与既有基线一致：综合网表 6,873,482、PNR 网表 11,604,756、SDF 8,898,464、`.sbit` 3,791,112、`.bin` 3,789,476 字节。
 - O2-D1-R 完成；下一批只收口 O2-D1-G generated-clock、状态/计数、复位分权、warm-up 和一次性停止条件，审核前不修改功能设计。
+
+## 2026-08-30：OV7725 O2-D1-G 实现前契约收口
+
+- 本批仅更新 `SERIALIZER_RESET_CONTRACT.md`、根 `TODO.md`、OV7725 README 和知识图，不修改 RTL、PLL/IP、FDC、RCF、构建脚本、gate 或 `build/`，也未声明 QuestaSim 可用。
+- 唯一 pixel 时钟拓扑冻结为：PLL `u_pll_clk/clkout1` 同时进入唯一 `GTP_IOCLKBUF` 和唯一 `GTP_IOCLKDIV_E2(DIV_FACTOR="5")`；divider 取 pre-buffer 点，`pixel_clk` generated-clock 仅允许一条显式对象，waveform 固定 `-edges {1 5 11} -edge_shift {0 0 0}`。`-divide_by 5`、post-buffer 取点和自动/显式重名均触发回退。
+- 控制状态冻结为 `HARD_HOLD → QUALIFY → ARM → SER_RELEASE → RUN`；`QUALIFY=4`、`ENCODER_WARMUP=3`、`SERIALIZER_FILL=2`，counter 表示已完成完整周期且饱和不回卷。`sys_rst_n/pll_lock` 负责异步 hard reset，video/business reset 与四路本地 serializer reset 分权；`ddr3_init_done` 不进入控制器状态或 OSERDES reset。
+- ARM/SER_RELEASE 期间 encoder 输入强制 `de=0,c0=0,c1=0,din=0`；首个有效 TMDS symbol 定义为四 lane 同时确定的完整并行字，RUN 至少延后两个 control 周期以覆盖未复位 encoder 流水。
+- O2-D2 只允许一次实现试验：IP Compiler 重生成 PLL，新增项目自有控制器并原子迁移 read FIFO `rd_clk` 与完整 pixel 域。任何 generated-clock/endpoint/Recovery/Removal/覆盖、warning、baseline、CDC 或 SDF 停止条件触发即完整回退，不扫描第二相位、不增加 waiver。
+- O2-D1-G 文档收口完成，等待用户审核；审核前不得进入 O2-D2 编码。
