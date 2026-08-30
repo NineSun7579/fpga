@@ -91,6 +91,7 @@
 - d3_0_status: completed_read_only_review; D3-A implementation pending user review
 - d3_0_handshake_contract: 写地址以 `axi_awvalid && axi_awready` 接受，写数据接受由 `axi_wready` 指示，核心返回 `axi_wusero_id`/`axi_wusero_last`；读请求以 `axi_arvalid && axi_arready` 接受，核心用 `axi_rvalid`/`axi_rlast` 返回且没有 `axi_rready`。D3-A 按该非标准 AXI-like 契约实现；若 IP 重生成后语义、地址单位或层级变化则停止并重新审核。
 - d3_0_boundary: 只更新文档和评审事实；D3-0 不修改 RTL、活动 IP、FDC/RCF 或构建脚本。
+- d3_0_r_port_map: 提交 `2fd7c51` 新增 `ddr3_test/ddr3_test/doc/D3A_PORT_MAP.md`，只读核对 `ddr3` core 端口宽度、`test_ddr` 复位链和 `I_ips_ddr_top` 实例；D3-A 仍不得修改厂商 IP 或物理端口。
 - provisional_build_entry: `ddr3_test/ddr3_test/scripts/run.ps1`
 - build_definition: `ddr3_test/ddr3_test/scripts/build.tcl`
 - build_gate: `ddr3_test/ddr3_test/scripts/check_build.ps1`
