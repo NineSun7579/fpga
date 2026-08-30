@@ -381,6 +381,7 @@ O2-D2 停止条件：控制相位或 `/5` generated clock 未被 PDS 唯一识�
 ### S0：公共仿真环境
 
 - [x] S0-0（2026-08-30）：复核 PDS 与仿真器可执行文件；仅发现 `E:/pango/PDS_2022.2-SP6.4/bin/pds_shell.exe`，PATH、`C:/questasim64/win64` 和常见 ModelSim/Questa 安装目录均未找到 `vsim.exe`、`vlog.exe`、`vlib.exe`。
+- [x] S0-0-R（2026-08-30）：再次检查 PATH、`C:/questasim64/win64`、常见安装目录及递归文件名，三项可执行文件仍未发现；S0-1 阻断状态未改变。
 - [ ] 安装 ModelSim/QuestaSim，记录 `vsim.exe`、`vlog.exe` 的实际目录和版本。
 - [ ] 编译 Logos2 USIM/VSIM 到仓库根 `build/simlib/`。
 - [ ] 将仿真器安装路径作为可覆盖外部参数，不写入工程源清单。
