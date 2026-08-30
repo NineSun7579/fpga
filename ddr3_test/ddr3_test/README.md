@@ -14,6 +14,8 @@
 - 厂商示例约束基线：`ip_core/ddr3/pnr/ddr_test.fdc`
 - 优先路由约束：`ip_core/ddr3/pnr/ddr3.rcf`
 
+板级资料收集入口见 [DDR3 Bring-up 板级证据清单](doc/BOARD_EVIDENCE.md)。
+
 禁止使用外层旧 `ip_core/ddr_test.fdc`，其中仍包含 PG2L50H 的硬宏位置。
 
 ## 构建

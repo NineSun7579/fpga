@@ -10,6 +10,8 @@
 Logos2 / PG2L100H / FBG484 / -6
 ```
 
+板级资料收集入口见 [OV7725 HDMI 板级证据清单](doc/BOARD_EVIDENCE.md)。
+
 - PDS 版本：`2022.2-SP6.4`
 - 顶层模块：`ov7725_hdmi`
 

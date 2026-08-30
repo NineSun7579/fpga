@@ -52,6 +52,7 @@
 - [x] OV7725 完成 O2-B 最小实现与七阶段实验；方案因 Slow/Fast Recovery 转移到 `pixel_clk_5x → pixel_clk` 且慢角同域仍为负而被否决，失败 RTL 已回退。
 - [x] PCIe 完成 H2-A lane/refclk/PERST#/UART/SCBV/IP 目标证据矩阵；H2-B 仍待板级资料和 IP 重生成审核。
 - [x] H2-B 静态准备：PCIe gate 直接解析 `pcie_test.idf` XML 元数据并强制校验 `Logos2/PG2L100H/FBG484/-6`；当前 `PG2L50H` 仍作为已知阻断，未放宽严格 gate。
+- [x] H0/H1/H3 资料准备：新增 OV7725 HDMI 与 DDR3 板级证据清单，统一收集板卡、器件、时钟、电压、拓扑和 I/O 时序依据；资料未提供前不修改硬件参数。
 - [x] S0-0 完成公共仿真器可执行文件复核；当前未发现 `vsim.exe`、`vlog.exe`、`vlib.exe`。
 - [x] 完成三项目 S1/S2/S3 仿真就绪度只读盘点；矩阵见 [`docs/SIMULATION_READINESS_MATRIX.md`](docs/SIMULATION_READINESS_MATRIX.md)。三项目项目级 TB、`.f`、`.do` 均缺失，现有资产均为厂商 IP 示例，不能直接作为集成验收。
 - [ ] 安装 QuestaSim/ModelSim 并记录版本和路径。

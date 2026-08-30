@@ -239,3 +239,9 @@
 - `pcie_dma_test_100h/scripts/check_build.ps1` 现在直接解析活动 `ipcore/pcie_test/pcie_test.idf`，校验 family、device、package 和 speedgrade 是否为 `Logos2/PG2L100H/FBG484/-6`。
 - 元数据不一致会进入已知问题集合：显式 `-AllowKnownBaselineIssues` 可复现当前基线，严格模式必定失败；旧的日志重复匹配已移除。
 - 本批仅修改 gate、TODO 和实现记录；未修改 PCIe RTL、IDF、FDC、厂商 IP 或生成物。
+
+## 2026-08-30：H0/H1/H3 板级证据清单准备
+
+- 新增 `41_ov7725_hdmi/doc/BOARD_EVIDENCE.md` 与 `ddr3_test/ddr3_test/doc/BOARD_EVIDENCE.md`，分别记录当前工程事实、证据来源、用户需提供的板级字段和关闭条件。
+- 清单覆盖 FPGA/板卡身份、DDR3 颗粒与拓扑、`mem_a[14]` 分支、时钟/复位、bank 电压、share pin、OV7725 输入格式和 HDMI 模式。
+- 本批只新增文档并更新 TODO；未修改 RTL、厂商 IP、IDF、FDC、RCF 或生成物。资料缺失仍保持 H0/H1/H3 阻断。
