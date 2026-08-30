@@ -79,8 +79,9 @@
 3. **M2：DDR3 PG2L50H IP 与约束重生成**
    - 前置：使用本机 SP6.4 IP Compiler；SP6.1 的 50H backup 只作参数和差异证据。
    - 交付：按现有 row15/col10/bank3/DQ16/DQS2 参数重生成 50H controller/PHY、示例、FDC/RCF 和 sim 资产，再完成 compile/dev_map 与七阶段重建。
-   - M2-A 已建立 `scripts/regenerate_ip.ps1` staging 入口和 [`M2_IP_REGENERATION.md`](ddr3_test/ddr3_test/doc/M2_IP_REGENERATION.md)：SP6.4 CLI 返回 0，生成 IDF header 为 PG2L50H，canonical 哈希不变；尚未升格生成目录。
-   - 验收：IDF header、生成器、FDC 50H 硬宏和最终 PDS 产物一致；`DEVICE_100H_EN` 当前重生成后仍为 `true`，必须确认参数语义，不得手改成 `false` 伪造通过。重跑 CI-6 后再确认端口、层级和握手契约。D3-A 仍需另行审核。
+   - M2-A 已建立 `scripts/regenerate_ip.ps1` staging 入口和 [`M2_IP_REGENERATION.md`](ddr3_test/ddr3_test/doc/M2_IP_REGENERATION.md)。M2-B1 已从 SP6.4 `ui.tcl` 关闭 `DEVICE_100H_EN` 语义，并形成 [`参数与差异审计`](ddr3_test/ddr3_test/doc/M2B1_PARAMETER_AND_DIFF_AUDIT.md)。
+   - 当前正确 staging 为 PG2L50H、SP6.4、`DEVICE_100H_EN=false`，DDR PHY 使用 `TRUE/CLKOUT4` 分支，canonical 哈希不变；顶层新增 5 个端口，FDC 有 28 项管脚差异，尚未升格。
+   - 验收：先用原理图/BOM 关闭新增 refclk、DDR byte lane、复位/UART/LED/状态输出和电压拓扑，再原子升格并重跑 CI-6、七阶段和 D3-0-R。D3-A 仍需另行审核。
 
 4. **M3：OV7725 PG2L50H 四 IP 重生成与新基线**
    - 前置：先获得实际 DDR3 料号、x16/x32 组织、row 位数和管脚拓扑；当前 100H DDR 配置与仓库历史 50H DDR 工程不可互换。

@@ -396,9 +396,10 @@
       "evidence_path": [
         "ddr3_test/ddr3_test/scripts/regenerate_ip.ps1",
         "ddr3_test/ddr3_test/doc/M2_IP_REGENERATION.md",
+        "ddr3_test/ddr3_test/doc/M2B1_PARAMETER_AND_DIFF_AUDIT.md",
         "ddr3_test/ddr3_test/build/logs/pds-gen_bit_stream.log"
       ],
-      "evidence_gap": "M2-A PG2L50H staging 重生成已完成，但 canonical IP/FDC/RCF 仍为 PG2L100H。DEVICE_100H_EN 语义、板级参数、canonical 升格、CI-6、50H 空目录七阶段、D3-0-R、有限 BIST 和四级仿真仍未验收。",
+      "evidence_gap": "M2-B1 已纠正 PG2L50H staging 生成路径并完成参数/资产差异审计，但 canonical IP/FDC/RCF 仍为 PG2L100H。板级参数、28 项 FDC pin 差异、canonical 升格、CI-6、50H 空目录七阶段、D3-0-R、有限 BIST 和四级仿真仍未验收。",
       "hardware_target": {
         "board": "RK3568+PG2L50H100H",
         "fpga": "PG2L50H-6IFBG484",
@@ -430,7 +431,7 @@
           "generator": "2022.2-SP6.1",
           "use": "comparison and parameter-difference oracle only; do not restore or publish"
         },
-        "status": "superseded_by_m2_a_staging_regeneration"
+        "status": "superseded_by_m2_b1_parameter_and_diff_audit"
       },
       "m2_a_staging_regeneration": {
         "date": "2026-08-30",
@@ -450,16 +451,59 @@
         "fdc_hard_macro": "DDRPHY_CPD_297_4",
         "device_100h_en": {
           "observed_value": true,
-          "semantic_status": "unresolved; require vendor/IP expert confirmation",
-          "policy": "do not hand-edit IDF or generated RTL"
+          "semantic_status": "resolved_invalid_for_PG2L50H",
+          "policy": "discard this header-only override result; do not hand-edit IDF or generated RTL"
         },
+        "status": "superseded_invalid_header_only_probe",
+        "boundary": "canonical IP/FDC/RCF remain unchanged; the generated staging is invalid for promotion and does not authorize D3-A or board programming"
+      },
+      "m2_b1_parameter_and_diff_audit": {
+        "date": "2026-08-30",
+        "document": "ddr3_test/ddr3_test/doc/M2B1_PARAMETER_AND_DIFF_AUDIT.md",
+        "derived_parameter_evidence": "PDS SP6.4 ui.tcl",
+        "device_100h_en_rule": {
+          "PG2L100H_or_HX": true,
+          "PG2L50H": false,
+          "visibility": "hidden derived parameter"
+        },
+        "forbidden_path": "Direct -device PG2L50H override of a 100H IDF retains true and generates the wrong PPLL FALSE/CLKOUTF branch",
+        "seed_parameter_comparison": "The active 100H IDF and SP6.1 50H seed differ in parameters only at DEVICE_100H_EN",
+        "regeneration": {
+          "generator": "2022.2-SP6.4 build 146967",
+          "script": "ddr3_test/ddr3_test/scripts/regenerate_ip.ps1",
+          "device_100h_en": false,
+          "ppll_branch": "TRUE/CLKOUT4",
+          "exit_code": 0,
+          "errors": 0,
+          "warnings": 0,
+          "canonical_hash_unchanged": true
+        },
+        "changed_asset_classes": [
+          "DDR PHY slice",
+          "wrapper",
+          "FDC",
+          "simulation filelist",
+          "IDF"
+        ],
+        "wrapper_ports": {
+          "before": 21,
+          "after": 26,
+          "added": [
+            "ref_clk_p",
+            "ref_clk_n",
+            "pll_lock",
+            "ddrphy_cpd_lock",
+            "ddr_init_done"
+          ]
+        },
+        "fdc_pin_difference_count": 28,
         "status": "verified_review_only_not_promoted",
-        "boundary": "canonical IP/FDC/RCF remain unchanged; M2-A does not authorize D3-A or board programming"
+        "boundary": "Do not promote canonical assets without schematic and BOM review; M2-B1 does not authorize D3-A or board programming"
       },
       "m2_gate_sequence": [
+        "obtain_schematic_and_bom",
         "freeze_board_ddr3_part_and_pcb_parameters",
-        "confirm_device_100h_en_semantics",
-        "review_staged_wrapper_fdc_and_rcf",
+        "review_28_fdc_pin_differences_and_staged_wrapper_phy_filelist_idf",
         "promote_staging_to_canonical_only_after_approval",
         "rerun_ci_6_against_new_core_wrapper_and_port_map",
         "rebuild_compile_through_bitstream_from_empty_build",
@@ -501,7 +545,7 @@
         "ddr3_test/ddr3_test/rtl/ddr3_finite_bist.sv"
       ],
       "evidence_path": "ddr3_test/ddr3_test/doc/FINITE_SELF_TEST_CONTRACT.md",
-      "evidence_gap": "D2 与旧 D3-0 只读决策已完成，M2-A staging 重生成已验证；canonical 升格、CI-6、D3-0-R 和 D3-A 仍未完成，两个项目自有 RTL 文件未创建，且本机无可用 QuestaSim。",
+      "evidence_gap": "D2 与旧 D3-0 只读决策已完成，M2-B1 正确 PG2L50H staging 与参数/差异审计已验证；canonical 升格、CI-6、D3-0-R 和 D3-A 仍未完成，两个项目自有 RTL 文件未创建，且本机无可用 QuestaSim。",
       "transaction_contract": {
         "pair_count": 16,
         "burst": "single-beat write/read compare",
@@ -532,7 +576,7 @@
       "implementation_status": "implemented_example_only",
       "code_path": "ddr3_test/ddr3_test/ip_core/ddr3/pnr/",
       "evidence_path": "ddr3_test/ddr3_test/ip_core/ddr3/pnr/place_route/test_ddr_timing_summary_after_hold_fix.txt",
-      "evidence_gap": "外层重建已生成当前 PG2L100H test_ddr 的 PNR 网表与 SDF，但示例通过仍不代表产品工程；活动 IDF/FDC/RCF 仍需 SP6.4 重新生成为 PG2L50H，testbench 失配且 SDF 未标注验证。",
+      "evidence_gap": "外层重建已生成当前 PG2L100H test_ddr 的 PNR 网表与 SDF，但示例通过仍不代表产品工程；M2-B1 已生成正确 PG2L50H staging，仍需原理图/BOM审核 28 项 FDC pin 差异后才能升格 canonical，testbench 失配且 SDF 未标注验证。",
       "tech_stack": ["Verilog", "Pango Logos2", "DDR3 IP"],
       "related_reqs": ["示例迁移", "端口匹配", "四级仿真"],
       "complexity": "high",
@@ -800,14 +844,14 @@
   "metadata": {
     "analysis_mode": "manual bootstrap",
     "verified_at": "2026-08-30",
-    "git_commits_analyzed": 55,
+    "git_commits_analyzed": 56,
     "raw_ast_available": false,
     "limitations": [
-      "M2-A DDR3 staging regeneration brings the repository to 55 commits; the history remains too shallow for reliable hotspot ranking.",
+      "M2-B1 DDR3 parameter/diff audit is expected to bring the repository to 56 commits; the history remains too shallow for reliable hotspot ranking.",
       "The S0-1 parameterized simulation-library entry is committed with mandatory simulator preflight; actual USIM/VSIM compilation remains blocked by the missing simulator installation.",
       "No HDL/raw source AST extraction was run; CI-0 PowerShell syntax parsing is recorded separately.",
       "No ModelSim or QuestaSim execution was available.",
-      "The 55-commit history includes CI-1 through CI-6, board-evidence checklists, simulator-path review, M0 target approval, M1 PCIe migration and the M2-A DDR3 staging entry. M2-A is not canonical promotion or a new DDR3 baseline; M2/M3 remain incomplete."
+      "The 56-commit history includes CI-1 through CI-6, board-evidence checklists, simulator-path review, M0 target approval, M1 PCIe migration, M2-A staging and M2-B1 parameter/diff audit. M2-B1 is not canonical promotion or a new DDR3 baseline; M2/M3 remain incomplete."
     ]
   }
 }

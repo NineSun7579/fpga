@@ -26,9 +26,9 @@
 powershell -ExecutionPolicy Bypass -File .\scripts\regenerate_ip.ps1
 ```
 
-默认输出为 `build/ipgen/pg2l50h`，日志为 `build/logs/ipgen-pg2l50h.log`。脚本结构化检查 IDF header、SP6.4 生成器和关键 wrapper/FDC/RCF/sim 资产，并验证 canonical `ddr3.idf` 的 SHA-256 在生成前后不变。完整差异、升格条件和回退条件见 [M2-A DDR3 PG2L50H IP 重生成](doc/M2_IP_REGENERATION.md)。
+默认输出为 `build/ipgen/pg2l50h`，日志为 `build/logs/ipgen-pg2l50h.log`。脚本以大小写敏感的参数名和值多重集验证 SP6.1 50H seed 与活动 IDF 除隐藏器件参数外一致，再由 SP6.4 重生成；随后检查 IDF header、`DEVICE_100H_EN=false`、50H PPLL 分支和关键 wrapper/FDC/RCF/sim 资产，并验证 canonical `ddr3.idf` 的 SHA-256 在生成前后不变。执行说明见 [M2-A DDR3 PG2L50H IP 重生成](doc/M2_IP_REGENERATION.md)，参数源码与差异矩阵见 [M2-B1 参数与差异审计](doc/M2B1_PARAMETER_AND_DIFF_AUDIT.md)。
 
-当前 staging probe 已成功生成 PG2L50H header，但 wrapper 新增 `ref_clk_p/ref_clk_n`，FDC 使用 50H 硬宏；`DEVICE_100H_EN` 原始参数仍为 `true`。因此 M2-A 只证明“可重生成且差异已暴露”，不代表 canonical IP、板级参数或位流已获批准。
+当前 staging probe 已成功生成 PG2L50H header、`DEVICE_100H_EN=false` 和 50H PPLL 分支。wrapper 新增 `ref_clk_p/ref_clk_n` 及三个状态输出，FDC 有 28 项管脚差异并使用 `DDRPHY_CPD_297_4`。因此 M2-B1 只证明“参数语义已关闭且可正确重生成”，不代表 canonical IP、板级参数或位流已获批准。
 
 ## 构建
 

@@ -90,16 +90,18 @@
 - implementation_status: bringup_full_implementation_baseline
 - code_path: `ddr3_test/ddr3_test/`
 - project_path: `ddr3_test/ddr3_test/ddr3_test.pds`
-- evidence_path: `ddr3_test/ddr3_test/scripts/regenerate_ip.ps1`, `ddr3_test/ddr3_test/doc/M2_IP_REGENERATION.md`, `ddr3_test/ddr3_test/build/logs/pds-gen_bit_stream.log`, `ddr3_test/ddr3_test/build/pds/report_timing/test_ddr.rtr`, `ddr3_test/ddr3_test/scripts/check_build.ps1`
-- evidence_gap: M2-A 已完成 PG2L50H staging 重生成，但 canonical IP/FDC/RCF 仍是旧 PG2L100H 输入，旧全流程、STA、网表、SDF 和位流不可烧录实际板卡。`DEVICE_100H_EN=true`、板级 DDR3 参数、wrapper/FDC 差异、canonical 升格、CI-6、50H 空目录七阶段、D3-0-R 与 D3-A/B/C 均未验收。
+- evidence_path: `ddr3_test/ddr3_test/scripts/regenerate_ip.ps1`, `ddr3_test/ddr3_test/doc/M2_IP_REGENERATION.md`, `ddr3_test/ddr3_test/doc/M2B1_PARAMETER_AND_DIFF_AUDIT.md`, `ddr3_test/ddr3_test/build/logs/pds-gen_bit_stream.log`, `ddr3_test/ddr3_test/build/pds/report_timing/test_ddr.rtr`, `ddr3_test/ddr3_test/scripts/check_build.ps1`
+- evidence_gap: M2-B1 已纠正 PG2L50H staging 生成路径并完成参数/资产差异审计，但 canonical IP/FDC/RCF 仍是旧 PG2L100H 输入，旧全流程、STA、网表、SDF 和位流不可烧录实际板卡。板级 DDR3 参数、28 项 FDC pin 差异、canonical 升格、CI-6、50H 空目录七阶段、D3-0-R 与 D3-A/B/C 均未验收。
 - responsibility: 当前以厂商 `test_ddr` 作为临时 DDR3 board bring-up 顶层；后续必须明确真正产品顶层和板级功能范围。
 - hardware_target: `RK3568+PG2L50H100H` / `PG2L50H-6IFBG484` / `Logos2 / PG2L50H / FBG484 / -6`
 - m2_active_input_audit: 活动 `ip_core/ddr3/ddr3.idf` 为 `PG2L100H`、生成器 `2022.2-SP6.4`；canonical FDC/RCF 为 `ip_core/ddr3/pnr/ddr_test.fdc` 与 `ip_core/ddr3/pnr/ddr3.rcf`；`ip_core/ddr_test.fdc` 是旧外层参考，不能直接升格。项目自有 `scripts/build.tcl` 与 `scripts/check_build.ps1` 也仍按 `PG2L100H`，待 50H 资产落地后再修正。
 - m2_legacy_50h_audit: `ip_backup/20250108100125/ddr3/ddr3.idf` 为 `PG2L50H`，但生成器是 `2022.2-SP6.1`；仅可作为参数/硬宏差异 oracle，禁止直接恢复或复制到活动输入。
 - m2_a_staging: `2026-08-30` 使用 `scripts/regenerate_ip.ps1` 在 `build/ipgen/pg2l50h` 调用 SP6.4 build 146967，目标 `Logos2/PG2L50H/FBG484/-6`，结果 `0 error(s), 0 warning(s)`；canonical IDF SHA-256 保持 `6CB70BF0954100B4797197A47F20496AD74945995E12B30FA040870EE3366C47`。
-- m2_a_diff: `ddr3.v`、`ddr3_ddrphy_top.v`、`ddr3.rcf` 不变；`test_ddr.v`、FDC、IDF 漂移。50H wrapper 保留 `free_clk` 并新增 `ref_clk_p/n` 与 `GTP_INBUFDS`；FDC 使用 `DDRPHY_CPD_297_4`；`DEVICE_100H_EN=true` 语义未决，禁止手改。
-- m2_status: staging_regeneration_verified_pending_parameter_review_and_canonical_promotion
-- m2_gate: 锁定板级颗粒与 PCB 参数并确认 `DEVICE_100H_EN` 语义 → 审核 staging wrapper/FDC/RCF → 升格 canonical → 重跑 CI-6 → 清空 `build/` 完成七阶段与器件交叉检查 → 重审 D3-0-R，获审后才可进入 D3-A。M2-A 未授权 canonical 替换、D3-A 或烧录。
+- m2_b1_derived_parameter: PDS SP6.4 `ui.tcl` 定义 `DEVICE_100H_EN` 为隐藏派生参数，`PG2L100H/HX=true`、`PG2L50H=false`；直接 `-device` 覆盖旧 100H IDF 会错误保留 `true` 并生成 PPLL `FALSE/CLKOUTF` 分支，已明确禁止。
+- m2_b1_seed_regeneration: 活动 100H IDF 与 SP6.1 50H seed 的参数仅 `DEVICE_100H_EN` 不同；更新后的 `scripts/regenerate_ip.ps1` 先验证 seed 参数一致，再由 SP6.4 build 146967 重生成，结果 `DEVICE_100H_EN=false`、PPLL `TRUE/CLKOUT4`、`0 error(s), 0 warning(s)`，canonical 哈希保持不变。
+- m2_b1_diff: 正确 PG2L50H staging 的 DDR PHY slice、wrapper、FDC、仿真 filelist 与 IDF 均不同；wrapper 端口 `21 → 26`，新增 `ref_clk_p/n`、`pll_lock`、`ddrphy_cpd_lock`、`ddr_init_done`；FDC 有 28 项 pin 差异。
+- m2_status: seed_parameter_validation_and_sp6_4_staging_verified_pending_board_evidence_and_canonical_promotion
+- m2_gate: 取得原理图/BOM并锁定板级 DDR3 颗粒/组织/PCB 参数 → 审核 28 项 FDC pin 差异及 wrapper/PHY/filelist/IDF → 升格 canonical → 重跑 CI-6 → 清空 `build/` 完成七阶段与器件交叉检查 → 重审 D3-0-R，获审后才可进入 D3-A。M2-B1 未授权 canonical 替换、D3-A 或烧录。
 - d3_0_read_only_review: `2026-08-30` 已确认活动 IP 为 `ddr3_test/ddr3_test/ip_core/ddr3/ddr3.v` 的 `module ddr3`；公开端口包含 `ddr_init_done`、`core_clk` 和自定义 AXI-like AW/W/AR/R 接口。`test_ddr.v` 的物理 board wrapper 实例名 `I_ips_ddr_top` 必须保持不变。
 - d3_0_status: legacy_contract_review_complete; PG2L50H IP/FDC/RCF regeneration and D3-A re-review required
 - d3_0_handshake_contract: 写地址以 `axi_awvalid && axi_awready` 接受，写数据接受由 `axi_wready` 指示，核心返回 `axi_wusero_id`/`axi_wusero_last`；读请求以 `axi_arvalid && axi_arready` 接受，核心用 `axi_rvalid`/`axi_rlast` 返回且没有 `axi_rready`。D3-A 按该非标准 AXI-like 契约实现；若 IP 重生成后语义、地址单位或层级变化则停止并重新审核。
@@ -125,7 +127,7 @@
 - transaction_contract: 16 个单 beat 写读比较 pair；控制器地址 `0x0..0x78`、步长 8；每 pair timeout 4096 周期；整次 run timeout 131072 周期。
 - result_contract: 稳定公开 `test_done`、`test_failed`、`failure_code`、`error_count`、`completed_pairs`，并提供首错地址/期望值/实际值等首错信息。
 - ownership_boundary: 厂商 `ip_core/ddr3/**` 保持原样；新增项目自有 RTL 必须遵循根目录 VSCS。
-- next_step: M2-A staging 已生成；先确认 `DEVICE_100H_EN` 和板级 DDR3 参数，审核新 wrapper/FDC 后再决定 canonical 升格。升格后重新核对握手、地址单位、端口和 `I_ips_ddr_top` 层级；重新审核 D3-A 后才可按 D3-A → D3-B → D3-C 实现项目自有 RTL
+- next_step: M2-B1 已确认隐藏派生参数语义并生成正确 50H staging；先依据原理图/BOM审核 28 项 FDC pin 差异和新增 wrapper 状态端口，再决定 canonical 升格。升格后重新核对握手、地址单位、端口和 `I_ips_ddr_top` 层级；重新审核 D3-A 后才可按 D3-A → D3-B → D3-C 实现项目自有 RTL
 
 ## DDR3 IP 示例
 

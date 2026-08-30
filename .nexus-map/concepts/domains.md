@@ -26,7 +26,7 @@ DDR3 D3-0（2026-08-30）已完成只读边界评审：活动 IP 是 `ddr3_test/
 
 D3-0 已确认旧 IP 接口不能按标准 AXI ready/valid 擅自解释：AW/AR 分别以 valid/ready 接受，写数据接受由 `axi_wready` 指示，核心返回 `axi_wusero_id`/`axi_wusero_last`；读返回使用 `axi_rvalid`/`axi_rlast` 且没有 `axi_rready`。CI-6 已保护该静态事实，但 M2 必须重生成 PG2L50H IP/FDC/RCF并重跑门禁；只有端口、地址单位与 `I_ips_ddr_top` 层级重新确认并审核后才可进入 D3-A。
 
-DDR3 M2-A 已建立 `scripts/regenerate_ip.ps1` 与 `doc/M2_IP_REGENERATION.md`：SP6.4 build 146967 在 `build/ipgen/pg2l50h` 为 `PG2L50H-6IFBG484` staging 生成成功，日志 `0 error(s), 0 warning(s)`，canonical IDF 哈希未变。比较结果显示 `ddr3.v`、`ddr3_ddrphy_top.v`、`ddr3.rcf` 不变，`test_ddr.v`、FDC、IDF 漂移；新 wrapper 保留 `free_clk` 并新增差分 `ref_clk_p/n`，FDC 使用 `DDRPHY_CPD_297_4`。`DEVICE_100H_EN=true` 是待确认的生成参数，不能据此推断目标错误，也不得手改。staging 尚未升格 canonical，D3-A 仍未授权。
+DDR3 M2-B1 通过 PDS SP6.4 `ui.tcl` 确认 `DEVICE_100H_EN` 是隐藏派生参数：`PG2L100H/HX=true`，`PG2L50H=false`。因此禁止直接用 `-device PG2L50H` 覆盖 100H IDF；该路径会保留错误的 `true` 并选择 PPLL `FALSE/CLKOUTF` 分支。活动 100H IDF 与 SP6.1 50H seed 的全部参数只有此 flag 不同，更新后的 `scripts/regenerate_ip.ps1` 会先验证参数一致，再由 SP6.4 build 146967 生成正确 50H staging：`DEVICE_100H_EN=false`、PPLL `TRUE/CLKOUT4`、`0 error(s), 0 warning(s)`，canonical 哈希不变。正确差异覆盖 DDR PHY slice、wrapper、FDC、仿真 filelist 与 IDF；wrapper 由 21 增至 26 个端口并新增 `ref_clk_p/n`、`pll_lock`、`ddrphy_cpd_lock`、`ddr_init_done`，FDC 有 28 项 pin 差异。审计证据为 `doc/M2B1_PARAMETER_AND_DIFF_AUDIT.md`；原理图/BOM 缺失时不得升格 canonical，D3-A 仍未授权。
 
 PCIe H2-A（2026-08-30）固定产品顶层的板级边界：`pcie_dma_test` 使用 x2 `rxn/rxp/txn/txp`、差分 `ref_clk_p/n`、`perst_n`、`button_rst_n` 和两枚 LED；当前 FDC 仅固定 refclk `F6/E6`、PERST# `M16`、button reset `M15`、LED `M17/J16`。lane 极性、板级拓扑、I/O delay 和 SCBV 均没有证据，不能由实现成功推断。
 

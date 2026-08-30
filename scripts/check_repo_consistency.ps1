@@ -20,6 +20,8 @@ $Ddr3RegeneratePath = Join-Path $RepoRoot `
     'ddr3_test\ddr3_test\scripts\regenerate_ip.ps1'
 $Ddr3RegenerationDocPath = Join-Path $RepoRoot `
     'ddr3_test\ddr3_test\doc\M2_IP_REGENERATION.md'
+$Ddr3M2B1AuditPath = Join-Path $RepoRoot `
+    'ddr3_test\ddr3_test\doc\M2B1_PARAMETER_AND_DIFF_AUDIT.md'
 
 function Add-Failure {
     param([Parameter(Mandatory)][string]$Message)
@@ -135,6 +137,8 @@ $Ddr3RegenerateExists = Require-File -Path $Ddr3RegeneratePath `
     -Description 'DDR3 PG2L50H staging regeneration entry'
 $Ddr3RegenerationDocExists = Require-File -Path $Ddr3RegenerationDocPath `
     -Description 'DDR3 M2 IP regeneration audit'
+$Ddr3M2B1AuditExists = Require-File -Path $Ddr3M2B1AuditPath `
+    -Description 'DDR3 M2-B1 parameter and diff audit'
 if ($Ddr3RegenerateExists) {
     $Ddr3RegenerateText = Get-Content -Raw -Encoding UTF8 `
         -LiteralPath $Ddr3RegeneratePath
@@ -144,8 +148,13 @@ if ($Ddr3RegenerateExists) {
             'approved DDR3 package override' = '-pack\s+FBG484'
             'approved DDR3 speed override' = '-speed\s+-6'
             'staging under build directory' = "'build'"
+            'validated PG2L50H seed' = 'ip_backup\\20250108100125\\ddr3'
+            'case-sensitive IDF parameter comparison' = 'Sort-Object\s+-CaseSensitive'
+            'order-independent IDF parameter diff' = 'Compare-Object'
             'canonical hash preservation gate' = 'Get-FileHash'
-            'DEVICE_100H_EN evidence capture' = 'DEVICE_100H_EN'
+            'DEVICE_100H_EN false gate' = "DEVICE_100H_EN.*false"
+            'PG2L50H PPLL synthesis gate' = 'CLKOUT4_SYN_EN'
+            'PG2L50H PPLL feedback gate' = 'INTERNAL_FB'
         }).GetEnumerator()) {
         Require-Pattern -Text $Ddr3RegenerateText -Pattern $Required.Value `
             -Description $Required.Key | Out-Null
@@ -159,9 +168,25 @@ if ($Ddr3RegenerationDocExists) {
             'M2 canonical promotion conditions' = '(?m)^##\s+\u5347\u683c\u6761\u4ef6\s*\r?$'
             'M2 rollback conditions' = '(?m)^##\s+\u56de\u9000\u6761\u4ef6\s*\r?$'
             'M2 wrapper clock drift' = 'ref_clk_p/ref_clk_n'
-            'M2 raw device parameter warning' = 'DEVICE_100H_EN'
+            'M2 derived device parameter gate' = 'DEVICE_100H_EN=false'
+            'M2-B1 audit link' = 'M2B1_PARAMETER_AND_DIFF_AUDIT\.md'
         }).GetEnumerator()) {
         Require-Pattern -Text $Ddr3RegenerationDocText -Pattern $Required.Value `
+            -Description $Required.Key | Out-Null
+    }
+}
+if ($Ddr3M2B1AuditExists) {
+    $Ddr3M2B1AuditText = Get-Content -Raw -Encoding UTF8 `
+        -LiteralPath $Ddr3M2B1AuditPath
+    foreach ($Required in ([ordered]@{
+            'M2-B1 hidden parameter conclusion' = '\u9690\u85cf\u5668\u4ef6\u6d3e\u751f\u53c2\u6570'
+            'M2-B1 PG2L50H false value' = 'PG2L50H.*false'
+            'M2-B1 PPLL branch evidence' = 'CLKOUT4_SYN_EN.*TRUE'
+            'M2-B1 added port count' = '21\s*\u4e2a\u589e\u52a0\u5230\s*26\s*\u4e2a'
+            'M2-B1 pin diff count' = '28\s*\u9879\u5dee\u5f02'
+            'M2-B1 canonical promotion boundary' = '(?m)^##\s+\u5347\u683c\u8fb9\u754c\s*\r?$'
+        }).GetEnumerator()) {
+        Require-Pattern -Text $Ddr3M2B1AuditText -Pattern $Required.Value `
             -Description $Required.Key | Out-Null
     }
 }
