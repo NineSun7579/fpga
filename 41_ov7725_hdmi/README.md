@@ -12,6 +12,7 @@ Logos2 / PG2L50H / FBG484 / -6
 ```
 
 板级资料收集入口见 [OV7725 HDMI 板级证据清单](doc/BOARD_EVIDENCE.md)。
+四个活动 IP 的迁移方式、参数边界和升格条件见 [M3-A PG2L50H 四 IP 迁移前审计](doc/M3A_IP_MIGRATION_AUDIT.md)。
 
 - PDS 版本：`2022.2-SP6.4`
 - 顶层模块：`ov7725_hdmi`
@@ -35,6 +36,8 @@ Logos2 / PG2L50H / FBG484 / -6
 - 已生成非零综合网表、PNR 网表、slow-corner SDF、`.sbit` 和 `.bin`。
 - 严格 gate 会因已知发布阻断返回非零；显式 baseline 模式精确核对 7 组 `corner/check/clock pair/endpoints` 失败指纹，只证明当前失败基线可重复，并明确标记不可发布。
 - 本机尚无 ModelSim/QuestaSim，因此项目级四级自检仿真未运行。
+- M3-A 已确认四个活动 SP4.2 IDF 与 SP6.4 安装版本不兼容：CLI 探针分别被 `IPCompiler 0037` 和 `IPCompiler 0057` 拒绝。M3-B 只能在 SP6.4 GUI 中为 PG2L50H 新建当前版本实例，并只输出到 `build/ipgen/pg2l50h/**`。
+- DDR3 `DEVICE_100H_EN=false`、PLL `DEVICE_PG2L50H=true` 和 FIFO 的 85 个 DRM36K/170 个 DRM18K 上限属于 50H staging 必检项；原理图/BOM 未关闭 DDR3 组织和管脚前，禁止 canonical 升格及 50H 最终构建。
 
 ## 构建与检查
 
@@ -75,7 +78,7 @@ O1-B 已按 [RTL 卫生修复评审](doc/RTL_HYGIENE_AUDIT.md) 实现并完成�
 1. O2-B：级联双域 reset 实验已由真实 STA 否决，失败 RTL 已回退；契约保留其完整证据，旧 baseline 不变。
 2. O2-D1-R：已完成回退基线重建和 53/54 endpoint 复核；未修改功能文件、gate 或 baseline。
 3. O2-D1-G：状态机、复位和 clock object 契约保留；100H 的具体相位裕量和 STA 指纹降级为历史证据。
-4. PG2L50H 迁移：先按实际 DDR3 组织重生成 DDR3、PLL、读 FIFO和写 FIFO，建立不含 O2-D2 改动的 50H baseline；四个活动 100H IDF 和旧 PGL25G backup 均不可直接复用。
+4. PG2L50H 迁移：M3-A 审计已完成；下一步按审计文档先关闭实际 DDR3 组织，再用 SP6.4 GUI 新建 DDR3、PLL、读 FIFO 和写 FIFO 的 50H staging，建立不含 O2-D2 改动的新 baseline。四个活动 100H IDF 和旧 PGL25G backup 均不可直接复用。
 5. O2-D2：只有 50H baseline 完成并重新审核唯一候选后才执行一次。八端点 STA 不闭合或需要 waiver/LOC/第二相位时立即完整回退。
 6. O3-A → O2-C1：先同步 `ddr3_init_done` 作为 camera/pixel enable，再处理 sys、I2C、camera、pixel、DDR UI 等普通时钟域本地复位。
 7. O2-C2：单独依据厂商 FIFO reset/flush 语义处理两个异步 FIFO 的读写侧复位。

@@ -18,6 +18,7 @@
 - `41_ov7725_hdmi/doc/CDC_RDC_AUDIT.md`：O0-A CDC/RDC 事实、旧/新 STA 映射和后续整改契约的首要证据；O1-B 不得顺带修改该结构。
 - `41_ov7725_hdmi/doc/RTL_HYGIENE_AUDIT.md`：O1-A 的 39 条告警归属、38 条确定修复、`mem_a` H3/O1-C 阻断、隐式网络和 serializer reset 契约的首要证据。
 - `41_ov7725_hdmi/doc/SERIALIZER_RESET_CONTRACT.md`：记录旧 PG2L100H O2-A/O2-B/O2-D1 证据、`/5` generated-clock、状态机和 reset 分权。状态机与验证纪律可复用，但 `+0.192 ns` 裕量、七组时序指纹和 endpoint 数必须在 PG2L50H 新 baseline 后重新审核。
+- `41_ov7725_hdmi/doc/M3A_IP_MIGRATION_AUDIT.md`：记录四 IP 活动/安装版本断层、`IPCompiler 0037/0057` 探针、GUI new-instance/staging-only 规则、DDR3/PLL 隐藏派生参数、FIFO 资源上限、RCF 对象命中缺口和 canonical 升格条件。
 - `41_ov7725_hdmi/rtl/ov7725_dri/ov7725_dri.v`、`rtl/ddr3_ctrl_top/ddr3_ctrl_top.v`、`rtl/ov7725_hdmi.v`、`rtl/hdmi_top/serializer_10_to_1.v`、`rtl/hdmi_top/dvi_transmitter_top.v`：O1-B 的 38 条确定修复保留；O2-B 对 `dvi_transmitter_top.v` 的失败实验已完整回退，O2-D1-R 已完成，O2-D1-G 仅收口契约，用户审核前不得再修改 serializer RTL。
 - `41_ov7725_hdmi/scripts/build.tcl`：仍固定 16 RTL、4 个 PG2L100H 活动 IDF、1 FDC 和 PG2L100H 工程目标；M3 必须用 SP6.4 为 PG2L50H 重生成四个 IP 并重建 baseline，禁止手改 IDF。
 - `41_ov7725_hdmi/scripts/check_build.ps1`：严格模式因负时序返回非零；baseline 模式只证明产物与流程可重复，并明确标记不可发布。
@@ -33,7 +34,7 @@
 - `pcie_dma_test_100h/hdl/pcie_dma_test.v`：UART2APB 隐式 `rxd/txd` 连接与 PCIe DMA 集成入口。
 - `pcie_dma_test_100h/fdc/pcie_dma_test.fdc`：PCIe 专用资源、复位和普通 I/O 约束入口。
 - `pcie_dma_test_100h/hdl/pcie_dma_test.v`、`pcie_dma_test_100h/ipcore/pcie_test/pcie_test.idf`：活动 PCIe IDF、build/PDS/gate 和新主产物已统一匹配 PG2L50H；M1 还依据 PDS 模板将 HSSTLP 资源迁移到 `HSSTLP_292_612`，RTL/FDC 其余内容继续受板级审核约束。
-- `scripts/check_repo_consistency.ps1`：CI-0 至 CI-6 与 M0 静态门禁入口；现强制三项目 README/板级证据包含已批准的 `RK3568+PG2L50H100H` 和 `PG2L50H-6IFBG484`，并以 XML 解析确认活动 PCIe IDF 为 PG2L50H。当前退出码为 0，但不能替代 PDS、STA、板级审核或仿真。
+- `scripts/check_repo_consistency.ps1`：CI-0 至 CI-6、M0 与 M3-A 静态门禁入口；现强制三项目 README/板级证据包含已批准的器件事实，以 XML 解析确认活动 PCIe IDF 为 PG2L50H，并保护 OV7725 四个 canonical IDF 哈希及 M3-A 迁移契约。当前退出码为 0，但不能替代 PDS、STA、板级审核或仿真。
 - `scripts/compile_simlib.tcl`、`scripts/compile_simlib.ps1`：S0-1 参数化 Pango USIM/VSIM 编译入口；支持模拟器、库类型、family、语言、PDS/仿真器路径与输出目录覆盖，并校验工具、退出码、`E:` 记录和库目录。当前因缺少 `vsim.exe`/`vlog.exe`/`vlib.exe` 未执行实际库编译。
 - `docs/SIMULATION_READINESS_MATRIX.md`：三项目 S1/S2/S3 项目级资产缺口、厂商示例边界、四级共同门槛和 PG2L50H 迁移依赖的首要证据。
 - `E:/pango/PDS_2022.2-SP6.4/bin/pds_shell.exe`：S0 复核确认存在的唯一已发现实现工具；外部仿真器可执行文件缺失是当前动态验证阻塞点。

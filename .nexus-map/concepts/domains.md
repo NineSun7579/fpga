@@ -54,6 +54,8 @@ O2-B 已实现上述级联结构并完成 compile/七阶段实验，但 Slow Rec
 
 旧 PG2L100H O2-D1 已否决动态 `GTP_IOCLKBUF` 门控，其 Liberty 没有 `DI` clock-gating check；O2-D1-G 曾收口出 `CLKOUT3=65.0026 MHz`、约 `+0.192 ns` 与本地 reset 复制候选。该结论不能机械继承到 PG2L50H；M3 必须重生成四个活动 IP、重建 50H baseline并重新计算相位/端点后，再提请 O2-D2 审核。
 
+M3-A 进一步确认迁移不能从旧 IDF 开始：DDR3、PLL、FIFO 的活动版本与 SP6.4 安装版本全部断层，`IPCompiler 0037/0057` 已否决 CLI override。唯一允许路径是 SP6.4 GUI 在 PG2L50H 目标下新建当前版本实例并只写 staging；DDR3 `DEVICE_100H_EN=false`、PLL `DEVICE_PG2L50H=true` 和 FIFO 85 DRM36K/170 DRM18K 上限必须由新实例证明。RCF 对象命中、DDR3 组织和板级电气未关闭前，不得升格 canonical。
+
 O2-D1-R 已完成回退基线重建：七组失败精确复现，Slow/Fast `ddrphy_sysclk → pixel_clk` 均为 `53/53`，endpoint 分类为 read FIFO 控制 26、RAM reset 8、video driver 17、video display 1、原 DVI reset 同步器 1。O2-D1-G 已冻结 `/5` 奇数分频 waveform 和取点：必须显式且仅创建一个 `pixel_clk` generated clock，源为 PLL wrapper `u_pll_clk/clkout1`，目标为唯一 `GTP_IOCLKDIV_E2.CLKDIVOUT`，波形为 `-edges {1 5 11} -edge_shift {0 0 0}`，master 为唯一 `CLKOUT1_Inferred`，旧 `CLKOUT0_Inferred` 对 pixel 域零消费者，divider 不得接 post-buffer。
 
 O2-D1-G 的唯一控制器状态序列为 `HARD_HOLD → QUALIFY → ARM → SER_RELEASE → RUN`：`HARD_HOLD` 对 `!sys_rst_n || !pll_lock` 异步保持并清 divider、pixel/business、四路本地 serializer reset 和计数；`QUALIFY` 要求 4 个 control_clk 周期；`ARM` 释放 `/5`、同步释放 pixel reset、强制 encoder `CTRLTOKEN0` 条件并等待 3 个 pixel 周期；`SER_RELEASE` 在同步 `arm_req` 后下一个 control 周期清除四个本地 reset，驻留 2 个完整 control 周期；`RUN` 才撤销 encoder 强制。计数表示已完成周期且饱和，阈值统一用 `N-1`。

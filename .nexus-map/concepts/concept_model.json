@@ -199,8 +199,8 @@
       "execution_queue": [
         {"order": 1, "id": "M0", "status": "approved_documented", "prerequisite": "user-confirmed PG2L50H-6IFBG484 board target"},
         {"order": 2, "id": "M1", "status": "next", "prerequisite": "fix PCIe project-owned build/gate while retaining the matching PG2L50H IDF"},
-        {"order": 3, "id": "M2", "status": "planned", "prerequisite": "SP6.4 PG2L50H DDR3 IP/FDC/RCF regeneration and CI-6 rerun"},
-        {"order": 4, "id": "M3", "status": "planned", "prerequisite": "SP6.4 PG2L50H regeneration of four OV7725 project IPs and new baseline"},
+        {"order": 3, "id": "M2", "status": "staging_validated_blocked_board_review", "prerequisite": "board-approved PG2L50H DDR3 IP/FDC/RCF promotion and CI-6 rerun"},
+        {"order": 4, "id": "M3", "status": "audit_complete_staging_blocked_board_review", "prerequisite": "SP6.4 GUI new-instance staging of four OV7725 project IPs and full asset review"},
         {"order": 5, "id": "D3-A/O2-D2/H2-B", "status": "blocked_dependency_and_evidence", "prerequisite": "M2/M3 re-review and M1 plus board/UART/SCBV evidence"},
         {"order": 6, "id": "S0-1/S1/S2/S3", "status": "blocked_external_and_dependency", "prerequisite": "licensed simulator plus locked PG2L50H RTL/IP/netlist/SDF"}
       ],
@@ -216,10 +216,28 @@
       "responsibility": "采集 OV7725 像素，经异步 FIFO 和 DDR3 帧缓存后输出 HDMI/TMDS。",
       "implementation_status": "implemented_with_timing_failures",
       "code_path": "41_ov7725_hdmi/rtl/",
-      "evidence_path": "41_ov7725_hdmi/doc/RTL_HYGIENE_AUDIT.md",
-      "evidence_gap": "旧 PG2L100H O1-B/O2-B/O2-D1-R 与 O2-D1-G 只保留历史证据；M3 必须以 SP6.4 为 PG2L50H 重生成四个活动 IP并建立新 baseline，随后重新审核 O2-D2。mem_a、板级资料和 QuestaSim/S3 仍未关闭。",
+      "evidence_path": "41_ov7725_hdmi/doc/M3A_IP_MIGRATION_AUDIT.md",
+      "evidence_gap": "M3-A 已完成迁移前审计，但四个 PG2L50H 新实例尚未生成或升格；DDR3 组织、板级资料、RCF 对象命中、50H baseline 和 QuestaSim/S3 仍未关闭。旧 PG2L100H O1-B/O2-B/O2-D1-R/O2-D1-G 只保留历史证据。",
+      "m3a_ip_migration_audit": {
+        "status": "documented_staging_blocked",
+        "active_target": "Logos2/PG2L100H/FBG484/-6, PDS SP4.2 build 132111",
+        "approved_target": "Logos2/PG2L50H/FBG484/-6, PDS SP6.4",
+        "version_gaps": {
+          "ddr3_ip": {"active": "1.12", "installed": "1.10"},
+          "pll_clk": {"active": "1.3", "installed": "1.5"},
+          "rd_fifo": {"active": "1.8", "installed": "1.10"},
+          "wr_fifo": {"active": "1.8", "installed": "1.10"}
+        },
+        "probe_failures": ["IPCompiler 0037", "IPCompiler 0057"],
+        "approved_generation_path": "SP6.4 IP Compiler GUI new-instance only; output only to 41_ov7725_hdmi/build/ipgen/pg2l50h/**",
+        "derived_parameter_gates": {"DEVICE_100H_EN": false, "DEVICE_PG2L50H": true},
+        "fifo_pg2l50h_limits": {"DRM36K": 85, "DRM18K": 170},
+        "rcf_status": "legacy hierarchy mismatch; historical processing hit zero nets; explicit load and object hit remain unproven",
+        "canonical_hash_gate": true,
+        "promotion_blockers": ["DDR3 part and x16/x32 organization", "row14 versus row15", "byte lanes and pinout", "VCCIO/VREF/ODT", "wrapper/FDC/RCF/clock-object diff review", "PG2L50H clean baseline"]
+      },
       "tech_stack": ["Verilog", "Pango Logos2", "DDR3", "TMDS"],
-      "related_reqs": ["逐域复位", "单点事件同步", "FIFO 分侧复位", "结构后精确例外", "O1-B complete", "O2-A/O2-B rejected/O2-D1/O2-D2/O3-A/O2-C1/O2-C2/O3-B/O4", "H3/O1-C mem_a"],
+      "related_reqs": ["逐域复位", "单点事件同步", "FIFO 分侧复位", "结构后精确例外", "O1-B complete", "M3-A complete", "O2-A/O2-B rejected/O2-D1/O2-D2/O3-A/O2-C1/O2-C2/O3-B/O4", "H3/O1-C mem_a"],
       "complexity": "high",
       "hotspot": true
     },
@@ -844,14 +862,14 @@
   "metadata": {
     "analysis_mode": "manual bootstrap",
     "verified_at": "2026-08-30",
-    "git_commits_analyzed": 56,
+    "git_commits_analyzed": 57,
     "raw_ast_available": false,
     "limitations": [
-      "M2-B1 DDR3 parameter/diff audit is expected to bring the repository to 56 commits; the history remains too shallow for reliable hotspot ranking.",
+      "M3-A OV7725 four-IP migration audit is expected to bring the repository to 57 commits; the history remains too shallow for reliable hotspot ranking.",
       "The S0-1 parameterized simulation-library entry is committed with mandatory simulator preflight; actual USIM/VSIM compilation remains blocked by the missing simulator installation.",
       "No HDL/raw source AST extraction was run; CI-0 PowerShell syntax parsing is recorded separately.",
       "No ModelSim or QuestaSim execution was available.",
-      "The 56-commit history includes CI-1 through CI-6, board-evidence checklists, simulator-path review, M0 target approval, M1 PCIe migration, M2-A staging and M2-B1 parameter/diff audit. M2-B1 is not canonical promotion or a new DDR3 baseline; M2/M3 remain incomplete."
+      "The 57-commit history includes CI-1 through CI-6, board-evidence checklists, simulator-path review, M0 target approval, M1 PCIe migration, M2-A/M2-B1, and the M3-A OV7725 migration audit. M3-A is not IP generation, canonical promotion, or a PG2L50H baseline; M2/M3 remain incomplete."
     ]
   }
 }

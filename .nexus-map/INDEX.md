@@ -37,6 +37,7 @@
 - OV7725 O2-D1 已否决动态 `GTP_IOCLKBUF` 门控路线：SP6.4 Liberty 无 `DI` clock-gating check，不能静态证明停钟、复位、释放和启钟顺序。O2-D1-G 已将唯一待验证候选收口为新增 `CLKOUT3=65.0026 MHz`、约 `+0.192 ns` 相位控制输出，并为每个 serializer 本地复制 reset 寄存器；候选仍未实现或签核。
 - O2-D1-R 已从空 `build/` 重建回退后的七组旧失败基线：baseline gate 精确匹配并返回 0，严格 gate 返回 1；Slow/Fast `ddrphy_sysclk → pixel_clk` Recovery 均恢复为 `53/53`，endpoint 分类为 `26+8+17+1+1`，O2-B 的 `54` 不修改旧 baseline。下一步由 O2-D1-G 收口 `/5` generated-clock、奇数分频 waveform、pre/post-buffer 取点、状态/复位分权和单次试验停止条件。
 - O2-D1-G 契约已冻结：只允许一条 `pixel_clk` `/5` generated clock，源为 PLL wrapper `u_pll_clk/clkout1`、目标为唯一 `GTP_IOCLKDIV_E2.CLKDIVOUT`，波形 `-edges {1 5 11} -edge_shift {0 0 0}`；控制器状态为 `HARD_HOLD → QUALIFY → ARM → SER_RELEASE → RUN`，并定义 hard/business reset 分权与首个有效 TMDS symbol。
+- OV7725 M3-A 迁移前审计（2026-08-30）：四个活动 IP 均由 SP4.2 生成且与 SP6.4 安装版本断层（DDR3 `1.12→1.10`、PLL `1.3→1.5`、rd/wr FIFO `1.8→1.10`）；隔离探针分别以 `IPCompiler 0037`（未指定安装路径）和 `IPCompiler 0057`（版本不匹配）拒绝旧 IDF override。唯一允许路径是 SP6.4 IP Compiler GUI 在 `Logos2/PG2L50H/FBG484/-6` 下新建当前版本实例，并只输出 `41_ov7725_hdmi/build/ipgen/pg2l50h/**`；禁止手改版本/器件/隐藏参数或原地覆盖 canonical。DDR3 必须验证 `DEVICE_100H_EN=false`，PLL 必须验证 `DEVICE_PG2L50H=true`，FIFO 必须满足 PG2L50H 的 85 个 DRM36K/170 个 DRM18K 资源上限；旧 RCF 对象命中未证明，旧 100H baseline/STA/位流作废，板级资料和完整差异审核通过前不得 canonical 升格。
 - S0-0 环境复核（2026-08-30，提交 `9b51039` 扩展）：PDS shell 路径存在且可作为唯一已发现工具；PATH、常见安装目录和 Windows 卸载注册表均未发现 ModelSim/QuestaSim 安装线索或 `vsim.exe`/`vlog.exe`/`vlib.exe`，动态仿真与 USIM/VSIM 编译保持阻塞。
 - S0-0-R 环境复核（2026-08-30，提交 `ef5cc9a`）：再次检查 PATH、`C:/questasim64/win64`、常见安装目录及 `vsim.exe` 文件名，三项仿真器可执行文件仍未发现；未运行 `compile_simlib` 或动态仿真，S0-1 阻断保持不变。
 - S0-1 仿真库入口已作为独立批次提交：参数化 `scripts/compile_simlib.tcl` 与 `scripts/compile_simlib.ps1` 支持 ModelSim/QuestaSim、USIM/VSIM/BOTH、Logos2 family、语言、PDS/仿真器路径和输出目录覆盖。预检绕过开关已从工作区移除，入口始终检查 `vsim.exe`、`vlog.exe`、`vlib.exe`；两个相关 PowerShell 脚本 AST 错误数为 0，CI-0 门禁通过，默认运行仍因缺少 `vsim.exe` 在 PDS 前返回 1，因此实际库编译保持阻塞。
@@ -48,7 +49,7 @@
 - CI-4 PDS 构建 gate 契约完整性门禁已由提交 `66356aa` 落地：三项目 `run.ps1` 均检查 PDS 退出码、`^E:` 错误记录和阶段完成标记；三项目 `check_build.ps1` 均检查阶段/最终构建入口、时序摘要、`throw` 失败路径、非零产物及显式 baseline 开关。2026-08-30 复验仓库门禁退出码为 0；该门禁只验证 gate 代码路径，不替代真实 PDS、STA 或位流执行。
 - CI-5 PowerShell AST 语法门禁已由提交 `5769d8f` 落地：仓库门禁自动解析全部非 `build/`、`.git/` 的 `.ps1` 文件，报告具体文件、行号和错误消息；当前 8 个脚本解析通过。该门禁只验证 PowerShell 语法，不执行 PDS、仿真器或项目构建。
 - CI-6 DDR3 D3-0-R 契约一致性门禁已由提交 `a5d1785` 落地：静态交叉核对活动 DDR3 core、`test_ddr` wrapper 与 `D3A_PORT_MAP.md` 的模块/参数、128-bit 数据、28-bit 地址、`I_ips_ddr_top`、AXI-like 握手及 core 不含 `axi_rready`；该门禁不替代 PG2L50H IP 重生成后的重新审核或动态验证。
-- CI-0、S0-1 入口与强制预检、仿真就绪度矩阵、README 导航、CI-1 至 CI-6、S0-0-R、PCIe H2-B 静态元数据 gate、H0/H1/H3 证据清单、M0/M1、M2-A 与 M2-B1 均按小批次记录；M2-B1 提交后预计累计 56 个 Git 提交，样本仍不足以计算可信的历史热点。
+- CI-0、S0-1 入口与强制预检、仿真就绪度矩阵、README 导航、CI-1 至 CI-6、S0-0-R、PCIe H2-B 静态元数据 gate、H0/H1/H3 证据清单、M0/M1、M2-A、M2-B1 与 M3-A 均按小批次记录；M3-A 提交后预计累计 57 个 Git 提交，样本仍不足以计算可信的历史热点。
 - 根目录 [README](../README.md) 是 PDS 外部实现与仿真指南，现已直接链接仿真就绪度矩阵。
 - 根目录 [TODO](../TODO.md) 是当前整改顺序和验收门槛。
 - 新增或修改 Verilog/SystemVerilog 时必须遵循 [VSCS](../VERILOG_SYSTEMVERILOG_COMMENTING_STANDARD.md)。

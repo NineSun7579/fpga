@@ -64,13 +64,17 @@
 - entry_path: `41_ov7725_hdmi/rtl/ov7725_hdmi.v`
 - project_path: `41_ov7725_hdmi/prj/ov7725_hdmi.pds`
 - constraint_path: `41_ov7725_hdmi/prj/source/ov7725_hdmi.fdc`
-- evidence_path: `41_ov7725_hdmi/doc/CDC_RDC_AUDIT.md`, `41_ov7725_hdmi/doc/RTL_HYGIENE_AUDIT.md`, `41_ov7725_hdmi/doc/SERIALIZER_RESET_CONTRACT.md`, `docs/IMPLEMENTATION_LOG.md`, `41_ov7725_hdmi/build/logs/pds-gen_bit_stream.log`, `41_ov7725_hdmi/build/pds/report_timing/ov7725_hdmi.rtr`, `41_ov7725_hdmi/scripts/check_build.ps1`
+- evidence_path: `41_ov7725_hdmi/doc/CDC_RDC_AUDIT.md`, `41_ov7725_hdmi/doc/RTL_HYGIENE_AUDIT.md`, `41_ov7725_hdmi/doc/SERIALIZER_RESET_CONTRACT.md`, `41_ov7725_hdmi/doc/M3A_IP_MIGRATION_AUDIT.md`, `docs/IMPLEMENTATION_LOG.md`, `41_ov7725_hdmi/build/logs/pds-gen_bit_stream.log`, `41_ov7725_hdmi/build/pds/report_timing/ov7725_hdmi.rtr`, `41_ov7725_hdmi/scripts/check_build.ps1`
 - evidence_gap: O1-B 的 38 条确定修复和七阶段回归已完成，但这些构建/STA 及 O2-D1-G 契约均建立在旧 PG2L100H 目标上，不可用于实际 PG2L50H 板卡。四个活动 IP 必须以 SP6.4 为 PG2L50H 重生成并建立新 baseline，随后重新审核 O2-D2；`mem_a`、S0/QuestaSim 和板级资料阻断仍未关闭。
 - responsibility: 将 OV7725 像素流经异步 FIFO 和 DDR3 帧缓存送往 HDMI/TMDS 输出。
 - clock_domains: `sys_clk`, `i2c_dri_clk`, `cam_pclk`, `pixel_clk`, `pixel_clk_5x`, `clk_50m/ref_clk`, `ui_clk`
 - cdc_findings: `wr_load`/`rd_load` 被多个逻辑独立采样；write FIFO 为 `cam_pclk → ui_clk`，read FIFO 为 `ui_clk → pixel_clk`
 - rdc_findings: 两个异步 FIFO 的帧复位从单一源域同时驱动两侧；`ddr3_init_done` 和组合顶层复位未逐域同步释放
 - build_inputs: 16 个手写 RTL、4 个活动 IDF、1 个顶层 FDC；当前文件仍是旧 `Logos2 / PG2L100H / FBG484 / -6` 基线，已被实物确认否决，目标应迁移到 `Logos2 / PG2L50H / FBG484 / -6`
+- m3a_version_gap: 四个活动 SP4.2 IP 与 SP6.4 安装定义均断层：DDR3 `1.12 → 1.10`、PLL `1.3 → 1.5`、rd/wr FIFO `1.8 → 1.10`；隔离探针分别被 `IPCompiler 0037` 和 `IPCompiler 0057` 拒绝，旧 IDF CLI override 与手改版本均禁止。
+- m3a_staging_contract: 只允许用 SP6.4 IP Compiler GUI 在 `Logos2/PG2L50H/FBG484/-6` 下创建当前版本的新实例，并只输出 `build/ipgen/pg2l50h/**`；四个 canonical IDF 由仓库门禁做 SHA-256 保护，板级审核前不得升格。
+- m3a_derived_parameters: DDR3 必须得到 `DEVICE_100H_EN=false`，PLL 必须得到 `DEVICE_PG2L50H=true`；两个异步混宽 FIFO 必须满足 PG2L50H 的 85 个 DRM36K/170 个 DRM18K 资源上限。
+- m3a_constraint_gap: 旧 `ddr3_ip.rcf` 层级与当前集成层级不一致，历史记录只处理 0 条 net；M3-B 必须证明 RCF 被加载且对象命中，并重新审核 FDC、wrapper、clock object 和全部板级 I/O。
 - build_status: O2-D1-R 已从空 `build/` 完成 SP6.4 七阶段且日志无 `^E:`；baseline gate 精确匹配原七组 corner/check/clock pair/endpoints 后返回 0，严格 gate 仍返回 1，五类产物非零并继续标记不可发布
 - timing_findings: O2-D1-R 报告中 Slow/Fast `ddrphy_sysclk → pixel_clk` Recovery 均为 `53/53`，Removal 均为 `0/53`；53 个 endpoint 分类为 `26+8+17+1+1`。O2-B 的 `54` 来自 video-driver endpoint 从 17 增至 18；新增 serializer reset 同步器属于另一 clock pair，不修改旧 baseline
 - artifact_evidence: synthesis netlist `6,873,482` bytes; PNR netlist `11,604,756` bytes; SDF `8,898,464` bytes; `.sbit` `3,791,112` bytes; `.bin` `3,789,476` bytes
@@ -82,7 +86,7 @@
 - reset_ownership: `sys_rst_n` 下降或 `pll_lock` 丢失可异步回 `HARD_HOLD`；普通 video/business reset 只能撤销 RUN 并重新 warm-up，不得组合异步驱动 OSERDES 本地 reset；`ddr3_init_done` 不得参与 hard reset、QUALIFY、ARM、OSERDES reset 或状态转移，后续仅作为同步业务 enable/status；FIFO reset/flush 保留给 O2-C2。
 - first_valid_tmds_symbol: 首个有效 symbol 定义为 serializer reset 下降后、首个 `OCLKDIV` 上升沿采入的四路同时确定的完整 TMDS 并行字，而非首个活动视频像素；RUN 至少延后两个 control 周期，确保该 symbol 完整串行发送。
 - o2d2_stop_conditions: O2-D2 仅一次、经用户审核后执行；generated-clock 对象为 0/多对象、源计数非 1、自动/显式重名、waveform 不符、divider 取 post-buffer、任一八 OSERDES endpoint 的 Slow/Fast Recovery/Removal 未全覆盖或为负、出现新 baseline 失败签名、PDS/gate/产物失败，均立即停止并完整回退，不得扫描第二相位或新增 waiver。
-- next_step: 先用 SP6.4 为 PG2L50H 重生成 DDR3/PLL/FIFO 等四个活动 IP并完成 50H 七阶段 baseline；再基于新器件模型、层级与 STA 重新审核 O2-D2。通过重新审核后仍只允许一次实现，不扫描第二相位、不增加 waiver，失败即完整回退。
+- next_step: 先用 SP6.4 GUI 为 PG2L50H 新建 DDR3/PLL/FIFO 四个 staging 实例并审核完整资产差异；板级资料关闭后原子升格，再完成 50H 七阶段 baseline并重新审核 O2-D2。通过重新审核后仍只允许一次实现，不扫描第二相位、不增加 waiver，失败即完整回退。
 - high_attention: `i2c_dri_clk` 逻辑生成时钟、`cam_pclk`/DDR `ui_clk`/`pixel_clk` 间业务 CDC、FIFO 分侧复位，以及 `ddr3_init_done` 参与的复位释放。
 
 ## DDR3 外层工程

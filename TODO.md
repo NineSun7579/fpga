@@ -52,6 +52,7 @@
 - [x] OV7725 完成 O1-B 七阶段回归；严格 gate 返回非零，baseline 精确匹配 7 组失败指纹后返回 0 并标记不可发布。
 - [x] OV7725 完成 O2-A serializer reset 联合释放契约，闭合快慢时钟检查、八个 OSERDES endpoint、O2-B 文件范围和回退条件。
 - [x] OV7725 完成 O2-B 最小实现与七阶段实验；方案因 Slow/Fast Recovery 转移到 `pixel_clk_5x → pixel_clk` 且慢角同域仍为负而被否决，失败 RTL 已回退。
+- [x] OV7725 完成 M3-A 四 IP 迁移前审计：活动/安装版本断层使 CLI override 被 `IPCompiler 0037/0057` 否决，唯一后续路径为 SP6.4 GUI 在 50H 目标下新建实例并只写入 staging。
 - [x] PCIe 完成 H2-A lane/refclk/PERST#/UART/SCBV/IP 目标证据矩阵；新器件事实证明活动 `pcie_test.idf` 的 PG2L50H 元数据正确，原“重生为 100H”结论作废。
 - [x] 识别 PCIe 静态 gate 的错误目标：已改为 PG2L50H，并增加日志、STA、bitstream 器件交叉检查。
 - [x] H0/H1/H3 资料准备：新增 OV7725 HDMI 与 DDR3 板级证据清单，统一收集板卡、器件、时钟、电压、拓扑和 I/O 时序依据；资料未提供前不修改硬件参数。
@@ -85,7 +86,9 @@
 
 4. **M3：OV7725 PG2L50H 四 IP 重生成与新基线**
    - 前置：先获得实际 DDR3 料号、x16/x32 组织、row 位数和管脚拓扑；当前 100H DDR 配置与仓库历史 50H DDR 工程不可互换。
-   - 交付：在 50H 下分别重生成 DDR3、PLL、读 FIFO、写 FIFO，重建 FDC/RCF 和全流程 baseline。
+   - M3-A 已完成 [`四 IP 迁移前审计`](41_ov7725_hdmi/doc/M3A_IP_MIGRATION_AUDIT.md)：活动版本为 DDR3 `1.12`、PLL `1.3`、FIFO `1.8`，SP6.4 安装版本为 `1.10/1.5/1.10`；旧 IDF override 和手改版本字段均禁止。
+   - 下一批 M3-B 只允许用 SP6.4 IP Compiler GUI 在 `Logos2 / PG2L50H / FBG484 / -6` 下新建四个实例，输出到 `build/ipgen/pg2l50h/**`，先完成参数和完整资产差异审计，不原地覆盖 canonical。
+   - 交付：板级参数审核后原子升格四个 IP，重建 FDC/RCF、clock object 和全流程 baseline；DDR3 `DEVICE_100H_EN=false`、PLL `DEVICE_PG2L50H=true`，FIFO 必须满足 85 个 DRM36K/170 个 DRM18K 资源上限。
    - 验收：旧 100H 七组时序指纹、endpoint 数和 `+0.192 ns` 裕量全部作废；基于新 50H STA 重新审核 O2-D2。
 
 5. **S0-1：恢复公共仿真环境（外部阻断）**

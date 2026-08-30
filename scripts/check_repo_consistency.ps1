@@ -22,6 +22,18 @@ $Ddr3RegenerationDocPath = Join-Path $RepoRoot `
     'ddr3_test\ddr3_test\doc\M2_IP_REGENERATION.md'
 $Ddr3M2B1AuditPath = Join-Path $RepoRoot `
     'ddr3_test\ddr3_test\doc\M2B1_PARAMETER_AND_DIFF_AUDIT.md'
+$OvM3AuditPath = Join-Path $RepoRoot `
+    '41_ov7725_hdmi\doc\M3A_IP_MIGRATION_AUDIT.md'
+$OvM3CanonicalIpHashes = [ordered]@{
+    '41_ov7725_hdmi\prj\ipcore\ddr3_ip\ddr3_ip.idf' = `
+        '4C103420EDF48C5E361A8B7CA132E00EFA268E71B7ABE2BA3826B46A8712E3A1'
+    '41_ov7725_hdmi\prj\ipcore\pll_clk\pll_clk.idf' = `
+        'B93FDCB80209C0DA3F0BE9BA08E8D1D9E90D37002473C3BA98E5B3C0AB6EF2A1'
+    '41_ov7725_hdmi\prj\ipcore\rd_fifo\rd_fifo.idf' = `
+        '734DAE3B41599127C648E7012C8E7F5D50945A324981AB52ADBD61195BFB049A'
+    '41_ov7725_hdmi\prj\ipcore\wr_fifo\wr_fifo.idf' = `
+        'C1C55F4D5C578172B7BA8FBF057163D7E980C9B59C67D99252404A9BDF8E6F70'
+}
 
 function Add-Failure {
     param([Parameter(Mandatory)][string]$Message)
@@ -188,6 +200,44 @@ if ($Ddr3M2B1AuditExists) {
         }).GetEnumerator()) {
         Require-Pattern -Text $Ddr3M2B1AuditText -Pattern $Required.Value `
             -Description $Required.Key | Out-Null
+    }
+}
+
+# M3-A is an audit-only gate. Protect the four active IDFs until the reviewed
+# PG2L50H staging set is promoted atomically in a later batch.
+$OvM3AuditExists = Require-File -Path $OvM3AuditPath `
+    -Description 'OV7725 M3-A four-IP migration audit'
+if ($OvM3AuditExists) {
+    $OvM3AuditText = Get-Content -Raw -Encoding UTF8 -LiteralPath $OvM3AuditPath
+    foreach ($Required in ([ordered]@{
+            'M3-A approved FPGA part' = [regex]::Escape($ApprovedFpgaPart)
+            'M3-A old-IP path rejection' = 'IPCompiler 0037'
+            'M3-A version mismatch rejection' = 'IPCompiler 0057'
+            'M3-A DDR3 version gap' = '1\.12.*1\.10'
+            'M3-A PLL version gap' = '1\.3.*1\.5'
+            'M3-A FIFO version gap' = '1\.8.*1\.10'
+            'M3-A GUI new-instance rule' = 'SP6\.4 IP Compiler GUI'
+            'M3-A staging-only output' = 'build/ipgen/pg2l50h'
+            'M3-A canonical promotion block' = '\u7981\u6b62 canonical \u5347\u683c'
+            'M3-A DDR3 derived parameter' = 'DEVICE_100H_EN=false'
+            'M3-A PLL derived parameter' = 'DEVICE_PG2L50H=true'
+            'M3-A FIFO PG2L50H resource limits' = '85 \u4e2a DRM36K/170 \u4e2a DRM18K'
+            'M3-A RCF object-hit review' = 'RCF.*\u5bf9\u8c61.*\u547d\u4e2d'
+        }).GetEnumerator()) {
+        Require-Pattern -Text $OvM3AuditText -Pattern $Required.Value `
+            -Description $Required.Key | Out-Null
+    }
+}
+
+foreach ($Entry in $OvM3CanonicalIpHashes.GetEnumerator()) {
+    $IdfPath = Join-Path $RepoRoot $Entry.Key
+    if (Require-File -Path $IdfPath -Description "OV7725 canonical IP $($Entry.Key)") {
+        $ActualHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $IdfPath).Hash
+        if ($ActualHash -ne $Entry.Value) {
+            Add-Failure "OV7725 canonical IP changed before M3 promotion: $($Entry.Key)"
+        } else {
+            Write-Host "INFO: OV7725 canonical IP hash preserved: $($Entry.Key)"
+        }
     }
 }
 

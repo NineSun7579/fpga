@@ -70,6 +70,8 @@ flowchart TD
 - O2-B 已触发停止条件并完整回退；`check_build.ps1`、旧七组 baseline、FDC/RCF、PLL/IP 和时序例外均未修改。O2-D1 已否决动态门控，O2-D1-G 进一步冻结唯一候选：`CLKOUT3=65.0026 MHz`、约 `+0.192 ns` 相位、每 serializer 本地 reset 复制，以及唯一 `/5` generated-clock（`u_pll_clk/clkout1` → 唯一 `GTP_IOCLKDIV_E2.CLKDIVOUT`，`-edges {1 5 11}`）。
 - `mem_a` 不属于 O1-B：活动 IP 是 14 bit，顶层/FDC 是 15 bit，综合网表把第 15 bit 绑 0。该冲突转入 H3/O1-C，必须依据 DDR3 料号、组织和原理图决定收窄 RTL/FDC 或重生成 IP。
 - OV7725 O2-D1-R 与 O2-D1-G 是旧 PG2L100H 基线上的历史证据；必须先用 SP6.4 为 PG2L50H 重生成四个活动 IP并建立新 baseline，再重新审核 O2-D2。重新审核通过后仍只允许一次实现；任一 generated-clock、waveform、端点覆盖或新 baseline 失败即完整回退，不扫描第二相位或增加 waiver。
+- OV7725 M3-A 已证明旧 IDF 不能直接迁移：活动/安装版本为 DDR3 `1.12/1.10`、PLL `1.3/1.5`、FIFO `1.8/1.10`，探针以 `IPCompiler 0037/0057` 失败。M3-B 唯一入口是 SP6.4 GUI 新建 PG2L50H 当前版本实例，输出只到 `build/ipgen/pg2l50h/**`；禁止旧 IDF override、版本字段编辑和 canonical 原地生成。
+- M3-B 的派生与资源依赖固定为 DDR3 `DEVICE_100H_EN=false`、PLL `DEVICE_PG2L50H=true`、FIFO 不超过 85 个 DRM36K/170 个 DRM18K；真实 DDR3 颗粒/组织、row14/15、byte lane、VCCIO/VREF/ODT、I/O pin 与 RCF 对象命中未审核时，四 IP 不得升格或用于 50H 构建。
 - DDR3 新入口已用 `test_ddr`、`ddr3.idf`、FDC 和 RCF 从空 `build/` 完成七阶段全流程，内部 STA 为 `All Constraints Met`，且综合网表、PNR 网表、SDF 和位流均非零。
 - DDR3 M2 只读审计（2026-08-30）确认：活动 `ddr3_test/ddr3_test/ip_core/ddr3/ddr3.idf` metadata 为 `Logos2/PG2L100H/FBG484/-6`，生成器为 `2022.2-SP6.4`；canonical 约束是 `ip_core/ddr3/pnr/ddr_test.fdc` 与 `ip_core/ddr3/pnr/ddr3.rcf`。外层 `ip_core/ddr_test.fdc` 仅作为旧硬宏位置参考，不得覆盖 canonical 约束。
 - DDR3 现存 `ip_backup/20250108100125/ddr3/ddr3.idf` 虽标识 `Logos2/PG2L50H/FBG484/-6`，但由 `2022.2-SP6.1` 生成；它只能用于参数/器件差异比对，不能直接恢复、复制或作为 SP6.4 发布输入。M2 必须在 SP6.4 中重新生成 controller、PHY、wrapper、仿真资产、FDC 和 RCF。
