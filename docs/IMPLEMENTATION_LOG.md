@@ -264,6 +264,11 @@
 - 仓库级一致性脚本现检查三个项目的 `run.ps1` 是否处理 PDS 退出码、`^E:` 日志和阶段入口，并检查 `check_build.ps1` 是否覆盖阶段标志、时序摘要、失败抛错与非零产物。
 - 三项目仍保留显式 baseline 放行开关；静态门禁不会把 baseline 结果视为发布通过，也不替代真实 PDS/STA/位流执行。
 - 本批未修改 RTL、厂商 IP、IDF、FDC、RCF 或生成物。
+
+## 2026-08-30：CI-5 PowerShell AST 语法门禁
+
+- `scripts/check_repo_consistency.ps1` 现自动扫描仓库内全部非 `build/` `.ps1` 文件，并使用 PowerShell Parser 报告语法错误文件、行号和消息。
+- 当前扫描 8 个脚本全部解析通过；该门禁不执行 PDS、ModelSim/QuestaSim 或项目构建。
 - DDR3 只读复核发现活动 IDF 同时记录 `DESIRED_DDR3_RATE=1066.000` 与另一处 1050 速率参数；wrapper 默认 `MEM_ROW_WIDTH=15`、`COLUMN=10`、`BANK=3`、`DQ=16`、`DQS=2`。在确认参数语义、颗粒料号和 PCB 拓扑前，H1 继续阻断。
 
 ## 2026-08-30：S0-0 仿真器路径扩展复核

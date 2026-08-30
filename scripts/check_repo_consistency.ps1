@@ -279,6 +279,23 @@ foreach ($Project in $Projects) {
     }
 }
 
+$PowerShellScripts = @(Get-ChildItem -LiteralPath $RepoRoot -Recurse -File -Filter '*.ps1' |
+    Where-Object { $_.FullName -notmatch '[\\/]build[\\/]' -and $_.FullName -notmatch '[\\/]\.git[\\/]' })
+foreach ($Script in $PowerShellScripts) {
+    $ParseTokens = $null
+    $ParseErrors = $null
+    [System.Management.Automation.Language.Parser]::ParseFile(
+        $Script.FullName,
+        [ref]$ParseTokens,
+        [ref]$ParseErrors) | Out-Null
+    if ($ParseErrors.Count -gt 0) {
+        $Details = ($ParseErrors | ForEach-Object { "line $($_.Extent.StartLineNumber): $($_.Message)" }) -join '; '
+        Add-Failure "PowerShell parse failed for $($Script.FullName): $Details"
+    } else {
+        Write-Host "INFO: PowerShell AST passed: $($Script.FullName)"
+    }
+}
+
 if ($Failures.Count -gt 0) {
     Write-Error ("Repository consistency gate failed with {0} issue(s):`n- {1}" -f `
         $Failures.Count, ($Failures -join "`n- "))
