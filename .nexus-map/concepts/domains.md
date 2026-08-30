@@ -1,5 +1,5 @@
 > generated_by: Codex manual bootstrap
-> verified_at: 2026-08-29
+> verified_at: 2026-08-30
 > provenance: root guide, TODO, source tree, PDS reports, and manual inspection
 
 # Domains
@@ -36,7 +36,9 @@ O1-B 将高有效 reset 接入四个 serializer 内的八个 OSERDES 后，PDS �
 
 O2-B 已实现上述级联结构并完成 compile/七阶段实验，但 Slow Recovery 同时出现 `pixel_clk_5x → pixel_clk_5x -0.349 ns / 8/8` 和 `pixel_clk_5x → pixel_clk -2.173 ns / 8/8`，Fast Recovery 反向组仍为 `-1.464 ns / 8/8`。八个反向 endpoint 均为 OSERDES `OCLKDIV` 检查；方案已否决、RTL 已回退，baseline/gate 未放宽。
 
-下一批 O2-D1 只读比较显式释放相位 sequencer、统一复位控制器和厂商推荐结构，先固定唯一候选及联合 `OCLK/SERCLK/OCLKDIV` 验收；O2-D2 才允许实现。不得用 false path、新 baseline 失败或多方案同批试探代替架构评审。
+O2-D1 已否决动态 `GTP_IOCLKBUF` 门控：功能模型虽能无毛刺停启，但 PG2L100H SP6.4 Liberty 没有 `DI` clock-gating check，STA 不能证明停钟、复位、释放、启钟的运行时顺序。唯一待验证候选为新增 `CLKOUT3=65.0026 MHz`、约 `+0.192 ns` 相位控制输出，并为四个 serializer 各自复制本地 reset 寄存器；纯相位调整不足以通过。
+
+进入实现前先完成 O2-D1-R 回退基线重建，再由 O2-D1-G 固定 `/5` 奇数分频 waveform、IOCLKBUF 前后取点、控制器状态/计数、serializer hard reset 与业务 reset 分权、首个有效 TMDS symbol 和停止条件。审核后只允许一次 O2-D2，禁止第二相位扫描、false path、multicycle、clock-group waiver 或失败 baseline 放行。
 
 两个厂商异步 FIFO 的 reset/flush 属于独立的 O2-C2，不与 O2-C1 的普通寄存器复位混批；帧事件 CDC 归 O3-B。O4 只有在 O2-C2 与 O3-B 都完成后才可进入约束和最终时序闭环。
 
@@ -54,7 +56,7 @@ OV7725 O1-B 已按该边界固定 16 个手写 RTL、4 个活动 IDF 和唯一�
 
 OV7725 O1-A 以 `RTL_HYGIENE_AUDIT.md` 固定手写 RTL 卫生契约，O1-B 已完成其中 38 条确定性修复：显式零扩展、定宽 tie-off、地址/长度编码、`rst_n` 声明、删除 `sys_init_done` 死网及 serializer reset 连接均已落地。
 
-serializer 接收高有效 reset；O1-B 已让该信号驱动四个 serializer 内共八个 OSERDES 的高有效 `RST`。O2-B 级联释放实验已由 STA 否决并回退，当前仍是旧七组失败基线；O2-D1 完成前不得启动新的 serializer RTL。
+serializer 接收高有效 reset；O1-B 已让该信号驱动四个 serializer 内共八个 OSERDES 的高有效 `RST`。O2-B 级联释放实验已由 STA 否决并回退，当前仍是旧七组失败基线；O2-D1-R/O2-D1-G 完成并经用户审核前不得启动新的 serializer RTL。
 
 `mem_a` 是板级接口冲突而非机械消警：活动 IP 为 14 bit，顶层/FDC 为 15 bit，当前综合网表将第 15 bit 绑 0。它必须等待 H3 板级 DDR3 事实并在 O1-C 独立处理；O1-B 不修改 `mem_a`、IP、FDC、CDC/RDC 或时序例外。
 

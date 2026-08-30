@@ -1,5 +1,5 @@
 > generated_by: Codex manual bootstrap
-> verified_at: 2026-08-29
+> verified_at: 2026-08-30
 > provenance: current worktree, PDS project files, implementation reports, root audit notes, and manual inspection; no AST extraction or Git-history statistics
 
 # Embedded Completion Nexus Map
@@ -27,8 +27,9 @@
 - O1-B 严格 gate 返回 `1`；baseline gate 只在 corner、check、clock pair 与 endpoint 数量精确匹配七组已知失败时返回 `0`，并明确标记不可发布。新 Slow Recovery `pixel_clk → pixel_clk_5x` 为 `-0.643 ns / -4.191 ns / 8/8`，端点正是四个 serializer 内的八个 OSERDES，转入 O2-A/O2-B；QuestaSim/S3 动态验证仍未完成。
 - OV7725 O2-A 已形成 [Serializer Reset 联合释放契约](../41_ov7725_hdmi/doc/SERIALIZER_RESET_CONTRACT.md)：确认同一高有效 `RST` 同时受 `OCLK/SERCLK=pixel_clk_5x` 与 `OCLKDIV=pixel_clk` 的 recovery/removal 检查，并固定 O2-B 首选为现有 `pixel_clk` 两级释放后再级联 `pixel_clk_5x` 两级释放，只驱动八个 OSERDES。本批未修改 RTL/FDC、未运行 PDS 或 QuestaSim。
 - OV7725 O2-B 已按该契约完成 compile 和从空 `build/` 的七阶段实验，但最终 STA 报告 Slow Recovery `pixel_clk_5x → pixel_clk_5x -0.349 ns / 8/8`、`pixel_clk_5x → pixel_clk -2.173 ns / 8/8`，Fast Recovery 反向组仍为 `-1.464 ns / 8/8`。该方案已被否决，功能 RTL 已回退；旧七组 baseline 和 gate 均未放宽。
-- 下一批为 O2-D1 只读备选架构评审，仅比较显式释放相位 sequencer、统一复位控制器和厂商推荐结构并固定唯一候选；审核后才允许进入 O2-D2 实现。
-- 本次 O2-B 否决、回退和知识图同步批次提交后，仓库累计 15 个 Git 提交；样本仍不足以计算可信的历史热点。
+- OV7725 O2-D1 已否决动态 `GTP_IOCLKBUF` 门控路线：SP6.4 Liberty 无 `DI` clock-gating check，不能静态证明停钟、复位、释放和启钟顺序。唯一待验证候选为新增 `CLKOUT3=65.0026 MHz`、约 `+0.192 ns` 相位控制输出，并为每个 serializer 本地复制 reset 寄存器；该候选尚未实现或签核。
+- O2-D1-R 先从空 `build/` 重建回退后的七组旧失败基线并复核 53/54 endpoint 漂移；随后 O2-D1-G 收口 `/5` generated-clock、奇数分频 waveform、pre/post-buffer 取点、状态/复位分权和单次试验停止条件。用户审核后只允许执行一次 O2-D2，失败即完整回退，不扫描第二相位、不增加 waiver。
+- 本次 O2-D1 TODO/契约与知识图同步批次提交后，仓库累计 16 个 Git 提交；样本仍不足以计算可信的历史热点。
 - 根目录 [README](../README.md) 是 PDS 外部实现与仿真指南。
 - 根目录 [TODO](../TODO.md) 是当前整改顺序和验收门槛。
 - 新增或修改 Verilog/SystemVerilog 时必须遵循 [VSCS](../VERILOG_SYSTEMVERILOG_COMMENTING_STANDARD.md)。
@@ -46,11 +47,11 @@
 
 ## 当前优先级
 
-1. OV7725 O2-B 级联复位实验已被 STA 否决并回退；下一批 O2-D1 只读比较备选架构，固定唯一候选、释放波形、文件范围、STA/仿真覆盖和回退条件，不启动新的 serializer RTL。
-2. O2-D1 审核后才进入 O2-D2；只实现唯一候选，并要求八个 OSERDES endpoint 的 `OCLK`、`SERCLK`、`OCLKDIV` Slow/Fast Recovery/Removal 全部覆盖且非负。禁止 false path、multicycle、clock-group waiver、多个方案同批试探或新增 baseline 失败签名。
-3. OV7725 后续按 O3-A → O2-C1 → O2-C2 → O3-B → O4 推进；O4 同时依赖 O2-C2 与 O3-B，结构闭环前不得添加宽泛时序例外。
-4. 审核 DDR3 D3 实现批次；D2 只读决策已经固定有限事务和公开结果契约，但项目自有顶层尚未创建。与 OV7725 的 RTL 实现泳道一次只选择一条实施。
-5. PCIe 等待板级资料关闭 IDF、UART、share pin、HSST 约束和 SCBV 阻断项；QuestaSim 可用后，三个工程分别补齐集成顶层四级仿真和 SDF 标注验证。
+1. OV7725 先执行 O2-D1-R 回退基线重建，只记录旧七组失败指纹和 53/54 endpoint 漂移，不修改 baseline 或功能文件。
+2. O2-D1-G 收口唯一待验证候选：`CLKOUT3=65.0026 MHz`、约 `+0.192 ns` 相位、每 serializer 本地 reset 复制，以及 `/5` generated-clock/状态契约；完成后提请审核。
+3. 审核后只执行一次 O2-D2。八个 OSERDES endpoint 的 Slow/Fast × Recovery/Removal × `OCLK` 双边沿/`OCLKDIV`/`SERCLK` 必须全部覆盖且非负；禁止 false path、multicycle、clock-group waiver、第二相位扫描或新增 baseline 失败签名。
+4. O2-D2 成功后按 O3-A → O2-C1 → O2-C2 → O3-B → O4 推进；O4 同时依赖 O2-C2 与 O3-B。
+5. DDR3 D3-0 与 PCIe H2-A/H2-B 保持只读泳道，不与 OV7725 功能 RTL 实施混批；QuestaSim 可用后再补齐三项目四级仿真和 SDF 标注验证。
 
 ## 更新规则
 

@@ -531,4 +531,4 @@ Negative timing check
 - `E:\pango\PDS_2022.2-SP6.4\doc\Pango_Design_Suite_User_Guide.pdf`
 - `E:\pango\PDS_2022.2-SP6.4\doc\Simulation_User_Guide.pdf`
 
-版本提醒：截至 2026 年 8 月 29 日，官方页面还提供 `PDS_2022.2-SP6.4-Patch2`，同时已有同系列的 `SP6.7.1`。你的本机命令只报告 `2022.2-SP6.4`；如遇工具缺陷，建议先侧装 Patch2 验证，不要直接覆盖现有环境。
+版本提醒：2026 年 8 月 29 日核对官方软件下载页时，公开列出的 Win64 版本为 `PDS_2024.2-SP2-EN-ads-win64`，上传日期为 2026 年 3 月 23 日。本仓库的可重复构建与签核基线仍固定为本机 `2022.2-SP6.4`；验证其他版本时必须侧装并使用独立 `build/`，不得覆盖现有环境或混用生成物。

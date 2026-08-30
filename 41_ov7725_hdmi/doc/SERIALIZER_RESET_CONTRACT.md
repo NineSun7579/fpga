@@ -244,3 +244,65 @@ O2-A 完成仅表示：
 - 没有修改功能 RTL、IP、约束或 gate，也没有运行新的实现/仿真。
 
 O2-A 不表示 serializer reset 已修复，也不改变当前设计不可发布的结论。
+
+## 12. O2-D1 评审结论与后续 gate
+
+O2-D1 为架构评审，不修改 RTL、IP、PLL、FDC、RCF 或 gate。当前已确认：在两个 GPLL 输出分别驱动 `pixel_clk` 与 `pixel_clk_5x` 的拓扑上，局部增加同步级或等待周期不能结构性消除同一 `RST` 对 `OCLK`、`OCLKDIV` 与 `SERCLK` 的联合检查。O2-B 的真实 Slow/Fast Recovery 已证明，失败会在快慢检查之间转移。
+
+### 12.1 已否决路线
+
+动态 `GTP_IOCLKBUF` 门控不进入 O2-D2：
+
+- 功能模型可以在低电平窗口无毛刺停启时钟，但这只是仿真行为。
+- SP6.4 Liberty 没有 `DI` 相对 `CLKIN` 的 clock-gating check，也不能证明“停钟、断言 reset、释放 reset、重新启钟”的运行时顺序。
+- divider `RST_N` 同样没有足以证明该顺序的 Recovery/Removal 模型。
+- endpoint 在某个静态模式消失、功能仿真无报错或增加 waiver，均不能替代八个 OSERDES endpoint 的静态覆盖。
+
+PG2L100H LVDS 示例只能支持统一硬块拓扑方向：它没有启用动态门控，也没有最终 STA 报告，不能作为门控释放已通过的证据。
+
+### 12.2 唯一待验证候选
+
+O2-D2 只允许执行一次以下不可拆候选：
+
+1. 用 SP6.4 IP Compiler 重生成 PLL，新增 `65.0026 MHz` 控制输出；目标参数为 `STATIC_RATIO3=10`、`STATIC_CPHASE3=0`、`STATIC_PHASE3=1`，相对当前同相输出约延后 `0.192 ns`。
+2. 每个 serializer 使用一只本地 reset 寄存器，直接驱动其两只 OSERDES；异步置位，且只允许在控制时钟上升沿同步清零。禁止在本地寄存器之后组合重汇聚。
+3. O2-B 慢角高速路径总延迟为约 `1.480 ns`；新控制边沿到下一 OCLK 下降沿的名义窗口约 `1.346 ns`。要达到零 slack，本地 reset 总数据延迟需压到约 `0.939 ns` 以下，并应额外保留裕量。纯 PLL 相位调整不能闭合。
+4. 首轮只测试该一个相位，不扫描其他相位。`phase=0` 不能依赖 STA 自动跳过同刻捕获边沿，更大的正相位只会继续缩短高速窗口。
+
+O2-D1-G 仍需把异步断言条件、资格确认、ARM、OSERDES 释放、pixel 域 warm-up 和 RUN 的状态/计数语义写成无歧义契约。`dvi_encoder.v` 的多级中间流水寄存器不复位，因此“serializer 已释放”不等于“首个 TMDS symbol 已确定”；必须单独固定 encoder 填充和首个有效 symbol 条件。
+
+### 12.3 同源 `/5` 拓扑与原子迁移
+
+当前 `pixel_clk` 同时驱动 DDR read FIFO 读侧、`video_driver`、`video_display`、三个 encoder 和八个 OSERDES 的 `OCLKDIV`。候选拓扑必须：
+
+1. 保留 `pixel_clk_5x` 为唯一高速源，经唯一 `GTP_IOCLKBUF` 驱动八个 OSERDES 的 `OCLK/SERCLK`。
+2. 从同一高速源经唯一 `GTP_IOCLKDIV_E2(DIV_FACTOR="5")` 生成整个 pixel 域时钟。
+3. 原子迁移 DDR read FIFO 的 `rd_clk` 和完整 HDMI pixel 域；旧 PLL `CLKOUT0` 不得继续驱动任何 pixel 消费者。
+4. 只迁移 FIFO 时钟，不改变现有 FIFO reset/flush 语义；该职责继续留给 O2-C2。
+5. 将 serializer hard reset 与 video/encoder business reset 分权；`ddr3_init_done` 不得进入 serializer hard-reset 控制器。
+
+`/5` 是奇数分频，不能默认 50% duty。O2-D1-G 必须唯一固定 IOCLKDIV 的 pre/post-buffer 输入取点、PDS clock object 和 waveform。本机 PG2L100H 官方示例对 IOCLKDIV 输出显式使用 `create_generated_clock`；本工程应先检查 PDS 是否唯一推断，只有需要时才增加一个精确声明，禁止重复或宽泛 clock object。
+
+最小审核边界包括：
+
+- 由 IP Compiler 重生成的 `pll_clk.idf` 和 wrapper；禁止手改生成 Verilog。
+- 新增项目自有 `rtl/hdmi_top/tmds_clock_reset_ctrl.v`。
+- 修改 `rtl/ov7725_hdmi.v`、`rtl/hdmi_top/hdmi_top.v`、`rtl/hdmi_top/dvi_transmitter_top.v` 与 `scripts/build.tcl`。
+- 将 `prj/source/ov7725_hdmi.fdc` 纳入 generated-clock 审查；STA 成功后再修改 `scripts/check_build.ps1`。
+- `serializer_10_to_1.v`、video、encoder、FIFO 和 DDR wrapper 原则上不为改网名而修改，由网表/gate 证明迁移完成。
+
+### 12.4 编码前任务
+
+1. **O2-D1-R：** 从空 `build/` 重建已回退 RTL，确认原 7 组失败指纹，并判断 `ddrphy_sysclk → pixel_clk` 为 53 还是 54 个 endpoint。该漂移不能在没有等价基线时归因于 serializer reset。
+2. **O2-D1-G：** 固定控制器状态、计数、reset 断言/释放边沿、generated-clock waveform、业务 reset 顺序、encoder warm-up、预期网表/STA delta 和完整回退条件。
+3. 完成文档与用户审核后才允许进入 O2-D2；本节不是编码授权。
+
+### 12.5 O2-D2 硬验收与停止条件
+
+1. Compile/elaboration 后必须有 17 个手写源、1 个 IOCLKBUF、1 个 `/5` IOCLKDIV、4 个 serializer、8 个 OSERDES 和唯一 pixel generated clock。
+2. 旧 `CLKOUT0` 对 pixel 域零消费者，不存在旧、新同频 pixel clock CDC。
+3. 八个 endpoint 的 Slow/Fast × Recovery/Removal × `OCLK` 正负边沿/`OCLKDIV`/`SERCLK` 均保留分析覆盖且 slack 非负。
+4. 只允许 O2-D1-G 预先列出的 clock 名、source count 和 reset endpoint delta；其余 warning、critical、CDC 或 baseline 漂移为零。
+5. QuestaSim 可用后补测异步断言、业务 reset 顺序、encoder warm-up、唯一首个有效 TMDS symbol、超时和 SDF 标注。
+
+以下任一项出现即完整回退，不进行第二相位尝试：控制相位或 generated clock 未被唯一识别；本地复制后 Slow Recovery 仍为负；任一 Removal/八端点/双边沿覆盖不完整；需要 false path、multicycle、clock group、失败 baseline、未审核 LOC 或其他 waiver。当前设计继续保持不可发布状态。

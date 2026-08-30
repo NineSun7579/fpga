@@ -103,4 +103,4 @@ baseline 放行不会把结果标记为发布候选。
 - LED 只能显示公开状态，不能作为完成或 PASS/FAIL 的原始依据；
 - 新 TB 必须使用公开端口、相对路径、Questa WLF、`$fatal` 和唯一 `TEST PASS`，FSDB 仅作为显式可选功能。
 
-D2 是文档决策批次，没有修改 RTL、TB、IDF、FDC 或 RCF。D3 功能实现需先审核本契约；当前仓库的下一可执行批次为 OV7725 O1-A 只读评审。
+D2 是文档决策批次，没有修改 RTL、TB、IDF、FDC 或 RCF。D3 功能实现需先完成 D3-0 的 core/wrapper、非标准 Pango DDR UI 握手和 `I_ips_ddr_top` 层级评审；当前仓库的唯一功能主线仍为 OV7725 O2-D1 只读评审，D3-0 可作为独立只读泳道准备，但不得并行启动 D3-A 功能 RTL。

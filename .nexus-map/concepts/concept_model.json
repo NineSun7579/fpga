@@ -26,7 +26,7 @@
       "implementation_status": "implemented_with_timing_failures",
       "code_path": "41_ov7725_hdmi/rtl/",
       "evidence_path": "41_ov7725_hdmi/doc/RTL_HYGIENE_AUDIT.md",
-      "evidence_gap": "O1-B 的 38 条确定修复和七阶段回归已完成，仅剩 mem_a 1 条受 H3/O1-C 阻断；O2-B 已完成 compile/七阶段实验但被 Slow/Fast Recovery 否决并回退，baseline/gate 未放宽。O2-D1 只读备选架构评审和 QuestaSim/S3 尚未完成。",
+      "evidence_gap": "O1-B 的 38 条确定修复和七阶段回归已完成，仅剩 mem_a 1 条受 H3/O1-C 阻断；O2-B 已被 Slow/Fast Recovery 否决并回退，baseline/gate 未放宽。O2-D1 已否决动态门控并收敛到 CLKOUT3=65.0026 MHz/+0.192 ns 与每 serializer 本地 reset 复制；O2-D1-R、O2-D1-G、用户审核和 QuestaSim/S3 尚未完成。",
       "tech_stack": ["Verilog", "Pango Logos2", "DDR3", "TMDS"],
       "related_reqs": ["逐域复位", "单点事件同步", "FIFO 分侧复位", "结构后精确例外", "O1-B complete", "O2-A/O2-B rejected/O2-D1/O2-D2/O3-A/O2-C1/O2-C2/O3-B/O4", "H3/O1-C mem_a"],
       "complexity": "high",
@@ -89,7 +89,7 @@
         "failing_endpoints": 8,
         "total_endpoints": 8,
         "endpoint_scope": "four serializers, eight OSERDES",
-        "next_steps": ["O2-D1", "O2-D2", "O3-A", "O2-C1", "O2-C2", "O3-B", "O4"]
+        "next_steps": ["O2-D1-R", "O2-D1-G", "user review", "O2-D2 single attempt", "O3-A", "O2-C1", "O2-C2", "O3-B", "O4"]
       },
       "decisions": [
         "显式声明 rst_n",
@@ -111,7 +111,7 @@
       "implementation_status": "documented",
       "code_path": null,
       "evidence_path": "41_ov7725_hdmi/doc/CDC_RDC_AUDIT.md",
-      "evidence_gap": "O2-B 级联两级释放已完成 compile/七阶段实验，但 Slow/Fast Recovery 否决该结构且 RTL 已回退；旧 baseline/gate 未放宽。下一批 O2-D1 只读比较备选架构，O2-D2 审核前不实现；QuestaSim 尚未执行。",
+      "evidence_gap": "O2-B 级联两级释放已被 Slow/Fast Recovery 否决且 RTL 已回退；旧 baseline/gate 未放宽。O2-D1 已否决动态门控，唯一待验证候选为 CLKOUT3=65.0026 MHz/+0.192 ns 与每 serializer 本地 reset 复制；O2-D1-R/O2-D1-G 和用户审核完成前不实现 O2-D2，QuestaSim 尚未执行。",
       "o2a_serializer_reset_contract": {
         "status": "complete_read_only",
         "evidence_path": "41_ov7725_hdmi/doc/SERIALIZER_RESET_CONTRACT.md",
@@ -146,7 +146,23 @@
         ],
         "fast_reverse_recovery": {"launch_clock": "pixel_clk_5x", "capture_clock": "pixel_clk", "wns_ns": -1.464, "failing_endpoints": 8, "total_endpoints": 8},
         "reverse_endpoint_scope": "serializer_b/g/r/clk x opit_2/opit_2_com OSERDES OCLKDIV",
-        "next_phase": "O2-D1 read-only architecture review; O2-D2 only after approval"
+        "next_phase": "O2-D1-R baseline rebuild, then O2-D1-G generated-clock/state contract and user review; one O2-D2 attempt only"
+      },
+      "o2d1_architecture_decision": {
+        "status": "read_only_partial_complete",
+        "dynamic_ioclkbuf_gating": "rejected",
+        "gating_rejection_reason": "SP6.4 PG2L100H Liberty has no DI clock-gating check and cannot statically prove stop-reset-release-restart ordering",
+        "only_candidate": {
+          "control_clock": "PLL CLKOUT3",
+          "frequency_mhz": 65.0026,
+          "phase_offset_ns": 0.192,
+          "pll_parameters": {"STATIC_RATIO3": 10, "STATIC_CPHASE3": 0, "STATIC_PHASE3": 1},
+          "reset_topology": "one local reset register copy per serializer",
+          "validated": false
+        },
+        "o2d1_r": "rebuild rolled-back seven-group baseline from empty build and audit the 53/54 endpoint drift",
+        "o2d1_g": "close odd-divide-by-5 generated-clock waveform, pre/post-buffer clock points, controller states, hard/business reset ownership, first valid TMDS symbol and stop conditions",
+        "o2d2_policy": "one user-approved implementation attempt; rollback on any stop condition; no second phase scan or waiver"
       },
       "tech_stack": ["Verilog", "PDS STA", "CDC", "RDC"],
       "related_reqs": ["O1-A", "逐域复位", "事件不丢不重", "FIFO reset/flush"],
@@ -266,13 +282,13 @@
       "source": "ov7725-cdc-rdc-audit",
       "target": "ov7725-hdmi-system",
       "type": "governs_future_changes",
-      "description": "O2-B 已按 O2-A 契约完成 compile/七阶段实验，但 Slow/Fast Recovery 否决级联释放且 RTL 已回退；baseline/gate 未放宽。下一批 O2-D1 只读比较备选架构并固定唯一候选，O2-D2 审核后才实现；随后执行 O3-A、O2-C1、O2-C2、O3-B，O4 依赖 O2-C2 与 O3-B。"
+      "description": "O2-B 已被 Slow/Fast Recovery 否决且 RTL 已回退；baseline/gate 未放宽。O2-D1 已否决动态门控，唯一待验证候选为 CLKOUT3=65.0026 MHz/+0.192 ns 与每 serializer 本地 reset 复制。先完成 O2-D1-R 和 O2-D1-G并经用户审核，再只执行一次 O2-D2；随后执行 O3-A、O2-C1、O2-C2、O3-B，O4 依赖 O2-C2 与 O3-B。"
     },
     {
       "source": "ov7725-rtl-hygiene-audit",
       "target": "ov7725-hdmi-system",
       "type": "records_completed_change",
-      "description": "O1-B 已完成 38 条确定修复、rst_n/sys_init_done 清理与八个 OSERDES reset 连接；mem_a 仍转 H3/O1-C。O2-B 实验已由真实 STA 否决并回退，下一批为 O2-D1 只读架构评审。"
+      "description": "O1-B 已完成 38 条确定修复、rst_n/sys_init_done 清理与八个 OSERDES reset 连接；mem_a 仍转 H3/O1-C。O2-B 已由真实 STA 否决并回退；当前依次执行 O2-D1-R 回退基线重建和 O2-D1-G generated-clock/状态契约收口。"
     },
     {
       "source": "ddr3-outer-project",
@@ -355,10 +371,11 @@
   ],
   "metadata": {
     "analysis_mode": "manual bootstrap",
-    "git_commits_analyzed": 15,
+    "verified_at": "2026-08-30",
+    "git_commits_analyzed": 16,
     "raw_ast_available": false,
     "limitations": [
-      "Fifteen repository commits are counted after the O2-B rejection/rollback and nexus synchronization batch. Churn analysis remains too shallow for reliable hotspot ranking.",
+      "Sixteen repository commits are counted after the O2-D1 TODO/contract and nexus synchronization batch. Churn analysis remains too shallow for reliable hotspot ranking.",
       "No AST extraction was run.",
       "No ModelSim or QuestaSim execution was available."
     ]

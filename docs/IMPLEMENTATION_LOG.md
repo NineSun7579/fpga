@@ -144,3 +144,14 @@
 - 八个反向 endpoint 正好是 `serializer_b/g/r/clk × opit_2/opit_2_com` 的 OSERDES `OCLKDIV` 检查；原 `pixel_clk → pixel_clk_5x` 失败没有被结构性关闭，而是转移并在慢角增加同域失败。
 - O2-B 已按契约停止条件完整回退；未修改 `check_build.ps1`、baseline、FDC、RCF、PLL/IP，也未加入任何时序例外或 waiver。
 - 下一批为 O2-D1 只读架构评审，比较显式释放相位 sequencer、统一复位控制器和厂商推荐结构；审核前不启动新的 serializer RTL。
+
+## 2026-08-30：OV7725 O2-D1 统一拓扑中间评审
+
+- 本批只读复核 SP6.4 `GTP_OSERDES_E2`、`V_OSERDES_E2`、`GTP_IOCLKDIV_E2`、`GTP_IOCLKBUF`、PG2L100H LVDS 示例、当前 PLL/RTL 和 O2-B STA；未修改 RTL、IP、PLL、FDC、RCF 或 gate，未运行 PDS/QuestaSim。
+- timing model 对同一 `RST` 相对 `OCLK` 正负边沿、`OCLKDIV` 正边沿和 `SERCLK` 正边沿均建立 Recovery/Removal；O2-B 已证明普通级联同步器会把失败转移到 `pixel_clk_5x → pixel_clk`，固定等待周期不能改变固有相位预算。
+- 同源高速时钟经 `GTP_IOCLKDIV_E2 /5` 生成整个 pixel 域是当前领先拓扑；当前 `pixel_clk` 同时驱动 DDR read FIFO 读侧、video driver/display、encoder 与 serializer，最终若采用该拓扑必须原子迁移。
+- 进一步核对发现官方示例的 `tx_gate_en` 没有消费者，`GTP_IOCLKBUF` 使用默认 `GATE_EN="FALSE"`，且 400 MHz/50 MHz PLL 输出请求相位均为 0；示例没有证明停钟释放，也没有最终 STA 报告。
+- 动态门控路线已否决：功能模型虽可无毛刺停启，但 SP6.4 Liberty 没有 `DI` clock-gating check，也不能证明停钟、复位、释放、启钟的顺序；仿真、endpoint 消失或 waiver 都不能替代八端点 STA。
+- 唯一待验证候选为新增 `65.0026 MHz`、约 `+0.192 ns` 的 PLL 控制输出，并为每个 serializer 本地复制 reset 寄存器。按 O2-B 路径预算，reset 总数据延迟需压到约 `0.939 ns` 以下；纯相位调整不能通过。
+- `/5` generated-clock、奇数分频 waveform、IOCLKBUF 前后取点、serializer hard reset 与业务 reset 分权均为 O2-D2 前置契约；FIFO 只迁移 `rd_clk`，reset/flush 仍留给 O2-C2。
+- 当前 `build/` 已清空，下一步先重建已回退 RTL 的等价基线并判断 53/54 endpoint 漂移，再收口 O2-D1-G 并提请审核；当前仍不允许编码 O2-D2，工程继续不可发布。

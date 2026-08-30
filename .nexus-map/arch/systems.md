@@ -1,5 +1,5 @@
 > generated_by: Codex manual bootstrap
-> verified_at: 2026-08-29
+> verified_at: 2026-08-30
 > provenance: current source tree, PDS project files, reports, and root audit notes
 
 # Systems
@@ -28,7 +28,7 @@
 - project_path: `41_ov7725_hdmi/prj/ov7725_hdmi.pds`
 - constraint_path: `41_ov7725_hdmi/prj/source/ov7725_hdmi.fdc`
 - evidence_path: `41_ov7725_hdmi/doc/CDC_RDC_AUDIT.md`, `41_ov7725_hdmi/doc/RTL_HYGIENE_AUDIT.md`, `41_ov7725_hdmi/doc/SERIALIZER_RESET_CONTRACT.md`, `docs/IMPLEMENTATION_LOG.md`, `41_ov7725_hdmi/build/logs/pds-gen_bit_stream.log`, `41_ov7725_hdmi/build/pds/report_timing/ov7725_hdmi.rtr`, `41_ov7725_hdmi/scripts/check_build.ps1`
-- evidence_gap: O1-B 的 38 条确定修复和七阶段回归已完成，仅剩 `mem_a` 1 条受 H3/O1-C 板级事实阻断；O2-B 已完成 compile/七阶段实验但被 Slow/Fast Recovery 否决并回退，旧 baseline/gate 未放宽。下一批 O2-D1 只读评审尚未完成，QuestaSim/S3 仍不可用，当前结果不可发布。
+- evidence_gap: O1-B 的 38 条确定修复和七阶段回归已完成，仅剩 `mem_a` 1 条受 H3/O1-C 板级事实阻断；O2-B 已被 Slow/Fast Recovery 否决并回退，旧 baseline/gate 未放宽。O2-D1 已否决动态门控，并仅保留 `CLKOUT3=65.0026 MHz/+0.192 ns + 每 serializer 本地 reset 复制` 待验证候选；O2-D1-R、O2-D1-G 和用户审核尚未完成，QuestaSim/S3 仍不可用，当前结果不可发布。
 - responsibility: 将 OV7725 像素流经异步 FIFO 和 DDR3 帧缓存送往 HDMI/TMDS 输出。
 - clock_domains: `sys_clk`, `i2c_dri_clk`, `cam_pclk`, `pixel_clk`, `pixel_clk_5x`, `clk_50m/ref_clk`, `ui_clk`
 - cdc_findings: `wr_load`/`rd_load` 被多个逻辑独立采样；write FIFO 为 `cam_pclk → ui_clk`，read FIFO 为 `ui_clk → pixel_clk`
@@ -40,8 +40,8 @@
 - rtl_hygiene_findings: 39 条 `Verilog-2019` 中 38 条确定性告警已在 O1-B 消失；仅保留活动 DDR3 IP `mem_a[13:0]` 与顶层/FDC `mem_a[14:0]` 冲突的 1 条，综合网表仍将 `mem_a[14]` 绑 0
 - rtl_hygiene_result: 已显式声明 `rst_n`、删除无消费者 `sys_init_done`、修复定宽连接，并使用高有效 reset 驱动四个 serializer 内的八个 OSERDES；未修改 `mem_a`、厂商 IP、FDC 或 CDC/RDC
 - serializer_reset_contract: O2-A 已完成；O2-B 曾按 `pixel_clk` 两级后级联 `pixel_clk_5x` 两级释放并只驱动八个 OSERDES，但真实 STA 将失败转移到 `OCLKDIV` 的 `pixel_clk_5x → pixel_clk` 并保留慢角 `OCLK` 同域负裕量，因此方案已否决且 RTL 已回退
-- remediation_contract: O2-D1 只读比较显式释放相位 sequencer、统一复位控制器和厂商推荐结构并固定唯一候选；O2-D2 才允许实现。全程不修改 baseline/gate，不使用 false path、multicycle、clock-group waiver，不在同一批试探多个方案
-- next_step: O2-D1 → O2-D2 → O3-A → O2-C1 → O2-C2 → O3-B → O4；O2-D1 完成前不启动新的 serializer RTL，O4 同时依赖 O2-C2 与 O3-B
+- remediation_contract: 动态 `GTP_IOCLKBUF` 门控已否决；唯一待验证候选使用 `CLKOUT3=65.0026 MHz`、约 `+0.192 ns` 相位控制输出和每 serializer 本地 reset 复制。O2-D1-G 必须先固定 `/5` 奇数分频 waveform、pre/post-buffer 时钟取点、hard/business reset 分权、首个有效 TMDS symbol 和一次性停止条件
+- next_step: O2-D1-R → O2-D1-G → 用户审核 → 单次 O2-D2 → O3-A → O2-C1 → O2-C2 → O3-B → O4；O2-D2 不扫描第二相位、不增加 waiver，失败即完整回退。DDR3 D3-0 与 PCIe H2 保持只读泳道
 - high_attention: `i2c_dri_clk` 逻辑生成时钟、`cam_pclk`/DDR `ui_clk`/`pixel_clk` 间业务 CDC、FIFO 分侧复位，以及 `ddr3_init_done` 参与的复位释放。
 
 ## DDR3 外层工程

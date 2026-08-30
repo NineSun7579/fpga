@@ -64,10 +64,11 @@ powershell.exe -ExecutionPolicy Bypass -File .\scripts\run.ps1 `
 O1-B 已按 [RTL 卫生修复评审](doc/RTL_HYGIENE_AUDIT.md) 实现并完成七阶段回归。下一批拆为：
 
 1. O2-B：级联双域 reset 实验已由真实 STA 否决，失败 RTL 已回退；契约保留其完整证据，旧 baseline 不变。
-2. O2-D1：下一批只读比较显式释放相位 sequencer、统一复位控制器和厂商推荐结构，并固定唯一候选、释放波形、STA/仿真验收与回退边界。
-3. O2-D2：审核后只实现 O2-D1 选定的一种结构，完整证明 `OCLK`、`SERCLK`、`OCLKDIV` 的 Slow/Fast Recovery 与 Removal。
-4. O3-A → O2-C1：先同步 `ddr3_init_done` 作为 camera/pixel enable，再处理 sys、I2C、camera、pixel、DDR UI 等普通时钟域本地复位。
-5. O2-C2：单独依据厂商 FIFO reset/flush 语义处理两个异步 FIFO 的读写侧复位。
-6. O3-B → O4：修复两条帧事件 CDC；只有 O2-C2 与 O3-B 都完成后才进入约束和最终时序闭环。
+2. O2-D1-R：先从空 `build/` 重建已回退 RTL，复核旧失败指纹和 `ddrphy_sysclk → pixel_clk` 的 53/54 endpoint 漂移，不修改功能文件或 baseline。
+3. O2-D1-G：动态门控路线已因 SP6.4 无法静态证明而否决；只收口“`+0.192 ns` 控制相位 + 本地 reset 复制”候选、`/5` generated-clock、pixel 域迁移、业务/硬块复位分权和单次试验停止条件，然后提请审核。
+4. O2-D2：审核后只执行一次。用 IP Compiler 重生成 PLL，原子迁移 DDR read FIFO `rd_clk` 与完整 HDMI pixel 域；保持 FIFO reset/flush 语义不变。八端点 STA 不闭合或需要 waiver/LOC/第二相位时立即完整回退。
+5. O3-A → O2-C1：先同步 `ddr3_init_done` 作为 camera/pixel enable，再处理 sys、I2C、camera、pixel、DDR UI 等普通时钟域本地复位。
+6. O2-C2：单独依据厂商 FIFO reset/flush 语义处理两个异步 FIFO 的读写侧复位。
+7. O3-B → O4：修复两条帧事件 CDC；只有 O2-C2 与 O3-B 都完成后才进入约束和最终时序闭环。
 
-O2 不修改 `mem_a`、DDR3 IP 或板级 FDC，不通过 `false_path` 掩盖 recovery。新增或修改的 RTL 注释必须遵守根目录 `VERILOG_SYSTEMVERILOG_COMMENTING_STANDARD.md`；QuestaSim 未就绪前不声明 HDMI 动态复位或串化功能通过。
+O2 不修改 `mem_a` 或 DDR3 IP，不通过 `false_path` 掩盖 recovery。PLL/IP 与必要的精确 FDC 已明确属于 O2-D2 待审核边界；generated-clock 无法唯一建模时不得实现。新增或修改的 RTL 注释必须遵守根目录 `VERILOG_SYSTEMVERILOG_COMMENTING_STANDARD.md`；QuestaSim 未就绪前不声明 HDMI 动态复位或串化功能通过。
