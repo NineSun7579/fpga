@@ -8,7 +8,7 @@
 
 - 分支为 `main`。
 - 根提交为 `1a2d493`，保存三个原始工程、已有 PDS 产物和整改文档。
-- CI-0 仓库级静态一致性门禁已作为独立批次提交；S0-1 参数化仿真库入口及强制预检收紧随后作为独立批次提交，仓库累计 27 个提交。样本仍不足以计算可信的 churn、共同变更或历史热点。
+- CI-2 板级证据清单完整性门禁已作为提交 `677808d` 落地；当前 HEAD 累计 40 个提交，本次 `.nexus-map` 尚未提交，提交后需再次校正计数。样本仍不足以计算可信的 churn、共同变更或历史热点。
 
 ## 人工高关注区
 
@@ -32,7 +32,7 @@
 - `pcie_dma_test_100h/hdl/pcie_dma_test.v`：UART2APB 隐式 `rxd/txd` 连接与 PCIe DMA 集成入口。
 - `pcie_dma_test_100h/fdc/pcie_dma_test.fdc`：PCIe 专用资源、复位和普通 I/O 约束入口。
 - `pcie_dma_test_100h/hdl/pcie_dma_test.v`、`pcie_dma_test_100h/ipcore/pcie_test/pcie_test.idf`：H2-A 顶层 x2/lane、UART2APB 隐式端口及 IDF/PDS 器件不一致的首要证据；H2-A 只读，不修改 RTL/IDF/FDC。
-- `scripts/check_repo_consistency.ps1`：CI-0 仓库级静态门禁入口，检查根文档、三项目 README/PDS 脚本/gate、顶层与七阶段声明、工具路径/退出码、产物/时序接口及 `build/` 忽略状态；当前退出码为 0，但不能替代 PDS、STA 或仿真。
+- `scripts/check_repo_consistency.ps1`：CI-0/CI-1/CI-2 仓库级静态门禁入口；除根文档、构建入口和仿真矩阵外，现强制检查三项目板级证据清单、统一章节、项目关键词和 README 链接。当前退出码为 0，但不能替代 PDS、STA、板级审核或仿真。
 - `scripts/compile_simlib.tcl`、`scripts/compile_simlib.ps1`：S0-1 参数化 Pango USIM/VSIM 编译入口；支持模拟器、库类型、family、语言、PDS/仿真器路径与输出目录覆盖，并校验工具、退出码、`E:` 记录和库目录。当前因缺少 `vsim.exe`/`vlog.exe`/`vlib.exe` 未执行实际库编译。
 - `docs/SIMULATION_READINESS_MATRIX.md`：三项目 S1/S2/S3 项目级资产缺口、厂商示例边界、四级共同门槛和依赖顺序的首要证据；当前矩阵仍在工作区，HEAD 提交分析计数保持 27。
 - `E:/pango/PDS_2022.2-SP6.4/bin/pds_shell.exe`：S0 复核确认存在的唯一已发现实现工具；外部仿真器可执行文件缺失是当前动态验证阻塞点。

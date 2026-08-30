@@ -59,6 +59,21 @@
         "scope": ["root guide/TODO/VSCS", "project README/build.tcl/run.ps1/check_build.ps1", "top module and seven-stage declarations", "configurable PDS path and exit-code checks", "baseline/artifact/timing gate interfaces", "build ignore and tracked-generated-file status"],
         "boundary": "static repository consistency only; does not run or replace PDS, STA, project strict gates or four-level simulation"
       },
+      "ci_2_board_evidence_gate": {
+        "date": "2026-08-30",
+        "status": "committed_as_677808d",
+        "script": "scripts/check_repo_consistency.ps1",
+        "exit_code": 0,
+        "projects": {
+          "OV7725 HDMI": {"checklist": "41_ov7725_hdmi/doc/BOARD_EVIDENCE.md", "readme": "41_ov7725_hdmi/README.md", "keywords": ["OV7725", "HDMI"]},
+          "DDR3 bring-up": {"checklist": "ddr3_test/ddr3_test/doc/BOARD_EVIDENCE.md", "readme": "ddr3_test/ddr3_test/README.md", "keywords": ["DDR3", "test_ddr"]},
+          "PCIe DMA": {"checklist": "pcie_dma_test_100h/doc/PCIE_BOARD_EVIDENCE.md", "readme": "pcie_dma_test_100h/README.md", "keywords": ["PCIe", "H2-A"]}
+        },
+        "required_sections": ["当前工程事实", "必须提供的资料", "关闭条件"],
+        "readme_link_required": true,
+        "pcie_section_structure_unified": true,
+        "boundary": "static checklist structure, keywords and README navigation only; actual board evidence and closure remain external"
+      },
       "board_evidence_checklists": {
         "status": "checklists_committed_external_evidence_pending",
         "commit": "12d7a21",
@@ -644,14 +659,14 @@
   "metadata": {
     "analysis_mode": "manual bootstrap",
     "verified_at": "2026-08-30",
-    "git_commits_analyzed": 39,
+    "git_commits_analyzed": 41,
     "raw_ast_available": false,
     "limitations": [
-      "The CI-0 repository-consistency batch is recorded as commit 25; the S0-1 entry and mandatory-preflight tightening are recorded as commits 26 and 27; the history remains too shallow for reliable hotspot ranking.",
+      "CI-2 is committed as 677808d; git rev-list reports 41 commits after the nexus synchronization; the history remains too shallow for reliable hotspot ranking.",
       "The S0-1 parameterized simulation-library entry is committed with mandatory simulator preflight; actual USIM/VSIM compilation remains blocked by the missing simulator installation.",
       "No HDL/raw source AST extraction was run; CI-0 PowerShell syntax parsing is recorded separately.",
       "No ModelSim or QuestaSim execution was available.",
-      "The simulation-readiness matrix, root README navigation, tightened CI-1 matrix-reference gate, PCIe H2-B static XML metadata gate, updated H0/H1/H3 board-evidence checklists and extended S0-0 simulator-path review are included in the current 39-commit history; deeper hotspot analysis remains limited by the shallow sample."
+      "The simulation-readiness matrix, CI-1 matrix-reference gate, CI-2 board-evidence structure/link gate, PCIe H2-B static XML metadata gate, updated board-evidence checklists and extended S0-0 simulator-path review are included in the current 41-commit history; deeper hotspot analysis remains limited by the shallow sample."
     ]
   }
 }
