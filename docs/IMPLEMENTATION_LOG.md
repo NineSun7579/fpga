@@ -291,3 +291,13 @@
 
 - 复核 PATH、`C:\questasim64\win64`、常见 ModelSim/QuestaSim 安装目录及 Windows 卸载注册表，均未发现 `vsim.exe`、`vlog.exe` 或 `vlib.exe`。
 - 本批没有下载或安装商业仿真器，也未调用 PDS `compile_simlib`；S0-1 仍等待用户提供合法安装路径、版本和许可证环境。
+
+## 2026-08-30：三项目实际 PG2L50H 目标审核与迁移规划
+
+- 用户确认 DDR3、PCIe、OV7725 HDMI 三个项目最终运行在同一块 `RK3568+PG2L50H100H` 开发板，实际焊接 FPGA 为 `PG2L50H-6IFBG484`；PDS 目标统一为 `Logos2/PG2L50H/FBG484/-6`，并批准按 PCIe → DDR3 → OV7725 分批迁移。
+- 既有 PG2L100H compile/PNR/STA、网表、SDF、`.sbit` 和 `.bin` 全部降级为历史证据，不得用于实际板卡验收或烧录。
+- PCIe 活动 `pcie_test.idf` 已由 SP6.4 生成为 PG2L50H，配置方向正确；原 build/gate 强制 PG2L100H 才是错误项。下一批只修正工程目标和器件交叉 gate，再从空 `build/` 重建，不为型号重复生成 PCIe IP。
+- DDR3 活动 IDF/FDC 为 PG2L100H；SP6.1 的 PG2L50H backup 与活动配置参数高度一致，但 PHY slice 和硬宏位置存在器件差异，只能作参数/差异依据。必须用本机 SP6.4 重生成 50H controller/PHY、FDC/RCF 和仿真资产，再重跑 CI-6；器件迁移批准不等同于 D3-A 编码授权。
+- OV7725 的 DDR3、PLL、读 FIFO、写 FIFO 四个活动 IDF 均为 SP4.2 PG2L100H 生成物，旧 backup 是 PGL25G 而非 50H。实际 DDR3 组织和管脚闭合后，四个 IP 都必须在 SP6.4/PG2L50H 下重生成。
+- O2-D1-G 的状态机、hard/business reset 分权、唯一 `/5` clock、八端点覆盖和禁止 waiver/第二相位等纪律继续有效；100H 的 `+0.192 ns` 裕量、七组时序指纹和 endpoint 数不再是 50H 验收证据，O2-D2 暂停到新基线后重新审核。
+- 本批只更新规划、README、板级证据和契约状态；未修改 RTL、厂商 IP、IDF、FDC、RCF、构建脚本或生成物。

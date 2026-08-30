@@ -16,7 +16,7 @@
 |---|---:|---:|---|---|---|
 | OV7725 HDMI | 无 | 无 | DDR3、PLL、FIFO 示例 | 无摄像头/HDMI 集成 TB；S0-1 | S0-1、输入格式契约、O2-D2/O3 相关 RTL 锁定 |
 | DDR3 | 无 | 无 | DDR3 `test_ddr`/memory model 示例 | 旧 TB 端口失配；S0-1 | S0-1、D3-A/B/C 项目自有 BIST/top |
-| PCIe DMA | 无 | 无 | `pango_pcie_top` RC/EP 示例 | 示例不实例化 `pcie_dma_test`；S0-1、H2-B | S0-1、PG2L100H IP 一致性、项目级 smoke TB |
+| PCIe DMA | 无 | 无 | `pango_pcie_top` RC/EP 示例 | 示例不实例化 `pcie_dma_test`；S0-1、M1/H2-B | S0-1、PG2L50H 工程/产物一致性、项目级 smoke TB |
 
 ## OV7725 HDMI
 
@@ -75,11 +75,11 @@
 - 示例 TB 针对 `pango_pcie_top` RC/EP，不实例化项目 `pcie_dma_test`，不能证明 DMA、RAM/FIFO 和 UART 管理路径。
 - `pango_pcie_top_sim.do` 含大量历史绝对路径，filelist 与工作目录耦合。
 - 没有项目级 `tb_pcie_dma_test.sv`、相对路径 filelist 或四级 DO。
-- H2-B 尚未关闭 PG2L50H/PG2L100H IP 元数据冲突、lane/refclk/PERST#/SCBV 证据和 UART 保留/删除决策；在此之前不得把仿真通过写成器件一致性验收。
+- 活动 PCIe IP 已与实际 PG2L50H 一致，但旧 build/gate/产物仍为 PG2L100H；M1 重建前不得把任何仿真结果写成器件一致性验收。lane/refclk/PERST#/SCBV 和 UART 决策继续由 H2-B 阻断。
 
 ### TODO（S2）
 
-1. H2-B 资料和 PG2L100H IP 重生成审核完成后，新建 `tb_pcie_dma_test.sv`、项目级 filelist 与行为级 DO。
+1. M1 完成 PG2L50H 工程与产物重建，且 H2-B 板级边界锁定后，新建 `tb_pcie_dma_test.sv`、项目级 filelist 与行为级 DO。
 2. 先覆盖复位、链路建立和 watchdog，再增加一次可预测的 DMA 写读回。
 3. 自检 TB 必须对 LTSSM/完成状态、数据一致性和超时使用 `$fatal`，成功只输出一次 `TEST PASS`。
 4. 对应项目网表/SDF 锁定后，完成综合后、PNR 功能和 PNR 时序仿真。

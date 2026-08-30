@@ -105,6 +105,28 @@
         "parser": "System.Management.Automation.Language.Parser",
         "boundary": "syntax validation and error localization only; does not execute PDS, STA, bitstream generation or ModelSim/QuestaSim"
       },
+      "ci_6_ddr3_d3_0_r_consistency_gate": {
+        "date": "2026-08-30",
+        "status": "committed_as_a5d1785",
+        "script": "scripts/check_repo_consistency.ps1",
+        "exit_code": 0,
+        "checked_sources": ["ddr3_test/ddr3_test/ip_core/ddr3/ddr3.v", "ddr3_test/ddr3_test/ip_core/ddr3/example_design/rtl/test_ddr.v", "ddr3_test/ddr3_test/doc/D3A_PORT_MAP.md"],
+        "checked_invariants": ["module and parameter declarations", "128-bit data and 28-bit address evidence", "I_ips_ddr_top hierarchy", "AXI-like handshake fields", "no axi_rready in core"],
+        "boundary": "static consistency only; PG2L50H IP regeneration, D3-A re-review and dynamic verification remain pending"
+      },
+      "m0_m3_pg2l50h_migration": {
+        "date": "2026-08-30",
+        "board": "RK3568+PG2L50H100H",
+        "physical_fpga": "PG2L50H-6IFBG484",
+        "pds_target": {"family": "Logos2", "device": "PG2L50H", "package": "FBG484", "speedgrade": "-6"},
+        "legacy_pg2l100h_artifacts": "historical evidence only; forbidden for programming and board acceptance",
+        "phases": {
+          "M0": "approved and documented: unified board/device fact and anti-stale-artifact policy",
+          "M1": "next: keep the existing PG2L50H PCIe IDF, fix PCIe build/PDS/gate, cross-check log/report/bgr device and rebuild from empty build",
+          "M2": "planned: regenerate PG2L50H DDR3 IP/FDC/RCF with SP6.4, rerun CI-6 and re-review D3-A",
+          "M3": "planned: regenerate four OV7725 project IPs for PG2L50H with SP6.4, establish a new baseline and re-review O2-D2"
+        }
+      },
       "s0_0_r_simulator_recheck": {
         "date": "2026-08-30",
         "status": "committed_as_ef5cc9a",
@@ -173,15 +195,14 @@
         "h3_status": "blocked_external",
         "boundary": "documentation and README collection entries only; required board evidence is still missing"
       },
-      "queue_status": "waiting_for_review_and_external_inputs",
+      "queue_status": "m0_approved_m1_next_m2_m3_planned",
       "execution_queue": [
-        {"order": 1, "id": "S0-1", "status": "entry_ready_blocked_external", "prerequisite": "licensed ModelSim/QuestaSim and vsim/vlog/vlib paths; actual library compilation still required"},
-        {"order": 2, "id": "H0/H1/H3", "status": "blocked_external", "prerequisite": "checklists are committed and linked from project READMEs; actual board, schematic/BOM, device, voltage, DDR3 and OV7725/HDMI evidence is still required"},
-        {"order": 3, "id": "O2-D2", "status": "blocked_user_review", "prerequisite": "written approval of the frozen O2-D1-G contract"},
-        {"order": 4, "id": "D3-A/D3-B/D3-C", "status": "blocked_user_review", "prerequisite": "approval of the completed D3-0 handshake and top-boundary review"},
-        {"order": 5, "id": "H2-B", "status": "blocked_external_and_review", "prerequisite": "H0/H2 board evidence, UART decision and PG2L100H IP regeneration approval"},
-        {"order": 6, "id": "S1/S2/S3", "status": "blocked_dependency", "prerequisite": "S0-1 complete and corresponding RTL/IP/netlist/SDF locked"},
-        {"order": 7, "id": "O1-C/O3-A/O2-C1/O2-C2/O3-B/O4", "status": "blocked_dependency", "prerequisite": "H3 board evidence and successful O2-D2 result"}
+        {"order": 1, "id": "M0", "status": "approved_documented", "prerequisite": "user-confirmed PG2L50H-6IFBG484 board target"},
+        {"order": 2, "id": "M1", "status": "next", "prerequisite": "fix PCIe project-owned build/gate while retaining the matching PG2L50H IDF"},
+        {"order": 3, "id": "M2", "status": "planned", "prerequisite": "SP6.4 PG2L50H DDR3 IP/FDC/RCF regeneration and CI-6 rerun"},
+        {"order": 4, "id": "M3", "status": "planned", "prerequisite": "SP6.4 PG2L50H regeneration of four OV7725 project IPs and new baseline"},
+        {"order": 5, "id": "D3-A/O2-D2/H2-B", "status": "blocked_dependency_and_evidence", "prerequisite": "M2/M3 re-review and M1 plus board/UART/SCBV evidence"},
+        {"order": 6, "id": "S0-1/S1/S2/S3", "status": "blocked_external_and_dependency", "prerequisite": "licensed simulator plus locked PG2L50H RTL/IP/netlist/SDF"}
       ],
       "tech_stack": ["PDS Tcl", "PowerShell", "ModelSim/QuestaSim"],
       "related_reqs": ["可重复构建", "四级仿真", "时序闭环"],
@@ -196,7 +217,7 @@
       "implementation_status": "implemented_with_timing_failures",
       "code_path": "41_ov7725_hdmi/rtl/",
       "evidence_path": "41_ov7725_hdmi/doc/RTL_HYGIENE_AUDIT.md",
-      "evidence_gap": "O1-B 的 38 条确定修复和七阶段回归已完成，仅剩 mem_a 1 条受 H3/O1-C 阻断；O2-B 已被 Slow/Fast Recovery 否决并回退，baseline/gate 未放宽。O2-D1-R 与 O2-D1-G 契约已完成；O2-D2 用户审核和 QuestaSim/S3 尚未完成。",
+      "evidence_gap": "旧 PG2L100H O1-B/O2-B/O2-D1-R 与 O2-D1-G 只保留历史证据；M3 必须以 SP6.4 为 PG2L50H 重生成四个活动 IP并建立新 baseline，随后重新审核 O2-D2。mem_a、板级资料和 QuestaSim/S3 仍未关闭。",
       "tech_stack": ["Verilog", "Pango Logos2", "DDR3", "TMDS"],
       "related_reqs": ["逐域复位", "单点事件同步", "FIFO 分侧复位", "结构后精确例外", "O1-B complete", "O2-A/O2-B rejected/O2-D1/O2-D2/O3-A/O2-C1/O2-C2/O3-B/O4", "H3/O1-C mem_a"],
       "complexity": "high",
@@ -373,7 +394,7 @@
       "implementation_status": "bringup_full_implementation_baseline",
       "code_path": "ddr3_test/ddr3_test/",
       "evidence_path": "ddr3_test/ddr3_test/build/logs/pds-gen_bit_stream.log",
-      "evidence_gap": "厂商 test_ddr 临时 bring-up 已从空 build 完成 SP6.4 七阶段全流程，日志无 E:、STA 为 All Constraints Met，且五类产物非零；严格 gate 因 7 类已知阻断返回 1，显式 baseline 放行返回 0 但不可发布。D2 与 D3-0 只读契约决策已完成，但项目自有有限 BIST 顶层尚未实现；D3-A/B/C 仍待用户审核，板级批准参数清单、产品功能和四级仿真仍未验收。",
+      "evidence_gap": "旧 PG2L100H test_ddr 七阶段、STA 和五类产物仅为历史证据，不得烧录。M2 必须用 SP6.4 重生成 PG2L50H DDR3 IP/FDC/RCF，重跑 CI-6并重新审核 D3-A；有限 BIST、板级参数和四级仿真仍未验收。",
       "d3_0_read_only_review": {
         "date": "2026-08-30",
         "active_ip": "ddr3_test/ddr3_test/ip_core/ddr3/ddr3.v",
@@ -391,7 +412,7 @@
         "read_address": "axi_arvalid && axi_arready accepts the read request",
         "read_data": "the core returns axi_rvalid and axi_rlast without an axi_rready input",
         "change_stop_condition": "stop and re-review if regenerated IP changes interface semantics, address units or I_ips_ddr_top hierarchy",
-        "status": "review_complete_pending_user_approval"
+        "status": "legacy_review_complete_pending_pg2l50h_regeneration_and_re_review"
       },
       "tech_stack": ["PDS", "DDR3 IP"],
       "related_reqs": ["关闭严格 gate", "板级批准参数", "有限写读回自检"],
@@ -410,7 +431,7 @@
         "ddr3_test/ddr3_test/rtl/ddr3_finite_bist.sv"
       ],
       "evidence_path": "ddr3_test/ddr3_test/doc/FINITE_SELF_TEST_CONTRACT.md",
-      "evidence_gap": "D2 与 D3-0 只读决策已完成；两个项目自有 RTL 文件尚未创建，D3-A/B/C 仍待用户审核与实现，且本机无可用 QuestaSim。",
+      "evidence_gap": "D2 与旧 D3-0 只读决策已完成；M2 的 PG2L50H IP/FDC/RCF 重生成、CI-6 复跑和 D3-A 重新审核尚未完成，两个项目自有 RTL 文件未创建，且本机无可用 QuestaSim。",
       "transaction_contract": {
         "pair_count": 16,
         "burst": "single-beat write/read compare",
@@ -455,7 +476,7 @@
       "implementation_status": "implemented_with_known_functional_gap",
       "code_path": "pcie_dma_test_100h/hdl/",
       "evidence_path": "pcie_dma_test_100h/place_route/pcie_dma_test_timing_summary_after_hold_fix.txt",
-      "evidence_gap": "新 SP6.4 全流程、STA、PNR 网表、SDF 和位流已生成；H2-B 静态 gate 已直接解析活动 IDF XML 并阻断 PG2L50H/PG2L100H 元数据不一致，baseline=0、strict=1。UART2APB 隐式 rxd/txd 且 rxd 被绑 0、SCBV 未配置、板级资料和集成顶层四级仿真仍缺失。",
+      "evidence_gap": "活动 PCIe IDF 已正确匹配 PG2L50H；错误的是 PG2L100H build/PDS/gate 和现有主产物。M1 将修正项目自有入口、增加 log/report/bgr 器件交叉校验并从空 build 重建；UART2APB、SCBV、板级资料和四级仿真仍缺失。",
       "h2a_read_only_evidence": {
         "date": "2026-08-30",
         "top_module": "pcie_dma_test",
@@ -466,10 +487,11 @@
         "fdc_pin_map": {"ref_clk_p": "F6", "ref_clk_n": "E6", "perst_n": "M16", "button_rst_n": "M15", "ref_led": "M17", "pclk_led": "J16"},
         "constraint_gaps": ["lane polarity", "board topology", "I/O delay", "SCBV"],
         "active_idf_metadata": {"family": "Logos2", "device": "PG2L50H", "package": "FBG484", "speedgrade": "-6"},
-        "pds_target": {"family": "Logos2", "device": "PG2L100H", "package": "FBG484", "speedgrade": "-6"},
-        "read_only_scope": ["documentation", "evidence matrix", "IP regeneration contract"],
-        "forbidden_changes": ["RTL", "IDF", "FDC"],
-        "status": "documentation_only"
+        "legacy_pds_target": {"family": "Logos2", "device": "PG2L100H", "package": "FBG484", "speedgrade": "-6"},
+        "approved_pds_target": {"family": "Logos2", "device": "PG2L50H", "package": "FBG484", "speedgrade": "-6"},
+        "next_scope": ["project-owned build", "project-owned gate", "clean PG2L50H rebuild"],
+        "still_forbidden_without_board_evidence": ["RTL", "FDC", "vendor IDF manual edit"],
+        "status": "device_target_approved_m1_pending"
       },
       "h2a_uart_gap": "UART2APB uses implicit rxd/txd nets and rxd is tied to 0; functional ownership remains unresolved.",
       "h2b_static_metadata_gate": {
@@ -480,14 +502,15 @@
         "idf_path": "pcie_dma_test_100h/ipcore/pcie_test/pcie_test.idf",
         "validation_method": "direct PowerShell XML parsing via [xml] and ip_inst.header fields",
         "checked_fields": ["family", "device", "package", "speedgrade"],
-        "expected_metadata": {"family": "Logos2", "device": "PG2L100H", "package": "FBG484", "speedgrade": "-6"},
+        "legacy_expected_metadata": {"family": "Logos2", "device": "PG2L100H", "package": "FBG484", "speedgrade": "-6"},
+        "approved_expected_metadata": {"family": "Logos2", "device": "PG2L50H", "package": "FBG484", "speedgrade": "-6"},
         "observed_metadata": {"family": "Logos2", "device": "PG2L50H", "package": "FBG484", "speedgrade": "-6"},
         "baseline_gate_exit_code": 0,
         "strict_gate_exit_code": 1,
         "baseline_release_ready": false,
-        "boundary": "static metadata and existing artifact gate only; board evidence, IP regeneration and integration simulation remain incomplete"
+        "boundary": "existing gate encodes the rejected PG2L100H target; M1 must update it and verify build log, timing report and bitstream database device identity while retaining other release blockers"
       },
-      "h2b_prerequisites": ["board lane polarity/topology", "I/O delay", "SCBV decision", "regenerate pcie_test.idf for PG2L100H", "UART2APB port ownership"],
+      "h2b_prerequisites": ["M1 PG2L50H clean rebuild", "board lane polarity/topology", "I/O delay", "SCBV decision", "UART2APB port ownership"],
       "h2b_stop_condition": "Any missing board evidence, IDF/PDS device mismatch, or unresolved UART2APB port ownership stops gate tightening; no waiver substitute.",
       "tech_stack": ["Verilog", "Pango Logos2", "PCIe x2", "DMA"],
       "related_reqs": ["H2-A read-only evidence", "H2-B board evidence", "IP regeneration", "UART 决策", "集成自检", "保持时序通过"],
@@ -584,7 +607,7 @@
             "prerequisites": [
               "S0-1",
               "H2-B",
-              "PG2L100H IP consistency",
+              "PG2L50H build/IDF/report/bitstream consistency",
               "project-level smoke/DMA testbench"
             ]
           }
@@ -617,13 +640,13 @@
       "source": "ov7725-cdc-rdc-audit",
       "target": "ov7725-hdmi-system",
       "type": "governs_future_changes",
-      "description": "O2-B 已被 Slow/Fast Recovery 否决且 RTL 已回退；O2-D1-R 与 O2-D1-G 已完成。用户审核后只执行一次 O2-D2；H3 与 O2-D2 闭合后按 O1-C、O3-A、O2-C1、O2-C2、O3-B、O4 推进。"
+      "description": "旧 PG2L100H O2-B/O2-D1-R/O2-D1-G 仅保留历史证据；M3 重生成四个 PG2L50H IP并建立新 baseline 后重新审核 O2-D2，通过后仍只执行一次。"
     },
     {
       "source": "ov7725-rtl-hygiene-audit",
       "target": "ov7725-hdmi-system",
       "type": "records_completed_change",
-      "description": "O1-B 已完成 38 条确定修复、rst_n/sys_init_done 清理与八个 OSERDES reset 连接；mem_a 仍转 H3/O1-C。O2-B 已由真实 STA 否决并回退；O2-D1-R 与 O2-D1-G 已完成，当前等待 O2-D2 用户审核。"
+      "description": "O1-B 的手写 RTL 修复保留；旧 PG2L100H STA/位流不可用于实板。M3 完成 PG2L50H 四 IP 重生成与新 baseline 后，重新确认 mem_a 与 O2-D2 契约。"
     },
     {
       "source": "ddr3-outer-project",
@@ -707,14 +730,14 @@
   "metadata": {
     "analysis_mode": "manual bootstrap",
     "verified_at": "2026-08-30",
-    "git_commits_analyzed": 51,
+    "git_commits_analyzed": 53,
     "raw_ast_available": false,
     "limitations": [
-      "D3-0-R is committed as 2fd7c51; git rev-list reports 51 commits after the nexus synchronization; the history remains too shallow for reliable hotspot ranking.",
+      "M0 PG2L50H target approval and nexus synchronization bring the repository to 53 commits; the history remains too shallow for reliable hotspot ranking.",
       "The S0-1 parameterized simulation-library entry is committed with mandatory simulator preflight; actual USIM/VSIM compilation remains blocked by the missing simulator installation.",
       "No HDL/raw source AST extraction was run; CI-0 PowerShell syntax parsing is recorded separately.",
       "No ModelSim or QuestaSim execution was available.",
-      "The simulation-readiness matrix, CI-1 matrix-reference gate, CI-2 board-evidence structure/link gate, CI-3 README metadata gate, CI-4 PDS build-gate contract gate, CI-5 PowerShell AST gate, PCIe H2-B static XML metadata gate, updated board-evidence checklists and extended S0-0 simulator-path review are included in the current 47-commit history; deeper hotspot analysis remains limited by the shallow sample."
+      "The current 53-commit history includes CI-1 through CI-6, the PCIe static XML metadata gate, board-evidence checklists, simulator-path review and M0 PG2L50H target approval; M1/M2/M3 implementation and new PG2L50H baselines remain pending."
     ]
   }
 }

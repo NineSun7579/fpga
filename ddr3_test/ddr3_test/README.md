@@ -7,7 +7,7 @@
 当前配置：
 
 - PDS 版本：`2022.2-SP6.4`
-- 器件：`Logos2 / PG2L100H / FBG484 / -6`
+- 实际器件：`PG2L50H-6IFBG484`；最终 PDS 目标：`Logos2 / PG2L50H / FBG484 / -6`
 - DDR3 IP：Controller + PHY，x16、2 个 DQS、目标 1066 MT/s，当前配置约 1050 MT/s
 - 示例顶层：`ip_core/ddr3/example_design/rtl/test_ddr.v`
 - 厂商 IP：只通过 `ip_core/ddr3/ddr3.idf` 展开
@@ -16,7 +16,7 @@
 
 板级资料收集入口见 [DDR3 Bring-up 板级证据清单](doc/BOARD_EVIDENCE.md)。
 
-禁止使用外层旧 `ip_core/ddr_test.fdc`，其中仍包含 PG2L50H 的硬宏位置。
+当前活动 DDR3 IDF/FDC 仍为 PG2L100H，只能作为历史基线。外层旧 `ip_core/ddr_test.fdc` 包含 PG2L50H 硬宏位置，可作为迁移差异证据，但来自旧流程，不能直接升格为 canonical 输入；必须用 SP6.4 重生成 50H IP/FDC/RCF。
 
 ## 构建
 
@@ -56,13 +56,13 @@ baseline 放行不会把结果标记为发布候选。
 
 ## 已验证基线
 
-已从空 `build/` 执行到 `compile`：
+已在旧 PG2L100H 目标下从空 `build/` 执行到 `compile`：
 
 - PDS 退出码为 0，日志没有 `E:`。
 - 成功加入 18 个示例 RTL、`ddr3.idf`、FDC 和 RCF。
 - 日志共有 272 条 warning；其中 `test_ddr.v:855` 有两条 BIST 错误数据端口位宽不匹配，其余告警按厂商 IP 基线保留并等待完整实现 gate 分类。
 
-已从空 `build/` 继续完成完整实现：
+已在旧 PG2L100H 目标下继续完成完整实现：
 
 - PDS 退出码为 0，完整日志没有 `E:`。
 - 最终报告为 `All Constraints Met`。
@@ -80,7 +80,7 @@ baseline 放行不会把结果标记为发布候选。
 | `test_ddr.sbit` | 3,791,112 |
 | `test_ddr.bin` | 3,789,476 |
 
-严格 gate 实测返回非零；显式使用 `-AllowKnownBaselineIssues` 时返回 0，并明确标记当前结果不可发布。`All Constraints Met` 只证明已建模的内部路径通过，不证明板级 I/O 时序、DDR 训练或功能仿真通过。
+这些 PG2L100H 结果与实际 PG2L50H 不一致，所有 STA 数值、网表、SDF 和位流均仅为历史证据。严格 gate 实测返回非零；显式 baseline 返回 0 也不得用于实际板卡验收。
 
 当前仿真状态：本机尚未发现 ModelSim/QuestaSim，行为级、综合后、PNR 后功能和 PNR 后时序仿真均未运行。
 
@@ -119,4 +119,4 @@ D2 是文档决策批次，没有修改 RTL、TB、IDF、FDC 或 RCF。D3 功能
 - 用户接口是 Pango 定制的 AXI-like 端口，而不是完整 AXI4：写地址用 `axi_awvalid & axi_awready`，写数据完成由 core 输出 `axi_wready` 表示；`axi_wusero_id`、`axi_wusero_last` 为返回标记。读地址用 `axi_arvalid & axi_arready`，读数据由 `axi_rvalid`/`axi_rlast` 返回，接口没有 `axi_rready`。
 - 当前示例控制器把写 outstanding 计数与 `axi_wready` 接受次数比较，把读请求计数与 `axi_rvalid` 返回次数比较；D3-A 必须将这些事实转换为有限 BIST 的明确握手/超时契约，不得假设标准 `AWREADY/WREADY/BVALID/ARREADY/RREADY` 语义。
 
-D3-A 允许的首批边界仅为新增项目自有 `ddr3_bringup_top.sv`、`ddr3_finite_bist.sv`，切换 PDS 顶层和输入清单，并完成 compile/elaboration。不得修改 `ip_core/ddr3/**`、FDC、RCF、物理端口或 `I_ips_ddr_top` 实例名。若重新生成 IP 后端口、地址单位、`axi_wready` 完成语义或层级不再唯一，立即停止并重新审核。
+器件迁移优先于 D3-A。先用 SP6.4 重生成 PG2L50H DDR3 IP/FDC/RCF并重跑 CI-6；只有端口、地址、`axi_wready` 和 `I_ips_ddr_top` 契约保持成立且用户重新审核后，才允许新增 `ddr3_bringup_top.sv`、`ddr3_finite_bist.sv`。本次器件迁移批准不等同于 D3-A 编码授权。

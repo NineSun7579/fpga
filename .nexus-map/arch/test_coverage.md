@@ -50,6 +50,12 @@
 - 已验证：当前 HEAD `5769d8f` 共扫描 8 个 PowerShell 脚本，AST 解析错误数为 0，仓库一致性门禁通过。
 - 边界：CI-5 只证明 PowerShell 语法可解析，不执行或替代 PDS、STA、位流生成、ModelSim/QuestaSim 或项目动态仿真。
 
+## CI-6 DDR3 D3-0-R 契约一致性门禁（2026-08-30）
+
+- 已验证：提交 `a5d1785` 扩展 `scripts/check_repo_consistency.ps1`，交叉读取 `ddr3.v`、`test_ddr.v` 与 `D3A_PORT_MAP.md`。
+- 已验证：门禁检查模块/参数声明、128-bit 数据和 28-bit 地址证据、`I_ips_ddr_top` 层级、AXI-like 握手字段，并在 core 出现 `axi_rready` 时失败；HEAD `a5d1785`、52 个 Git 提交上门禁和 8 个 PowerShell AST 均通过。
+- 边界：CI-6 只保护旧活动 DDR3 IP 的静态契约；PG2L50H IP/FDC/RCF 重生成后必须重新核对并审核，不能替代 compile、STA 或动态仿真。
+
 ## S0-0-R 仿真器环境复核（2026-08-30）
 
 - 已验证：提交 `ef5cc9a` 再次探测 PATH、常见安装目录和 `vsim.exe` 文件名，`vsim.exe`、`vlog.exe`、`vlib.exe` 均未发现。
@@ -59,17 +65,17 @@
 
 | 项目 | PDS 实现证据 | 时序证据 | 行为仿真 | 综合后仿真 | PNR 功能仿真 | PNR 时序仿真 |
 |---|---|---|---|---|---|---|
-| OV7725 HDMI | O1-B 基线与 O2-B 实验均完成 SP6.4 compile/七阶段且日志无 `E:`；O2-B 失败 RTL 已回退，旧构建入口和 gate 未修改 | O2-B Slow Recovery：`pixel_clk_5x → pixel_clk_5x -0.349/8/8`、`pixel_clk → pixel_clk_5x +1.111/0/1`、`pixel_clk_5x → pixel_clk -2.173/8/8`；Fast 反向组 `-1.464/8/8`。方案被否决；严格 gate=1，旧七组 baseline gate=0 且不可发布 | 未就绪；Questa/S3 缺失 | O2-B 实验综合网表已生成，未仿真 | O2-B 实验 PNR 网表已生成，未仿真 | O2-B 实验 SDF 已生成，未标注验证 |
-| DDR3 外层 | 从空 `build/` 完成 SP6.4 七阶段全流程，日志无 `E:`；综合网表 `5,914,586`、PNR 网表 `9,734,239`、SDF `9,130,393`、`.sbit` `3,791,112`、`.bin` `3,789,476` 字节 | `All Constraints Met`；慢角 setup WNS `0.678 ns`、TNS `0`，hold `0.137 ns`、recovery `4.578 ns`、removal `0.351 ns` | D2 有限自检契约已定，项目自有顶层尚未实现；Questa 缺失 | 综合网表已生成，有限自检顶层未实现、未运行 | PNR 网表已生成，有限自检顶层未实现、未运行 | SDF 已生成，未标注验证 |
-| PCIe DMA | 新 SP6.4 全流程完成，日志无 `E:`；新网表、SDF、`.sbit/.bin` 非零 | 新最终报告通过：慢角 setup WNS `0.584 ns`、TNS `0`，hold WHS `0.138 ns` | 仅 IP 示例 | 顶层未闭环 | 生成网表但未运行 | SDF 已生成但未标注验证 |
+| OV7725 HDMI | 旧 PG2L100H O1-B/O2-B/O2-D1-R 流程完成，但与实际 PG2L50H 不匹配；四个 IP 需重生成并建立 50H baseline | 旧 100H Recovery 失败只作为候选分析证据；50H STA 尚未执行，O2-D2 必须在新 baseline 后重审 | 未就绪；Questa/S3 缺失 | 旧 100H 网表不可签核 | 旧 100H PNR 网表不可签核 | 旧 100H SDF 未标注且不可签核 |
+| DDR3 外层 | 旧 PG2L100H 七阶段与五类产物已完成，但不可用于实际 PG2L50H；需重生成 50H IP/FDC/RCF | 旧 100H `All Constraints Met` 只保留历史；50H STA 未执行 | D2/D3-0 旧契约已定，PG2L50H 重生成后须重审；Questa 缺失 | 旧网表不可签核 | 旧 PNR 网表不可签核 | 旧 SDF 未标注且不可签核 |
+| PCIe DMA | 活动 IDF 已为 PG2L50H；build/PDS/gate 与主产物仍为 PG2L100H，需修正后从空 `build/` 重建 | 旧 100H WNS/TNS 不可作为实板证据；50H STA 未执行 | 仅 IP 示例 | 顶层未闭环 | 旧 100H 网表不可签核 | 旧 100H SDF 未标注且不可签核 |
 
 ## S1/S2/S3 仿真就绪度矩阵（2026-08-30）
 
 - 已验证静态盘点：`docs/SIMULATION_READINESS_MATRIX.md` 已逐项目记录项目级 testbench、filelist、DO、厂商示例和四级仿真前置条件；本轮没有执行 ModelSim/QuestaSim。
 - 三项目的项目级资产计数一致为 `project_tb=0`、`project_f=0`、`project_do=0`，因此当前没有任何项目具备可直接运行的集成仿真入口。
-- OV7725/S3：现有 DDR3、PLL、FIFO testbench 位于 `41_ov7725_hdmi/prj/ipcore/` 厂商示例树，只覆盖单个 IP。进入 S3 前必须关闭 S0-1、固定摄像头输入格式契约，并锁定 O2-D2/O3 相关 RTL。
-- DDR3/S1：现有 `test_ddr`、memory model、filelist 和 Tcl 位于 `ddr3_test/ddr3_test/ip_core/ddr3/` 厂商示例树；旧 testbench 端口失配，且含绝对路径与 FSDB/Verdi 环境假设。进入 S1 前必须关闭 S0-1，完成 D3-A/B/C、D4，并提供项目自有有限 BIST/top 与自检 TB。
-- PCIe/S2：现有 `pango_pcie_top` RC/EP testbench 位于 `pcie_dma_test_100h/ipcore/pcie_test/` 厂商示例树，不实例化 `pcie_dma_test`，对应 DO 含大量绝对路径。进入 S2 前必须关闭 S0-1、H2-B 和 PG2L100H IP 一致性，并新增项目级 smoke/DMA TB。
+- OV7725/S3：现有厂商示例只覆盖单个 IP。进入 S3 前必须关闭 S0-1、重生成四个 PG2L50H IP并建立新 baseline、重新审核 O2-D2、固定摄像头输入格式契约并锁定 O2-D2/O3 RTL。
+- DDR3/S1：现有厂商 `test_ddr`/memory-model 资产端口失配且含绝对路径与 FSDB/Verdi 假设。进入 S1 前必须关闭 S0-1、重生成并复核 PG2L50H DDR3 IP/FDC/RCF、完成 D3-A/B/C 与 D4，并提供项目自有有限 BIST/top 与自检 TB。
+- PCIe/S2：现有 `pango_pcie_top` RC/EP testbench 不实例化产品顶层。进入 S2 前必须关闭 S0-1、完成 PG2L50H build/gate/产物一致性与 H2-B，并新增项目级 smoke/DMA TB。
 - 验收边界：`ipcore/`、`ip_core/`、`ip_backup/` 中的厂商示例只能作为参考证据，不能计入产品集成覆盖，也不能通过改名冒充项目自有 testbench。
 - 四级共同门槛：所有入口使用相对路径 filelist/DO 和项目自有集成 TB；必须具备超时、`$fatal`、唯一 `TEST PASS` 与可靠非零失败退出；PNR 时序仿真必须按实际 DUT 实例层级标注 SDF。
 - 公共阻断：S0-1 仍因本机缺少 `vsim.exe`、`vlog.exe`、`vlib.exe` 阻断；矩阵完成只读静态盘点，不构成动态仿真通过证据。
@@ -90,7 +96,7 @@
 - DDR3 D3-0-R 端口映射见 `ddr3_test/ddr3_test/doc/D3A_PORT_MAP.md`：当前默认 `CTRL_ADDR_WIDTH=28`、`axi_wdata/axi_rdata=128` bit、`axi_wstrb=16` bit；文档明确 APB/debug tie-off 与物理端口不属于 D3-A BIST 接口。
 - PCIe：现有 ModelSim 资产只覆盖 PCIe IP 示例，不覆盖 `pcie_dma_test` 集成顶层；UART2APB 的无驱动输入属于已知功能缺陷。
 - PCIe H2-A（只读证据矩阵）：顶层使用 x2 `rxn/rxp/txn/txp`、差分 `ref_clk_p/n`、`perst_n`、`button_rst_n` 与 `ref_led/pclk_led`；FDC 固定 refclk `F6/E6`、PERST# `M16`、button reset `M15`、LED `M17/J16`。当前没有 lane 极性/板级拓扑、I/O delay 或 SCBV 证据。
-- PCIe H2-A 器件边界：`ipcore/pcie_test/pcie_test.idf` metadata 为 `Logos2/PG2L50H/FBG484/-6`，PDS 工程目标为 `Logos2/PG2L100H/FBG484/-6`；在 IP 重生成前不得把实现结果当作目标器件签核。UART2APB `rxd/txd` 为隐式连接且 `rxd` 被绑 0，属于独立功能阻断。
+- PCIe H2-A 器件边界：活动 `pcie_test.idf` 已正确匹配 `Logos2/PG2L50H/FBG484/-6`；build/PDS/gate 与现有主位流仍是错误 PG2L100H。下一批需修正并增加产物器件交叉校验；UART2APB `rxd/txd` 与 SCBV 等仍是独立功能/发布阻断。
 - 三项目新流程均已生成顶层 PNR SDF，但尚未由 QuestaSim 验证实例层级。
 - 本机 S0 复核未找到 ModelSim/QuestaSim，因此本轮未运行任何仿真；安装并验证 `vsim.exe`、`vlog.exe`、`vlib.exe` 前不得声称动态仿真通过。
 - PDS 可能在日志含 `E:` 时仍返回退出码 0；新 PowerShell 入口必须同时检查退出码和错误日志。
@@ -106,4 +112,5 @@
 5. 最终位流文件存在且大小非零；关键未约束 I/O 必须修复或进入有依据的白名单。
 6. DDR3 有限自检必须完成恰好 16 个 pair；任一 pair 超过 4096 周期或整次运行超过 131072 周期均失败，成功与失败只能由公开结果接口和退出码判定。
 7. DDR3 D3-0 已冻结 AW/W/AR/R 握手语义与 `I_ips_ddr_top` 实例边界；D3-A/B/C 仍待用户审核和实现，且 D3-0 评审不构成 RTL/IP/约束变更或仿真通过证据。
-8. PCIe H2-B 只有在 lane 极性/板级拓扑、I/O delay、SCBV、IDF/PDS 器件一致性和 UART2APB 端口归属均有证据后才可收紧 gate；任一缺口时保持 H2-A 只读状态。
+8. 三项目最终产物必须证明目标为 `PG2L50H/FBG484/-6`；任何 PG2L100H report、SDF 或位流均拒绝烧录和签核。
+9. PCIe H2-B 只有在 50H build/IDF/report/bitstream 一致、lane 极性/拓扑、I/O delay、SCBV 和 UART2APB 归属均有证据后才可发布。

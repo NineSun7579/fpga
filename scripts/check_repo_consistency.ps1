@@ -13,6 +13,9 @@ $RepoRoot = (Resolve-Path -LiteralPath $RepoRoot).Path
 
 $Failures = [System.Collections.Generic.List[string]]::new()
 $MatrixPath = Join-Path $RepoRoot 'docs\SIMULATION_READINESS_MATRIX.md'
+$ApprovedBoard = 'RK3568+PG2L50H100H'
+$ApprovedFpgaPart = 'PG2L50H-6IFBG484'
+$ApprovedPdsDevice = 'PG2L50H'
 
 function Add-Failure {
     param([Parameter(Mandatory)][string]$Message)
@@ -154,6 +157,10 @@ if (Test-Path -LiteralPath $TodoPath -PathType Leaf) {
     Require-Pattern -Text $TodoText `
         -Pattern 'docs/SIMULATION_READINESS_MATRIX\.md' `
         -Description 'TODO simulation matrix link' | Out-Null
+    Require-Pattern -Text $TodoText -Pattern ([regex]::Escape($ApprovedBoard)) `
+        -Description 'approved shared board in TODO' | Out-Null
+    Require-Pattern -Text $TodoText -Pattern ([regex]::Escape($ApprovedFpgaPart)) `
+        -Description 'approved FPGA part in TODO' | Out-Null
 }
 
 $IgnoreText = Get-Content -Raw -LiteralPath (Join-Path $RepoRoot '.gitignore')
@@ -207,6 +214,10 @@ foreach ($Project in $Projects) {
             -Description "$($Project.Name) IP/source summary in README" | Out-Null
         Require-Pattern -Text $ReadmeText -Pattern $Project.ReadmePatterns.Blocker `
             -Description "$($Project.Name) known-blocker summary in README" | Out-Null
+        Require-Pattern -Text $ReadmeText -Pattern ([regex]::Escape($ApprovedFpgaPart)) `
+            -Description "$($Project.Name) approved FPGA part in README" | Out-Null
+        Require-Pattern -Text $ReadmeText -Pattern ([regex]::Escape($ApprovedPdsDevice)) `
+            -Description "$($Project.Name) approved PDS device in README" | Out-Null
     }
 
     if ($BoardEvidenceExists) {
@@ -221,6 +232,10 @@ foreach ($Project in $Projects) {
             Require-Pattern -Text $BoardEvidenceText -Pattern ([regex]::Escape($Keyword)) `
                 -Description "$($Project.Name) board evidence keyword '$Keyword'" | Out-Null
         }
+        Require-Pattern -Text $BoardEvidenceText -Pattern ([regex]::Escape($ApprovedBoard)) `
+            -Description "$($Project.Name) approved shared board in evidence" | Out-Null
+        Require-Pattern -Text $BoardEvidenceText -Pattern ([regex]::Escape($ApprovedFpgaPart)) `
+            -Description "$($Project.Name) approved FPGA part in evidence" | Out-Null
     }
 
     if ($BuildExists) {
@@ -276,6 +291,23 @@ foreach ($Project in $Projects) {
             -Description "$($Project.Name) stage or final-build gate" | Out-Null
         Require-Pattern -Text $GateText -Pattern '(?i)throw' `
             -Description "$($Project.Name) strict failure behavior" | Out-Null
+    }
+}
+
+# The active PCIe IP already matches the approved physical FPGA. Parse the IDF
+# structurally so future edits cannot silently restore the rejected 100H target.
+$PcieIdfPath = Join-Path $RepoRoot 'pcie_dma_test_100h\ipcore\pcie_test\pcie_test.idf'
+if (Require-File -Path $PcieIdfPath -Description 'active PCIe IP definition') {
+    try {
+        [xml]$PcieIdfXml = Get-Content -Raw -Encoding UTF8 -LiteralPath $PcieIdfPath
+        $PcieIdfDevice = [string]$PcieIdfXml.ip_inst.header.device
+        if ($PcieIdfDevice -ne $ApprovedPdsDevice) {
+            Add-Failure "PCIe IP targets '$PcieIdfDevice'; approved device is '$ApprovedPdsDevice'"
+        } else {
+            Write-Host "INFO: PCIe IP matches approved device $ApprovedPdsDevice"
+        }
+    } catch {
+        Add-Failure "PCIe IP definition is not valid XML: $PcieIdfPath"
     }
 }
 

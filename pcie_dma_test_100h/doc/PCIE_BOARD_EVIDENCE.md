@@ -1,12 +1,15 @@
 # PCIe H2-A 板级证据与 IP 目标契约
 
-状态：只读评审，待板级资料与用户审核。更新日期：2026-08-30。
+状态：器件目标已审核，待 50H 重建与其余板级资料。更新日期：2026-08-30。
+
+用户已确认：本工程与 DDR3、OV7725 HDMI 工程共用 `RK3568+PG2L50H100H` 开发板，实际焊接 FPGA 为 `PG2L50H-6IFBG484`。PDS 参数统一采用 `Logos2 / PG2L50H / FBG484 / -6`。
 
 ## 1. 当前工程事实
 
 | 项目 | 当前事实 | 证据 |
 |---|---|---|
-| PDS 目标 | `Logos2 / PG2L100H / FBG484 / -6` | `scripts/build.tcl` |
+| 实际 FPGA | `PG2L50H-6IFBG484` | 用户于 2026-08-30 明确确认并批准三项目统一迁移 |
+| 当前 PDS 目标 | `Logos2 / PG2L100H / FBG484 / -6`，待下一批修正为 PG2L50H | `scripts/build.tcl` |
 | PCIe 顶层 | `pcie_dma_test`，x2 `rxn/rxp/txn/txp` | `hdl/pcie_dma_test.v` |
 | 参考时钟 | 差分 `ref_clk_p/n`，FDC 管脚 `F6/E6`，约束周期 `10 ns` | `fdc/pcie_dma_test.fdc` |
 | PERST# | `perst_n`，FDC 管脚 `M16`，LVCMOS18 | `fdc/pcie_dma_test.fdc` |
@@ -15,7 +18,7 @@
 | 活动 IP metadata | `Logos2 / PG2L50H / FBG484 / -6` | `ipcore/pcie_test/pcie_test.idf:10-13` |
 | UART | `pgr_uart2apb_top` 使用隐式 `rxd/txd`；顶层没有对应端口，`rxd` 当前被工具绑为 0 | `hdl/pcie_dma_test.v`、SP6.4 compile 日志 |
 
-IDF 的 `PG2L50H` 与当前 PDS 目标 `PG2L100H` 不一致。内部 STA 通过只能证明当前建模输入下的实现结果，不能替代器件一致性或板级签核。
+IDF 的 `PG2L50H` 与实际 FPGA 一致，旧 PDS 目标 `PG2L100H` 才是不一致项。现有 100H 内部 STA、网表、SDF、`.sbit` 和 `.bin` 不能用于实际板卡验收或烧录。
 
 ## 2. 约束现状与缺口
 
@@ -27,7 +30,7 @@ IDF 的 `PG2L50H` 与当前 PDS 目标 `PG2L100H` 不一致。内部 STA 通过�
 
 | 证据项 | 当前状态 | H2-A 关闭条件 |
 |---|---|---|
-| FPGA 完整型号与封装 | 目标为 PG2L100H/FBG484；IP 仍为 PG2L50H | 板卡丝印与原理图确认，并用 SP6.4 IP Compiler 生成 PG2L100H IP |
+| FPGA 完整型号与封装 | 已确认 `PG2L50H-6IFBG484`；活动 IP 为 PG2L50H | build、IDF、STA 和 bitstream 全部重建并交叉确认 PG2L50H |
 | PCIe lane 数、映射与极性 | 顶层只有 x2 端口，FDC 未给出板级 lane 映射 | 原理图/PCB 明确 lane 0/1、P/N 极性、连接器方向和 AC 耦合位置 |
 | 100 MHz refclk | RTL/FDC 使用 10 ns 差分时钟 | 确认来源、频率容差、共模/终端和 F6/E6 连接 |
 | PERST# | `perst_n=M16`，有同步/去抖逻辑 | 确认电平、来源、上电时序和 M16 share pin 使用 |
@@ -38,15 +41,15 @@ IDF 的 `PG2L50H` 与当前 PDS 目标 `PG2L100H` 不一致。内部 STA 通过�
 
 ## 4. 允许范围与停止条件
 
-H2-A 只允许新增/更新本证据文档、README、TODO、实施日志和 `.nexus-map/**`。不得修改 RTL、活动 IDF、FDC、RCF 或 gate，也不得把历史 `impl.tcl` 当作重建入口。
+H2-A 只允许新增/更新证据文档，不修改 RTL、活动 IDF 或 FDC，也不得把历史 `impl.tcl` 当作重建入口。用户已经批准下一批将 build/gate 恢复为 PG2L50H。
 
-只有在证据矩阵闭合后，才可进入 H2-B：用 SP6.4 IP Compiler 重生成 PG2L100H PCIe IP，随后单独审核 RTL/FDC 变更和精确 baseline 指纹。若 lane/refclk/PERST#、UART、SCBV 或 IP 目标仍有任一不确定项，停止在 H2-A，不启动 IP/RTL 修改。
+器件迁移批次无需重生成已匹配实物的 SP6.4 PCIe IP；先修正 build/gate 并完成 50H 重建。lane/refclk/PERST#、UART 和 SCBV 仍由后续 H2-B 闭合，在这些资料到位前不修改 FDC/RTL，也不把 50H 构建成功描述为可发布。
 
 ## 5. 必须提供的资料
 
 | 证据项 | 用户需提供 | 验收条件 |
 |---|---|---|
-| 板卡与器件 | 板卡型号、原理图/BOM、FPGA 丝印 | 与 PDS 目标和 IP metadata 一致，版本可追溯 |
+| 板卡与器件 | 板卡已确认；仍需原理图/BOM 和可归档丝印照片或等价记录 | 与 PG2L50H PDS 目标和 IP metadata 一致，版本可追溯 |
 | PCIe 连接 | lane 映射/极性、参考时钟、PERST#、AC 耦合和连接器拓扑 | x2 lane、100 MHz refclk、PERST# 约束可由一手资料确认 |
 | 电气与配置 | bank 电压、SCBV、启动模式、share pin 使用 | FDC、配置参数与板级电压/复用关系一致 |
 | UART/LED | UART2APB 保留或删除决策、RX/TX 管脚；LED 外部时序要求 | 不再存在未决隐式网络或未经约束的外部时序接口 |
@@ -54,6 +57,6 @@ H2-A 只允许新增/更新本证据文档、README、TODO、实施日志和 `.n
 ## 6. 关闭条件
 
 1. 资料来源、版本和审核状态已记录，且覆盖证据矩阵全部条目。
-2. `PG2L100H/FBG484/-6` 的活动 PCIe IP 已由 SP6.4 IP Compiler 重新生成并通过元数据 gate。
+2. build、活动 PCIe IP、时序报告和 bitstream 数据库均为 `PG2L50H/FBG484/-6`，且不存在 `Flow-4058` 器件不一致。
 3. UART、SCBV、lane/refclk/PERST# 和 share pin 的处理均有明确决策与可追溯约束依据。
 4. H2-B 严格 gate 在不带 baseline 放行参数时返回 0；否则继续保持发布阻断。
