@@ -41,3 +41,19 @@ IDF 的 `PG2L50H` 与当前 PDS 目标 `PG2L100H` 不一致。内部 STA 通过�
 H2-A 只允许新增/更新本证据文档、README、TODO、实施日志和 `.nexus-map/**`。不得修改 RTL、活动 IDF、FDC、RCF 或 gate，也不得把历史 `impl.tcl` 当作重建入口。
 
 只有在证据矩阵闭合后，才可进入 H2-B：用 SP6.4 IP Compiler 重生成 PG2L100H PCIe IP，随后单独审核 RTL/FDC 变更和精确 baseline 指纹。若 lane/refclk/PERST#、UART、SCBV 或 IP 目标仍有任一不确定项，停止在 H2-A，不启动 IP/RTL 修改。
+
+## 5. 必须提供的资料
+
+| 证据项 | 用户需提供 | 验收条件 |
+|---|---|---|
+| 板卡与器件 | 板卡型号、原理图/BOM、FPGA 丝印 | 与 PDS 目标和 IP metadata 一致，版本可追溯 |
+| PCIe 连接 | lane 映射/极性、参考时钟、PERST#、AC 耦合和连接器拓扑 | x2 lane、100 MHz refclk、PERST# 约束可由一手资料确认 |
+| 电气与配置 | bank 电压、SCBV、启动模式、share pin 使用 | FDC、配置参数与板级电压/复用关系一致 |
+| UART/LED | UART2APB 保留或删除决策、RX/TX 管脚；LED 外部时序要求 | 不再存在未决隐式网络或未经约束的外部时序接口 |
+
+## 6. 关闭条件
+
+1. 资料来源、版本和审核状态已记录，且覆盖证据矩阵全部条目。
+2. `PG2L100H/FBG484/-6` 的活动 PCIe IP 已由 SP6.4 IP Compiler 重新生成并通过元数据 gate。
+3. UART、SCBV、lane/refclk/PERST# 和 share pin 的处理均有明确决策与可追溯约束依据。
+4. H2-B 严格 gate 在不带 baseline 放行参数时返回 0；否则继续保持发布阻断。

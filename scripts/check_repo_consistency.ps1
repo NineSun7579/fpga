@@ -41,7 +41,7 @@ function Require-Pattern {
         [Parameter(Mandatory)][string]$Description
     )
 
-    if ($Text -notmatch $Pattern) {
+    if (-not [regex]::IsMatch($Text, $Pattern)) {
         Add-Failure "Missing $Description"
         return $false
     }
@@ -55,18 +55,24 @@ $Projects = @(
         Root = '41_ov7725_hdmi'
         Top = 'ov7725_hdmi'
         Readme = 'README.md'
+        BoardEvidence = 'doc/BOARD_EVIDENCE.md'
+        BoardKeywords = @('OV7725', 'HDMI')
     },
     [pscustomobject]@{
         Name = 'DDR3 bring-up'
         Root = 'ddr3_test/ddr3_test'
         Top = 'test_ddr'
         Readme = 'README.md'
+        BoardEvidence = 'doc/BOARD_EVIDENCE.md'
+        BoardKeywords = @('DDR3', 'test_ddr')
     },
     [pscustomobject]@{
         Name = 'PCIe DMA'
         Root = 'pcie_dma_test_100h'
         Top = 'pcie_dma_test'
         Readme = 'README.md'
+        BoardEvidence = 'doc/PCIE_BOARD_EVIDENCE.md'
+        BoardKeywords = @('PCIe', 'H2-A')
     }
 )
 
@@ -150,11 +156,13 @@ foreach ($Project in $Projects) {
     $BuildPath = Join-Path $ProjectRoot 'scripts\build.tcl'
     $RunPath = Join-Path $ProjectRoot 'scripts\run.ps1'
     $GatePath = Join-Path $ProjectRoot 'scripts\check_build.ps1'
+    $BoardEvidencePath = Join-Path $ProjectRoot ($Project.BoardEvidence -replace '/', '\')
 
     $ReadmeExists = Require-File -Path $ReadmePath -Description "$($Project.Name) README"
     $BuildExists = Require-File -Path $BuildPath -Description "$($Project.Name) build.tcl"
     $RunExists = Require-File -Path $RunPath -Description "$($Project.Name) run.ps1"
     $GateExists = Require-File -Path $GatePath -Description "$($Project.Name) check_build.ps1"
+    $BoardEvidenceExists = Require-File -Path $BoardEvidencePath -Description "$($Project.Name) board evidence checklist"
 
     if ($ReadmeExists) {
         $ReadmeText = Get-Content -Raw -Encoding UTF8 -LiteralPath $ReadmePath
@@ -165,6 +173,23 @@ foreach ($Project in $Projects) {
             -Description "$($Project.Name) top module in README" | Out-Null
         Require-Pattern -Text $ReadmeText -Pattern '(?i)仿真|ModelSim|QuestaSim' `
             -Description "$($Project.Name) simulation status in README" | Out-Null
+        $EvidenceLinkPattern = [regex]::Escape(($Project.BoardEvidence -replace '\\', '/'))
+        Require-Pattern -Text $ReadmeText -Pattern $EvidenceLinkPattern `
+            -Description "$($Project.Name) board evidence link in README" | Out-Null
+    }
+
+    if ($BoardEvidenceExists) {
+        $BoardEvidenceText = Get-Content -Raw -Encoding UTF8 -LiteralPath $BoardEvidencePath
+        Require-Pattern -Text $BoardEvidenceText -Pattern '(?m)^##\s+(?:\d+\.\s*)?\u5f53\u524d\u5de5\u7a0b\u4e8b\u5b9e\s*$' `
+            -Description "$($Project.Name) board evidence current-facts section" | Out-Null
+        Require-Pattern -Text $BoardEvidenceText -Pattern '(?m)^##\s+(?:\d+\.\s*)?\u5fc5\u987b\u63d0\u4f9b\u7684\u8d44\u6599\s*$' `
+            -Description "$($Project.Name) board evidence required-materials section" | Out-Null
+        Require-Pattern -Text $BoardEvidenceText -Pattern '(?m)^##\s+(?:\d+\.\s*)?\u5173\u95ed\u6761\u4ef6\s*$' `
+            -Description "$($Project.Name) board evidence closure section" | Out-Null
+        foreach ($Keyword in $Project.BoardKeywords) {
+            Require-Pattern -Text $BoardEvidenceText -Pattern ([regex]::Escape($Keyword)) `
+                -Description "$($Project.Name) board evidence keyword '$Keyword'" | Out-Null
+        }
     }
 
     if ($BuildExists) {
