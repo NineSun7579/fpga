@@ -174,3 +174,8 @@
 - ARM/SER_RELEASE 期间 encoder 输入强制 `de=0,c0=0,c1=0,din=0`；首个有效 TMDS symbol 定义为四 lane 同时确定的完整并行字，RUN 至少延后两个 control 周期以覆盖未复位 encoder 流水。
 - O2-D2 只允许一次实现试验：IP Compiler 重生成 PLL，新增项目自有控制器并原子迁移 read FIFO `rd_clk` 与完整 pixel 域。任何 generated-clock/endpoint/Recovery/Removal/覆盖、warning、baseline、CDC 或 SDF 停止条件触发即完整回退，不扫描第二相位、不增加 waiver。
 - O2-D1-G 文档收口完成，等待用户审核；审核前不得进入 O2-D2 编码。
+
+## 2026-08-30：S0 公共仿真环境复核
+
+- 复核 PDS 与外部仿真器可执行文件：`E:/pango/PDS_2022.2-SP6.4/bin/pds_shell.exe` 存在；PATH、`C:/questasim64/win64` 及常见 ModelSim/Questa 安装目录均未找到 `vsim.exe`、`vlog.exe` 或 `vlib.exe`。
+- 结论：S0 仍为外部环境阻断。未运行 `compile_simlib`、行为级仿真或门级 SDF 仿真；不得把 PDS 生成网表/SDF 误记为仿真通过。安装并记录实际版本/路径后，再编译 Logos2 USIM/VSIM。

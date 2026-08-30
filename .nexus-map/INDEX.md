@@ -10,7 +10,7 @@
 - `ddr3_test/`：已用厂商 `test_ddr` 临时 bring-up 顶层完成 SP6.4 全流程实现、STA、网表/SDF、位流与构建 gate 验证；严格 gate 仍被板级和 RTL 已知问题阻断，它不是已验收的产品顶层。
 - `pcie_dma_test_100h/`：PCIe x2 DMA 集成顶层；实现和时序通过，但 UART2APB 通道存在未连接顶层端口的功能缺口。
 
-三个工程当前有效器件目标均按 `Logos2 / PG2L100H / FBG484 / -6` 审计。PDS 负责实现，外部 ModelSim/QuestaSim 负责仿真；本机当前未发现 `vsim.exe`，所以本地图只记录静态证据，不声称仿真已运行。
+三个工程当前有效器件目标均按 `Logos2 / PG2L100H / FBG484 / -6` 审计。2026-08-30 S0 环境复核确认唯一已发现工具为 `E:\pango\PDS_2022.2-SP6.4\bin\pds_shell.exe`；PATH、`C:\questasim64\win64` 及常见 ModelSim/QuestaSim 目录均未找到 `vsim.exe`、`vlog.exe`、`vlib.exe`。PDS 负责实现，外部 ModelSim/QuestaSim 负责仿真；动态仿真仍阻塞，安装仿真器后才可编译 USIM/VSIM。
 
 ## 当前基线
 
@@ -30,7 +30,8 @@
 - OV7725 O2-D1 已否决动态 `GTP_IOCLKBUF` 门控路线：SP6.4 Liberty 无 `DI` clock-gating check，不能静态证明停钟、复位、释放和启钟顺序。O2-D1-G 已将唯一待验证候选收口为新增 `CLKOUT3=65.0026 MHz`、约 `+0.192 ns` 相位控制输出，并为每个 serializer 本地复制 reset 寄存器；候选仍未实现或签核。
 - O2-D1-R 已从空 `build/` 重建回退后的七组旧失败基线：baseline gate 精确匹配并返回 0，严格 gate 返回 1；Slow/Fast `ddrphy_sysclk → pixel_clk` Recovery 均恢复为 `53/53`，endpoint 分类为 `26+8+17+1+1`，O2-B 的 `54` 不修改旧 baseline。下一步由 O2-D1-G 收口 `/5` generated-clock、奇数分频 waveform、pre/post-buffer 取点、状态/复位分权和单次试验停止条件。
 - O2-D1-G 契约已冻结：只允许一条 `pixel_clk` `/5` generated clock，源为 PLL wrapper `u_pll_clk/clkout1`、目标为唯一 `GTP_IOCLKDIV_E2.CLKDIVOUT`，波形 `-edges {1 5 11} -edge_shift {0 0 0}`；控制器状态为 `HARD_HOLD → QUALIFY → ARM → SER_RELEASE → RUN`，并定义 hard/business reset 分权与首个有效 TMDS symbol。
-- 本次 O2-D1-R 证据、O2-D1-G 契约与知识图同步批次提交后，仓库预期累计 18 个 Git 提交；样本仍不足以计算可信的历史热点。
+- S0 环境复核（2026-08-30）：PDS shell 路径存在且可作为唯一已发现工具；未发现 `vsim.exe`/`vlog.exe`/`vlib.exe`，动态仿真与 USIM/VSIM 编译保持阻塞。
+- 本次 O2-D1-G、S0 环境复核与知识图同步批次提交后，仓库预期累计 19 个 Git 提交；样本仍不足以计算可信的历史热点。
 - 根目录 [README](../README.md) 是 PDS 外部实现与仿真指南。
 - 根目录 [TODO](../TODO.md) 是当前整改顺序和验收门槛。
 - 新增或修改 Verilog/SystemVerilog 时必须遵循 [VSCS](../VERILOG_SYSTEMVERILOG_COMMENTING_STANDARD.md)。
@@ -48,11 +49,12 @@
 
 ## 当前优先级
 
-1. OV7725 O2-D1-R 已完成：旧七组失败指纹精确复现，Slow/Fast `ddrphy_sysclk → pixel_clk` 均为 `53/53`，未修改 baseline 或功能文件。
-2. O2-D1-G 契约收口完成，待用户审核；唯一候选为 `CLKOUT3=65.0026 MHz`、约 `+0.192 ns` 相位、每 serializer 本地 reset 复制，以及显式 `/5` generated-clock/状态契约。
-3. 审核后只执行一次 O2-D2。八个 OSERDES endpoint 的 Slow/Fast × Recovery/Removal × `OCLK` 双边沿/`OCLKDIV`/`SERCLK` 必须全部覆盖且非负；任一对象解析、波形、时序或新增失败签名异常即停止并完整回退，禁止 false path、multicycle、clock-group waiver、第二相位扫描。
-4. O2-D2 成功后按 O3-A → O2-C1 → O2-C2 → O3-B → O4 推进；O4 同时依赖 O2-C2 与 O3-B。
-5. DDR3 D3-0 与 PCIe H2-A/H2-B 保持只读泳道，不与 OV7725 功能 RTL 实施混批；QuestaSim 可用后再补齐三项目四级仿真和 SDF 标注验证。
+1. S0 环境复核已完成，但动态仿真仍阻塞；先安装 ModelSim/QuestaSim 并确认 `vsim.exe`、`vlog.exe`、`vlib.exe`，再编译 Logos2 USIM/VSIM。
+2. OV7725 O2-D1-R 已完成：旧七组失败指纹精确复现，Slow/Fast `ddrphy_sysclk → pixel_clk` 均为 `53/53`，未修改 baseline 或功能文件。
+3. O2-D1-G 契约收口完成，待用户审核；唯一候选为 `CLKOUT3=65.0026 MHz`、约 `+0.192 ns` 相位、每 serializer 本地 reset 复制，以及显式 `/5` generated-clock/状态契约。
+4. 审核后只执行一次 O2-D2。八个 OSERDES endpoint 的 Slow/Fast × Recovery/Removal × `OCLK` 双边沿/`OCLKDIV`/`SERCLK` 必须全部覆盖且非负；任一对象解析、波形、时序或新增失败签名异常即停止并完整回退，禁止 false path、multicycle、clock-group waiver、第二相位扫描。
+5. O2-D2 成功后按 O3-A → O2-C1 → O2-C2 → O3-B → O4 推进；O4 同时依赖 O2-C2 与 O3-B。
+6. DDR3 D3-0 与 PCIe H2-A/H2-B 保持只读泳道；仿真器安装并完成库编译后，再补齐三项目四级仿真和 SDF 标注验证。
 
 ## 更新规则
 

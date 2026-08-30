@@ -8,6 +8,8 @@
 
 HDL 经 compile、synthesize、dev_map、PNR、timing report、netlist 和 bitstream 阶段形成实现产物。阶段命令成功不等于时序或板级接口已经满足约束。
 
+2026-08-30 S0 环境复核确认 `E:/pango/PDS_2022.2-SP6.4/bin/pds_shell.exe` 存在，是当前唯一已发现工具；PATH、`C:/questasim64/win64` 与常见 ModelSim/QuestaSim 目录均没有 `vsim.exe`、`vlog.exe`、`vlib.exe`。因此只能继续使用 PDS 静态实现证据，安装仿真器后才可编译 USIM/VSIM 并开展动态仿真。
+
 ## 外部四级仿真
 
 ModelSim/QuestaSim 分别承担行为级、综合后、PNR 后功能和 PNR 后时序仿真。USIM 用于 PNR 前原语，VSIM 用于 PNR 后原语；时序仿真还依赖正确层级的 SDF 标注。

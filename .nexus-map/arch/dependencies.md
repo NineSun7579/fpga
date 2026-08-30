@@ -76,4 +76,5 @@ flowchart TD
 - 新项目自有 DDR3 RTL 依赖根目录 VSCS；厂商 `ip_core/ddr3/**` 仍作为外部生成依赖，不因 D2 决策被改写。
 - DDR3 当前只推进 D3-0 只读 wrapper、非标准 Pango DDR UI 握手和 `I_ips_ddr_top` 层级评审；PCIe 当前只推进 H2-A/H2-B 板级证据矩阵、IP 再生成契约和 baseline gate 精确化，不修改两项目的 IP/RTL/FDC。
 - PCIe 顶层依赖专用 HSST/IP 约束；UART2APB 是否保留是后续 RTL 与 FDC 的共同决策点。
-- 仿真流程依赖编译后的 Logos2 USIM/VSIM 库和可用的 `vsim.exe`/`vlog.exe`；当前环境不满足该依赖。
+- S0 环境复核（2026-08-30）确认 `E:/pango/PDS_2022.2-SP6.4/bin/pds_shell.exe` 存在，是唯一已发现工具；PATH、`C:/questasim64/win64` 和常见 ModelSim/QuestaSim 目录均未找到 `vsim.exe`、`vlog.exe`、`vlib.exe`。
+- 仿真流程依赖编译后的 Logos2 USIM/VSIM 库和可用的 `vsim.exe`/`vlog.exe`/`vlib.exe`；当前环境不满足该依赖，必须先安装 ModelSim/QuestaSim，再执行 `compile_simlib`，动态仿真在此之前保持阻塞。

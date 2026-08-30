@@ -12,7 +12,18 @@
       "implementation_status": "documented",
       "code_path": null,
       "evidence_path": "README.md",
-      "evidence_gap": "三项目可重复全流程和严格/baseline gate 证据均已建立；OV7725 当前因明确负时序不可发布，仿真库和三项目四级仿真尚未完成。",
+      "evidence_gap": "三项目可重复全流程和严格/baseline gate 证据均已建立；2026-08-30 S0 复核确认仅 `E:/pango/PDS_2022.2-SP6.4/bin/pds_shell.exe` 存在，PATH、`C:/questasim64/win64` 和常见 ModelSim/QuestaSim 目录均无 `vsim.exe`、`vlog.exe`、`vlib.exe`，动态仿真及 USIM/VSIM 编译仍阻塞。",
+      "s0_environment_review": {
+        "date": "2026-08-30",
+        "pds_shell": "E:/pango/PDS_2022.2-SP6.4/bin/pds_shell.exe",
+        "pds_shell_exists": true,
+        "unique_discovered_tool": true,
+        "simulator_executables": ["vsim.exe", "vlog.exe", "vlib.exe"],
+        "simulator_executables_found": false,
+        "searched_locations": ["PATH", "C:/questasim64/win64", "common ModelSim/QuestaSim directories"],
+        "dynamic_simulation": "blocked",
+        "next_step": "install ModelSim/QuestaSim, verify vsim/vlog/vlib, then compile Logos2 USIM/VSIM"
+      },
       "tech_stack": ["PDS Tcl", "PowerShell", "ModelSim/QuestaSim"],
       "related_reqs": ["可重复构建", "四级仿真", "时序闭环"],
       "complexity": "medium",
@@ -280,7 +291,8 @@
       "implementation_status": "planned",
       "code_path": null,
       "evidence_path": "TODO.md",
-      "evidence_gap": "本机无可用 ModelSim/QuestaSim；三项目均无完整顶层套件。",
+      "evidence_gap": "S0（2026-08-30）确认本机仅发现 PDS shell，PATH、C:/questasim64/win64 和常见 ModelSim/QuestaSim 目录均无 vsim.exe/vlog.exe/vlib.exe；动态仿真、USIM/VSIM 编译和三项目完整顶层套件仍阻塞，必须先安装仿真器。",
+      "environment_prerequisite": "ModelSim/QuestaSim installation and verification of vsim.exe, vlog.exe and vlib.exe before compile_simlib",
       "tech_stack": ["SystemVerilog", "ModelSim/QuestaSim", "USIM", "VSIM", "SDF"],
       "related_reqs": ["TEST PASS", "失败非零退出", "SDF 标注"],
       "complexity": "high",
@@ -398,10 +410,10 @@
   "metadata": {
     "analysis_mode": "manual bootstrap",
     "verified_at": "2026-08-30",
-    "git_commits_analyzed": 18,
+    "git_commits_analyzed": 19,
     "raw_ast_available": false,
     "limitations": [
-      "Eighteen repository commits are expected after the O2-D1-G contract and nexus synchronization batch; the count remains too shallow for reliable hotspot ranking.",
+      "Nineteen repository commits are expected after the O2-D1-G, S0 environment review and nexus synchronization batches; the count remains too shallow for reliable hotspot ranking.",
       "No AST extraction was run.",
       "No ModelSim or QuestaSim execution was available."
     ]

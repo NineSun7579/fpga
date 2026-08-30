@@ -8,7 +8,7 @@
 
 - 分支为 `main`。
 - 根提交为 `1a2d493`，保存三个原始工程、已有 PDS 产物和整改文档。
-- O2-D1-R 证据与知识图同步后为 17 个提交；当前 O2-D1-G 契约收口批次提交后预期为 18 个提交。样本仍不足以计算可信的 churn、共同变更或历史热点。
+- O2-D1-R 证据与知识图同步后为 17 个提交；O2-D1-G 契约收口批次预期为 18 个提交；本次 S0 环境复核与知识图同步批次提交后预期为 19 个提交。样本仍不足以计算可信的 churn、共同变更或历史热点。
 
 ## 人工高关注区
 
@@ -30,6 +30,7 @@
 - `ddr3_test/ddr3_test/rtl/ddr3_bringup_top.sv`、`ddr3_test/ddr3_test/rtl/ddr3_finite_bist.sv`：D2 规划的项目自有实现热点，当前文件尚不存在，D3 未审核前不得标记为已实现。
 - `pcie_dma_test_100h/hdl/pcie_dma_test.v`：UART2APB 隐式 `rxd/txd` 连接与 PCIe DMA 集成入口。
 - `pcie_dma_test_100h/fdc/pcie_dma_test.fdc`：PCIe 专用资源、复位和普通 I/O 约束入口。
+- `E:/pango/PDS_2022.2-SP6.4/bin/pds_shell.exe`：S0 复核确认存在的唯一已发现实现工具；外部仿真器可执行文件缺失是当前动态验证阻塞点。
 
 ## 后续更新
 
