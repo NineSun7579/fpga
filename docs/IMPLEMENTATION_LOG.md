@@ -194,3 +194,8 @@
 - 顶层使用 x2 `rxn/rxp/txn/txp`、差分 `ref_clk_p/n`、`perst_n` 和两枚 LED。FDC 固定 `ref_clk_p/n=F6/E6`、`perst_n=M16`、`button_rst_n=M15`、LED=`M17/J16`，但未提供 lane 极性/PCB 拓扑、I/O delay 或 SCBV 板级证据。
 - UART2APB 仍连接隐式 `rxd/txd`，顶层没有端口且 `rxd` 被工具绑为 0；必须先决定保留/删除并补齐板级参数，不能用内部 STA 通过替代硬件接口签核。
 - H2-A 已冻结为只读证据矩阵和 IP 再生成契约；H2-B 依赖板级资料闭合后再收紧精确 baseline，任一 lane/refclk/PERST#/UART/SCBV/IP 目标不确定即停止。
+
+## 2026-08-30：三项目 TODO 状态索引校正
+
+- 总 TODO 已同步标记 S0-0、DDR3 D3-0 和 PCIe H2-A 为已完成的只读/环境复核；对应的安装、D3-A、H2-B 和 OV7725 O2-D2 仍保持未完成并受外部资料或用户审核约束。
+- 本次只修正状态索引，没有改变任何实现结论、gate 规则或功能文件边界。

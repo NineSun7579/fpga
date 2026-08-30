@@ -2,7 +2,7 @@
 
 更新日期：2026-08-30
 
-状态：实施中。三项目 SP6.4 可重复构建基线均已建立；DDR3 D2、OV7725 O1-B 与 O2-A 已完成。O2-B 级联 serializer reset 方案已由真实 STA 否决并回退；O2-D1-G 已完成实现前契约收口，唯一待审核候选为“确定相位控制时钟 + 本地 reset 复制”。用户审核前不启动新的 serializer RTL。
+状态：实施中。三项目 SP6.4 可重复构建基线均已建立；S0-0、DDR3 D3-0、PCIe H2-A、DDR3 D2、OV7725 O1-B 与 O2-A 已完成。O2-B 级联 serializer reset 方案已由真实 STA 否决并回退；O2-D1-G 已完成实现前契约收口，唯一待审核候选为“确定相位控制时钟 + 本地 reset 复制”。用户审核或外部资料到位前不启动新的功能 RTL/IP 修改。
 
 ## 1. 总体验收目标
 
@@ -43,12 +43,15 @@
 - [x] DDR3 生成非零综合网表、PNR 网表、SDF、`.sbit` 和 `.bin`。
 - [x] DDR3 gate 已验证：严格模式因已知发布阻断返回非零，显式 baseline 放行模式返回 0 并标记不可发布。
 - [x] DDR3 完成 D2 有限自检契约，确定项目自有 AXI 测试顶层、16 个有限写读比较 pair、稳定 done/error 和 TB 退出语义。
+- [x] DDR3 完成 D3-0 core/wrapper、非标准 AXI-like 握手和 `I_ips_ddr_top` 层级只读评审；D3-A 仍待审核。
 - [x] OV7725 完成 O0-A CDC/RDC 事实清单与整改契约。
 - [x] OV7725 建立 O0-B SP6.4 可重复全流程构建基线和严格/baseline gate。
 - [x] OV7725 完成 O1-B RTL 卫生修复：38 条确定性位宽告警消失，仅保留 `mem_a` 单项板级阻断。
 - [x] OV7725 完成 O1-B 七阶段回归；严格 gate 返回非零，baseline 精确匹配 7 组失败指纹后返回 0 并标记不可发布。
 - [x] OV7725 完成 O2-A serializer reset 联合释放契约，闭合快慢时钟检查、八个 OSERDES endpoint、O2-B 文件范围和回退条件。
 - [x] OV7725 完成 O2-B 最小实现与七阶段实验；方案因 Slow/Fast Recovery 转移到 `pixel_clk_5x → pixel_clk` 且慢角同域仍为负而被否决，失败 RTL 已回退。
+- [x] PCIe 完成 H2-A lane/refclk/PERST#/UART/SCBV/IP 目标证据矩阵；H2-B 仍待板级资料和 IP 重生成审核。
+- [x] S0-0 完成公共仿真器可执行文件复核；当前未发现 `vsim.exe`、`vlog.exe`、`vlib.exe`。
 - [ ] 安装 QuestaSim/ModelSim 并记录版本和路径。
 - [ ] 编译 Logos2 USIM/VSIM。
 - [ ] 完成三项目分级自检仿真。
@@ -58,8 +61,8 @@
 1. **P0：O2-D1-R 已完成。** 从空 `build/` 重建已回退 RTL，baseline gate 精确匹配 7 组失败；`ddrphy_sysclk → pixel_clk` 已恢复为 Slow/Fast `53/53`，O2-B 的 `54` 是实验布局产生的 video-driver endpoint 增量，不纳入 baseline。
 2. **P0：O2-D1-G 架构契约收口已完成，提请用户审核。** 已固定 `+0.192 ns` 控制相位、本地 reset 复制、`/5` 奇数分频 waveform、pre/post-buffer 取点、业务复位与 serializer hard reset 分权、首个有效 TMDS symbol 条件和单次试验停止条件。
 3. **P0：审核后执行一次 O2-D2。** 用 IP Compiler 重生成 PLL，原子迁移 DDR read FIFO `rd_clk` 与完整 HDMI pixel 域，完成一次 compile + 七阶段 STA。任何停止条件触发即完整回退，不扫描第二相位、不增加 waiver。
-4. **P1：准备 DDR3 D3-0。** 仅做公开 core/物理 wrapper、非标准 Pango DDR UI 握手和 `I_ips_ddr_top` 层级评审；任一时刻只开启一条功能 RTL 泳道。
-5. **P2：PCIe H2-A/H2-B。** 板级资料缺失时只做证据矩阵、IP 再生成契约和 baseline gate 精确化，不修改 IP/RTL/FDC。
+4. **P1：DDR3 D3-0 已完成。** 下一步仅在审核后进入 D3-A，新增项目自有 BIST/top 并先做 compile/elaboration。
+5. **P2：PCIe H2-A 已完成。** 下一步仅在板级资料和审核后进入 H2-B，重生成 PG2L100H IP 并收紧精确 gate。
 6. **O2-D2 成功后的主线：O3-A → O2-C1 → O2-C2 → O3-B → O4。** 先解除状态/复位耦合，再处理 FIFO reset、帧事件 CDC 和最终约束闭环。
 7. **持续泳道：H0-H3、S0。** 板级资料或仿真器一旦到位，立即关闭对应阻断；H3 阻塞 O1-C 与最终 O4 发布闭环，S0 阻塞三项目动态仿真签核。
 
