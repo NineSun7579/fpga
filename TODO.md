@@ -168,6 +168,8 @@
 - [x] D3-0：确认活动 DDR UI 是非标准 AXI-like 接口：写侧以 `axi_awvalid & axi_awready` 接收地址、以 `axi_wready` 计数据接受，IP 返回 `axi_wusero_id/axi_wusero_last`；读侧以 `axi_arvalid & axi_arready` 发起、仅以 `axi_rvalid/axi_rlast` 返回，没有 `axi_rready`。
 - [x] D3-0：确认新物理顶层必须保持现有 DDR/时钟/复位/串口物理端口，并保留 FDC/RCF 依赖的 DDR IP 实例名 `I_ips_ddr_top`（见 `test_ddr.v`）。
 - [x] D3-0：固定 D3-A 只允许新增项目自有 BIST/top、切换 PDS 顶层和输入清单并做 compile/elaboration；若重新生成 IP 后 AXI 语义、地址单位或 `I_ips_ddr_top` 层级发生变化，立即停止在评审并重新审核。
+- [x] D3-0-R：只读核对活动 `ddr3` core 的完整用户/物理端口、参数宽度、`test_ddr` wrapper 复位链和 `I_ips_ddr_top` 实例映射，形成 [`D3A_PORT_MAP.md`](ddr3_test/ddr3_test/doc/D3A_PORT_MAP.md)。
+- [x] D3-0-R：明确 D3-A 不得套用完整 AXI4 假设：写地址按 `axi_awvalid && axi_awready`，写数据按活动 `axi_wready` 语义，读返回按 `axi_rvalid/axi_rlast`，且没有 `axi_rready`。
 - [ ] D3-A：新增 `rtl/ddr3_bringup_top.sv` 与 `rtl/ddr3_finite_bist.sv` 接口/FSM 骨架，并按 VSCS 完成注释。
 - [ ] D3-A：直接实例化活动 DDR3 IP，自动在初始化完成后启动一次有限测试。
 - [ ] D3-A：原子更新 PDS 顶层、输入清单和 gate 中的产物基名，完成 compile/elaboration，禁止新增端口或位宽告警。
