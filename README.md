@@ -530,7 +530,7 @@ Negative timing check
 powershell.exe -ExecutionPolicy Bypass -File .\scripts\check_repo_consistency.ps1
 ```
 
-该检查确认三个项目的 README、`build.tcl`、`run.ps1`、`check_build.ps1`、顶层声明、七阶段入口、版本记录和 `build/` 忽略状态；它不能替代项目级 PDS gate、STA 或四级仿真。
+该检查确认三个项目的 README、`build.tcl`、`run.ps1`、`check_build.ps1`、顶层声明、七阶段入口、版本记录和 `build/` 忽略状态；同时调用 [PDS Tcl 入口门禁](docs/PDS_TCL_ENTRYPOINT_INVENTORY.md)，要求全部 tracked Tcl 均被分类，防止 GUI 历史脚本或厂商内部脚本被误当作 canonical 构建入口。它不能替代项目级 PDS gate、STA 或四级仿真。
 
 三项目当前的仿真入口、厂商示例边界和 S1/S2/S3 前置条件见 [`docs/SIMULATION_READINESS_MATRIX.md`](docs/SIMULATION_READINESS_MATRIX.md)；完整整改顺序和验收门槛见 [`TODO.md`](TODO.md)。
 

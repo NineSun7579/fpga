@@ -10,6 +10,8 @@ HDL 经 compile、synthesize、dev_map、PNR、timing report、netlist 和 bitst
 
 2026-08-30 S0 环境复核确认 `E:/pango/PDS_2022.2-SP6.4/bin/pds_shell.exe` 存在，是当前唯一已发现工具；PATH、`C:/questasim64/win64` 与常见 ModelSim/QuestaSim 目录均没有 `vsim.exe`、`vlog.exe`、`vlib.exe`。S0-1 已准备参数化 `scripts/compile_simlib.tcl`/`.ps1` 入口，但默认运行在 PDS 前即因缺少 `vsim.exe` 返回 1；安装有许可证的仿真器并实际生成非空 USIM/VSIM 库前，动态仿真仍阻塞。
 
+2026-08-30 CI-7 入口分类确认全部 13 个 tracked Tcl 已登记。只有三个项目 `scripts/build.tcl` 通过 `run.ps1` 进入 `pds_shell`；PCIe 为 PG2L50H canonical，OV7725/DDR3 仍为 PG2L100H migration-blocked。`impl.tcl`、parse-design screen、厂商 IP PNR 和单 IP 仿真脚本中的旧器件、混合目标或绝对路径只保留为历史/内部证据，不能用于当前器件、STA、网表、SDF、位流或集成仿真签核。
+
 2026-08-30 用户确认 DDR3、PCIe、OV7725 HDMI 共用 `RK3568+PG2L50H100H` 开发板，实际 FPGA 为 `PG2L50H-6IFBG484`，统一 PDS 目标为 `Logos2/PG2L50H/FBG484/-6`。M0 已完成器件事实审核；M1 先迁移 PCIe build/gate，M2 重生成 DDR3 50H IP/FDC/RCF，M3 重生成 OV7725 四个 50H IP并建立新 baseline。所有 PG2L100H 产物不得烧录。
 
 ## 外部四级仿真

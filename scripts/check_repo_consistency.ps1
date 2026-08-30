@@ -1,5 +1,6 @@
 param(
-    [string]$RepoRoot
+    [string]$RepoRoot,
+    [string]$PdsTclInventoryPath
 )
 
 # Perform the repository-level checks that do not require PDS or a simulator.
@@ -13,6 +14,13 @@ $RepoRoot = (Resolve-Path -LiteralPath $RepoRoot).Path
 
 $Failures = [System.Collections.Generic.List[string]]::new()
 $MatrixPath = Join-Path $RepoRoot 'docs\SIMULATION_READINESS_MATRIX.md'
+$PdsTclInventoryDocPath = Join-Path $RepoRoot `
+    'docs\PDS_TCL_ENTRYPOINT_INVENTORY.md'
+if ([string]::IsNullOrWhiteSpace($PdsTclInventoryPath)) {
+    $PdsTclInventoryPath = Join-Path $RepoRoot `
+        'docs\PDS_TCL_ENTRYPOINT_INVENTORY.json'
+}
+$PdsTclGatePath = Join-Path $RepoRoot 'scripts\check_pds_tcl_entrypoints.ps1'
 $ApprovedBoard = 'RK3568+PG2L50H100H'
 $ApprovedFpgaPart = 'PG2L50H-6IFBG484'
 $ApprovedPdsDevice = 'PG2L50H'
@@ -123,6 +131,38 @@ Require-File -Path (Join-Path $RepoRoot 'README.md') -Description 'root guide' |
 Require-File -Path (Join-Path $RepoRoot 'TODO.md') -Description 'root TODO' | Out-Null
 Require-File -Path (Join-Path $RepoRoot 'VERILOG_SYSTEMVERILOG_COMMENTING_STANDARD.md') `
     -Description 'Verilog/SystemVerilog commenting standard' | Out-Null
+
+$PdsTclInventoryDocExists = Require-File -Path $PdsTclInventoryDocPath `
+    -Description 'PDS Tcl entrypoint inventory guide'
+$PdsTclInventoryExists = Require-File -Path $PdsTclInventoryPath `
+    -Description 'PDS Tcl entrypoint machine inventory'
+$PdsTclGateExists = Require-File -Path $PdsTclGatePath `
+    -Description 'PDS Tcl entrypoint gate'
+if ($PdsTclInventoryDocExists) {
+    $PdsTclInventoryDocText = Get-Content -Raw -Encoding UTF8 `
+        -LiteralPath $PdsTclInventoryDocPath
+    foreach ($Required in ([ordered]@{
+            'CI-7 canonical project build role' = 'canonical_project_build'
+            'CI-7 migration-blocked build role' = 'migration_blocked_project_build'
+            'CI-7 historical GUI role' = 'historical_gui'
+            'CI-7 vendor internal role' = 'vendor_generated_internal'
+            'CI-7 machine inventory link' = 'PDS_TCL_ENTRYPOINT_INVENTORY\.json'
+        }).GetEnumerator()) {
+        Require-Pattern -Text $PdsTclInventoryDocText -Pattern $Required.Value `
+            -Description $Required.Key | Out-Null
+    }
+}
+if ($PdsTclInventoryExists -and $PdsTclGateExists) {
+    try {
+        & $PdsTclGatePath -RepoRoot $RepoRoot -InventoryPath $PdsTclInventoryPath
+        if ($LASTEXITCODE -ne 0) {
+            Add-Failure 'PDS Tcl entrypoint inventory gate failed'
+        }
+    } catch {
+        Add-Failure ("PDS Tcl entrypoint inventory gate failed: {0}" -f `
+                $_.Exception.Message)
+    }
+}
 
 $SimlibTclPath = Join-Path $RepoRoot 'scripts\compile_simlib.tcl'
 $SimlibPsPath = Join-Path $RepoRoot 'scripts\compile_simlib.ps1'
