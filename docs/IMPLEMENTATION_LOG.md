@@ -227,3 +227,9 @@
 - OV7725 现有 DDR3/PLL/FIFO 示例不覆盖 `ov7725_hdmi`；DDR3 现有 `test_ddr` 示例 TB 与计划项目 BIST/top 不同且端口已失配；PCIe 现有 `pango_pcie_top_tb` 不实例化 `pcie_dma_test`。
 - 三项目厂商仿真脚本或 filelist 含历史绝对路径/工作目录假设；本批不修改厂商生成文件，后续新增项目级相对路径入口。
 - S0-1 仍因本机缺少 `vsim.exe`、`vlog.exe`、`vlib.exe` 阻断；本批只做静态盘点和 TODO 排序，未运行 ModelSim/QuestaSim、PDS 或 SDF 仿真。
+
+## 2026-08-30：CI-1 仿真矩阵引用门禁
+
+- 扩展 `scripts/check_repo_consistency.ps1`，要求仿真就绪度矩阵存在，并包含 OV7725、DDR3、PCIe 和 S1/S2/S3 执行队列。
+- 门禁同时验证根 `README.md` 与 `TODO.md` 均链接 `docs/SIMULATION_READINESS_MATRIX.md`，防止规划文档脱离入口指南。
+- PowerShell AST、仓库一致性门禁和 `git diff --check` 均通过；本批未运行 PDS、ModelSim/QuestaSim 或 SDF，也未修改 RTL/IP/约束/生成物。

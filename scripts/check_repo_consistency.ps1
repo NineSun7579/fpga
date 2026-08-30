@@ -12,6 +12,7 @@ if ([string]::IsNullOrWhiteSpace($RepoRoot)) {
 $RepoRoot = (Resolve-Path -LiteralPath $RepoRoot).Path
 
 $Failures = [System.Collections.Generic.List[string]]::new()
+$MatrixPath = Join-Path $RepoRoot 'docs\SIMULATION_READINESS_MATRIX.md'
 
 function Add-Failure {
     param([Parameter(Mandatory)][string]$Message)
@@ -94,6 +95,34 @@ if ($SimlibPsExists) {
         -Description 'compile_simlib exit-code check' | Out-Null
     Require-Pattern -Text $SimlibPsText -Pattern 'vsim\.exe' `
         -Description 'mandatory simulator preflight' | Out-Null
+}
+
+$RootReadmePath = Join-Path $RepoRoot 'README.md'
+$TodoPath = Join-Path $RepoRoot 'TODO.md'
+$MatrixExists = Require-File -Path $MatrixPath -Description 'simulation readiness matrix'
+if ($MatrixExists) {
+    $MatrixText = Get-Content -Raw -Encoding UTF8 -LiteralPath $MatrixPath
+    Require-Pattern -Text $MatrixText -Pattern 'OV7725 HDMI' `
+        -Description 'simulation matrix OV7725 coverage' | Out-Null
+    Require-Pattern -Text $MatrixText -Pattern 'DDR3' `
+        -Description 'simulation matrix DDR3 coverage' | Out-Null
+    Require-Pattern -Text $MatrixText -Pattern 'PCIe DMA' `
+        -Description 'simulation matrix PCIe coverage' | Out-Null
+    Require-Pattern -Text $MatrixText -Pattern 'S1 DDR3|S2 PCIe|S3 OV7725' `
+        -Description 'simulation matrix execution queue' | Out-Null
+}
+
+if (Test-Path -LiteralPath $RootReadmePath -PathType Leaf) {
+    $RootReadmeText = Get-Content -Raw -Encoding UTF8 -LiteralPath $RootReadmePath
+    Require-Pattern -Text $RootReadmeText `
+        -Pattern 'docs/SIMULATION_READINESS_MATRIX\.md' `
+        -Description 'root guide simulation matrix link' | Out-Null
+}
+if (Test-Path -LiteralPath $TodoPath -PathType Leaf) {
+    $TodoText = Get-Content -Raw -Encoding UTF8 -LiteralPath $TodoPath
+    Require-Pattern -Text $TodoText `
+        -Pattern 'docs/SIMULATION_READINESS_MATRIX\.md' `
+        -Description 'TODO simulation matrix link' | Out-Null
 }
 
 $IgnoreText = Get-Content -Raw -LiteralPath (Join-Path $RepoRoot '.gitignore')
