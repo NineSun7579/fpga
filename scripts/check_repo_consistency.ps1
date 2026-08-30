@@ -57,6 +57,13 @@ $Projects = @(
         Readme = 'README.md'
         BoardEvidence = 'doc/BOARD_EVIDENCE.md'
         BoardKeywords = @('OV7725', 'HDMI')
+        ReadmePatterns = @{
+            Clock = '(?i)cam_pclk|pixel_clk|\u65f6\u949f'
+            Interface = '(?i)HDMI|TMDS|DDR3|RGB565'
+            Build = 'scripts/(?:build|run)\.ps1|scripts/(?:build|run)\.tcl'
+            IpSource = '(?i)IP|IDF|ipcore'
+            Blocker = '\u963b\u65ad|\u5c1a\u672a|\u4e0d\u4e00\u81f4|\u5f85\u5ba1\u6838'
+        }
     },
     [pscustomobject]@{
         Name = 'DDR3 bring-up'
@@ -65,6 +72,13 @@ $Projects = @(
         Readme = 'README.md'
         BoardEvidence = 'doc/BOARD_EVIDENCE.md'
         BoardKeywords = @('DDR3', 'test_ddr')
+        ReadmePatterns = @{
+            Clock = '(?i)free_clk|ui_clk|clk|\u65f6\u949f'
+            Interface = '(?i)DDR3|AXI|axi|DQS|DQ'
+            Build = 'scripts/(?:build|run)\.ps1|scripts/(?:build|run)\.tcl|[-/]Action\s+build'
+            IpSource = '(?i)IP|IDF|ip_core'
+            Blocker = '\u963b\u65ad|\u5c1a\u672a|\u4e0d\u4e00\u81f4|\u5f85\u5ba1\u6838'
+        }
     },
     [pscustomobject]@{
         Name = 'PCIe DMA'
@@ -73,6 +87,13 @@ $Projects = @(
         Readme = 'README.md'
         BoardEvidence = 'doc/PCIE_BOARD_EVIDENCE.md'
         BoardKeywords = @('PCIe', 'H2-A')
+        ReadmePatterns = @{
+            Clock = '(?i)ref_clk|pclk|clock|\u65f6\u949f'
+            Interface = '(?i)PCIe|lane|DMA|UART'
+            Build = 'scripts/(?:build|run)\.ps1|scripts/(?:build|run)\.tcl|[-/]Action\s+build'
+            IpSource = '(?i)IP|IDF|ipcore'
+            Blocker = '\u963b\u65ad|\u5c1a\u672a|\u4e0d\u4e00\u81f4|\u5f85\u5ba1\u6838'
+        }
     }
 )
 
@@ -176,6 +197,16 @@ foreach ($Project in $Projects) {
         $EvidenceLinkPattern = [regex]::Escape(($Project.BoardEvidence -replace '\\', '/'))
         Require-Pattern -Text $ReadmeText -Pattern $EvidenceLinkPattern `
             -Description "$($Project.Name) board evidence link in README" | Out-Null
+        Require-Pattern -Text $ReadmeText -Pattern $Project.ReadmePatterns.Clock `
+            -Description "$($Project.Name) clock summary in README" | Out-Null
+        Require-Pattern -Text $ReadmeText -Pattern $Project.ReadmePatterns.Interface `
+            -Description "$($Project.Name) interface summary in README" | Out-Null
+        Require-Pattern -Text $ReadmeText -Pattern $Project.ReadmePatterns.Build `
+            -Description "$($Project.Name) build command in README" | Out-Null
+        Require-Pattern -Text $ReadmeText -Pattern $Project.ReadmePatterns.IpSource `
+            -Description "$($Project.Name) IP/source summary in README" | Out-Null
+        Require-Pattern -Text $ReadmeText -Pattern $Project.ReadmePatterns.Blocker `
+            -Description "$($Project.Name) known-blocker summary in README" | Out-Null
     }
 
     if ($BoardEvidenceExists) {
