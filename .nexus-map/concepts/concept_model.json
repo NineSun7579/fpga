@@ -83,6 +83,18 @@
         "projects": ["OV7725 HDMI", "DDR3 bring-up", "PCIe DMA"],
         "boundary": "static README traceability only; does not validate hardware truth or close implementation and simulation blockers"
       },
+      "ci_4_pds_build_gate_contract": {
+        "date": "2026-08-30",
+        "status": "committed_as_66356aa",
+        "script": "scripts/check_repo_consistency.ps1",
+        "exit_code": 0,
+        "head_commit": "66356aa",
+        "head_commit_count": 44,
+        "run_requirements": ["PDS process exit-code check", "^E: error-record check", "stage completion handling"],
+        "check_build_requirements": ["stage or final-build entry", "timing summary/gate", "throw failure path", "non-empty artifact check", "AllowKnownBaselineIssues switch"],
+        "projects": ["OV7725 HDMI", "DDR3 bring-up", "PCIe DMA"],
+        "boundary": "static gate-contract presence only; does not execute or replace PDS, STA, bitstream generation, strict project gates or external simulation; baseline remains non-release"
+      },
       "board_evidence_checklists": {
         "status": "checklists_committed_external_evidence_pending",
         "commit": "12d7a21",
@@ -668,14 +680,14 @@
   "metadata": {
     "analysis_mode": "manual bootstrap",
     "verified_at": "2026-08-30",
-    "git_commits_analyzed": 43,
+    "git_commits_analyzed": 45,
     "raw_ast_available": false,
     "limitations": [
-      "CI-3 is committed as 5bfaae9; git rev-list reports 43 commits after the nexus synchronization; the history remains too shallow for reliable hotspot ranking.",
+      "CI-4 is committed as 66356aa; git rev-list reports 45 commits after the nexus synchronization; the history remains too shallow for reliable hotspot ranking.",
       "The S0-1 parameterized simulation-library entry is committed with mandatory simulator preflight; actual USIM/VSIM compilation remains blocked by the missing simulator installation.",
       "No HDL/raw source AST extraction was run; CI-0 PowerShell syntax parsing is recorded separately.",
       "No ModelSim or QuestaSim execution was available.",
-      "The simulation-readiness matrix, CI-1 matrix-reference gate, CI-2 board-evidence structure/link gate, CI-3 README metadata gate, PCIe H2-B static XML metadata gate, updated board-evidence checklists and extended S0-0 simulator-path review are included in the current 43-commit history; deeper hotspot analysis remains limited by the shallow sample."
+      "The simulation-readiness matrix, CI-1 matrix-reference gate, CI-2 board-evidence structure/link gate, CI-3 README metadata gate, CI-4 PDS build-gate contract gate, PCIe H2-B static XML metadata gate, updated board-evidence checklists and extended S0-0 simulator-path review are included in the current 45-commit history; deeper hotspot analysis remains limited by the shallow sample."
     ]
   }
 }
