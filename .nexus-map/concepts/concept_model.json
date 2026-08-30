@@ -12,15 +12,19 @@
       "implementation_status": "documented",
       "code_path": null,
       "evidence_path": "README.md",
-      "evidence_gap": "三项目可重复全流程和严格/baseline gate 证据均已建立；2026-08-30 S0 复核确认仅 `E:/pango/PDS_2022.2-SP6.4/bin/pds_shell.exe` 存在，PATH、`C:/questasim64/win64` 和常见 ModelSim/QuestaSim 目录均无 `vsim.exe`、`vlog.exe`、`vlib.exe`，动态仿真及 USIM/VSIM 编译仍阻塞。",
+      "evidence_gap": "三项目可重复全流程和严格/baseline gate 证据均已建立；2026-08-30 S0 扩展复核确认仅 `E:/pango/PDS_2022.2-SP6.4/bin/pds_shell.exe` 存在，PATH、`C:/questasim64/win64`、常见 ModelSim/QuestaSim 目录和 Windows 卸载注册表均无安装线索或 `vsim.exe`、`vlog.exe`、`vlib.exe`，动态仿真及 USIM/VSIM 编译仍阻塞。",
       "s0_environment_review": {
         "date": "2026-08-30",
+        "extended_review_commit": "9b51039",
         "pds_shell": "E:/pango/PDS_2022.2-SP6.4/bin/pds_shell.exe",
         "pds_shell_exists": true,
         "unique_discovered_tool": true,
         "simulator_executables": ["vsim.exe", "vlog.exe", "vlib.exe"],
         "simulator_executables_found": false,
-        "searched_locations": ["PATH", "C:/questasim64/win64", "common ModelSim/QuestaSim directories"],
+        "searched_locations": ["PATH", "C:/questasim64/win64", "common ModelSim/QuestaSim directories", "Windows uninstall registry"],
+        "windows_uninstall_registry_scanned": true,
+        "windows_uninstall_registry_hits": 0,
+        "simulator_installation_clues_found": false,
         "dynamic_simulation": "blocked",
         "s0_1_status": "parameterized_entry_committed_library_compilation_blocked",
         "compile_entry": {
@@ -640,14 +644,14 @@
   "metadata": {
     "analysis_mode": "manual bootstrap",
     "verified_at": "2026-08-30",
-    "git_commits_analyzed": 37,
+    "git_commits_analyzed": 39,
     "raw_ast_available": false,
     "limitations": [
       "The CI-0 repository-consistency batch is recorded as commit 25; the S0-1 entry and mandatory-preflight tightening are recorded as commits 26 and 27; the history remains too shallow for reliable hotspot ranking.",
       "The S0-1 parameterized simulation-library entry is committed with mandatory simulator preflight; actual USIM/VSIM compilation remains blocked by the missing simulator installation.",
       "No HDL/raw source AST extraction was run; CI-0 PowerShell syntax parsing is recorded separately.",
       "No ModelSim or QuestaSim execution was available.",
-      "The simulation-readiness matrix, root README navigation, tightened CI-1 matrix-reference gate, PCIe H2-B static XML metadata gate and updated H0/H1/H3 board-evidence checklists are included in the current 37-commit history; deeper hotspot analysis remains limited by the shallow sample."
+      "The simulation-readiness matrix, root README navigation, tightened CI-1 matrix-reference gate, PCIe H2-B static XML metadata gate, updated H0/H1/H3 board-evidence checklists and extended S0-0 simulator-path review are included in the current 39-commit history; deeper hotspot analysis remains limited by the shallow sample."
     ]
   }
 }
