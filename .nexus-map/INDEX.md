@@ -35,7 +35,7 @@
 - S0-0 环境复核（2026-08-30，已完成）：PDS shell 路径存在且可作为唯一已发现工具；未发现 `vsim.exe`/`vlog.exe`/`vlib.exe`，动态仿真与 USIM/VSIM 编译保持阻塞。
 - S0-1 仿真库入口已作为独立批次提交：新增参数化 `scripts/compile_simlib.tcl` 与 `scripts/compile_simlib.ps1`，支持 ModelSim/QuestaSim、USIM/VSIM/BOTH、Logos2 family、语言、PDS/仿真器路径和输出目录覆盖。PowerShell AST 错误数为 0；默认运行在调用 PDS 前因缺少 `vsim.exe` 返回 1，`vlog.exe`/`vlib.exe` 也不存在，因此实际库编译仍阻塞。
 - CI-0 仓库级静态一致性门禁已完成并提交：`scripts/check_repo_consistency.ps1` 门禁退出码为 0，本批提交时全部 7 个 PowerShell 脚本 AST 解析错误数为 0；该门禁不启动或替代 PDS、STA、ModelSim/QuestaSim。
-- CI-0 仓库级静态一致性门禁已作为独立批次提交；仓库累计 25 个 Git 提交，样本仍不足以计算可信的历史热点。
+- CI-0 仓库级静态一致性门禁已作为独立批次提交；随后 S0-1 入口与强制预检也已独立提交，仓库累计 27 个 Git 提交，样本仍不足以计算可信的历史热点。
 - 根目录 [README](../README.md) 是 PDS 外部实现与仿真指南。
 - 根目录 [TODO](../TODO.md) 是当前整改顺序和验收门槛。
 - 新增或修改 Verilog/SystemVerilog 时必须遵循 [VSCS](../VERILOG_SYSTEMVERILOG_COMMENTING_STANDARD.md)。

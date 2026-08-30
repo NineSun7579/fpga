@@ -10,8 +10,7 @@ param(
     [string]$Language = 'Verilog',
     [string]$PdsBin = 'E:\pango\PDS_2022.2-SP6.4\bin',
     [string]$SimulatorExecPath = 'C:\questasim64\win64',
-    [string]$OutputDirectory = '',
-    [switch]$SkipSimulatorValidation
+    [string]$OutputDirectory = ''
 )
 
 # Keep simulator installation paths external and fail before PDS if they are
@@ -54,14 +53,12 @@ function Assert-Directory {
 Assert-Executable -Path $PdsShell -Description 'PDS shell'
 Assert-Executable -Path $CompileScript -Description 'compile_simlib Tcl script'
 
-if (-not $SkipSimulatorValidation) {
-    Assert-Executable -Path (Join-Path $SimulatorExecPath 'vsim.exe') `
-        -Description 'ModelSim/QuestaSim vsim.exe'
-    Assert-Executable -Path (Join-Path $SimulatorExecPath 'vlog.exe') `
-        -Description 'ModelSim/QuestaSim vlog.exe'
-    Assert-Executable -Path (Join-Path $SimulatorExecPath 'vlib.exe') `
-        -Description 'ModelSim/QuestaSim vlib.exe'
-}
+Assert-Executable -Path (Join-Path $SimulatorExecPath 'vsim.exe') `
+    -Description 'ModelSim/QuestaSim vsim.exe'
+Assert-Executable -Path (Join-Path $SimulatorExecPath 'vlog.exe') `
+    -Description 'ModelSim/QuestaSim vlog.exe'
+Assert-Executable -Path (Join-Path $SimulatorExecPath 'vlib.exe') `
+    -Description 'ModelSim/QuestaSim vlib.exe'
 
 New-Item -ItemType Directory -Force -Path $OutputDirectory, $WorkDirectory, $LogDirectory |
     Out-Null

@@ -90,10 +90,10 @@ if ($SimlibTclExists) {
 }
 if ($SimlibPsExists) {
     $SimlibPsText = Get-Content -Raw -Encoding UTF8 -LiteralPath $SimlibPsPath
-    Require-Pattern -Text $SimlibPsText -Pattern 'SkipSimulatorValidation' `
-        -Description 'simulator preflight switch' | Out-Null
     Require-Pattern -Text $SimlibPsText -Pattern '\$LASTEXITCODE' `
         -Description 'compile_simlib exit-code check' | Out-Null
+    Require-Pattern -Text $SimlibPsText -Pattern 'vsim\.exe' `
+        -Description 'mandatory simulator preflight' | Out-Null
 }
 
 $IgnoreText = Get-Content -Raw -LiteralPath (Join-Path $RepoRoot '.gitignore')

@@ -15,8 +15,8 @@
 - s0_0_status: completed_read_only_environment_review; ModelSim/QuestaSim 安装与 USIM/VSIM 编译仍待外部环境
 - s0_1_status: parameterized_entry_committed; library_compilation_blocked_external
 - s0_1_entry: `scripts/compile_simlib.ps1` 参数化 Simulator（ModelSim/QuestaSim）、Library（USIM/VSIM/BOTH）、Family、Language、PdsBin、SimulatorExecPath 与 OutputDirectory，并通过环境变量调用 `scripts/compile_simlib.tcl` 的 PDS `compile_simlib`；默认输出 `build/simlib`，工作目录 `build/pds-simlib`，日志 `build/logs/compile-simlib.log`。
-- s0_1_gate: 调用 PDS 前检查 `pds_shell.exe`、Tcl 入口和 `vsim.exe`/`vlog.exe`/`vlib.exe`；PDS 后检查退出码、日志 `^E:` 及所选 `usim`/`vsim` 库目录存在。`SkipSimulatorValidation` 仅跳过前置检查，不构成库编译通过证据。
-- s0_1_result: PowerShell AST 错误数 0；默认运行因 `C:/questasim64/win64/vsim.exe` 缺失而在 PDS 前返回 1，`vlog.exe` 与 `vlib.exe` 同样不存在；未执行实际 USIM/VSIM 编译。
+- s0_1_gate: 调用 PDS 前强制检查 `pds_shell.exe`、Tcl 入口和 `vsim.exe`/`vlog.exe`/`vlib.exe`；PDS 后检查退出码、日志 `^E:` 及所选 `usim`/`vsim` 库目录存在，不提供绕过预检的发布路径。
+- s0_1_result: PowerShell AST 错误数 0；默认运行因 `C:/questasim64/win64/vsim.exe` 缺失而在 PDS 前返回 1，`vlog.exe` 与 `vlib.exe` 同样不存在；未执行实际 USIM/VSIM 编译，入口及强制预检已提交。
 - ci_0_status: committed_as_85d9b64
 - ci_0_scope: 检查根指南/TODO/VSCS、三个项目 README、`build.tcl`、`run.ps1`、`check_build.ps1`、顶层声明、七阶段入口、可配置 PDS 路径、进程退出码、显式 baseline 开关、产物/时序检查接口、`build/` 忽略与未跟踪生成物状态；拒绝活动 Tcl 的 `simulate` 命令和反斜杠绝对路径。
 - ci_0_result: `scripts/check_repo_consistency.ps1` 退出码 0，并输出 `INFO: repository consistency gate passed`；三个项目 README 缺口已修正，全部 7 个 PowerShell 脚本 AST 解析错误数为 0。

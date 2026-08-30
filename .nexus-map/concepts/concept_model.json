@@ -28,7 +28,7 @@
           "powershell": "scripts/compile_simlib.ps1",
           "simulators": ["ModelSim Simulator", "QuestaSim Simulator"],
           "libraries": ["USIM", "VSIM", "BOTH"],
-          "parameters": ["Simulator", "Library", "Family", "Language", "PdsBin", "SimulatorExecPath", "OutputDirectory", "SkipSimulatorValidation"],
+          "parameters": ["Simulator", "Library", "Family", "Language", "PdsBin", "SimulatorExecPath", "OutputDirectory"],
           "default_output": "build/simlib",
           "work_directory": "build/pds-simlib",
           "log": "build/logs/compile-simlib.log",
@@ -369,9 +369,9 @@
       "implementation_status": "planned",
       "code_path": null,
       "evidence_path": "TODO.md",
-      "evidence_gap": "S0-1 参数化 compile_simlib Tcl/PowerShell 入口已在工作区准备，PowerShell AST 错误数为 0；默认运行因缺少 C:/questasim64/win64/vsim.exe 在调用 PDS 前返回 1，vlog.exe/vlib.exe 同样不存在。实际 USIM/VSIM 编译、动态仿真和三项目完整顶层套件仍阻塞。",
+      "evidence_gap": "S0-1 参数化 compile_simlib Tcl/PowerShell 入口及强制仿真器预检已提交，PowerShell AST 错误数为 0；默认运行因缺少 C:/questasim64/win64/vsim.exe 在调用 PDS 前返回 1，vlog.exe/vlib.exe 同样不存在。实际 USIM/VSIM 编译、动态仿真和三项目完整顶层套件仍阻塞。",
       "environment_prerequisite": "licensed ModelSim/QuestaSim installation and actual vsim.exe, vlog.exe and vlib.exe path before successful compile_simlib execution",
-      "simlib_entry_status": "prepared_in_worktree_pending_commit_and_external_tool",
+      "simlib_entry_status": "committed_mandatory_preflight_external_tool_blocked",
       "tech_stack": ["SystemVerilog", "ModelSim/QuestaSim", "USIM", "VSIM", "SDF"],
       "related_reqs": ["TEST PASS", "失败非零退出", "SDF 标注"],
       "complexity": "high",
@@ -489,11 +489,11 @@
   "metadata": {
     "analysis_mode": "manual bootstrap",
     "verified_at": "2026-08-30",
-    "git_commits_analyzed": 26,
+    "git_commits_analyzed": 27,
     "raw_ast_available": false,
     "limitations": [
-      "The CI-0 repository-consistency batch is recorded as commit 25; the history remains too shallow for reliable hotspot ranking.",
-      "The S0-1 parameterized simulation-library entry is committed; actual USIM/VSIM compilation remains blocked by the missing simulator installation.",
+      "The CI-0 repository-consistency batch is recorded as commit 25; the S0-1 entry and mandatory-preflight tightening are recorded as commits 26 and 27; the history remains too shallow for reliable hotspot ranking.",
+      "The S0-1 parameterized simulation-library entry is committed with mandatory simulator preflight; actual USIM/VSIM compilation remains blocked by the missing simulator installation.",
       "No HDL/raw source AST extraction was run; CI-0 PowerShell syntax parsing is recorded separately.",
       "No ModelSim or QuestaSim execution was available."
     ]

@@ -217,4 +217,5 @@
 - 仓库级静态一致性门禁已纳入两个入口及关键参数检查，防止仿真库脚本脱离 CI 覆盖。
 - 本机默认预检实测返回 1，具体阻断为 `C:\questasim64\win64\vsim.exe` 不存在；未调用 PDS，也未声称 USIM/VSIM 编译成功。
 - 普通 `tclsh` 执行该脚本会因缺少 PDS 专有 `compile_simlib` 命令返回 `invalid command name`，该命令只能由 `pds_shell.exe` 执行。
+- 为保持门禁语义一致，移除了 `SkipSimulatorValidation` 绕过参数；现在每次调用都必须先验证 `vsim.exe`、`vlog.exe` 和 `vlib.exe`。
 - 两个新增 PowerShell 脚本与现有五个项目脚本 AST 解析错误均为 0；本批未修改 RTL、IP、PLL、FDC、RCF 或生成物。
