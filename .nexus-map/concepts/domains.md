@@ -14,6 +14,8 @@ HDL 经 compile、synthesize、dev_map、PNR、timing report、netlist 和 bitst
 
 ModelSim/QuestaSim 分别承担行为级、综合后、PNR 后功能和 PNR 后时序仿真。USIM 用于 PNR 前原语，VSIM 用于 PNR 后原语；时序仿真还依赖正确层级的 SDF 标注。
 
+2026-08-30 仿真就绪度盘点确认三个项目均无项目级 TB、`.f` 或 `.do`。OV7725 现有 DDR3/PLL/FIFO TB、DDR3 工程的 `test_ddr`/memory-model TB、PCIe 的 `pango_pcie_top` RC/EP TB 都属于厂商 IP 示例，不覆盖产品集成顶层。项目验收必须新增相对路径 filelist/DO、自检 TB、唯一 `TEST PASS`、超时与 `$fatal`，并以实际 DUT 实例层级标注 SDF。
+
 ## 产品顶层与 IP 示例边界
 
 厂商 IP 自带 `example_design`、testbench 或 PNR 工程只能证明示例自身状态。只有产品顶层显式包含所需 RTL、IP、板级约束和集成测试后，结果才能归属于产品工程。

@@ -33,8 +33,9 @@
 - O2-D1-R 已从空 `build/` 重建回退后的七组旧失败基线：baseline gate 精确匹配并返回 0，严格 gate 返回 1；Slow/Fast `ddrphy_sysclk → pixel_clk` Recovery 均恢复为 `53/53`，endpoint 分类为 `26+8+17+1+1`，O2-B 的 `54` 不修改旧 baseline。下一步由 O2-D1-G 收口 `/5` generated-clock、奇数分频 waveform、pre/post-buffer 取点、状态/复位分权和单次试验停止条件。
 - O2-D1-G 契约已冻结：只允许一条 `pixel_clk` `/5` generated clock，源为 PLL wrapper `u_pll_clk/clkout1`、目标为唯一 `GTP_IOCLKDIV_E2.CLKDIVOUT`，波形 `-edges {1 5 11} -edge_shift {0 0 0}`；控制器状态为 `HARD_HOLD → QUALIFY → ARM → SER_RELEASE → RUN`，并定义 hard/business reset 分权与首个有效 TMDS symbol。
 - S0-0 环境复核（2026-08-30，已完成）：PDS shell 路径存在且可作为唯一已发现工具；未发现 `vsim.exe`/`vlog.exe`/`vlib.exe`，动态仿真与 USIM/VSIM 编译保持阻塞。
-- S0-1 仿真库入口已作为独立批次提交：新增参数化 `scripts/compile_simlib.tcl` 与 `scripts/compile_simlib.ps1`，支持 ModelSim/QuestaSim、USIM/VSIM/BOTH、Logos2 family、语言、PDS/仿真器路径和输出目录覆盖。PowerShell AST 错误数为 0；默认运行在调用 PDS 前因缺少 `vsim.exe` 返回 1，`vlog.exe`/`vlib.exe` 也不存在，因此实际库编译仍阻塞。
+- S0-1 仿真库入口已作为独立批次提交：参数化 `scripts/compile_simlib.tcl` 与 `scripts/compile_simlib.ps1` 支持 ModelSim/QuestaSim、USIM/VSIM/BOTH、Logos2 family、语言、PDS/仿真器路径和输出目录覆盖。预检绕过开关已从工作区移除，入口始终检查 `vsim.exe`、`vlog.exe`、`vlib.exe`；两个相关 PowerShell 脚本 AST 错误数为 0，CI-0 门禁通过，默认运行仍因缺少 `vsim.exe` 在 PDS 前返回 1，因此实际库编译保持阻塞。
 - CI-0 仓库级静态一致性门禁已完成并提交：`scripts/check_repo_consistency.ps1` 门禁退出码为 0，本批提交时全部 7 个 PowerShell 脚本 AST 解析错误数为 0；该门禁不启动或替代 PDS、STA、ModelSim/QuestaSim。
+- 三项目 S1/S2/S3 仿真就绪度只读盘点已形成 [仿真就绪度矩阵](../docs/SIMULATION_READINESS_MATRIX.md)：三个项目均无项目级 TB、`.f` 或 `.do`；现有资产全部属于厂商 DDR3/PLL/FIFO/PCIe IP 示例，只能作为模型与接口参考，不能作为产品集成顶层验收。本批矩阵尚未提交，S0-1 仍阻断全部动态仿真。
 - CI-0 仓库级静态一致性门禁已作为独立批次提交；随后 S0-1 入口与强制预检也已独立提交，仓库累计 27 个 Git 提交，样本仍不足以计算可信的历史热点。
 - 根目录 [README](../README.md) 是 PDS 外部实现与仿真指南。
 - 根目录 [TODO](../TODO.md) 是当前整改顺序和验收门槛。
@@ -53,12 +54,12 @@
 
 ## 当前优先级
 
-1. S0-1 的参数化 `compile_simlib` Tcl/PowerShell 入口已准备；当前仍受 ModelSim/QuestaSim 安装、许可证及 `vsim.exe`/`vlog.exe`/`vlib.exe` 路径阻断，只有实际 Logos2 USIM/VSIM 编译退出 0、日志无 `E:` 且库目录非空后才解除动态仿真阻断。
+1. S0-1 的参数化 `compile_simlib` Tcl/PowerShell 入口已准备并强制预检三项仿真器可执行文件，不提供绕过开关；当前仍受 ModelSim/QuestaSim 安装、许可证及工具路径阻断，只有实际 Logos2 USIM/VSIM 编译退出 0、日志无 `E:` 且库目录非空后才解除动态仿真阻断。
 2. H0/H1/H3 补齐板卡、原理图/BOM、器件丝印、bank 电压、DDR3 料号/拓扑及 OV7725/HDMI 时序资料；资料缺失时不得猜测参数、I/O delay 或收紧 gate。
 3. O2-D2 等待用户书面审核 O2-D1-G 契约；通过后只执行一次 PLL 重生成、控制器与 `/5` generated-clock 实现，任一对象、warning、CDC、SDF、时序或 baseline 漂移异常即完整回退。
 4. DDR3 D3-0 握手语义与 `I_ips_ddr_top` 边界评审已完成；D3-A → D3-B → D3-C 等待用户审核后依次实现骨架、16 个有限 pair 与七阶段回归，厂商 `ip_core/ddr3/**` 保持原样。
 5. PCIe H2-B 等待 H0/H2 板级资料、UART 保留/删除决策及 PG2L100H IP 重生成审核；完成器件、lane/refclk/PERST#/SCBV 与精确 gate 闭环前保持阻断。
-6. S1/S2/S3 等待 S0-1 完成且对应 RTL/IP/网表/SDF 锁定，再执行三项目行为级、综合后、PNR 功能与 PNR 时序仿真。
+6. S1/S2/S3 等待 S0-1 完成且对应 RTL/IP/网表/SDF 锁定；三项目还必须分别新增项目自有集成 TB、相对路径 `.f`/`.do` 和四级入口，禁止以厂商 `test_ddr`、DDR3/PLL/FIFO 示例或 `pango_pcie_top` RC/EP 示例冒充产品验证。
 7. OV7725 最终链为 O1-C → O3-A → O2-C1 → O2-C2 → O3-B → O4，前置为 H3 板级事实与 O2-D2 结果；最终必须完成非负 setup/hold/recovery/removal、SDF、位流和仿真闭环。
 
 ## 更新规则

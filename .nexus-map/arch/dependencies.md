@@ -78,6 +78,7 @@ flowchart TD
 - 有限自检契约固定 16 个单 beat 写读比较 pair，地址 `0x0..0x78`、步长 8，pair/run timeout 分别为 4096/131072 周期；签核依赖稳定的 `test_done`、`test_failed`、`failure_code`、`error_count`、`completed_pairs` 和首错信息，而不是厂商 LED 或内部层级。
 - 新项目自有 DDR3 RTL 依赖根目录 VSCS；厂商 `ip_core/ddr3/**` 仍作为外部生成依赖，不因 D2 决策被改写。
 - 当前执行队列为 S0-1 → H0/H1/H3 → 单次 O2-D2 → D3-A/B/C → H2-B → S1/S2/S3 → O1-C/O3/O2-C/O4；用户审核或外部资料未到位时保持对应 RTL/IP/约束只读，不以 baseline 放行替代验收。
+- `docs/SIMULATION_READINESS_MATRIX.md` 已确认三个项目的项目级 TB、`.f`、`.do` 均缺失；厂商示例不形成产品顶层覆盖。S1 还依赖 D3-A/B/C 与 D4，S2 还依赖 H2-B/PG2L100H 一致性，S3 还依赖输入格式契约与 O2-D2/O3 RTL 锁定。
 - PCIe 顶层依赖专用 HSST/IP 约束；UART2APB 是否保留是后续 RTL 与 FDC 的共同决策点。
 - PCIe H2-A（2026-08-30）固定顶层 x2 `rxn/rxp/txn/txp`、差分 `ref_clk_p/n`、`perst_n`/`button_rst_n` 与两枚 LED；FDC 当前映射 refclk `F6/E6`、PERST# `M16`、button reset `M15`、LED `M17/J16`。
 - H2-A 的板级证据缺口为 lane 极性、板级拓扑、I/O delay 和 SCBV；活动 `ipcore/pcie_test/pcie_test.idf` 仍标记 `Logos2/PG2L50H/FBG484/-6`，而 PDS 目标为 `Logos2/PG2L100H/FBG484/-6`，必须走 IP 重生成契约，不得静默忽略。

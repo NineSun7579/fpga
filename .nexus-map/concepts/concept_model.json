@@ -368,10 +368,75 @@
       "responsibility": "覆盖行为级、综合后、PNR 功能和 PNR 时序仿真。",
       "implementation_status": "planned",
       "code_path": null,
-      "evidence_path": "TODO.md",
-      "evidence_gap": "S0-1 参数化 compile_simlib Tcl/PowerShell 入口及强制仿真器预检已提交，PowerShell AST 错误数为 0；默认运行因缺少 C:/questasim64/win64/vsim.exe 在调用 PDS 前返回 1，vlog.exe/vlib.exe 同样不存在。实际 USIM/VSIM 编译、动态仿真和三项目完整顶层套件仍阻塞。",
+      "evidence_path": [
+        "TODO.md",
+        "docs/SIMULATION_READINESS_MATRIX.md"
+      ],
+      "evidence_gap": "S0-1 参数化 compile_simlib Tcl/PowerShell 入口及强制仿真器预检已提交，PowerShell AST 错误数为 0；默认运行因缺少 C:/questasim64/win64/vsim.exe 在调用 PDS 前返回 1，vlog.exe/vlib.exe 同样不存在。三项目均没有项目级 testbench、filelist 或 DO；现有厂商 IP 示例不能计入产品集成覆盖。实际 USIM/VSIM 编译、动态仿真和三项目完整顶层套件仍阻塞。",
       "environment_prerequisite": "licensed ModelSim/QuestaSim installation and actual vsim.exe, vlog.exe and vlib.exe path before successful compile_simlib execution",
       "simlib_entry_status": "committed_mandatory_preflight_external_tool_blocked",
+      "readiness_matrix": {
+        "status": "read_only_inventory_complete_in_worktree",
+        "dynamic_simulation_executed": false,
+        "common_blocker": "S0-1: vsim.exe, vlog.exe and vlib.exe are unavailable",
+        "acceptance_boundary": "Vendor examples under ipcore/, ip_core/ and ip_backup/ are reference assets only and do not count as project integration coverage.",
+        "common_requirements": [
+          "relative-path filelists and DO scripts",
+          "project-owned integration testbench",
+          "timeout, $fatal, exactly one TEST PASS and reliable nonzero failure exit",
+          "SDF annotation at the actual DUT instance hierarchy"
+        ],
+        "projects": {
+          "ov7725_hdmi": {
+            "suite": "S3",
+            "project_level_tb_count": 0,
+            "project_level_filelist_count": 0,
+            "project_level_do_count": 0,
+            "vendor_examples": [
+              "41_ov7725_hdmi/prj/ipcore/ddr3_ip/example_design/bench/",
+              "41_ov7725_hdmi/prj/ipcore/** PLL/FIFO example benches"
+            ],
+            "prerequisites": [
+              "S0-1",
+              "camera input format contract",
+              "O2-D2/O3 RTL locked",
+              "project-level camera/frame-buffer/HDMI integration testbench"
+            ]
+          },
+          "ddr3": {
+            "suite": "S1",
+            "project_level_tb_count": 0,
+            "project_level_filelist_count": 0,
+            "project_level_do_count": 0,
+            "vendor_examples": [
+              "ddr3_test/ddr3_test/ip_core/ddr3/example_design/bench/",
+              "ddr3_test/ddr3_test/ip_core/ddr3/sim/modelsim/"
+            ],
+            "prerequisites": [
+              "S0-1",
+              "D3-A/B/C",
+              "D4",
+              "project-owned finite BIST/top and self-checking testbench"
+            ]
+          },
+          "pcie_dma": {
+            "suite": "S2",
+            "project_level_tb_count": 0,
+            "project_level_filelist_count": 0,
+            "project_level_do_count": 0,
+            "vendor_examples": [
+              "pcie_dma_test_100h/ipcore/pcie_test/example_design/bench/pango_pcie_top_tb.v",
+              "pcie_dma_test_100h/ipcore/pcie_test/sim/modelsim/"
+            ],
+            "prerequisites": [
+              "S0-1",
+              "H2-B",
+              "PG2L100H IP consistency",
+              "project-level smoke/DMA testbench"
+            ]
+          }
+        }
+      },
       "tech_stack": ["SystemVerilog", "ModelSim/QuestaSim", "USIM", "VSIM", "SDF"],
       "related_reqs": ["TEST PASS", "失败非零退出", "SDF 标注"],
       "complexity": "high",
@@ -489,13 +554,14 @@
   "metadata": {
     "analysis_mode": "manual bootstrap",
     "verified_at": "2026-08-30",
-    "git_commits_analyzed": 27,
+    "git_commits_analyzed": 28,
     "raw_ast_available": false,
     "limitations": [
       "The CI-0 repository-consistency batch is recorded as commit 25; the S0-1 entry and mandatory-preflight tightening are recorded as commits 26 and 27; the history remains too shallow for reliable hotspot ranking.",
       "The S0-1 parameterized simulation-library entry is committed with mandatory simulator preflight; actual USIM/VSIM compilation remains blocked by the missing simulator installation.",
       "No HDL/raw source AST extraction was run; CI-0 PowerShell syntax parsing is recorded separately.",
-      "No ModelSim or QuestaSim execution was available."
+      "No ModelSim or QuestaSim execution was available.",
+      "The simulation-readiness matrix batch is included in the current 28-commit history; deeper hotspot analysis remains limited by the shallow sample."
     ]
   }
 }

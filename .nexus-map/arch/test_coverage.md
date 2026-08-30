@@ -33,6 +33,17 @@
 | DDR3 外层 | 从空 `build/` 完成 SP6.4 七阶段全流程，日志无 `E:`；综合网表 `5,914,586`、PNR 网表 `9,734,239`、SDF `9,130,393`、`.sbit` `3,791,112`、`.bin` `3,789,476` 字节 | `All Constraints Met`；慢角 setup WNS `0.678 ns`、TNS `0`，hold `0.137 ns`、recovery `4.578 ns`、removal `0.351 ns` | D2 有限自检契约已定，项目自有顶层尚未实现；Questa 缺失 | 综合网表已生成，有限自检顶层未实现、未运行 | PNR 网表已生成，有限自检顶层未实现、未运行 | SDF 已生成，未标注验证 |
 | PCIe DMA | 新 SP6.4 全流程完成，日志无 `E:`；新网表、SDF、`.sbit/.bin` 非零 | 新最终报告通过：慢角 setup WNS `0.584 ns`、TNS `0`，hold WHS `0.138 ns` | 仅 IP 示例 | 顶层未闭环 | 生成网表但未运行 | SDF 已生成但未标注验证 |
 
+## S1/S2/S3 仿真就绪度矩阵（2026-08-30）
+
+- 已验证静态盘点：`docs/SIMULATION_READINESS_MATRIX.md` 已逐项目记录项目级 testbench、filelist、DO、厂商示例和四级仿真前置条件；本轮没有执行 ModelSim/QuestaSim。
+- 三项目的项目级资产计数一致为 `project_tb=0`、`project_f=0`、`project_do=0`，因此当前没有任何项目具备可直接运行的集成仿真入口。
+- OV7725/S3：现有 DDR3、PLL、FIFO testbench 位于 `41_ov7725_hdmi/prj/ipcore/` 厂商示例树，只覆盖单个 IP。进入 S3 前必须关闭 S0-1、固定摄像头输入格式契约，并锁定 O2-D2/O3 相关 RTL。
+- DDR3/S1：现有 `test_ddr`、memory model、filelist 和 Tcl 位于 `ddr3_test/ddr3_test/ip_core/ddr3/` 厂商示例树；旧 testbench 端口失配，且含绝对路径与 FSDB/Verdi 环境假设。进入 S1 前必须关闭 S0-1，完成 D3-A/B/C、D4，并提供项目自有有限 BIST/top 与自检 TB。
+- PCIe/S2：现有 `pango_pcie_top` RC/EP testbench 位于 `pcie_dma_test_100h/ipcore/pcie_test/` 厂商示例树，不实例化 `pcie_dma_test`，对应 DO 含大量绝对路径。进入 S2 前必须关闭 S0-1、H2-B 和 PG2L100H IP 一致性，并新增项目级 smoke/DMA TB。
+- 验收边界：`ipcore/`、`ip_core/`、`ip_backup/` 中的厂商示例只能作为参考证据，不能计入产品集成覆盖，也不能通过改名冒充项目自有 testbench。
+- 四级共同门槛：所有入口使用相对路径 filelist/DO 和项目自有集成 TB；必须具备超时、`$fatal`、唯一 `TEST PASS` 与可靠非零失败退出；PNR 时序仿真必须按实际 DUT 实例层级标注 SDF。
+- 公共阻断：S0-1 仍因本机缺少 `vsim.exe`、`vlog.exe`、`vlib.exe` 阻断；矩阵完成只读静态盘点，不构成动态仿真通过证据。
+
 ## 已知功能与覆盖缺口
 
 - OV7725：`41_ov7725_hdmi/doc/CDC_RDC_AUDIT.md` 已记录七类时钟域、`wr_load`/`rd_load` 多点采样、两个异步 FIFO 数据方向和分侧复位风险，以及三条旧 STA 失败路径。

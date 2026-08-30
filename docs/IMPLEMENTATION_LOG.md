@@ -219,3 +219,11 @@
 - 普通 `tclsh` 执行该脚本会因缺少 PDS 专有 `compile_simlib` 命令返回 `invalid command name`，该命令只能由 `pds_shell.exe` 执行。
 - 为保持门禁语义一致，移除了 `SkipSimulatorValidation` 绕过参数；现在每次调用都必须先验证 `vsim.exe`、`vlog.exe` 和 `vlib.exe`。
 - 两个新增 PowerShell 脚本与现有五个项目脚本 AST 解析错误均为 0；本批未修改 RTL、IP、PLL、FDC、RCF 或生成物。
+
+## 2026-08-30：三项目 S1/S2/S3 仿真就绪度盘点
+
+- 新增 `docs/SIMULATION_READINESS_MATRIX.md`，记录 OV7725 HDMI、DDR3 和 PCIe DMA 三个项目的项目级 TB、filelist、DO、厂商示例资产、路径可移植性和四级仿真缺口。
+- 盘点结论：三个项目均没有项目级集成 testbench 或四级仿真入口；现有 `tb`、`.f`、`.do` 面向 Pango 厂商 IP 示例，不能作为项目验收。
+- OV7725 现有 DDR3/PLL/FIFO 示例不覆盖 `ov7725_hdmi`；DDR3 现有 `test_ddr` 示例 TB 与计划项目 BIST/top 不同且端口已失配；PCIe 现有 `pango_pcie_top_tb` 不实例化 `pcie_dma_test`。
+- 三项目厂商仿真脚本或 filelist 含历史绝对路径/工作目录假设；本批不修改厂商生成文件，后续新增项目级相对路径入口。
+- S0-1 仍因本机缺少 `vsim.exe`、`vlog.exe`、`vlib.exe` 阻断；本批只做静态盘点和 TODO 排序，未运行 ModelSim/QuestaSim、PDS 或 SDF 仿真。
