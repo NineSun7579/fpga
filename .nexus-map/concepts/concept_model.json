@@ -337,7 +337,7 @@
       "implementation_status": "implemented_with_known_functional_gap",
       "code_path": "pcie_dma_test_100h/hdl/",
       "evidence_path": "pcie_dma_test_100h/place_route/pcie_dma_test_timing_summary_after_hold_fix.txt",
-      "evidence_gap": "新 SP6.4 全流程、STA、PNR 网表、SDF 和位流已生成；H2-A 发现 UART2APB 隐式 rxd/txd 连接且 rxd 被绑 0、SCBV 未配置、缺少集成顶层四级仿真，且活动 IDF 为 PG2L50H 而 PDS 目标为 PG2L100H。",
+      "evidence_gap": "新 SP6.4 全流程、STA、PNR 网表、SDF 和位流已生成；H2-B 静态 gate 已直接解析活动 IDF XML 并阻断 PG2L50H/PG2L100H 元数据不一致，baseline=0、strict=1。UART2APB 隐式 rxd/txd 且 rxd 被绑 0、SCBV 未配置、板级资料和集成顶层四级仿真仍缺失。",
       "h2a_read_only_evidence": {
         "date": "2026-08-30",
         "top_module": "pcie_dma_test",
@@ -354,6 +354,21 @@
         "status": "documentation_only"
       },
       "h2a_uart_gap": "UART2APB uses implicit rxd/txd nets and rxd is tied to 0; functional ownership remains unresolved.",
+      "h2b_static_metadata_gate": {
+        "status": "committed_and_verified",
+        "commit": "03b694a",
+        "verification_date": "2026-08-30",
+        "script": "pcie_dma_test_100h/scripts/check_build.ps1",
+        "idf_path": "pcie_dma_test_100h/ipcore/pcie_test/pcie_test.idf",
+        "validation_method": "direct PowerShell XML parsing via [xml] and ip_inst.header fields",
+        "checked_fields": ["family", "device", "package", "speedgrade"],
+        "expected_metadata": {"family": "Logos2", "device": "PG2L100H", "package": "FBG484", "speedgrade": "-6"},
+        "observed_metadata": {"family": "Logos2", "device": "PG2L50H", "package": "FBG484", "speedgrade": "-6"},
+        "baseline_gate_exit_code": 0,
+        "strict_gate_exit_code": 1,
+        "baseline_release_ready": false,
+        "boundary": "static metadata and existing artifact gate only; board evidence, IP regeneration and integration simulation remain incomplete"
+      },
       "h2b_prerequisites": ["board lane polarity/topology", "I/O delay", "SCBV decision", "regenerate pcie_test.idf for PG2L100H", "UART2APB port ownership"],
       "h2b_stop_condition": "Any missing board evidence, IDF/PDS device mismatch, or unresolved UART2APB port ownership stops gate tightening; no waiver substitute.",
       "tech_stack": ["Verilog", "Pango Logos2", "PCIe x2", "DMA"],
@@ -574,14 +589,14 @@
   "metadata": {
     "analysis_mode": "manual bootstrap",
     "verified_at": "2026-08-30",
-    "git_commits_analyzed": 32,
+    "git_commits_analyzed": 34,
     "raw_ast_available": false,
     "limitations": [
       "The CI-0 repository-consistency batch is recorded as commit 25; the S0-1 entry and mandatory-preflight tightening are recorded as commits 26 and 27; the history remains too shallow for reliable hotspot ranking.",
       "The S0-1 parameterized simulation-library entry is committed with mandatory simulator preflight; actual USIM/VSIM compilation remains blocked by the missing simulator installation.",
       "No HDL/raw source AST extraction was run; CI-0 PowerShell syntax parsing is recorded separately.",
       "No ModelSim or QuestaSim execution was available.",
-      "The simulation-readiness matrix, root README navigation and tightened CI-1 matrix-reference gate are included in the current 32-commit history; deeper hotspot analysis remains limited by the shallow sample."
+      "The simulation-readiness matrix, root README navigation, tightened CI-1 matrix-reference gate and PCIe H2-B static XML metadata gate are included in the current 34-commit history; deeper hotspot analysis remains limited by the shallow sample."
     ]
   }
 }
