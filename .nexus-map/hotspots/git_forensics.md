@@ -23,7 +23,8 @@
 - `41_ov7725_hdmi/scripts/check_build.ps1`：严格模式因负时序返回非零；baseline 模式只证明产物与流程可重复，并明确标记不可发布。
 - `41_ov7725_hdmi/rtl/ddr3_ctrl_top/ctrl_fifo.v`：`wr_load`/`rd_load` 多点采样、两个异步 FIFO 数据方向和跨两侧复位分发点。
 - `41_ov7725_hdmi/prj/source/ov7725_hdmi.fdc`：时钟、CDC 例外和板级 I/O 约束入口。
-- `ddr3_test/ddr3_test/scripts/build.tcl`：当前临时 bring-up 定义仍指向 PG2L100H 活动 IP/FDC/RCF；M2 必须用 SP6.4 重生成 PG2L50H 输入，旧 SP6.1 50H backup 仅作参数和差异证据。
+- `ddr3_test/ddr3_test/scripts/build.tcl`：当前临时 bring-up 定义仍指向 PG2L100H 活动 IP/FDC/RCF；活动 `ip_core/ddr3/ddr3.idf` 为 SP6.4/PG2L100H，canonical `ip_core/ddr3/pnr/ddr_test.fdc` + `ddr3.rcf`，外层 `ip_core/ddr_test.fdc` 仅作旧参考。M2 必须用 SP6.4 重生成 PG2L50H 输入，旧 SP6.1 50H backup 仅作参数和差异证据。
+- `ddr3_test/ddr3_test/scripts/regenerate_ip.ps1` 与 `doc/M2_IP_REGENERATION.md`：M2-A 的 review-only staging 入口和审计边界。SP6.4 build 146967 已生成 PG2L50H staging 且不改 canonical；后续审查重点是 `DEVICE_100H_EN=true`、wrapper 新增 `ref_clk_p/n`、FDC `DDRPHY_CPD_297_4` 及板级参数，禁止直接升格或手改生成文件。
 - `ddr3_test/ddr3_test/scripts/check_build.ps1`：严格模式拦截 7 类已知阻断；baseline 放行只证明历史设计可重复实现，不表示可发布。
 - `ddr3_test/ddr3_test/ip_core/ddr3/example_design/rtl/test_ddr.v`：存在 BIST error-data 位宽不匹配及后续 dangling cleanup，是当前严格 gate 阻断项。
 - `ddr3_test/ddr3_test/ip_core/ddr3/ddr3.v` 与 `.../example_design/rtl/test_ddr.v`：CI-6 已保护旧活动 IP 的非标准 AXI-like 握手和 `I_ips_ddr_top` 边界；PG2L50H 重生成后必须重跑门禁并重新审核 D3-A。

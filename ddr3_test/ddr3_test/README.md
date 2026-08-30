@@ -18,6 +18,18 @@
 
 当前活动 DDR3 IDF/FDC 仍为 PG2L100H，只能作为历史基线。外层旧 `ip_core/ddr_test.fdc` 包含 PG2L50H 硬宏位置，可作为迁移差异证据，但来自旧流程，不能直接升格为 canonical 输入；必须用 SP6.4 重生成 50H IP/FDC/RCF。
 
+## M2-A staging 重生成
+
+使用项目自有入口把活动 DDR3 IP 复制到忽略目录并为 PG2L50H 重生成：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\regenerate_ip.ps1
+```
+
+默认输出为 `build/ipgen/pg2l50h`，日志为 `build/logs/ipgen-pg2l50h.log`。脚本结构化检查 IDF header、SP6.4 生成器和关键 wrapper/FDC/RCF/sim 资产，并验证 canonical `ddr3.idf` 的 SHA-256 在生成前后不变。完整差异、升格条件和回退条件见 [M2-A DDR3 PG2L50H IP 重生成](doc/M2_IP_REGENERATION.md)。
+
+当前 staging probe 已成功生成 PG2L50H header，但 wrapper 新增 `ref_clk_p/ref_clk_n`，FDC 使用 50H 硬宏；`DEVICE_100H_EN` 原始参数仍为 `true`。因此 M2-A 只证明“可重生成且差异已暴露”，不代表 canonical IP、板级参数或位流已获批准。
+
 ## 构建
 
 快速验证源码、IDF、FDC 和 RCF：

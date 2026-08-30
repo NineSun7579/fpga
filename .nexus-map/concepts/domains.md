@@ -26,6 +26,8 @@ DDR3 D3-0（2026-08-30）已完成只读边界评审：活动 IP 是 `ddr3_test/
 
 D3-0 已确认旧 IP 接口不能按标准 AXI ready/valid 擅自解释：AW/AR 分别以 valid/ready 接受，写数据接受由 `axi_wready` 指示，核心返回 `axi_wusero_id`/`axi_wusero_last`；读返回使用 `axi_rvalid`/`axi_rlast` 且没有 `axi_rready`。CI-6 已保护该静态事实，但 M2 必须重生成 PG2L50H IP/FDC/RCF并重跑门禁；只有端口、地址单位与 `I_ips_ddr_top` 层级重新确认并审核后才可进入 D3-A。
 
+DDR3 M2-A 已建立 `scripts/regenerate_ip.ps1` 与 `doc/M2_IP_REGENERATION.md`：SP6.4 build 146967 在 `build/ipgen/pg2l50h` 为 `PG2L50H-6IFBG484` staging 生成成功，日志 `0 error(s), 0 warning(s)`，canonical IDF 哈希未变。比较结果显示 `ddr3.v`、`ddr3_ddrphy_top.v`、`ddr3.rcf` 不变，`test_ddr.v`、FDC、IDF 漂移；新 wrapper 保留 `free_clk` 并新增差分 `ref_clk_p/n`，FDC 使用 `DDRPHY_CPD_297_4`。`DEVICE_100H_EN=true` 是待确认的生成参数，不能据此推断目标错误，也不得手改。staging 尚未升格 canonical，D3-A 仍未授权。
+
 PCIe H2-A（2026-08-30）固定产品顶层的板级边界：`pcie_dma_test` 使用 x2 `rxn/rxp/txn/txp`、差分 `ref_clk_p/n`、`perst_n`、`button_rst_n` 和两枚 LED；当前 FDC 仅固定 refclk `F6/E6`、PERST# `M16`、button reset `M15`、LED `M17/J16`。lane 极性、板级拓扑、I/O delay 和 SCBV 均没有证据，不能由实现成功推断。
 
 实物确认后，活动 `pcie_test.idf` 的 `Logos2/PG2L50H/FBG484/-6` metadata 被证明正确；错误项是顶层 build/PDS/gate 和现有主产物仍为 PG2L100H。M1 不为型号重复生成 PCIe IP，而是修正项目自有 build/gate、清空旧 build并建立 50H baseline，同时继续阻断 UART2APB、lane/refclk/PERST# 与 SCBV 缺口。

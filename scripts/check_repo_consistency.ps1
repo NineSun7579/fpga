@@ -16,6 +16,10 @@ $MatrixPath = Join-Path $RepoRoot 'docs\SIMULATION_READINESS_MATRIX.md'
 $ApprovedBoard = 'RK3568+PG2L50H100H'
 $ApprovedFpgaPart = 'PG2L50H-6IFBG484'
 $ApprovedPdsDevice = 'PG2L50H'
+$Ddr3RegeneratePath = Join-Path $RepoRoot `
+    'ddr3_test\ddr3_test\scripts\regenerate_ip.ps1'
+$Ddr3RegenerationDocPath = Join-Path $RepoRoot `
+    'ddr3_test\ddr3_test\doc\M2_IP_REGENERATION.md'
 
 function Add-Failure {
     param([Parameter(Mandatory)][string]$Message)
@@ -125,6 +129,41 @@ if ($SimlibPsExists) {
         -Description 'compile_simlib exit-code check' | Out-Null
     Require-Pattern -Text $SimlibPsText -Pattern 'vsim\.exe' `
         -Description 'mandatory simulator preflight' | Out-Null
+}
+
+$Ddr3RegenerateExists = Require-File -Path $Ddr3RegeneratePath `
+    -Description 'DDR3 PG2L50H staging regeneration entry'
+$Ddr3RegenerationDocExists = Require-File -Path $Ddr3RegenerationDocPath `
+    -Description 'DDR3 M2 IP regeneration audit'
+if ($Ddr3RegenerateExists) {
+    $Ddr3RegenerateText = Get-Content -Raw -Encoding UTF8 `
+        -LiteralPath $Ddr3RegeneratePath
+    foreach ($Required in ([ordered]@{
+            'PDS IP generator invocation' = 'ip_generate\.exe'
+            'approved DDR3 device override' = '-device\s+PG2L50H'
+            'approved DDR3 package override' = '-pack\s+FBG484'
+            'approved DDR3 speed override' = '-speed\s+-6'
+            'staging under build directory' = "'build'"
+            'canonical hash preservation gate' = 'Get-FileHash'
+            'DEVICE_100H_EN evidence capture' = 'DEVICE_100H_EN'
+        }).GetEnumerator()) {
+        Require-Pattern -Text $Ddr3RegenerateText -Pattern $Required.Value `
+            -Description $Required.Key | Out-Null
+    }
+}
+if ($Ddr3RegenerationDocExists) {
+    $Ddr3RegenerationDocText = Get-Content -Raw -Encoding UTF8 `
+        -LiteralPath $Ddr3RegenerationDocPath
+    foreach ($Required in ([ordered]@{
+            'M2 approved FPGA part' = [regex]::Escape($ApprovedFpgaPart)
+            'M2 canonical promotion conditions' = '(?m)^##\s+\u5347\u683c\u6761\u4ef6\s*\r?$'
+            'M2 rollback conditions' = '(?m)^##\s+\u56de\u9000\u6761\u4ef6\s*\r?$'
+            'M2 wrapper clock drift' = 'ref_clk_p/ref_clk_n'
+            'M2 raw device parameter warning' = 'DEVICE_100H_EN'
+        }).GetEnumerator()) {
+        Require-Pattern -Text $Ddr3RegenerationDocText -Pattern $Required.Value `
+            -Description $Required.Key | Out-Null
+    }
 }
 
 $RootReadmePath = Join-Path $RepoRoot 'README.md'

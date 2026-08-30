@@ -71,6 +71,11 @@ flowchart TD
 - `mem_a` 不属于 O1-B：活动 IP 是 14 bit，顶层/FDC 是 15 bit，综合网表把第 15 bit 绑 0。该冲突转入 H3/O1-C，必须依据 DDR3 料号、组织和原理图决定收窄 RTL/FDC 或重生成 IP。
 - OV7725 O2-D1-R 与 O2-D1-G 是旧 PG2L100H 基线上的历史证据；必须先用 SP6.4 为 PG2L50H 重生成四个活动 IP并建立新 baseline，再重新审核 O2-D2。重新审核通过后仍只允许一次实现；任一 generated-clock、waveform、端点覆盖或新 baseline 失败即完整回退，不扫描第二相位或增加 waiver。
 - DDR3 新入口已用 `test_ddr`、`ddr3.idf`、FDC 和 RCF 从空 `build/` 完成七阶段全流程，内部 STA 为 `All Constraints Met`，且综合网表、PNR 网表、SDF 和位流均非零。
+- DDR3 M2 只读审计（2026-08-30）确认：活动 `ddr3_test/ddr3_test/ip_core/ddr3/ddr3.idf` metadata 为 `Logos2/PG2L100H/FBG484/-6`，生成器为 `2022.2-SP6.4`；canonical 约束是 `ip_core/ddr3/pnr/ddr_test.fdc` 与 `ip_core/ddr3/pnr/ddr3.rcf`。外层 `ip_core/ddr_test.fdc` 仅作为旧硬宏位置参考，不得覆盖 canonical 约束。
+- DDR3 现存 `ip_backup/20250108100125/ddr3/ddr3.idf` 虽标识 `Logos2/PG2L50H/FBG484/-6`，但由 `2022.2-SP6.1` 生成；它只能用于参数/器件差异比对，不能直接恢复、复制或作为 SP6.4 发布输入。M2 必须在 SP6.4 中重新生成 controller、PHY、wrapper、仿真资产、FDC 和 RCF。
+- DDR3 M2-A（2026-08-30）新增项目自有 `scripts/regenerate_ip.ps1` 和 `doc/M2_IP_REGENERATION.md`。脚本只复制 canonical IP 到 `build/ipgen/pg2l50h` 后调用 SP6.4 build 146967；本次 `Logos2/PG2L50H/FBG484/-6` staging 生成退出 0，日志为 `0 error(s), 0 warning(s)`，canonical IDF SHA-256 前后均为 `6CB70BF0954100B4797197A47F20496AD74945995E12B30FA040870EE3366C47`。
+- M2-A 差异边界：`ddr3.v`、`ddr3_ddrphy_top.v`、`pnr/ddr3.rcf` 与 canonical 相同；`example_design/rtl/test_ddr.v`、`pnr/ddr_test.fdc`、`ddr3.idf` 不同。50H wrapper 保留 `free_clk` 并新增 `ref_clk_p/ref_clk_n` 和 `GTP_INBUFDS`，FDC 使用 `DDRPHY_CPD_297_4`。生成后 `DEVICE_100H_EN` 仍为 `true`，其语义必须先确认，禁止手工改 XML 或生成 RTL。
+- M2 后续门禁固定为：锁定板级 DDR3 颗粒/组织/PCB 参数并确认 `DEVICE_100H_EN` 语义 → 审核 staging wrapper/FDC/RCF → 才可升格 canonical → 重跑 CI-6（端口、宽度、地址单位、`axi_wready` 与 `I_ips_ddr_top`）→ 清空 `build/` 完成七阶段 → 重新审核 D3-0-R，之后才可请求 D3-A。M2-A 本身不授权 canonical 替换、产品 RTL 或烧录。
 - DDR3 严格 gate 因 BIST 位宽/dangling、`rst_board` share pin、BANKR4 VCCIO 3.3、UART I/O 以及输入/输出 timing 共 7 类阻断返回 1；显式 baseline 放行返回 0 但不可发布。日志无 SCBV 命中不等同于板级参数获批，批准清单仍是关闭 gate 的前置依赖。
 - DDR3 D2 只读决策不依赖修改厂商示例：`test_ddr`、持续运行 BIST 和旧 testbench 保持原样；D3 若获审核，只新增项目自有 `ddr3_bringup_top.sv` 与 `ddr3_finite_bist.sv`。
 - DDR3 D3-0（2026-08-30）已完成旧活动 `ddr3` 核、非标准 AXI-like AW/W/AR/R 握手和 `I_ips_ddr_top` 边界评审，CI-6 提交 `a5d1785` 已保护该静态契约；目标迁移后必须先重生成 PG2L50H DDR3 IP/FDC/RCF并重新审核 D3-A。

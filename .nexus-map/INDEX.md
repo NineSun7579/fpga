@@ -22,6 +22,7 @@
 - DDR3 已生成非零综合网表、PNR 网表、SDF、`.sbit` 和 `.bin`；严格 gate 因 7 类已知阻断返回 1，显式 baseline 放行返回 0 但明确不可发布。日志没有 SCBV 命中，板级批准参数清单仍缺失，功能与四级仿真仍未验收。
 - DDR3 D2 只读决策已完成：厂商 `test_ddr`、持续运行 BIST 和失配 testbench 保持原样；后续项目自有顶层固定为 `rtl/ddr3_bringup_top.sv` 与 `rtl/ddr3_finite_bist.sv`。首版契约执行 16 个单 beat 写读比较 pair，控制器地址为 `0x0..0x78`、步长 8，单 pair timeout 为 4096 周期、整次 run timeout 为 131072 周期，并公开稳定的 `test_done`、`test_failed`、`failure_code`、`error_count`、`completed_pairs` 和首错信息。该设计尚未实现或仿真，D3 待审核。
 - DDR3 D3-0 只读评审（2026-08-30，已完成）：已固定旧活动 IP 的公开 `module ddr3`、非标准 AXI-like AW/W/AR/R 握手和 `I_ips_ddr_top` board wrapper 边界。由于该 IP/FDC/RCF 属于旧 PG2L100H 目标，必须先用 SP6.4 为 PG2L50H 重生成并重新核对端口、地址单位和层级，之后重新审核 D3-A；本批不改 RTL、IP 或约束。
+- DDR3 M2-A staging 重生成（2026-08-30）：新增 `scripts/regenerate_ip.ps1` 与 `doc/M2_IP_REGENERATION.md`，使用 PDS `2022.2-SP6.4 build 146967` 在被忽略的 `build/ipgen/pg2l50h` 生成 `Logos2/PG2L50H/FBG484/-6`，结果为 `0 error(s), 0 warning(s)`；canonical IDF SHA-256 保持 `6CB70BF0954100B4797197A47F20496AD74945995E12B30FA040870EE3366C47`。`ddr3.v`、`ddr3_ddrphy_top.v`、`ddr3.rcf` 不变，`test_ddr.v`、FDC、IDF 漂移；50H wrapper 保留 `free_clk` 并新增 `ref_clk_p/n`，FDC 使用 `DDRPHY_CPD_297_4`。`DEVICE_100H_EN=true` 语义仍待厂商/IP 专家确认，禁止手改；M2-A 未升格 canonical，也未授权 D3-A。
 - DDR3 D3-0-R 端口映射已由提交 `2fd7c51` 固化到 [`D3A_PORT_MAP.md`](../ddr3_test/ddr3_test/doc/D3A_PORT_MAP.md)：记录默认参数/宽度、128-bit 数据通路、28-bit 地址、AW/W/AR/R 握手、复位链和 `I_ips_ddr_top` 层级；地址单位与 `axi_wready` 完成语义仍待审核。
 - PCIe H2-A 只读证据（2026-08-30，已完成）：`pcie_dma_test` 顶层使用 x2 `rxn/rxp/txn/txp`、差分 `ref_clk_p/n`、`perst_n`、`button_rst_n` 与两枚 LED；FDC 固定 refclk `F6/E6`、PERST# `M16`、button reset `M15`、LED `M17/J16`。活动 `pcie_test.idf` 已正确标识 `Logos2/PG2L50H/FBG484/-6`，M1 已将 build/PDS/gate 与新产物统一到 50H，并按 PDS 模板将 HSSTLP 固定为 `HSSTLP_292_612`。lane 极性/板级拓扑、I/O delay、SCBV 和 UART2APB 归属仍未关闭。
 - H0/H1/H3 板级资料清单已由提交 `12d7a21` 建立：[OV7725 HDMI 清单](../41_ov7725_hdmi/doc/BOARD_EVIDENCE.md) 与 [DDR3 Bring-up 清单](../ddr3_test/ddr3_test/doc/BOARD_EVIDENCE.md) 均由对应项目 README 直接链接。两份清单只定义待提供字段、证据来源和关闭条件；实际板级资料仍未提供，H0/H1/H3 保持外部阻断。
@@ -68,7 +69,7 @@
 1. S0-1 的参数化 `compile_simlib` Tcl/PowerShell 入口已准备并强制预检三项仿真器可执行文件，不提供绕过开关；当前仍受 ModelSim/QuestaSim 安装、许可证及工具路径阻断，只有实际 Logos2 USIM/VSIM 编译退出 0、日志无 `E:` 且库目录非空后才解除动态仿真阻断。
 2. H0/H1/H3 补齐板卡、原理图/BOM、器件丝印、bank 电压、DDR3 料号/拓扑及 OV7725/HDMI 时序资料；资料缺失时不得猜测参数、I/O delay 或收紧 gate。
 3. OV7725 先用 SP6.4 为 PG2L50H 重生成四个活动 IP并建立新的 50H baseline，再重新审核 O2-D2；旧 PG2L100H O2-D1-G 证据只能作为候选输入，不能直接授权实现。
-4. DDR3 先用 SP6.4 为 PG2L50H 重生成 DDR3 IP/FDC/RCF并重新核对 D3-0-R 端口契约，再审核 D3-A → D3-B → D3-C；不得在旧 PG2L100H IP 上新增产品 RTL。
+4. DDR3 M2-A staging 已完成；下一步先确认 `DEVICE_100H_EN=true` 语义与板级 DDR3 参数，再审计 wrapper/FDC 差异并决定是否升格 canonical。升格后必须重跑 CI-6、空目录七阶段与 D3-0-R，审核通过后才可进入 D3-A → D3-B → D3-C。
 5. PCIe M1 已完成 build/PDS/gate 的 PG2L50H 迁移和空 `build/` 重建；活动 PCIe IP 无需因器件型号重生成。H2-B 仍等待 lane/refclk/PERST#/SCBV 与 UART 决策闭环。
 6. S1/S2/S3 等待 S0-1 完成且对应 RTL/IP/网表/SDF 锁定；三项目还必须分别新增项目自有集成 TB、相对路径 `.f`/`.do` 和四级入口，禁止以厂商 `test_ddr`、DDR3/PLL/FIFO 示例或 `pango_pcie_top` RC/EP 示例冒充产品验证。
 7. OV7725 最终链为 O1-C → O3-A → O2-C1 → O2-C2 → O3-B → O4，前置为 H3 板级事实与 O2-D2 结果；最终必须完成非负 setup/hold/recovery/removal、SDF、位流和仿真闭环。
