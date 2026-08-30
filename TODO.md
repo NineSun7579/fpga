@@ -284,7 +284,8 @@ O2-D2 停止条件：控制相位或 `/5` generated clock 未被 PDS 唯一识�
 
 ### H2：PCIe 板级参数与严格 gate
 
-- [ ] H2-A：建立 lane/refclk/PERST#/share pin/UART/SCBV/IP 目标的板级证据矩阵和 SP6.4 IP 再生成契约；不修改 RTL/IDF/FDC。
+- [x] H2-A：建立 lane/refclk/PERST#/share pin/UART/SCBV/IP 目标的板级证据矩阵和 SP6.4 IP 再生成契约；不修改 RTL/IDF/FDC，详见 `pcie_dma_test_100h/doc/PCIE_BOARD_EVIDENCE.md`。
+- [x] H2-A：确认当前事实：PDS 目标为 PG2L100H，但活动 `pcie_test.idf` 仍为 PG2L50H；FDC 固定 `F6/E6`、`M16`、`M15`、`M17/J16`，未提供 lane 极性、I/O delay 或 SCBV 板级证据；UART `rxd/txd` 为隐式网络且 `rxd` 被绑 0。
 - [ ] H2-B：将 baseline gate 收紧为已知对象、类别和数量的精确指纹；任何新增、消失或漂移默认失败，并继续输出不可发布标记。
 - [ ] 确认 PCIe x2 lane 映射/极性、100 MHz refclk、PERST# 和 M15/M16 share pin。
 - [ ] 决定 UART2APB 保留或删除；保留则提供 RX/TX 管脚、电气标准和波特率。

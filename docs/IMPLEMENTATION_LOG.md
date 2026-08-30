@@ -186,3 +186,11 @@
 - `ddr3` core 的公开接口包含 `core_clk`、`ddr_init_done`、128-bit AXI-like 数据通路和 Pango 扩展状态；`test_ddr` 保留物理板级端口，并以 `I_ips_ddr_top` 实例化该 core。
 - 该用户接口不是完整 AXI4：写地址以 `axi_awvalid & axi_awready` 握手，写数据由 core 的 `axi_wready` 表示接受并返回 `axi_wusero_id/axi_wusero_last`；读地址以 `axi_arvalid & axi_arready` 握手，读数据仅用 `axi_rvalid/axi_rlast` 返回，接口没有 `axi_rready`。示例控制器分别以 `axi_wready` 与 `axi_rvalid` 计数完成。
 - D3-A 因此只能在审核后新增项目自有 top/BIST、切换 PDS 顶层和输入清单并完成 compile/elaboration；不得修改厂商 `ip_core/ddr3/**`、物理端口、FDC/RCF 或 `I_ips_ddr_top` 名称。地址单位或握手语义若在 IP 重生成后变化，必须停止并重新审核。
+
+## 2026-08-30：PCIe H2-A 板级证据只读评审
+
+- 本批只读检查 `hdl/pcie_dma_test.v`、`ipcore/pcie_test/pcie_test.idf`、`fdc/pcie_dma_test.fdc`、`scripts/build.tcl` 与 `scripts/check_build.ps1`，未修改 RTL、IDF、FDC、RCF、gate 或生成物。
+- 当前 PDS 目标为 `Logos2/PG2L100H/FBG484/-6`，活动 PCIe IDF metadata 仍为 `PG2L50H/FBG484/-6`；该器件不一致必须通过 SP6.4 IP Compiler 重生成或经审核的偏离记录解决。
+- 顶层使用 x2 `rxn/rxp/txn/txp`、差分 `ref_clk_p/n`、`perst_n` 和两枚 LED。FDC 固定 `ref_clk_p/n=F6/E6`、`perst_n=M16`、`button_rst_n=M15`、LED=`M17/J16`，但未提供 lane 极性/PCB 拓扑、I/O delay 或 SCBV 板级证据。
+- UART2APB 仍连接隐式 `rxd/txd`，顶层没有端口且 `rxd` 被工具绑为 0；必须先决定保留/删除并补齐板级参数，不能用内部 STA 通过替代硬件接口签核。
+- H2-A 已冻结为只读证据矩阵和 IP 再生成契约；H2-B 依赖板级资料闭合后再收紧精确 baseline，任一 lane/refclk/PERST#/UART/SCBV/IP 目标不确定即停止。

@@ -8,7 +8,7 @@
 
 - 分支为 `main`。
 - 根提交为 `1a2d493`，保存三个原始工程、已有 PDS 产物和整改文档。
-- O2-D1-R 证据与知识图同步后为 17 个提交；O2-D1-G 契约收口批次预期为 18 个提交；S0 环境复核批次预期为 19 个提交；本次 DDR3 D3-0 只读评审与知识图同步批次提交后预期为 20 个提交。样本仍不足以计算可信的 churn、共同变更或历史热点。
+- O2-D1-R 证据与知识图同步后为 17 个提交；O2-D1-G 契约收口批次预期为 18 个提交；S0 环境复核批次预期为 19 个提交；DDR3 D3-0 只读评审批次预期为 20 个提交；本次 PCIe H2-A 只读证据与知识图同步批次提交后预期为 21 个提交。样本仍不足以计算可信的 churn、共同变更或历史热点。
 
 ## 人工高关注区
 
@@ -31,8 +31,9 @@
 - `ddr3_test/ddr3_test/rtl/ddr3_bringup_top.sv`、`ddr3_test/ddr3_test/rtl/ddr3_finite_bist.sv`：D2 规划的项目自有实现热点，当前文件尚不存在，D3 未审核前不得标记为已实现。
 - `pcie_dma_test_100h/hdl/pcie_dma_test.v`：UART2APB 隐式 `rxd/txd` 连接与 PCIe DMA 集成入口。
 - `pcie_dma_test_100h/fdc/pcie_dma_test.fdc`：PCIe 专用资源、复位和普通 I/O 约束入口。
+- `pcie_dma_test_100h/hdl/pcie_dma_test.v`、`pcie_dma_test_100h/ipcore/pcie_test/pcie_test.idf`：H2-A 顶层 x2/lane、UART2APB 隐式端口及 IDF/PDS 器件不一致的首要证据；H2-A 只读，不修改 RTL/IDF/FDC。
 - `E:/pango/PDS_2022.2-SP6.4/bin/pds_shell.exe`：S0 复核确认存在的唯一已发现实现工具；外部仿真器可执行文件缺失是当前动态验证阻塞点。
 
 ## 后续更新
 
-只有积累足够多、内容独立的提交后，才适合增加真实 churn 与共同变更分析。O2-B 否决/回退、O2-D1-R 基线重建、O2-D1-G 契约收口、S0 环境复核、DDR3 D3-0 只读评审、单次 O2-D2、O3-A、O2-C1、O2-C2、O3-B、O4、O1-C `mem_a` 板级决策和 DDR3 D3-A 必须保持独立批次；本次 D3-0 为预期第 20 个提交，下一步先完成 D3-A 握手契约，再提请 D3 实现审核。DDR3 与 PCIe 继续保持只读泳道。
+只有积累足够多、内容独立的提交后，才适合增加真实 churn 与共同变更分析。O2-B 否决/回退、O2-D1-R 基线重建、O2-D1-G 契约收口、S0 环境复核、DDR3 D3-0 只读评审、PCIe H2-A 只读证据、单次 O2-D2、O3-A、O2-C1、O2-C2、O3-B、O4、O1-C `mem_a` 板级决策、DDR3 D3-A 和 PCIe H2-B 必须保持独立批次；本次 H2-A 为预期第 21 个提交，下一步先完成板级资料/IP 重生成契约，再提请 H2-B gate 收紧审核。DDR3 与 PCIe 继续保持只读泳道。

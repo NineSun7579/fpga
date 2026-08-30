@@ -295,9 +295,27 @@
       "implementation_status": "implemented_with_known_functional_gap",
       "code_path": "pcie_dma_test_100h/hdl/",
       "evidence_path": "pcie_dma_test_100h/place_route/pcie_dma_test_timing_summary_after_hold_fix.txt",
-      "evidence_gap": "新 SP6.4 全流程、STA、PNR 网表、SDF 和位流已生成；UART2APB 输入被绑 0，SCBV 未配置，且缺少集成顶层四级仿真。",
+      "evidence_gap": "新 SP6.4 全流程、STA、PNR 网表、SDF 和位流已生成；H2-A 发现 UART2APB 隐式 rxd/txd 连接且 rxd 被绑 0、SCBV 未配置、缺少集成顶层四级仿真，且活动 IDF 为 PG2L50H 而 PDS 目标为 PG2L100H。",
+      "h2a_read_only_evidence": {
+        "date": "2026-08-30",
+        "top_module": "pcie_dma_test",
+        "pcie_lanes": "x2 rxn/rxp/txn/txp",
+        "reference_clock": "differential ref_clk_p/ref_clk_n",
+        "reset_inputs": ["perst_n", "button_rst_n"],
+        "led_outputs": ["ref_led", "pclk_led"],
+        "fdc_pin_map": {"ref_clk_p": "F6", "ref_clk_n": "E6", "perst_n": "M16", "button_rst_n": "M15", "ref_led": "M17", "pclk_led": "J16"},
+        "constraint_gaps": ["lane polarity", "board topology", "I/O delay", "SCBV"],
+        "active_idf_metadata": {"family": "Logos2", "device": "PG2L50H", "package": "FBG484", "speedgrade": "-6"},
+        "pds_target": {"family": "Logos2", "device": "PG2L100H", "package": "FBG484", "speedgrade": "-6"},
+        "read_only_scope": ["documentation", "evidence matrix", "IP regeneration contract"],
+        "forbidden_changes": ["RTL", "IDF", "FDC"],
+        "status": "documentation_only"
+      },
+      "h2a_uart_gap": "UART2APB uses implicit rxd/txd nets and rxd is tied to 0; functional ownership remains unresolved.",
+      "h2b_prerequisites": ["board lane polarity/topology", "I/O delay", "SCBV decision", "regenerate pcie_test.idf for PG2L100H", "UART2APB port ownership"],
+      "h2b_stop_condition": "Any missing board evidence, IDF/PDS device mismatch, or unresolved UART2APB port ownership stops gate tightening; no waiver substitute.",
       "tech_stack": ["Verilog", "Pango Logos2", "PCIe x2", "DMA"],
-      "related_reqs": ["UART 决策", "集成自检", "保持时序通过"],
+      "related_reqs": ["H2-A read-only evidence", "H2-B board evidence", "IP regeneration", "UART 决策", "集成自检", "保持时序通过"],
       "complexity": "high",
       "hotspot": true
     },
@@ -428,10 +446,10 @@
   "metadata": {
     "analysis_mode": "manual bootstrap",
     "verified_at": "2026-08-30",
-    "git_commits_analyzed": 20,
+    "git_commits_analyzed": 21,
     "raw_ast_available": false,
     "limitations": [
-      "Twenty repository commits are expected after the O2-D1-G, S0 environment review, DDR3 D3-0 and nexus synchronization batches; the count remains too shallow for reliable hotspot ranking.",
+      "Twenty-one repository commits are expected after the O2-D1-G, S0 environment review, DDR3 D3-0, PCIe H2-A and nexus synchronization batches; the count remains too shallow for reliable hotspot ranking.",
       "No AST extraction was run.",
       "No ModelSim or QuestaSim execution was available."
     ]

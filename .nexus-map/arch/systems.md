@@ -101,8 +101,14 @@
 - project_path: `pcie_dma_test_100h/pcie_dma_test.pds`
 - constraint_path: `pcie_dma_test_100h/fdc/pcie_dma_test.fdc`
 - evidence_path: `pcie_dma_test_100h/place_route/pcie_dma_test_timing_summary_after_hold_fix.txt`
-- evidence_gap: 新 SP6.4 全流程、STA、PNR 网表、SDF 和位流已生成；顶层仍无四级集成仿真，UART2APB 的 `rxd` 被绑 0，SCBV 未配置，关键外部端口仍未约束。
+- evidence_gap: 新 SP6.4 全流程、STA、PNR 网表、SDF 和位流已生成；顶层仍无四级集成仿真，UART2APB 的隐式 `rxd/txd` 连接中 `rxd` 被绑 0，SCBV 未配置，关键外部端口仍未约束；H2-A 还发现活动 IDF 为 PG2L50H 而 PDS 目标为 PG2L100H。
 - responsibility: 集成 PCIe x2 IP、DMA、RAM/FIFO 与 UART2APB 管理路径。
 - build_entry: `pcie_dma_test_100h/scripts/run.ps1`
 - build_definition: `pcie_dma_test_100h/scripts/build.tcl`
 - build_gate: `pcie_dma_test_100h/scripts/check_build.ps1`
+- h2a_read_only_evidence: `2026-08-30`；顶层端口为 x2 `rxn/rxp/txn/txp`、差分 `ref_clk_p/n`、`perst_n`、`button_rst_n` 和两枚 LED；FDC 映射 refclk `F6/E6`、PERST# `M16`、button reset `M15`、LED `M17/J16`。
+- h2a_constraint_gaps: FDC 未提供 lane 极性、板级拓扑、I/O delay 或 SCBV；`pcie_test.idf` metadata 为 `Logos2 / PG2L50H / FBG484 / -6`，与 PDS `Logos2 / PG2L100H / FBG484 / -6` 冲突。
+- h2a_uart_gap: UART2APB 使用隐式 `rxd/txd` 网络，当前 `rxd` 被绑 0；该功能缺口不因 PDS/STA 成功而关闭。
+- h2a_boundary: H2-A 仅更新文档、证据矩阵与 IP 重生成契约，不修改 RTL、IDF 或 FDC。
+- h2b_stop_conditions: 板级 lane 极性/拓扑、I/O delay 或 SCBV 缺失，IDF/PDS 器件元数据不一致，或 UART2APB `rxd/txd` 归属未决时，H2-B 不得收紧 gate；不得用 waiver 掩盖缺口。
+- next_step: 获取板级资料并将 `pcie_test.idf` 重新生成为 PG2L100H 后，提请 H2-B gate 收紧评审；在此之前保持 PCIe RTL/IDF/FDC 只读

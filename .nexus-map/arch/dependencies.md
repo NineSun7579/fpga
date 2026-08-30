@@ -78,5 +78,9 @@ flowchart TD
 - 新项目自有 DDR3 RTL 依赖根目录 VSCS；厂商 `ip_core/ddr3/**` 仍作为外部生成依赖，不因 D2 决策被改写。
 - DDR3 当前只推进 D3-0 只读 wrapper、非标准 Pango DDR UI 握手和 `I_ips_ddr_top` 层级评审；PCIe 当前只推进 H2-A/H2-B 板级证据矩阵、IP 再生成契约和 baseline gate 精确化，不修改两项目的 IP/RTL/FDC。
 - PCIe 顶层依赖专用 HSST/IP 约束；UART2APB 是否保留是后续 RTL 与 FDC 的共同决策点。
+- PCIe H2-A（2026-08-30）固定顶层 x2 `rxn/rxp/txn/txp`、差分 `ref_clk_p/n`、`perst_n`/`button_rst_n` 与两枚 LED；FDC 当前映射 refclk `F6/E6`、PERST# `M16`、button reset `M15`、LED `M17/J16`。
+- H2-A 的板级证据缺口为 lane 极性、板级拓扑、I/O delay 和 SCBV；活动 `ipcore/pcie_test/pcie_test.idf` 仍标记 `Logos2/PG2L50H/FBG484/-6`，而 PDS 目标为 `Logos2/PG2L100H/FBG484/-6`，必须走 IP 重生成契约，不得静默忽略。
+- UART2APB 在 `pcie_dma_test.v` 以隐式 `rxd/txd` 网络连接，当前 `rxd` 被绑 0；H2-A 只记录该功能缺口，H2-B 需先决定端口归属和板级连接。
+- H2-A 只读边界：仅维护文档/证据矩阵/IP 重生成契约，不改 PCIe RTL、IDF 或 FDC；H2-B 在板级资料、器件元数据和 SCBV 均闭合前不得收紧 gate，缺口出现即停止。
 - S0 环境复核（2026-08-30）确认 `E:/pango/PDS_2022.2-SP6.4/bin/pds_shell.exe` 存在，是唯一已发现工具；PATH、`C:/questasim64/win64` 和常见 ModelSim/QuestaSim 目录均未找到 `vsim.exe`、`vlog.exe`、`vlib.exe`。
 - 仿真流程依赖编译后的 Logos2 USIM/VSIM 库和可用的 `vsim.exe`/`vlog.exe`/`vlib.exe`；当前环境不满足该依赖，必须先安装 ModelSim/QuestaSim，再执行 `compile_simlib`，动态仿真在此之前保持阻塞。

@@ -22,6 +22,10 @@ DDR3 D3-0（2026-08-30）进一步固定只读边界：活动 IP 是 `ddr3_test/
 
 D3-A 必须单独明确 `axi_wready`、`axi_wusero_id`、`axi_wusero_last` 的时序/消费规则，以及核心缺少 `axi_rready` 时 `axi_rvalid`、`axi_rdata` 的保持、完成和背压语义。当前 `test_wr_ctrl_v1_0` 将 `axi_wready` 用作写执行/接受指示，而 BIST 未消费 `axi_wusero_id`/`axi_wusero_last`；这些观察只作为评审输入，不可在 D3-0 擅自解释成标准 AXI ready/valid。D3-0 只更新文档，不修改 RTL、IP 或约束。
 
+PCIe H2-A（2026-08-30）固定产品顶层的板级边界：`pcie_dma_test` 使用 x2 `rxn/rxp/txn/txp`、差分 `ref_clk_p/n`、`perst_n`、`button_rst_n` 和两枚 LED；当前 FDC 仅固定 refclk `F6/E6`、PERST# `M16`、button reset `M15`、LED `M17/J16`。lane 极性、板级拓扑、I/O delay 和 SCBV 均没有证据，不能由实现成功推断。
+
+H2-A 还发现活动 `pcie_test.idf` metadata 为 `Logos2/PG2L50H/FBG484/-6`，而 PDS 目标为 `Logos2/PG2L100H/FBG484/-6`；H2-B 必须先完成 IP 重生成契约并确认器件一致性。UART2APB 的 `rxd/txd` 在顶层为隐式网络，`rxd` 被绑 0；端口归属和板级连接未决。H2-A 仅文档/证据矩阵/IP 重生成契约，不修改 RTL、IDF、FDC；资料或一致性缺失时 H2-B 停止收紧 gate。
+
 DDR3 D2 已进一步固定该边界：厂商 `test_ddr`、持续运行 BIST 与旧 testbench 保持原样；后续有限自检由项目自有 `ddr3_bringup_top.sv` 和 `ddr3_finite_bist.sv` 承担。首版仅执行 16 个单 beat 写读比较 pair，地址 `0x0..0x78`、步长 8，并通过稳定公开的 `test_done`、`test_failed`、`failure_code`、`error_count`、`completed_pairs` 和首错信息完成签核。
 
 ## CDC 与异步 FIFO
