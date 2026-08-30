@@ -108,8 +108,12 @@ if ($MatrixExists) {
         -Description 'simulation matrix DDR3 coverage' | Out-Null
     Require-Pattern -Text $MatrixText -Pattern 'PCIe DMA' `
         -Description 'simulation matrix PCIe coverage' | Out-Null
-    Require-Pattern -Text $MatrixText -Pattern 'S1 DDR3|S2 PCIe|S3 OV7725' `
-        -Description 'simulation matrix execution queue' | Out-Null
+    Require-Pattern -Text $MatrixText -Pattern 'S1 DDR3' `
+        -Description 'simulation matrix S1 DDR3 queue' | Out-Null
+    Require-Pattern -Text $MatrixText -Pattern 'S2 PCIe' `
+        -Description 'simulation matrix S2 PCIe queue' | Out-Null
+    Require-Pattern -Text $MatrixText -Pattern 'S3 OV7725' `
+        -Description 'simulation matrix S3 OV7725 queue' | Out-Null
 }
 
 if (Test-Path -LiteralPath $RootReadmePath -PathType Leaf) {
