@@ -95,6 +95,16 @@
         "projects": ["OV7725 HDMI", "DDR3 bring-up", "PCIe DMA"],
         "boundary": "static gate-contract presence only; does not execute or replace PDS, STA, bitstream generation, strict project gates or external simulation; baseline remains non-release"
       },
+      "ci_5_powershell_ast_gate": {
+        "date": "2026-08-30",
+        "status": "committed_as_5769d8f",
+        "script": "scripts/check_repo_consistency.ps1",
+        "exit_code": 0,
+        "scanned_script_count": 8,
+        "scope": "all non-build and non-.git PowerShell scripts",
+        "parser": "System.Management.Automation.Language.Parser",
+        "boundary": "syntax validation and error localization only; does not execute PDS, STA, bitstream generation or ModelSim/QuestaSim"
+      },
       "board_evidence_checklists": {
         "status": "checklists_committed_external_evidence_pending",
         "commit": "12d7a21",
@@ -680,14 +690,14 @@
   "metadata": {
     "analysis_mode": "manual bootstrap",
     "verified_at": "2026-08-30",
-    "git_commits_analyzed": 45,
+    "git_commits_analyzed": 47,
     "raw_ast_available": false,
     "limitations": [
-      "CI-4 is committed as 66356aa; git rev-list reports 45 commits after the nexus synchronization; the history remains too shallow for reliable hotspot ranking.",
+      "CI-5 is committed as 5769d8f; git rev-list reports 47 commits after the nexus synchronization; the history remains too shallow for reliable hotspot ranking.",
       "The S0-1 parameterized simulation-library entry is committed with mandatory simulator preflight; actual USIM/VSIM compilation remains blocked by the missing simulator installation.",
       "No HDL/raw source AST extraction was run; CI-0 PowerShell syntax parsing is recorded separately.",
       "No ModelSim or QuestaSim execution was available.",
-      "The simulation-readiness matrix, CI-1 matrix-reference gate, CI-2 board-evidence structure/link gate, CI-3 README metadata gate, CI-4 PDS build-gate contract gate, PCIe H2-B static XML metadata gate, updated board-evidence checklists and extended S0-0 simulator-path review are included in the current 45-commit history; deeper hotspot analysis remains limited by the shallow sample."
+      "The simulation-readiness matrix, CI-1 matrix-reference gate, CI-2 board-evidence structure/link gate, CI-3 README metadata gate, CI-4 PDS build-gate contract gate, CI-5 PowerShell AST gate, PCIe H2-B static XML metadata gate, updated board-evidence checklists and extended S0-0 simulator-path review are included in the current 47-commit history; deeper hotspot analysis remains limited by the shallow sample."
     ]
   }
 }

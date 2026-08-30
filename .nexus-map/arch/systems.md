@@ -32,6 +32,10 @@
 - ci_4_scope: 三项目 PDS 构建 gate 契约完整性；`run.ps1` 必须检查 PDS 退出码、`^E:` 错误记录和阶段完成标记，`check_build.ps1` 必须覆盖阶段/最终构建入口、时序摘要、`throw` 失败路径、非零产物检查和显式 baseline 开关。
 - ci_4_result: 2026-08-30 在 HEAD `66356aa`（44 个 Git 提交）复验 `scripts/check_repo_consistency.ps1` 退出码 0，并输出 `INFO: repository consistency gate passed`。
 - ci_4_boundary: 只验证 gate 代码路径和静态契约存在，不执行或替代真实 PDS、STA、位流生成、严格构建 gate 或外部仿真；baseline 开关仍不得被解释为发布通过。
+- ci_5_status: committed_as_5769d8f
+- ci_5_scope: 仓库门禁递归解析全部非 `build/`、`.git/` 的 `.ps1` 文件，使用 PowerShell Parser 报告具体语法错误文件、行号和消息。
+- ci_5_result: 2026-08-30 当前 HEAD `5769d8f` 上共发现 8 个 PowerShell 脚本，AST 解析错误数为 0；仓库一致性门禁通过。
+- ci_5_boundary: 只验证 PowerShell 脚本可解析及错误定位，不执行或替代 PDS、STA、位流生成、ModelSim/QuestaSim 或项目动态仿真。
 - ci_0_boundary: 仅为仓库结构与文档静态一致性门禁，不启动或替代 PDS 构建、STA、项目严格 gate 或四级仿真。
 - simulation_readiness_status: read_only_matrix_complete_in_worktree; project_level_tb_filelist_do_missing_for_all_three_projects
 - simulation_asset_boundary: `ipcore/`、`ip_core/`、`ip_backup/` 内的 DDR3、PLL、FIFO 和 PCIe RC/EP testbench/filelist/DO 均为厂商示例，只能作为模型与接口参考；不得改名或直接计入 `ov7725_hdmi`、`ddr3_bringup_top` 或 `pcie_dma_test` 的集成覆盖。

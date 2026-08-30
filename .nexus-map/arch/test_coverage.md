@@ -44,6 +44,12 @@
 - 已验证：同一门禁对三个项目 `check_build.ps1` 检查阶段或最终构建入口、时序摘要解析/结论、`throw` 失败路径、非零产物检查及 `AllowKnownBaselineIssues` 显式开关；当前 HEAD `66356aa`、44 个 Git 提交上门禁退出码为 0。
 - 边界：CI-4 只验证 gate 代码路径存在和静态契约，不执行真实 PDS、STA、位流或仿真；baseline 放行仍明确不可发布。
 
+## CI-5 PowerShell AST 语法门禁（2026-08-30）
+
+- 已验证：提交 `5769d8f` 扩展 `scripts/check_repo_consistency.ps1`，自动递归解析全部非 `build/`、`.git/` 的 `.ps1` 文件，并报告具体语法错误文件、行号和消息。
+- 已验证：当前 HEAD `5769d8f` 共扫描 8 个 PowerShell 脚本，AST 解析错误数为 0，仓库一致性门禁通过。
+- 边界：CI-5 只证明 PowerShell 语法可解析，不执行或替代 PDS、STA、位流生成、ModelSim/QuestaSim 或项目动态仿真。
+
 ## 项目状态
 
 | 项目 | PDS 实现证据 | 时序证据 | 行为仿真 | 综合后仿真 | PNR 功能仿真 | PNR 时序仿真 |
