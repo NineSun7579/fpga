@@ -9,6 +9,7 @@ $BuildRoot = Join-Path $ProjectRoot 'build'
 $PdsRoot = Join-Path $BuildRoot 'pds'
 $BuildLog = Join-Path $BuildRoot 'logs\pds-gen_bit_stream.log'
 $TimingReport = Join-Path $PdsRoot 'report_timing\pcie_dma_test.rtr'
+$IpDefinition = Join-Path $ProjectRoot 'ipcore\pcie_test\pcie_test.idf'
 
 function Assert-NonEmptyFile {
     param(
@@ -31,6 +32,29 @@ function Assert-NonEmptyFile {
 
 Assert-NonEmptyFile -Path $BuildLog -Description 'PDS build log'
 Assert-NonEmptyFile -Path $TimingReport -Description 'Final timing report'
+Assert-NonEmptyFile -Path $IpDefinition -Description 'PCIe IP definition'
+
+$MetadataIssues = [System.Collections.Generic.List[string]]::new()
+try {
+    [xml]$IpXml = Get-Content -Raw -Encoding UTF8 -LiteralPath $IpDefinition
+} catch {
+    throw "PCIe IP definition is not valid XML: $IpDefinition"
+}
+
+$ExpectedMetadata = [ordered]@{
+    family = 'Logos2'
+    device = 'PG2L100H'
+    package = 'FBG484'
+    speedgrade = '-6'
+}
+foreach ($Field in $ExpectedMetadata.GetEnumerator()) {
+    $ActualValue = [string]$IpXml.ip_inst.header.($Field.Key)
+    if ($ActualValue -ne $Field.Value) {
+        $Message = "PCIe IP metadata $($Field.Key) is '$ActualValue'; expected '$($Field.Value)'"
+        $MetadataIssues.Add($Message)
+        Write-Warning $Message
+    }
+}
 
 $RequiredArtifacts = [ordered]@{
     'Post-PNR simulation netlist' = Join-Path $PdsRoot 'generate_netlist\pcie_dma_test_sim.v'
@@ -85,7 +109,6 @@ if ($FailedRows) {
 }
 
 $KnownIssuePatterns = [ordered]@{
-    'PCIe IP device mismatch' = 'Flow-4058:.*device information PG2L50H'
     'UART RX tied low' = 'Verilog-2036:.*Net rxd connected.*has no driver'
     'Unconstrained top-level I/O' = 'Timing-408[67]: Port .* is not constrained'
     'Unspecified PCIe serial I/O constraints' = 'ConstraintEditor-4019: Port Bus'
@@ -103,6 +126,7 @@ $DetectedIssues = foreach ($Issue in $KnownIssuePatterns.GetEnumerator()) {
         $Issue.Key
     }
 }
+$DetectedIssues = @($MetadataIssues) + @($DetectedIssues)
 
 $WorstSlack = ($TimingRows | Measure-Object -Property Slack -Minimum).Minimum
 Write-Host "INFO: timing gate passed; worst parsed slack is $WorstSlack ns"

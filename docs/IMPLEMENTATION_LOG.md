@@ -233,3 +233,9 @@
 - 扩展 `scripts/check_repo_consistency.ps1`，要求仿真就绪度矩阵存在，并包含 OV7725、DDR3、PCIe 和 S1/S2/S3 执行队列。
 - 门禁同时验证根 `README.md` 与 `TODO.md` 均链接 `docs/SIMULATION_READINESS_MATRIX.md`，防止规划文档脱离入口指南。
 - PowerShell AST、仓库一致性门禁和 `git diff --check` 均通过；本批未运行 PDS、ModelSim/QuestaSim 或 SDF，也未修改 RTL/IP/约束/生成物。
+
+## 2026-08-30：PCIe H2-B 静态元数据 gate
+
+- `pcie_dma_test_100h/scripts/check_build.ps1` 现在直接解析活动 `ipcore/pcie_test/pcie_test.idf`，校验 family、device、package 和 speedgrade 是否为 `Logos2/PG2L100H/FBG484/-6`。
+- 元数据不一致会进入已知问题集合：显式 `-AllowKnownBaselineIssues` 可复现当前基线，严格模式必定失败；旧的日志重复匹配已移除。
+- 本批仅修改 gate、TODO 和实现记录；未修改 PCIe RTL、IDF、FDC、厂商 IP 或生成物。
