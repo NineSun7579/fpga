@@ -247,3 +247,8 @@
 - 本批只新增文档并更新 TODO；未修改 RTL、厂商 IP、IDF、FDC、RCF 或生成物。资料缺失仍保持 H0/H1/H3 阻断。
 - 只读复核进一步确认 OV7725 活动 `ddr3_ip.idf` 的 `MEM_ADDR_WIDTH`、`DDR3_MEM_ROW_WIDTH`、`MEM_ROW_WIDTH` 均为 14，手写顶层/FDC 仍为 15 位，并发现该 IDF 生成器版本为 SP4.2；该冲突和版本差异已写入证据清单，不能依据 FDC 单独收窄。
 - DDR3 只读复核发现活动 IDF 同时记录 `DESIRED_DDR3_RATE=1066.000` 与另一处 1050 速率参数；wrapper 默认 `MEM_ROW_WIDTH=15`、`COLUMN=10`、`BANK=3`、`DQ=16`、`DQS=2`。在确认参数语义、颗粒料号和 PCB 拓扑前，H1 继续阻断。
+
+## 2026-08-30：S0-0 仿真器路径扩展复核
+
+- 复核 PATH、`C:\questasim64\win64`、常见 ModelSim/QuestaSim 安装目录及 Windows 卸载注册表，均未发现 `vsim.exe`、`vlog.exe` 或 `vlib.exe`。
+- 本批没有下载或安装商业仿真器，也未调用 PDS `compile_simlib`；S0-1 仍等待用户提供合法安装路径、版本和许可证环境。

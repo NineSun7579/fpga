@@ -54,6 +54,7 @@
 - [x] H2-B 静态准备：PCIe gate 直接解析 `pcie_test.idf` XML 元数据并强制校验 `Logos2/PG2L100H/FBG484/-6`；当前 `PG2L50H` 仍作为已知阻断，未放宽严格 gate。
 - [x] H0/H1/H3 资料准备：新增 OV7725 HDMI 与 DDR3 板级证据清单，统一收集板卡、器件、时钟、电压、拓扑和 I/O 时序依据；资料未提供前不修改硬件参数。
 - [x] S0-0 完成公共仿真器可执行文件复核；当前未发现 `vsim.exe`、`vlog.exe`、`vlib.exe`。
+- [x] S0-0 扩展复核 PATH、常见安装目录和 Windows 卸载注册表；仍未发现 ModelSim/QuestaSim 安装线索，保持外部阻断。
 - [x] 完成三项目 S1/S2/S3 仿真就绪度只读盘点；矩阵见 [`docs/SIMULATION_READINESS_MATRIX.md`](docs/SIMULATION_READINESS_MATRIX.md)。三项目项目级 TB、`.f`、`.do` 均缺失，现有资产均为厂商 IP 示例，不能直接作为集成验收。
 - [ ] 安装 QuestaSim/ModelSim 并记录版本和路径。
 - [ ] 编译 Logos2 USIM/VSIM。
