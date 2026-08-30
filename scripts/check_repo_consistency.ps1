@@ -256,6 +256,10 @@ foreach ($Project in $Projects) {
             -Description "$($Project.Name) isolated work directory" | Out-Null
         Require-Pattern -Text $RunText -Pattern '\$LASTEXITCODE' `
             -Description "$($Project.Name) process exit-code check" | Out-Null
+        Require-Pattern -Text $RunText -Pattern '\^E:' `
+            -Description "$($Project.Name) PDS error-log check" | Out-Null
+        Require-Pattern -Text $RunText -Pattern '(?i)stage|RunTo' `
+            -Description "$($Project.Name) stage completion handling" | Out-Null
     }
 
     if ($GateExists) {
@@ -266,6 +270,12 @@ foreach ($Project in $Projects) {
             -Description "$($Project.Name) artifact existence check" | Out-Null
         Require-Pattern -Text $GateText -Pattern '(?i)Timing|WNS|TNS|Constraints Met' `
             -Description "$($Project.Name) timing gate" | Out-Null
+        Require-Pattern -Text $GateText -Pattern '(?i)Assert-NonEmptyFile|Test-Path' `
+            -Description "$($Project.Name) non-empty artifact gate" | Out-Null
+        Require-Pattern -Text $GateText -Pattern '(?i)RequiredLogPatterns|StageOrder|BuildLog|RunTo' `
+            -Description "$($Project.Name) stage or final-build gate" | Out-Null
+        Require-Pattern -Text $GateText -Pattern '(?i)throw' `
+            -Description "$($Project.Name) strict failure behavior" | Out-Null
     }
 }
 
