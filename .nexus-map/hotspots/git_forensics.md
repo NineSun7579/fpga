@@ -31,7 +31,7 @@
 - `ddr3_test/ddr3_test/rtl/ddr3_bringup_top.sv`、`ddr3_test/ddr3_test/rtl/ddr3_finite_bist.sv`：D2 规划的项目自有实现热点，当前文件尚不存在，D3 未审核前不得标记为已实现。
 - `pcie_dma_test_100h/hdl/pcie_dma_test.v`：UART2APB 隐式 `rxd/txd` 连接与 PCIe DMA 集成入口。
 - `pcie_dma_test_100h/fdc/pcie_dma_test.fdc`：PCIe 专用资源、复位和普通 I/O 约束入口。
-- `pcie_dma_test_100h/hdl/pcie_dma_test.v`、`pcie_dma_test_100h/ipcore/pcie_test/pcie_test.idf`：活动 PCIe IDF 已正确匹配 PG2L50H；错误来源是 build/PDS/gate 和主产物仍为 PG2L100H。M1 只改项目自有 build/gate并重建，RTL/FDC 继续受板级审核约束。
+- `pcie_dma_test_100h/hdl/pcie_dma_test.v`、`pcie_dma_test_100h/ipcore/pcie_test/pcie_test.idf`：活动 PCIe IDF、build/PDS/gate 和新主产物已统一匹配 PG2L50H；M1 还依据 PDS 模板将 HSSTLP 资源迁移到 `HSSTLP_292_612`，RTL/FDC 其余内容继续受板级审核约束。
 - `scripts/check_repo_consistency.ps1`：CI-0 至 CI-6 与 M0 静态门禁入口；现强制三项目 README/板级证据包含已批准的 `RK3568+PG2L50H100H` 和 `PG2L50H-6IFBG484`，并以 XML 解析确认活动 PCIe IDF 为 PG2L50H。当前退出码为 0，但不能替代 PDS、STA、板级审核或仿真。
 - `scripts/compile_simlib.tcl`、`scripts/compile_simlib.ps1`：S0-1 参数化 Pango USIM/VSIM 编译入口；支持模拟器、库类型、family、语言、PDS/仿真器路径与输出目录覆盖，并校验工具、退出码、`E:` 记录和库目录。当前因缺少 `vsim.exe`/`vlog.exe`/`vlib.exe` 未执行实际库编译。
 - `docs/SIMULATION_READINESS_MATRIX.md`：三项目 S1/S2/S3 项目级资产缺口、厂商示例边界、四级共同门槛和 PG2L50H 迁移依赖的首要证据。

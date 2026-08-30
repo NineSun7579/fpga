@@ -301,3 +301,13 @@
 - OV7725 的 DDR3、PLL、读 FIFO、写 FIFO 四个活动 IDF 均为 SP4.2 PG2L100H 生成物，旧 backup 是 PGL25G 而非 50H。实际 DDR3 组织和管脚闭合后，四个 IP 都必须在 SP6.4/PG2L50H 下重生成。
 - O2-D1-G 的状态机、hard/business reset 分权、唯一 `/5` clock、八端点覆盖和禁止 waiver/第二相位等纪律继续有效；100H 的 `+0.192 ns` 裕量、七组时序指纹和 endpoint 数不再是 50H 验收证据，O2-D2 暂停到新基线后重新审核。
 - 本批只更新规划、README、板级证据和契约状态；未修改 RTL、厂商 IP、IDF、FDC、RCF、构建脚本或生成物。
+
+## 2026-08-30：PCIe M1 PG2L50H 首批迁移
+
+- 将 `pcie_dma_test_100h/scripts/build.tcl` 的 PDS 目标改为 `Logos2 / PG2L50H / FBG484 / -6`，并把 `check_build.ps1` 的器件期望改为 PG2L50H。
+- 门禁新增三方器件交叉校验：PDS 构建日志的 `set_arch`、最终 timing report 的 `Device` 字段、`generate_bitstream/bgr.db` 的 `PG2L50H-6FBG484`；发现陈旧 PG2L100H 即失败。
+- 首次 50H 完整构建暴露旧 FDC 的 `HSSTLP_364_918` 资源名无效；依据 PDS 2022.2-SP6.4 官方 HSSTLP PG2L50H 模板，将 x2 lane/PLL0 迁移到 `HSSTLP_292_612`。未修改 lane 逻辑、管脚或电气属性。
+- 从空 `build/` 完成 `compile → synthesize → dev_map → pnr → report_timing → gen_netlist → gen_bit_stream`，PDS 退出码为 0，日志无 `E:`，生成非零网表、慢角 SDF、`.sbit` 和 `.bin`。
+- 新 50H timing report 为 `All Constraints Met`，门禁解析的最差 slack 为 `0.100 ns`；资源约为 3779 LUT、4279 FF、40.5 DRM、6 个顶层 I/O。
+- 严格 `check_build.ps1` 返回非零并精确报告 UART RX 死通道、未约束顶层 I/O、PCIe 串行 I/O 约束缺口、M15/M16 share pin 和 SCBV 未配置。显式 baseline 放行返回 0，但明确标记不可发布。
+- 本批未运行 ModelSim/QuestaSim；S0-1 仍因本机缺少 `vsim.exe`、`vlog.exe`、`vlib.exe` 阻断。

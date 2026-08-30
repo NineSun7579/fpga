@@ -10,6 +10,7 @@ $PdsRoot = Join-Path $BuildRoot 'pds'
 $BuildLog = Join-Path $BuildRoot 'logs\pds-gen_bit_stream.log'
 $TimingReport = Join-Path $PdsRoot 'report_timing\pcie_dma_test.rtr'
 $IpDefinition = Join-Path $ProjectRoot 'ipcore\pcie_test\pcie_test.idf'
+$BitstreamDatabase = Join-Path $PdsRoot 'generate_bitstream\bgr.db'
 
 function Assert-NonEmptyFile {
     param(
@@ -33,6 +34,7 @@ function Assert-NonEmptyFile {
 Assert-NonEmptyFile -Path $BuildLog -Description 'PDS build log'
 Assert-NonEmptyFile -Path $TimingReport -Description 'Final timing report'
 Assert-NonEmptyFile -Path $IpDefinition -Description 'PCIe IP definition'
+Assert-NonEmptyFile -Path $BitstreamDatabase -Description 'Bitstream database'
 
 $MetadataIssues = [System.Collections.Generic.List[string]]::new()
 try {
@@ -43,7 +45,7 @@ try {
 
 $ExpectedMetadata = [ordered]@{
     family = 'Logos2'
-    device = 'PG2L100H'
+    device = 'PG2L50H'
     package = 'FBG484'
     speedgrade = '-6'
 }
@@ -72,11 +74,30 @@ if (Select-String -LiteralPath $BuildLog -Pattern '^E:' -Quiet) {
 }
 
 $TimingText = Get-Content -Raw -LiteralPath $TimingReport
+if ($TimingText -notmatch '(?im)\bDevice\s*:\s*PG2L50H\b') {
+    throw 'Final timing report does not identify device PG2L50H.'
+}
 if ($TimingText -notmatch 'Design Summary\s*:\s*All Constraints Met\.') {
     throw 'Final timing report does not contain All Constraints Met.'
 }
 if ($TimingText -match 'Some Constraints Violated') {
     throw 'Final timing report contains constraint violations.'
+}
+
+$BuildText = Get-Content -Raw -LiteralPath $BuildLog
+if ($BuildText -notmatch '(?im)-device\s+PG2L50H') {
+    throw 'PDS build log does not record set_arch device PG2L50H.'
+}
+if ($BuildText -match '(?im)PG2L100H') {
+    throw 'PDS build log contains stale PG2L100H device metadata.'
+}
+
+$BitstreamText = Get-Content -Raw -LiteralPath $BitstreamDatabase
+if ($BitstreamText -notmatch '(?im)PG2L50H-6FBG484') {
+    throw 'Bitstream database does not identify PG2L50H-6FBG484.'
+}
+if ($BitstreamText -match '(?im)PG2L100H') {
+    throw 'Bitstream database contains stale PG2L100H device metadata.'
 }
 
 $TimingRows = foreach ($Line in Get-Content -LiteralPath $TimingReport) {

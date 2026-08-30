@@ -67,7 +67,7 @@
 |---|---|---|---|---|---|---|
 | OV7725 HDMI | 旧 PG2L100H O1-B/O2-B/O2-D1-R 流程完成，但与实际 PG2L50H 不匹配；四个 IP 需重生成并建立 50H baseline | 旧 100H Recovery 失败只作为候选分析证据；50H STA 尚未执行，O2-D2 必须在新 baseline 后重审 | 未就绪；Questa/S3 缺失 | 旧 100H 网表不可签核 | 旧 100H PNR 网表不可签核 | 旧 100H SDF 未标注且不可签核 |
 | DDR3 外层 | 旧 PG2L100H 七阶段与五类产物已完成，但不可用于实际 PG2L50H；需重生成 50H IP/FDC/RCF | 旧 100H `All Constraints Met` 只保留历史；50H STA 未执行 | D2/D3-0 旧契约已定，PG2L50H 重生成后须重审；Questa 缺失 | 旧网表不可签核 | 旧 PNR 网表不可签核 | 旧 SDF 未标注且不可签核 |
-| PCIe DMA | 活动 IDF 已为 PG2L50H；build/PDS/gate 与主产物仍为 PG2L100H，需修正后从空 `build/` 重建 | 旧 100H WNS/TNS 不可作为实板证据；50H STA 未执行 | 仅 IP 示例 | 顶层未闭环 | 旧 100H 网表不可签核 | 旧 100H SDF 未标注且不可签核 |
+| PCIe DMA | 活动 IDF、build/PDS/gate 与新产物均为 PG2L50H；已从空 `build/` 完成七阶段重建 | 50H STA 已生成，最差解析 slack `0.100 ns`；严格 gate 仍受板级/功能缺口阻断 | 仅 IP 示例 | 顶层未闭环 | 新 50H 网表待集成仿真 | 新 50H SDF 待标注仿真 |
 
 ## S1/S2/S3 仿真就绪度矩阵（2026-08-30）
 
@@ -96,7 +96,7 @@
 - DDR3 D3-0-R 端口映射见 `ddr3_test/ddr3_test/doc/D3A_PORT_MAP.md`：当前默认 `CTRL_ADDR_WIDTH=28`、`axi_wdata/axi_rdata=128` bit、`axi_wstrb=16` bit；文档明确 APB/debug tie-off 与物理端口不属于 D3-A BIST 接口。
 - PCIe：现有 ModelSim 资产只覆盖 PCIe IP 示例，不覆盖 `pcie_dma_test` 集成顶层；UART2APB 的无驱动输入属于已知功能缺陷。
 - PCIe H2-A（只读证据矩阵）：顶层使用 x2 `rxn/rxp/txn/txp`、差分 `ref_clk_p/n`、`perst_n`、`button_rst_n` 与 `ref_led/pclk_led`；FDC 固定 refclk `F6/E6`、PERST# `M16`、button reset `M15`、LED `M17/J16`。当前没有 lane 极性/板级拓扑、I/O delay 或 SCBV 证据。
-- PCIe H2-A 器件边界：活动 `pcie_test.idf` 已正确匹配 `Logos2/PG2L50H/FBG484/-6`；build/PDS/gate 与现有主位流仍是错误 PG2L100H。下一批需修正并增加产物器件交叉校验；UART2APB `rxd/txd` 与 SCBV 等仍是独立功能/发布阻断。
+- PCIe H2-A/M1 器件边界：活动 `pcie_test.idf`、build/PDS/gate、timing report 与 `bgr.db` 已统一匹配 `Logos2/PG2L50H/FBG484/-6`；UART2APB `rxd/txd`、SCBV、lane/refclk/PERST# 与 share pin 仍是独立功能/发布阻断。
 - 三项目新流程均已生成顶层 PNR SDF，但尚未由 QuestaSim 验证实例层级。
 - 本机 S0 复核未找到 ModelSim/QuestaSim，因此本轮未运行任何仿真；安装并验证 `vsim.exe`、`vlog.exe`、`vlib.exe` 前不得声称动态仿真通过。
 - PDS 可能在日志含 `E:` 时仍返回退出码 0；新 PowerShell 入口必须同时检查退出码和错误日志。

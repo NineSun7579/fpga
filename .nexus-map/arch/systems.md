@@ -138,15 +138,15 @@
 - project_path: `pcie_dma_test_100h/pcie_dma_test.pds`
 - constraint_path: `pcie_dma_test_100h/fdc/pcie_dma_test.fdc`
 - evidence_path: `pcie_dma_test_100h/place_route/pcie_dma_test_timing_summary_after_hold_fix.txt`
-- evidence_gap: 活动 `pcie_test.idf` 已正确为 PG2L50H，但 build/PDS/旧 gate 与主 `.sbit/.bin` 仍为 PG2L100H，现有 100H 产物不可烧录。下一批需修正目标并从空 `build/` 重建；UART2APB、SCBV、lane/refclk/PERST# 板级证据和四级仿真仍缺失。
+- evidence_gap: 活动 `pcie_test.idf`、build/PDS/gate、timing report 与新 `.sbit/.bin` 已统一为 PG2L50H，并从空 `build/` 完成七阶段重建；UART2APB、SCBV、lane/refclk/PERST# 板级证据和四级仿真仍缺失。
 - responsibility: 集成 PCIe x2 IP、DMA、RAM/FIFO 与 UART2APB 管理路径。
 - build_entry: `pcie_dma_test_100h/scripts/run.ps1`
 - build_definition: `pcie_dma_test_100h/scripts/build.tcl`
 - build_gate: `pcie_dma_test_100h/scripts/check_build.ps1`
 - h2a_read_only_evidence: `2026-08-30`；顶层端口为 x2 `rxn/rxp/txn/txp`、差分 `ref_clk_p/n`、`perst_n`、`button_rst_n` 和两枚 LED；FDC 映射 refclk `F6/E6`、PERST# `M16`、button reset `M15`、LED `M17/J16`。
 - h2a_status: completed_read_only_evidence_matrix; H2-B 仍待板级资料和审核
-- h2a_constraint_gaps: FDC 未提供 lane 极性、板级拓扑、I/O delay 或 SCBV；`pcie_test.idf` metadata 已与实物目标 `Logos2 / PG2L50H / FBG484 / -6` 一致，冲突来源是仍指向 PG2L100H 的 build/PDS/gate 和历史产物。
+- h2a_constraint_gaps: FDC 未提供 lane 极性、板级拓扑、I/O delay 或 SCBV；`pcie_test.idf` metadata、build/PDS/gate 与新产物已与实物目标 `Logos2 / PG2L50H / FBG484 / -6` 一致，HSSTLP 资源为 PDS 模板指定的 `HSSTLP_292_612`。
 - h2a_uart_gap: UART2APB 使用隐式 `rxd/txd` 网络，当前 `rxd` 被绑 0；该功能缺口不因 PDS/STA 成功而关闭。
-- h2a_boundary: 器件型号已获用户审核；活动 PCIe IDF 不需仅因型号重生成。下一批允许修改项目自有 build/gate并重建生成物，RTL/FDC 仍受 UART 与板级证据审核约束。
+- h2a_boundary: 器件型号已获用户审核；活动 PCIe IDF 不需仅因型号重生成。M1 已修改项目自有 build/gate，并依据 PDS 模板迁移 HSSTLP 资源后重建生成物；RTL/FDC 其余内容仍受 UART 与板级证据审核约束。
 - h2b_stop_conditions: 板级 lane 极性/拓扑、I/O delay 或 SCBV 缺失，IDF/PDS 器件元数据不一致，或 UART2APB `rxd/txd` 归属未决时，H2-B 不得收紧 gate；不得用 waiver 掩盖缺口。
-- next_step: 下一批将 build/PDS/gate 目标改为 PG2L50H，增加日志、timing report 与 `bgr.db` 的器件交叉校验并从空 `build/` 重建；随后继续等待 lane/refclk/PERST#/SCBV 与 UART 决策，活动 IDF 保持 PG2L50H
+- next_step: M1 构建迁移已完成；继续等待 lane/refclk/PERST#/SCBV 与 UART 决策，活动 IDF 保持 PG2L50H

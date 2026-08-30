@@ -1,6 +1,6 @@
 # PCIe H2-A 板级证据与 IP 目标契约
 
-状态：器件目标已审核，待 50H 重建与其余板级资料。更新日期：2026-08-30。
+状态：50H 器件目标与可重复实现已完成，待其余板级资料。更新日期：2026-08-30。
 
 用户已确认：本工程与 DDR3、OV7725 HDMI 工程共用 `RK3568+PG2L50H100H` 开发板，实际焊接 FPGA 为 `PG2L50H-6IFBG484`。PDS 参数统一采用 `Logos2 / PG2L50H / FBG484 / -6`。
 
@@ -9,16 +9,17 @@
 | 项目 | 当前事实 | 证据 |
 |---|---|---|
 | 实际 FPGA | `PG2L50H-6IFBG484` | 用户于 2026-08-30 明确确认并批准三项目统一迁移 |
-| 当前 PDS 目标 | `Logos2 / PG2L100H / FBG484 / -6`，待下一批修正为 PG2L50H | `scripts/build.tcl` |
+| 当前 PDS 目标 | `Logos2 / PG2L50H / FBG484 / -6` | `scripts/build.tcl`、50H 构建日志 |
 | PCIe 顶层 | `pcie_dma_test`，x2 `rxn/rxp/txn/txp` | `hdl/pcie_dma_test.v` |
 | 参考时钟 | 差分 `ref_clk_p/n`，FDC 管脚 `F6/E6`，约束周期 `10 ns` | `fdc/pcie_dma_test.fdc` |
 | PERST# | `perst_n`，FDC 管脚 `M16`，LVCMOS18 | `fdc/pcie_dma_test.fdc` |
 | 板级复位 | `button_rst_n`，FDC 管脚 `M15`，LVCMOS18 | `fdc/pcie_dma_test.fdc` |
 | 状态灯 | `ref_led=M17`、`pclk_led=J16`，LVCMOS18 | `fdc/pcie_dma_test.fdc` |
 | 活动 IP metadata | `Logos2 / PG2L50H / FBG484 / -6` | `ipcore/pcie_test/pcie_test.idf:10-13` |
+| HSSTLP 资源位置 | `HSSTLP_292_612`，x2 lane 与 PLL0 | PDS SP6.4 HSSTLP PG2L50H 模板、50H PNR 日志 |
 | UART | `pgr_uart2apb_top` 使用隐式 `rxd/txd`；顶层没有对应端口，`rxd` 当前被工具绑为 0 | `hdl/pcie_dma_test.v`、SP6.4 compile 日志 |
 
-IDF 的 `PG2L50H` 与实际 FPGA 一致，旧 PDS 目标 `PG2L100H` 才是不一致项。现有 100H 内部 STA、网表、SDF、`.sbit` 和 `.bin` 不能用于实际板卡验收或烧录。
+IDF、PDS 目标、STA 和新生成位流数据库均已统一为 `PG2L50H/FBG484/-6`。旧 100H 内部 STA、网表、SDF、`.sbit` 和 `.bin` 不能用于实际板卡验收或烧录。
 
 ## 2. 约束现状与缺口
 
@@ -43,7 +44,7 @@ IDF 的 `PG2L50H` 与实际 FPGA 一致，旧 PDS 目标 `PG2L100H` 才是不一
 
 H2-A 只允许新增/更新证据文档，不修改 RTL、活动 IDF 或 FDC，也不得把历史 `impl.tcl` 当作重建入口。用户已经批准下一批将 build/gate 恢复为 PG2L50H。
 
-器件迁移批次无需重生成已匹配实物的 SP6.4 PCIe IP；先修正 build/gate 并完成 50H 重建。lane/refclk/PERST#、UART 和 SCBV 仍由后续 H2-B 闭合，在这些资料到位前不修改 FDC/RTL，也不把 50H 构建成功描述为可发布。
+器件迁移批次无需重生成已匹配实物的 SP6.4 PCIe IP；已修正 build/gate，并依据 PDS SP6.4 PG2L50H 模板将 HSSTLP 资源从旧 100H 坐标迁移到 `HSSTLP_292_612`。lane/refclk/PERST#、UART 和 SCBV 仍由后续 H2-B 闭合，在这些资料到位前不把 50H 构建成功描述为可发布。
 
 ## 5. 必须提供的资料
 
@@ -57,6 +58,6 @@ H2-A 只允许新增/更新证据文档，不修改 RTL、活动 IDF 或 FDC，�
 ## 6. 关闭条件
 
 1. 资料来源、版本和审核状态已记录，且覆盖证据矩阵全部条目。
-2. build、活动 PCIe IP、时序报告和 bitstream 数据库均为 `PG2L50H/FBG484/-6`，且不存在 `Flow-4058` 器件不一致。
+2. build、活动 PCIe IP、时序报告和 bitstream 数据库均为 `PG2L50H/FBG484/-6`，且不存在 `Flow-4058` 器件不一致；该条件已由 M1 重建验证。
 3. UART、SCBV、lane/refclk/PERST# 和 share pin 的处理均有明确决策与可追溯约束依据。
 4. H2-B 严格 gate 在不带 baseline 放行参数时返回 0；否则继续保持发布阻断。

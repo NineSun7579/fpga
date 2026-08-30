@@ -122,7 +122,7 @@
         "legacy_pg2l100h_artifacts": "historical evidence only; forbidden for programming and board acceptance",
         "phases": {
           "M0": "approved and documented: unified board/device fact and anti-stale-artifact policy",
-          "M1": "next: keep the existing PG2L50H PCIe IDF, fix PCIe build/PDS/gate, cross-check log/report/bgr device and rebuild from empty build",
+          "M1": "completed build migration: keep the existing PG2L50H PCIe IDF, fix PCIe build/PDS/gate, cross-check log/report/bgr device and rebuild from empty build; HSSTLP moved to PDS PG2L50H template site HSSTLP_292_612",
           "M2": "planned: regenerate PG2L50H DDR3 IP/FDC/RCF with SP6.4, rerun CI-6 and re-review D3-A",
           "M3": "planned: regenerate four OV7725 project IPs for PG2L50H with SP6.4, establish a new baseline and re-review O2-D2"
         }
@@ -476,7 +476,7 @@
       "implementation_status": "implemented_with_known_functional_gap",
       "code_path": "pcie_dma_test_100h/hdl/",
       "evidence_path": "pcie_dma_test_100h/place_route/pcie_dma_test_timing_summary_after_hold_fix.txt",
-      "evidence_gap": "活动 PCIe IDF 已正确匹配 PG2L50H；错误的是 PG2L100H build/PDS/gate 和现有主产物。M1 将修正项目自有入口、增加 log/report/bgr 器件交叉校验并从空 build 重建；UART2APB、SCBV、板级资料和四级仿真仍缺失。",
+      "evidence_gap": "活动 PCIe IDF、build/PDS/gate、timing report 与新主产物已统一匹配 PG2L50H，且从空 build 完成七阶段重建；UART2APB、SCBV、板级资料和四级仿真仍缺失。",
       "h2a_read_only_evidence": {
         "date": "2026-08-30",
         "top_module": "pcie_dma_test",
@@ -489,7 +489,7 @@
         "active_idf_metadata": {"family": "Logos2", "device": "PG2L50H", "package": "FBG484", "speedgrade": "-6"},
         "legacy_pds_target": {"family": "Logos2", "device": "PG2L100H", "package": "FBG484", "speedgrade": "-6"},
         "approved_pds_target": {"family": "Logos2", "device": "PG2L50H", "package": "FBG484", "speedgrade": "-6"},
-        "next_scope": ["project-owned build", "project-owned gate", "clean PG2L50H rebuild"],
+        "next_scope": ["UART2APB ownership", "lane/refclk/PERST# evidence", "SCBV", "project-level simulation"],
         "still_forbidden_without_board_evidence": ["RTL", "FDC", "vendor IDF manual edit"],
         "status": "device_target_approved_m1_pending"
       },
@@ -508,7 +508,7 @@
         "baseline_gate_exit_code": 0,
         "strict_gate_exit_code": 1,
         "baseline_release_ready": false,
-        "boundary": "existing gate encodes the rejected PG2L100H target; M1 must update it and verify build log, timing report and bitstream database device identity while retaining other release blockers"
+        "boundary": "M1 updated the gate to PG2L50H and verified build log, timing report and bitstream database device identity; UART, board evidence, SCBV and simulation remain release blockers"
       },
       "h2b_prerequisites": ["M1 PG2L50H clean rebuild", "board lane polarity/topology", "I/O delay", "SCBV decision", "UART2APB port ownership"],
       "h2b_stop_condition": "Any missing board evidence, IDF/PDS device mismatch, or unresolved UART2APB port ownership stops gate tightening; no waiver substitute.",

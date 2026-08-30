@@ -28,7 +28,7 @@ puts "INFO: requested final stage: $run_to"
 
 set_arch \
     -family Logos2 \
-    -device PG2L100H \
+    -device PG2L50H \
     -package FBG484 \
     -speedgrade -6
 

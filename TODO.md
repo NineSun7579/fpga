@@ -53,7 +53,7 @@
 - [x] OV7725 完成 O2-A serializer reset 联合释放契约，闭合快慢时钟检查、八个 OSERDES endpoint、O2-B 文件范围和回退条件。
 - [x] OV7725 完成 O2-B 最小实现与七阶段实验；方案因 Slow/Fast Recovery 转移到 `pixel_clk_5x → pixel_clk` 且慢角同域仍为负而被否决，失败 RTL 已回退。
 - [x] PCIe 完成 H2-A lane/refclk/PERST#/UART/SCBV/IP 目标证据矩阵；新器件事实证明活动 `pcie_test.idf` 的 PG2L50H 元数据正确，原“重生为 100H”结论作废。
-- [x] 识别 PCIe 静态 gate 的错误目标：它当前强制校验 PG2L100H，下一独立批次改为 50H 并增加日志、STA、bitstream 器件交叉检查。
+- [x] 识别 PCIe 静态 gate 的错误目标：已改为 PG2L50H，并增加日志、STA、bitstream 器件交叉检查。
 - [x] H0/H1/H3 资料准备：新增 OV7725 HDMI 与 DDR3 板级证据清单，统一收集板卡、器件、时钟、电压、拓扑和 I/O 时序依据；资料未提供前不修改硬件参数。
 - [x] S0-0 完成公共仿真器可执行文件复核；当前未发现 `vsim.exe`、`vlog.exe`、`vlib.exe`。
 - [x] S0-0 扩展复核 PATH、常见安装目录和 Windows 卸载注册表；仍未发现 ModelSim/QuestaSim 安装线索，保持外部阻断。
@@ -71,10 +71,10 @@
    - 交付：TODO、README、板级证据、实施记录和 `.nexus-map` 统一记录 50H；旧 100H 产物明确标记不可烧录。
    - 验收：静态门禁禁止把 build、IDF、README、STA 或位流中的 100H/50H 混用解释为通过。
 
-2. **M1：PCIe PG2L50H 首批迁移**
+2. **M1：PCIe PG2L50H 首批迁移（构建部分完成）**
    - 前置：活动 PCIe IDF 已由 SP6.4 生成为 `PG2L50H/FBG484/-6`；不需要仅为型号重新生成 IP。
-   - 交付：build/gate 改为 50H，从空 `build/` 完成 compile 和七阶段重建，重新采集 STA、网表、SDF 和位流。
-   - 验收：日志、IDF、时序报告和 bitstream 数据库全部为 PG2L50H；strict gate 仍因 UART、SCBV、lane/refclk/PERST# 板级缺口返回非零。
+   - 交付：build/gate 改为 50H，从空 `build/` 完成 compile 和七阶段重建，重新采集 STA、网表、SDF 和位流；HSSTLP 资源迁移到 PDS SP6.4 模板指定的 `HSSTLP_292_612`。
+   - 验收：日志、IDF、时序报告和 bitstream 数据库全部为 PG2L50H；strict gate 已验证仍因 UART、SCBV、lane/refclk/PERST# 板级缺口返回非零。
 
 3. **M2：DDR3 PG2L50H IP 与约束重生成**
    - 前置：使用本机 SP6.4 IP Compiler；SP6.1 的 50H backup 只作参数和差异证据。
@@ -393,7 +393,7 @@ O2-D2 停止条件：控制相位或 `/5` generated clock 未被 PDS 唯一识�
 - [ ] 决定 UART2APB 保留或删除；保留则提供 RX/TX 管脚、电气标准和波特率。
 - [ ] 提供 SCBV 所需配置 bank 电压。
 - [ ] 确认 LED 属于人眼状态灯且无外部同步时序要求，或提供正式时序要求。
-- [ ] 将 PCIe build/gate 恢复为 PG2L50H，保留已匹配实物的 SP6.4 PCIe IDF，并从空 `build/` 重新生成全部 50H 产物。
+- [x] 将 PCIe build/gate 恢复为 PG2L50H，保留已匹配实物的 SP6.4 PCIe IDF，并从空 `build/` 重新生成全部 50H 产物；严格 gate 仍保留发布阻断。
 - [ ] 按决策处理 UART，消除无驱动 `rxd` 和隐式网络。
 - [ ] 为 HSST/refclk/lane/share pin 建立有官方模板和原理图依据的精确约束或 waiver。
 - [x] 使用 baseline 放行完成全流程重建并保留产物、STA 和阻断证据。
