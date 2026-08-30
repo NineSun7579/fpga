@@ -41,6 +41,7 @@
 - simulation_asset_boundary: `ipcore/`、`ip_core/`、`ip_backup/` 内的 DDR3、PLL、FIFO 和 PCIe RC/EP testbench/filelist/DO 均为厂商示例，只能作为模型与接口参考；不得改名或直接计入 `ov7725_hdmi`、`ddr3_bringup_top` 或 `pcie_dma_test` 的集成覆盖。
 - simulation_common_gap: S1/S2/S3 均缺项目自有集成 TB、相对路径 `.f`/`.do`、唯一 `TEST PASS`、超时/`$fatal`、可靠非零失败退出以及按实际 DUT 层级的 SDF 标注入口。
 - next_step: 安装并验证有许可证的 ModelSim/QuestaSim，将实际路径传给 `compile_simlib.ps1`，随后编译 Logos2 USIM/VSIM；只有退出 0、日志无 `E:` 且所选库目录非空后才解除 S0-1 阻断。
+- s0_0_recheck: 2026-08-30 再次检查 PATH、`C:/questasim64/win64`、常见安装目录和 `vsim.exe`/`vlog.exe`/`vlib.exe`，仍全部缺失；提交 `ef5cc9a` 仅记录证据，不运行库编译或动态仿真。
 
 ## Verilog/SystemVerilog 注释规范
 

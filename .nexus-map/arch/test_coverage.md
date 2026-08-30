@@ -50,6 +50,11 @@
 - 已验证：当前 HEAD `5769d8f` 共扫描 8 个 PowerShell 脚本，AST 解析错误数为 0，仓库一致性门禁通过。
 - 边界：CI-5 只证明 PowerShell 语法可解析，不执行或替代 PDS、STA、位流生成、ModelSim/QuestaSim 或项目动态仿真。
 
+## S0-0-R 仿真器环境复核（2026-08-30）
+
+- 已验证：提交 `ef5cc9a` 再次探测 PATH、常见安装目录和 `vsim.exe` 文件名，`vsim.exe`、`vlog.exe`、`vlib.exe` 均未发现。
+- 边界：仅更新 S0-1 阻断证据，未执行 `compile_simlib`、PDS 或动态仿真。
+
 ## 项目状态
 
 | 项目 | PDS 实现证据 | 时序证据 | 行为仿真 | 综合后仿真 | PNR 功能仿真 | PNR 时序仿真 |

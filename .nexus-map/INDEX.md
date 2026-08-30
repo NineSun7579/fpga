@@ -36,6 +36,7 @@
 - O2-D1-R 已从空 `build/` 重建回退后的七组旧失败基线：baseline gate 精确匹配并返回 0，严格 gate 返回 1；Slow/Fast `ddrphy_sysclk → pixel_clk` Recovery 均恢复为 `53/53`，endpoint 分类为 `26+8+17+1+1`，O2-B 的 `54` 不修改旧 baseline。下一步由 O2-D1-G 收口 `/5` generated-clock、奇数分频 waveform、pre/post-buffer 取点、状态/复位分权和单次试验停止条件。
 - O2-D1-G 契约已冻结：只允许一条 `pixel_clk` `/5` generated clock，源为 PLL wrapper `u_pll_clk/clkout1`、目标为唯一 `GTP_IOCLKDIV_E2.CLKDIVOUT`，波形 `-edges {1 5 11} -edge_shift {0 0 0}`；控制器状态为 `HARD_HOLD → QUALIFY → ARM → SER_RELEASE → RUN`，并定义 hard/business reset 分权与首个有效 TMDS symbol。
 - S0-0 环境复核（2026-08-30，提交 `9b51039` 扩展）：PDS shell 路径存在且可作为唯一已发现工具；PATH、常见安装目录和 Windows 卸载注册表均未发现 ModelSim/QuestaSim 安装线索或 `vsim.exe`/`vlog.exe`/`vlib.exe`，动态仿真与 USIM/VSIM 编译保持阻塞。
+- S0-0-R 环境复核（2026-08-30，提交 `ef5cc9a`）：再次检查 PATH、`C:/questasim64/win64`、常见安装目录及 `vsim.exe` 文件名，三项仿真器可执行文件仍未发现；未运行 `compile_simlib` 或动态仿真，S0-1 阻断保持不变。
 - S0-1 仿真库入口已作为独立批次提交：参数化 `scripts/compile_simlib.tcl` 与 `scripts/compile_simlib.ps1` 支持 ModelSim/QuestaSim、USIM/VSIM/BOTH、Logos2 family、语言、PDS/仿真器路径和输出目录覆盖。预检绕过开关已从工作区移除，入口始终检查 `vsim.exe`、`vlog.exe`、`vlib.exe`；两个相关 PowerShell 脚本 AST 错误数为 0，CI-0 门禁通过，默认运行仍因缺少 `vsim.exe` 在 PDS 前返回 1，因此实际库编译保持阻塞。
 - CI-0 仓库级静态一致性门禁已完成并提交：`scripts/check_repo_consistency.ps1` 门禁退出码为 0，本批提交时全部 7 个 PowerShell 脚本 AST 解析错误数为 0；该门禁不启动或替代 PDS、STA、ModelSim/QuestaSim。
 - 三项目 S1/S2/S3 仿真就绪度只读盘点已形成并提交 [仿真就绪度矩阵](../docs/SIMULATION_READINESS_MATRIX.md)：三个项目均无项目级 TB、`.f` 或 `.do`；现有资产全部属于厂商 DDR3/PLL/FIFO/PCIe IP 示例，只能作为模型与接口参考，不能作为产品集成顶层验收。S0-1 仍阻断全部动态仿真。
@@ -44,7 +45,7 @@
 - CI-3 README 元数据完整性门禁已由提交 `5bfaae9` 落地：按项目特征检查三项目 README 是否记录器件目标、顶层、时钟、主要接口、构建入口、IP/IDF 来源和当前阻断；2026-08-30 复验退出码为 0。该门禁只检查静态可追溯表达，不代表硬件参数已审核或功能阻断已关闭。
 - CI-4 PDS 构建 gate 契约完整性门禁已由提交 `66356aa` 落地：三项目 `run.ps1` 均检查 PDS 退出码、`^E:` 错误记录和阶段完成标记；三项目 `check_build.ps1` 均检查阶段/最终构建入口、时序摘要、`throw` 失败路径、非零产物及显式 baseline 开关。2026-08-30 复验仓库门禁退出码为 0；该门禁只验证 gate 代码路径，不替代真实 PDS、STA 或位流执行。
 - CI-5 PowerShell AST 语法门禁已由提交 `5769d8f` 落地：仓库门禁自动解析全部非 `build/`、`.git/` 的 `.ps1` 文件，报告具体文件、行号和错误消息；当前 8 个脚本解析通过。该门禁只验证 PowerShell 语法，不执行 PDS、仿真器或项目构建。
-- CI-0、S0-1 入口与强制预检、仿真就绪度矩阵、README 导航、CI-1、CI-2、CI-3、CI-4、CI-5、PCIe H2-B 静态元数据 gate、H0/H1/H3 证据清单及 S0-0 扩展复核均已独立提交，当前 HEAD `5769d8f` 累计 46 个 Git 提交；本次 `.nexus-map` 同步尚未提交，提交后必须再次递增校正，样本仍不足以计算可信的历史热点。
+- CI-0、S0-1 入口与强制预检、仿真就绪度矩阵、README 导航、CI-1、CI-2、CI-3、CI-4、CI-5、S0-0-R、PCIe H2-B 静态元数据 gate、H0/H1/H3 证据清单均已独立提交，当前 HEAD `ef5cc9a` 累计 48 个 Git 提交；本次 `.nexus-map` 同步尚未提交，提交后必须再次递增校正，样本仍不足以计算可信的历史热点。
 - 根目录 [README](../README.md) 是 PDS 外部实现与仿真指南，现已直接链接仿真就绪度矩阵。
 - 根目录 [TODO](../TODO.md) 是当前整改顺序和验收门槛。
 - 新增或修改 Verilog/SystemVerilog 时必须遵循 [VSCS](../VERILOG_SYSTEMVERILOG_COMMENTING_STANDARD.md)。
