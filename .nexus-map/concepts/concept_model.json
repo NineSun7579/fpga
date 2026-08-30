@@ -55,10 +55,61 @@
         "scope": ["root guide/TODO/VSCS", "project README/build.tcl/run.ps1/check_build.ps1", "top module and seven-stage declarations", "configurable PDS path and exit-code checks", "baseline/artifact/timing gate interfaces", "build ignore and tracked-generated-file status"],
         "boundary": "static repository consistency only; does not run or replace PDS, STA, project strict gates or four-level simulation"
       },
+      "board_evidence_checklists": {
+        "status": "checklists_committed_external_evidence_pending",
+        "commit": "12d7a21",
+        "evidence_update_commit": "11dfcc2",
+        "date": "2026-08-30",
+        "checklists": {
+          "ov7725_hdmi": {
+            "path": "41_ov7725_hdmi/doc/BOARD_EVIDENCE.md",
+            "readme_path": "41_ov7725_hdmi/README.md",
+            "readme_linked": true,
+            "blocked_workstreams": ["H0", "H3"],
+            "confirmed_conflict": {
+              "active_idf_path": "41_ov7725_hdmi/prj/ipcore/ddr3_ip/ddr3_ip.idf",
+              "idf_generator_version": "2022.2-SP4.2",
+              "active_idf_address_widths": {
+                "MEM_ADDR_WIDTH": 14,
+                "DDR3_MEM_ROW_WIDTH": 14,
+                "MEM_ROW_WIDTH": 14
+              },
+              "handwritten_top_mem_a_width": 15,
+              "fdc_mem_a_width": 15,
+              "status": "blocked_h3_o1c",
+              "decision_boundary": "DDR3 part and schematic must decide the final width; do not narrow from FDC alone"
+            }
+          },
+          "ddr3_bringup": {
+            "path": "ddr3_test/ddr3_test/doc/BOARD_EVIDENCE.md",
+            "readme_path": "ddr3_test/ddr3_test/README.md",
+            "readme_linked": true,
+            "blocked_workstreams": ["H0", "H1"],
+            "parameter_ambiguity": {
+              "active_idf_path": "ddr3_test/ddr3_test/ip_core/ddr3/ddr3.idf",
+              "desired_ddr3_rate": 1066.000,
+              "alternate_rate_value": 1050.000,
+              "wrapper_defaults": {
+                "MEM_ROW_WIDTH": 15,
+                "COLUMN": 10,
+                "BANK": 3,
+                "DQ": 16,
+                "DQS": 2
+              },
+              "status": "blocked_h1",
+              "decision_boundary": "parameter semantics, DDR3 part and PCB topology must be confirmed before changing IP or constraints"
+            }
+          }
+        },
+        "h0_status": "blocked_external",
+        "h1_status": "blocked_external",
+        "h3_status": "blocked_external",
+        "boundary": "documentation and README collection entries only; required board evidence is still missing"
+      },
       "queue_status": "waiting_for_review_and_external_inputs",
       "execution_queue": [
         {"order": 1, "id": "S0-1", "status": "entry_ready_blocked_external", "prerequisite": "licensed ModelSim/QuestaSim and vsim/vlog/vlib paths; actual library compilation still required"},
-        {"order": 2, "id": "H0/H1/H3", "status": "blocked_external", "prerequisite": "board, schematic/BOM, device, voltage, DDR3 and OV7725/HDMI evidence"},
+        {"order": 2, "id": "H0/H1/H3", "status": "blocked_external", "prerequisite": "checklists are committed and linked from project READMEs; actual board, schematic/BOM, device, voltage, DDR3 and OV7725/HDMI evidence is still required"},
         {"order": 3, "id": "O2-D2", "status": "blocked_user_review", "prerequisite": "written approval of the frozen O2-D1-G contract"},
         {"order": 4, "id": "D3-A/D3-B/D3-C", "status": "blocked_user_review", "prerequisite": "approval of the completed D3-0 handshake and top-boundary review"},
         {"order": 5, "id": "H2-B", "status": "blocked_external_and_review", "prerequisite": "H0/H2 board evidence, UART decision and PG2L100H IP regeneration approval"},
@@ -589,14 +640,14 @@
   "metadata": {
     "analysis_mode": "manual bootstrap",
     "verified_at": "2026-08-30",
-    "git_commits_analyzed": 34,
+    "git_commits_analyzed": 37,
     "raw_ast_available": false,
     "limitations": [
       "The CI-0 repository-consistency batch is recorded as commit 25; the S0-1 entry and mandatory-preflight tightening are recorded as commits 26 and 27; the history remains too shallow for reliable hotspot ranking.",
       "The S0-1 parameterized simulation-library entry is committed with mandatory simulator preflight; actual USIM/VSIM compilation remains blocked by the missing simulator installation.",
       "No HDL/raw source AST extraction was run; CI-0 PowerShell syntax parsing is recorded separately.",
       "No ModelSim or QuestaSim execution was available.",
-      "The simulation-readiness matrix, root README navigation, tightened CI-1 matrix-reference gate and PCIe H2-B static XML metadata gate are included in the current 34-commit history; deeper hotspot analysis remains limited by the shallow sample."
+      "The simulation-readiness matrix, root README navigation, tightened CI-1 matrix-reference gate, PCIe H2-B static XML metadata gate and updated H0/H1/H3 board-evidence checklists are included in the current 37-commit history; deeper hotspot analysis remains limited by the shallow sample."
     ]
   }
 }

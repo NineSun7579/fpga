@@ -23,6 +23,8 @@
 - DDR3 D2 只读决策已完成：厂商 `test_ddr`、持续运行 BIST 和失配 testbench 保持原样；后续项目自有顶层固定为 `rtl/ddr3_bringup_top.sv` 与 `rtl/ddr3_finite_bist.sv`。首版契约执行 16 个单 beat 写读比较 pair，控制器地址为 `0x0..0x78`、步长 8，单 pair timeout 为 4096 周期、整次 run timeout 为 131072 周期，并公开稳定的 `test_done`、`test_failed`、`failure_code`、`error_count`、`completed_pairs` 和首错信息。该设计尚未实现或仿真，D3 待审核。
 - DDR3 D3-0 只读评审（2026-08-30，已完成）：已固定活动 IP 为 `ddr3_test/ddr3_test/ip_core/ddr3/ddr3.v` 的公开 `module ddr3`、非标准 AXI-like AW/W/AR/R 握手和 `I_ips_ddr_top` board wrapper 边界。D3-A 等待用户审核后按该契约实现；接口语义、地址单位或层级变化即停止并重新审核。本批只记文档，不改 RTL、IP 或约束。
 - PCIe H2-A 只读证据（2026-08-30，已完成）：`pcie_dma_test` 顶层使用 x2 `rxn/rxp/txn/txp`、差分 `ref_clk_p/n`、`perst_n`、`button_rst_n` 与两枚 LED；当前 FDC 固定 refclk `F6/E6`、PERST# `M16`、button reset `M15`、LED `M17/J16`。FDC 未提供 lane 极性/板级拓扑、I/O delay 或 SCBV；活动 `pcie_test.idf` metadata 仍为 `Logos2/PG2L50H/FBG484/-6`，而 PDS 目标为 `Logos2/PG2L100H/FBG484/-6`。UART2APB 的 `rxd/txd` 为隐式连接，`rxd` 被绑 0。
+- H0/H1/H3 板级资料清单已由提交 `12d7a21` 建立：[OV7725 HDMI 清单](../41_ov7725_hdmi/doc/BOARD_EVIDENCE.md) 与 [DDR3 Bring-up 清单](../ddr3_test/ddr3_test/doc/BOARD_EVIDENCE.md) 均由对应项目 README 直接链接。两份清单只定义待提供字段、证据来源和关闭条件；实际板级资料仍未提供，H0/H1/H3 保持外部阻断。
+- 板级证据补充提交 `11dfcc2` 已确认两项具体歧义：OV7725 活动 DDR3 IDF 由 PDS `SP4.2` 生成，`MEM_ADDR_WIDTH`、`DDR3_MEM_ROW_WIDTH`、`MEM_ROW_WIDTH` 均为 14，而手写顶层/FDC 使用 15 bit；DDR3 活动 IDF 同时记录 `DESIRED_DDR3_RATE=1066.000` 与另一处 `1050.000` 速率值。前者保持 H3/O1-C 阻断，后者保持 H1 阻断，均不得在缺少料号、原理图和参数语义证据时猜测修正。
 - PCIe H2-B 静态元数据 gate 已由提交 `03b694a` 落地：`pcie_dma_test_100h/scripts/check_build.ps1` 使用 PowerShell XML 解析器直接读取活动 `pcie_test.idf` 的 family/device/package/speedgrade，并要求 `Logos2/PG2L100H/FBG484/-6`。2026-08-30 复验 baseline 模式返回 `0` 并标记不可发布，strict 模式因实际 device 仍为 `PG2L50H` 等阻断返回 `1`；该 gate 不代表 H2-B 板级闭环完成。
 - OV7725 O0-A 已形成 [CDC/RDC 审计与整改契约](../41_ov7725_hdmi/doc/CDC_RDC_AUDIT.md)，覆盖七类时钟域、帧事件多点采样、两个异步 FIFO 的数据方向/分侧复位风险及三条旧 STA 失败路径；本批只建立事实和契约，未修改 RTL、IP 或 FDC。
 - OV7725 O1-B 已按 [RTL 卫生修复评审](../41_ov7725_hdmi/doc/RTL_HYGIENE_AUDIT.md) 完成：原 39 条手写 RTL 位宽告警中的 38 条确定性问题已消失，只保留活动 IP 14 bit 与顶层/FDC 15 bit 冲突的 `ddr3_ip.mem_a` 1 条；该项仍属于 H3/O1-C。
@@ -38,7 +40,7 @@
 - CI-0 仓库级静态一致性门禁已完成并提交：`scripts/check_repo_consistency.ps1` 门禁退出码为 0，本批提交时全部 7 个 PowerShell 脚本 AST 解析错误数为 0；该门禁不启动或替代 PDS、STA、ModelSim/QuestaSim。
 - 三项目 S1/S2/S3 仿真就绪度只读盘点已形成并提交 [仿真就绪度矩阵](../docs/SIMULATION_READINESS_MATRIX.md)：三个项目均无项目级 TB、`.f` 或 `.do`；现有资产全部属于厂商 DDR3/PLL/FIFO/PCIe IP 示例，只能作为模型与接口参考，不能作为产品集成顶层验收。S0-1 仍阻断全部动态仿真。
 - CI-1 仿真矩阵引用门禁已由提交 `a256add` 落地并由 `711cbb6` 收紧：`scripts/check_repo_consistency.ps1` 检查矩阵存在、包含 OV7725/DDR3/PCIe，并分别强制检查 `S1 DDR3`、`S2 PCIe`、`S3 OV7725`；根 README 和 TODO 也必须链接该矩阵。该门禁只验证静态文档一致性，不替代动态仿真。
-- CI-0、S0-1 入口与强制预检、仿真就绪度矩阵、README 导航、CI-1 及 PCIe H2-B 静态元数据 gate 均已独立提交，仓库累计 34 个 Git 提交，样本仍不足以计算可信的历史热点。
+- CI-0、S0-1 入口与强制预检、仿真就绪度矩阵、README 导航、CI-1、PCIe H2-B 静态元数据 gate 及 H0/H1/H3 证据清单均已独立提交，仓库累计 37 个 Git 提交，样本仍不足以计算可信的历史热点。
 - 根目录 [README](../README.md) 是 PDS 外部实现与仿真指南，现已直接链接仿真就绪度矩阵。
 - 根目录 [TODO](../TODO.md) 是当前整改顺序和验收门槛。
 - 新增或修改 Verilog/SystemVerilog 时必须遵循 [VSCS](../VERILOG_SYSTEMVERILOG_COMMENTING_STANDARD.md)。
