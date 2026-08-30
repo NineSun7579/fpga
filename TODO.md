@@ -2,7 +2,7 @@
 
 更新日期：2026-08-30
 
-状态：实施中。三项目 SP6.4 可重复构建基线均已建立；S0-0、DDR3 D3-0、PCIe H2-A、DDR3 D2、OV7725 O1-B 与 O2-A 已完成。O2-B 级联 serializer reset 方案已由真实 STA 否决并回退；O2-D1-G 已完成实现前契约收口，唯一待审核候选为“确定相位控制时钟 + 本地 reset 复制”。用户审核或外部资料到位前不启动新的功能 RTL/IP 修改。
+状态：等待审核与外部环境输入。三项目 SP6.4 可重复构建基线均已建立；S0-0、DDR3 D3-0、PCIe H2-A、DDR3 D2、OV7725 O1-B 与 O2-A 已完成。O2-B 级联 serializer reset 方案已由真实 STA 否决并回退；O2-D1-G 已完成实现前契约收口，唯一待审核候选为“确定相位控制时钟 + 本地 reset 复制”。用户审核或外部资料到位前不启动新的功能 RTL/IP 修改。
 
 ## 1. 总体验收目标
 
@@ -55,6 +55,45 @@
 - [ ] 安装 QuestaSim/ModelSim 并记录版本和路径。
 - [ ] 编译 Logos2 USIM/VSIM。
 - [ ] 完成三项目分级自检仿真。
+
+### 当前执行队列（2026-08-30）
+
+按以下顺序推进；每项独立提交，未满足前置条件时保持阻塞，不以 baseline 放行代替验收：
+
+1. **S0-1：恢复公共仿真环境（外部阻断）**
+   - 前置：安装 ModelSim/QuestaSim，并提供许可证可用的 `vsim.exe`、`vlog.exe`、`vlib.exe` 路径与版本。
+   - 交付：可覆盖路径参数、`build/simlib/usim` 与 `build/simlib/vsim`，以及编译日志。
+   - 验收：USIM/VSIM 编译退出码为 0，库目录存在且非空；否则不进入动态仿真。
+
+2. **H0/H1/H3：补齐板级事实（外部阻断）**
+   - 前置：板卡型号、原理图/BOM、FPGA 丝印、bank 电压、DDR3 料号/拓扑、OV7725/HDMI 时序资料。
+   - 交付：经审核的板级参数清单，明确 OV7725 `mem_a` 为 14/15 bit、DDR3 组织、时钟与 I/O delay。
+   - 验收：清单与 IDF/FDC/RTL 一致；资料缺失时禁止猜测或收紧 gate。
+
+3. **O2-D2：OV7725 serializer reset 单次实现（用户审核闸门）**
+   - 前置：用户书面确认 O2-D1-G 契约；PLL/IP Compiler 可用；不要求先完成 QuestaSim。
+   - 交付：一次性 PLL 重生成、项目自有控制器、`/5` generated-clock 和 pixel/read-FIFO 时钟原子迁移。
+   - 验收：compile/elaboration 与七阶段 STA 均满足契约；八个 OSERDES endpoint 的 Slow/Fast Recovery/Removal 全部非负且覆盖完整。任一对象、warning、CDC、SDF 或 baseline 漂移触发整批回退。
+
+4. **D3-A → D3-B → D3-C：DDR3 项目自有有限 BIST**
+   - 前置：用户审核 D3-0 握手语义与顶层边界；保持 `I_ips_ddr_top` 和厂商 IP 原样。
+   - 交付：BIST/top 骨架、16 个单 beat pair、watchdog/错误接口，再完成七阶段 PDS 回归。
+   - 验收：先 compile/elaboration，再功能实现；不得新增物理端口、未批准告警或修改 `ip_core/ddr3/**`。
+
+5. **H2-B：PCIe 器件与板级闭环**
+   - 前置：H0/H2 板级资料、UART 保留/删除决策、PG2L100H IP 重生成审核。
+   - 交付：PG2L100H 一致的 IDF、lane/refclk/PERST#/SCBV 约束和精确 gate 指纹。
+   - 验收：严格 gate 无 baseline 参数返回 0；UART 隐式网络、器件元数据和板级约束阻断全部关闭。
+
+6. **S1/S2/S3：三项目四级仿真**
+   - 前置：S0-1 完成；对应项目 RTL/IP/网表/SDF 已锁定。
+   - 交付：相对路径 filelist/DO、自检 TB、行为/综合后/PNR 功能/PNR 时序日志。
+   - 验收：每级只输出一次 `TEST PASS`；失败/超时 `$fatal`，退出码非零；SDF 无 annotation 或层级匹配错误。
+
+7. **O1-C → O3-A → O2-C1 → O2-C2 → O3-B → O4：OV7725 最终闭环**
+   - 前置：H3 与 O2-D2 结果；先完成 `mem_a`/IP/FDC 对齐，再处理 CDC、FIFO reset 和最窄时序例外。
+   - 交付：逐域复位与事件 CDC、FIFO 复位语义、约束和最终 gate。
+   - 验收：setup/hold/recovery/removal 全通过，SDF/位流/仿真齐全；不得用宽泛 `false_path`、multicycle 或 waiver 掩盖结构问题。
 
 ### 近期执行顺序
 

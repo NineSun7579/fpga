@@ -12,6 +12,7 @@
 - evidence_gap: 三项目均已建立 SP6.4 可重复全流程与严格/baseline gate 证据；2026-08-30 S0 复核仅确认 `E:/pango/PDS_2022.2-SP6.4/bin/pds_shell.exe` 存在，PATH、`C:/questasim64/win64` 和常见 ModelSim/QuestaSim 目录均未找到 `vsim.exe`、`vlog.exe`、`vlib.exe`，因此动态仿真及 USIM/VSIM 编译仍阻塞。
 - responsibility: 定义 PDS 2022.2-SP6.4 的实现流程、ModelSim/QuestaSim 四级仿真流程及三工程整改门槛。
 - s0_environment_review: `2026-08-30`；PDS shell 为唯一已发现工具，仿真器安装后才允许执行 `compile_simlib` 并编译 USIM/VSIM。
+- s0_0_status: completed_read_only_environment_review; ModelSim/QuestaSim 安装与 USIM/VSIM 编译仍待外部环境
 - next_step: 安装并验证 ModelSim/QuestaSim，随后编译 Logos2 USIM/VSIM；在此之前仅记录静态 PDS 证据，不得声称动态仿真通过。
 
 ## Verilog/SystemVerilog 注释规范
@@ -59,6 +60,7 @@
 - evidence_gap: SP6.4 全流程、STA、综合网表、PNR 网表、SDF 和位流已验证；严格 gate 因 7 类已知阻断返回 1，显式 baseline 放行返回 0 但不可发布。D2 已完成只读契约决策，但项目自有有限 BIST 顶层尚未实现；板级批准参数清单、产品功能和四级仿真仍未验收。
 - responsibility: 当前以厂商 `test_ddr` 作为临时 DDR3 board bring-up 顶层；后续必须明确真正产品顶层和板级功能范围。
 - d3_0_read_only_review: `2026-08-30` 已确认活动 IP 为 `ddr3_test/ddr3_test/ip_core/ddr3/ddr3.v` 的 `module ddr3`；公开端口包含 `ddr_init_done`、`core_clk` 和自定义 AXI-like AW/W/AR/R 接口。`test_ddr.v` 的物理 board wrapper 实例名 `I_ips_ddr_top` 必须保持不变。
+- d3_0_status: completed_read_only_review; D3-A 握手契约仍待审核
 - d3_0_handshake_gap: `axi_wready` 被现有写控制器作为执行/接受指示使用；`axi_wusero_id`、`axi_wusero_last` 虽由核心输出但当前 BIST 控制器未纳入结果契约；核心没有 `axi_rready`，读侧直接消费 `axi_rvalid`。这些不是本批可推定的标准 ready/valid 语义，D3-A 必须先明确握手、保持和背压规则。
 - d3_0_boundary: 只更新文档和评审事实；D3-0 不修改 RTL、活动 IP、FDC/RCF 或构建脚本。
 - provisional_build_entry: `ddr3_test/ddr3_test/scripts/run.ps1`
@@ -107,6 +109,7 @@
 - build_definition: `pcie_dma_test_100h/scripts/build.tcl`
 - build_gate: `pcie_dma_test_100h/scripts/check_build.ps1`
 - h2a_read_only_evidence: `2026-08-30`；顶层端口为 x2 `rxn/rxp/txn/txp`、差分 `ref_clk_p/n`、`perst_n`、`button_rst_n` 和两枚 LED；FDC 映射 refclk `F6/E6`、PERST# `M16`、button reset `M15`、LED `M17/J16`。
+- h2a_status: completed_read_only_evidence_matrix; H2-B 仍待板级资料和审核
 - h2a_constraint_gaps: FDC 未提供 lane 极性、板级拓扑、I/O delay 或 SCBV；`pcie_test.idf` metadata 为 `Logos2 / PG2L50H / FBG484 / -6`，与 PDS `Logos2 / PG2L100H / FBG484 / -6` 冲突。
 - h2a_uart_gap: UART2APB 使用隐式 `rxd/txd` 网络，当前 `rxd` 被绑 0；该功能缺口不因 PDS/STA 成功而关闭。
 - h2a_boundary: H2-A 仅更新文档、证据矩阵与 IP 重生成契约，不修改 RTL、IDF 或 FDC。
