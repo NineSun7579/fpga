@@ -35,9 +35,10 @@
 - S0-0 环境复核（2026-08-30，已完成）：PDS shell 路径存在且可作为唯一已发现工具；未发现 `vsim.exe`/`vlog.exe`/`vlib.exe`，动态仿真与 USIM/VSIM 编译保持阻塞。
 - S0-1 仿真库入口已作为独立批次提交：参数化 `scripts/compile_simlib.tcl` 与 `scripts/compile_simlib.ps1` 支持 ModelSim/QuestaSim、USIM/VSIM/BOTH、Logos2 family、语言、PDS/仿真器路径和输出目录覆盖。预检绕过开关已从工作区移除，入口始终检查 `vsim.exe`、`vlog.exe`、`vlib.exe`；两个相关 PowerShell 脚本 AST 错误数为 0，CI-0 门禁通过，默认运行仍因缺少 `vsim.exe` 在 PDS 前返回 1，因此实际库编译保持阻塞。
 - CI-0 仓库级静态一致性门禁已完成并提交：`scripts/check_repo_consistency.ps1` 门禁退出码为 0，本批提交时全部 7 个 PowerShell 脚本 AST 解析错误数为 0；该门禁不启动或替代 PDS、STA、ModelSim/QuestaSim。
-- 三项目 S1/S2/S3 仿真就绪度只读盘点已形成 [仿真就绪度矩阵](../docs/SIMULATION_READINESS_MATRIX.md)：三个项目均无项目级 TB、`.f` 或 `.do`；现有资产全部属于厂商 DDR3/PLL/FIFO/PCIe IP 示例，只能作为模型与接口参考，不能作为产品集成顶层验收。本批矩阵尚未提交，S0-1 仍阻断全部动态仿真。
-- CI-0 仓库级静态一致性门禁已作为独立批次提交；随后 S0-1 入口与强制预检也已独立提交，仓库累计 27 个 Git 提交，样本仍不足以计算可信的历史热点。
-- 根目录 [README](../README.md) 是 PDS 外部实现与仿真指南。
+- 三项目 S1/S2/S3 仿真就绪度只读盘点已形成并提交 [仿真就绪度矩阵](../docs/SIMULATION_READINESS_MATRIX.md)：三个项目均无项目级 TB、`.f` 或 `.do`；现有资产全部属于厂商 DDR3/PLL/FIFO/PCIe IP 示例，只能作为模型与接口参考，不能作为产品集成顶层验收。S0-1 仍阻断全部动态仿真。
+- CI-1 仿真矩阵引用门禁已由提交 `a256add` 落地并由 `711cbb6` 收紧：`scripts/check_repo_consistency.ps1` 检查矩阵存在、包含 OV7725/DDR3/PCIe，并分别强制检查 `S1 DDR3`、`S2 PCIe`、`S3 OV7725`；根 README 和 TODO 也必须链接该矩阵。该门禁只验证静态文档一致性，不替代动态仿真。
+- CI-0、S0-1 入口与强制预检、仿真就绪度矩阵、README 导航及 CI-1 均已独立提交，仓库累计 32 个 Git 提交，样本仍不足以计算可信的历史热点。
+- 根目录 [README](../README.md) 是 PDS 外部实现与仿真指南，现已直接链接仿真就绪度矩阵。
 - 根目录 [TODO](../TODO.md) 是当前整改顺序和验收门槛。
 - 新增或修改 Verilog/SystemVerilog 时必须遵循 [VSCS](../VERILOG_SYSTEMVERILOG_COMMENTING_STANDARD.md)。
 

@@ -376,7 +376,27 @@
       "environment_prerequisite": "licensed ModelSim/QuestaSim installation and actual vsim.exe, vlog.exe and vlib.exe path before successful compile_simlib execution",
       "simlib_entry_status": "committed_mandatory_preflight_external_tool_blocked",
       "readiness_matrix": {
-        "status": "read_only_inventory_complete_in_worktree",
+        "status": "committed_and_linked_from_root_readme",
+        "root_readme_linked": true,
+        "root_readme_path": "README.md",
+        "todo_linked": true,
+        "todo_path": "TODO.md",
+        "ci1_gate": {
+          "status": "committed_and_tightened",
+          "commit": "a256add",
+          "tightening_commit": "711cbb6",
+          "script": "scripts/check_repo_consistency.ps1",
+          "checks": [
+            "simulation readiness matrix exists",
+            "matrix contains OV7725, DDR3 and PCIe",
+            "matrix independently contains S1 DDR3",
+            "matrix independently contains S2 PCIe",
+            "matrix independently contains S3 OV7725",
+            "README.md links docs/SIMULATION_READINESS_MATRIX.md",
+            "TODO.md links docs/SIMULATION_READINESS_MATRIX.md"
+          ],
+          "scope": "static documentation consistency only; does not execute PDS, ModelSim/QuestaSim or SDF simulation"
+        },
         "dynamic_simulation_executed": false,
         "common_blocker": "S0-1: vsim.exe, vlog.exe and vlib.exe are unavailable",
         "acceptance_boundary": "Vendor examples under ipcore/, ip_core/ and ip_backup/ are reference assets only and do not count as project integration coverage.",
@@ -554,14 +574,14 @@
   "metadata": {
     "analysis_mode": "manual bootstrap",
     "verified_at": "2026-08-30",
-    "git_commits_analyzed": 28,
+    "git_commits_analyzed": 32,
     "raw_ast_available": false,
     "limitations": [
       "The CI-0 repository-consistency batch is recorded as commit 25; the S0-1 entry and mandatory-preflight tightening are recorded as commits 26 and 27; the history remains too shallow for reliable hotspot ranking.",
       "The S0-1 parameterized simulation-library entry is committed with mandatory simulator preflight; actual USIM/VSIM compilation remains blocked by the missing simulator installation.",
       "No HDL/raw source AST extraction was run; CI-0 PowerShell syntax parsing is recorded separately.",
       "No ModelSim or QuestaSim execution was available.",
-      "The simulation-readiness matrix batch is included in the current 28-commit history; deeper hotspot analysis remains limited by the shallow sample."
+      "The simulation-readiness matrix, root README navigation and tightened CI-1 matrix-reference gate are included in the current 32-commit history; deeper hotspot analysis remains limited by the shallow sample."
     ]
   }
 }
