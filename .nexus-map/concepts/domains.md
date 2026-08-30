@@ -32,6 +32,8 @@ DDR3 M2-B1 通过 PDS SP6.4 `ui.tcl` 确认 `DEVICE_100H_EN` 是隐藏派生参�
 
 PCIe H2-A（2026-08-30）固定产品顶层的板级边界：`pcie_dma_test` 使用 x2 `rxn/rxp/txn/txp`、差分 `ref_clk_p/n`、`perst_n`、`button_rst_n` 和两枚 LED；当前 FDC 仅固定 refclk `F6/E6`、PERST# `M16`、button reset `M15`、LED `M17/J16`。lane 极性、板级拓扑、I/O delay 和 SCBV 均没有证据，不能由实现成功推断。
 
+PCIe H2-B0（2026-08-30）将五类 baseline 问题归一化为 16 个唯一签名、42 次原始记录，并以完整多重集保护失败状态；任何签名新增、消失、改名、share-pin 位置或次数漂移均失败，IDF metadata 漂移永久硬失败。canonical fixture 正向为 0、strict 为 1，缺失/重复 UART、Timing 端口改名、share pin 改位和 100H IDF 五个变异均为 1。H2-B1 仍受 lane/refclk/PERST#/SCBV/UART/I/O timing 外部资料阻断；partial run 复用旧 full-build 证据的风险列入 CI-8 provenance/freshness。
+
 实物确认后，活动 `pcie_test.idf` 的 `Logos2/PG2L50H/FBG484/-6` metadata 被证明正确；错误项是顶层 build/PDS/gate 和现有主产物仍为 PG2L100H。M1 不为型号重复生成 PCIe IP，而是修正项目自有 build/gate、清空旧 build并建立 50H baseline，同时继续阻断 UART2APB、lane/refclk/PERST# 与 SCBV 缺口。
 
 DDR3 D2 已进一步固定该边界：厂商 `test_ddr`、持续运行 BIST 与旧 testbench 保持原样；后续有限自检由项目自有 `ddr3_bringup_top.sv` 和 `ddr3_finite_bist.sv` 承担。首版仅执行 16 个单 beat 写读比较 pair，地址 `0x0..0x78`、步长 8，并通过稳定公开的 `test_done`、`test_failed`、`failure_code`、`error_count`、`completed_pairs` 和首错信息完成签核。

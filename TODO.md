@@ -55,6 +55,7 @@
 - [x] OV7725 完成 M3-A 四 IP 迁移前审计：活动/安装版本断层使 CLI override 被 `IPCompiler 0037/0057` 否决，唯一后续路径为 SP6.4 GUI 在 50H 目标下新建实例并只写入 staging。
 - [x] PCIe 完成 H2-A lane/refclk/PERST#/UART/SCBV/IP 目标证据矩阵；新器件事实证明活动 `pcie_test.idf` 的 PG2L50H 元数据正确，原“重生为 100H”结论作废。
 - [x] 识别 PCIe 静态 gate 的错误目标：已改为 PG2L50H，并增加日志、STA、bitstream 器件交叉检查。
+- [x] PCIe 完成 H2-B0 精确 baseline 指纹：16 个对象签名、42 次记录；任何对象/数量/位置或 IP metadata 漂移均失败，严格 gate 仍保持发布阻断。
 - [x] H0/H1/H3 资料准备：新增 OV7725 HDMI 与 DDR3 板级证据清单，统一收集板卡、器件、时钟、电压、拓扑和 I/O 时序依据；资料未提供前不修改硬件参数。
 - [x] S0-0 完成公共仿真器可执行文件复核；当前未发现 `vsim.exe`、`vlog.exe`、`vlib.exe`。
 - [x] S0-0 扩展复核 PATH、常见安装目录和 Windows 卸载注册表；仍未发现 ModelSim/QuestaSim 安装线索，保持外部阻断。
@@ -111,8 +112,9 @@
    - 交付：BIST/top 骨架、16 个单 beat pair、watchdog/错误接口，再完成七阶段 PDS 回归。
    - 验收：先 compile/elaboration，再功能实现；不得新增物理端口、未批准告警或修改 `ip_core/ddr3/**`。
 
-9. **H2-B：PCIe 板级闭环**
+9. **H2-B1：PCIe 板级闭环**
    - 前置：M1 完成，补齐 H2 板级资料和 UART 保留/删除决策。
+   - H2-B0 已完成精确 baseline 指纹；它只保护失败状态不漂移，不解除任何板级阻断。
    - 交付：PG2L50H 一致的工程/IDF/产物、lane/refclk/PERST#/SCBV 约束和精确 gate 指纹。
    - 验收：严格 gate 无 baseline 参数返回 0；UART 隐式网络、器件元数据和板级约束阻断全部关闭。
 
@@ -373,6 +375,12 @@ O2-D2 停止条件：控制相位或 `/5` generated clock 未被 PDS 唯一识�
 - [x] 机器清单记录角色、`set_arch` 次数、器件集合、绝对路径事实和 `run.ps1` 入口身份。
 - [x] 仓库门禁通过正向检查和缺失清单项负向测试；文档、Nexus 与验证证据已同步，纳入独立 CI-7 提交。
 
+### CI-8：PDS 构建证据新鲜度（待开始）
+
+- [ ] 为三项目记录最后成功阶段、开始/完成时间和对应日志，`check-build` 不得把 partial run 后残留的旧 full-build 产物当作当前证据。
+- [ ] 最终 gate 必须确认日志、timing report、网表、SDF 和位流来自同一次 `gen_bit_stream` 运行；不使用宽松时间窗口猜测。
+- [ ] 先在 PCIe 验证 manifest/provenance 契约，再按相同事实模型迁移到 DDR3 和 OV7725；保持项目 gate 逻辑独立，验证后再考虑抽公共模块。
+
 ## 5. 外部阻断泳道
 
 这些任务需要用户或实验环境提供事实，但不阻塞前述脚本、静态审计和内部实现基线。
@@ -399,7 +407,9 @@ O2-D2 停止条件：控制相位或 `/5` generated clock 未被 PDS 唯一识�
 
 - [x] H2-A：建立 lane/refclk/PERST#/share pin/UART/SCBV/IP 目标的板级证据矩阵和 SP6.4 IP 再生成契约；不修改 RTL/IDF/FDC，详见 `pcie_dma_test_100h/doc/PCIE_BOARD_EVIDENCE.md`。
 - [x] H2-A：确认新事实：实际器件和活动 `pcie_test.idf` 均为 PG2L50H，原 PDS 目标 PG2L100H 才是不一致项；FDC 固定 `F6/E6`、`M16`、`M15`、`M17/J16`，未提供 lane 极性、I/O delay 或 SCBV 板级证据；UART `rxd/txd` 为隐式网络且 `rxd` 被绑 0。
-- [ ] H2-B：将 baseline gate 收紧为已知对象、类别和数量的精确指纹；任何新增、消失或漂移默认失败，并继续输出不可发布标记。
+- [x] H2-B0：将 baseline gate 收紧为 16 个已知对象签名、42 次原始记录的精确多重集；任何新增、消失、重命名、位置或数量漂移默认失败，并继续输出不可发布标记。
+- [x] H2-B0：活动 IDF 的 family/device/package/speedgrade 漂移改为无条件硬失败，不再由 baseline 参数放行。
+- [ ] H2-B1：补齐板级资料并关闭 UART、SCBV、lane/refclk/PERST#、share pin 和 I/O timing 阻断，使严格 gate 返回 0。
 - [ ] 确认 PCIe x2 lane 映射/极性、100 MHz refclk、PERST# 和 M15/M16 share pin。
 - [ ] 决定 UART2APB 保留或删除；保留则提供 RX/TX 管脚、电气标准和波特率。
 - [ ] 提供 SCBV 所需配置 bank 电压。

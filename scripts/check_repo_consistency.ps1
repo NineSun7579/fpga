@@ -21,9 +21,16 @@ if ([string]::IsNullOrWhiteSpace($PdsTclInventoryPath)) {
         'docs\PDS_TCL_ENTRYPOINT_INVENTORY.json'
 }
 $PdsTclGatePath = Join-Path $RepoRoot 'scripts\check_pds_tcl_entrypoints.ps1'
+$PcieBaselineDocPath = Join-Path $RepoRoot `
+    'pcie_dma_test_100h\doc\H2B_BASELINE_GATE.md'
+$PcieBaselineFingerprintPath = Join-Path $RepoRoot `
+    'pcie_dma_test_100h\doc\H2B_BASELINE_FINGERPRINT.json'
 $ApprovedBoard = 'RK3568+PG2L50H100H'
 $ApprovedFpgaPart = 'PG2L50H-6IFBG484'
+$ApprovedPdsFamily = 'Logos2'
 $ApprovedPdsDevice = 'PG2L50H'
+$ApprovedPdsPackage = 'FBG484'
+$ApprovedPdsSpeedgrade = '-6'
 $Ddr3RegeneratePath = Join-Path $RepoRoot `
     'ddr3_test\ddr3_test\scripts\regenerate_ip.ps1'
 $Ddr3RegenerationDocPath = Join-Path $RepoRoot `
@@ -463,6 +470,94 @@ if (Require-File -Path $PcieIdfPath -Description 'active PCIe IP definition') {
     } catch {
         Add-Failure "PCIe IP definition is not valid XML: $PcieIdfPath"
     }
+}
+
+$PcieBaselineDocExists = Require-File `
+    -Path $PcieBaselineDocPath `
+    -Description 'PCIe H2-B0 baseline gate guide'
+$PcieBaselineFingerprintExists = Require-File `
+    -Path $PcieBaselineFingerprintPath `
+    -Description 'PCIe H2-B0 machine fingerprint'
+if ($PcieBaselineDocExists) {
+    $PcieBaselineDocText = Get-Content -Raw -Encoding UTF8 `
+        -LiteralPath $PcieBaselineDocPath
+    foreach ($Required in ([ordered]@{
+            'PCIe H2-B0 unique signature contract' = '16\s*\u4e2a\u552f\u4e00\u7b7e\u540d'
+            'PCIe H2-B0 raw occurrence contract' = '42\s*\u6761\u539f\u59cb\u8bb0\u5f55'
+            'PCIe H2-B1 external boundary' = 'H2-B1'
+            'PCIe CI-8 provenance boundary' = 'CI-8'
+        }).GetEnumerator()) {
+        Require-Pattern -Text $PcieBaselineDocText -Pattern $Required.Value `
+            -Description $Required.Key | Out-Null
+    }
+}
+if ($PcieBaselineFingerprintExists) {
+    try {
+        $PcieBaselineFingerprint = Get-Content -Raw -Encoding UTF8 `
+            -LiteralPath $PcieBaselineFingerprintPath | ConvertFrom-Json
+        if ($PcieBaselineFingerprint.schema_version -ne 1) {
+            Add-Failure 'PCIe H2-B0 fingerprint schema is not 1'
+        }
+        $PcieSignatures = @($PcieBaselineFingerprint.signatures)
+        $PcieDuplicateSignatures = @($PcieSignatures |
+                Group-Object -Property signature | Where-Object Count -gt 1)
+        if ($PcieDuplicateSignatures.Count -gt 0) {
+            Add-Failure 'PCIe H2-B0 fingerprint contains duplicate signatures'
+        }
+        $PcieRawOccurrences = ($PcieSignatures.occurrences |
+                Measure-Object -Sum).Sum
+        if ($PcieSignatures.Count -ne 16 -or $PcieRawOccurrences -ne 42 -or
+            $PcieBaselineFingerprint.expected_unique_signatures -ne 16 -or
+            $PcieBaselineFingerprint.expected_raw_occurrences -ne 42) {
+            Add-Failure 'PCIe H2-B0 fingerprint must contain 16 signatures and 42 occurrences'
+        }
+        foreach ($Field in ([ordered]@{
+                family = $ApprovedPdsFamily
+                device = $ApprovedPdsDevice
+                package = $ApprovedPdsPackage
+                speedgrade = $ApprovedPdsSpeedgrade
+            }).GetEnumerator()) {
+            $ActualValue = [string]$PcieBaselineFingerprint.approved_target.($Field.Key)
+            if ($ActualValue -ne $Field.Value) {
+                Add-Failure "PCIe H2-B0 fingerprint $($Field.Key) is '$ActualValue'; expected '$($Field.Value)'"
+            }
+        }
+    } catch {
+        Add-Failure "PCIe H2-B0 fingerprint is not valid JSON: $PcieBaselineFingerprintPath"
+    }
+}
+
+$PcieGatePath = Join-Path $RepoRoot 'pcie_dma_test_100h\scripts\check_build.ps1'
+if (Test-Path -LiteralPath $PcieGatePath -PathType Leaf) {
+    $PcieGateText = Get-Content -Raw -Encoding UTF8 -LiteralPath $PcieGatePath
+    foreach ($Required in ([ordered]@{
+            'PCIe H2-B0 fingerprint input' = 'BaselineFingerprintPath'
+            'PCIe H2-B0 signature parser' = 'Get-BaselineIssueSignatureCounts'
+            'PCIe H2-B0 drift hard failure' = 'baseline fingerprint changed'
+            'PCIe metadata unconditional failure' = 'PCIe IP metadata gate failed'
+        }).GetEnumerator()) {
+        Require-Pattern -Text $PcieGateText -Pattern $Required.Value `
+            -Description $Required.Key | Out-Null
+    }
+}
+$PcieReadmePath = Join-Path $RepoRoot 'pcie_dma_test_100h\README.md'
+if (Test-Path -LiteralPath $PcieReadmePath -PathType Leaf) {
+    $PcieReadmeText = Get-Content -Raw -Encoding UTF8 -LiteralPath $PcieReadmePath
+    Require-Pattern -Text $PcieReadmeText -Pattern 'H2B_BASELINE_GATE\.md' `
+        -Description 'PCIe README H2-B0 gate link' | Out-Null
+    Require-Pattern -Text $PcieReadmeText -Pattern 'H2-B1' `
+        -Description 'PCIe README H2-B1 boundary' | Out-Null
+}
+$PcieEvidencePath = Join-Path $RepoRoot `
+    'pcie_dma_test_100h\doc\PCIE_BOARD_EVIDENCE.md'
+if (Test-Path -LiteralPath $PcieEvidencePath -PathType Leaf) {
+    $PcieEvidenceText = Get-Content -Raw -Encoding UTF8 `
+        -LiteralPath $PcieEvidencePath
+    Require-Pattern -Text $PcieEvidenceText `
+        -Pattern 'H2B_BASELINE_FINGERPRINT\.json' `
+        -Description 'PCIe board evidence H2-B0 fingerprint link' | Out-Null
+    Require-Pattern -Text $PcieEvidenceText -Pattern 'H2-B1' `
+        -Description 'PCIe board evidence H2-B1 boundary' | Out-Null
 }
 
 $PowerShellScripts = @(Get-ChildItem -LiteralPath $RepoRoot -Recurse -File -Filter '*.ps1' |

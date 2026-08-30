@@ -21,6 +21,8 @@
 
 IDF、PDS 目标、STA 和新生成位流数据库均已统一为 `PG2L50H/FBG484/-6`。旧 100H 内部 STA、网表、SDF、`.sbit` 和 `.bin` 不能用于实际板卡验收或烧录。
 
+H2-B0 已新增 [`H2B_BASELINE_GATE.md`](H2B_BASELINE_GATE.md) 与机器指纹 [`H2B_BASELINE_FINGERPRINT.json`](H2B_BASELINE_FINGERPRINT.json)。当前五类阻断被归一化为 16 个对象签名、42 次原始记录；baseline 只允许精确复现，IP metadata 不再可被放行。该静态门禁不替代本文件要求的板级资料。
+
 ## 2. 约束现状与缺口
 
 当前 FDC 建立 `pclk=4 ns`、`pclk_div2=8 ns`、`ref_clk=10 ns` 三个时钟对象，并把三个时钟分别置于异步 clock group。FDC 没有顶层输入/输出 delay、PCIe lane 极性/拓扑证据或 SCBV 配置；lane 的物理位置和参考时钟连接仍需原理图、BOM 和芯片丝印确认。
@@ -44,7 +46,7 @@ IDF、PDS 目标、STA 和新生成位流数据库均已统一为 `PG2L50H/FBG48
 
 H2-A 只允许新增/更新证据文档，不修改 RTL、活动 IDF 或 FDC，也不得把历史 `impl.tcl` 当作重建入口。用户已经批准下一批将 build/gate 恢复为 PG2L50H。
 
-器件迁移批次无需重生成已匹配实物的 SP6.4 PCIe IP；已修正 build/gate，并依据 PDS SP6.4 PG2L50H 模板将 HSSTLP 资源从旧 100H 坐标迁移到 `HSSTLP_292_612`。lane/refclk/PERST#、UART 和 SCBV 仍由后续 H2-B 闭合，在这些资料到位前不把 50H 构建成功描述为可发布。
+器件迁移批次无需重生成已匹配实物的 SP6.4 PCIe IP；已修正 build/gate，并依据 PDS SP6.4 PG2L50H 模板将 HSSTLP 资源从旧 100H 坐标迁移到 `HSSTLP_292_612`。H2-B0 已完成精确 baseline 指纹，但 lane/refclk/PERST#、UART 和 SCBV 仍由 H2-B1 闭合，在这些资料到位前不把 50H 构建成功描述为可发布。
 
 ## 5. 必须提供的资料
 
@@ -60,4 +62,4 @@ H2-A 只允许新增/更新证据文档，不修改 RTL、活动 IDF 或 FDC，�
 1. 资料来源、版本和审核状态已记录，且覆盖证据矩阵全部条目。
 2. build、活动 PCIe IP、时序报告和 bitstream 数据库均为 `PG2L50H/FBG484/-6`，且不存在 `Flow-4058` 器件不一致；该条件已由 M1 重建验证。
 3. UART、SCBV、lane/refclk/PERST# 和 share pin 的处理均有明确决策与可追溯约束依据。
-4. H2-B 严格 gate 在不带 baseline 放行参数时返回 0；否则继续保持发布阻断。
+4. H2-B1 严格 gate 在不带 baseline 放行参数时返回 0；否则继续保持发布阻断。

@@ -2,6 +2,8 @@ param(
     [switch]$AllowKnownBaselineIssues
 )
 
+# Strict mode is release-facing. Baseline mode only reproduces one exact
+# reviewed failure fingerprint and never permits device metadata drift.
 $ErrorActionPreference = 'Stop'
 
 $ProjectRoot = Split-Path -Parent $PSScriptRoot
@@ -11,6 +13,8 @@ $BuildLog = Join-Path $BuildRoot 'logs\pds-gen_bit_stream.log'
 $TimingReport = Join-Path $PdsRoot 'report_timing\pcie_dma_test.rtr'
 $IpDefinition = Join-Path $ProjectRoot 'ipcore\pcie_test\pcie_test.idf'
 $BitstreamDatabase = Join-Path $PdsRoot 'generate_bitstream\bgr.db'
+$BaselineFingerprintPath = Join-Path $ProjectRoot `
+    'doc\H2B_BASELINE_FINGERPRINT.json'
 
 function Assert-NonEmptyFile {
     param(
@@ -35,6 +39,9 @@ Assert-NonEmptyFile -Path $BuildLog -Description 'PDS build log'
 Assert-NonEmptyFile -Path $TimingReport -Description 'Final timing report'
 Assert-NonEmptyFile -Path $IpDefinition -Description 'PCIe IP definition'
 Assert-NonEmptyFile -Path $BitstreamDatabase -Description 'Bitstream database'
+Assert-NonEmptyFile `
+    -Path $BaselineFingerprintPath `
+    -Description 'PCIe H2-B0 baseline fingerprint'
 
 $MetadataIssues = [System.Collections.Generic.List[string]]::new()
 try {
@@ -56,6 +63,9 @@ foreach ($Field in $ExpectedMetadata.GetEnumerator()) {
         $MetadataIssues.Add($Message)
         Write-Warning $Message
     }
+}
+if ($MetadataIssues.Count -gt 0) {
+    throw "PCIe IP metadata gate failed: $($MetadataIssues -join '; ')"
 }
 
 $RequiredArtifacts = [ordered]@{
@@ -129,25 +139,147 @@ if ($FailedRows) {
     throw "Timing summary contains negative slack:`n$Details"
 }
 
-$KnownIssuePatterns = [ordered]@{
-    'UART RX tied low' = 'Verilog-2036:.*Net rxd connected.*has no driver'
-    'Unconstrained top-level I/O' = 'Timing-408[67]: Port .* is not constrained'
-    'Unspecified PCIe serial I/O constraints' = 'ConstraintEditor-4019: Port Bus'
-    'Share-pin placement requires board review' = 'ConstraintEditor-2002:.*share pin'
-    'SCBV not configured' = 'Bitstream-2001: SCBV has not been set'
+function Get-BaselineIssueSignatureCounts {
+    param([AllowEmptyString()][string[]]$Lines)
+
+    $Counts = [Collections.Generic.Dictionary[string, int]]::new(
+        [StringComparer]::Ordinal
+    )
+
+    foreach ($Line in $Lines) {
+        $Signature = $null
+
+        if ($Line -match
+            '^W:\s+Verilog-2036:.*\bNet (\S+) connected to input port of module instance (\S+) has no driver, tie it to 0\s*$') {
+            $Signature = "Verilog-2036|$($Matches[1])|$($Matches[2])"
+        } elseif ($Line -match
+            "^W:\s+(Timing-408[67]):\s+Port '([^']+)' is not constrained") {
+            $Signature = "$($Matches[1])|$($Matches[2])"
+        } elseif ($Line -match
+            "^W:\s+ConstraintEditor-4019:\s+Port Bus '([^']+)' unspecified I/O constraint") {
+            $Signature = "ConstraintEditor-4019|$($Matches[1])"
+        } elseif ($Line -match
+            '^C:\s+ConstraintEditor-2002:.*\|\s+Port (\S+) has been placed at location (\S+), whose type is share pin\.\s*$') {
+            $Signature = "ConstraintEditor-2002|$($Matches[1])|$($Matches[2])"
+        } elseif ($Line -match
+            '^C:\s+Bitstream-2001:\s+SCBV has not been set\.') {
+            $Signature = 'Bitstream-2001|SCBV'
+        } elseif ($Line -match
+            '^[WC]:\s+(Verilog-2036|Timing-408[67]|ConstraintEditor-(?:4019|2002)|Bitstream-2001):') {
+            # Preserve an unrecognized monitored-code line as a new signature
+            # so baseline mode cannot silently ignore a changed message shape.
+            $Signature = "$($Matches[1])|UNPARSED|$Line"
+        }
+
+        if ($null -eq $Signature) {
+            continue
+        }
+        if ($Counts.ContainsKey($Signature)) {
+            $Counts[$Signature]++
+        } else {
+            $Counts.Add($Signature, 1)
+        }
+    }
+
+    return ,$Counts
 }
 
-$DetectedIssues = foreach ($Issue in $KnownIssuePatterns.GetEnumerator()) {
-    $IssueMatches = Select-String `
-        -LiteralPath $BuildLog `
-        -Pattern $Issue.Value
-
-    if ($IssueMatches) {
-        Write-Warning "$($Issue.Key): $($IssueMatches.Count) occurrence(s)"
-        $Issue.Key
+try {
+    $Fingerprint = Get-Content -Raw -Encoding UTF8 `
+        -LiteralPath $BaselineFingerprintPath |
+        ConvertFrom-Json
+} catch {
+    throw "PCIe H2-B0 baseline fingerprint is not valid JSON: $BaselineFingerprintPath"
+}
+if ($Fingerprint.schema_version -ne 1) {
+    throw "Unsupported PCIe H2-B0 fingerprint schema: $($Fingerprint.schema_version)"
+}
+foreach ($Field in $ExpectedMetadata.GetEnumerator()) {
+    $FingerprintValue = [string]$Fingerprint.approved_target.($Field.Key)
+    if ($FingerprintValue -ne $Field.Value) {
+        throw "PCIe H2-B0 fingerprint target $($Field.Key) is '$FingerprintValue'; expected '$($Field.Value)'"
     }
 }
-$DetectedIssues = @($MetadataIssues) + @($DetectedIssues)
+
+$ExpectedIssueCounts = [Collections.Generic.Dictionary[string, int]]::new(
+    [StringComparer]::Ordinal
+)
+foreach ($Entry in @($Fingerprint.signatures)) {
+    $Signature = [string]$Entry.signature
+    $Occurrences = [int]$Entry.occurrences
+    if ([string]::IsNullOrWhiteSpace($Signature) -or $Occurrences -le 0) {
+        throw 'PCIe H2-B0 fingerprint contains an empty signature or non-positive count.'
+    }
+    if ($ExpectedIssueCounts.ContainsKey($Signature)) {
+        throw "PCIe H2-B0 fingerprint contains duplicate signature: $Signature"
+    }
+    $ExpectedIssueCounts.Add($Signature, $Occurrences)
+}
+
+$ExpectedRawOccurrences = (
+    $ExpectedIssueCounts.Values | Measure-Object -Sum
+).Sum
+if ($ExpectedIssueCounts.Count -ne [int]$Fingerprint.expected_unique_signatures -or
+    $ExpectedRawOccurrences -ne [int]$Fingerprint.expected_raw_occurrences) {
+    throw 'PCIe H2-B0 fingerprint summary does not match its signature entries.'
+}
+
+$ActualIssueCounts = Get-BaselineIssueSignatureCounts `
+    -Lines (Get-Content -LiteralPath $BuildLog)
+
+$IssueGroups = [ordered]@{
+    'UART RX tied low' = '^Verilog-2036\|'
+    'Unconstrained top-level I/O' = '^Timing-408[67]\|'
+    'Unspecified PCIe serial I/O constraints' = '^ConstraintEditor-4019\|'
+    'Share-pin placement requires board review' = '^ConstraintEditor-2002\|'
+    'SCBV not configured' = '^Bitstream-2001\|'
+}
+$DetectedIssues = foreach ($Issue in $IssueGroups.GetEnumerator()) {
+    $MatchingSignatures = @($ActualIssueCounts.Keys | Where-Object {
+            $_ -match $Issue.Value
+        })
+    if ($MatchingSignatures.Count -eq 0) {
+        continue
+    }
+    $OccurrenceCount = 0
+    foreach ($Signature in $MatchingSignatures) {
+        $OccurrenceCount += $ActualIssueCounts[$Signature]
+    }
+    Write-Warning ("{0}: {1} signature(s), {2} occurrence(s)" -f `
+            $Issue.Key, $MatchingSignatures.Count, $OccurrenceCount)
+    $Issue.Key
+}
+
+if ($AllowKnownBaselineIssues) {
+    $AllSignatures = @(
+        @($ExpectedIssueCounts.Keys) + @($ActualIssueCounts.Keys) |
+            Sort-Object -CaseSensitive -Unique
+    )
+    $FingerprintDifferences = [Collections.Generic.List[string]]::new()
+    foreach ($Signature in $AllSignatures) {
+        $ExpectedCount = if ($ExpectedIssueCounts.ContainsKey($Signature)) {
+            $ExpectedIssueCounts[$Signature]
+        } else {
+            0
+        }
+        $ActualCount = if ($ActualIssueCounts.ContainsKey($Signature)) {
+            $ActualIssueCounts[$Signature]
+        } else {
+            0
+        }
+        if ($ExpectedCount -ne $ActualCount) {
+            $FingerprintDifferences.Add(
+                "$Signature expected=$ExpectedCount actual=$ActualCount"
+            )
+        }
+    }
+    if ($FingerprintDifferences.Count -gt 0) {
+        throw ("PCIe H2-B0 baseline fingerprint changed:`n- {0}" -f `
+                ($FingerprintDifferences -join "`n- "))
+    }
+    Write-Host ("INFO: PCIe H2-B0 baseline fingerprint matched {0} signatures and {1} occurrences" -f `
+            $ActualIssueCounts.Count, $ExpectedRawOccurrences)
+}
 
 $WorstSlack = ($TimingRows | Measure-Object -Property Slack -Minimum).Minimum
 Write-Host "INFO: timing gate passed; worst parsed slack is $WorstSlack ns"

@@ -311,3 +311,12 @@
 - 新 50H timing report 为 `All Constraints Met`，门禁解析的最差 slack 为 `0.100 ns`；资源约为 3779 LUT、4279 FF、40.5 DRM、6 个顶层 I/O。
 - 严格 `check_build.ps1` 返回非零并精确报告 UART RX 死通道、未约束顶层 I/O、PCIe 串行 I/O 约束缺口、M15/M16 share pin 和 SCBV 未配置。显式 baseline 放行返回 0，但明确标记不可发布。
 - 本批未运行 ModelSim/QuestaSim；S0-1 仍因本机缺少 `vsim.exe`、`vlog.exe`、`vlib.exe` 阻断。
+
+## 2026-08-30：PCIe H2-B0 精确 baseline 指纹门禁
+
+- 复验当前 PG2L50H 构建：baseline gate 返回 0 并明确不可发布，strict gate 返回 1；IDF、build log、timing report 与 `bgr.db` 均匹配 `Logos2/PG2L50H/FBG484/-6`。
+- 旧 gate 只按五个宽泛正则判断是否命中，不比较对象或数量；同类别新增、消失、改名、share-pin 位置漂移可被误放行，IP metadata mismatch 也被错误并入 baseline 集合。
+- 新增 `doc/H2B_BASELINE_FINGERPRINT.json` 与审核文档，将五类阻断归一化为 16 个签名、42 次记录。baseline 模式逐项比较完整多重集；metadata 漂移改为无条件硬失败。
+- 日志变异测试覆盖缺失 UART、重复 UART、Timing 端口改名、share-pin `M15 -> N15` 和 IDF `PG2L50H -> PG2L100H`，五项即使显式 baseline 均返回 1。
+- 本批未修改 RTL、活动 IDF、FDC、厂商 IP 或生成物；lane/refclk/PERST#/SCBV/UART/I/O timing 仍属于 H2-B1 外部阻断，strict gate 继续失败。
+- 审计另发现 partial PDS run 可能遗留旧 full-build 日志与产物；该问题进入 CI-8 provenance/freshness，不在本批用时间戳容差或隐式假设处理。

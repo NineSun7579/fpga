@@ -63,6 +63,13 @@
 - 已验证：正向门禁退出码为 0；删除任一清单条目的负向测试退出码为 1。历史 GUI、厂商内部和厂商仿真 Tcl 不得用于器件身份、STA、网表、SDF、位流或集成仿真通过证明。
 - 边界：CI-7 仅验证 tracked Tcl 分类和入口事实，不执行 PDS、IP Compiler、STA、位流或 ModelSim/QuestaSim。
 
+## PCIe H2-B0 精确 baseline（2026-08-30）
+
+- 已验证：五类已知问题归一化为 16 个唯一签名、42 次原始记录；baseline 按完整多重集比较，签名新增、消失、改名、share-pin 位置变化或次数漂移均失败。
+- 已验证：活动 PCIe IDF 的 family/device/package/speedgrade metadata 漂移为永久硬失败，不受 baseline 放行参数影响；canonical fixture 正向退出 0、strict 退出 1，5 个变异 fixture 均退出 1。
+- 外部阻断：H2-B1 仍需 lane/refclk/PERST#/SCBV/UART/I/O timing 的板级证据与决策。H2-B0 发现 partial run 可复用旧 full-build 日志/产物，CI-8 provenance/freshness 待办负责建立同次运行证明。
+- 边界：本批没有 RTL、活动 IDF、FDC、厂商 IP 或生成物修改；H2-B0 只保护失败基线不漂移，不代表 PCIe 可上板或可发布。
+
 ## S0-0-R 仿真器环境复核（2026-08-30）
 
 - 已验证：提交 `ef5cc9a` 再次探测 PATH、常见安装目录和 `vsim.exe` 文件名，`vsim.exe`、`vlog.exe`、`vlib.exe` 均未发现。

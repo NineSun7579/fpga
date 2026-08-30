@@ -44,6 +44,10 @@
 - ci_7_roles: 角色集合固定为 `canonical_project_build`、`migration_blocked_project_build`、`canonical_support_tool`、`historical_gui`、`vendor_generated_internal`、`vendor_sim_internal`；只有三个项目 `scripts/build.tcl` 可由对应 `run.ps1` 调用。
 - ci_7_target_boundary: PCIe `scripts/build.tcl` 已是 `Logos2 / PG2L50H / FBG484 / -6` canonical；OV7725 与 DDR3 `scripts/build.tcl` 仍是 PG2L100H migration-blocked。历史 GUI、厂商内部和厂商仿真脚本的混合器件/绝对路径不构成当前器件或实现证据。
 - ci_7_result: 正向 `check_pds_tcl_entrypoints.ps1` 退出 0；删除任一清单项的负向测试退出 1。M2/M3 升格时必须同步清单角色与器件集合。
+- h2_b0_scope: PCIe 当前 PG2L50H baseline 将五类问题归一化为 16 个唯一签名、42 次原始记录；baseline 比较完整多重集，新增、消失、改名、share-pin 位置或次数漂移均失败，活动 IDF family/device/package/speedgrade 漂移永久硬失败。
+- h2_b0_result: canonical fixture 正向退出 0、strict 退出 1；缺失 UART、重复 UART、Timing 端口改名、share pin 改位和 IDF 改为 PG2L100H 五个变异均退出 1。本批无 RTL、活动 IDF、FDC、厂商 IP 或生成物修改。
+- h2_b1_boundary: lane/refclk/PERST#/SCBV/UART/I/O timing 仍需板级资料与决策；H2-B0 不解除发布阻断。
+- ci_8_next: partial PDS run 可能复用旧 full-build 日志/产物，需建立 provenance/freshness manifest，证明阶段、输入、工作目录和产物来自同一次运行；不得用时间戳容差或隐式假设替代。
 - hardware_target_decision: 用户于 2026-08-30 确认三个项目共用 `RK3568+PG2L50H100H` 开发板，实际 FPGA 为 `PG2L50H-6IFBG484`；统一 PDS 目标为 `Logos2 / PG2L50H / FBG484 / -6`。
 - legacy_100h_boundary: 全部 PG2L100H PDS/STA/网表/位流仅保留为历史证据，不得烧录或作为实板验收；三个项目必须分别建立 PG2L50H 新 baseline。
 - ci_0_boundary: 仅为仓库结构与文档静态一致性门禁，不启动或替代 PDS 构建、STA、项目严格 gate 或四级仿真。
