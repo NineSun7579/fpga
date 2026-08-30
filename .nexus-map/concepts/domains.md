@@ -18,9 +18,9 @@ ModelSim/QuestaSim 分别承担行为级、综合后、PNR 后功能和 PNR 后�
 
 厂商 IP 自带 `example_design`、testbench 或 PNR 工程只能证明示例自身状态。只有产品顶层显式包含所需 RTL、IP、板级约束和集成测试后，结果才能归属于产品工程。
 
-DDR3 D3-0（2026-08-30）进一步固定只读边界：活动 IP 是 `ddr3_test/ddr3_test/ip_core/ddr3/ddr3.v` 的公开 `module ddr3`，其端口包含 `core_clk`、`ddr_init_done` 以及自定义 AXI-like AW/W/AR/R 接口；`test_ddr.v` 的物理 board wrapper 实例名必须保留为 `I_ips_ddr_top`。静态端口事实不等于握手语义已签核。
+DDR3 D3-0（2026-08-30）已完成只读边界评审：活动 IP 是 `ddr3_test/ddr3_test/ip_core/ddr3/ddr3.v` 的公开 `module ddr3`，其端口包含 `core_clk`、`ddr_init_done` 以及自定义 AXI-like AW/W/AR/R 接口；`test_ddr.v` 的物理 board wrapper 实例名必须保留为 `I_ips_ddr_top`。
 
-D3-A 必须单独明确 `axi_wready`、`axi_wusero_id`、`axi_wusero_last` 的时序/消费规则，以及核心缺少 `axi_rready` 时 `axi_rvalid`、`axi_rdata` 的保持、完成和背压语义。当前 `test_wr_ctrl_v1_0` 将 `axi_wready` 用作写执行/接受指示，而 BIST 未消费 `axi_wusero_id`/`axi_wusero_last`；这些观察只作为评审输入，不可在 D3-0 擅自解释成标准 AXI ready/valid。D3-0 只更新文档，不修改 RTL、IP 或约束。
+D3-0 已确认该接口不能按标准 AXI ready/valid 擅自解释：AW/AR 分别以 valid/ready 接受，写数据接受由 `axi_wready` 指示，核心返回 `axi_wusero_id`/`axi_wusero_last`；读返回使用 `axi_rvalid`/`axi_rlast` 且没有 `axi_rready`。D3-A 等待用户审核后按此边界实现；若 IP 重生成导致接口语义、地址单位或 `I_ips_ddr_top` 层级变化，必须停止并重新审核。
 
 PCIe H2-A（2026-08-30）固定产品顶层的板级边界：`pcie_dma_test` 使用 x2 `rxn/rxp/txn/txp`、差分 `ref_clk_p/n`、`perst_n`、`button_rst_n` 和两枚 LED；当前 FDC 仅固定 refclk `F6/E6`、PERST# `M16`、button reset `M15`、LED `M17/J16`。lane 极性、板级拓扑、I/O delay 和 SCBV 均没有证据，不能由实现成功推断。
 

@@ -21,7 +21,7 @@
 - DDR3 已从空 `build/` 完成 `compile → synthesize → dev_map → pnr → report_timing → gen_netlist → gen_bit_stream`，日志无 `E:`；最终报告为 `All Constraints Met`，慢角 setup WNS `0.678 ns`、TNS `0`，hold `0.137 ns`、recovery `4.578 ns`、removal `0.351 ns`。
 - DDR3 已生成非零综合网表、PNR 网表、SDF、`.sbit` 和 `.bin`；严格 gate 因 7 类已知阻断返回 1，显式 baseline 放行返回 0 但明确不可发布。日志没有 SCBV 命中，板级批准参数清单仍缺失，功能与四级仿真仍未验收。
 - DDR3 D2 只读决策已完成：厂商 `test_ddr`、持续运行 BIST 和失配 testbench 保持原样；后续项目自有顶层固定为 `rtl/ddr3_bringup_top.sv` 与 `rtl/ddr3_finite_bist.sv`。首版契约执行 16 个单 beat 写读比较 pair，控制器地址为 `0x0..0x78`、步长 8，单 pair timeout 为 4096 周期、整次 run timeout 为 131072 周期，并公开稳定的 `test_done`、`test_failed`、`failure_code`、`error_count`、`completed_pairs` 和首错信息。该设计尚未实现或仿真，D3 待审核。
-- DDR3 D3-0 只读评审（2026-08-30，已完成）：已固定活动 IP 为 `ddr3_test/ddr3_test/ip_core/ddr3/ddr3.v` 的公开 `module ddr3`：端口含 `ddr_init_done`、`core_clk` 及自定义 AXI-like AW/W/AR/R 接口。`test_ddr.v` 的物理 board wrapper 实例名必须保持 `I_ips_ddr_top`；`axi_wready`、`axi_wusero_id`、`axi_wusero_last` 与缺少 `axi_rready` 的握手语义留待 D3-A 明确。本批只记文档，不改 RTL、IP 或约束。
+- DDR3 D3-0 只读评审（2026-08-30，已完成）：已固定活动 IP 为 `ddr3_test/ddr3_test/ip_core/ddr3/ddr3.v` 的公开 `module ddr3`、非标准 AXI-like AW/W/AR/R 握手和 `I_ips_ddr_top` board wrapper 边界。D3-A 等待用户审核后按该契约实现；接口语义、地址单位或层级变化即停止并重新审核。本批只记文档，不改 RTL、IP 或约束。
 - PCIe H2-A 只读证据（2026-08-30，已完成）：`pcie_dma_test` 顶层使用 x2 `rxn/rxp/txn/txp`、差分 `ref_clk_p/n`、`perst_n`、`button_rst_n` 与两枚 LED；当前 FDC 固定 refclk `F6/E6`、PERST# `M16`、button reset `M15`、LED `M17/J16`。FDC 未提供 lane 极性/板级拓扑、I/O delay 或 SCBV；活动 `pcie_test.idf` metadata 仍为 `Logos2/PG2L50H/FBG484/-6`，而 PDS 目标为 `Logos2/PG2L100H/FBG484/-6`。UART2APB 的 `rxd/txd` 为隐式连接，`rxd` 被绑 0。
 - OV7725 O0-A 已形成 [CDC/RDC 审计与整改契约](../41_ov7725_hdmi/doc/CDC_RDC_AUDIT.md)，覆盖七类时钟域、帧事件多点采样、两个异步 FIFO 的数据方向/分侧复位风险及三条旧 STA 失败路径；本批只建立事实和契约，未修改 RTL、IP 或 FDC。
 - OV7725 O1-B 已按 [RTL 卫生修复评审](../41_ov7725_hdmi/doc/RTL_HYGIENE_AUDIT.md) 完成：原 39 条手写 RTL 位宽告警中的 38 条确定性问题已消失，只保留活动 IP 14 bit 与顶层/FDC 15 bit 冲突的 `ddr3_ip.mem_a` 1 条；该项仍属于 H3/O1-C。
@@ -33,7 +33,8 @@
 - O2-D1-R 已从空 `build/` 重建回退后的七组旧失败基线：baseline gate 精确匹配并返回 0，严格 gate 返回 1；Slow/Fast `ddrphy_sysclk → pixel_clk` Recovery 均恢复为 `53/53`，endpoint 分类为 `26+8+17+1+1`，O2-B 的 `54` 不修改旧 baseline。下一步由 O2-D1-G 收口 `/5` generated-clock、奇数分频 waveform、pre/post-buffer 取点、状态/复位分权和单次试验停止条件。
 - O2-D1-G 契约已冻结：只允许一条 `pixel_clk` `/5` generated clock，源为 PLL wrapper `u_pll_clk/clkout1`、目标为唯一 `GTP_IOCLKDIV_E2.CLKDIVOUT`，波形 `-edges {1 5 11} -edge_shift {0 0 0}`；控制器状态为 `HARD_HOLD → QUALIFY → ARM → SER_RELEASE → RUN`，并定义 hard/business reset 分权与首个有效 TMDS symbol。
 - S0-0 环境复核（2026-08-30，已完成）：PDS shell 路径存在且可作为唯一已发现工具；未发现 `vsim.exe`/`vlog.exe`/`vlib.exe`，动态仿真与 USIM/VSIM 编译保持阻塞。
-- 本次三项目 TODO 执行队列规划与知识图同步批次提交后，仓库累计 24 个 Git 提交；样本仍不足以计算可信的历史热点。
+- CI-0 仓库级静态一致性门禁已在工作区完成：新增 `scripts/check_repo_consistency.ps1`，修正三个项目 README 的 PDS 版本、顶层或仿真状态缺口；门禁退出码为 0，全部 7 个 PowerShell 脚本 AST 解析错误数为 0。该门禁不启动或替代 PDS、STA、ModelSim/QuestaSim。
+- CI-0 仓库级静态一致性门禁已作为独立批次提交；仓库累计 25 个 Git 提交，样本仍不足以计算可信的历史热点。
 - 根目录 [README](../README.md) 是 PDS 外部实现与仿真指南。
 - 根目录 [TODO](../TODO.md) 是当前整改顺序和验收门槛。
 - 新增或修改 Verilog/SystemVerilog 时必须遵循 [VSCS](../VERILOG_SYSTEMVERILOG_COMMENTING_STANDARD.md)。
@@ -51,14 +52,13 @@
 
 ## 当前优先级
 
-1. S0-0 环境复核已完成；ModelSim/QuestaSim 安装、`vsim.exe`/`vlog.exe`/`vlib.exe` 验证和 Logos2 USIM/VSIM 编译仍待外部环境。
-2. OV7725 O2-D1-R 已完成：旧七组失败指纹精确复现，Slow/Fast `ddrphy_sysclk → pixel_clk` 均为 `53/53`，未修改 baseline 或功能文件。
-3. O2-D1-G 契约收口完成，待用户审核；唯一候选为 `CLKOUT3=65.0026 MHz`、约 `+0.192 ns` 相位、每 serializer 本地 reset 复制，以及显式 `/5` generated-clock/状态契约。
-4. O2-D2 仍待用户审核和外部实现/STA；审核后只执行一次。八个 OSERDES endpoint 的 Slow/Fast × Recovery/Removal × `OCLK` 双边沿/`OCLKDIV`/`SERCLK` 必须全部覆盖且非负；任一对象解析、波形、时序或新增失败签名异常即停止并完整回退，禁止 false path、multicycle、clock-group waiver、第二相位扫描。
-5. O2-D2 成功后按 O3-A → O2-C1 → O2-C2 → O3-B → O4 推进；O4 同时依赖 O2-C2 与 O3-B。
-6. DDR3 D3-0 只读评审已完成；D3-A 仍待明确 `axi_wready`/`axi_wusero_id`/`axi_wusero_last` 及无 `axi_rready` 的握手契约，审核前不得修改 RTL/IP/约束。
-7. PCIe H2-A 只读证据矩阵已完成；H2-B 仍待板级 lane 极性/拓扑、I/O delay、SCBV 决策及将 `pcie_test.idf` 重新生成到 PG2L100H，资料不足或元数据不一致时停止收紧 gate，不改 RTL/IDF/FDC。
-8. 仿真器安装并完成库编译后，再补齐三项目四级仿真和 SDF 标注验证。
+1. S0-1 恢复公共仿真环境，当前受 ModelSim/QuestaSim 安装、许可证及 `vsim.exe`/`vlog.exe`/`vlib.exe` 路径阻断；只有 Logos2 USIM/VSIM 编译退出 0 且库目录非空后才解除动态仿真阻断。
+2. H0/H1/H3 补齐板卡、原理图/BOM、器件丝印、bank 电压、DDR3 料号/拓扑及 OV7725/HDMI 时序资料；资料缺失时不得猜测参数、I/O delay 或收紧 gate。
+3. O2-D2 等待用户书面审核 O2-D1-G 契约；通过后只执行一次 PLL 重生成、控制器与 `/5` generated-clock 实现，任一对象、warning、CDC、SDF、时序或 baseline 漂移异常即完整回退。
+4. DDR3 D3-0 握手语义与 `I_ips_ddr_top` 边界评审已完成；D3-A → D3-B → D3-C 等待用户审核后依次实现骨架、16 个有限 pair 与七阶段回归，厂商 `ip_core/ddr3/**` 保持原样。
+5. PCIe H2-B 等待 H0/H2 板级资料、UART 保留/删除决策及 PG2L100H IP 重生成审核；完成器件、lane/refclk/PERST#/SCBV 与精确 gate 闭环前保持阻断。
+6. S1/S2/S3 等待 S0-1 完成且对应 RTL/IP/网表/SDF 锁定，再执行三项目行为级、综合后、PNR 功能与 PNR 时序仿真。
+7. OV7725 最终链为 O1-C → O3-A → O2-C1 → O2-C2 → O3-B → O4，前置为 H3 板级事实与 O2-D2 结果；最终必须完成非负 setup/hold/recovery/removal、SDF、位流和仿真闭环。
 
 ## 更新规则
 

@@ -199,3 +199,12 @@
 
 - 总 TODO 已同步标记 S0-0、DDR3 D3-0 和 PCIe H2-A 为已完成的只读/环境复核；对应的安装、D3-A、H2-B 和 OV7725 O2-D2 仍保持未完成并受外部资料或用户审核约束。
 - 本次只修正状态索引，没有改变任何实现结论、gate 规则或功能文件边界。
+
+## 2026-08-30：仓库级静态一致性门禁
+
+- 新增 `scripts/check_repo_consistency.ps1`，只检查仓库结构与文档一致性，不启动 PDS 或 ModelSim/QuestaSim。
+- 门禁覆盖根指南/TODO/VSCS、三个项目的 README、`build.tcl`、`run.ps1`、`check_build.ps1`、顶层模块、七阶段入口、显式 baseline 开关和非空产物检查接口。
+- 门禁确认 `.gitignore` 会忽略各层 `build/`，且当前没有被 Git 跟踪的生成目录；同时拒绝活动 Tcl 中的 `simulate` 命令和反斜杠绝对路径。
+- 首次运行发现并修正 README 的事实缺口：统一记录 PDS `2022.2-SP6.4`、顶层模块和 DDR3 仿真阻断状态。
+- 静态门禁最终输出 `INFO: repository consistency gate passed`；七个 PowerShell 脚本 AST 解析错误数为 0。
+- 本批未运行 PDS/QuestaSim，未修改 RTL、IP、PLL、FDC、RCF 或 `build/`。

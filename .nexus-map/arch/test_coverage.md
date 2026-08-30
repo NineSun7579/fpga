@@ -16,6 +16,13 @@
 - 静态发现：PATH、`C:/questasim64/win64`、`C:/ModelSim/win64`、`C:/Program Files/ModelSim/win64`、`C:/Program Files/QuestaSim/win64`、`C:/Program Files/Siemens/QuestaSim/win64` 及常见 Intel ModelSim 目录均未找到 `vsim.exe`、`vlog.exe`、`vlib.exe`。
 - 未验证：动态仿真、USIM/VSIM 编译和 SDF 标注；安装 ModelSim/QuestaSim 并确认三个可执行文件后，才可解除该阻塞。
 
+## CI-0 仓库级静态一致性门禁（2026-08-30）
+
+- 已验证：新增 `scripts/check_repo_consistency.ps1`，覆盖根指南/TODO/VSCS、三个项目 README、PDS 构建入口、顶层声明、七阶段命令、可配置工具路径、退出码、baseline 开关、产物/时序检查接口和 `build/` 忽略状态。
+- 已验证：三个项目 README 的 PDS `2022.2-SP6.4`、顶层模块或仿真状态缺口已修正；门禁退出码为 0，并输出 `INFO: repository consistency gate passed`。
+- 已验证：仓库内全部 7 个 PowerShell 脚本 AST 解析错误数为 0。
+- 边界：CI-0 不启动 PDS 或 ModelSim/QuestaSim，不替代项目严格 gate、STA 或四级仿真。
+
 ## 项目状态
 
 | 项目 | PDS 实现证据 | 时序证据 | 行为仿真 | 综合后仿真 | PNR 功能仿真 | PNR 时序仿真 |
@@ -34,9 +41,9 @@
 - DDR3：本次完整构建日志没有 SCBV 命中；这不替代板级批准参数清单。DDR3 颗粒/组织、VCCIO/VREF、ODT、拓扑、走线、UART/ADC 决策等仍缺少审核依据。
 - DDR3：testbench 端口仍失配，BIST 无天然有限完成状态，缺少可靠 `$fatal`、超时、唯一 `TEST PASS` 和四级仿真证据；当前结果只验收可重复实现基线，不验收板级功能或产品状态。
 - DDR3：D2 已以只读方式固定后续测试契约，厂商 `test_ddr`、持续运行 BIST 和旧 testbench 保持原样。计划新增 `ddr3_bringup_top.sv` 与 `ddr3_finite_bist.sv`，首版执行 16 个单 beat 写读比较 pair，地址 `0x0..0x78`、步长 8，并设置 4096 周期 pair timeout 与 131072 周期 run timeout。
-- DDR3：未来行为仿真必须通过公开且稳定的 `test_done`、`test_failed`、`failure_code`、`error_count`、`completed_pairs` 和首错信息判定结果；D2 仅完成决策，不构成实现或测试覆盖，D3 仍待审核。
+- DDR3：未来行为仿真必须通过公开且稳定的 `test_done`、`test_failed`、`failure_code`、`error_count`、`completed_pairs` 和首错信息判定结果；D2 与 D3-0 仅完成只读决策，不构成实现或测试覆盖，D3-A/B/C 仍待用户审核。
 - DDR3 D3-0（只读静态评审）：活动 IP 为 `ddr3_test/ddr3_test/ip_core/ddr3/ddr3.v` 的 `module ddr3`，公开端口包含 `ddr_init_done`、`core_clk` 与 AW/W/AR/R 自定义 AXI-like 接口；`test_ddr.v` 的物理 board wrapper 实例名为 `I_ips_ddr_top`，必须保留。
-- DDR3 D3-0 握手缺口：核心输出 `axi_wready`、`axi_wusero_id`、`axi_wusero_last`，但现有 BIST 对后两者无结果消费；核心没有 `axi_rready`，读侧依赖 `axi_rvalid`。`axi_wready` 是否为接受脉冲/电平、写数据何时有效、读数据是否可背压等必须在 D3-A 明确；本批不改 RTL/IP/约束。
+- DDR3 D3-0 已完成非标准 AXI-like 握手评审：AW/AR 分别以 valid/ready 接受，写数据接受由 `axi_wready` 指示，核心返回 `axi_wusero_id`/`axi_wusero_last`；读返回依赖 `axi_rvalid`/`axi_rlast` 且无 `axi_rready`。D3-A 等待用户审核后按该契约实现，接口语义、地址单位或层级变化即停止并重新审核。
 - PCIe：现有 ModelSim 资产只覆盖 PCIe IP 示例，不覆盖 `pcie_dma_test` 集成顶层；UART2APB 的无驱动输入属于已知功能缺陷。
 - PCIe H2-A（只读证据矩阵）：顶层使用 x2 `rxn/rxp/txn/txp`、差分 `ref_clk_p/n`、`perst_n`、`button_rst_n` 与 `ref_led/pclk_led`；FDC 固定 refclk `F6/E6`、PERST# `M16`、button reset `M15`、LED `M17/J16`。当前没有 lane 极性/板级拓扑、I/O delay 或 SCBV 证据。
 - PCIe H2-A 器件边界：`ipcore/pcie_test/pcie_test.idf` metadata 为 `Logos2/PG2L50H/FBG484/-6`，PDS 工程目标为 `Logos2/PG2L100H/FBG484/-6`；在 IP 重生成前不得把实现结果当作目标器件签核。UART2APB `rxd/txd` 为隐式连接且 `rxd` 被绑 0，属于独立功能阻断。
@@ -54,5 +61,5 @@
 4. 时序仿真确认 SDF 实例层级匹配，日志无标注错误和未批准的 timing violation。
 5. 最终位流文件存在且大小非零；关键未约束 I/O 必须修复或进入有依据的白名单。
 6. DDR3 有限自检必须完成恰好 16 个 pair；任一 pair 超过 4096 周期或整次运行超过 131072 周期均失败，成功与失败只能由公开结果接口和退出码判定。
-7. DDR3 D3-A 在实现前必须冻结 AW/W/AR/R 握手语义与 `I_ips_ddr_top` 实例边界；D3-0 评审不构成 RTL/IP/约束变更或仿真通过证据。
+7. DDR3 D3-0 已冻结 AW/W/AR/R 握手语义与 `I_ips_ddr_top` 实例边界；D3-A/B/C 仍待用户审核和实现，且 D3-0 评审不构成 RTL/IP/约束变更或仿真通过证据。
 8. PCIe H2-B 只有在 lane 极性/板级拓扑、I/O delay、SCBV、IDF/PDS 器件一致性和 UART2APB 端口归属均有证据后才可收紧 gate；任一缺口时保持 H2-A 只读状态。

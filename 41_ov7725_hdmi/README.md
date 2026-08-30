@@ -10,6 +10,9 @@
 Logos2 / PG2L100H / FBG484 / -6
 ```
 
+- PDS 版本：`2022.2-SP6.4`
+- 顶层模块：`ov7725_hdmi`
+
 `prj/impl.tcl` 含历史绝对路径和旧器件操作，只作为现状证据。当前可重复构建入口为 `scripts/build.tcl` 和 `scripts/run.ps1`。
 
 ## 当前状态

@@ -8,12 +8,16 @@
 
 - implementation_status: documented
 - code_path: null
-- evidence_path: `README.md`, `TODO.md`
+- evidence_path: `README.md`, `TODO.md`, `scripts/check_repo_consistency.ps1`
 - evidence_gap: 三项目均已建立 SP6.4 可重复全流程与严格/baseline gate 证据；2026-08-30 S0 复核仅确认 `E:/pango/PDS_2022.2-SP6.4/bin/pds_shell.exe` 存在，PATH、`C:/questasim64/win64` 和常见 ModelSim/QuestaSim 目录均未找到 `vsim.exe`、`vlog.exe`、`vlib.exe`，因此动态仿真及 USIM/VSIM 编译仍阻塞。
 - responsibility: 定义 PDS 2022.2-SP6.4 的实现流程、ModelSim/QuestaSim 四级仿真流程及三工程整改门槛。
 - s0_environment_review: `2026-08-30`；PDS shell 为唯一已发现工具，仿真器安装后才允许执行 `compile_simlib` 并编译 USIM/VSIM。
 - s0_0_status: completed_read_only_environment_review; ModelSim/QuestaSim 安装与 USIM/VSIM 编译仍待外部环境
-- next_step: 安装并验证 ModelSim/QuestaSim，随后编译 Logos2 USIM/VSIM；在此之前仅记录静态 PDS 证据，不得声称动态仿真通过。
+- ci_0_status: completed_in_worktree_pending_commit
+- ci_0_scope: 检查根指南/TODO/VSCS、三个项目 README、`build.tcl`、`run.ps1`、`check_build.ps1`、顶层声明、七阶段入口、可配置 PDS 路径、进程退出码、显式 baseline 开关、产物/时序检查接口、`build/` 忽略与未跟踪生成物状态；拒绝活动 Tcl 的 `simulate` 命令和反斜杠绝对路径。
+- ci_0_result: `scripts/check_repo_consistency.ps1` 退出码 0，并输出 `INFO: repository consistency gate passed`；三个项目 README 缺口已修正，全部 7 个 PowerShell 脚本 AST 解析错误数为 0。
+- ci_0_boundary: 仅为仓库结构与文档静态一致性门禁，不启动或替代 PDS 构建、STA、项目严格 gate 或四级仿真。
+- next_step: S0-1 等待安装并验证有许可证的 ModelSim/QuestaSim，随后编译 Logos2 USIM/VSIM；只有编译退出 0 且库目录非空后才解除动态仿真阻断。
 
 ## Verilog/SystemVerilog 注释规范
 
@@ -48,7 +52,7 @@
 - reset_ownership: `sys_rst_n` 下降或 `pll_lock` 丢失可异步回 `HARD_HOLD`；普通 video/business reset 只能撤销 RUN 并重新 warm-up，不得组合异步驱动 OSERDES 本地 reset；`ddr3_init_done` 不得参与 hard reset、QUALIFY、ARM、OSERDES reset 或状态转移，后续仅作为同步业务 enable/status；FIFO reset/flush 保留给 O2-C2。
 - first_valid_tmds_symbol: 首个有效 symbol 定义为 serializer reset 下降后、首个 `OCLKDIV` 上升沿采入的四路同时确定的完整 TMDS 并行字，而非首个活动视频像素；RUN 至少延后两个 control 周期，确保该 symbol 完整串行发送。
 - o2d2_stop_conditions: O2-D2 仅一次、经用户审核后执行；generated-clock 对象为 0/多对象、源计数非 1、自动/显式重名、waveform 不符、divider 取 post-buffer、任一八 OSERDES endpoint 的 Slow/Fast Recovery/Removal 未全覆盖或为负、出现新 baseline 失败签名、PDS/gate/产物失败，均立即停止并完整回退，不得扫描第二相位或新增 waiver。
-- next_step: O2-D1-G → 用户审核 → 单次 O2-D2 → O3-A → O2-C1 → O2-C2 → O3-B → O4；O2-D2 不扫描第二相位、不增加 waiver，失败即完整回退。DDR3 D3-0 与 PCIe H2 保持只读泳道
+- next_step: O2-D1-G 已完成，等待用户书面审核后单次执行 O2-D2；H3 与 O2-D2 闭合后按 O1-C → O3-A → O2-C1 → O2-C2 → O3-B → O4 推进。O2-D2 不扫描第二相位、不增加 waiver，失败即完整回退。
 - high_attention: `i2c_dri_clk` 逻辑生成时钟、`cam_pclk`/DDR `ui_clk`/`pixel_clk` 间业务 CDC、FIFO 分侧复位，以及 `ddr3_init_done` 参与的复位释放。
 
 ## DDR3 外层工程
@@ -57,11 +61,11 @@
 - code_path: `ddr3_test/ddr3_test/`
 - project_path: `ddr3_test/ddr3_test/ddr3_test.pds`
 - evidence_path: `ddr3_test/ddr3_test/build/logs/pds-gen_bit_stream.log`, `ddr3_test/ddr3_test/build/pds/report_timing/test_ddr.rtr`, `ddr3_test/ddr3_test/scripts/check_build.ps1`
-- evidence_gap: SP6.4 全流程、STA、综合网表、PNR 网表、SDF 和位流已验证；严格 gate 因 7 类已知阻断返回 1，显式 baseline 放行返回 0 但不可发布。D2 已完成只读契约决策，但项目自有有限 BIST 顶层尚未实现；板级批准参数清单、产品功能和四级仿真仍未验收。
+- evidence_gap: SP6.4 全流程、STA、综合网表、PNR 网表、SDF 和位流已验证；严格 gate 因 7 类已知阻断返回 1，显式 baseline 放行返回 0 但不可发布。D2 与 D3-0 只读契约决策已完成，但项目自有有限 BIST 顶层尚未实现；D3-A/B/C 仍待用户审核，板级批准参数清单、产品功能和四级仿真仍未验收。
 - responsibility: 当前以厂商 `test_ddr` 作为临时 DDR3 board bring-up 顶层；后续必须明确真正产品顶层和板级功能范围。
 - d3_0_read_only_review: `2026-08-30` 已确认活动 IP 为 `ddr3_test/ddr3_test/ip_core/ddr3/ddr3.v` 的 `module ddr3`；公开端口包含 `ddr_init_done`、`core_clk` 和自定义 AXI-like AW/W/AR/R 接口。`test_ddr.v` 的物理 board wrapper 实例名 `I_ips_ddr_top` 必须保持不变。
-- d3_0_status: completed_read_only_review; D3-A 握手契约仍待审核
-- d3_0_handshake_gap: `axi_wready` 被现有写控制器作为执行/接受指示使用；`axi_wusero_id`、`axi_wusero_last` 虽由核心输出但当前 BIST 控制器未纳入结果契约；核心没有 `axi_rready`，读侧直接消费 `axi_rvalid`。这些不是本批可推定的标准 ready/valid 语义，D3-A 必须先明确握手、保持和背压规则。
+- d3_0_status: completed_read_only_review; D3-A implementation pending user review
+- d3_0_handshake_contract: 写地址以 `axi_awvalid && axi_awready` 接受，写数据接受由 `axi_wready` 指示，核心返回 `axi_wusero_id`/`axi_wusero_last`；读请求以 `axi_arvalid && axi_arready` 接受，核心用 `axi_rvalid`/`axi_rlast` 返回且没有 `axi_rready`。D3-A 按该非标准 AXI-like 契约实现；若 IP 重生成后语义、地址单位或层级变化则停止并重新审核。
 - d3_0_boundary: 只更新文档和评审事实；D3-0 不修改 RTL、活动 IP、FDC/RCF 或构建脚本。
 - provisional_build_entry: `ddr3_test/ddr3_test/scripts/run.ps1`
 - build_definition: `ddr3_test/ddr3_test/scripts/build.tcl`
@@ -78,12 +82,12 @@
 - implementation_status: designed_pending_implementation
 - code_path: planned `ddr3_test/ddr3_test/rtl/ddr3_bringup_top.sv`, `ddr3_test/ddr3_test/rtl/ddr3_finite_bist.sv`
 - evidence_path: D2 只读评审决策；厂商 `test_ddr`、BIST 和 testbench 源码静态证据
-- evidence_gap: 两个项目自有 RTL 文件尚未创建；QuestaSim 缺失，行为级、综合后和 PNR 后仿真均未执行；D3 尚待审核。
+- evidence_gap: 两个项目自有 RTL 文件尚未创建；QuestaSim 缺失，行为级、综合后和 PNR 后仿真均未执行；D3-A/B/C 尚待用户审核与实现。
 - responsibility: 在不修改厂商 `test_ddr`、持续运行 BIST 和旧 testbench 的前提下，提供有限、确定且可由 CI 判定的 DDR3 写读比较测试。
 - transaction_contract: 16 个单 beat 写读比较 pair；控制器地址 `0x0..0x78`、步长 8；每 pair timeout 4096 周期；整次 run timeout 131072 周期。
 - result_contract: 稳定公开 `test_done`、`test_failed`、`failure_code`、`error_count`、`completed_pairs`，并提供首错地址/期望值/实际值等首错信息。
 - ownership_boundary: 厂商 `ip_core/ddr3/**` 保持原样；新增项目自有 RTL 必须遵循根目录 VSCS。
-- next_step: D3-A 先明确 AXI-like AW/W/AR/R 握手契约（含 `axi_wready`、`axi_wusero_id`、`axi_wusero_last` 和缺少 `axi_rready` 的语义），再提请 D3 实现批次审核；在此之前保持 RTL/IP/约束只读
+- next_step: 等待用户审核 D3-0 握手语义与顶层边界后，按 D3-A → D3-B → D3-C 实现骨架、16 个有限 pair 与七阶段 PDS 回归；保持 `I_ips_ddr_top` 和厂商 `ip_core/ddr3/**` 原样
 
 ## DDR3 IP 示例
 
@@ -114,4 +118,4 @@
 - h2a_uart_gap: UART2APB 使用隐式 `rxd/txd` 网络，当前 `rxd` 被绑 0；该功能缺口不因 PDS/STA 成功而关闭。
 - h2a_boundary: H2-A 仅更新文档、证据矩阵与 IP 重生成契约，不修改 RTL、IDF 或 FDC。
 - h2b_stop_conditions: 板级 lane 极性/拓扑、I/O delay 或 SCBV 缺失，IDF/PDS 器件元数据不一致，或 UART2APB `rxd/txd` 归属未决时，H2-B 不得收紧 gate；不得用 waiver 掩盖缺口。
-- next_step: 获取板级资料并将 `pcie_test.idf` 重新生成为 PG2L100H 后，提请 H2-B gate 收紧评审；在此之前保持 PCIe RTL/IDF/FDC 只读
+- next_step: H2-B 等待 H0/H2 板级资料、UART 保留/删除决策与 PG2L100H IP 重生成审核；证据齐全后再统一更新 IDF、约束和精确 gate，在此之前保持 PCIe RTL/IDF/FDC 只读

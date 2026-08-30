@@ -2,6 +2,7 @@
 
 ## 当前状态
 
+- PDS 版本：`2022.2-SP6.4`
 - 器件：`Logos2 / PG2L100H / FBG484 / -6`
 - 顶层：`pcie_dma_test`
 - 当前有效输入：37 个用户 RTL、`ipcore/pcie_test/pcie_test.idf`、`fdc/pcie_dma_test.fdc`

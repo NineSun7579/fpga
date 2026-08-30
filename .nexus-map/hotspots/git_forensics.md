@@ -8,7 +8,7 @@
 
 - 分支为 `main`。
 - 根提交为 `1a2d493`，保存三个原始工程、已有 PDS 产物和整改文档。
-- O2-D1-R 证据与知识图同步后为 17 个提交；O2-D1-G 契约收口批次预期为 18 个提交；S0 环境复核批次预期为 19 个提交；DDR3 D3-0 只读评审批次预期为 20 个提交；本次 PCIe H2-A 只读证据与知识图同步批次提交后预期为 21 个提交。样本仍不足以计算可信的 churn、共同变更或历史热点。
+- CI-0 仓库级静态一致性门禁已作为独立批次提交；截至本批仓库累计 25 个提交。第 22 个提交校正三项目 TODO 状态索引，第 23 个提交规划下一批执行队列，第 24 个提交同步 Nexus 提交计数，第 25 个提交加入静态一致性门禁。样本仍不足以计算可信的 churn、共同变更或历史热点。
 
 ## 人工高关注区
 
@@ -26,14 +26,15 @@
 - `ddr3_test/ddr3_test/scripts/build.tcl`：当前临时 bring-up 的可重复七阶段实现定义，仍依赖厂商 `test_ddr` 而非产品顶层。
 - `ddr3_test/ddr3_test/scripts/check_build.ps1`：严格模式拦截 7 类已知阻断；baseline 放行只证明历史设计可重复实现，不表示可发布。
 - `ddr3_test/ddr3_test/ip_core/ddr3/example_design/rtl/test_ddr.v`：存在 BIST error-data 位宽不匹配及后续 dangling cleanup，是当前严格 gate 阻断项。
-- `ddr3_test/ddr3_test/ip_core/ddr3/ddr3.v` 与 `.../example_design/rtl/test_ddr.v`：D3-0 的活动 IP 端口和 `I_ips_ddr_top` board wrapper 实例边界；`axi_wready`/`axi_wusero_id`/`axi_wusero_last` 及无 `axi_rready` 的语义必须在 D3-A 冻结，D3-0 不修改这些文件。
+- `ddr3_test/ddr3_test/ip_core/ddr3/ddr3.v` 与 `.../example_design/rtl/test_ddr.v`：D3-0 已完成活动 IP、非标准 AXI-like 握手和 `I_ips_ddr_top` board wrapper 边界评审；D3-A 按审核后的契约实现，接口语义、地址单位或层级变化即停止并重新审核。
 - `ddr3_test/ddr3_test/ip_core/ddr3/example_design/rtl/test_main_ctrl_v1_0.v`、`axi_bist_top_v1_0.v` 与旧 `ddr3_test_top_tb.v`：D2 已确认其持续运行、无稳定 done 契约、端口失配及外部仿真依赖；均保持厂商原样，只作为静态证据。
 - `ddr3_test/ddr3_test/rtl/ddr3_bringup_top.sv`、`ddr3_test/ddr3_test/rtl/ddr3_finite_bist.sv`：D2 规划的项目自有实现热点，当前文件尚不存在，D3 未审核前不得标记为已实现。
 - `pcie_dma_test_100h/hdl/pcie_dma_test.v`：UART2APB 隐式 `rxd/txd` 连接与 PCIe DMA 集成入口。
 - `pcie_dma_test_100h/fdc/pcie_dma_test.fdc`：PCIe 专用资源、复位和普通 I/O 约束入口。
 - `pcie_dma_test_100h/hdl/pcie_dma_test.v`、`pcie_dma_test_100h/ipcore/pcie_test/pcie_test.idf`：H2-A 顶层 x2/lane、UART2APB 隐式端口及 IDF/PDS 器件不一致的首要证据；H2-A 只读，不修改 RTL/IDF/FDC。
+- `scripts/check_repo_consistency.ps1`：CI-0 仓库级静态门禁入口，检查根文档、三项目 README/PDS 脚本/gate、顶层与七阶段声明、工具路径/退出码、产物/时序接口及 `build/` 忽略状态；当前退出码为 0，但不能替代 PDS、STA 或仿真。
 - `E:/pango/PDS_2022.2-SP6.4/bin/pds_shell.exe`：S0 复核确认存在的唯一已发现实现工具；外部仿真器可执行文件缺失是当前动态验证阻塞点。
 
 ## 后续更新
 
-只有积累足够多、内容独立的提交后，才适合增加真实 churn 与共同变更分析。O2-B 否决/回退、O2-D1-R 基线重建、O2-D1-G 契约收口、S0 环境复核、DDR3 D3-0 只读评审、PCIe H2-A 只读证据、单次 O2-D2、O3-A、O2-C1、O2-C2、O3-B、O4、O1-C `mem_a` 板级决策、DDR3 D3-A 和 PCIe H2-B 必须保持独立批次；本次 H2-A 为预期第 21 个提交，下一步先完成板级资料/IP 重生成契约，再提请 H2-B gate 收紧审核。DDR3 与 PCIe 继续保持只读泳道。
+只有积累足够多、内容独立的提交后，才适合增加真实 churn 与共同变更分析。后续仍按 TODO 队列保持独立批次：S0-1、H0/H1/H3、单次 O2-D2、D3-A/B/C、H2-B、S1/S2/S3，以及 O1-C/O3/O2-C/O4 最终闭环；用户审核或外部资料未到位时不修改对应功能 RTL/IP/约束。

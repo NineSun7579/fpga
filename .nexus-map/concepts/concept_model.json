@@ -22,8 +22,34 @@
         "simulator_executables_found": false,
         "searched_locations": ["PATH", "C:/questasim64/win64", "common ModelSim/QuestaSim directories"],
         "dynamic_simulation": "blocked",
-        "next_step": "install ModelSim/QuestaSim, verify vsim/vlog/vlib, then compile Logos2 USIM/VSIM"
+        "next_step": "S0-1: install licensed ModelSim/QuestaSim, verify vsim/vlog/vlib, then compile non-empty Logos2 USIM/VSIM libraries"
       },
+      "ci_0_repository_consistency": {
+        "date": "2026-08-30",
+        "status": "completed_in_worktree_pending_commit",
+        "script": "scripts/check_repo_consistency.ps1",
+        "gate_exit_code": 0,
+        "gate_message": "INFO: repository consistency gate passed",
+        "powershell_script_count": 7,
+        "powershell_ast_errors": 0,
+        "readme_gaps_fixed": [
+          "41_ov7725_hdmi/README.md PDS version and top module",
+          "ddr3_test/ddr3_test/README.md PDS version and simulation status",
+          "pcie_dma_test_100h/README.md PDS version"
+        ],
+        "scope": ["root guide/TODO/VSCS", "project README/build.tcl/run.ps1/check_build.ps1", "top module and seven-stage declarations", "configurable PDS path and exit-code checks", "baseline/artifact/timing gate interfaces", "build ignore and tracked-generated-file status"],
+        "boundary": "static repository consistency only; does not run or replace PDS, STA, project strict gates or four-level simulation"
+      },
+      "queue_status": "waiting_for_review_and_external_inputs",
+      "execution_queue": [
+        {"order": 1, "id": "S0-1", "status": "blocked_external", "prerequisite": "licensed ModelSim/QuestaSim and vsim/vlog/vlib paths"},
+        {"order": 2, "id": "H0/H1/H3", "status": "blocked_external", "prerequisite": "board, schematic/BOM, device, voltage, DDR3 and OV7725/HDMI evidence"},
+        {"order": 3, "id": "O2-D2", "status": "blocked_user_review", "prerequisite": "written approval of the frozen O2-D1-G contract"},
+        {"order": 4, "id": "D3-A/D3-B/D3-C", "status": "blocked_user_review", "prerequisite": "approval of the completed D3-0 handshake and top-boundary review"},
+        {"order": 5, "id": "H2-B", "status": "blocked_external_and_review", "prerequisite": "H0/H2 board evidence, UART decision and PG2L100H IP regeneration approval"},
+        {"order": 6, "id": "S1/S2/S3", "status": "blocked_dependency", "prerequisite": "S0-1 complete and corresponding RTL/IP/netlist/SDF locked"},
+        {"order": 7, "id": "O1-C/O3-A/O2-C1/O2-C2/O3-B/O4", "status": "blocked_dependency", "prerequisite": "H3 board evidence and successful O2-D2 result"}
+      ],
       "tech_stack": ["PDS Tcl", "PowerShell", "ModelSim/QuestaSim"],
       "related_reqs": ["可重复构建", "四级仿真", "时序闭环"],
       "complexity": "medium",
@@ -37,7 +63,7 @@
       "implementation_status": "implemented_with_timing_failures",
       "code_path": "41_ov7725_hdmi/rtl/",
       "evidence_path": "41_ov7725_hdmi/doc/RTL_HYGIENE_AUDIT.md",
-      "evidence_gap": "O1-B 的 38 条确定修复和七阶段回归已完成，仅剩 mem_a 1 条受 H3/O1-C 阻断；O2-B 已被 Slow/Fast Recovery 否决并回退，baseline/gate 未放宽。O2-D1-R 已精确复现七组失败，Slow/Fast ddrphy_sysclk 到 pixel_clk 均恢复 53/53；O2-D1-G、用户审核和 QuestaSim/S3 尚未完成。",
+      "evidence_gap": "O1-B 的 38 条确定修复和七阶段回归已完成，仅剩 mem_a 1 条受 H3/O1-C 阻断；O2-B 已被 Slow/Fast Recovery 否决并回退，baseline/gate 未放宽。O2-D1-R 与 O2-D1-G 契约已完成；O2-D2 用户审核和 QuestaSim/S3 尚未完成。",
       "tech_stack": ["Verilog", "Pango Logos2", "DDR3", "TMDS"],
       "related_reqs": ["逐域复位", "单点事件同步", "FIFO 分侧复位", "结构后精确例外", "O1-B complete", "O2-A/O2-B rejected/O2-D1/O2-D2/O3-A/O2-C1/O2-C2/O3-B/O4", "H3/O1-C mem_a"],
       "complexity": "high",
@@ -100,7 +126,7 @@
         "failing_endpoints": 8,
         "total_endpoints": 8,
         "endpoint_scope": "four serializers, eight OSERDES",
-        "next_steps": ["O2-D1-G", "user review", "O2-D2 single attempt", "O3-A", "O2-C1", "O2-C2", "O3-B", "O4"]
+        "next_steps": ["user review", "O2-D2 single attempt", "H3 board evidence", "O1-C", "O3-A", "O2-C1", "O2-C2", "O3-B", "O4"]
       },
       "decisions": [
         "显式声明 rst_n",
@@ -157,7 +183,7 @@
         ],
         "fast_reverse_recovery": {"launch_clock": "pixel_clk_5x", "capture_clock": "pixel_clk", "wns_ns": -1.464, "failing_endpoints": 8, "total_endpoints": 8},
         "reverse_endpoint_scope": "serializer_b/g/r/clk x opit_2/opit_2_com OSERDES OCLKDIV",
-        "next_phase": "O2-D1-G generated-clock/state contract and user review; one O2-D2 attempt only"
+        "next_phase": "O2-D1-G contract complete; pending user review before one O2-D2 attempt"
       },
       "o2d1_architecture_decision": {
         "status": "contract_frozen_pending_implementation",
@@ -214,7 +240,7 @@
       "implementation_status": "bringup_full_implementation_baseline",
       "code_path": "ddr3_test/ddr3_test/",
       "evidence_path": "ddr3_test/ddr3_test/build/logs/pds-gen_bit_stream.log",
-      "evidence_gap": "厂商 test_ddr 临时 bring-up 已从空 build 完成 SP6.4 七阶段全流程，日志无 E:、STA 为 All Constraints Met，且五类产物非零；严格 gate 因 7 类已知阻断返回 1，显式 baseline 放行返回 0 但不可发布。D2 与 D3-0 只读契约决策已完成，但项目自有有限 BIST 顶层尚未实现；D3-A 握手语义、板级批准参数清单、产品功能和四级仿真仍未验收。",
+      "evidence_gap": "厂商 test_ddr 临时 bring-up 已从空 build 完成 SP6.4 七阶段全流程，日志无 E:、STA 为 All Constraints Met，且五类产物非零；严格 gate 因 7 类已知阻断返回 1，显式 baseline 放行返回 0 但不可发布。D2 与 D3-0 只读契约决策已完成，但项目自有有限 BIST 顶层尚未实现；D3-A/B/C 仍待用户审核，板级批准参数清单、产品功能和四级仿真仍未验收。",
       "d3_0_read_only_review": {
         "date": "2026-08-30",
         "active_ip": "ddr3_test/ddr3_test/ip_core/ddr3/ddr3.v",
@@ -226,12 +252,13 @@
         "read_only_scope": ["RTL", "active DDR3 IP", "FDC/RCF", "build scripts"],
         "status": "documentation_only"
       },
-      "d3_0_handshake_gap": {
-        "axi_wready": "现有 test_wr_ctrl_v1_0 将其作为写执行/接受指示；D3-A 必须确认是脉冲还是可保持电平以及与 W 数据的对应关系",
-        "axi_wusero_id": "核心输出，当前 BIST 结果路径未消费；D3-A 决定是否纳入响应契约",
-        "axi_wusero_last": "核心输出，当前 BIST 结果路径未消费；D3-A 决定是否纳入响应契约",
-        "axi_rready": "公开 ddr3 端口不存在；D3-A 必须定义无读背压时 axi_rvalid/axi_rdata 的保持与完成语义",
-        "status": "unresolved_pending_d3_a"
+      "d3_0_handshake_contract": {
+        "write_address": "axi_awvalid && axi_awready accepts the write address",
+        "write_data": "axi_wready indicates write-data acceptance; the core returns axi_wusero_id and axi_wusero_last",
+        "read_address": "axi_arvalid && axi_arready accepts the read request",
+        "read_data": "the core returns axi_rvalid and axi_rlast without an axi_rready input",
+        "change_stop_condition": "stop and re-review if regenerated IP changes interface semantics, address units or I_ips_ddr_top hierarchy",
+        "status": "review_complete_pending_user_approval"
       },
       "tech_stack": ["PDS", "DDR3 IP"],
       "related_reqs": ["关闭严格 gate", "板级批准参数", "有限写读回自检"],
@@ -250,7 +277,7 @@
         "ddr3_test/ddr3_test/rtl/ddr3_finite_bist.sv"
       ],
       "evidence_path": "ddr3_test/ddr3_test/doc/FINITE_SELF_TEST_CONTRACT.md",
-      "evidence_gap": "D2 与 D3-0 只完成只读决策；两个项目自有 RTL 文件尚未创建，D3-A 仍需先冻结 AXI-like 握手语义，D3 待审核，且本机无可用 QuestaSim。",
+      "evidence_gap": "D2 与 D3-0 只读决策已完成；两个项目自有 RTL 文件尚未创建，D3-A/B/C 仍待用户审核与实现，且本机无可用 QuestaSim。",
       "transaction_contract": {
         "pair_count": 16,
         "burst": "single-beat write/read compare",
@@ -269,7 +296,7 @@
         "first_error_info"
       ],
       "tech_stack": ["SystemVerilog", "DDR3 AXI", "ModelSim/QuestaSim"],
-      "related_reqs": ["D2 complete", "D3-0 read-only review", "D3-A handshake contract", "D3 pending review", "VSCS", "finite self-check"],
+      "related_reqs": ["D2 complete", "D3-0 handshake and top-boundary review complete", "D3-A/D3-B/D3-C pending user review", "VSCS", "finite self-check"],
       "complexity": "medium",
       "hotspot": true
     },
@@ -356,13 +383,13 @@
       "source": "ov7725-cdc-rdc-audit",
       "target": "ov7725-hdmi-system",
       "type": "governs_future_changes",
-      "description": "O2-B 已被 Slow/Fast Recovery 否决且 RTL 已回退；O2-D1-R 已精确复现七组 baseline，Slow/Fast ddrphy_sysclk 到 pixel_clk 均恢复 53/53。完成 O2-D1-G 并经用户审核后，只执行一次 O2-D2；随后执行 O3-A、O2-C1、O2-C2、O3-B，O4 依赖 O2-C2 与 O3-B。"
+      "description": "O2-B 已被 Slow/Fast Recovery 否决且 RTL 已回退；O2-D1-R 与 O2-D1-G 已完成。用户审核后只执行一次 O2-D2；H3 与 O2-D2 闭合后按 O1-C、O3-A、O2-C1、O2-C2、O3-B、O4 推进。"
     },
     {
       "source": "ov7725-rtl-hygiene-audit",
       "target": "ov7725-hdmi-system",
       "type": "records_completed_change",
-      "description": "O1-B 已完成 38 条确定修复、rst_n/sys_init_done 清理与八个 OSERDES reset 连接；mem_a 仍转 H3/O1-C。O2-B 已由真实 STA 否决并回退；O2-D1-R 已完成，当前执行 O2-D1-G generated-clock/状态契约收口。"
+      "description": "O1-B 已完成 38 条确定修复、rst_n/sys_init_done 清理与八个 OSERDES reset 连接；mem_a 仍转 H3/O1-C。O2-B 已由真实 STA 否决并回退；O2-D1-R 与 O2-D1-G 已完成，当前等待 O2-D2 用户审核。"
     },
     {
       "source": "ddr3-outer-project",
@@ -446,11 +473,12 @@
   "metadata": {
     "analysis_mode": "manual bootstrap",
     "verified_at": "2026-08-30",
-    "git_commits_analyzed": 24,
+    "git_commits_analyzed": 25,
     "raw_ast_available": false,
     "limitations": [
       "Twenty-four repository commits are recorded after the TODO execution-queue planning and nexus synchronization batch; the count remains too shallow for reliable hotspot ranking.",
-      "No AST extraction was run.",
+      "The CI-0 repository-consistency batch is recorded as commit 25; the history remains too shallow for reliable hotspot ranking.",
+      "No HDL/raw source AST extraction was run; CI-0 PowerShell syntax parsing is recorded separately.",
       "No ModelSim or QuestaSim execution was available."
     ]
   }

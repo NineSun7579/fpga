@@ -6,6 +6,7 @@
 
 当前配置：
 
+- PDS 版本：`2022.2-SP6.4`
 - 器件：`Logos2 / PG2L100H / FBG484 / -6`
 - DDR3 IP：Controller + PHY，x16、2 个 DQS、目标 1066 MT/s，当前配置约 1050 MT/s
 - 示例顶层：`ip_core/ddr3/example_design/rtl/test_ddr.v`
@@ -78,6 +79,8 @@ baseline 放行不会把结果标记为发布候选。
 | `test_ddr.bin` | 3,789,476 |
 
 严格 gate 实测返回非零；显式使用 `-AllowKnownBaselineIssues` 时返回 0，并明确标记当前结果不可发布。`All Constraints Met` 只证明已建模的内部路径通过，不证明板级 I/O 时序、DDR 训练或功能仿真通过。
+
+当前仿真状态：本机尚未发现 ModelSim/QuestaSim，行为级、综合后、PNR 后功能和 PNR 后时序仿真均未运行。
 
 ## 当前阻断项
 

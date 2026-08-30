@@ -513,6 +513,14 @@ Negative timing check
 5. Testbench 必须输出明确的 `TEST PASS`。
 6. 最终确认 `.bit`/`.bin` 文件存在且大小非零。
 
+仓库级静态一致性检查（不启动 PDS 或外部仿真器）：
+
+```powershell
+powershell.exe -ExecutionPolicy Bypass -File .\scripts\check_repo_consistency.ps1
+```
+
+该检查确认三个项目的 README、`build.tcl`、`run.ps1`、`check_build.ps1`、顶层声明、七阶段入口、版本记录和 `build/` 忽略状态；它不能替代项目级 PDS gate、STA 或四级仿真。
+
 ## 11. 常见问题
 
 - `License checkout failed`：检查 PDS License 是否有效。
