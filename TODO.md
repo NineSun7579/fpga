@@ -392,6 +392,7 @@ O2-D2 停止条件：控制相位或 `/5` generated clock 未被 PDS 唯一识�
 在三个项目各自 gate 稳定后再抽取共享逻辑，避免过早抽象。
 
 - [x] 新增并运行仓库级静态一致性检查，确认三项目 README、PDS 入口、顶层声明、七阶段命令和 `build/` 忽略状态。
+- [x] S0-1 准备参数化 `scripts/compile_simlib.tcl`/`scripts/compile_simlib.ps1`，支持外部覆盖仿真器路径并在调用 PDS 前检查三项可执行文件。
 - [ ] 行为级仿真失败立即停止后续流程。
 - [ ] 同时检查 PDS 退出码、日志 `^E:` 和阶段完成标志。
 - [ ] 解析最终时序摘要，要求 `All Constraints Met`、`WNS >= 0`、`TNS = 0`。

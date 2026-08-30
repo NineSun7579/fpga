@@ -84,5 +84,6 @@ flowchart TD
 - UART2APB 在 `pcie_dma_test.v` 以隐式 `rxd/txd` 网络连接，当前 `rxd` 被绑 0；H2-A 只记录该功能缺口，H2-B 需先决定端口归属和板级连接。
 - H2-A 只读边界：仅维护文档/证据矩阵/IP 重生成契约，不改 PCIe RTL、IDF 或 FDC；H2-B 在板级资料、器件元数据和 SCBV 均闭合前不得收紧 gate，缺口出现即停止。
 - S0 环境复核（2026-08-30）确认 `E:/pango/PDS_2022.2-SP6.4/bin/pds_shell.exe` 存在，是唯一已发现工具；PATH、`C:/questasim64/win64` 和常见 ModelSim/QuestaSim 目录均未找到 `vsim.exe`、`vlog.exe`、`vlib.exe`。
-- 仿真流程依赖编译后的 Logos2 USIM/VSIM 库和可用的 `vsim.exe`/`vlog.exe`/`vlib.exe`；当前环境不满足该依赖，必须先安装 ModelSim/QuestaSim，再执行 `compile_simlib`，动态仿真在此之前保持阻塞。
+- S0-1 已准备 `scripts/compile_simlib.ps1` → 环境变量 → `scripts/compile_simlib.tcl` → PDS `compile_simlib` 的参数化链路，可选择 ModelSim/QuestaSim、USIM/VSIM/BOTH、family、语言、工具路径与输出目录；入口准备不等于库已生成。
+- 仿真流程仍依赖可用且有许可证的 `vsim.exe`/`vlog.exe`/`vlib.exe` 与编译后的 Logos2 USIM/VSIM 库；默认运行因 `vsim.exe` 缺失在 PDS 前返回 1，动态仿真在实际编译退出 0、日志无 `E:` 且库目录非空前保持阻塞。
 - CI-0 仓库级静态一致性门禁依赖根指南/TODO/VSCS、三个项目 README 与各自 `build.tcl`/`run.ps1`/`check_build.ps1`；当前工作区门禁退出码为 0，7 个 PowerShell 脚本 AST 解析错误数为 0。它只验证结构、入口与文档关系，不解除任何 PDS、STA、板级或仿真阻断。

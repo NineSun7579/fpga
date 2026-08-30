@@ -8,7 +8,7 @@
 
 - 分支为 `main`。
 - 根提交为 `1a2d493`，保存三个原始工程、已有 PDS 产物和整改文档。
-- CI-0 仓库级静态一致性门禁已作为独立批次提交；截至本批仓库累计 25 个提交。第 22 个提交校正三项目 TODO 状态索引，第 23 个提交规划下一批执行队列，第 24 个提交同步 Nexus 提交计数，第 25 个提交加入静态一致性门禁。样本仍不足以计算可信的 churn、共同变更或历史热点。
+- CI-0 仓库级静态一致性门禁已作为独立批次提交；S0-1 参数化仿真库入口随后作为独立批次提交，仓库累计 26 个提交。样本仍不足以计算可信的 churn、共同变更或历史热点。
 
 ## 人工高关注区
 
@@ -33,6 +33,7 @@
 - `pcie_dma_test_100h/fdc/pcie_dma_test.fdc`：PCIe 专用资源、复位和普通 I/O 约束入口。
 - `pcie_dma_test_100h/hdl/pcie_dma_test.v`、`pcie_dma_test_100h/ipcore/pcie_test/pcie_test.idf`：H2-A 顶层 x2/lane、UART2APB 隐式端口及 IDF/PDS 器件不一致的首要证据；H2-A 只读，不修改 RTL/IDF/FDC。
 - `scripts/check_repo_consistency.ps1`：CI-0 仓库级静态门禁入口，检查根文档、三项目 README/PDS 脚本/gate、顶层与七阶段声明、工具路径/退出码、产物/时序接口及 `build/` 忽略状态；当前退出码为 0，但不能替代 PDS、STA 或仿真。
+- `scripts/compile_simlib.tcl`、`scripts/compile_simlib.ps1`：S0-1 参数化 Pango USIM/VSIM 编译入口；支持模拟器、库类型、family、语言、PDS/仿真器路径与输出目录覆盖，并校验工具、退出码、`E:` 记录和库目录。当前因缺少 `vsim.exe`/`vlog.exe`/`vlib.exe` 未执行实际库编译。
 - `E:/pango/PDS_2022.2-SP6.4/bin/pds_shell.exe`：S0 复核确认存在的唯一已发现实现工具；外部仿真器可执行文件缺失是当前动态验证阻塞点。
 
 ## 后续更新

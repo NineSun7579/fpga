@@ -8,16 +8,20 @@
 
 - implementation_status: documented
 - code_path: null
-- evidence_path: `README.md`, `TODO.md`, `scripts/check_repo_consistency.ps1`
+- evidence_path: `README.md`, `TODO.md`, `scripts/check_repo_consistency.ps1`, `scripts/compile_simlib.tcl`, `scripts/compile_simlib.ps1`
 - evidence_gap: 三项目均已建立 SP6.4 可重复全流程与严格/baseline gate 证据；2026-08-30 S0 复核仅确认 `E:/pango/PDS_2022.2-SP6.4/bin/pds_shell.exe` 存在，PATH、`C:/questasim64/win64` 和常见 ModelSim/QuestaSim 目录均未找到 `vsim.exe`、`vlog.exe`、`vlib.exe`，因此动态仿真及 USIM/VSIM 编译仍阻塞。
 - responsibility: 定义 PDS 2022.2-SP6.4 的实现流程、ModelSim/QuestaSim 四级仿真流程及三工程整改门槛。
 - s0_environment_review: `2026-08-30`；PDS shell 为唯一已发现工具，仿真器安装后才允许执行 `compile_simlib` 并编译 USIM/VSIM。
 - s0_0_status: completed_read_only_environment_review; ModelSim/QuestaSim 安装与 USIM/VSIM 编译仍待外部环境
-- ci_0_status: completed_in_worktree_pending_commit
+- s0_1_status: parameterized_entry_committed; library_compilation_blocked_external
+- s0_1_entry: `scripts/compile_simlib.ps1` 参数化 Simulator（ModelSim/QuestaSim）、Library（USIM/VSIM/BOTH）、Family、Language、PdsBin、SimulatorExecPath 与 OutputDirectory，并通过环境变量调用 `scripts/compile_simlib.tcl` 的 PDS `compile_simlib`；默认输出 `build/simlib`，工作目录 `build/pds-simlib`，日志 `build/logs/compile-simlib.log`。
+- s0_1_gate: 调用 PDS 前检查 `pds_shell.exe`、Tcl 入口和 `vsim.exe`/`vlog.exe`/`vlib.exe`；PDS 后检查退出码、日志 `^E:` 及所选 `usim`/`vsim` 库目录存在。`SkipSimulatorValidation` 仅跳过前置检查，不构成库编译通过证据。
+- s0_1_result: PowerShell AST 错误数 0；默认运行因 `C:/questasim64/win64/vsim.exe` 缺失而在 PDS 前返回 1，`vlog.exe` 与 `vlib.exe` 同样不存在；未执行实际 USIM/VSIM 编译。
+- ci_0_status: committed_as_85d9b64
 - ci_0_scope: 检查根指南/TODO/VSCS、三个项目 README、`build.tcl`、`run.ps1`、`check_build.ps1`、顶层声明、七阶段入口、可配置 PDS 路径、进程退出码、显式 baseline 开关、产物/时序检查接口、`build/` 忽略与未跟踪生成物状态；拒绝活动 Tcl 的 `simulate` 命令和反斜杠绝对路径。
 - ci_0_result: `scripts/check_repo_consistency.ps1` 退出码 0，并输出 `INFO: repository consistency gate passed`；三个项目 README 缺口已修正，全部 7 个 PowerShell 脚本 AST 解析错误数为 0。
 - ci_0_boundary: 仅为仓库结构与文档静态一致性门禁，不启动或替代 PDS 构建、STA、项目严格 gate 或四级仿真。
-- next_step: S0-1 等待安装并验证有许可证的 ModelSim/QuestaSim，随后编译 Logos2 USIM/VSIM；只有编译退出 0 且库目录非空后才解除动态仿真阻断。
+- next_step: 安装并验证有许可证的 ModelSim/QuestaSim，将实际路径传给 `compile_simlib.ps1`，随后编译 Logos2 USIM/VSIM；只有退出 0、日志无 `E:` 且所选库目录非空后才解除 S0-1 阻断。
 
 ## Verilog/SystemVerilog 注释规范
 

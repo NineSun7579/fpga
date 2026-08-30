@@ -8,7 +8,7 @@
 
 HDL 经 compile、synthesize、dev_map、PNR、timing report、netlist 和 bitstream 阶段形成实现产物。阶段命令成功不等于时序或板级接口已经满足约束。
 
-2026-08-30 S0 环境复核确认 `E:/pango/PDS_2022.2-SP6.4/bin/pds_shell.exe` 存在，是当前唯一已发现工具；PATH、`C:/questasim64/win64` 与常见 ModelSim/QuestaSim 目录均没有 `vsim.exe`、`vlog.exe`、`vlib.exe`。因此只能继续使用 PDS 静态实现证据，安装仿真器后才可编译 USIM/VSIM 并开展动态仿真。
+2026-08-30 S0 环境复核确认 `E:/pango/PDS_2022.2-SP6.4/bin/pds_shell.exe` 存在，是当前唯一已发现工具；PATH、`C:/questasim64/win64` 与常见 ModelSim/QuestaSim 目录均没有 `vsim.exe`、`vlog.exe`、`vlib.exe`。S0-1 已准备参数化 `scripts/compile_simlib.tcl`/`.ps1` 入口，但默认运行在 PDS 前即因缺少 `vsim.exe` 返回 1；安装有许可证的仿真器并实际生成非空 USIM/VSIM 库前，动态仿真仍阻塞。
 
 ## 外部四级仿真
 

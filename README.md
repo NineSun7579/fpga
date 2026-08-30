@@ -119,6 +119,17 @@ Test-Path '.\build\simlib\usim'
 Test-Path '.\build\simlib\vsim'
 ```
 
+仓库提供参数化入口，可在不改工程源清单的情况下覆盖仿真器路径、库类型和器件系列：
+
+```powershell
+powershell.exe -ExecutionPolicy Bypass -File .\scripts\compile_simlib.ps1 `
+  -SimulatorExecPath 'C:\questasim64\win64' `
+  -Library BOTH `
+  -Family Logos2
+```
+
+入口会先检查 `vsim.exe`、`vlog.exe` 和 `vlib.exe`，再调用 PDS；任一文件缺失即返回非零，不会生成“编译完成”的假日志。
+
 ## 4. PDS 设计实现脚本
 
 创建 `scripts/build.tcl`：

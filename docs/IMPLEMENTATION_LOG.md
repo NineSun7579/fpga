@@ -208,3 +208,13 @@
 - 首次运行发现并修正 README 的事实缺口：统一记录 PDS `2022.2-SP6.4`、顶层模块和 DDR3 仿真阻断状态。
 - 静态门禁最终输出 `INFO: repository consistency gate passed`；七个 PowerShell 脚本 AST 解析错误数为 0。
 - 本批未运行 PDS/QuestaSim，未修改 RTL、IP、PLL、FDC、RCF 或 `build/`。
+
+## 2026-08-30：S0-1 仿真库入口准备
+
+- 新增参数化 `scripts/compile_simlib.tcl` 和 `scripts/compile_simlib.ps1`；仿真器路径、库类型、器件系列和语言均可通过 PowerShell 参数覆盖，不写入工程源清单。
+- PowerShell 入口先检查 PDS shell 以及 `vsim.exe`、`vlog.exe`、`vlib.exe`，再调用 PDS `compile_simlib`；任一可执行文件缺失即返回非零并停止。
+- Tcl 入口通过环境变量传递参数，输出目录固定默认为 `build/simlib`，工作目录和日志分别位于 `build/pds-simlib` 与 `build/logs/compile-simlib.log`。
+- 仓库级静态一致性门禁已纳入两个入口及关键参数检查，防止仿真库脚本脱离 CI 覆盖。
+- 本机默认预检实测返回 1，具体阻断为 `C:\questasim64\win64\vsim.exe` 不存在；未调用 PDS，也未声称 USIM/VSIM 编译成功。
+- 普通 `tclsh` 执行该脚本会因缺少 PDS 专有 `compile_simlib` 命令返回 `invalid command name`，该命令只能由 `pds_shell.exe` 执行。
+- 两个新增 PowerShell 脚本与现有五个项目脚本 AST 解析错误均为 0；本批未修改 RTL、IP、PLL、FDC、RCF 或生成物。

@@ -14,7 +14,9 @@
 
 - 静态发现：`E:/pango/PDS_2022.2-SP6.4/bin/pds_shell.exe` 存在，可作为当前唯一已发现工具。
 - 静态发现：PATH、`C:/questasim64/win64`、`C:/ModelSim/win64`、`C:/Program Files/ModelSim/win64`、`C:/Program Files/QuestaSim/win64`、`C:/Program Files/Siemens/QuestaSim/win64` 及常见 Intel ModelSim 目录均未找到 `vsim.exe`、`vlog.exe`、`vlib.exe`。
-- 未验证：动态仿真、USIM/VSIM 编译和 SDF 标注；安装 ModelSim/QuestaSim 并确认三个可执行文件后，才可解除该阻塞。
+- 已验证：S0-1 参数化入口 `scripts/compile_simlib.tcl` 与 `scripts/compile_simlib.ps1` 已在工作区准备；PowerShell AST 错误数为 0。入口支持 ModelSim/QuestaSim、USIM/VSIM/BOTH、family、语言、PDS/仿真器路径和输出目录覆盖，并检查 PDS 退出码、日志 `^E:` 与所选库目录。
+- 已验证阻断：默认运行在调用 PDS 前因 `C:/questasim64/win64/vsim.exe` 缺失返回 1，`vlog.exe`、`vlib.exe` 同样不存在。
+- 未验证：实际 USIM/VSIM 编译、库目录内容、动态仿真和 SDF 标注；安装有许可证的 ModelSim/QuestaSim 并成功运行入口后，才可解除该阻断。
 
 ## CI-0 仓库级静态一致性门禁（2026-08-30）
 

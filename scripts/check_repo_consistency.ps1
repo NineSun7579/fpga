@@ -75,6 +75,27 @@ Require-File -Path (Join-Path $RepoRoot 'TODO.md') -Description 'root TODO' | Ou
 Require-File -Path (Join-Path $RepoRoot 'VERILOG_SYSTEMVERILOG_COMMENTING_STANDARD.md') `
     -Description 'Verilog/SystemVerilog commenting standard' | Out-Null
 
+$SimlibTclPath = Join-Path $RepoRoot 'scripts\compile_simlib.tcl'
+$SimlibPsPath = Join-Path $RepoRoot 'scripts\compile_simlib.ps1'
+$SimlibTclExists = Require-File -Path $SimlibTclPath `
+    -Description 'compile_simlib Tcl entry'
+$SimlibPsExists = Require-File -Path $SimlibPsPath `
+    -Description 'compile_simlib PowerShell entry'
+if ($SimlibTclExists) {
+    $SimlibTclText = Get-Content -Raw -Encoding UTF8 -LiteralPath $SimlibTclPath
+    Require-Pattern -Text $SimlibTclText -Pattern '(?m)\bcompile_simlib\b' `
+        -Description 'PDS compile_simlib command' | Out-Null
+    Require-Pattern -Text $SimlibTclText -Pattern 'PDS_SIMULATOR_EXEC_PATH' `
+        -Description 'external simulator path parameter' | Out-Null
+}
+if ($SimlibPsExists) {
+    $SimlibPsText = Get-Content -Raw -Encoding UTF8 -LiteralPath $SimlibPsPath
+    Require-Pattern -Text $SimlibPsText -Pattern 'SkipSimulatorValidation' `
+        -Description 'simulator preflight switch' | Out-Null
+    Require-Pattern -Text $SimlibPsText -Pattern '\$LASTEXITCODE' `
+        -Description 'compile_simlib exit-code check' | Out-Null
+}
+
 $IgnoreText = Get-Content -Raw -LiteralPath (Join-Path $RepoRoot '.gitignore')
 Require-Pattern -Text $IgnoreText -Pattern '(?m)^build/$' `
     -Description 'build/ ignore rule' | Out-Null
