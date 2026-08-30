@@ -245,3 +245,5 @@
 - 新增 `41_ov7725_hdmi/doc/BOARD_EVIDENCE.md` 与 `ddr3_test/ddr3_test/doc/BOARD_EVIDENCE.md`，分别记录当前工程事实、证据来源、用户需提供的板级字段和关闭条件。
 - 清单覆盖 FPGA/板卡身份、DDR3 颗粒与拓扑、`mem_a[14]` 分支、时钟/复位、bank 电压、share pin、OV7725 输入格式和 HDMI 模式。
 - 本批只新增文档并更新 TODO；未修改 RTL、厂商 IP、IDF、FDC、RCF 或生成物。资料缺失仍保持 H0/H1/H3 阻断。
+- 只读复核进一步确认 OV7725 活动 `ddr3_ip.idf` 的 `MEM_ADDR_WIDTH`、`DDR3_MEM_ROW_WIDTH`、`MEM_ROW_WIDTH` 均为 14，手写顶层/FDC 仍为 15 位，并发现该 IDF 生成器版本为 SP4.2；该冲突和版本差异已写入证据清单，不能依据 FDC 单独收窄。
+- DDR3 只读复核发现活动 IDF 同时记录 `DESIRED_DDR3_RATE=1066.000` 与另一处 1050 速率参数；wrapper 默认 `MEM_ROW_WIDTH=15`、`COLUMN=10`、`BANK=3`、`DQ=16`、`DQS=2`。在确认参数语义、颗粒料号和 PCB 拓扑前，H1 继续阻断。

@@ -11,7 +11,7 @@
 | PDS 目标 | `Logos2 / PG2L100H / FBG484 / -6` | `README.md`、`scripts/build.tcl` | 需与 FPGA 丝印核对 |
 | 活动 IP | `ddr3`，IDF 标识 `PG2L100H/FBG484/-6` | `ip_core/ddr3/ddr3.idf` | 元数据已与 PDS 目标一致 |
 | 当前示例顶层 | `test_ddr` | `ip_core/ddr3/example_design/rtl/test_ddr.v` | 仅用于 bring-up |
-| DDR3 配置 | x16、2 个 DQS、目标 1066 MT/s，当前约 1050 MT/s | `README.md`、活动 IP 参数 | 需用颗粒料号确认 |
+| DDR3 配置 | wrapper 默认 `MEM_ROW_WIDTH=15`、`COLUMN=10`、`BANK=3`、`DQ=16`、`DQS=2`；IDF 同时出现 1066 与 1050 速率参数 | `ip_core/ddr3/example_design/rtl/test_ddr.v:12-23`、`ip_core/ddr3/ddr3.idf` | 需确认参数语义和真实颗粒 |
 | 参考时钟 | `free_clk`，FDC 周期 40 ns、管脚 `V4`、LVCMOS15 | `ip_core/ddr_test.fdc` | 需确认实际时钟源/容差 |
 | 板级复位 | `rst_board`，管脚 `M15`、LVCMOS18 | `ip_core/ddr_test.fdc` | share pin/电压待审核 |
 | DDR 地址 | FDC 当前包含 `mem_a[14]` | `ip_core/ddr_test.fdc` | 需核对颗粒 row address |
@@ -22,7 +22,7 @@
 | 证据项 | 用户需提供 | 验收条件 |
 |---|---|---|
 | 板卡身份 | 板卡型号、原理图版本、BOM、FPGA 完整丝印 | 与 `PG2L100H/FBG484/-6` 可追溯一致 |
-| DDR3 颗粒 | 完整料号、数量、容量、rank、x16/x32 组织、目标速率 | 与活动 IDF 参数一致，或触发重新生成审核 |
+| DDR3 颗粒 | 完整料号、数量、容量、rank、x16/x32 组织、目标速率 | 解释 IDF 的 1066/1050 参数并与颗粒数据手册一致 |
 | 地址/容量 | row/column/bank 地址位数及 `mem_a[14]` 是否真实连接 | 关闭 14/15 bit 分支，RTL/IP/FDC 三方一致 |
 | 走线拓扑 | A/BA/CK/DQ/DQS/DM byte-lane 映射、bit/byte swap、PCB 延迟 | 可形成 PHY 参数和 I/O timing 依据 |
 | 电气参数 | VCCIO、VREF、ODT、终端、驱动、SSTL 标准 | 与 FDC 和颗粒数据手册一致 |

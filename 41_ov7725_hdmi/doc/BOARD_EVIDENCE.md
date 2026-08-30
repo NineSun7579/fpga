@@ -14,7 +14,8 @@
 | 摄像头 I/O | `cam_scl`、`cam_sda`、`cam_rst_n`、`cam_sgm_ctrl` | `rtl/ov7725_hdmi.v`、`prj/source/ov7725_hdmi.fdc` | 需核对模块电源和电平 |
 | HDMI 输出 | TMDS 时钟及 3 路差分数据 | `rtl/ov7725_hdmi.v`、`prj/source/ov7725_hdmi.fdc` | 需核对连接器和模式 |
 | DDR3 数据宽度 | `mem_dq[31:0]`、4 个 DQS/DM | `rtl/ov7725_hdmi.v` | 需核对颗粒组织 |
-| DDR3 地址 | 手写顶层 `mem_a[14:0]`；活动 IP/FDC 存在 14/15 bit 冲突 | `rtl/ov7725_hdmi.v`、`prj/ipcore/ddr3_ip/ddr3_ip.idf`、FDC | H3/O1-C 阻断 |
+| DDR3 地址 | 手写顶层/FDC 使用 `mem_a[14:0]`；活动 IP 的 `MEM_ADDR_WIDTH`、`DDR3_MEM_ROW_WIDTH` 和 `MEM_ROW_WIDTH` 均为 14 | `rtl/ov7725_hdmi.v`、`prj/ipcore/ddr3_ip/ddr3_ip.idf:443-445,649-650,1919-1920`、`prj/source/ov7725_hdmi.fdc:462-468` | H3/O1-C 阻断 |
+| DDR3 IP 生成版本 | 活动 `ddr3_ip.idf` 由 PDS `SP4.2` 生成，当前重建基线为 `SP6.4` | `prj/ipcore/ddr3_ip/ddr3_ip.idf`、项目 README | 需在 IP 重生成审核中确认 |
 | 时钟 | `sys_clk` 20 ns、`cam_pclk` 40 ns；像素时钟由 PLL 产生 | `prj/source/ov7725_hdmi.fdc`、PLL IDF | 需提供实际时钟源与容差 |
 
 ## 必须提供的资料
@@ -33,6 +34,6 @@
 ## 关闭条件
 
 1. 所有资料保存到项目文档或外部受控证据库，并记录版本/来源。
-2. `mem_a` 14/15 bit 只能由 DDR3 料号和原理图决定；未决定前保持 O1-C 阻断。
+2. 当前已确认存在具体冲突：活动 IP 为 14 bit，而手写顶层/FDC 为 15 bit；最终采用哪一侧仍只能由 DDR3 料号和原理图决定，未决定前保持 O1-C 阻断。
 3. 只有证据闭合后，才允许更新 IDF/FDC、补 `cam_pclk` input delay 或进入 O4 最终时序闭环。
 4. 任何无法追溯的管脚、电压、时延或格式值都必须保留为阻断，不能用 baseline 放行替代。
