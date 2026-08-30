@@ -22,6 +22,8 @@ Logos2 / PG2L100H / FBG484 / -6
 - 接入 OSERDES 复位后新增一组慢角 recovery：`pixel_clk → pixel_clk_5x`，WNS `-0.643 ns`、TNS `-4.191 ns`、8/8 端点；详细端点正好是八个 OSERDES，转入 O2/RDC 修复。
 - O2-A 已完成 [Serializer Reset 联合释放契约](doc/SERIALIZER_RESET_CONTRACT.md)。O2-B 随后实现级联 `pixel_clk_5x` 两级释放并完成 compile 与七阶段实验，但真实 STA 将八个 OSERDES 的 recovery 失败转移到 `pixel_clk_5x → pixel_clk`，慢角同域检查也仍为负，因此该结构已被否决并回退。
 - O2-B 的 Slow Recovery 为：`pixel_clk_5x → pixel_clk_5x -0.349 ns / 8/8`、`pixel_clk → pixel_clk_5x +1.111 ns / 0/1`、`pixel_clk_5x → pixel_clk -2.173 ns / 8/8`；Fast Recovery 的反向组仍为 `-1.464 ns / 8/8`。baseline 和 gate 未因失败实验放宽。
+- O2-D1-R 已从空 `build/` 重建回退后的等价基线：baseline gate 精确匹配 7 组失败并返回 0，严格 gate 返回 1；Slow/Fast `ddrphy_sysclk → pixel_clk` Recovery 均为 `53/53`，确认 O2-B 的 `54` 未保留。
+- 新报告中的 53 个 endpoint 为 read FIFO 34、video driver 17、video display 1、原 DVI reset 同步器 1。O2-B 的计数增量来自 video-driver 物理 endpoint 由 17 变 18；新增 serializer 同步器属于另一 clock pair。
 - 完整日志包含 81 条 critical 和 4067 条 warning；其中仅 1 条项目手写 RTL 位宽告警，另有 88 条 `STA-3011`、4 条 `SDC-2025`、3 条 `Route-2036` 和 72 条 share-pin critical。
 - 已生成非零综合网表、PNR 网表、slow-corner SDF、`.sbit` 和 `.bin`。
 - 严格 gate 会因已知发布阻断返回非零；显式 baseline 模式精确核对 7 组 `corner/check/clock pair/endpoints` 失败指纹，只证明当前失败基线可重复，并明确标记不可发布。
@@ -64,8 +66,8 @@ powershell.exe -ExecutionPolicy Bypass -File .\scripts\run.ps1 `
 O1-B 已按 [RTL 卫生修复评审](doc/RTL_HYGIENE_AUDIT.md) 实现并完成七阶段回归。下一批拆为：
 
 1. O2-B：级联双域 reset 实验已由真实 STA 否决，失败 RTL 已回退；契约保留其完整证据，旧 baseline 不变。
-2. O2-D1-R：先从空 `build/` 重建已回退 RTL，复核旧失败指纹和 `ddrphy_sysclk → pixel_clk` 的 53/54 endpoint 漂移，不修改功能文件或 baseline。
-3. O2-D1-G：动态门控路线已因 SP6.4 无法静态证明而否决；只收口“`+0.192 ns` 控制相位 + 本地 reset 复制”候选、`/5` generated-clock、pixel 域迁移、业务/硬块复位分权和单次试验停止条件，然后提请审核。
+2. O2-D1-R：已完成回退基线重建和 53/54 endpoint 复核；未修改功能文件、gate 或 baseline。
+3. O2-D1-G：下一批收口“`+0.192 ns` 控制相位 + 本地 reset 复制”候选、`/5` generated-clock、pixel 域迁移、业务/硬块复位分权和单次试验停止条件，然后提请审核。
 4. O2-D2：审核后只执行一次。用 IP Compiler 重生成 PLL，原子迁移 DDR read FIFO `rd_clk` 与完整 HDMI pixel 域；保持 FIFO reset/flush 语义不变。八端点 STA 不闭合或需要 waiver/LOC/第二相位时立即完整回退。
 5. O3-A → O2-C1：先同步 `ddr3_init_done` 作为 camera/pixel enable，再处理 sys、I2C、camera、pixel、DDR UI 等普通时钟域本地复位。
 6. O2-C2：单独依据厂商 FIFO reset/flush 语义处理两个异步 FIFO 的读写侧复位。

@@ -155,3 +155,13 @@
 - 唯一待验证候选为新增 `65.0026 MHz`、约 `+0.192 ns` 的 PLL 控制输出，并为每个 serializer 本地复制 reset 寄存器。按 O2-B 路径预算，reset 总数据延迟需压到约 `0.939 ns` 以下；纯相位调整不能通过。
 - `/5` generated-clock、奇数分频 waveform、IOCLKBUF 前后取点、serializer hard reset 与业务 reset 分权均为 O2-D2 前置契约；FIFO 只迁移 `rd_clk`，reset/flush 仍留给 O2-C2。
 - 当前 `build/` 已清空，下一步先重建已回退 RTL 的等价基线并判断 53/54 endpoint 漂移，再收口 O2-D1-G 并提请审核；当前仍不允许编码 O2-D2，工程继续不可发布。
+
+## 2026-08-30：OV7725 O2-D1-R 回退基线重建
+
+- 从空 `41_ov7725_hdmi/build/` 使用 PDS 2022.2-SP6.4 完成七阶段实现，进程退出 0、日志无 `^E:`，总耗时约 3 分 4 秒；本批未修改 RTL、IP、PLL、FDC、RCF、构建脚本或 gate。
+- baseline gate 精确匹配原 7 组 `corner/check/clock pair/endpoints` 失败签名并返回 0；严格 gate 按预期返回 1，工程继续不可发布。
+- 新最终报告中 Slow/Fast `ddrphy_sysclk → pixel_clk` Recovery 均为 `53/53`，Removal 均为 `0/53`；Slow serializer Recovery 恢复为旧基线 `pixel_clk → pixel_clk_5x -0.643 ns / 8/8`。
+- 完整详细路径的 53 个唯一 endpoint 分类为 read FIFO 控制 26、read FIFO RAM reset 8、video driver 17、video display 1、原 DVI reset 同步器 1。
+- O2-B 的 `54` 来自 video-driver 物理 endpoint 增为 18；新增 `serializer_reset_syn/reset_1` 属于另一 clock pair。该漂移未在回退后保留，因此不修改旧 baseline，也不归为已修复问题。
+- 五类产物大小与既有基线一致：综合网表 6,873,482、PNR 网表 11,604,756、SDF 8,898,464、`.sbit` 3,791,112、`.bin` 3,789,476 字节。
+- O2-D1-R 完成；下一批只收口 O2-D1-G generated-clock、状态/计数、复位分权、warm-up 和一次性停止条件，审核前不修改功能设计。

@@ -18,7 +18,7 @@
 - `41_ov7725_hdmi/doc/CDC_RDC_AUDIT.md`：O0-A CDC/RDC 事实、旧/新 STA 映射和后续整改契约的首要证据；O1-B 不得顺带修改该结构。
 - `41_ov7725_hdmi/doc/RTL_HYGIENE_AUDIT.md`：O1-A 的 39 条告警归属、38 条确定修复、`mem_a` H3/O1-C 阻断、隐式网络和 serializer reset 契约的首要证据。
 - `41_ov7725_hdmi/doc/SERIALIZER_RESET_CONTRACT.md`：记录 O2-A 契约、O2-B 否决/回退、动态门控路线否决、`CLKOUT3=65.0026 MHz/+0.192 ns` 唯一待验证候选，以及 O2-D1-R/O2-D1-G/O2-D2 边界的首要证据。
-- `41_ov7725_hdmi/rtl/ov7725_dri/ov7725_dri.v`、`rtl/ddr3_ctrl_top/ddr3_ctrl_top.v`、`rtl/ov7725_hdmi.v`、`rtl/hdmi_top/serializer_10_to_1.v`、`rtl/hdmi_top/dvi_transmitter_top.v`：O1-B 的 38 条确定修复保留；O2-B 对 `dvi_transmitter_top.v` 的失败实验已完整回退，O2-D1-R/O2-D1-G 完成并经审核前不得再修改 serializer RTL。
+- `41_ov7725_hdmi/rtl/ov7725_dri/ov7725_dri.v`、`rtl/ddr3_ctrl_top/ddr3_ctrl_top.v`、`rtl/ov7725_hdmi.v`、`rtl/hdmi_top/serializer_10_to_1.v`、`rtl/hdmi_top/dvi_transmitter_top.v`：O1-B 的 38 条确定修复保留；O2-B 对 `dvi_transmitter_top.v` 的失败实验已完整回退，O2-D1-R 已完成，O2-D1-G 和用户审核前不得再修改 serializer RTL。
 - `41_ov7725_hdmi/scripts/build.tcl`：固定 16 RTL、4 IDF、1 FDC 和 PG2L100H 器件目标的七阶段相对路径实现定义。
 - `41_ov7725_hdmi/scripts/check_build.ps1`：严格模式因负时序返回非零；baseline 模式只证明产物与流程可重复，并明确标记不可发布。
 - `41_ov7725_hdmi/rtl/ddr3_ctrl_top/ctrl_fifo.v`：`wr_load`/`rd_load` 多点采样、两个异步 FIFO 数据方向和跨两侧复位分发点。
@@ -33,4 +33,4 @@
 
 ## 后续更新
 
-只有积累足够多、内容独立的提交后，才适合增加真实 churn 与共同变更分析。O2-B 否决/回退、O2-D1-R 基线重建、O2-D1-G 契约收口、单次 O2-D2、O3-A、O2-C1、O2-C2、O3-B、O4、O1-C `mem_a` 板级决策和 DDR3 D3 必须保持独立批次；OV7725 下一步顺序为 O2-D1-R → O2-D1-G → 用户审核 → 单次 O2-D2 → O3-A → O2-C1 → O2-C2 → O3-B → O4。DDR3 D3-0 与 PCIe H2 当前保持只读泳道。
+只有积累足够多、内容独立的提交后，才适合增加真实 churn 与共同变更分析。O2-B 否决/回退、O2-D1-R 基线重建、O2-D1-G 契约收口、单次 O2-D2、O3-A、O2-C1、O2-C2、O3-B、O4、O1-C `mem_a` 板级决策和 DDR3 D3 必须保持独立批次；O2-D1-R 已完成，OV7725 下一步顺序为 O2-D1-G → 用户审核 → 单次 O2-D2 → O3-A → O2-C1 → O2-C2 → O3-B → O4。DDR3 D3-0 与 PCIe H2 当前保持只读泳道。

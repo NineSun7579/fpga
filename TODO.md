@@ -55,8 +55,8 @@
 
 ### 近期执行顺序
 
-1. **P0：O2-D1-R 回退基线重建。** 从空 `build/` 重建已回退 RTL，复核 7 组旧失败指纹和 `ddrphy_sysclk → pixel_clk` 的 53/54 endpoint 漂移；只记录事实，不修改 baseline 或功能文件。
-2. **P0：O2-D1-G 架构契约收口并提请审核。** 正式否决动态门控；固定 `+0.192 ns` 控制相位、本地 reset 复制、`/5` 奇数分频 waveform、pre/post-buffer 取点、业务复位与 serializer hard reset 分权、首个有效 TMDS symbol 条件和单次试验停止条件。
+1. **P0：O2-D1-R 已完成。** 从空 `build/` 重建已回退 RTL，baseline gate 精确匹配 7 组失败；`ddrphy_sysclk → pixel_clk` 已恢复为 Slow/Fast `53/53`，O2-B 的 `54` 是实验布局产生的 video-driver endpoint 增量，不纳入 baseline。
+2. **P0：执行 O2-D1-G 架构契约收口并提请审核。** 固定 `+0.192 ns` 控制相位、本地 reset 复制、`/5` 奇数分频 waveform、pre/post-buffer 取点、业务复位与 serializer hard reset 分权、首个有效 TMDS symbol 条件和单次试验停止条件。
 3. **P0：审核后执行一次 O2-D2。** 用 IP Compiler 重生成 PLL，原子迁移 DDR read FIFO `rd_clk` 与完整 HDMI pixel 域，完成一次 compile + 七阶段 STA。任何停止条件触发即完整回退，不扫描第二相位、不增加 waiver。
 4. **P1：准备 DDR3 D3-0。** 仅做公开 core/物理 wrapper、非标准 Pango DDR UI 握手和 `I_ips_ddr_top` 层级评审；任一时刻只开启一条功能 RTL 泳道。
 5. **P2：PCIe H2-A/H2-B。** 板级资料缺失时只做证据矩阵、IP 再生成契约和 baseline gate 精确化，不修改 IP/RTL/FDC。
@@ -220,7 +220,9 @@
 - [x] O2-D1：否决动态 `GTP_IOCLKBUF` 门控路线。功能模型可无毛刺停启，但 SP6.4 Liberty 没有 `DI` clock-gating check，也不能证明“停钟、复位、释放、启钟”的顺序；仿真观察、endpoint 消失或 waiver 均不能替代八端点 STA。
 - [x] O2-D1：唯一待验证候选为新增 `65.0026 MHz` 控制输出，目标参数 `STATIC_RATIO3=10`、`STATIC_CPHASE3=0`、`STATIC_PHASE3=1`，相位约 `+0.192 ns`；必须与每 serializer 一只本地 reset 寄存器复制原子实施，纯相位调整无效。
 - [x] O2-D1：确认 generated-clock 审查是必选前置。`/5` 为奇数分频，不能默认 50% duty；必须唯一确认 IOCLKDIV 的输入取点、输出 waveform 和 PDS clock object，实际 FDC 是否增加精确声明由该审查决定。
-- [ ] O2-D1-R：从空 `build/` 重建已回退 RTL并运行 baseline gate；比较 `ddrphy_sysclk → pixel_clk` 的 53/54 endpoint，若不能稳定复现，不把漂移归因于 serializer reset。
+- [x] O2-D1-R：从空 `build/` 完成七阶段重建；PDS 退出码 0、日志无 `^E:`、五类产物非零，baseline gate 精确匹配原 7 组失败并返回 0，严格 gate 按预期返回 1。
+- [x] O2-D1-R：Slow/Fast `ddrphy_sysclk → pixel_clk` Recovery 均恢复为 `53/53`，Removal 均为 `0/53`。详细集合为 read FIFO 控制 26、RAM reset 8、video driver 17、video display 1、原 DVI `reset_syn` 1。
+- [x] O2-D1-R：O2-B 的 `54` 由 video-driver endpoint 从 17 增为 18；新增 `serializer_reset_syn/reset_1` 属于独立的 `pixel_clk → pixel_clk_5x` clock pair。该漂移是实验结构/布局 delta，不修改旧 baseline。
 - [ ] O2-D1-G：固定控制器状态/计数、异步断言与相位边沿同步释放、serializer hard reset 与 video/encoder business reset 的接口分权、encoder warm-up/首个有效 symbol 条件；只迁移 FIFO `rd_clk`，不改变 FIFO reset/flush 语义。
 - [ ] O2-D1-G：固定一次性 O2-D2 文件范围和预期 delta：PLL IDF/wrapper 由 IP Compiler 重生成；新增项目自有 TMDS clock/reset 控制器；修改顶层与 HDMI/DVI 接线、`build.tcl`，并将 FDC/gate 纳入同批审核。完成后提请用户审核。
 - [ ] O2-D2：只实现已审核候选。`ddr3_init_done` 不得进入 serializer hard-reset 控制器；旧 PLL `CLKOUT0` 对 pixel 域必须零消费者，派生 `/5` 时钟必须同时驱动 read FIFO `rd_clk` 和完整 HDMI pixel 域。

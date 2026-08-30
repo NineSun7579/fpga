@@ -306,3 +306,38 @@ O2-D1-G 仍需把异步断言条件、资格确认、ARM、OSERDES 释放、pixe
 5. QuestaSim 可用后补测异步断言、业务 reset 顺序、encoder warm-up、唯一首个有效 TMDS symbol、超时和 SDF 标注。
 
 以下任一项出现即完整回退，不进行第二相位尝试：控制相位或 generated clock 未被唯一识别；本地复制后 Slow Recovery 仍为负；任一 Removal/八端点/双边沿覆盖不完整；需要 false path、multicycle、clock group、失败 baseline、未审核 LOC 或其他 waiver。当前设计继续保持不可发布状态。
+
+## 13. O2-D1-R 回退基线重建结果
+
+2026 年 8 月 30 日从空 `build/` 使用 PDS 2022.2-SP6.4 重建回退后的 16 个手写 RTL、4 个 IDF 和唯一 FDC。Compile、synthesize、dev_map、PNR、report_timing、gen_netlist 与 gen_bit_stream 均完成，PDS 退出码为 0，日志无 `^E:`。
+
+现有 baseline gate 精确匹配原 7 组失败并返回 0；严格 gate 因既有发布阻断返回 1。五类关键产物非零：
+
+| 产物 | 大小（字节） |
+|---|---:|
+| 综合网表 | 6,873,482 |
+| PNR 仿真网表 | 11,604,756 |
+| slow-corner SDF | 8,898,464 |
+| `.sbit` | 3,791,112 |
+| `.bin` | 3,789,476 |
+
+最终 Recovery 复核结果：
+
+| Corner | Launch → Capture | WNS | TNS | Failing/Total |
+|---|---|---:|---:|---:|
+| Slow | `pixel_clk → pixel_clk_5x` | `-0.643 ns` | `-4.191 ns` | `8/8` |
+| Slow | `ddrphy_sysclk → pixel_clk` | `-4.957 ns` | `-214.553 ns` | `53/53` |
+| Fast | `pixel_clk → pixel_clk_5x` | `+0.123 ns` | `0` | `0/8` |
+| Fast | `ddrphy_sysclk → pixel_clk` | `-3.772 ns` | `-170.178 ns` | `53/53` |
+
+流式解析完整 `.rtr` 得到 Slow/Fast 各 53 条目标 Recovery 详细记录，两角 endpoint 集合完全一致：
+
+- read FIFO 控制寄存器：26；
+- read FIFO RAM reset：8；
+- `video_driver`：17；
+- `video_display`：1；
+- 原 DVI `reset_syn/reset_1`：1。
+
+因此 O2-B 的 `54` 没有在回退后复现。O2-B 记录的类别差分是 `video_driver` endpoint 从 17 增至 18；新增 `serializer_reset_syn/reset_1` 属于单独的 `pixel_clk → pixel_clk_5x` 检查，不是 `ddrphy_sysclk → pixel_clk` 的第 54 项。结论是该计数变化属于 O2-B 实验结构经综合/布局后的 endpoint delta，不应改写旧 53/53 baseline，也不构成 serializer reset 修复证据。
+
+O2-D1-R 至此完成；下一批为 O2-D1-G 文档契约收口，仍不得直接编码 O2-D2。
