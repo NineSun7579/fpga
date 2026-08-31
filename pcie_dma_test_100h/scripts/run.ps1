@@ -3,6 +3,7 @@ param(
         'env-check',
         'build',
         'sim-behav',
+        'sim-link',
         'sim-post-syn',
         'sim-post-pnr-func',
         'sim-post-pnr-timing',
@@ -182,7 +183,11 @@ function Invoke-ModelSim {
         [string]$DoFileName,
 
         [Parameter(Mandatory)]
-        [string]$LogFileName
+        [string]$LogFileName,
+
+        [string]$PangoPdsRoot,
+
+        [string]$SuccessMarker
     )
 
     Assert-Executable -Path $Vsim -Description 'ModelSim/QuestaSim executable'
@@ -192,10 +197,22 @@ function Invoke-ModelSim {
         throw "Simulation flow is not implemented yet: $DoFile"
     }
 
+    $ResolvedPangoPdsRoot = $null
+    if ($PangoPdsRoot) {
+        if (-not (Test-Path -LiteralPath $PangoPdsRoot -PathType Container)) {
+            throw "Pango PDS root not found: $PangoPdsRoot"
+        }
+        $ResolvedPangoPdsRoot = [IO.Path]::GetFullPath($PangoPdsRoot)
+    }
+
     $LogFile = Join-Path $LogDir $LogFileName
     $RunId = ([Guid]::NewGuid().ToString('N')).ToLowerInvariant()
     $PreviousRunId = $env:SIM_RUN_ID
+    $PreviousPangoPdsRoot = $env:PANGO_PDS_ROOT
     $env:SIM_RUN_ID = $RunId
+    if ($ResolvedPangoPdsRoot) {
+        $env:PANGO_PDS_ROOT = $ResolvedPangoPdsRoot
+    }
 
     Push-Location $ProjectRoot
     try {
@@ -207,6 +224,7 @@ function Invoke-ModelSim {
     } finally {
         Pop-Location
         $env:SIM_RUN_ID = $PreviousRunId
+        $env:PANGO_PDS_ROOT = $PreviousPangoPdsRoot
     }
 
     if (-not (Test-Path -LiteralPath $LogFile -PathType Leaf)) {
@@ -217,6 +235,11 @@ function Invoke-ModelSim {
     $RunMarker = "INFO: SIM_RUN_ID=$RunId"
     if ([regex]::Matches($LogText, [regex]::Escape($RunMarker)).Count -ne 1) {
         throw "Simulation log does not contain exactly one matching run marker: $LogFile"
+    }
+
+    if ($SuccessMarker -and
+        [regex]::Matches($LogText, [regex]::Escape($SuccessMarker)).Count -ne 1) {
+        throw "Simulation log does not contain exactly one success marker '$SuccessMarker': $LogFile"
     }
 
     $PassPattern = '(?m)^(?:#\s*)?TEST PASS\s*$'
@@ -268,6 +291,13 @@ switch ($Action) {
         Invoke-ModelSim `
             -DoFileName 'run_behav.do' `
             -LogFileName 'sim-behav.log'
+    }
+    'sim-link' {
+        Invoke-ModelSim `
+            -DoFileName 'run_link.do' `
+            -LogFileName 'sim-link.log' `
+            -PangoPdsRoot (Split-Path -Parent $PdsBin) `
+            -SuccessMarker 'INFO: S2B_REAL_LINK_UP'
     }
     'sim-post-syn' {
         Invoke-ModelSim `
