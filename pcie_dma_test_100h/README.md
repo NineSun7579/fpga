@@ -15,6 +15,7 @@
 - 严格发布 gate 已验证仍会失败；UART 死通道、未约束端口、lane/refclk/PERST# 和 SCBV 继续阻断发布。
 - H2-A 已完成只读证据收口，详见 [PCIe 板级证据与 IP 目标契约](doc/PCIE_BOARD_EVIDENCE.md)。活动 IDF 保持只读；FDC 在原理图资料闭合前不修改。
 - H2-B0 已将 baseline 收紧为 [16 个对象签名、42 次原始记录](doc/H2B_BASELINE_GATE.md)；对象新增、消失、改名、换 pin、次数或 IP metadata 漂移均失败。H2-B1 板级闭环仍未完成。
+- CI-8A 已完成 [单次 PDS 构建证据绑定](doc/CI8A_BUILD_PROVENANCE.md)：43 项 canonical 输入和 7 项最终证据由同一 `run_id` 与 SHA-256 manifest 绑定；partial/failed run 不再复用旧 full-build 产物。
 
 ## 构建
 
@@ -31,6 +32,8 @@ powershell -ExecutionPolicy Bypass -File .\scripts\run.ps1 `
   -Action build `
   -RunTo compile
 ```
+
+该命令成功后 manifest 状态为 `partial`，因此 `check-build` 会返回非零；要重新获得可验收的 complete manifest，必须执行完整流程。
 
 执行完整 PDS 流程：
 
@@ -57,6 +60,7 @@ powershell -ExecutionPolicy Bypass -File .\scripts\run.ps1 `
 不会放行器件 metadata、PG2L100H、负时序、PDS `E:` 或缺失产物。
 
 全部新生成物位于本目录的 `build/` 下，不应提交版本库。
+`build/provenance/pds-build.json` 只由 canonical `run.ps1` 维护，不应手工编辑或按“最新时间”挑选证据。
 
 ## 仿真命令接口
 

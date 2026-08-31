@@ -1,5 +1,5 @@
 > generated_by: Codex manual bootstrap
-> verified_at: 2026-08-30
+> verified_at: 2026-08-31
 > provenance: `git status`, `git log`, current worktree, and static project audit
 
 # Git Forensics
@@ -8,7 +8,7 @@
 
 - 分支为 `main`。
 - 根提交为 `1a2d493`，保存三个原始工程、已有 PDS 产物和整改文档。
-- CI-1 至 CI-7、H2-B0、板级证据门禁、仿真器复核、M0/M1、M2-A 与 M2-B1 均按小批次记录；H2-B0 后累计 59 个提交。样本仍不足以计算可信的 churn、共同变更或历史热点。
+- CI-1 至 CI-7、H2-B0、CI-8A、板级证据门禁、仿真器复核、M0/M1、M2-A 与 M2-B1 均按小批次记录；CI-8A 后累计 60 个提交。样本仍不足以计算可信的 churn、共同变更或历史热点。
 
 ## 人工高关注区
 
@@ -37,7 +37,8 @@
 - `scripts/check_repo_consistency.ps1`：CI-0 至 CI-6、M0 与 M3-A 静态门禁入口；现强制三项目 README/板级证据包含已批准的器件事实，以 XML 解析确认活动 PCIe IDF 为 PG2L50H，并保护 OV7725 四个 canonical IDF 哈希及 M3-A 迁移契约。当前退出码为 0，但不能替代 PDS、STA、板级审核或仿真。
 - `scripts/compile_simlib.tcl`、`scripts/compile_simlib.ps1`：S0-1 参数化 Pango USIM/VSIM 编译入口；支持模拟器、库类型、family、语言、PDS/仿真器路径与输出目录覆盖，并校验工具、退出码、`E:` 记录和库目录。当前因缺少 `vsim.exe`/`vlog.exe`/`vlib.exe` 未执行实际库编译。
 - `docs/PDS_TCL_ENTRYPOINT_INVENTORY.json`、`scripts/check_pds_tcl_entrypoints.ps1`：CI-7 的 13 项 tracked Tcl 分类与入口事实；仅三个 `scripts/build.tcl` 属于项目 `run.ps1` 链，其余为公共支持、历史 GUI、厂商内部或厂商仿真脚本。canonical 只接受 PG2L50H/FBG484/-6 且无绝对路径，历史/厂商脚本不得作为器件或 STA 证明。
-- `pcie_dma_test_100h/doc/H2B_BASELINE_GATE.md`、`H2B_BASELINE_FINGERPRINT.json`：H2-B0 的 16 签名/42 原始记录精确多重集和五个变异 fixture；metadata 漂移永久硬失败。partial run 复用旧 full-build 证据的风险已转入 CI-8 provenance/freshness。
+- `pcie_dma_test_100h/doc/H2B_BASELINE_GATE.md`、`H2B_BASELINE_FINGERPRINT.json`：H2-B0 的 16 签名/42 原始记录精确多重集和五个变异 fixture；metadata 漂移永久硬失败。partial run 复用旧 full-build 证据的风险已由 PCIe CI-8A 关闭。
+- `pcie_dma_test_100h/scripts/pds_sources.f`、`build_provenance.ps1`、`doc/CI8A_BUILD_PROVENANCE.md`：CI-8A 的 37 HDL 单一清单、43 输入/7 证据 SHA-256 manifest 与 32 位 run_id 状态机；partial/failed 和输入/产物漂移均拒绝。CI-8B 必须等待 DDR3/OV7725 canonical 升格并分别实现。
 - `docs/SIMULATION_READINESS_MATRIX.md`：三项目 S1/S2/S3 项目级资产缺口、厂商示例边界、四级共同门槛和 PG2L50H 迁移依赖的首要证据。
 - `E:/pango/PDS_2022.2-SP6.4/bin/pds_shell.exe`：S0 复核确认存在的唯一已发现实现工具；外部仿真器可执行文件缺失是当前动态验证阻塞点。
 

@@ -320,3 +320,13 @@
 - 日志变异测试覆盖缺失 UART、重复 UART、Timing 端口改名、share-pin `M15 -> N15` 和 IDF `PG2L50H -> PG2L100H`，五项即使显式 baseline 均返回 1。
 - 本批未修改 RTL、活动 IDF、FDC、厂商 IP 或生成物；lane/refclk/PERST#/SCBV/UART/I/O timing 仍属于 H2-B1 外部阻断，strict gate 继续失败。
 - 审计另发现 partial PDS run 可能遗留旧 full-build 日志与产物；该问题进入 CI-8 provenance/freshness，不在本批用时间戳容差或隐式假设处理。
+
+## 2026-08-31：CI-8A PCIe 单次构建证据绑定
+
+- 新增 `scripts/pds_sources.f`，让 PDS Tcl 与 PowerShell provenance 共用 37 个 HDL 的唯一有序清单；活动 IDF/FDC 和构建入口合计形成 43 项 canonical 输入。
+- 新增 `scripts/build_provenance.ps1`；`run.ps1` 每次 build 开始即以唯一 `run_id` 原子替换旧 manifest，状态为 `running/partial/failed/complete`，只有完整 `gen_bit_stream` 可设置 `valid=true`。
+- `build.tcl` 强制校验并回显 32 位小写十六进制 `PDS_RUN_ID`，完整结束时输出同 id 的 `PDS_RUN_COMPLETE`；gate 要求两个标志各出现一次。
+- complete manifest 固定记录 full log、timing report、post-PNR 网表、slow SDF、`.sbit`、`.bin` 和 `bgr.db` 七项证据的工程相对路径、长度和 SHA-256。
+- 动态负测证明：真实 partial compile、PDS executable 缺失、run-id 漂移、`bgr.db` 字节漂移和 FDC 输入漂移均返回 1，旧 full-build 证据不可复用。
+- 最终 PG2L50H 七阶段构建返回 0，manifest 为 complete/valid、43 输入/7 证据；baseline=0、strict=1、最差解析 slack `0.100 ns`，16/42 H2-B0 指纹和 H2-B1 五类阻断保持不变。
+- 本批未修改 RTL、活动 IDF、FDC 或厂商 IP；DDR3/OV7725 的 CI-8B 迁移继续等待各自 PG2L50H canonical 输入和最终构建入口闭合。

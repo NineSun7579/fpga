@@ -15,6 +15,13 @@ $IpDefinition = Join-Path $ProjectRoot 'ipcore\pcie_test\pcie_test.idf'
 $BitstreamDatabase = Join-Path $PdsRoot 'generate_bitstream\bgr.db'
 $BaselineFingerprintPath = Join-Path $ProjectRoot `
     'doc\H2B_BASELINE_FINGERPRINT.json'
+$ProvenanceScript = Join-Path $PSScriptRoot 'build_provenance.ps1'
+$ManifestPath = Join-Path $BuildRoot 'provenance\pds-build.json'
+
+if (-not (Test-Path -LiteralPath $ProvenanceScript -PathType Leaf)) {
+    throw "PDS provenance helper not found: $ProvenanceScript"
+}
+. $ProvenanceScript
 
 function Assert-NonEmptyFile {
     param(
@@ -42,6 +49,82 @@ Assert-NonEmptyFile -Path $BitstreamDatabase -Description 'Bitstream database'
 Assert-NonEmptyFile `
     -Path $BaselineFingerprintPath `
     -Description 'PCIe H2-B0 baseline fingerprint'
+Assert-NonEmptyFile -Path $ManifestPath -Description 'PDS provenance manifest'
+
+try {
+    $Manifest = Get-Content -Raw -Encoding UTF8 -LiteralPath $ManifestPath |
+        ConvertFrom-Json
+} catch {
+    throw "PDS provenance manifest is not valid JSON: $ManifestPath"
+}
+
+if ($Manifest.schema_version -ne 1) {
+    throw "Unsupported PDS provenance manifest schema: $($Manifest.schema_version)"
+}
+if ([string]$Manifest.project -cne 'pcie_dma_test_100h') {
+    throw 'PDS provenance manifest project does not identify pcie_dma_test_100h.'
+}
+if ([string]$Manifest.status -cne 'complete' -or
+    $Manifest.valid -isnot [bool] -or
+    $Manifest.valid -ne $true -or
+    [string]$Manifest.run_to -cne 'gen_bit_stream') {
+    throw 'PDS provenance manifest is not a valid complete gen_bit_stream run.'
+}
+$StartedUtc = [DateTimeOffset]::MinValue
+$CompletedUtc = [DateTimeOffset]::MinValue
+if (-not [DateTimeOffset]::TryParse(
+        [string]$Manifest.started_utc,
+        [Globalization.CultureInfo]::InvariantCulture,
+        [Globalization.DateTimeStyles]::RoundtripKind,
+        [ref]$StartedUtc
+    ) -or
+    -not [DateTimeOffset]::TryParse(
+        [string]$Manifest.completed_utc,
+        [Globalization.CultureInfo]::InvariantCulture,
+        [Globalization.DateTimeStyles]::RoundtripKind,
+        [ref]$CompletedUtc
+    ) -or
+    $CompletedUtc -lt $StartedUtc) {
+    throw 'PDS provenance manifest contains invalid build timestamps.'
+}
+$RunId = [string]$Manifest.run_id
+if ($RunId -notmatch '^[0-9a-f]{32}$') {
+    throw 'PDS provenance manifest run_id is not a 32-character lowercase hexadecimal value.'
+}
+foreach ($Target in ([ordered]@{
+            board = 'RK3568+PG2L50H100H'
+            fpga = 'PG2L50H-6IFBG484'
+            pds_family = 'Logos2'
+            pds_device = 'PG2L50H'
+            pds_package = 'FBG484'
+            pds_speedgrade = '-6'
+        }).GetEnumerator()) {
+    if ([string]$Manifest.target.($Target.Key) -cne $Target.Value) {
+        throw "PDS provenance target $($Target.Key) is not $($Target.Value)."
+    }
+}
+
+$CanonicalInputPaths = Get-PdsCanonicalInputPaths -ProjectRoot $ProjectRoot
+$ManifestInputRecords = @($Manifest.inputs)
+Assert-PdsFileRecordsMatch `
+    -Expected (Get-PdsFileRecords -ProjectRoot $ProjectRoot -RelativePaths $CanonicalInputPaths) `
+    -Actual $ManifestInputRecords `
+    -Description 'PDS provenance canonical inputs'
+
+$ExpectedArtifactPaths = @(Get-PdsArtifactPaths)
+$ManifestArtifactRecords = @($Manifest.artifacts)
+$ManifestArtifactPaths = @($ManifestArtifactRecords | ForEach-Object {
+        [string]$_.path
+    })
+if ($ExpectedArtifactPaths.Count -ne $ManifestArtifactPaths.Count -or
+    (($ExpectedArtifactPaths | Sort-Object) -join "`n") -cne
+    (($ManifestArtifactPaths | Sort-Object) -join "`n")) {
+    throw 'PDS provenance manifest artifact path set is not canonical.'
+}
+Assert-PdsFileRecordsMatch `
+    -Expected (Get-PdsFileRecords -ProjectRoot $ProjectRoot -RelativePaths $ExpectedArtifactPaths) `
+    -Actual $ManifestArtifactRecords `
+    -Description 'PDS provenance artifacts'
 
 $MetadataIssues = [System.Collections.Generic.List[string]]::new()
 try {
@@ -95,6 +178,16 @@ if ($TimingText -match 'Some Constraints Violated') {
 }
 
 $BuildText = Get-Content -Raw -LiteralPath $BuildLog
+if ([regex]::Matches(
+        $BuildText,
+        [regex]::Escape("INFO: PDS_RUN_ID=$RunId")
+    ).Count -ne 1 -or
+    [regex]::Matches(
+        $BuildText,
+        [regex]::Escape("INFO: PDS_RUN_COMPLETE=$RunId")
+    ).Count -ne 1) {
+    throw 'PDS build log run-id or completion marker does not match provenance manifest.'
+}
 if ($BuildText -notmatch '(?im)-device\s+PG2L50H') {
     throw 'PDS build log does not record set_arch device PG2L50H.'
 }

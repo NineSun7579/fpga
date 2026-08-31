@@ -4,6 +4,12 @@
 
 set project_root [file normalize "[file dirname [info script]]/.."]
 
+if {![info exists ::env(PDS_RUN_ID)] ||
+    ![regexp {^[0-9a-f]{32}$} $::env(PDS_RUN_ID)]} {
+    error "PDS_RUN_ID must be a 32-character lowercase hexadecimal value"
+}
+set run_id $::env(PDS_RUN_ID)
+
 if {[info exists ::env(PDS_RUN_TO)]} {
     set run_to $::env(PDS_RUN_TO)
 } else {
@@ -24,6 +30,7 @@ if {[lsearch -exact $valid_stages $run_to] < 0} {
 }
 
 puts "INFO: project root: $project_root"
+puts "INFO: PDS_RUN_ID=$run_id"
 puts "INFO: requested final stage: $run_to"
 
 set_arch \
@@ -35,44 +42,25 @@ set_arch \
 # Keep the source order aligned with the last successful .pds project. The
 # PCIe IDF is added separately so PDS selects the generated x2 implementation;
 # recursively adding ipcore/ would introduce duplicate example modules.
-set design_sources [list \
-    "hdl/uart2apb_32bit/pgr_apb_ctr_32bit.v" \
-    "hdl/uart2apb_32bit/pgr_apb_mif_32bit.v" \
-    "hdl/uart2apb_32bit/pgr_clk_gen_32bit.v" \
-    "hdl/uart2apb_32bit/pgr_cmd_parser_32bit.v" \
-    "hdl/uart2apb_32bit/pgr_fifo_top_32bit.v" \
-    "hdl/uart2apb_32bit/pgr_uart_rx_32bit.v" \
-    "hdl/uart2apb_32bit/pgr_uart_top_32bit.v" \
-    "hdl/uart2apb_32bit/pgr_uart_tx_32bit.v" \
-    "hdl/uart2apb_32bit/pgr_uart2apb_top_32bit.v" \
-    "hdl/uart2apb_32bit/fifo/pgm_distributed_fifo_ctr_v1_0.v" \
-    "hdl/uart2apb_32bit/fifo/pgm_distributed_fifo_v1_1.v" \
-    "hdl/uart2apb_32bit/fifo/pgm_distributed_sdpram_v1_1.v" \
-    "hdl/uart2apb_32bit/fifo/pgr_prefetch_fifo.v" \
-    "hdl/pcie_dma_ctrl/ipm_distributed_sdpram_v1_2.v" \
-    "hdl/pcie_dma_ctrl/ips2l_expd_apb_mux.v" \
-    "hdl/pcie_dma_ctrl/ips2l_pcie_dma.v" \
-    "hdl/pcie_dma_ctrl/ips2l_pcie_dma_controller.v" \
-    "hdl/pcie_dma_ctrl/ips2l_pcie_dma_cpld_tx_ctrl.v" \
-    "hdl/pcie_dma_ctrl/ips2l_pcie_dma_mrd_tx_ctrl.v" \
-    "hdl/pcie_dma_ctrl/ips2l_pcie_dma_mwr_tx_ctrl.v" \
-    "hdl/pcie_dma_ctrl/ips2l_pcie_dma_rd_ctrl.v" \
-    "hdl/pcie_dma_ctrl/ips2l_pcie_dma_rx_cpld_wr_ctrl.v" \
-    "hdl/pcie_dma_ctrl/ips2l_pcie_dma_rx_mwr_wr_ctrl.v" \
-    "hdl/pcie_dma_ctrl/ips2l_pcie_dma_rx_top.v" \
-    "hdl/pcie_dma_ctrl/ips2l_pcie_dma_tlp_rcv.v" \
-    "hdl/pcie_dma_ctrl/ips2l_pcie_dma_tlp_tx_mux.v" \
-    "hdl/pcie_dma_ctrl/ips2l_pcie_dma_tx_cpld_rd_ctrl.v" \
-    "hdl/pcie_dma_ctrl/ips2l_pcie_dma_tx_mwr_rd_ctrl.v" \
-    "hdl/pcie_dma_ctrl/ips2l_pcie_dma_tx_top.v" \
-    "hdl/pcie_dma_ctrl/ips2l_pcie_dma_wr_ctrl.v" \
-    "hdl/pcie_dma_ctrl/pgs_pciex4_prefetch_fifo_v1_2.v" \
-    "hdl/pcie_dma_ctrl/fifo/pgs_pciex4_fifo_ctrl.v" \
-    "hdl/pcie_dma_ctrl/fifo/pgs_pciex4_fifo_v1_2.v" \
-    "hdl/pcie_dma_ctrl/ips2l_pcie_dma_ram/ips2l_pcie_dma_ram.v" \
-    "hdl/pcie_dma_ctrl/fifo/ipm_distributed_sdpram_v1_2_distributed_fifo.v" \
-    "hdl/pcie_dma_ctrl/ips2l_pcie_dma_ram/rtl/ipm2l_sdpram_v1_1_ips2l_pcie_dma_ram.v" \
-    "hdl/pcie_dma_test.v"]
+set source_list "$project_root/scripts/pds_sources.f"
+if {![file exists $source_list]} {
+    error "Missing PDS source list: $source_list"
+}
+set source_handle [open $source_list r]
+set source_text [read $source_handle]
+close $source_handle
+
+set design_sources [list]
+foreach line [split $source_text "\n"] {
+    set relative_path [string trim $line]
+    if {$relative_path eq "" || [string match "#*" $relative_path]} {
+        continue
+    }
+    lappend design_sources $relative_path
+}
+if {[llength $design_sources] == 0} {
+    error "PDS source list is empty: $source_list"
+}
 
 foreach relative_path $design_sources {
     set source_path "$project_root/$relative_path"
@@ -166,3 +154,4 @@ gen_bit_stream \
     -master_configuration_clock_frequency {40M}
 
 puts "INFO: PCIe DMA implementation completed"
+puts "INFO: PDS_RUN_COMPLETE=$run_id"

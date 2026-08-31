@@ -1,5 +1,5 @@
 > generated_by: Codex manual bootstrap
-> verified_at: 2026-08-30
+> verified_at: 2026-08-31
 > provenance: root guide, TODO, source tree, PDS reports, and manual inspection
 
 # Domains
@@ -32,7 +32,9 @@ DDR3 M2-B1 通过 PDS SP6.4 `ui.tcl` 确认 `DEVICE_100H_EN` 是隐藏派生参�
 
 PCIe H2-A（2026-08-30）固定产品顶层的板级边界：`pcie_dma_test` 使用 x2 `rxn/rxp/txn/txp`、差分 `ref_clk_p/n`、`perst_n`、`button_rst_n` 和两枚 LED；当前 FDC 仅固定 refclk `F6/E6`、PERST# `M16`、button reset `M15`、LED `M17/J16`。lane 极性、板级拓扑、I/O delay 和 SCBV 均没有证据，不能由实现成功推断。
 
-PCIe H2-B0（2026-08-30）将五类 baseline 问题归一化为 16 个唯一签名、42 次原始记录，并以完整多重集保护失败状态；任何签名新增、消失、改名、share-pin 位置或次数漂移均失败，IDF metadata 漂移永久硬失败。canonical fixture 正向为 0、strict 为 1，缺失/重复 UART、Timing 端口改名、share pin 改位和 100H IDF 五个变异均为 1。H2-B1 仍受 lane/refclk/PERST#/SCBV/UART/I/O timing 外部资料阻断；partial run 复用旧 full-build 证据的风险列入 CI-8 provenance/freshness。
+PCIe H2-B0（2026-08-30）将五类 baseline 问题归一化为 16 个唯一签名、42 次原始记录，并以完整多重集保护失败状态；任何签名新增、消失、改名、share-pin 位置或次数漂移均失败，IDF metadata 漂移永久硬失败。canonical fixture 正向为 0、strict 为 1，缺失/重复 UART、Timing 端口改名、share pin 改位和 100H IDF 五个变异均为 1。H2-B1 仍受 lane/refclk/PERST#/SCBV/UART/I/O timing 外部资料阻断；partial run 复用旧 full-build 证据的风险已由 PCIe CI-8A 关闭。
+
+PCIe CI-8A（2026-08-31）把构建证据定义为一次运行的不可拆分集合：37 个 HDL 单一清单、43 项 canonical 输入和 7 项最终证据由同一 32 位 run_id 与 SHA-256 manifest 绑定。每次 build 开始即原子失效旧 complete 证据；`running/partial/failed` 均不可验收，只有 `complete/valid` 可继续 H2-B0/strict gate。partial、工具缺失、run-id、产物或 FDC 漂移均失败；最终 PG2L50H full build/baseline/strict 为 `0/0/1`，slack `0.100 ns`。CI-8B 等待 DDR3/OV7725 canonical 升格后逐项目迁移，不预先共享实现。
 
 实物确认后，活动 `pcie_test.idf` 的 `Logos2/PG2L50H/FBG484/-6` metadata 被证明正确；错误项是顶层 build/PDS/gate 和现有主产物仍为 PG2L100H。M1 不为型号重复生成 PCIe IP，而是修正项目自有 build/gate、清空旧 build并建立 50H baseline，同时继续阻断 UART2APB、lane/refclk/PERST# 与 SCBV 缺口。
 

@@ -25,6 +25,12 @@ $PcieBaselineDocPath = Join-Path $RepoRoot `
     'pcie_dma_test_100h\doc\H2B_BASELINE_GATE.md'
 $PcieBaselineFingerprintPath = Join-Path $RepoRoot `
     'pcie_dma_test_100h\doc\H2B_BASELINE_FINGERPRINT.json'
+$PcieProvenanceDocPath = Join-Path $RepoRoot `
+    'pcie_dma_test_100h\doc\CI8A_BUILD_PROVENANCE.md'
+$PcieProvenanceHelperPath = Join-Path $RepoRoot `
+    'pcie_dma_test_100h\scripts\build_provenance.ps1'
+$PcieSourceListPath = Join-Path $RepoRoot `
+    'pcie_dma_test_100h\scripts\pds_sources.f'
 $ApprovedBoard = 'RK3568+PG2L50H100H'
 $ApprovedFpgaPart = 'PG2L50H-6IFBG484'
 $ApprovedPdsFamily = 'Logos2'
@@ -540,6 +546,105 @@ if (Test-Path -LiteralPath $PcieGatePath -PathType Leaf) {
             -Description $Required.Key | Out-Null
     }
 }
+$PcieProvenanceDocExists = Require-File `
+    -Path $PcieProvenanceDocPath `
+    -Description 'PCIe CI-8A build provenance contract'
+$PcieProvenanceHelperExists = Require-File `
+    -Path $PcieProvenanceHelperPath `
+    -Description 'PCIe CI-8A provenance helper'
+$PcieSourceListExists = Require-File `
+    -Path $PcieSourceListPath `
+    -Description 'PCIe canonical PDS source list'
+
+if ($PcieProvenanceDocExists) {
+    $PcieProvenanceDocText = Get-Content -Raw -Encoding UTF8 `
+        -LiteralPath $PcieProvenanceDocPath
+    foreach ($Required in ([ordered]@{
+            'PCIe CI-8A 43-input contract' = '43\s*\u9879\s*canonical'
+            'PCIe CI-8A seven-artifact contract' = '\u4e03\u9879\u6700\u7ec8\u8bc1\u636e'
+            'PCIe CI-8A partial rejection' = '`partial`'
+            'PCIe CI-8A failed rejection' = '`failed`'
+            'PCIe CI-8B migration boundary' = 'CI-8B'
+        }).GetEnumerator()) {
+        Require-Pattern -Text $PcieProvenanceDocText -Pattern $Required.Value `
+            -Description $Required.Key | Out-Null
+    }
+}
+
+if ($PcieSourceListExists) {
+    $PcieSourcePaths = @(Get-Content -LiteralPath $PcieSourceListPath |
+        ForEach-Object { $_.Trim() } |
+        Where-Object { $_ -and -not $_.StartsWith('#') })
+    if ($PcieSourcePaths.Count -ne 37) {
+        Add-Failure "PCIe canonical PDS source list must contain 37 paths; found $($PcieSourcePaths.Count)"
+    }
+    $PcieDuplicateSourcePaths = @($PcieSourcePaths |
+        Group-Object -CaseSensitive | Where-Object Count -gt 1)
+    if ($PcieDuplicateSourcePaths.Count -gt 0) {
+        Add-Failure 'PCIe canonical PDS source list contains duplicate paths'
+    }
+    foreach ($RelativePath in $PcieSourcePaths) {
+        if ([IO.Path]::IsPathRooted($RelativePath) -or
+            $RelativePath -match '(^|/)\.\.(/|$)') {
+            Add-Failure "PCIe canonical PDS source path is not project-relative: $RelativePath"
+            continue
+        }
+        Require-File `
+            -Path (Join-Path $RepoRoot "pcie_dma_test_100h\$($RelativePath -replace '/', '\')") `
+            -Description "PCIe canonical source $RelativePath" | Out-Null
+    }
+}
+
+$PcieRunPath = Join-Path $RepoRoot 'pcie_dma_test_100h\scripts\run.ps1'
+$PcieBuildPath = Join-Path $RepoRoot 'pcie_dma_test_100h\scripts\build.tcl'
+if (Test-Path -LiteralPath $PcieRunPath -PathType Leaf) {
+    $PcieRunText = Get-Content -Raw -Encoding UTF8 -LiteralPath $PcieRunPath
+    foreach ($Required in ([ordered]@{
+            'PCIe CI-8A run-id environment' = 'PDS_RUN_ID'
+            'PCIe CI-8A initial running manifest' = "status = 'running'"
+            'PCIe CI-8A failed manifest' = "status = 'failed'"
+            'PCIe CI-8A atomic manifest writer' = 'Write-PdsProvenanceManifest'
+        }).GetEnumerator()) {
+        Require-Pattern -Text $PcieRunText -Pattern $Required.Value `
+            -Description $Required.Key | Out-Null
+    }
+}
+if (Test-Path -LiteralPath $PcieBuildPath -PathType Leaf) {
+    $PcieBuildText = Get-Content -Raw -Encoding UTF8 -LiteralPath $PcieBuildPath
+    foreach ($Required in ([ordered]@{
+            'PCIe CI-8A source-list consumer' = 'pds_sources\.f'
+            'PCIe CI-8A Tcl run marker' = 'PDS_RUN_ID='
+            'PCIe CI-8A Tcl completion marker' = 'PDS_RUN_COMPLETE='
+        }).GetEnumerator()) {
+        Require-Pattern -Text $PcieBuildText -Pattern $Required.Value `
+            -Description $Required.Key | Out-Null
+    }
+}
+if ($PcieProvenanceHelperExists) {
+    $PcieProvenanceHelperText = Get-Content -Raw -Encoding UTF8 `
+        -LiteralPath $PcieProvenanceHelperPath
+    foreach ($Required in ([ordered]@{
+            'PCIe CI-8A canonical input enumerator' = 'Get-PdsCanonicalInputPaths'
+            'PCIe CI-8A artifact enumerator' = 'Get-PdsArtifactPaths'
+            'PCIe CI-8A SHA-256 records' = 'Get-FileHash\s+-Algorithm\s+SHA256'
+            'PCIe CI-8A atomic replace' = '\[IO\.File\]::Replace'
+        }).GetEnumerator()) {
+        Require-Pattern -Text $PcieProvenanceHelperText -Pattern $Required.Value `
+            -Description $Required.Key | Out-Null
+    }
+}
+if (Test-Path -LiteralPath $PcieGatePath -PathType Leaf) {
+    $PcieGateText = Get-Content -Raw -Encoding UTF8 -LiteralPath $PcieGatePath
+    foreach ($Required in ([ordered]@{
+            'PCIe CI-8A manifest input' = 'provenance\\pds-build\.json'
+            'PCIe CI-8A record comparison' = 'Assert-PdsFileRecordsMatch'
+            'PCIe CI-8A complete run requirement' = "status\s+-cne\s+'complete'"
+            'PCIe CI-8A final stage requirement' = "run_to\s+-cne\s+'gen_bit_stream'"
+        }).GetEnumerator()) {
+        Require-Pattern -Text $PcieGateText -Pattern $Required.Value `
+            -Description $Required.Key | Out-Null
+    }
+}
 $PcieReadmePath = Join-Path $RepoRoot 'pcie_dma_test_100h\README.md'
 if (Test-Path -LiteralPath $PcieReadmePath -PathType Leaf) {
     $PcieReadmeText = Get-Content -Raw -Encoding UTF8 -LiteralPath $PcieReadmePath
@@ -547,6 +652,8 @@ if (Test-Path -LiteralPath $PcieReadmePath -PathType Leaf) {
         -Description 'PCIe README H2-B0 gate link' | Out-Null
     Require-Pattern -Text $PcieReadmeText -Pattern 'H2-B1' `
         -Description 'PCIe README H2-B1 boundary' | Out-Null
+    Require-Pattern -Text $PcieReadmeText -Pattern 'CI8A_BUILD_PROVENANCE\.md' `
+        -Description 'PCIe README CI-8A provenance link' | Out-Null
 }
 $PcieEvidencePath = Join-Path $RepoRoot `
     'pcie_dma_test_100h\doc\PCIE_BOARD_EVIDENCE.md'

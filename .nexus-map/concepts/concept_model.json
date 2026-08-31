@@ -608,7 +608,7 @@
       "implementation_status": "implemented_with_known_functional_gap",
       "code_path": "pcie_dma_test_100h/hdl/",
       "evidence_path": "pcie_dma_test_100h/place_route/pcie_dma_test_timing_summary_after_hold_fix.txt",
-      "evidence_gap": "活动 PCIe IDF、build/PDS/gate、timing report 与新主产物已统一匹配 PG2L50H，且从空 build 完成七阶段重建；UART2APB、SCBV、板级资料和四级仿真仍缺失。",
+      "evidence_gap": "活动 PCIe IDF、build/PDS/gate、timing report 与新主产物已统一匹配 PG2L50H；CI-8A 已绑定单次 full-build 输入和证据，但 UART2APB、SCBV、lane/refclk/PERST#、I/O timing、板级资料和四级仿真仍缺失。",
       "h2a_read_only_evidence": {
         "date": "2026-08-30",
         "top_module": "pcie_dma_test",
@@ -644,6 +644,22 @@
       },
       "h2b_prerequisites": ["M1 PG2L50H clean rebuild", "board lane polarity/topology", "I/O delay", "SCBV decision", "UART2APB port ownership"],
       "h2b_stop_condition": "Any missing board evidence, IDF/PDS device mismatch, or unresolved UART2APB port ownership stops gate tightening; no waiver substitute.",
+      "ci8a_build_provenance": {
+        "date": "2026-08-31",
+        "status": "completed_pcie_pilot",
+        "hdl_source_list": "pcie_dma_test_100h/scripts/pds_sources.f",
+        "hdl_count": 37,
+        "canonical_input_count": 43,
+        "artifact_count": 7,
+        "manifest": "pcie_dma_test_100h/build/provenance/pds-build.json",
+        "run_id": "32-character lowercase hexadecimal",
+        "states": ["running", "partial", "failed", "complete"],
+        "only_valid_state": "complete with valid=true",
+        "record_fields": ["relative POSIX path", "length", "SHA256"],
+        "negative_gate_exit_1": ["partial compile", "missing PDS executable", "run-id drift", "artifact drift", "FDC input drift"],
+        "final_results": {"full_build": 0, "baseline_gate": 0, "strict_gate": 1, "worst_slack_ns": 0.100, "h2b0_unique_signatures": 16, "h2b0_raw_occurrences": 42},
+        "ci8b_boundary": "DDR3 and OV7725 migrate only after their own PG2L50H canonical promotion; audit each source list and artifact layout independently before considering shared modules."
+      },
       "tech_stack": ["Verilog", "Pango Logos2", "PCIe x2", "DMA"],
       "related_reqs": ["H2-A read-only evidence", "H2-B board evidence", "IP regeneration", "UART 决策", "集成自检", "保持时序通过"],
       "complexity": "high",
@@ -861,15 +877,15 @@
   ],
   "metadata": {
     "analysis_mode": "manual bootstrap",
-    "verified_at": "2026-08-30",
-    "git_commits_analyzed": 59,
+    "verified_at": "2026-08-31",
+    "git_commits_analyzed": 60,
     "raw_ast_available": false,
     "limitations": [
-      "H2-B0 PCIe baseline fingerprint brings the repository to 59 commits; the history remains too shallow for reliable hotspot ranking.",
+      "CI-8A PCIe build provenance pilot brings the repository to 60 commits; the history remains too shallow for reliable hotspot ranking.",
       "The S0-1 parameterized simulation-library entry is committed with mandatory simulator preflight; actual USIM/VSIM compilation remains blocked by the missing simulator installation.",
       "No HDL/raw source AST extraction was run; CI-0 PowerShell syntax parsing is recorded separately.",
       "No ModelSim or QuestaSim execution was available.",
-      "The 59-commit history includes CI-1 through CI-7, H2-B0, board-evidence checklists, simulator-path review, M0 target approval, M1 PCIe migration, M2-A/M2-B1, and the M3-A OV7725 migration audit. H2-B0 only protects the PG2L50H failure baseline; it is not H2-B1 board closure, CI-8 provenance/freshness, IP generation, canonical promotion, or a complete product baseline. M2/M3 remain incomplete."
+      "The 60-commit history includes CI-1 through CI-7, H2-B0, CI-8A, board-evidence checklists, simulator-path review, M0 target approval, M1 PCIe migration, M2-A/M2-B1, and the M3-A OV7725 migration audit. CI-8A proves PCIe run provenance/freshness only; it is not H2-B1 board closure, CI-8B migration, IP generation, canonical promotion, or a complete product baseline. M2/M3 remain incomplete."
     ]
   }
 }

@@ -36,8 +36,14 @@ $PdsWorkDir = Join-Path $BuildRoot 'pds'
 $LogDir = Join-Path $BuildRoot 'logs'
 $BuildScript = Join-Path $PSScriptRoot 'build.tcl'
 $CheckBuildScript = Join-Path $PSScriptRoot 'check_build.ps1'
+$ProvenanceScript = Join-Path $PSScriptRoot 'build_provenance.ps1'
 $PdsShell = Join-Path $PdsBin 'pds_shell.exe'
 $Vsim = Join-Path $QuestaBin 'vsim.exe'
+
+if (-not (Test-Path -LiteralPath $ProvenanceScript -PathType Leaf)) {
+    throw "PDS provenance helper not found: $ProvenanceScript"
+}
+. $ProvenanceScript
 
 function Assert-Executable {
     param(
@@ -54,17 +60,58 @@ function Assert-Executable {
 }
 
 function Invoke-PdsBuild {
-    Assert-Executable -Path $PdsShell -Description 'PDS shell'
-
-    New-Item -ItemType Directory -Force -Path $PdsWorkDir, $LogDir |
-        Out-Null
-
     $LogFile = Join-Path $LogDir "pds-$RunTo.log"
+    $ManifestPath = Get-PdsProvenanceManifestPath -ProjectRoot $ProjectRoot
+    $RunId = ([Guid]::NewGuid().ToString('N')).ToLowerInvariant()
+    $InputPaths = @()
+    $InputRecords = @()
+    $Manifest = [ordered]@{
+        schema_version = 1
+        project = 'pcie_dma_test_100h'
+        run_id = $RunId
+        run_to = $RunTo
+        status = 'running'
+        valid = $false
+        started_utc = (Get-Date).ToUniversalTime().ToString('o')
+        completed_utc = $null
+        target = [ordered]@{
+            board = 'RK3568+PG2L50H100H'
+            fpga = 'PG2L50H-6IFBG484'
+            pds_family = 'Logos2'
+            pds_device = 'PG2L50H'
+            pds_package = 'FBG484'
+            pds_speedgrade = '-6'
+        }
+        inputs = @()
+        artifacts = @()
+    }
+
+    Write-PdsProvenanceManifest `
+        -Path $ManifestPath `
+        -Manifest $Manifest `
+        -RunId $RunId
+
     $PreviousRunTo = $env:PDS_RUN_TO
+    $PreviousRunId = $env:PDS_RUN_ID
     $env:PDS_RUN_TO = $RunTo
+    $env:PDS_RUN_ID = $RunId
 
     try {
-        Write-Host "INFO: running PDS through stage '$RunTo'"
+        $InputPaths = Get-PdsCanonicalInputPaths -ProjectRoot $ProjectRoot
+        $InputRecords = Get-PdsFileRecords `
+            -ProjectRoot $ProjectRoot `
+            -RelativePaths $InputPaths
+        $Manifest.inputs = $InputRecords
+        Write-PdsProvenanceManifest `
+            -Path $ManifestPath `
+            -Manifest $Manifest `
+            -RunId $RunId
+
+        Assert-Executable -Path $PdsShell -Description 'PDS shell'
+        New-Item -ItemType Directory -Force -Path $PdsWorkDir, $LogDir |
+            Out-Null
+
+        Write-Host "INFO: running PDS through stage '$RunTo' (run $RunId)"
         & $PdsShell `
             -file $BuildScript `
             -work_dir $PdsWorkDir `
@@ -77,9 +124,54 @@ function Invoke-PdsBuild {
         if (Select-String -LiteralPath $LogFile -Pattern '^E:' -Quiet) {
             throw "PDS reported one or more errors despite exit code 0. See $LogFile"
         }
+
+        $Manifest.status = if ($RunTo -eq 'gen_bit_stream') {
+            'complete'
+        } else {
+            'partial'
+        }
+        if ($RunTo -eq 'gen_bit_stream') {
+            $LogText = Get-Content -Raw -LiteralPath $LogFile
+            $RunMarker = "INFO: PDS_RUN_ID=$RunId"
+            $CompleteMarker = "INFO: PDS_RUN_COMPLETE=$RunId"
+            if ([regex]::Matches($LogText, [regex]::Escape($RunMarker)).Count -ne 1 -or
+                [regex]::Matches($LogText, [regex]::Escape($CompleteMarker)).Count -ne 1) {
+                throw "PDS log does not contain exactly one run marker and completion marker: $LogFile"
+            }
+            Assert-PdsFileRecordsMatch `
+                -Expected $InputRecords `
+                -Actual (Get-PdsFileRecords -ProjectRoot $ProjectRoot -RelativePaths $InputPaths) `
+                -Description 'PDS canonical inputs'
+            $Manifest.artifacts = Get-PdsFileRecords `
+                -ProjectRoot $ProjectRoot `
+                -RelativePaths (Get-PdsArtifactPaths)
+            $Manifest.valid = $true
+        }
+        $Manifest.completed_utc = (Get-Date).ToUniversalTime().ToString('o')
+        Write-PdsProvenanceManifest `
+            -Path $ManifestPath `
+            -Manifest $Manifest `
+            -RunId $RunId
+    } catch {
+        $Manifest.status = 'failed'
+        $Manifest.valid = $false
+        $Manifest.completed_utc = (Get-Date).ToUniversalTime().ToString('o')
+        $Manifest.error = $_.Exception.Message
+        try {
+            Write-PdsProvenanceManifest `
+                -Path $ManifestPath `
+                -Manifest $Manifest `
+                -RunId $RunId
+        } catch {
+            Write-Warning "Unable to publish failed provenance manifest: $($_.Exception.Message)"
+        }
+        throw
     } finally {
         $env:PDS_RUN_TO = $PreviousRunTo
+        $env:PDS_RUN_ID = $PreviousRunId
     }
+
+    Write-Host "INFO: provenance manifest status '$($Manifest.status)' at $ManifestPath"
 
     Write-Host "INFO: PDS stage '$RunTo' completed"
 }

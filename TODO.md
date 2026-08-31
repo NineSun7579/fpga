@@ -375,11 +375,14 @@ O2-D2 停止条件：控制相位或 `/5` generated clock 未被 PDS 唯一识�
 - [x] 机器清单记录角色、`set_arch` 次数、器件集合、绝对路径事实和 `run.ps1` 入口身份。
 - [x] 仓库门禁通过正向检查和缺失清单项负向测试；文档、Nexus 与验证证据已同步，纳入独立 CI-7 提交。
 
-### CI-8：PDS 构建证据新鲜度（待开始）
+### CI-8：PDS 构建证据新鲜度（实施中，PCIe 试点已完成）
 
-- [ ] 为三项目记录最后成功阶段、开始/完成时间和对应日志，`check-build` 不得把 partial run 后残留的旧 full-build 产物当作当前证据。
-- [ ] 最终 gate 必须确认日志、timing report、网表、SDF 和位流来自同一次 `gen_bit_stream` 运行；不使用宽松时间窗口猜测。
-- [ ] 先在 PCIe 验证 manifest/provenance 契约，再按相同事实模型迁移到 DDR3 和 OV7725；保持项目 gate 逻辑独立，验证后再考虑抽公共模块。
+- [x] CI-8A PCIe：每次 build 以唯一 `run_id` 原子发布 `running/partial/failed/complete` manifest，partial 或失败运行立即使旧 complete 证据失效。
+- [x] CI-8A PCIe：固定 43 项 canonical 输入和 7 项最终证据的相对路径、长度与 SHA-256；日志必须含唯一且匹配的开始/完成标志，不使用时间窗口猜测。
+- [x] CI-8A PCIe：真实 full build、partial、PDS 启动失败、run-id/输入/产物漂移和 baseline/strict gate 已验证，详见 `pcie_dma_test_100h/doc/CI8A_BUILD_PROVENANCE.md`。
+- [ ] CI-8B DDR3：在 PG2L50H canonical IP/FDC 升格并可执行最终构建后，按项目真实源清单和产物布局实现 provenance manifest。
+- [ ] CI-8B OV7725：在四个 PG2L50H IP 升格并可执行最终构建后，按项目真实源清单和产物布局实现 provenance manifest。
+- [ ] 两个迁移完成并通过负向测试后，再评估是否抽公共模块；当前保持三个项目 gate 独立。
 
 ## 5. 外部阻断泳道
 

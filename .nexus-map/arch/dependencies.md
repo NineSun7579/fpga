@@ -1,5 +1,5 @@
 > generated_by: Codex manual bootstrap
-> verified_at: 2026-08-30
+> verified_at: 2026-08-31
 > provenance: manual inspection of current source tree and PDS artifacts
 
 # Dependencies
@@ -92,7 +92,9 @@ flowchart TD
 - 活动 PCIe `pcie_test.idf` 已正确匹配 `Logos2/PG2L50H/FBG484/-6`，无需仅为器件型号重生成；必须修正的是 PG2L100H build/PDS/gate并清除旧 `build/` 后重建。lane 极性、板级拓扑、I/O delay 和 SCBV 仍是独立缺口。
 - UART2APB 在 `pcie_dma_test.v` 以隐式 `rxd/txd` 网络连接，当前 `rxd` 被绑 0；H2-A 只记录该功能缺口，H2-B 需先决定端口归属和板级连接。
 - H2-A 器件审核已解除项目自有 build/gate 的只读限制；活动 IDF 保持 50H，RTL/FDC 仍等待 UART 与板级证据。H2-B 在 lane/refclk/PERST#/SCBV 和 UART 均闭合前不得宣称发布通过。
-- H2-B0 已将 PCIe 五类失败归一化为 16 个唯一签名、42 次原始记录；完整多重集对新增、消失、改名、share-pin 位置和次数漂移均失败，IDF metadata 漂移永久硬失败。canonical fixture 正向 0、strict 1，五个变异均 1。H2-B1 仍阻断于 lane/refclk/PERST#/SCBV/UART/I/O timing；partial run 复用旧 full-build 证据的 provenance/freshness 风险转入 CI-8。
+- H2-B0 已将 PCIe 五类失败归一化为 16 个唯一签名、42 次原始记录；完整多重集对新增、消失、改名、share-pin 位置和次数漂移均失败，IDF metadata 漂移永久硬失败。canonical fixture 正向 0、strict 1，五个变异均 1。H2-B1 仍阻断于 lane/refclk/PERST#/SCBV/UART/I/O timing；partial run 复用旧 full-build 证据的风险已由 CI-8A 关闭。
+- PCIe CI-8A 已关闭上述复用风险：`run.ps1` 通过 `build_provenance.ps1` 为每次 build 原子发布 32 位 run_id manifest，37 HDL 单一清单扩展为 43 项 canonical 输入，并绑定 7 项最终证据的相对路径、长度和 SHA-256。partial/failed 或 run-id、产物、FDC 漂移均拒绝；最终 full build/baseline/strict 为 `0/0/1`，slack `0.100 ns`，H2-B0 16/42 不变。
+- CI-8B 依赖 DDR3 M2 和 OV7725 M3 各自完成 PG2L50H canonical 升格及最终构建入口闭合；两项目必须按自身源清单和产物布局实现 provenance，验证前不抽公共模块。
 - S0 环境复核（2026-08-30）确认 `E:/pango/PDS_2022.2-SP6.4/bin/pds_shell.exe` 存在，是唯一已发现工具；PATH、`C:/questasim64/win64` 和常见 ModelSim/QuestaSim 目录均未找到 `vsim.exe`、`vlog.exe`、`vlib.exe`。
 - S0-1 已准备 `scripts/compile_simlib.ps1` → 环境变量 → `scripts/compile_simlib.tcl` → PDS `compile_simlib` 的参数化链路，可选择 ModelSim/QuestaSim、USIM/VSIM/BOTH、family、语言、工具路径与输出目录；入口准备不等于库已生成。
 - 仿真流程仍依赖可用且有许可证的 `vsim.exe`/`vlog.exe`/`vlib.exe` 与编译后的 Logos2 USIM/VSIM 库；默认运行因 `vsim.exe` 缺失在 PDS 前返回 1，动态仿真在实际编译退出 0、日志无 `E:` 且库目录非空前保持阻塞。

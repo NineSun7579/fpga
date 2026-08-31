@@ -1,5 +1,5 @@
 > generated_by: Codex manual bootstrap
-> verified_at: 2026-08-30
+> verified_at: 2026-08-31
 > provenance: current source tree, PDS project files, reports, and root audit notes
 
 # Systems
@@ -47,7 +47,13 @@
 - h2_b0_scope: PCIe 当前 PG2L50H baseline 将五类问题归一化为 16 个唯一签名、42 次原始记录；baseline 比较完整多重集，新增、消失、改名、share-pin 位置或次数漂移均失败，活动 IDF family/device/package/speedgrade 漂移永久硬失败。
 - h2_b0_result: canonical fixture 正向退出 0、strict 退出 1；缺失 UART、重复 UART、Timing 端口改名、share pin 改位和 IDF 改为 PG2L100H 五个变异均退出 1。本批无 RTL、活动 IDF、FDC、厂商 IP 或生成物修改。
 - h2_b1_boundary: lane/refclk/PERST#/SCBV/UART/I/O timing 仍需板级资料与决策；H2-B0 不解除发布阻断。
-- ci_8_next: partial PDS run 可能复用旧 full-build 日志/产物，需建立 provenance/freshness manifest，证明阶段、输入、工作目录和产物来自同一次运行；不得用时间戳容差或隐式假设替代。
+- ci_8_status: PCIe 的 partial/stale evidence 风险已由 CI-8A manifest 关闭；CI-8B 等待 DDR3/OV7725 各自 PG2L50H canonical 升格后迁移，不使用时间戳容差或隐式假设。
+- ci_8a_status: PCIe provenance pilot completed on 2026-08-31。
+- ci_8a_inputs: `scripts/pds_sources.f` 是 37 个 HDL 的单一有序清单；与 `run.ps1`、`build.tcl`、`build_provenance.ps1`、活动 IDF/FDC 等合计形成 43 项 canonical 输入。
+- ci_8a_manifest: 每次 build 以 32 位小写十六进制 `run_id` 原子替换固定 `build/provenance/pds-build.json`；状态为 `running/partial/failed/complete`，只有 `complete` 且 `valid=true` 可进入最终 gate。
+- ci_8a_binding: 43 项输入与 full log、timing report、PNR 网表、slow SDF、`.sbit`、`.bin`、`bgr.db` 七项最终证据均绑定相对 POSIX path、length、SHA-256；日志中的唯一开始/完成标志必须与 manifest run_id 一致。
+- ci_8a_result: partial compile、PDS executable 缺失、run-id 漂移、产物漂移和 FDC 输入漂移均 gate=1；最终 PG2L50H full build=0、baseline=0、strict=1、slack=`0.100 ns`，H2-B0 16/42 多重集不变。
+- ci_8b_boundary: DDR3 与 OV7725 仅在各自 PG2L50H canonical IP/约束和最终构建入口升格后迁移 provenance；先按项目真实源清单/产物布局独立实现，不抽公共模块。
 - hardware_target_decision: 用户于 2026-08-30 确认三个项目共用 `RK3568+PG2L50H100H` 开发板，实际 FPGA 为 `PG2L50H-6IFBG484`；统一 PDS 目标为 `Logos2 / PG2L50H / FBG484 / -6`。
 - legacy_100h_boundary: 全部 PG2L100H PDS/STA/网表/位流仅保留为历史证据，不得烧录或作为实板验收；三个项目必须分别建立 PG2L50H 新 baseline。
 - ci_0_boundary: 仅为仓库结构与文档静态一致性门禁，不启动或替代 PDS 构建、STA、项目严格 gate 或四级仿真。

@@ -1,5 +1,5 @@
 > generated_by: Codex manual bootstrap
-> verified_at: 2026-08-30
+> verified_at: 2026-08-31
 > provenance: existing PDS logs/reports, new DDR3 and OV7725 full-build logs, timing reports, artifact gate runs, and static audit; no simulator execution in this repository session
 
 # Test Coverage
@@ -67,8 +67,16 @@
 
 - 已验证：五类已知问题归一化为 16 个唯一签名、42 次原始记录；baseline 按完整多重集比较，签名新增、消失、改名、share-pin 位置变化或次数漂移均失败。
 - 已验证：活动 PCIe IDF 的 family/device/package/speedgrade metadata 漂移为永久硬失败，不受 baseline 放行参数影响；canonical fixture 正向退出 0、strict 退出 1，5 个变异 fixture 均退出 1。
-- 外部阻断：H2-B1 仍需 lane/refclk/PERST#/SCBV/UART/I/O timing 的板级证据与决策。H2-B0 发现 partial run 可复用旧 full-build 日志/产物，CI-8 provenance/freshness 待办负责建立同次运行证明。
+- 外部阻断：H2-B1 仍需 lane/refclk/PERST#/SCBV/UART/I/O timing 的板级证据与决策。H2-B0 发现的 partial run 复用旧 full-build 日志/产物风险已由 CI-8A 的同次运行证明关闭。
 - 边界：本批没有 RTL、活动 IDF、FDC、厂商 IP 或生成物修改；H2-B0 只保护失败基线不漂移，不代表 PCIe 可上板或可发布。
+
+## PCIe CI-8A 构建证据绑定（2026-08-31）
+
+- 已验证：37 个 HDL 由 `scripts/pds_sources.f` 单一有序清单驱动；43 项 canonical 输入和 7 项最终证据均以相对 POSIX path、length 和 SHA-256 写入固定 manifest。
+- 已验证：每次 build 的 32 位 run_id 原子失效旧证据；`running`、`partial`、`failed` 均无效，只有完整 `gen_bit_stream` 的 `complete/valid` 可继续 gate。
+- 负向覆盖：真实 partial compile、PDS executable 缺失、run-id 漂移、产物字节漂移与 FDC 输入漂移均返回 1，证明旧 full-build 证据不能复用。
+- 正向覆盖：最终 PG2L50H full build 返回 0、baseline 返回 0、strict 返回 1、最差 slack `0.100 ns`；H2-B0 的 16 签名/42 次记录未漂移。
+- 边界：本批未修改 RTL、活动 IDF、FDC 或厂商 IP；CI-8B 等待 DDR3/OV7725 各自 PG2L50H canonical 升格，并按项目独立实现，不抽公共模块。
 
 ## S0-0-R 仿真器环境复核（2026-08-30）
 
