@@ -179,7 +179,10 @@ function Invoke-PdsBuild {
 function Invoke-ModelSim {
     param(
         [Parameter(Mandatory)]
-        [string]$DoFileName
+        [string]$DoFileName,
+
+        [Parameter(Mandatory)]
+        [string]$LogFileName
     )
 
     Assert-Executable -Path $Vsim -Description 'ModelSim/QuestaSim executable'
@@ -189,16 +192,39 @@ function Invoke-ModelSim {
         throw "Simulation flow is not implemented yet: $DoFile"
     }
 
+    $LogFile = Join-Path $LogDir $LogFileName
+    $RunId = ([Guid]::NewGuid().ToString('N')).ToLowerInvariant()
+    $PreviousRunId = $env:SIM_RUN_ID
+    $env:SIM_RUN_ID = $RunId
+
     Push-Location $ProjectRoot
     try {
-        Write-Host "INFO: running simulation script '$DoFileName'"
+        Write-Host "INFO: running simulation script '$DoFileName' (run $RunId)"
         & $Vsim -c -do "do scripts/$DoFileName"
         if ($LASTEXITCODE -ne 0) {
             throw "Simulation failed with exit code $LASTEXITCODE"
         }
     } finally {
         Pop-Location
+        $env:SIM_RUN_ID = $PreviousRunId
     }
+
+    if (-not (Test-Path -LiteralPath $LogFile -PathType Leaf)) {
+        throw "Simulation log not found: $LogFile"
+    }
+
+    $LogText = Get-Content -Raw -LiteralPath $LogFile
+    $RunMarker = "INFO: SIM_RUN_ID=$RunId"
+    if ([regex]::Matches($LogText, [regex]::Escape($RunMarker)).Count -ne 1) {
+        throw "Simulation log does not contain exactly one matching run marker: $LogFile"
+    }
+
+    $PassPattern = '(?m)^(?:#\s*)?TEST PASS\s*$'
+    if ([regex]::Matches($LogText, $PassPattern).Count -ne 1) {
+        throw "Simulation log does not contain exactly one TEST PASS line: $LogFile"
+    }
+
+    Write-Host "INFO: simulation run $RunId passed"
 }
 
 function Remove-BuildDirectory {
@@ -239,16 +265,24 @@ switch ($Action) {
         Invoke-PdsBuild
     }
     'sim-behav' {
-        Invoke-ModelSim -DoFileName 'run_behav.do'
+        Invoke-ModelSim `
+            -DoFileName 'run_behav.do' `
+            -LogFileName 'sim-behav.log'
     }
     'sim-post-syn' {
-        Invoke-ModelSim -DoFileName 'run_post_syn.do'
+        Invoke-ModelSim `
+            -DoFileName 'run_post_syn.do' `
+            -LogFileName 'sim-post-syn.log'
     }
     'sim-post-pnr-func' {
-        Invoke-ModelSim -DoFileName 'run_post_pnr_func.do'
+        Invoke-ModelSim `
+            -DoFileName 'run_post_pnr_func.do' `
+            -LogFileName 'sim-post-pnr-func.log'
     }
     'sim-post-pnr-timing' {
-        Invoke-ModelSim -DoFileName 'run_post_pnr_timing.do'
+        Invoke-ModelSim `
+            -DoFileName 'run_post_pnr_timing.do' `
+            -LogFileName 'sim-post-pnr-timing.log'
     }
     'check-build' {
         if ($AllowKnownBaselineIssues) {

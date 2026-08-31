@@ -49,6 +49,13 @@ flowchart TD
   PCIeTop --> DMA["DMA + RAM/FIFO"]
   PCIeTop --> UART["UART2APB"]
   PCIeTop --> PCIeFdc["pcie_dma_test.fdc"]
+  PCIeSmoke["S2-A 项目级行为 smoke\n真实顶层 + 受控 PCIe 边界"] --> PCIeTop
+  PCIeSources["pds_sources.f\n37 canonical HDL"] --> PCIeSmoke
+  PCIeSmoke --> PCIeStaticGate["check_sim.ps1\n静态契约 gate=0"]
+  SharedUSIM["仓库根 build/simlib/usim\nLogos2 USIM"] --> PCIeSmoke
+  PCIeSmoke -. "缺 Questa/USIM，动态阻断" .-> Questa
+  PCIeRealLink["S2-B\n真实厂商 RC/EP"] --> PCIeDMAReadback["S2-C\n基础 DMA 回读"]
+  PCIeTop --> PCIeRealLink
 
   OVTop --> PDS["PDS 2022.2-SP6.4"]
   DDRExample --> PDS
@@ -62,6 +69,9 @@ flowchart TD
 
 - 用户于 2026-08-30 确认三个工程共用 `RK3568+PG2L50H100H` 开发板，实际 FPGA 为 `PG2L50H-6IFBG484`；统一有效 PDS 目标为 `Logos2 / PG2L50H / FBG484 / -6`。旧 PG2L100H 实现、STA 和位流均不得用于实板。
 - 厂商 `.idf`、生成 RTL 和 PDS 仿真库属于外部生成依赖，不应被误当作独立手写逻辑。
+- PCIe S2-A 的 `sim/behav.f` 依赖 `scripts/pds_sources.f` 的 37 个 canonical HDL、DMA RAM init include、两个厂商 reset helper、项目级 `tb_pcie_dma_test.sv` 和受控 `pcie_test` 边界模型；`run_behav.do` 从 PCIe 项目根映射仓库公共 `../build/simlib/usim`。`check_sim.ps1` 与根门禁当前均退出 0，但本机缺少 QuestaSim，未产生动态通过证据。
+- 每次 S2-A 动态运行按 `SIM_RUN_ID` 创建独立 `build/sim/behav/<run_id>/work`，避免上一次编译的 work library 被误用；日志身份、work 隔离和公共 USIM 是三个不同依赖，均不能由单独一个 `TEST PASS` 替代。
+- S2-A 的受控 link indication 只驱动顶层复位、LED 和未知态检查，不能替代 S2-B 的真实厂商 RC/EP、LTSSM/TLP，也不能替代 S2-C 的 DMA 数据回读。`SIM_RUN_ID` 与唯一 `TEST PASS` 只绑定一次仿真日志，不扩张覆盖范围。
 - OV7725 O0-A 已识别 `sys_clk`、`i2c_dri_clk`、`cam_pclk`、`pixel_clk`、`pixel_clk_5x`、`clk_50m/ref_clk` 和 `ui_clk`；证据入口为 `41_ov7725_hdmi/doc/CDC_RDC_AUDIT.md`。
 - `wr_load` 与 `rd_load` 当前被多个逻辑独立采样；write FIFO 数据方向为 `cam_pclk → ui_clk`，read FIFO 为 `ui_clk → pixel_clk`，两者均需把复位分别在读写时钟域同步释放。
 - OV7725 O1-B 已固定 16 个手写 RTL、4 个活动 IDF 和唯一顶层 FDC，从空 `build/` 完成 SP6.4 七阶段，进程退出 0、日志 `E: 0`、warning `4067`、critical `81`，并生成非零综合网表、PNR 网表、SDF、`.sbit` 和 `.bin`。

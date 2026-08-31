@@ -1,6 +1,6 @@
 {
   "$schema": "nexus-mapper/concept-model/v1",
-  "generated_at": "2026-08-30T00:00:00+08:00",
+  "generated_at": "2026-08-31T00:00:00+08:00",
   "repo_path": ".",
   "generator": "Codex manual bootstrap",
   "nodes": [
@@ -608,7 +608,7 @@
       "implementation_status": "implemented_with_known_functional_gap",
       "code_path": "pcie_dma_test_100h/hdl/",
       "evidence_path": "pcie_dma_test_100h/place_route/pcie_dma_test_timing_summary_after_hold_fix.txt",
-      "evidence_gap": "活动 PCIe IDF、build/PDS/gate、timing report 与新主产物已统一匹配 PG2L50H；CI-8A 已绑定单次 full-build 输入和证据，但 UART2APB、SCBV、lane/refclk/PERST#、I/O timing、板级资料和四级仿真仍缺失。",
+      "evidence_gap": "活动 PCIe IDF、build/PDS/gate、timing report 与新主产物已统一匹配 PG2L50H；CI-8A 已绑定单次 full-build 输入和证据，S2-A 项目级行为 smoke 静态契约已在未提交工作树落地，但无 QuestaSim 动态证据。UART2APB、SCBV、lane/refclk/PERST#、I/O timing、真实 RC/EP、DMA 和后级网表/SDF 仿真仍缺失。",
       "h2a_read_only_evidence": {
         "date": "2026-08-30",
         "top_module": "pcie_dma_test",
@@ -658,7 +658,47 @@
         "record_fields": ["relative POSIX path", "length", "SHA256"],
         "negative_gate_exit_1": ["partial compile", "missing PDS executable", "run-id drift", "artifact drift", "FDC input drift"],
         "final_results": {"full_build": 0, "baseline_gate": 0, "strict_gate": 1, "worst_slack_ns": 0.100, "h2b0_unique_signatures": 16, "h2b0_raw_occurrences": 42},
+        "latest_verified_run": {
+          "run_id": "c24bc06b5d0643eeb6c9cb2878e7ace5",
+          "run_to": "gen_bit_stream",
+          "status": "complete",
+          "valid": true,
+          "input_count": 43,
+          "artifact_count": 7,
+          "baseline_gate_exit_code": 0,
+          "strict_gate_exit_code": 1,
+          "interpretation": "current inputs reproduce the approved non-release baseline; strict release remains blocked"
+        },
         "ci8b_boundary": "DDR3 and OV7725 migrate only after their own PG2L50H canonical promotion; audit each source list and artifact layout independently before considering shared modules."
+      },
+      "s2a_behavior_smoke": {
+        "date": "2026-08-31",
+        "status": "committed_static_complete_dynamic_blocked",
+        "integration_testbench": "pcie_dma_test_100h/tb/tb_pcie_dma_test.sv",
+        "controlled_ip_boundary": "pcie_dma_test_100h/tb/pcie_test_smoke_model.sv",
+        "behavior_filelist": "pcie_dma_test_100h/sim/behav.f",
+        "do_entry": "pcie_dma_test_100h/scripts/run_behav.do",
+        "static_gate": "pcie_dma_test_100h/scripts/check_sim.ps1",
+        "run_entry": "pcie_dma_test_100h/scripts/run.ps1 -Action sim-behav",
+        "canonical_hdl_source_list": "pcie_dma_test_100h/scripts/pds_sources.f",
+        "canonical_hdl_count": 37,
+        "dma_ram_init_include": "pcie_dma_test_100h/hdl/pcie_dma_ctrl/ips2l_pcie_dma_ram/rtl",
+        "shared_usim_mapping_from_project_root": "../build/simlib/usim",
+        "run_scoped_work_library": "pcie_dma_test_100h/build/sim/behav/<SIM_RUN_ID>/work",
+        "controlled_model_sequential_style": "exactly two always_ff processes; ordinary always @ is rejected by the static gate",
+        "button_reset_ref_counter_contract": "sample before assertion, require unchanged after pclk reset observation, then require unchanged for 8 additional refclk cycles while model link is low",
+        "perst_independent_release_contract": "after button reset fully re-releases and model link returns, assert PERST# alone, verify both LED domains reset, then deassert PERST# alone and repeat debounce/link release checks",
+        "static_gate_exit_code": 0,
+        "root_consistency_gate_exit_code": 0,
+        "log_contract": ["32-character lowercase hexadecimal SIM_RUN_ID", "exactly one matching run marker", "exactly one TEST PASS", "$fatal and nonzero failure propagation"],
+        "covered": ["pcie_dma_test top-level elaboration", "external and synchronized reset behavior", "ref/pclk LED counter gating", "unknown-state check on observable TX/LED outputs"],
+        "not_covered": ["real LTSSM", "TLP", "DMA", "x2 lane and P/N polarity", "100 MHz reference-clock electrical behavior", "PERST# board timing", "RK3568 Root Complex"],
+        "dynamic_simulation_executed": false,
+        "dynamic_blocker": "ModelSim/QuestaSim and compiled Logos2 USIM are unavailable",
+        "next_layers": {
+          "S2-B": "vendor pango_pcie_top_sim Root Complex plus project pcie_dma_test Endpoint for real-link verification",
+          "S2-C": "fixed address, length and data DMA write/readback after S2-B passes"
+        }
       },
       "tech_stack": ["Verilog", "Pango Logos2", "PCIe x2", "DMA"],
       "related_reqs": ["H2-A read-only evidence", "H2-B board evidence", "IP regeneration", "UART 决策", "集成自检", "保持时序通过"],
@@ -676,7 +716,7 @@
         "TODO.md",
         "docs/SIMULATION_READINESS_MATRIX.md"
       ],
-      "evidence_gap": "S0-1 参数化 compile_simlib Tcl/PowerShell 入口及强制仿真器预检已提交，PowerShell AST 错误数为 0；默认运行因缺少 C:/questasim64/win64/vsim.exe 在调用 PDS 前返回 1，vlog.exe/vlib.exe 同样不存在。三项目均没有项目级 testbench、filelist 或 DO；现有厂商 IP 示例不能计入产品集成覆盖。实际 USIM/VSIM 编译、动态仿真和三项目完整顶层套件仍阻塞。",
+      "evidence_gap": "S0-1 参数化 compile_simlib Tcl/PowerShell 入口及强制仿真器预检已提交；默认运行因缺少 C:/questasim64/win64/vsim.exe 在调用 PDS 前返回 1，vlog.exe/vlib.exe 同样不存在。PCIe S2-A 已在未提交工作树建立项目级 TB/filelist/DO、受控边界模型、SIM_RUN_ID 和唯一 TEST PASS 静态契约，静态 gate 与根门禁均为 0；DDR3 与 OV7725 仍无项目级入口。实际 USIM/VSIM 编译、全部动态仿真、PCIe S2-B/S2-C 和三项目完整四级套件仍阻塞。",
       "environment_prerequisite": "licensed ModelSim/QuestaSim installation and actual vsim.exe, vlog.exe and vlib.exe path before successful compile_simlib execution",
       "simlib_entry_status": "committed_mandatory_preflight_external_tool_blocked",
       "readiness_matrix": {
@@ -745,19 +785,35 @@
           },
           "pcie_dma": {
             "suite": "S2",
-            "project_level_tb_count": 0,
-            "project_level_filelist_count": 0,
-            "project_level_do_count": 0,
+            "project_level_tb_count": 1,
+            "controlled_boundary_model_count": 1,
+            "project_level_filelist_count": 1,
+            "project_level_do_count": 1,
+            "static_gate_count": 1,
+            "static_gate_exit_code": 0,
+            "root_consistency_gate_exit_code": 0,
+            "dynamic_simulation_executed": false,
+            "behavior_smoke_assets": [
+              "pcie_dma_test_100h/tb/tb_pcie_dma_test.sv",
+              "pcie_dma_test_100h/tb/pcie_test_smoke_model.sv",
+              "pcie_dma_test_100h/sim/behav.f",
+              "pcie_dma_test_100h/scripts/run_behav.do",
+              "pcie_dma_test_100h/scripts/check_sim.ps1"
+            ],
+            "dma_ram_init_include": "pcie_dma_test_100h/hdl/pcie_dma_ctrl/ips2l_pcie_dma_ram/rtl",
+            "shared_usim_mapping_from_project_root": "../build/simlib/usim",
+            "run_scoped_work_library": "pcie_dma_test_100h/build/sim/behav/<SIM_RUN_ID>/work",
             "vendor_examples": [
               "pcie_dma_test_100h/ipcore/pcie_test/example_design/bench/pango_pcie_top_tb.v",
               "pcie_dma_test_100h/ipcore/pcie_test/sim/modelsim/"
             ],
             "prerequisites": [
               "S0-1",
-              "H2-B",
               "PG2L50H build/IDF/report/bitstream consistency",
-              "project-level smoke/DMA testbench"
-            ]
+              "licensed ModelSim/QuestaSim and compiled Logos2 USIM for dynamic S2-A",
+              "H2-B1 board/UART closure before release and later netlist acceptance"
+            ],
+            "coverage_boundary": "S2-A covers top/reset/LED/unknown-state only; S2-B uses the real vendor RC/EP for LTSSM/link and S2-C covers DMA"
           }
         }
       },
@@ -848,7 +904,7 @@
       "source": "external-simulation-suite",
       "target": "pcie-dma-system",
       "type": "tests",
-      "description": "计划覆盖 PCIe DMA 集成顶层四级仿真。"
+      "description": "S2-A 项目级行为 smoke 静态契约已在工作树落地，只覆盖顶层/复位/LED/未知态；动态执行、S2-B 真实 RC/EP、S2-C DMA 与后级网表/SDF 仿真仍待完成。"
     },
     {
       "source": "vscs-commenting-standard",
@@ -878,14 +934,14 @@
   "metadata": {
     "analysis_mode": "manual bootstrap",
     "verified_at": "2026-08-31",
-    "git_commits_analyzed": 60,
+    "git_commits_analyzed": 61,
     "raw_ast_available": false,
     "limitations": [
-      "CI-8A PCIe build provenance pilot brings the repository to 60 commits; the history remains too shallow for reliable hotspot ranking.",
+      "PCIe S2-A brings the repository to 61 commits; the history remains too shallow for reliable hotspot ranking.",
       "The S0-1 parameterized simulation-library entry is committed with mandatory simulator preflight; actual USIM/VSIM compilation remains blocked by the missing simulator installation.",
       "No HDL/raw source AST extraction was run; CI-0 PowerShell syntax parsing is recorded separately.",
       "No ModelSim or QuestaSim execution was available.",
-      "The 60-commit history includes CI-1 through CI-7, H2-B0, CI-8A, board-evidence checklists, simulator-path review, M0 target approval, M1 PCIe migration, M2-A/M2-B1, and the M3-A OV7725 migration audit. CI-8A proves PCIe run provenance/freshness only; it is not H2-B1 board closure, CI-8B migration, IP generation, canonical promotion, or a complete product baseline. M2/M3 remain incomplete."
+      "The 61-commit history includes CI-1 through CI-7, H2-B0, CI-8A, PCIe S2-A, board-evidence checklists, simulator-path review, M0 target approval, M1 PCIe migration, M2-A/M2-B1, and the M3-A OV7725 migration audit. S2-A static gates do not prove dynamic simulation, real PCIe link, DMA, H2-B1 board closure, CI-8B migration, IP generation, canonical promotion, or a complete product baseline. M2/M3 remain incomplete."
     ]
   }
 }

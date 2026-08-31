@@ -16,7 +16,7 @@
 |---|---:|---:|---|---|---|
 | OV7725 HDMI | 无 | 无 | DDR3、PLL、FIFO 示例 | 无摄像头/HDMI 集成 TB；S0-1 | S0-1、输入格式契约、O2-D2/O3 相关 RTL 锁定 |
 | DDR3 | 无 | 无 | DDR3 `test_ddr`/memory model 示例 | 旧 TB 端口失配；S0-1 | S0-1、D3-A/B/C 项目自有 BIST/top |
-| PCIe DMA | 无 | 无 | `pango_pcie_top` RC/EP 示例 | 示例不实例化 `pcie_dma_test`；S0-1、M1/H2-B | S0-1、PG2L50H 工程/产物一致性、项目级 smoke TB |
+| PCIe DMA | S2-A 项目 TB + 受控 PCIe 边界模型 | `sim/behav.f` + `run_behav.do` | `pango_pcie_top` RC/EP 示例 | S2-A 仅静态通过；S0-1、真实 LTSSM/DMA、H2-B1 | Questa/USIM 后运行 S2-A，再完成 S2-B/S2-C |
 
 ## OV7725 HDMI
 
@@ -69,20 +69,22 @@
 - 项目顶层为 `pcie_dma_test_100h/hdl/pcie_dma_test.v`。
 - 厂商示例位于 `pcie_dma_test_100h/ipcore/pcie_test/example_design/bench/`，testbench 为 `pango_pcie_top_tb.v`。
 - 对应 filelist/DO 为 `ipcore/pcie_test/sim/modelsim/pango_pcie_top_filelist.f` 和 `pango_pcie_top_sim.do`。
+- S2-A 项目资产位于 `tb/tb_pcie_dma_test.sv`、`tb/pcie_test_smoke_model.sv`、`sim/behav.f` 和 `scripts/run_behav.do`；静态门禁为 `scripts/check_sim.ps1`。
 
 ### 缺口与风险
 
 - 示例 TB 针对 `pango_pcie_top` RC/EP，不实例化项目 `pcie_dma_test`，不能证明 DMA、RAM/FIFO 和 UART 管理路径。
 - `pango_pcie_top_sim.do` 含大量历史绝对路径，filelist 与工作目录耦合。
-- 没有项目级 `tb_pcie_dma_test.sv`、相对路径 filelist 或四级 DO。
-- 活动 PCIe IP 已与实际 PG2L50H 一致，但旧 build/gate/产物仍为 PG2L100H；M1 重建前不得把任何仿真结果写成器件一致性验收。lane/refclk/PERST#/SCBV 和 UART 决策继续由 H2-B 阻断。
+- S2-A 受控模型只验证项目顶层外壳、复位链和 LED 域；其 link indication 不是真实 LTSSM、TLP、DMA 或板级链路证据。
+- S2-B 仍需参数化厂商加密模型并以 `pango_pcie_top_sim` 为 RC；S2-C 再增加基础 DMA 回读。
+- 活动 PCIe IP、PDS 目标和新构建产物均与实际 PG2L50H 一致；lane/refclk/PERST#/SCBV 和 UART 决策继续由 H2-B1 阻断。
 
 ### TODO（S2）
 
-1. M1 完成 PG2L50H 工程与产物重建，且 H2-B 板级边界锁定后，新建 `tb_pcie_dma_test.sv`、项目级 filelist 与行为级 DO。
-2. 先覆盖复位、链路建立和 watchdog，再增加一次可预测的 DMA 写读回。
-3. 自检 TB 必须对 LTSSM/完成状态、数据一致性和超时使用 `$fatal`，成功只输出一次 `TEST PASS`。
-4. 对应项目网表/SDF 锁定后，完成综合后、PNR 功能和 PNR 时序仿真。
+1. S2-A 静态入口已完成；S0-1 恢复后先运行受控边界 smoke，确认同一 run marker 和唯一 `TEST PASS`。
+2. S2-B 以厂商 RC 对端连接项目 DUT，覆盖真实 LTSSM/link-up 和 watchdog；禁止用 S2-A 模型替代。
+3. S2-C 在真实链路上增加一次可预测 DMA 写读回；LTSSM、完成状态、数据和超时失败均 `$fatal`。
+4. 对应项目网表/SDF 锁定且 H2-B1 关闭后，完成综合后、PNR 功能和 PNR 时序仿真。
 
 ## 四级仿真共同门槛
 

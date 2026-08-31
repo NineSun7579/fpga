@@ -330,3 +330,14 @@
 - 动态负测证明：真实 partial compile、PDS executable 缺失、run-id 漂移、`bgr.db` 字节漂移和 FDC 输入漂移均返回 1，旧 full-build 证据不可复用。
 - 最终 PG2L50H 七阶段构建返回 0，manifest 为 complete/valid、43 输入/7 证据；baseline=0、strict=1、最差解析 slack `0.100 ns`，16/42 H2-B0 指纹和 H2-B1 五类阻断保持不变。
 - 本批未修改 RTL、活动 IDF、FDC 或厂商 IP；DDR3/OV7725 的 CI-8B 迁移继续等待各自 PG2L50H canonical 输入和最终构建入口闭合。
+
+## 2026-08-31：PCIe S2-A 项目级行为 smoke 入口
+
+- 新增项目自有 `tb_pcie_dma_test.sv`，实例化真实 `pcie_dma_test` 顶层；按 VSCS 记录职责、时钟/复位假设、验证边界和失败语义。
+- 新增受控 `pcie_test` 边界模型，只提供确定性的 refclk/pclk、core reset、idle 接口和延迟 link 激励；明确不验证 LTSSM、TLP、DMA、lane/refclk 电气或板级时序。
+- 新增 `sim/behav.f`，嵌套复用 37 个 HDL 的 canonical `scripts/pds_sources.f`，仅追加两个真实 reset helper、受控模型和项目 TB；不维护第二份 RTL 清单。
+- 新增 `scripts/run_behav.do` 与 `scripts/check_sim.ps1`。DO 使用相对路径、独立 work、USIM 和 transcript；静态门禁检查 filelist 顺序、路径、模型端口、DUT/TB/DO 契约。
+- `run.ps1 -Action sim-behav` 现在生成唯一 `SIM_RUN_ID`，动态成功必须在同一日志中包含匹配 run marker 和唯一 `TEST PASS`。
+- S2 后续拆为 S2-B 真实厂商 RC/EP LTSSM/link-up 和 S2-C 基础 DMA 回读；S2-A model-controlled link 不得冒充两者。
+- `run.ps1` 属于 CI-8A canonical 输入，因此 S2-A 入口变更后旧 manifest 被正确拒绝；重新执行七阶段 PG2L50H 构建，run id `c24bc06b5d0643eeb6c9cb2878e7ace5` 返回 0，manifest 为 complete/valid、43 输入/7 证据，baseline=0、strict=1、最差解析 slack `0.100 ns`。
+- 本机仍未发现 QuestaSim/ModelSim，故本批只完成静态门禁，未执行动态仿真、未生成 `TEST PASS`；活动 IDF、FDC、项目 RTL 和厂商示例未修改，忽略的 PDS 证据仅由上述同一次 canonical 构建自动刷新。

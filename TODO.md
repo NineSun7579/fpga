@@ -457,9 +457,11 @@ O2-D2 停止条件：控制相位或 `/5` generated clock 未被 PDS 唯一识�
 
 行为级 smoke 依赖 S0、项目级 TB/filelist 和器件一致的 PCIe IP；不要求先关闭全部板级约束。综合后和 PNR 两级仿真还依赖 PCIe 严格构建闭环及对应网表/SDF。
 
-- [ ] 新建 `tb_pcie_dma_test.sv`，先覆盖复位、链路建立和超时 smoke。
-- [ ] 新建可移植 filelist 和行为级 DO，不改厂商示例 TB。
-- [ ] 单独增加一次可预测的基础 DMA 写读回。
+- [x] S2-A：新建 `tb_pcie_dma_test.sv` 和受控 `pcie_test` 边界模型，覆盖项目顶层展开、真实 reset helper、复位释放/中断、LED 域、未知态和 3 ms watchdog；model-controlled link 不作为真实链路证据。
+- [x] S2-A：新建相对路径 `sim/behav.f`、行为级 DO、`SIM_RUN_ID`/唯一 PASS 日志门禁和 `check_sim.ps1`；不修改厂商示例，契约见 [`S2A_BEHAVIOR_SMOKE.md`](pcie_dma_test_100h/doc/S2A_BEHAVIOR_SMOKE.md)。
+- [ ] S2-A 动态：安装 QuestaSim、编译 Logos2 USIM 后运行 smoke；当前只完成静态门禁，未生成动态 `TEST PASS`。
+- [ ] S2-B：以厂商 `pango_pcie_top_sim` 为真实 RC 对端，在时限内完成项目 DUT LTSSM/link-up 自检，不使用受控边界模型。
+- [ ] S2-C：S2-B 通过后增加一次地址、长度和数据固定的基础 DMA 写读回。
 - [ ] 再完成综合后、PNR 功能和 PNR 时序仿真。
 - [ ] 每级成功只输出一个 `TEST PASS`，失败或超时返回非零。
 

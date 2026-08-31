@@ -10,7 +10,7 @@
 - 历史实现内部时序通过，但该结果不能替代新脚本的重建验证。
 - UART2APB 当前连接隐式 `rxd/txd`，其中 `rxd` 被编译器绑为 0；硬件接口决策前不修改该功能。
 - PCIe IDF 已由 SP6.4 为 PG2L50H 生成，与实际器件一致；需要修正的是旧 PG2L100H 顶层构建目标和 gate，不需要仅为器件型号重生成 IP。
-- 集成顶层 testbench 和四级仿真尚未完成。
+- S2-A 已建立项目级行为 smoke：真实 `pcie_dma_test` 顶层配合受控 PCIe 边界模型，覆盖复位链、LED 域和唯一 PASS 契约；因本机缺少 QuestaSim，动态运行仍未完成。
 - 已从空 `build/` 以 PG2L50H 完成 SP6.4 七阶段重建，生成新的网表、SDF 和位流；旧 PG2L100H 结果仍只作为历史证据。
 - 严格发布 gate 已验证仍会失败；UART 死通道、未约束端口、lane/refclk/PERST# 和 SCBV 继续阻断发布。
 - H2-A 已完成只读证据收口，详见 [PCIe 板级证据与 IP 目标契约](doc/PCIE_BOARD_EVIDENCE.md)。活动 IDF 保持只读；FDC 在原理图资料闭合前不修改。
@@ -64,14 +64,29 @@ powershell -ExecutionPolicy Bypass -File .\scripts\run.ps1 `
 
 ## 仿真命令接口
 
-PowerShell 入口已经预留以下动作：
+S2-A 静态契约检查不依赖仿真器：
 
-- `sim-behav`
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\check_sim.ps1
+```
+
+安装 QuestaSim 并编译 Logos2 USIM 后，执行项目级行为 smoke：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\run.ps1 `
+  -Action sim-behav `
+  -QuestaBin C:\questasim64\win64
+```
+
+该入口使用唯一 `SIM_RUN_ID` 绑定 `build/logs/sim-behav.log`，并要求日志只出现一次 `TEST PASS`。详细范围和停止条件见 [S2-A 项目级行为 smoke 契约](doc/S2A_BEHAVIOR_SMOKE.md)。边界模型产生的 link indication 不是 LTSSM、TLP、DMA 或板级链路证据。
+
+PowerShell 入口还预留以下后级动作：
+
 - `sim-post-syn`
 - `sim-post-pnr-func`
 - `sim-post-pnr-timing`
 
-对应集成 testbench 和 DO 脚本尚未实现；当前调用会明确失败，不会误用 PCIe IP 自带的示例仿真冒充顶层验证。
+对应后级 testbench/DO 尚未实现；当前调用会明确失败。真实 RC/EP 链路训练和基础 DMA 回读分别属于 S2-B/S2-C，不会复用受控边界模型冒充通过。
 
 ## 验收条件
 
