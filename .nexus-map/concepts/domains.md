@@ -18,7 +18,7 @@ HDL 经 compile、synthesize、dev_map、PNR、timing report、netlist 和 bitst
 
 ModelSim/QuestaSim 分别承担行为级、综合后、PNR 后功能和 PNR 后时序仿真。USIM 用于 PNR 前原语，VSIM 用于 PNR 后原语；时序仿真还依赖正确层级的 SDF 标注。
 
-2026-08-30 仿真就绪度盘点时三个项目均无项目级 TB、`.f` 或 `.do`。截至 2026-08-31，PCIe S2-A 已在未提交工作树新增项目级行为 smoke：真实 `pcie_dma_test` 顶层、受控 `pcie_test` 边界模型、嵌套复用 37 个 canonical HDL 并包含 DMA RAM init 目录的相对路径 filelist、DO、静态 gate、`SIM_RUN_ID`、超时/`$fatal` 和唯一 `TEST PASS` 契约；DO 映射仓库根公共 USIM，并按 run id 隔离 work library。静态 gate 与根门禁均为 0。OV7725 与 DDR3 仍缺项目级入口，三个项目的动态仿真仍因缺少 ModelSim/QuestaSim 与实际 USIM/VSIM 而阻断。
+2026-08-30 仿真就绪度盘点时三个项目均无项目级 TB、`.f` 或 `.do`。截至 2026-08-31，PCIe S2-A 行为 smoke 与 S2-B 真实 RC/EP 静态入口均已提交：S2-A 使用真实 `pcie_dma_test` 顶层和受控边界模型；S2-B 使用厂商 `pango_pcie_top_sim` RC、项目真实 `pcie_dma_test` EP、50 个厂商本地唯一源、37 个 canonical HDL、独立 `pcie_vendor` 模型库、32 周期 L0 稳定窗和 6 ms watchdog。两层均有相对路径入口、`SIM_RUN_ID`、超时/`$fatal` 和唯一 `TEST PASS` 契约；动态仿真仍因缺少 ModelSim/QuestaSim 与实际 USIM/VSIM 而阻断，OV7725 与 DDR3 仍缺项目级入口。
 
 ## 产品顶层与 IP 示例边界
 
@@ -36,7 +36,7 @@ PCIe H2-B0（2026-08-30）将五类 baseline 问题归一化为 16 个唯一签�
 
 PCIe CI-8A（2026-08-31）把构建证据定义为一次运行的不可拆分集合：37 个 HDL 单一清单、43 项 canonical 输入和 7 项最终证据由同一 32 位 run_id 与 SHA-256 manifest 绑定。每次 build 开始即原子失效旧 complete 证据；`running/partial/failed` 均不可验收，只有 `complete/valid` 可继续 H2-B0/strict gate。partial、工具缺失、run-id、产物或 FDC 漂移均失败；最终 PG2L50H full build/baseline/strict 为 `0/0/1`，slack `0.100 ns`。CI-8B 等待 DDR3/OV7725 canonical 升格后逐项目迁移，不预先共享实现。
 
-PCIe S2-A（2026-08-31）只建立产品壳层行为 smoke。受控模型替代生成的 `pcie_test`，提供确定性时钟、复位、idle 接口和延迟 link 激励；TB 验证顶层展开、两路外部/同步复位、两组 LED 计数门控及可观察输出未知态。模型产生的 link indication 不证明真实 LTSSM、TLP、DMA 或板级链路；S2-B 必须改用厂商 RC/EP 验证真实链路，S2-C 才执行基础 DMA 回读。`SIM_RUN_ID` 与唯一 `TEST PASS` 仅保证单次日志身份和结果可判定，不改变覆盖边界。
+PCIe S2-A（2026-08-31）只建立产品壳层行为 smoke。受控模型替代生成的 `pcie_test`，提供确定性时钟、复位、idle 接口和延迟 link 激励；TB 验证顶层展开、两路外部/同步复位、两组 LED 计数门控及可观察输出未知态。模型产生的 link indication 不证明真实 LTSSM、TLP、DMA 或板级链路。PCIe S2-B（提交 `858eca2`）已把厂商 `pango_pcie_top_sim` 作为 RC、项目 `pcie_dma_test` 作为 EP，验证真实模型链路的 link-up/LTSSM L0 静态合同：两端 link 信号为 1、`5'h11` 稳定 32 个 refclk 周期、唯一 `GTP_GRS`、6 ms watchdog 和唯一 marker/PASS。S2-B 仍不证明 RK3568 实板、x2/5.0 GT/s、PCB 电气或 DMA；S2-C 才执行基础 DMA 回读。
 
 实物确认后，活动 `pcie_test.idf` 的 `Logos2/PG2L50H/FBG484/-6` metadata 被证明正确；错误项是顶层 build/PDS/gate 和现有主产物仍为 PG2L100H。M1 不为型号重复生成 PCIe IP，而是修正项目自有 build/gate、清空旧 build并建立 50H baseline，同时继续阻断 UART2APB、lane/refclk/PERST# 与 SCBV 缺口。
 

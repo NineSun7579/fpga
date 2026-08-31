@@ -98,19 +98,21 @@
 - OV7725/S3：现有厂商示例只覆盖单个 IP。进入 S3 前必须关闭 S0-1、重生成四个 PG2L50H IP并建立新 baseline、重新审核 O2-D2、固定摄像头输入格式契约并锁定 O2-D2/O3 RTL。
 - DDR3/S1：现有厂商 `test_ddr`/memory-model 资产端口失配且含绝对路径与 FSDB/Verdi 假设。进入 S1 前必须关闭 S0-1、重生成并复核 PG2L50H DDR3 IP/FDC/RCF、完成 D3-A/B/C 与 D4，并提供项目自有有限 BIST/top 与自检 TB。
 - PCIe/S2：S2-A 已用项目级 `tb_pcie_dma_test` 实例化产品顶层，并以受控 `pcie_test` 边界只验证顶层/复位/LED/未知态；静态 `check_sim.ps1` 与根门禁均返回 0。现有 `pango_pcie_top` RC/EP testbench 仍不实例化产品顶层，只能在 S2-B 中作为真实 RC/编译顺序 oracle；S2-C 才验证 DMA。
+- PCIe/S2-B（2026-08-31）：提交 `858eca2` 新增真实 RC/EP 静态入口；厂商 `pango_pcie_top_sim` 作为 RC，项目真实 `pcie_dma_test` 作为 EP。`pcie_vendor` 只编译 10 个加密 DWC 头和厂商 DO 的单一模型 block（216 条 PDS 前缀引用）；独立 `work` 编译 50 个厂商本地唯一源、37 个 canonical HDL 和 `tb/tb_pcie_dma_link.sv`。静态 gate 检查双向 x2 同号 lane、100 MHz 差分 refclk、唯一 `GTP_GRS`、reset 释放顺序、两端 link/LTSSM、32 周期稳定、6 ms watchdog、同一 run-id marker/PASS 和路径漂移。
 - 验收边界：`ipcore/`、`ip_core/`、`ip_backup/` 中的厂商示例只能作为参考证据，不能计入产品集成覆盖，也不能通过改名冒充项目自有 testbench。
 - 四级共同门槛：所有入口使用相对路径 filelist/DO 和项目自有集成 TB；必须具备超时、`$fatal`、唯一 `TEST PASS` 与可靠非零失败退出；PNR 时序仿真必须按实际 DUT 实例层级标注 SDF。
 - 公共阻断：S0-1 仍因本机缺少 `vsim.exe`、`vlog.exe`、`vlib.exe` 阻断；PCIe S2-A 目前只有静态契约和门禁证据，不构成动态仿真通过。
 
-## PCIe S2-A 行为 smoke（2026-08-31，未提交工作树）
+## PCIe S2-A/S2-B 静态入口（2026-08-31，已提交）
 
 - 已验证静态契约：`sim/behav.f` 嵌套复用 `scripts/pds_sources.f` 的 37 个 canonical HDL，显式加入 DMA RAM init include、两个 reset helper、受控 `pcie_test` 模型和项目级 `tb_pcie_dma_test.sv`。
 - 已验证编码与自检边界：受控模型恰好包含两个 `always_ff` 时序过程，静态 gate 禁止普通 `always @` 回退。TB 覆盖 `button_rst_n`、`perst_n`、同步复位、LED 计数门控和 TX/LED 未知态；3 ms watchdog 或检查失败调用 `$fatal`，正向源只包含一次 `$display("TEST PASS")`。
 - 已验证 reset ownership：button reset 断言后，TB 先检查 ref counter 没有被 button reset 改写，再等待额外 8 个 refclk 周期并要求其在 model link 撤销期间严格保持；button reset 完整重新释放后，PERST# 再被单独断言、复位两组 LED 域并独立重新释放，不能由初次联合释放遮蔽 debounce 行为。
 - 已验证运行隔离与日志契约：`run.ps1` 生成 32 位小写十六进制 `SIM_RUN_ID`，`run_behav.do` 从项目根映射公共 `../build/simlib/usim`，并使用独立 `build/sim/behav/<run_id>/work`；入口只接受 marker 恰好一次且 `TEST PASS` 恰好一次的同一日志。
-- 静态结果：`pcie_dma_test_100h/scripts/check_sim.ps1` 退出 0，根 `scripts/check_repo_consistency.ps1` 退出 0。提交计数仍为 60，本批尚未提交。
-- 构建回归：当前 manifest run id `c24bc06b5d0643eeb6c9cb2878e7ace5` 为 `gen_bit_stream/complete/valid=true`，43 项输入和 7 项证据完整；baseline gate 再次返回 0，strict gate 仍因 UART RX tied low、未约束顶层 I/O、PCIe serial I/O、share pin 与 SCBV 返回 1。该结果只证明失败基线可复现。
+- 静态结果：S2-A `check_sim.ps1`、S2-B `check_link_sim.ps1` 与根 `scripts/check_repo_consistency.ps1` 均退出 0；S2-B 已由提交 `858eca2` 进入 PR #1。
+- 构建回归：当前 manifest run id `44968628306146bd8fa0425bb6f032b9` 为 `gen_bit_stream/complete/valid=true`，43 项输入和 7 项证据完整；baseline gate 再次返回 0，strict gate 仍因 UART RX tied low、未约束顶层 I/O、PCIe serial I/O、share pin 与 SCBV 返回 1。该结果只证明失败基线可复现。
 - 覆盖边界：受控模型的 `smlh_link_up/rdlh_link_up` 是激励，不验证真实 LTSSM、TLP、DMA、lane/P/N 极性、100 MHz refclk 电气、PERST# 板级时序或 RK3568 Root Complex。S2-B 必须使用真实厂商 RC/EP，S2-C 必须在其后验证 DMA。
+- S2-B 动态边界：静态 gate 只证明入口合同；只有 QuestaSim 动态日志同时出现 RC/EP `smlh_link_up=1`、`rdlh_link_up=1`、LTSSM L0=`5'h11` 连续 32 个 refclk 周期、无 6 ms watchdog、唯一 `INFO: S2B_REAL_LINK_UP` 和唯一 `TEST PASS`，才可记为真实仿真链路通过。该证据仍不覆盖实际板级 RK3568 RC、x2/5.0 GT/s 协商、PCB 电气、DMA 或后级网表/SDF。
 - 动态缺口：本机未找到 QuestaSim，USIM 也未实际编译；因此未运行 `vsim`，没有动态 `TEST PASS`，不得把静态 gate=0 写成行为仿真通过。
 
 ## 已知功能与覆盖缺口
