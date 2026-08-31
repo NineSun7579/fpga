@@ -35,6 +35,10 @@ $PcieSimCheckPath = Join-Path $RepoRoot `
     'pcie_dma_test_100h\scripts\check_sim.ps1'
 $PcieS2aDocPath = Join-Path $RepoRoot `
     'pcie_dma_test_100h\doc\S2A_BEHAVIOR_SMOKE.md'
+$PcieLinkSimCheckPath = Join-Path $RepoRoot `
+    'pcie_dma_test_100h\scripts\check_link_sim.ps1'
+$PcieS2bDocPath = Join-Path $RepoRoot `
+    'pcie_dma_test_100h\doc\S2B_REAL_LINK.md'
 $ApprovedBoard = 'RK3568+PG2L50H100H'
 $ApprovedFpgaPart = 'PG2L50H-6IFBG484'
 $ApprovedPdsFamily = 'Logos2'
@@ -659,6 +663,16 @@ if ($PcieSimCheckExists) {
         Add-Failure "PCIe S2-A static simulation gate failed: $($_.Exception.Message)"
     }
 }
+$PcieLinkSimCheckExists = Require-File `
+    -Path $PcieLinkSimCheckPath `
+    -Description 'PCIe S2-B static simulation gate'
+if ($PcieLinkSimCheckExists) {
+    try {
+        & $PcieLinkSimCheckPath
+    } catch {
+        Add-Failure "PCIe S2-B static simulation gate failed: $($_.Exception.Message)"
+    }
+}
 $PcieS2aDocExists = Require-File `
     -Path $PcieS2aDocPath `
     -Description 'PCIe S2-A behavior smoke contract'
@@ -674,6 +688,21 @@ if ($PcieS2aDocExists) {
             -Description $Required.Key | Out-Null
     }
 }
+$PcieS2bDocExists = Require-File `
+    -Path $PcieS2bDocPath `
+    -Description 'PCIe S2-B real-link contract'
+if ($PcieS2bDocExists) {
+    $PcieS2bDocText = Get-Content -Raw -Encoding UTF8 -LiteralPath $PcieS2bDocPath
+    foreach ($Required in ([ordered]@{
+            'PCIe S2-B real RC role' = 'pango_pcie_top_sim'
+            'PCIe S2-B real EP role' = 'pcie_dma_test'
+            'PCIe S2-B dynamic blocker' = 'vsim\.exe'
+            'PCIe S2-B non-board boundary' = 'RK3568'
+        }).GetEnumerator()) {
+        Require-Pattern -Text $PcieS2bDocText -Pattern $Required.Value `
+            -Description $Required.Key | Out-Null
+    }
+}
 $PcieReadmePath = Join-Path $RepoRoot 'pcie_dma_test_100h\README.md'
 if (Test-Path -LiteralPath $PcieReadmePath -PathType Leaf) {
     $PcieReadmeText = Get-Content -Raw -Encoding UTF8 -LiteralPath $PcieReadmePath
@@ -685,6 +714,8 @@ if (Test-Path -LiteralPath $PcieReadmePath -PathType Leaf) {
         -Description 'PCIe README CI-8A provenance link' | Out-Null
     Require-Pattern -Text $PcieReadmeText -Pattern 'S2A_BEHAVIOR_SMOKE\.md' `
         -Description 'PCIe README S2-A behavior smoke link' | Out-Null
+    Require-Pattern -Text $PcieReadmeText -Pattern 'S2B_REAL_LINK\.md' `
+        -Description 'PCIe README S2-B real-link link' | Out-Null
 }
 $PcieEvidencePath = Join-Path $RepoRoot `
     'pcie_dma_test_100h\doc\PCIE_BOARD_EVIDENCE.md'

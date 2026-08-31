@@ -1,12 +1,12 @@
 # 三项目仿真就绪度矩阵
 
-更新日期：2026-08-30
+更新日期：2026-08-31
 
 适用工具：PDS `2022.2-SP6.4`、外部 ModelSim/QuestaSim
 
 ## 结论
 
-三项目当前都没有面向项目集成顶层的行为级、综合后、PNR 后功能或 PNR 后时序仿真入口。仓库中发现的 `tb`、`.f` 和 `.do` 主要属于 Pango 厂商 IP 示例，不能直接作为项目验收。S0-1 仍受本机缺少 `vsim.exe`、`vlog.exe`、`vlib.exe` 阻断，因此本矩阵是静态盘点，不代表仿真已通过。
+DDR3 与 OV7725 当前仍没有面向项目集成顶层的仿真入口。PCIe 已完成 S2-A 受控行为 smoke 和 S2-B 真实厂商 RC/项目 EP 的静态入口，但两者都尚未动态运行。S0-1 仍受本机缺少 `vsim.exe`、`vlog.exe`、`vlib.exe` 阻断，因此本矩阵记录的是静态就绪度，不代表仿真已通过。
 
 项目级仿真必须新增相对路径的 filelist、DO 脚本和自检 testbench；不得批量修改 `ipcore/`、`ip_core/`、`ip_backup/` 下的厂商生成文件，也不得把厂商示例顶层改名后冒充集成验证。
 
@@ -16,7 +16,7 @@
 |---|---:|---:|---|---|---|
 | OV7725 HDMI | 无 | 无 | DDR3、PLL、FIFO 示例 | 无摄像头/HDMI 集成 TB；S0-1 | S0-1、输入格式契约、O2-D2/O3 相关 RTL 锁定 |
 | DDR3 | 无 | 无 | DDR3 `test_ddr`/memory model 示例 | 旧 TB 端口失配；S0-1 | S0-1、D3-A/B/C 项目自有 BIST/top |
-| PCIe DMA | S2-A 项目 TB + 受控 PCIe 边界模型 | `sim/behav.f` + `run_behav.do` | `pango_pcie_top` RC/EP 示例 | S2-A 仅静态通过；S0-1、真实 LTSSM/DMA、H2-B1 | Questa/USIM 后运行 S2-A，再完成 S2-B/S2-C |
+| PCIe DMA | S2-A 受控 TB；S2-B 真实 RC/EP TB | `behav.f/run_behav.do`；`link.f/run_link.do` | `pango_pcie_top` RC/EP 示例 | S2-A/S2-B 仅静态通过；S0-1、DMA、H2-B1 | Questa/USIM 后运行 S2-A；厂商模型可用后运行 S2-B |
 
 ## OV7725 HDMI
 
@@ -70,19 +70,20 @@
 - 厂商示例位于 `pcie_dma_test_100h/ipcore/pcie_test/example_design/bench/`，testbench 为 `pango_pcie_top_tb.v`。
 - 对应 filelist/DO 为 `ipcore/pcie_test/sim/modelsim/pango_pcie_top_filelist.f` 和 `pango_pcie_top_sim.do`。
 - S2-A 项目资产位于 `tb/tb_pcie_dma_test.sv`、`tb/pcie_test_smoke_model.sv`、`sim/behav.f` 和 `scripts/run_behav.do`；静态门禁为 `scripts/check_sim.ps1`。
+- S2-B 项目资产位于 `tb/tb_pcie_dma_link.sv`、`sim/link.f`、`sim/link_vendor_local.f`、`scripts/compile_vendor_link.do` 和 `scripts/run_link.do`；静态门禁为 `scripts/check_link_sim.ps1`。
 
 ### 缺口与风险
 
 - 示例 TB 针对 `pango_pcie_top` RC/EP，不实例化项目 `pcie_dma_test`，不能证明 DMA、RAM/FIFO 和 UART 管理路径。
 - `pango_pcie_top_sim.do` 含大量历史绝对路径，filelist 与工作目录耦合。
 - S2-A 受控模型只验证项目顶层外壳、复位链和 LED 域；其 link indication 不是真实 LTSSM、TLP、DMA 或板级链路证据。
-- S2-B 仍需参数化厂商加密模型并以 `pango_pcie_top_sim` 为 RC；S2-C 再增加基础 DMA 回读。
+- S2-B 已参数化厂商加密模型并以 `pango_pcie_top_sim` 为 RC；当前只完成静态合同，尚无动态 LTSSM/link-up 日志。S2-C 再增加基础 DMA 回读。
 - 活动 PCIe IP、PDS 目标和新构建产物均与实际 PG2L50H 一致；lane/refclk/PERST#/SCBV 和 UART 决策继续由 H2-B1 阻断。
 
 ### TODO（S2）
 
 1. S2-A 静态入口已完成；S0-1 恢复后先运行受控边界 smoke，确认同一 run marker 和唯一 `TEST PASS`。
-2. S2-B 以厂商 RC 对端连接项目 DUT，覆盖真实 LTSSM/link-up 和 watchdog；禁止用 S2-A 模型替代。
+2. S2-B 静态入口已完成；S2-A 动态通过后运行厂商 RC/项目 EP，覆盖真实 LTSSM/link-up、32 周期稳定窗口和 watchdog。
 3. S2-C 在真实链路上增加一次可预测 DMA 写读回；LTSSM、完成状态、数据和超时失败均 `$fatal`。
 4. 对应项目网表/SDF 锁定且 H2-B1 关闭后，完成综合后、PNR 功能和 PNR 时序仿真。
 
@@ -95,14 +96,14 @@
 | PNR 后功能 | PNR 功能网表、USIM+VSIM、同一 TB | 缺少 VSIM 原语、网表编译失败或自检失败 |
 | PNR 后时序 | PNR 网表、slow-corner SDF、USIM+VSIM | SDF annotation error、实例匹配错误、未批准 timing violation 或自检失败 |
 
-所有 DO 脚本都必须：从工程根目录启动、建立独立 `build/sim/<level>/work`、写入 `build/logs/`、遇到错误 `quit -code 1 -force`，并在成功路径只允许一个 `TEST PASS`。SDF 层级必须以实际 testbench DUT 实例为准，不能照抄厂商示例层级。
+所有 DO 脚本都必须：从工程根目录启动、建立独立 `build/sim/<level>/<run-id>/work`、写入 `build/logs/`、遇到错误 `quit -code 1 -force`，并在成功路径只允许一个 `TEST PASS`。SDF 层级必须以实际 testbench DUT 实例为准，不能照抄厂商示例层级。
 
 ## 依赖顺序
 
 ```text
 S0-1 仿真器安装与 USIM/VSIM 编译
         ├─ S1 DDR3：D3-A → D3-B → D3-C → D4
-        ├─ S2 PCIe：H2-B → 项目级 smoke/DMA TB → 四级仿真
+        ├─ S2 PCIe：S2-A 动态 → S2-B 动态 → S2-C → 后级网表仿真
         └─ S3 OV7725：输入格式确认 → O2-D2/O3 锁定 → 集成 TB → 四级仿真
 ```
 

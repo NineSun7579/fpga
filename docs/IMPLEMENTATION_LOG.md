@@ -341,3 +341,12 @@
 - S2 后续拆为 S2-B 真实厂商 RC/EP LTSSM/link-up 和 S2-C 基础 DMA 回读；S2-A model-controlled link 不得冒充两者。
 - `run.ps1` 属于 CI-8A canonical 输入，因此 S2-A 入口变更后旧 manifest 被正确拒绝；重新执行七阶段 PG2L50H 构建，run id `c24bc06b5d0643eeb6c9cb2878e7ace5` 返回 0，manifest 为 complete/valid、43 输入/7 证据，baseline=0、strict=1、最差解析 slack `0.100 ns`。
 - 本机仍未发现 QuestaSim/ModelSim，故本批只完成静态门禁，未执行动态仿真、未生成 `TEST PASS`；活动 IDF、FDC、项目 RTL 和厂商示例未修改，忽略的 PDS 证据仅由上述同一次 canonical 构建自动刷新。
+
+## 2026-08-31：PCIe S2-B 真实 RC/EP 静态入口
+
+- 新增 `tb_pcie_dma_link.sv`，以厂商 `pango_pcie_top_sim` 为 Root Complex、项目真实 `pcie_dma_test` 为 Endpoint，共用 100 MHz 差分 refclk 并双向直连 x2 lane。
+- PASS 合同要求 RC/EP 两端 `smlh_link_up`、`rdlh_link_up` 为 1，LTSSM 为 L0 并稳定 32 个 refclk 周期；6 ms watchdog、未知态或掉链均 `$fatal`。
+- 新增 50 项 `sim/link_vendor_local.f`。它保持厂商 filelist 顺序，只保留 PCIe 底层、真实 EP wrapper、仿真 RC wrapper 和三个 RC-only cfg 模块，排除厂商 TB、厂商 EP top 及重复 UART/DMA example RTL。
+- `pcie_vendor` 独立编译 10 个加密 DWC 头和厂商 DO 的 DWC/HSST/GTP block；216 条旧安装前缀由 `PANGO_PDS_ROOT` 替换，项目/RC/TB 则编译到每个 `SIM_RUN_ID` 的独立 `work`。
+- 新增 `check_link_sim.ps1`，静态检查源清单、双库、路径、拓扑、私有层级、LTSSM、watchdog、marker 和唯一 PASS。`tclsh` mock probe 验证 11 次预期 `vlog` 调用的 Tcl 语义，但不等同于模型编译或仿真。
+- 当前机器仍缺少 ModelSim/QuestaSim，因此 S2-B 仅标记静态入口完成，未声明动态链路、RK3568 实板、协商宽度/速率或 DMA 通过。
