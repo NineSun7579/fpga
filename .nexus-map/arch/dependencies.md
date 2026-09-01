@@ -54,9 +54,10 @@ flowchart TD
   PCIeSources["pds_sources.f\n37 canonical HDL"] --> PCIeSmoke
   PCIeSmoke --> PCIeStaticGate["check_sim.ps1\n静态契约 gate=0"]
   SharedUSIM["仓库根 build/simlib/usim\nLogos2 USIM"] --> PCIeSmoke
-  PCIeSmoke -. "当前 run 966942...：退出 0，唯一 PASS" .-> Questa
+  PCIeSmoke -. "当前 run add7efa...：1476105 ns，退出 0，唯一 PASS" .-> Questa
   PCIeRealLink["S2-B\n真实厂商 RC/EP"] --> PCIeDMAReadback["S2-C\n基础 DMA 回读"]
   PCIeTop --> PCIeRealLink
+  PCIeRealLink -. "run 30bad6...：唯一 link marker/PASS，退出 0" .-> Questa
 
   OVLegacy --> PDS["PDS 2022.2-SP6.4"]
   DDRExample --> PDS
@@ -70,9 +71,11 @@ flowchart TD
 
 - 用户确认三个产品方向共用 `RK3568+PG2L50H100H` 开发板，实际 FPGA 为 `PG2L50H-6IFBG484`；摄像头产品目标已校正为 OV5640，`41_ov7725_hdmi` 仅作 OV7725 legacy。统一有效 PDS 目标为 `Logos2 / PG2L50H / FBG484 / -6`，旧 PG2L100H 产物不得用于实板。
 - 厂商 `.idf`、生成 RTL 和 PDS 仿真库属于外部生成依赖，不应被误当作独立手写逻辑。
-- PCIe S2-A 的 `sim/questa/behav.f` 依赖 37 个实现侧 canonical HDL、仿真专用补充源、DMA RAM init include、reset helper、项目 TB 与受控边界模型。当前 Questa run `966942334060436dba8444ae9155557c` 以唯一 `TEST PASS` 通过（0 errors/0 warnings、退出 0）；S2-A/S2-B 静态门禁通过。
+- PCIe S2-A 的 `sim/questa/behav.f` 依赖 37 个实现侧 canonical HDL、仿真专用补充源、DMA RAM init include、reset helper、项目 TB 与受控边界模型。当前 Questa run `add7efa39f644384af9929e8a9366739` 运行至 `1476105 ns`，以唯一 `TEST PASS` 通过（0 errors/0 warnings、退出 0）；S2-A/S2-B 静态门禁通过。
 - 每次 S2-A 动态运行按 `SIM_RUN_ID` 创建独立 `build/sim/behav/<run_id>/work`，避免上一次编译的 work library 被误用；日志身份、work 隔离和公共 USIM 是三个不同依赖，均不能由单独一个 `TEST PASS` 替代。
-- S2-A 的受控 link indication 只驱动顶层复位、LED 和未知态检查，不能替代 S2-B 的真实厂商 RC/EP、LTSSM/TLP，也不能替代 S2-C 的 DMA 数据回读。`SIM_RUN_ID` 与唯一 `TEST PASS` 只绑定一次仿真日志，不扩张覆盖范围。
+- 三项目的 Questa 工程定义分别位于各自 `sim/questa/`；启动器在 `build/sim/launcher/<run-id>/` 创建并显式绑定 run-scoped `modelsim.ini`，PowerShell 通过进程内 `SIM_PROJECT_ROOT` 让 DO 切回项目根。work/vendor library、日志、transcript、波形与 ini 统一依赖 `build/`，不与工程定义混放。
+- S2-B 每次运行同时创建 run-scoped `work` 与物理 vendor library，厂商模型必须直接编译到该物理目录；TB 的 `GTP_GRS GRS_INST` 为 `GRS_INST.GRSNET` 层级依赖，项目源的 `1ns/10ps` 和 DO transcript `echo` 为厂商兼容与日志身份依赖。
+- S2-A 的受控 link indication 只驱动顶层复位、LED 和未知态检查，不能替代 S2-B 的真实厂商 RC/EP、LTSSM/TLP，也不能替代 S2-C 的 DMA 数据回读。S2-B 首次 L0 后允许 RC 合法进入 `0x0d` Recovery/速率重训练，在 6 ms 总窗口内寻找连续 32 周期双端 link-up/L0，任何中断将计数归零；run `30bad6e164be4a4b8284a00f1e96bd87` 输出唯一 link-up marker 和唯一 `TEST PASS`，Errors 0、Warnings 26、PowerShell 退出 0。最新 S2-A/S2-B 运行后项目根 `modelsim.ini`、transcript、`vsim.wlf` 计数均为 0。`SIM_RUN_ID` 与唯一 `TEST PASS` 只绑定一次仿真日志，不扩张到 DMA、RK3568 实板、协商 x2/5.0 GT/s、电气或后级网表。
 - OV7725 O0-A 已识别 `sys_clk`、`i2c_dri_clk`、`cam_pclk`、`pixel_clk`、`pixel_clk_5x`、`clk_50m/ref_clk` 和 `ui_clk`；证据入口为 `41_ov7725_hdmi/doc/CDC_RDC_AUDIT.md`。
 - `wr_load` 与 `rd_load` 当前被多个逻辑独立采样；write FIFO 数据方向为 `cam_pclk → ui_clk`，read FIFO 为 `ui_clk → pixel_clk`，两者均需把复位分别在读写时钟域同步释放。
 - OV7725 O1-B 已固定 16 个手写 RTL、4 个活动 IDF 和唯一顶层 FDC，从空 `build/` 完成 SP6.4 七阶段，进程退出 0、日志 `E: 0`、warning `4067`、critical `81`，并生成非零综合网表、PNR 网表、SDF、`.sbit` 和 `.bin`。
@@ -96,15 +99,15 @@ flowchart TD
 - D3-0 旧接口结论只能作为 PG2L50H 重生成后的比对基准；若接口语义、地址单位、端口或 `I_ips_ddr_top` 层级变化，停止并重新更新 D3-0-R/CI-6，审核前不得新增 D3-A/B/C RTL。
 - 有限自检契约固定 16 个单 beat 写读比较 pair，地址 `0x0..0x78`、步长 8，pair/run timeout 分别为 4096/131072 周期；签核依赖稳定的 `test_done`、`test_failed`、`failure_code`、`error_count`、`completed_pairs` 和首错信息，而不是厂商 LED 或内部层级。
 - 新项目自有 DDR3 RTL 依赖根目录 VSCS；厂商 `ip_core/ddr3/**` 仍作为外部生成依赖，不因 D2 决策被改写。
-- 当前执行队列为：PCIe 维持 50H baseline并推进 S2-B/S2-C 与后级仿真；DDR3 重生成 50H IP/FDC/RCF并重审 D3-A；摄像头按 OV5640 C0/C1 冻结范围后进入 C2/C3，最后执行 S3。OV7725 O2/M3 只作 legacy 参考，不再作为产品必经链。
-- `docs/SIMULATION_READINESS_MATRIX.md` 已确认三个项目的项目级 TB、`.f`、`.do` 均缺失；厂商示例不形成产品顶层覆盖。S1 还依赖 PG2L50H DDR3 IP契约、D3-A/B/C 与 D4，S2 依赖 H2-B/PG2L50H 产物一致性，S3 依赖 PG2L50H 新 baseline、输入格式契约与 O2-D2/O3 RTL 锁定。
+- 当前执行队列为：PCIe 维持 50H baseline，在 S2-B 真实 RC/EP 链路通过后进入 S2-C 与后级仿真；DDR3 重生成 50H IP/FDC/RCF并重审 D3-A；摄像头按 OV5640 C0/C1 冻结范围后进入 C2/C3，最后执行 S3。OV7725 O2/M3 只作 legacy 参考，不再作为产品必经链。
+- `docs/SIMULATION_READINESS_MATRIX.md` 已确认三个项目均保留各自 `sim/questa/` 工程定义目录；DDR3 与 OV5640 仍缺可运行的项目级 TB/`.f`/`.do`，厂商示例不形成产品顶层覆盖。PCIe 已有 S2-A/S2-B 项目定义且两层均已动态通过，但 S2-B 不覆盖 DMA、实板、电气、协商宽度/速率或后级网表。S1 还依赖 PG2L50H DDR3 IP契约、D3-A/B/C 与 D4，S2 依赖 H2-B/PG2L50H 产物一致性，S3 依赖 PG2L50H 新 baseline、输入格式契约与 O2-D2/O3 RTL 锁定。
 - PCIe 顶层依赖专用 HSST/IP 约束；`o_trgt1_radm_pkt_halt[2:0]` 接口分别对应 posted、non-posted 与 completion/CPLD halt，当前 bit0/bit1 有效、bit2 源端恒为 0，三位接口路径已由项目顶层贯通活动 `pcie_test` wrapper 至 hard-IP；UART2APB 是否保留是后续 RTL 与 FDC 的共同决策点。
 - PCIe H2-A（2026-08-30）固定顶层 x2 `rxn/rxp/txn/txp`、差分 `ref_clk_p/n`、`perst_n`/`button_rst_n` 与两枚 LED；FDC 当前映射 refclk `F6/E6`、PERST# `M16`、button reset `M15`、LED `M17/J16`。
 - 活动 PCIe `pcie_test.idf` 已正确匹配 `Logos2/PG2L50H/FBG484/-6`，无需仅为器件型号重生成；必须修正的是 PG2L100H build/PDS/gate并清除旧 `build/` 后重建。lane 极性、板级拓扑、I/O delay 和 SCBV 仍是独立缺口。
 - UART2APB 在 `pcie_dma_test.v` 以隐式 `rxd/txd` 网络连接，当前 `rxd` 被绑 0；H2-A 只记录该功能缺口，H2-B 需先决定端口归属和板级连接。
 - H2-A 器件审核已解除项目自有 build/gate 的只读限制；活动 IDF 保持 50H，RTL/FDC 仍等待 UART 与板级证据。H2-B 在 lane/refclk/PERST#/SCBV 和 UART 均闭合前不得宣称发布通过。
 - H2-B0 已将 PCIe 五类失败归一化为 16 个唯一签名、42 次原始记录；完整多重集对新增、消失、改名、share-pin 位置和次数漂移均失败，IDF metadata 漂移永久硬失败。canonical fixture 正向 0、strict 1，五个变异均 1。H2-B1 仍阻断于 lane/refclk/PERST#/SCBV/UART/I/O timing；partial run 复用旧 full-build 证据的风险已由 CI-8A 关闭。
-- PCIe CI-8A 已关闭上述复用风险：`run.ps1` 通过 `build_provenance.ps1` 为每次 build 原子发布 32 位 run_id manifest，37 HDL 单一清单扩展为 43 项 canonical 输入，并绑定 7 项最终证据的相对路径、长度和 SHA-256。partial/failed 或 run-id、产物、FDC 漂移均拒绝；最终 full build/baseline/strict 为 `0/0/1`，slack `0.100 ns`，H2-B0 16/42 不变。
+- PCIe CI-8A 已关闭上述复用风险：`run.ps1` 通过 `build_provenance.ps1` 为每次 build 原子发布 32 位 run_id manifest，37 HDL 单一清单扩展为 43 项 canonical 输入，并绑定 7 项最终证据的相对路径、长度和 SHA-256。`run.ps1` 中 build-scoped Questa launcher 属于 canonical 输入，其变更已由最新完整 run `dde6ee70b2c84d2da4ee2256d8a5c127` 重新绑定；manifest 为 `complete/valid=true`，full build/baseline/strict 为 `0/0/1`，slack `0.1 ns`，H2-B0 16/42 不变。baseline=0 不解除 UART RX tied low、顶层 I/O 未约束、PCIe serial I/O、share pin、SCBV 五类 strict 阻断，也不表示 release-ready。
 - CI-8B 依赖 DDR3 M2 与未来 OV5640 C3 各自完成 PG2L50H canonical 升格及最终构建入口闭合；OV7725 legacy 只有在被 C2 明确选中时才提供结构参考，不能代替 OV5640 provenance。
 - S0 环境复核（2026-08-30）的未发现仿真器结论已被 2026-09-01 实际执行证据取代：Questa Sim-64 2021.1 最小 SystemVerilog 通过，PDS SP6.4 Logos2 USIM 编译成功。
 - S0-1 已准备 `scripts/compile_simlib.ps1` → 环境变量 → `scripts/compile_simlib.tcl` → PDS `compile_simlib` 的参数化链路，可选择 ModelSim/QuestaSim、USIM/VSIM/BOTH、family、语言、工具路径与输出目录；入口准备不等于库已生成。

@@ -12,7 +12,7 @@
       "implementation_status": "documented",
       "code_path": null,
       "evidence_path": "README.md",
-      "evidence_gap": "Questa Sim-64 2021.1、Logos2 USIM/VSIM、V_BUF 和 PCIe S2-A 当前动态复验已通过；S2-B 动态、三个项目后级仿真以及 OV5640 C0/C1/C2/C3/S3 尚未完成，OV7725 只作 legacy。",
+      "evidence_gap": "Questa Sim-64 2021.1、Logos2 USIM/VSIM、V_BUF、PCIe S2-A 受控 smoke 与 S2-B 真实 RC/EP 链路当前动态复验已通过；S2-C、三个项目后级仿真以及 OV5640 C0/C1/C2/C3/S3 尚未完成，OV7725 只作 legacy。",
       "s0_environment_review": {
         "date": "2026-09-01",
         "historical_review_date": "2026-08-30",
@@ -24,7 +24,7 @@
         "windows_uninstall_registry_scanned": true,
         "windows_uninstall_registry_hits": 0,
         "historical_missing_simulator_result_superseded": true,
-        "dynamic_simulation": "pcie_s2a_current_revalidation_passed_exit_0_unique_test_pass",
+        "dynamic_simulation": "pcie_s2a_current_revalidation_passed; pcie_s2b_real_rc_ep_link_passed_exit_0_unique_link_marker_and_test_pass",
         "s0_1_status": "completed_logos2_usim_vsim_and_primitive_smoke_verified",
         "compile_entry": {
           "tcl": "scripts/compile_simlib.tcl",
@@ -44,7 +44,7 @@
           "vsim_library_nonempty": true
         },
         "minimal_post_primitive_smoke": {"library": "VSIM", "primitive": "V_BUF", "library_load_verified": true, "runtime_ns": 2, "errors": 0, "warnings": 0, "test_pass_count": 1},
-        "next_step": "retain the repository-external license boundary, execute S2-B and project-specific post-synthesis, post-PNR functional and SDF timing simulations"
+        "next_step": "execute S2-C DMA without expanding the S2-B coverage claim; then execute project-specific post-synthesis, post-PNR functional and SDF timing simulations"
       },
       "ci_0_repository_consistency": {
         "date": "2026-08-30",
@@ -673,7 +673,7 @@
       "implementation_status": "implemented_with_known_functional_gap",
       "code_path": "pcie_dma_test_100h/hdl/",
       "evidence_path": "pcie_dma_test_100h/place_route/pcie_dma_test_timing_summary_after_hold_fix.txt",
-      "evidence_gap": "PCIe IDF、build/PDS/gate 与产物已统一匹配 PG2L50H；S2-A 当前动态复验和 S2-A/S2-B 静态门禁通过。真实 RC/EP、DMA、板级证据和后级网表/SDF 仍缺失。",
+      "evidence_gap": "PCIe IDF、build/PDS/gate 与产物已统一匹配 PG2L50H；S2-A 受控 smoke、S2-B 真实 RC/EP 链路和 S2-A/S2-B 静态门禁通过。DMA、RK3568 实板、协商 x2/5.0 GT/s、电气、板级证据和后级网表/SDF 仍缺失。",
       "h2a_read_only_evidence": {
         "date": "2026-08-30",
         "top_module": "pcie_dma_test",
@@ -715,6 +715,7 @@
         "hdl_source_list": "pcie_dma_test_100h/scripts/pds_sources.f",
         "hdl_count": 37,
         "canonical_input_count": 43,
+        "build_scoped_questa_launcher": {"location": "pcie_dma_test_100h/scripts/run.ps1", "canonical_input": true, "change_requires_full_build_evidence_rebind": true},
         "artifact_count": 7,
         "manifest": "pcie_dma_test_100h/build/provenance/pds-build.json",
         "run_id": "32-character lowercase hexadecimal",
@@ -722,9 +723,10 @@
         "only_valid_state": "complete with valid=true",
         "record_fields": ["relative POSIX path", "length", "SHA256"],
         "negative_gate_exit_1": ["partial compile", "missing PDS executable", "run-id drift", "artifact drift", "FDC input drift"],
-        "final_results": {"full_build": 0, "baseline_gate": 0, "strict_gate": 1, "worst_slack_ns": 0.100, "h2b0_unique_signatures": 16, "h2b0_raw_occurrences": 42},
+        "final_results": {"full_build": 0, "baseline_gate": 0, "strict_gate": 1, "worst_slack_ns": 0.1, "h2b0_unique_signatures": 16, "h2b0_raw_occurrences": 42},
+        "strict_release_blockers": ["UART RX tied low", "unconstrained top-level I/O", "PCIe serial I/O", "share pin", "SCBV"],
         "latest_verified_run": {
-          "run_id": "50b37eb3628e419592cecac02ff932bf",
+          "run_id": "dde6ee70b2c84d2da4ee2256d8a5c127",
           "run_to": "gen_bit_stream",
           "status": "complete",
           "valid": true,
@@ -732,7 +734,9 @@
           "artifact_count": 7,
           "baseline_gate_exit_code": 0,
           "strict_gate_exit_code": 1,
-          "interpretation": "current inputs reproduce the approved non-release baseline; strict release remains blocked"
+          "worst_slack_ns": 0.1,
+          "launcher_input_rebound": true,
+          "interpretation": "current inputs reproduce the approved non-release baseline; baseline exit 0 is not release-ready and all five strict release blockers remain"
         },
         "ci8b_boundary": "DDR3 and OV7725 migrate only after their own PG2L50H canonical promotion; audit each source list and artifact layout independently before considering shared modules."
       },
@@ -752,6 +756,10 @@
         "dma_ram_init_include": "pcie_dma_test_100h/hdl/pcie_dma_ctrl/ips2l_pcie_dma_ram/rtl",
         "shared_usim_mapping_from_project_root": "../build/simlib/usim",
         "run_scoped_work_library": "pcie_dma_test_100h/build/sim/behav/<SIM_RUN_ID>/work",
+        "run_scoped_launcher_root": "pcie_dma_test_100h/build/sim/launcher/<SIM_RUN_ID>",
+        "run_scoped_modelsim_ini": "pcie_dma_test_100h/build/sim/launcher/<SIM_RUN_ID>/modelsim.ini",
+        "modelsim_ini_explicitly_bound": true,
+        "do_project_root_environment": "SIM_PROJECT_ROOT",
         "controlled_model_sequential_style": "exactly two always_ff processes; ordinary always @ is rejected by the static gate",
         "button_reset_ref_counter_contract": "sample before assertion, require unchanged after pclk reset observation, then require unchanged for 8 additional refclk cycles while model link is low",
         "perst_independent_release_contract": "after button reset fully re-releases and model link returns, assert PERST# alone, verify both LED domains reset, then deassert PERST# alone and repeat debounce/link release checks",
@@ -764,9 +772,9 @@
         "historical_dynamic_simulation_executed": true,
         "historical_dynamic_result": {"simulator": "Questa Sim-64 2021.1", "vlog_errors": 0, "vlog_warnings": 0, "elaboration_succeeded": true, "simulation_end_ns": 1476105, "vsim_errors": 0, "vsim_warnings": 2, "test_pass_count": 1, "powershell_same_run_id_gate_passed": true},
         "current_static_gate_passed": true,
-        "current_dynamic_revalidation": {"attempted": true, "run_id": "966942334060436dba8444ae9155557c", "exit_code": 0, "simulation_end_ns": 1476105, "vlog_errors": 0, "vlog_warnings": 0, "vsim_errors": 0, "vsim_warnings": 0, "test_pass_count": 1},
-        "rx_halt_hygiene": {"status": "complete", "signal": "o_trgt1_radm_pkt_halt[2:0]", "path": "DMA to project top to active pcie_test wrapper to hard IP", "wrapper_tie_off_removed": true, "regeneration_overwrite_risk_gated": true, "pds_run_id": "50b37eb3628e419592cecac02ff932bf", "unconnected_port_warnings_remaining": 0, "constant_bit2_optimization_warnings": 2},
-        "questa_project_archive": {"status": "three_project_directories_created", "pcie_definition_root": "pcie_dma_test_100h/sim/questa", "ddr3_definition_root": "ddr3_test/ddr3_test/sim/questa", "camera_definition_root": "41_ov7725_hdmi/sim/questa", "pcie_migration_run_id": "26db7d3206c542218634caff2c6e71ea", "pcie_migration_run_passed": true, "generated_work_and_logs_tracked": false, "license_configuration_tracked": false, "ddr3_project_entry_pending": true, "ov5640_project_entry_pending": true},
+        "current_dynamic_revalidation": {"attempted": true, "run_id": "add7efa39f644384af9929e8a9366739", "exit_code": 0, "simulation_end_ns": 1476105, "vlog_errors": 0, "vlog_warnings": 0, "vsim_errors": 0, "vsim_warnings": 0, "test_pass_count": 1},
+        "rx_halt_hygiene": {"status": "complete", "signal": "o_trgt1_radm_pkt_halt[2:0]", "path": "DMA to project top to active pcie_test wrapper to hard IP", "wrapper_tie_off_removed": true, "regeneration_overwrite_risk_gated": true, "pds_run_id": "dde6ee70b2c84d2da4ee2256d8a5c127", "unconnected_port_warnings_remaining": 0, "constant_bit2_optimization_warnings": 2},
+        "questa_project_archive": {"status": "three_project_definition_directories_created", "pcie_definition_root": "pcie_dma_test_100h/sim/questa", "ddr3_definition_root": "ddr3_test/ddr3_test/sim/questa", "camera_definition_root": "41_ov7725_hdmi/sim/questa", "generated_outputs_root": "build/", "generated_output_types": ["work_library", "vendor_library", "logs", "transcript", "waves", "modelsim_ini"], "generated_outputs_outside_build_forbidden": true, "project_root_residue_after_latest_s2a_s2b": {"modelsim_ini_count": 0, "transcript_count": 0, "vsim_wlf_count": 0}, "pcie_migration_run_id": "26db7d3206c542218634caff2c6e71ea", "pcie_migration_run_passed": true, "generated_work_and_logs_tracked": false, "license_configuration_tracked": false, "ddr3_project_entry_pending": true, "ov5640_project_entry_pending": true},
         "next_layers": {
           "S2-B": "vendor pango_pcie_top_sim Root Complex plus project pcie_dma_test Endpoint for real-link verification",
           "S2-C": "fixed address, length and data DMA write/readback after S2-B passes"
@@ -774,9 +782,24 @@
       },
       "s2b_real_link": {
         "static_gate_passed": true,
+        "definition_root": "pcie_dma_test_100h/sim/questa",
+        "filelist": "pcie_dma_test_100h/sim/questa/link.f",
+        "compile_do": "pcie_dma_test_100h/sim/questa/compile_vendor_link.do",
+        "run_do": "pcie_dma_test_100h/sim/questa/run_link.do",
+        "run_scoped_physical_vendor_library": true,
+        "run_scoped_work_library": true,
+        "run_scoped_launcher_root": "pcie_dma_test_100h/build/sim/launcher/<SIM_RUN_ID>",
+        "run_scoped_modelsim_ini_explicitly_bound": true,
+        "do_project_root_environment": "SIM_PROJECT_ROOT",
+        "global_reset_instance": "GTP_GRS GRS_INST",
+        "vendor_reset_hierarchy_requirement": "GRS_INST.GRSNET",
+        "project_compile_timescale": "1ns/10ps",
+        "transcript_run_marker_command": "echo",
         "contract": ["vendor RC and project EP", "bidirectional x2 lanes", "both link states and LTSSM L0", "32-cycle stability", "6 ms watchdog", "unique PASS"],
-        "dynamic_execution_passed": false,
-        "current_blocker": "S2-B dynamic real-link execution"
+        "stability_search": {"total_window_ms": 6, "required_consecutive_cycles": 32, "both_endpoints_require_link_up_and_l0": true, "interruption_action": "reset consecutive counter", "legal_intermediate_state": "RC 0x0d Recovery and rate retraining after first L0"},
+        "dynamic_execution_passed": true,
+        "dynamic_result": {"simulator": "Questa Sim-64 2021.1", "run_id": "30bad6e164be4a4b8284a00f1e96bd87", "compilation_succeeded": true, "elaboration_succeeded": true, "rc_ep_reached_l0": true, "stability_window_cycles": 32, "stability_window_passed": true, "link_up_marker_count": 1, "test_pass_count": 1, "errors": 0, "warnings": 26, "powershell_exit_code": 0},
+        "coverage_boundary": ["no DMA proof", "no RK3568 hardware proof", "no negotiated x2 or 5.0 GT/s proof", "no electrical proof", "no post-netlist proof"]
       },
       "tech_stack": ["Verilog", "Pango Logos2", "PCIe x2", "DMA"],
       "related_reqs": ["H2-A read-only evidence", "H2-B board evidence", "IP regeneration", "UART 决策", "集成自检", "保持时序通过"],
@@ -794,7 +817,7 @@
         "TODO.md",
         "docs/SIMULATION_READINESS_MATRIX.md"
       ],
-      "evidence_gap": "Questa Sim-64 2021.1、Logos2 USIM/VSIM、V_BUF 和 S2-A 当前动态复验已通过；DDR3 与 OV5640 项目入口、S2-B 动态/S2-C 和三个项目完整四级套件仍缺失。",
+      "evidence_gap": "Questa Sim-64 2021.1、Logos2 USIM/VSIM、V_BUF、S2-A 受控 smoke 与 S2-B 真实 RC/EP 链路当前动态复验已通过；DDR3 与 OV5640 可运行项目入口、S2-C 和三个项目完整四级套件仍缺失。",
       "environment_prerequisite": "Questa Sim-64 2021.1 tools and libraries are verified; installation and license configuration remain repository-external inputs",
       "simlib_entry_status": "completed_usim_vsim_and_minimal_post_primitive_smoke",
       "readiness_matrix": {
@@ -868,16 +891,17 @@
             "suite": "S2",
             "project_level_tb_count": 1,
             "controlled_boundary_model_count": 1,
-            "project_level_filelist_count": 1,
-            "project_level_do_count": 1,
-            "static_gate_count": 1,
+            "project_level_filelist_count": 2,
+            "project_level_do_count": 2,
+            "static_gate_count": 2,
             "static_gate_exit_code": 0,
             "root_consistency_gate_exit_code": 0,
             "historical_dynamic_simulation_executed": true,
             "historical_dynamic_result": "Questa Sim-64 2021.1 controlled smoke PASS at 1476105 ns; 0 errors and 2 known unconnected-output warnings",
             "s2a_current_static_gate_passed": true,
             "s2b_current_static_gate_passed": true,
-            "current_dynamic_revalidation": "run 966942334060436dba8444ae9155557c passed with exit code 0, zero errors/warnings and one TEST PASS",
+            "current_dynamic_revalidation": "run add7efa39f644384af9929e8a9366739 passed at 1476105 ns with exit code 0, zero errors/warnings and one TEST PASS",
+            "s2b_current_dynamic_result": "run 30bad6e164be4a4b8284a00f1e96bd87 passed with successful compile/elaboration, one link-up marker, one TEST PASS, zero errors, 26 warnings and PowerShell exit 0",
             "behavior_smoke_assets": [
               "pcie_dma_test_100h/tb/tb_pcie_dma_test.sv",
               "pcie_dma_test_100h/tb/pcie_test_smoke_model.sv",
@@ -888,6 +912,20 @@
             "dma_ram_init_include": "pcie_dma_test_100h/hdl/pcie_dma_ctrl/ips2l_pcie_dma_ram/rtl",
             "shared_usim_mapping_from_project_root": "../build/simlib/usim",
             "run_scoped_work_library": "pcie_dma_test_100h/build/sim/behav/<SIM_RUN_ID>/work",
+            "s2b_real_link_assets": [
+              "pcie_dma_test_100h/tb/tb_pcie_dma_link.sv",
+              "pcie_dma_test_100h/sim/questa/link.f",
+              "pcie_dma_test_100h/sim/questa/compile_vendor_link.do",
+              "pcie_dma_test_100h/sim/questa/run_link.do",
+              "pcie_dma_test_100h/scripts/check_link_sim.ps1"
+            ],
+            "s2b_run_scoped_physical_vendor_library": "pcie_dma_test_100h/build/sim/link/<SIM_RUN_ID>/pcie_vendor",
+            "run_scoped_launcher_root": "pcie_dma_test_100h/build/sim/launcher/<SIM_RUN_ID>",
+            "run_scoped_modelsim_ini": "pcie_dma_test_100h/build/sim/launcher/<SIM_RUN_ID>/modelsim.ini",
+            "do_project_root_environment": "SIM_PROJECT_ROOT",
+            "generated_simulation_outputs_root": "build/",
+            "generated_simulation_output_types": ["work_library", "vendor_library", "logs", "transcript", "waves", "modelsim_ini"],
+            "project_root_residue_after_latest_runs": {"modelsim_ini_count": 0, "transcript_count": 0, "vsim_wlf_count": 0},
             "vendor_examples": [
               "pcie_dma_test_100h/ipcore/pcie_test/example_design/bench/pango_pcie_top_tb.v",
               "pcie_dma_test_100h/ipcore/pcie_test/sim/modelsim/"
@@ -1001,7 +1039,7 @@
       "source": "external-simulation-suite",
       "target": "pcie-dma-system",
       "type": "tests",
-      "description": "S2-A 当前受控 smoke 与 S2-A/S2-B 静态门禁通过；S2-B 动态、S2-C 与后级仿真仍待完成。"
+      "description": "S2-A 当前受控 smoke、S2-B 真实 RC/EP 链路与 S2-A/S2-B 静态门禁通过；S2-A run add7efa39f644384af9929e8a9366739 于 1476105 ns 以 Errors 0、Warnings 0、唯一 TEST PASS、退出 0 通过；S2-B run 30bad6e164be4a4b8284a00f1e96bd87 输出唯一 link-up marker 与唯一 TEST PASS，Errors 0、Warnings 26、PowerShell 退出 0；S2-C 与后级仿真仍待完成。"
     },
     {
       "source": "vscs-commenting-standard",

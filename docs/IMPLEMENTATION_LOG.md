@@ -391,3 +391,15 @@
 - PCIe 的 S2-A/S2-B `.f/.do` 从分散的 `sim/` 与 `scripts/` 迁入 `pcie_dma_test_100h/sim/questa/`，`scripts/run.ps1` 和两项静态 gate 改为只认新位置，避免双份 filelist 漂移。
 - DDR3 与摄像头目录目前只记录厂商 IP 示例边界和项目级入口缺口：厂商 `sim/modelsim` 资产不计作项目集成仿真；DDR3 等待 D3 canonical 闭环，摄像头等待 OV5640 C0/C1/C2/C3 后再补四级入口。
 - 迁移后使用 Questa Sim-64 `2021.1` 从新入口复验 S2-A；run `26db7d3206c542218634caff2c6e71ea` 编译 0 errors/0 warnings，运行至 `1476105 ns`，唯一 `TEST PASS`，PowerShell 退出 0。
+
+## 2026-09-01：PCIe S2-B 动态入口推进
+
+- 修正厂商模型在切换工作目录后仍使用逻辑库名的问题，所有加密 DWC/HSST/GTP 模型改写入每个 run 独立的物理 `pcie_vendor` 库；原 55 个未定义 Pango 原语错误消失。
+- 项目 TB 按厂商 RAM 模型契约使用唯一顶层 `GRS_INST.GRSNET`，并沿用厂商 PCIe DO 的 `1ns/10ps` 编译时间尺度；原 48 个 GRS 层级错误和两个 `vsim-3009` 时间尺度错误消失。
+- 中间 run `9e0fae4e1d6d4ef7959cd98308b1e0f0` 记录首次 L0 后第 10 个周期 RC 进入 `0x0d`、EP 保持 `0x11`；厂商示例同样在首次 link-up 后等待速率切换再检查 L0，证明旧 TB 错把合法重训练当成永久掉链。
+- 按 TDD 增加“连续稳定周期累计、重训练时计数清零”静态契约，再将 TB 改为在 6 ms 总窗口内寻找连续 32 周期双端 link-up/L0；没有缩短窗口、抑制错误或放宽 PASS 条件。
+- 最终 Questa Sim-64 `2021.1` run `dc461d6d3970409185f8f1fb3dd417d6` 在 `702175 ns` 输出唯一 `INFO: S2B_REAL_LINK_UP` 和唯一 `TEST PASS`，`Errors: 0, Warnings: 26`，PowerShell 退出 0。warning 来自厂商/生成模型端口与受保护模型，不改写为零 warning。
+- `run_link.do` 的 run marker 使用可进入 transcript 的 `echo`。运行生成的库、日志和 transcript 仍只位于 `build/`，不进入 Git；S2-B 通过不扩张为 DMA、RK3568 实板、协商宽度/速率或板级电气通过。
+- 归档边界复验发现 Questa 会在启动目录创建 transcript，且 `vmap` 会在当前目录复制 `modelsim.ini`。`run.ps1` 现为每个 run 在 `build/sim/launcher/<run-id>/` 创建并显式绑定 ini，通过进程内 `SIM_PROJECT_ROOT` 执行项目 DO；静态合同锁定该边界。
+- 最新 S2-A run `add7efa39f644384af9929e8a9366739` 为 0 errors/0 warnings、`1476105 ns`、唯一 PASS、退出 0；最新 S2-B run `30bad6e164be4a4b8284a00f1e96bd87` 为 0 errors/26 warnings、`702175 ns`、唯一 link marker/PASS、退出 0。两次运行后工程根 ini/transcript/波形计数为 0。
+- `run.ps1` 属于 CI-8A canonical 输入，因此归档边界修正后重新执行完整 PG2L50H 七阶段。PDS run `dde6ee70b2c84d2da4ee2256d8a5c127` 退出 0，manifest=`complete/valid`、43 输入/7 证据，baseline/strict gate=`0/1`、最差 slack `0.100 ns`；五类 strict 发布阻断保持不变。

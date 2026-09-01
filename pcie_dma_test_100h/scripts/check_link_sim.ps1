@@ -163,7 +163,7 @@ $VendorSourceDoText = Get-Content -Raw -Encoding UTF8 -LiteralPath $VendorSource
 foreach ($Required in ([ordered]@{
         'vendor RC instance' = '\bpango_pcie_top_sim\s*#\s*\('
         'project Endpoint instance' = '\bpcie_dma_test\s+u_dut\s*\('
-        'single global reset primitive' = '\bGTP_GRS\s+grs_inst\s*\('
+        'fixed global reset hierarchy' = '\bGTP_GRS\s+GRS_INST\s*\('
         'RC TX to EP RX positive lanes' = '(?s)\.rxp\s*\(rc_txp\).*?\.txp\s*\(ep_txp\)'
         'RC TX to EP RX negative lanes' = '(?s)\.rxn\s*\(rc_txn\).*?\.txn\s*\(ep_txn\)'
         'EP TX to RC RX positive lanes' = '(?s)\.rxp\s*\(ep_txp\).*?\.txp\s*\(rc_txp\)'
@@ -175,6 +175,8 @@ foreach ($Required in ([ordered]@{
         'RC LTSSM L0 check' = 'u_rc\.smlh_ltssm_state\s*===\s*LTSSM_L0'
         'Endpoint LTSSM L0 check' = 'u_dut\.smlh_ltssm_state\s*===\s*LTSSM_L0'
         '32-cycle stability window' = 'LINK_STABLE_CYCLES\s*=\s*32'
+        'consecutive stable-cycle accumulation' = 'stable_cycles\s*=\s*stable_cycles\s*\+\s*1'
+        'retraining restarts stability window' = '(?s)else\s+begin\s+stable_cycles\s*=\s*0\s*;\s*end'
         '6 ms watchdog' = '#6ms\s*;\s*\r?\n\s*\$fatal'
         'S2-B success marker' = '\$display\("INFO: S2B_REAL_LINK_UP"\)'
         'unique PASS source' = '\$display\("TEST PASS"\)'
@@ -182,8 +184,8 @@ foreach ($Required in ([ordered]@{
     }).GetEnumerator()) {
     Require-Pattern -Text $TestbenchText -Pattern $Required.Value -Description $Required.Key
 }
-if ([regex]::Matches($TestbenchText, '\bGTP_GRS\s+grs_inst\s*\(').Count -ne 1) {
-    Add-Failure 'PCIe S2-B testbench must instantiate exactly one GTP_GRS'
+if ([regex]::Matches($TestbenchText, '\bGTP_GRS\s+GRS_INST\s*\(').Count -ne 1) {
+    Add-Failure 'PCIe S2-B testbench must instantiate exactly one fixed GRS_INST hierarchy'
 }
 if ([regex]::Matches($TestbenchText, '\$display\("INFO: S2B_REAL_LINK_UP"\)').Count -ne 1 -or
     [regex]::Matches($TestbenchText, '\$display\("TEST PASS"\)').Count -ne 1) {
@@ -195,6 +197,8 @@ if ($TestbenchText -match '\bpcie_test_smoke_model\b|\bpango_pcie_top_tb\b|\bpan
 
 foreach ($Required in ([ordered]@{
         'PDS root parameter' = 'env\(PANGO_PDS_ROOT\)'
+        'run-scoped vendor library requirement' = 'info exists vendor_dir'
+        'physical vendor library path' = 'set vendor_library_dir \[file normalize \$vendor_dir\]'
         'vendor source DO extraction' = 'pango_pcie_top_sim\.do'
         'unique model block start marker' = 'set start_marker'
         'unique model block end marker' = 'set end_marker'
@@ -204,7 +208,10 @@ foreach ($Required in ([ordered]@{
     }).GetEnumerator()) {
     Require-Pattern -Text $CompileDoText -Pattern $Required.Value -Description $Required.Key
 }
-if ([regex]::Matches($CompileDoText, '(?m)^vlog -sv -work pcie_vendor').Count -ne 10) {
+if ([regex]::Matches(
+        $CompileDoText,
+        '(?m)^vlog -sv -work \$vendor_library_dir'
+    ).Count -ne 10) {
     Add-Failure 'PCIe vendor compiler must compile exactly ten encrypted DWC headers before the model block'
 }
 if ($CompileDoText -match 'pango_pcie_top_filelist\.f|vlog-link-vendor-local') {
@@ -248,12 +255,16 @@ if ([regex]::Matches($VendorSourceDoText, [regex]::Escape($StartMarker)).Count -
 
 foreach ($Required in ([ordered]@{
         'DO fail-fast handler' = 'onerror\s*\{'
+        'DO project-root environment requirement' = 'info exists env\(SIM_PROJECT_ROOT\)'
+        'DO project-root discovery' = 'set\s+project_root\s+\[file normalize \$env\(SIM_PROJECT_ROOT\)\]'
+        'DO project-root working directory' = 'cd\s+\$project_root'
         'DO stale transcript cleanup' = 'file\s+delete\s+-force\s+build/logs/sim-link\.log'
         'DO run identity' = 'SIM_RUN_ID'
+        'DO transcripted run marker' = 'echo\s+"INFO: SIM_RUN_ID=\$env\(SIM_RUN_ID\)"'
         'DO run-scoped work library' = 'build/sim/link/\$env\(SIM_RUN_ID\)'
         'DO separate vendor library' = 'vmap\s+pcie_vendor\s+\$vendor_dir'
         'DO vendor compiler call' = 'do\s+sim/questa/compile_vendor_link\.do'
-        'DO S2-B filelist compile' = 'vlog\s+-sv\s+-work\s+work\s+-f\s+sim/questa/link\.f'
+        'DO vendor-compatible project timescale' = 'vlog\s+-sv\s+-override_timescale\s+1ns/10ps\s+-work\s+work\s+-f\s+sim/questa/link\.f'
         'DO vendor library elaboration' = '-L\s+pcie_vendor'
         'DO S2-B testbench elaboration' = 'work\.tb_pcie_dma_link'
         'DO bounded completion' = 'run\s+-all'
@@ -267,6 +278,12 @@ if ($RunDoText -match '[A-Za-z]:[/\\]') {
 foreach ($Required in ([ordered]@{
         'PowerShell S2-B action' = "'sim-link'"
         'PowerShell PDS root export' = 'PANGO_PDS_ROOT'
+        'PowerShell project-root export' = '\$env:SIM_PROJECT_ROOT\s*=\s*\$ProjectRoot'
+        'PowerShell project-root restore' = '\$env:SIM_PROJECT_ROOT\s*=\s*\$PreviousSimProjectRoot'
+        'PowerShell build-scoped launcher directory' = '\$LaunchDir\s*=\s*Join-Path\s+\$BuildRoot\s+"sim\\launcher\\\$RunId"'
+        'PowerShell launcher working directory' = 'Push-Location\s+\$LaunchDir'
+        'PowerShell run-scoped modelsim.ini' = '\$ModelsimIni\s*=\s*Join-Path\s+\$LaunchDir\s+''modelsim\.ini'''
+        'PowerShell explicit modelsim.ini binding' = '&\s+\$Vsim\s+-c\s+-modelsimini\s+\$ModelsimIni'
         'PowerShell S2-B log binding' = "-LogFileName 'sim-link\.log'"
         'PowerShell S2-B success marker' = "-SuccessMarker 'INFO: S2B_REAL_LINK_UP'"
         'PowerShell unique PASS gate' = 'does not contain exactly one TEST PASS line'

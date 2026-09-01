@@ -5,6 +5,12 @@ onerror {
     quit -code 1 -force
 }
 
+if {![info exists env(SIM_PROJECT_ROOT)] || ![file isdirectory $env(SIM_PROJECT_ROOT)]} {
+    error "SIM_PROJECT_ROOT must identify the PCIe project root"
+}
+set project_root [file normalize $env(SIM_PROJECT_ROOT)]
+cd $project_root
+
 file mkdir build/logs
 if {[file exists build/logs/sim-behav.log]} {
     file delete -force build/logs/sim-behav.log

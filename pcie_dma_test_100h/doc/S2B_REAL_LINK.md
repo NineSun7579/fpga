@@ -23,6 +23,13 @@ PCB lane/polarity、AC 耦合、refclk/PERST# 电气或 DMA 数据闭环。H2-B1
 和重复 UART/DMA example RTL。厂商文件保持只读，安装路径由
 `PANGO_PDS_ROOT` 参数化，不复制模型到仓库。
 
+Pango RAM 仿真模型通过固定顶层层级 `GRS_INST.GRSNET` 解析全局复位，因此
+项目 TB 必须将唯一的 `GTP_GRS` 实例命名为 `GRS_INST`。这是厂商模型的
+层级契约，不是项目 RTL 的功能接口。
+
+项目源按厂商 PCIe DO 的约定统一使用 `1ns/10ps` 编译时间尺度，避免同一
+hard-control 模块在 elaboration 时产生不一致的时间精度。
+
 ## 3. 拓扑与通过条件
 
 - 两端共用 100 MHz 差分 refclk。
@@ -32,7 +39,7 @@ PCB lane/polarity、AC 耦合、refclk/PERST# 电气或 DMA 数据闭环。H2-B1
 - RC 和 EP 的 `smlh_link_up`、`rdlh_link_up` 均为 1。
 - RC 和 EP 的 `smlh_ltssm_state` 均为 `5'h11`，并连续稳定 32 个 refclk
   周期。
-- 6 ms watchdog 到期、信号出现未知值或稳定窗口内离开 L0 均执行 `$fatal`。
+- 6 ms watchdog 到期或信号出现未知值均执行 `$fatal`；训练或速率切换中离开 L0 会将连续稳定计数清零。
 - 成功日志只允许一个 `INFO: S2B_REAL_LINK_UP` 和一个 `TEST PASS`。
 
 EP link/LTSSM 未由项目顶层导出，TB 当前依赖 `u_dut.smlh_link_up`、
@@ -59,5 +66,15 @@ powershell -ExecutionPolicy Bypass -File .\scripts\run.ps1 -Action sim-link
 - 动态真实链路通过：必须由同一 `SIM_RUN_ID` 的 `sim-link.log` 同时证明
   S2-B marker 与唯一 `TEST PASS`。
 
-当前机器未安装 `C:\questasim64\win64\vsim.exe`，因此动态状态仍为阻断，
-不得勾选“真实链路通过”。
+Questa Sim-64 `2021.1` 最新 run `30bad6e164be4a4b8284a00f1e96bd87` 已完成厂商
+模型与项目 RTL 编译/elaboration。首次 L0 后 RC 进入速率重训练，随后两端
+link/LTSSM L0 连续稳定 32 个周期；`702175 ns` 输出唯一成功 marker 和唯一
+`TEST PASS`，`Errors: 0, Warnings: 26`，PowerShell 退出 0。
+
+PowerShell 为每次运行在 `build/sim/launcher/<run-id>/` 创建并显式绑定
+`modelsim.ini`，通过仅在子进程内存在的 `SIM_PROJECT_ROOT` 返回工程根执行
+归档 DO；work、vendor library、日志、transcript 和波形全部保留在 `build/`。
+S2-A/S2-B 最新回归后，工程根运行文件计数为 0。
+
+该通过证据不代表 RK3568 实板、实际协商 x2/5.0 GT/s、PCB 电气或 DMA 数据
+闭环已经通过；这些边界仍分别由 H2-B1 和 S2-C 验收。

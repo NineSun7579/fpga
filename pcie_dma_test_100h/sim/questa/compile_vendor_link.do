@@ -4,9 +4,13 @@
 if {![info exists env(PANGO_PDS_ROOT)]} {
     error "PANGO_PDS_ROOT is required for PCIe vendor model compilation"
 }
+if {![info exists vendor_dir] || ![file isdirectory $vendor_dir]} {
+    error "Run-scoped PCIe vendor library is not available"
+}
 
 set project_root   [file normalize [pwd]]
 set vendor_sim_dir [file normalize "$project_root/ipcore/pcie_test/sim/modelsim"]
+set vendor_library_dir [file normalize $vendor_dir]
 set pds_root       [string map {\\ /} [file normalize $env(PANGO_PDS_ROOT)]]
 set model_root     "$pds_root/arch/vendor/pango/verilog/simulation/modelsim10.2c"
 set model_log      [file normalize "$project_root/build/logs/vlog-link-vendor-models.log"]
@@ -21,16 +25,16 @@ if {![file isdirectory $model_root]} {
 set previous_dir [pwd]
 cd $vendor_sim_dir
 
-vlog -sv -work pcie_vendor +incdir+./ ./DWC_pcie_ctl_cc_constants.svh
-vlog -sv -work pcie_vendor +incdir+./include ./include/pcie_defs.svh
-vlog -sv -work pcie_vendor +incdir+./include ./include/cxpl_defs.svh
-vlog -sv -work pcie_vendor +incdir+./include ./include/adm_defs.svh
-vlog -sv -work pcie_vendor +incdir+./include ./include/radm_defs.svh
-vlog -sv -work pcie_vendor +incdir+./include ./include/port_cfg.svh
-vlog -sv -work pcie_vendor +incdir+./include ./include/cap_port_cfg.svh
-vlog -sv -work pcie_vendor +incdir+./include ./include/pipe_defines.svh
-vlog -sv -work pcie_vendor +incdir+./include ./include/DWC_pcie_ctl_all_defs.svh
-vlog -sv -work pcie_vendor +incdir+./power_management \
+vlog -sv -work $vendor_library_dir +incdir+./ ./DWC_pcie_ctl_cc_constants.svh
+vlog -sv -work $vendor_library_dir +incdir+./include ./include/pcie_defs.svh
+vlog -sv -work $vendor_library_dir +incdir+./include ./include/cxpl_defs.svh
+vlog -sv -work $vendor_library_dir +incdir+./include ./include/adm_defs.svh
+vlog -sv -work $vendor_library_dir +incdir+./include ./include/radm_defs.svh
+vlog -sv -work $vendor_library_dir +incdir+./include ./include/port_cfg.svh
+vlog -sv -work $vendor_library_dir +incdir+./include ./include/cap_port_cfg.svh
+vlog -sv -work $vendor_library_dir +incdir+./include ./include/pipe_defines.svh
+vlog -sv -work $vendor_library_dir +incdir+./include ./include/DWC_pcie_ctl_all_defs.svh
+vlog -sv -work $vendor_library_dir +incdir+./power_management \
     ./power_management/DWC_pcie_pm_pkg.svh
 
 # Preserve the vendor-provided DWC/HSST compilation order while replacing only
@@ -62,7 +66,8 @@ if {[string first $old_prefix $compile_block] < 0} {
 set compile_block [string map [list \
     $old_prefix "$pds_root/" \
     {-l vlog_gtp.log} "-l \"$model_log\""] $compile_block]
-regsub {^vlog[ \t]+} $compile_block {vlog -work pcie_vendor } compile_block
+regsub {^vlog[ \t]+} $compile_block \
+    "vlog -work \"$vendor_library_dir\" " compile_block
 
 if {[string first {D:/pds2022_sp6_4/} $compile_block] >= 0} {
     error "Vendor PCIe model compile block still contains the obsolete PDS path"

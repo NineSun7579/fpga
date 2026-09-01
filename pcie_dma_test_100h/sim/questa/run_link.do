@@ -5,6 +5,12 @@ onerror {
     quit -code 1 -force
 }
 
+if {![info exists env(SIM_PROJECT_ROOT)] || ![file isdirectory $env(SIM_PROJECT_ROOT)]} {
+    error "SIM_PROJECT_ROOT must identify the PCIe project root"
+}
+set project_root [file normalize $env(SIM_PROJECT_ROOT)]
+cd $project_root
+
 file mkdir build/logs
 if {[file exists build/logs/sim-link.log]} {
     file delete -force build/logs/sim-link.log
@@ -18,7 +24,7 @@ if {![info exists env(PANGO_PDS_ROOT)] || ![file isdirectory $env(PANGO_PDS_ROOT
     error "PANGO_PDS_ROOT must identify the installed PDS root"
 }
 
-puts "INFO: SIM_RUN_ID=$env(SIM_RUN_ID)"
+echo "INFO: SIM_RUN_ID=$env(SIM_RUN_ID)"
 
 set run_root   [file normalize "build/sim/link/$env(SIM_RUN_ID)"]
 set work_dir   "$run_root/work"
@@ -31,7 +37,7 @@ vmap work $work_dir
 vmap pcie_vendor $vendor_dir
 
 do sim/questa/compile_vendor_link.do
-vlog -sv -work work -f sim/questa/link.f
+vlog -sv -override_timescale 1ns/10ps -work work -f sim/questa/link.f
 
 vsim \
     -voptargs="+acc" \
