@@ -56,6 +56,10 @@ $PciePostPnrTimingSimCheckPath = Join-Path $RepoRoot `
     'pcie_dma_test_100h\scripts\check_post_pnr_timing_sim.ps1'
 $PciePostPnrTimingDocPath = Join-Path $RepoRoot `
     'pcie_dma_test_100h\doc\S2F_POST_PNR_TIMING_SMOKE.md'
+$PciePostPnrTimingDiagnosticCheckPath = Join-Path $RepoRoot `
+    'pcie_dma_test_100h\scripts\check_post_pnr_timing_diagnostic.ps1'
+$PciePostPnrTimingDiagnosticDocPath = Join-Path $RepoRoot `
+    'pcie_dma_test_100h\doc\S2F_NEGATIVE_TIMING_DIAGNOSTIC.md'
 $PcieS2bDocPath = Join-Path $RepoRoot `
     'pcie_dma_test_100h\doc\S2B_REAL_LINK.md'
 $PcieS2cBar1GatePath = Join-Path $RepoRoot `
@@ -859,6 +863,16 @@ if ($PciePostPnrTimingSimCheckExists) {
         Add-Failure "PCIe post-PNR timing static simulation gate failed: $($_.Exception.Message)"
     }
 }
+$PciePostPnrTimingDiagnosticCheckExists = Require-File `
+    -Path $PciePostPnrTimingDiagnosticCheckPath `
+    -Description 'PCIe S2-F negative-timing diagnostic gate'
+if ($PciePostPnrTimingDiagnosticCheckExists) {
+    try {
+        & $PciePostPnrTimingDiagnosticCheckPath
+    } catch {
+        Add-Failure "PCIe S2-F negative-timing diagnostic gate failed: $($_.Exception.Message)"
+    }
+}
 $PciePostSynDocExists = Require-File `
     -Path $PciePostSynDocPath `
     -Description 'PCIe S2-D post-synthesis smoke contract'
@@ -918,6 +932,30 @@ if ($PciePostPnrTimingDocExists) {
             -Description $Required.Key | Out-Null
     }
 }
+$PciePostPnrTimingDiagnosticDocExists = Require-File `
+    -Path $PciePostPnrTimingDiagnosticDocPath `
+    -Description 'PCIe S2-F negative-timing diagnostic report'
+if ($PciePostPnrTimingDiagnosticDocExists) {
+    $PciePostPnrTimingDiagnosticDocText = Get-Content -Raw -Encoding UTF8 `
+        -LiteralPath $PciePostPnrTimingDiagnosticDocPath
+    foreach ($Required in ([ordered]@{
+            'PCIe S2-F diagnostic run evidence' =
+                'f79dc238c12949b7b67db2ef0d0ddd0b'
+            'PCIe S2-F exact solver matrix' =
+                'level1/level2/level3'
+            'PCIe S2-F solver warning counts' =
+                '3624/1590/1590'
+            'PCIe S2-F model hash evidence' =
+                'V_DRM18K_E1\.v.*9F35147248620F5C6FD7DE0077C2EF676DBE791CB283D98186BFAD2350834B43'
+            'PCIe S2-F unchanged acceptance status' =
+                'CanonicalAcceptanceChanged: false'
+            'PCIe S2-F blocked diagnostic status' =
+                'AcceptanceStatus: blocked'
+        }).GetEnumerator()) {
+        Require-Pattern -Text $PciePostPnrTimingDiagnosticDocText `
+            -Pattern $Required.Value -Description $Required.Key | Out-Null
+    }
+}
 $PcieS2aDocExists = Require-File `
     -Path $PcieS2aDocPath `
     -Description 'PCIe S2-A behavior smoke contract'
@@ -974,6 +1012,8 @@ if (Test-Path -LiteralPath $PcieReadmePath -PathType Leaf) {
         -Description 'PCIe README S2-E post-PNR functional smoke link' | Out-Null
     Require-Pattern -Text $PcieReadmeText -Pattern 'S2F_POST_PNR_TIMING_SMOKE\.md' `
         -Description 'PCIe README S2-F post-PNR timing blocker link' | Out-Null
+    Require-Pattern -Text $PcieReadmeText -Pattern 'S2F_NEGATIVE_TIMING_DIAGNOSTIC\.md' `
+        -Description 'PCIe README S2-F negative-timing diagnostic link' | Out-Null
 }
 $PcieEvidencePath = Join-Path $RepoRoot `
     'pcie_dma_test_100h\doc\PCIE_BOARD_EVIDENCE.md'

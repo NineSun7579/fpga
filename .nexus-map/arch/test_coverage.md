@@ -134,7 +134,9 @@
 - 工程归档：`sim/questa/post_pnr_timing.f`、`run_post_pnr_timing.do` 与 `tb/tb_pcie_dma_post_pnr_timing.sv` 保存在 PCIe 项目内；独立启动器为 `scripts/run_post_pnr_timing_sim.ps1`，检查入口为 `scripts/check_post_pnr_timing_sim.ps1`，运行态只进入 `build/`。
 - PDS 证据：S2-F 未修改 canonical PDS `scripts/run.ps1`，其原始字节/SHA 已恢复；仿真入口变更不属于 PDS 实现输入漂移。baseline provenance gate 返回 0，因此无需重跑 PDS，继续沿用 run `9952da4164f040d5924a558baa5cd8ca` 的 `complete/valid=true`、43 inputs/9 artifacts。
 - 动态结果：独立启动器当前 run `7fc77a7ec8db479db7332e8037426d6c` 成功标注 SDF 且 DUT 层级匹配，未对设计信号使用 force/release；HSST `ext_rstn_debounce` 自然产生与先前 run `d64e2f32ac7f4e2e93fa961b3695abc0` 相同的 setup `cnt_rst[5]` 与 hold `rstn_sync` 两个正 timing error。Questa Errors 2，脚本汇总 5 类失败并退出 1。
-- 模型边界：`V_FFASYN` 四实参模型产生 `vsim-8756=1`、`vsim-3004=1590`，负 timing check 语义不完整；slow-corner STA setup/hold 均为正。当前只能判定 GLS 与 STA 冲突，不能宣称仿真通过，也不能据此断言硅上时序失败。
+- 模型边界：`vsim-3004` 来自 `V_DRM18K_E1`，`vsim-8756` 来自 `V_FFASYN`；slow-corner STA setup/hold 均为正。当前只能判定 GLS 与 STA 冲突，不能宣称仿真通过，也不能据此断言硅上时序失败。
+- 求解器诊断：Questa 2021.1 run `f79dc238c12949b7b67db2ef0d0ddd0b` 的 level1/2/3 三个独立进程均退出 0，SDF/功能/`TEST PASS` marker 各恰好一次，3316/3616 均为 0；3004 为 `3624/1590/1590`，8756 为 `1/1/1`，三档均为相同 setup=1、hold=1、Errors=2。level3 仅非 canonical 诊断，canonical level2 验收未修改，S2-F 继续 blocked。
+- 归档边界：timing netlist、slow SDF、TB、`V_FFASYN`、`V_DRM18K_E1` 的 SHA-256 已写入诊断证据；每档结束后清理该 run 的 work/launcher，日志与汇总 JSON 只位于项目 `build/`。
 - 判定规则：TB 即使输出 `TEST PASS`，也不能覆盖仿真器 error summary 和非零退出码；S2-F 保持 blocked，不关闭 PCIe link、DMA、H2-B1、实板或发布。
 
 ## PCIe S2-A 行为 smoke（2026-09-01，动态通过）

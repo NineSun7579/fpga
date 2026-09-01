@@ -854,6 +854,21 @@
         "runtime_outputs_root": "pcie_dma_test_100h/build",
         "pds_run": {"run_id": "9952da4164f040d5924a558baa5cd8ca", "status": "complete", "valid": true, "input_count": 43, "artifact_count": 9, "canonical_launcher": "pcie_dma_test_100h/scripts/run.ps1", "canonical_launcher_original_bytes_and_sha256_restored": true, "simulation_launcher_is_separate": true, "simulation_entrypoint_change_invalidates_pds_provenance": false, "baseline_provenance_gate_exit_code": 0, "pds_rerun_required": false},
         "dynamic_result": {"simulator": "Questa Sim-64 2021.1", "run_id": "7fc77a7ec8db479db7332e8037426d6c", "sdf_annotation_succeeded": true, "sdf_instance_hierarchy_matched": true, "design_signal_force_used": false, "setup_error_signal": "cnt_rst[5]", "hold_error_signal": "rstn_sync", "errors": 2, "launcher_failure_category_count": 5, "powershell_exit_code": 1, "vsim_8756_count": 1, "vsim_3004_count": 1590, "sta_slow_setup_hold_positive": true, "dynamic_passed": false},
+        "negative_timing_solver_diagnostic": {
+          "run_id": "f79dc238c12949b7b67db2ef0d0ddd0b",
+          "simulator": "Questa Sim-64 2021.1",
+          "levels": {
+            "level1": {"process_exit_code": 0, "sdf_marker_count": 1, "functional_marker_count": 1, "test_pass_count": 1, "vsim_3004": 3624, "vsim_8756": 1, "vsim_3316": 0, "vsim_3616": 0, "setup_errors": 1, "hold_errors": 1, "errors": 2},
+            "level2": {"process_exit_code": 0, "sdf_marker_count": 1, "functional_marker_count": 1, "test_pass_count": 1, "vsim_3004": 1590, "vsim_8756": 1, "vsim_3316": 0, "vsim_3616": 0, "setup_errors": 1, "hold_errors": 1, "errors": 2},
+            "level3": {"process_exit_code": 0, "sdf_marker_count": 1, "functional_marker_count": 1, "test_pass_count": 1, "vsim_3004": 1590, "vsim_8756": 1, "vsim_3316": 0, "vsim_3616": 0, "setup_errors": 1, "hold_errors": 1, "errors": 2, "canonical": false}
+          },
+          "warning_attribution": {"vsim_3004": "V_DRM18K_E1", "vsim_8756": "V_FFASYN"},
+          "input_sha256": {"timing_netlist": "5CD3073D4708DA3E0DDA9C27FCA7DD8BE2AF3254D8B9A348B0647DF5750CB601", "slow_sdf": "B7150A1ACE1A668AE2E11DD36C193D2C56F8B43C92383048A1B380F9D9CC03BA", "timing_tb": "C3BDBCAA7B5FA8CE6795E78F07A93DB6C72E8EEC41A22F9D1A04668F0AE3C105", "V_FFASYN": "6A12EB54FA7F3B362564B6A7D65E87B06C7E526E0A26DDB1564E72FD7E6DA3", "V_DRM18K_E1": "9F35147248620F5C6FD7DE0077C2EF676DBE791CB283D98186BFAD2350834B43"},
+          "runtime_cleanup": {"per_level_work_removed": true, "per_level_launcher_removed": true, "logs_and_summary_json_only_under_build": true},
+          "canonical_acceptance_level": "level2",
+          "canonical_acceptance_changed": false,
+          "acceptance_status": "blocked"
+        },
         "interpretation": "GLS and STA conflict while negative timing-check semantics are incomplete; this is neither a simulation pass nor proof of silicon timing failure",
         "test_pass_override_forbidden": true,
         "coverage_boundary": ["no PCIe link proof", "no DMA proof", "no H2-B1 closure", "no hardware proof", "no release proof"]

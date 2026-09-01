@@ -462,7 +462,7 @@
 - Questa run `7fc77a7ec8db479db7332e8037426d6c` 由独立入口完成复验，成功输出唯一 SDF backannotation marker，并在无任何设计信号 force/release 时于 HSST `ext_rstn_debounce` 自然复现一个正 setup error 和一个正 hold error。
 - 独立入口明确汇总 negative timing-check diagnostic、正 timing-check error、非零 error summary、`vsim-8756` 与 `vsim-3004` 五类失败并退出 1，证明日志门禁不会被 TB 的 PASS 字符串绕过。
 - TB 后续虽输出唯一功能 marker 和 `TEST PASS`，simulator 终态仍为 `Errors: 2, Warnings: 1591, Suppressed Warnings: 340`，PowerShell 正确退出 1；PASS 字符串不得覆盖 simulator error。
-- Pango `V_FFASYN` 的 `$setuphold/$recrem` 只有四个实参，没有 delayed CK/D、notifier 或 delayed copy；本次 1 条 `vsim-8756` 与 1590 条 `vsim-3004` 证明负 timing limit 被清零，负检查覆盖不完整。
+- Pango `V_FFASYN` 的 `$setuphold/$recrem` 只有四个实参，没有 delayed CK/D、notifier 或 delayed copy，对应 1 条 `vsim-8756`；1590 条 `vsim-3004` 来自 `V_DRM18K_E1` 的负限制求解失败。两类模型退化均使负检查覆盖不完整。
 - 同一 PDS run 的 slow setup/hold 均为正裕量且 0 failing endpoints，因此结论限定为“GLS 与 STA 冲突且负时序模型语义不完整”；S2-F 不勾选，也不扩张为硅上时序失败、链路/DMA、H2-B1、实板或发布结论。
 
 # 2026-09-01：双 OV5640 C0 参考工程审计
@@ -481,3 +481,12 @@
 - 脚本现只执行两个唯一替换：`BAR1_Enable=false→true`、`BAR1_Size=256→512`；写入前解析 XML，并验证 Size Unit、MASK_EN 与 MASK 均保持合同值。dry-run 使用 `return`，允许门禁在同一 PowerShell 进程继续检查。
 - `check_s2c_bar1.ps1` 现执行真实 dry-run，验证 staging XML 和唯一差异，同时以 SHA-256 证明 canonical IDF/wrapper 未修改。正常样本通过；人工损坏 mask 的样本以两项精确失败被拒绝；缺 `index.xml` 的 `-Execute` 在调用生成器前退出 1。
 - 本批不启用 canonical BAR1、不修改生成 wrapper、不运行 IP Generator 或 S2-C DMA；所有 staging 与负向样本仍只位于 ignored `build/`。
+
+## 2026-09-01：PCIe S2-F 负时序求解器矩阵
+
+- 新增项目内 `run_post_pnr_timing_diagnostic.do`、独立 PowerShell 启动器和静态门禁；canonical `run_post_pnr_timing.do` 继续固定 `+delayed_timing_checks +ntc_warn -glsnegtchk level2`。
+- Questa 2021.1 的 `$finish` 会结束当前 simulator 进程，因此矩阵为 `level1/level2/level3` 各启动一个进程；每档结束后校验并删除该 run 的 ignored work/launcher 目录，避免 11 MiB timing netlist 的 vopt 数据耗尽磁盘。
+- 最终有效 run `f79dc238c12949b7b67db2ef0d0ddd0b` 固定记录 netlist、SDF、TB、`V_FFASYN` 与 `V_DRM18K_E1` SHA-256；三档进程均退出 0，SDF、功能和 PASS marker 各恰好一次。
+- `level1/level2/level3` 的 `vsim-3004` 分别为 `3624/1590/1590`，`vsim-8756` 均为 1；`vsim-3316/3616` 均为 0。`level1` 只暴露更强的 solver 敏感性，`level3` 与 canonical `level2` 无统计差异。
+- 三档均自然复现同一 `CLMA_267_624/FF0/FF` setup error 和 `CLMA_267_612/FF0/FF` hold error，终态均为 `Errors: 2`。进程退出 0 不能覆盖 simulator summary，诊断完成也不能升格为 S2-F PASS。
+- `level3` 不关闭 timing checks，但本设计没有 conditional solver 的 `COND/&&&` 依据，只保留为非 canonical 诊断。S2-F 继续等待厂商确认的修订模型或解释，并必须回到相同输入、无 force TB 和 `level2` 重新验收。

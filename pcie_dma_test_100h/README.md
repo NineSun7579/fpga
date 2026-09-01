@@ -148,10 +148,16 @@ powershell -ExecutionPolicy Bypass -File .\scripts\run_post_pnr_timing_sim.ps1 `
 Questa run `7fc77a7ec8db479db7332e8037426d6c` 已由独立入口复验并成功标注
 slow-corner SDF，但在无
 任何设计信号 `force/release` 时自然复现两个 HSST `ext_rstn_debounce` 正
-setup/hold error；终态为 `Errors: 2`，PowerShell 退出 1。Pango `V_FFASYN` 的四
-实参 timing check 还造成 1590 个负限制被 Questa 清零，因此负检查覆盖不完整。
+setup/hold error；终态为 `Errors: 2`，PowerShell 退出 1。Pango `V_DRM18K_E1`
+另有 1590 个负限制无法求解，`V_FFASYN` 另有 1 个 delayed-copy 模型告警，因此
+负检查覆盖不完整。
 当前 GLS 与全正裕量 STA 冲突，S2-F 保持阻断；详细证据和关闭条件见
 [S2-F PNR 后时序 smoke 阻断报告](doc/S2F_POST_PNR_TIMING_SMOKE.md)。
+
+独立 solver 矩阵 run `f79dc238c12949b7b67db2ef0d0ddd0b` 进一步确认：`level1`
+产生 3624 个 `vsim-3004`，`level2/level3` 均为 1590；三档仍各有同一个 setup 和
+hold error。该结果只证明 solver 敏感性，不改变 S2-F 阻断，详见
+[负时序求解器诊断](doc/S2F_NEGATIVE_TIMING_DIAGNOSTIC.md)。
 
 综合后/PNR 功能 smoke 不等于 SDF 时序验证。基础 DMA 回读属于 S2-C，不会用
 S2-A 受控模型或 S2-B link-up 冒充通过。BAR1 staging 还需要同版本完整 IP

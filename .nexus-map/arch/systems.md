@@ -218,6 +218,7 @@
 - s2f_archive: `sim/questa/post_pnr_timing.f`、`sim/questa/run_post_pnr_timing.do` 与 `sim/questa/tb/tb_pcie_dma_post_pnr_timing.sv` 保存在 PCIe 项目内；检查入口为 `scripts/check_post_pnr_timing_sim.ps1`，运行库、ini、日志、transcript 与波形只进入 `build/`。
 - s2f_pds_provenance: 未重跑 PDS；继续绑定 run `9952da4164f040d5924a558baa5cd8ca`，状态 `complete/valid=true`，43 inputs/9 artifacts。
 - s2f_dynamic_result: Questa 当前 run `7fc77a7ec8db479db7332e8037426d6c` 成功标注 SDF 且层级匹配，未对设计信号使用 force/release；自然复现 setup `cnt_rst[5]` 与 hold `rstn_sync` 两个 HSST `ext_rstn_debounce` timing error，Errors 2，独立脚本汇总 5 类失败并退出 1。
-- s2f_model_boundary: `V_FFASYN` 四实参模型产生 `vsim-8756=1` 与 `vsim-3004=1590`，负 timing check 语义不完整；slow-corner STA setup/hold 均为正。当前状态为 `blocked_gls_sta_conflict_and_incomplete_negative_timing_semantics`，TB 后续出现 `TEST PASS` 不能覆盖仿真器 error/退出码。
+- s2f_model_boundary: `vsim-3004` 归属 `V_DRM18K_E1` 的负 `$setuphold/$recrem` 求解失败，`vsim-8756` 归属 `V_FFASYN` 缺少 delayed reference/data copy；slow-corner STA setup/hold 均为正。当前状态为 `blocked_gls_sta_conflict_and_incomplete_negative_timing_semantics`，TB 后续出现 `TEST PASS` 不能覆盖仿真器 error/退出码。
+- s2f_negative_timing_diagnostic: Questa 2021.1 最终 run `f79dc238c12949b7b67db2ef0d0ddd0b` 的 level1/2/3 进程均退出 0，SDF/功能/PASS marker 均唯一；3004=`3624/1590/1590`、8756=`1/1/1`、3316/3616=`0/0/0`，三档均保持同一 setup/hold error 与 `Errors=2`。level3 只作非 canonical 诊断；canonical level2 未改，S2-F 仍 blocked。网表、SDF、TB、`V_FFASYN`、`V_DRM18K_E1` SHA-256 已归档；逐档 work/launcher 清理，日志/JSON 只写 `build/`。
 - h2b_stop_conditions: 板级 lane 极性/拓扑、I/O delay 或 SCBV 缺失，IDF/PDS 器件元数据不一致，或 UART2APB `rxd/txd` 归属未决时，H2-B 不得收紧 gate；不得用 waiver 掩盖缺口。
 - next_step: 保持五类 strict gate 阻断（UART RX tied low、顶层 I/O 未约束、PCIe serial I/O、share pin、SCBV）；S2-F 保持 blocked，取得可信 timing-model/工具解释后再决定修复或重验，同时继续解决 S2-C DMA 前置条件
