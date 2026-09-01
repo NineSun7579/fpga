@@ -1,8 +1,15 @@
-# 三项目整改 TODO
+# DDR3、PCIe 与双 OV5640 项目整改 TODO
 
 更新日期：2026-09-01
 
-状态：三项目器件迁移已获审核。DDR3、PCIe 和双 OV5640 摄像头 HDMI 最终均运行在同一块 `RK3568+PG2L50H100H` 开发板，实际 FPGA 为 `PG2L50H-6IFBG484`，PDS 目标统一为 `Logos2 / PG2L50H / FBG484 / -6`。摄像头产品目标已由 owner 固定为双 OV5640；现有 `41_ov7725_hdmi` 冻结为 OV7725 legacy 历史证据，不再执行 PG2L50H IP 重生成、RTL/约束整改、Questa 集成仿真或实板验收。既有 PG2L100H 构建、STA、网表、SDF 和位流不得用于实际板卡验收或烧录。双 OV5640 范围见 [`docs/OV5640_TARGET_SCOPE.md`](docs/OV5640_TARGET_SCOPE.md)。
+状态：三项目器件迁移已获审核。活动项目仅指 DDR3、PCIe 和双 OV5640 摄像头 HDMI，最终均运行在同一块 `RK3568+PG2L50H100H` 开发板，实际 FPGA 为 `PG2L50H-6IFBG484`，PDS 目标统一为 `Logos2 / PG2L50H / FBG484 / -6`。摄像头产品目标固定为双 OV5640；`41_ov7725_hdmi/` 不属于三个活动项目，只保留为只读 legacy 历史证据。既有 PG2L100H 构建、STA、网表、SDF 和位流不得用于实际板卡验收或烧录。双 OV5640 范围见 [`docs/OV5640_TARGET_SCOPE.md`](docs/OV5640_TARGET_SCOPE.md)。
+
+## 活动项目边界
+
+- DDR3：`ddr3_test/ddr3_test/`。
+- PCIe：`pcie_dma_test_100h/`；目录名保留历史命名，活动 PDS 目标必须为 PG2L50H。
+- 双 OV5640 HDMI：产品目录固定为 `59_top_dual_ov5640_hdmi/`；当前以 `origin/parallel_driver@485f3bb` 为只读参考，完成 C1/H3 后才选择性导入。
+- 排除项：`41_ov7725_hdmi/` 不再接受产品功能、IP、约束、Questa 或实板任务；其中事实只能作为双 OV5640 设计评审的反例或风险输入，不能作为复用授权和验收证据。
 
 ## 1. 总体验收目标
 
@@ -48,13 +55,7 @@
 - [x] DDR3 gate 已验证：严格模式因已知发布阻断返回非零，显式 baseline 放行模式返回 0 并标记不可发布。
 - [x] DDR3 完成 D2 有限自检契约，确定项目自有 AXI 测试顶层、16 个有限写读比较 pair、稳定 done/error 和 TB 退出语义。
 - [x] DDR3 完成 D3-0 core/wrapper、非标准 AXI-like 握手和 `I_ips_ddr_top` 层级只读评审；D3-A 仍待审核。
-- [x] OV7725 完成 O0-A CDC/RDC 事实清单与整改契约。
-- [x] OV7725 建立 O0-B SP6.4 可重复全流程构建基线和严格/baseline gate。
-- [x] OV7725 完成 O1-B RTL 卫生修复：38 条确定性位宽告警消失，仅保留 `mem_a` 单项板级阻断。
-- [x] OV7725 完成 O1-B 七阶段回归；严格 gate 返回非零，baseline 精确匹配 7 组失败指纹后返回 0 并标记不可发布。
-- [x] OV7725 完成 O2-A serializer reset 联合释放契约，闭合快慢时钟检查、八个 OSERDES endpoint、O2-B 文件范围和回退条件。
-- [x] OV7725 完成 O2-B 最小实现与七阶段实验；方案因 Slow/Fast Recovery 转移到 `pixel_clk_5x → pixel_clk` 且慢角同域仍为负而被否决，失败 RTL 已回退。
-- [x] OV7725 完成 M3-A 四 IP 迁移前审计：活动/安装版本断层使 CLI override 被 `IPCompiler 0037/0057` 否决；原 SP6.4 GUI staging 候选随产品主线一并取消，审计只保留防误用价值。
+- [x] OV7725 的 O0/O1/O2/M3-A 结果已冻结为 legacy 审计证据；这些结果不计入双 OV5640 完成度，也不会继续形成产品任务。
 - [x] PCIe 完成 H2-A lane/refclk/PERST#/UART/SCBV/IP 目标证据矩阵；新器件事实证明活动 `pcie_test.idf` 的 PG2L50H 元数据正确，原“重生为 100H”结论作废。
 - [x] 识别 PCIe 静态 gate 的错误目标：已改为 PG2L50H，并增加日志、STA、bitstream 器件交叉检查。
 - [x] PCIe 完成 H2-B0 精确 baseline 指纹：16 个对象签名、42 次记录；任何对象/数量/位置或 IP metadata 漂移均失败，严格 gate 仍保持发布阻断。
@@ -90,7 +91,7 @@
    - 当前正确 staging 为 PG2L50H、SP6.4、`DEVICE_100H_EN=false`，DDR PHY 使用 `TRUE/CLKOUT4` 分支，canonical 哈希不变；顶层新增 5 个端口，FDC 有 28 项管脚差异，尚未升格。
    - 验收：先用原理图/BOM 关闭新增 refclk、DDR byte lane、复位/UART/LED/状态输出和电压拓扑，再原子升格并重跑 CI-6、七阶段和 D3-0-R。D3-A 仍需另行审核。
 
-4. **C0/C1：OV5640 参考工程审计与产品范围冻结**
+4. **C0/C1：双 OV5640 参考工程审计与产品范围冻结**
    - 前置：以可访问的 `origin/parallel_driver@485f3bb` 为只读参考源；双摄拓扑已由 owner 固定，不再保留单/双摄决策项。
    - C0 已完成：[`OV5640_C0_REFERENCE_AUDIT.md`](docs/OV5640_C0_REFERENCE_AUDIT.md) 已登记参考 commit、17 个 HDMI 明文 RTL、4 个 TB、4 个 PCIe video 参考文件、4 个 100H 生成 IP、FDC、PDS 混合 top、绝对路径与 VSCS/CDC/RDC 缺口；本批未导入任何产品文件。
    - C1 未完成：实际两路模组、MCLK、电压、DVP、左右拼接、分辨率、帧率、字节序、DDR3 和 HDMI 合同仍受 H3 阻断；输入冻结后再另开选择性导入批次。
@@ -107,7 +108,7 @@
 
 6. **H0/H1/H3：补齐其余板级事实（外部阻断）**
    - 前置：板卡型号与 FPGA 型号已确认；仍需原理图/BOM、bank 电压、DDR3 料号/拓扑、OV5640/HDMI 时序资料。
-   - 交付：经审核的 DDR3、PCIe、双 OV5640/HDMI 板级参数清单；OV7725 `mem_a` 14/15 bit 冲突只保留为 legacy 风险记录，不再作为产品分支决策。
+   - 交付：经审核的 DDR3、PCIe、双 OV5640/HDMI 板级参数清单；旧摄像头工程的 `mem_a` 14/15 bit 冲突只保留为 legacy 风险记录，不再作为产品分支决策。
    - 验收：清单与 IDF/FDC/RTL 一致；资料缺失时禁止猜测或收紧 gate。
 
 7. **D3-A → D3-B → D3-C：DDR3 项目自有有限 BIST**
@@ -127,7 +128,7 @@
    - 验收：每级只输出一次 `TEST PASS`；失败/超时 `$fatal`，退出码非零；SDF 无 annotation 或层级匹配错误。
 
 10. **C2/C3：双 OV5640 项目实现与最终闭环**
-   - 前置：C0/C1、H3 与 PG2L50H IP/FDC 决策完成；只从参考分支和 OV7725 legacy 中逐项审核可复用结构，任何旧模块、IP、约束或时序结论均不直接继承。
+   - 前置：C0/C1、H3 与 PG2L50H IP/FDC 决策完成；只从双 OV5640 参考分支逐项审核候选结构，legacy 摄像头工程仅提供风险记录，任何旧模块、IP、约束或时序结论均不直接继承。
    - 交付：新的双 OV5640 独立 SCCB/双路读 ID/双路采集与左右半幅拼接路径、逐域复位与事件 CDC、FIFO reset、DDR3/HDMI 约束和最终 gate。
    - 验收：setup/hold/recovery/removal 全通过，SDF/位流/仿真齐全；不得用宽泛 `false_path`、multicycle 或 waiver 掩盖结构问题。
 
@@ -137,7 +138,7 @@
 2. **P0：M1 PCIe 先行。** 活动 PCIe IP 已是 SP6.4 50H，先修 build/gate，再从空 `build/` 建立新的 50H 七阶段基线。
 3. **P1：M2 DDR3 迁移。** 以 SP6.1 50H backup 为参数/差异 oracle，用 SP6.4 正式重生成；当前 100H FDC 不得复用。
 4. **P1：C1 双 OV5640 产品输入。** C0 只读审计已完成；继续审核两路模组接口、共享/独立控制、输出格式、数据路径和板级约束，全部冻结后再选择性导入，不得整体合并生成物或编译库。
-5. **P1：C2/C3 双 OV5640 实现。** 在新项目中独立建立 PG2L50H IP/FDC、双路采集、DDR3/HDMI 和 CDC/RDC；OV7725 只提供问题清单，旧 `+0.192 ns`、七组时序指纹和 IP 不得继承。
+5. **P1：C2/C3 双 OV5640 实现。** 在新项目中独立建立 PG2L50H IP/FDC、双路采集、DDR3/HDMI 和 CDC/RDC；legacy 摄像头工程只提供问题清单，旧 `+0.192 ns`、七组时序指纹和 IP 不得继承。
 6. **P2：恢复功能主线。** M2 后重审 D3-A；双 OV5640 在 C0/C1 审核完成后进入 C2/C3。
 7. **持续泳道：H0-H3、S0-S3。** 原理图/BOM/DDR3/PCIe/双 OV5640 证据或项目级 Questa 入口一旦到位，立即关闭对应阻断。
 
@@ -222,99 +223,16 @@
 
 验收：文件静态评审通过；QuestaSim 可用后，正向退出 0，全部负向用例按预期判定并返回可靠退出码。
 
-### O0-A：OV7725 CDC/RDC 清单（已完成）
+### OV7725 legacy 归档边界（非执行项）
 
-本批只建立事实与设计契约，不修改 RTL、IP 或 FDC。
+O0/O1/O2/M3-A 已从活动 TODO 移除，不再为 `41_ov7725_hdmi/` 安排 RTL、IP、FDC、Questa、STA、位流或实板工作。历史事实保留在该项目的 `doc/`、README 和实现记录中，供双 OV5640 评审以下风险时查证：
 
-- [x] 建立 CDC/RDC 表，覆盖 `sys_clk`、`i2c_dri_clk`、`cam_pclk`、`pixel_clk`、`pixel_clk_5x` 和 DDR `ui_clk`。
-- [x] 每条跨域记录源域、目标域、信号类型、当前结构、风险、整改契约和验证方法。
-- [x] 明确 `wr_load`、`rd_load`、`ddr3_init_done`、`capture_start` 和两个异步 FIFO 的跨域关系。
-- [x] 将旧 STA 的 `-7.056 ns` setup、`-2.279 ns` FIFO 指针 setup 和 `-4.857 ns` recovery 路径映射到具体结构。
-- [x] 明确逐域复位、单点事件同步、FIFO 分侧复位和最窄时序例外原则。
-- [x] 同步项目状态、实现记录和 `.nexus-map` 后独立提交。
+- `ddr3_init_done`、帧事件和 FIFO 控制的 CDC/RDC。
+- serializer reset、generated clock、recovery/removal 和八个 OSERDES endpoint。
+- DDR3 地址位宽、旧 100H IP/FDC 与不可发布时序基线。
+- 旧 SCCB 地址、寄存器宽度和 640×480 RGB565 假设不得继承。
 
-验收：跨域与复位决策先于 RTL/约束修改；不存在“先加宽泛 false path，后判断结构”的未决项。
-
-### O0-B：OV7725 SP6.4 构建基线（已完成）
-
-本批建立可重复构建入口，不修功能 RTL，也不移动厂商 IP。
-
-- [x] 新建相对路径 `scripts/build.tcl`、PowerShell 入口和产物/日志检查器。
-- [x] 显式固定 `Logos2 / PG2L100H / FBG484 / -6`、16 个手写 RTL（顶层 + 15 个子模块）、4 个 IP 和唯一 FDC。
-- [x] 禁止依赖包含旧器件和失效绝对路径的 `prj/impl.tcl`，并排除 `ip_backup/**`、IP 内部 RTL/VP、模板和示例约束。
-- [x] 在干净 `build/` 中完成 SP6.4 compile 基线：退出码 0、日志无 `E:`，共 1139 条 warning，其中 39 条为手写 RTL 端口位宽告警。
-- [x] 在不修改 RTL/IP/FDC/RCF 的前提下完成 compile、synthesize、dev_map、PNR、report_timing、gen_netlist 和 bitstream。
-- [x] 固化当前失败基线：慢角 setup WNS `-7.344 ns`、TNS `-132.832 ns`；read FIFO 指针路径 WNS `-2.275 ns`、TNS `-24.111 ns`；recovery WNS `-4.263 ns`、TNS `-202.445 ns`。
-- [x] 确认综合网表、PNR 网表、SDF、`.sbit`、`.bin` 均存在且非零。
-- [x] gate 硬检查器件、20 个设计输入、唯一 FDC、七阶段标志、日志 `^E:` 和产物；严格模式拦截 10 类发布阻断，baseline 模式仅放行已知六组时序失败端点并明确不可发布。
-
-验收：所有工程输入可追溯，构建入口和失败基线可重复；严格 gate 返回非零，显式 baseline gate 返回 0 并输出 `not release-ready` 等价警告。
-
-### O1-A：OV7725 RTL 卫生修复方案评审（已完成）
-
-本批只读，不修改 RTL、IP 或约束。
-
-- [x] 将 39 条手写 RTL 位宽告警逐条映射到文件、实例、端口和正确宽度来源。
-- [x] 核对 `rst_n`、`sys_init_done` 等隐式 net 的驱动、扇出和预期类型。
-- [x] 依据 DDR3 IDF/template 确认顶层地址、burst、`mem_a` 等接口宽度；不以告警消失代替接口正确性。
-- [x] 确认 serializer 接收的是高有效 reset；四个 serializer 内共八个 OSERDES 应连接该复位。
-- [x] 形成按文件拆分的最小修改清单、回归命令和回退边界，见 `41_ov7725_hdmi/doc/RTL_HYGIENE_AUDIT.md`。
-
-验收：39 条已按 `1 + 4 + 26 + 6 + 2` 全部闭合；38 条具有确定修复，`mem_a` 单项保持板级阻断；本批没有修改 RTL、IP 或约束。
-
-### O1-B：OV7725 RTL 卫生修复实现（已完成）
-
-- [x] 显式声明 `rst_n`，删除无消费者的 `sys_init_done` 赋值。
-- [x] 显式零扩展 I2C 地址、顶层地址和 burst，并将 25 个 DDR3 IP tie-off 改为 formal 对应的定宽常量。
-- [x] 保留地址/长度左移 3 的 legacy 编码，显式使用地址低 24 bit 和长度低 8 bit，并由 gate 检查当前参数上界。
-- [x] 将 serializer 端口改为高有效 `reset`，使四个 serializer 内的八个 OSERDES 都受控复位。
-- [x] 更新 gate：只允许精确的 `ddr3_ip.mem_a` 单项 warning，其他手写 RTL 位宽告警全部失败。
-- [x] 从空 `build/` 完成 compile 与七阶段回归：PDS 退出码 0、日志无 `E:`、五类产物非零。
-- [x] 将新增 slow recovery `pixel_clk → pixel_clk_5x / 8/8` 与其余六组失败按 corner、check、clock pair 和 endpoint 数量精确固化；严格 gate 返回 1，baseline 返回 0 并明确不可发布。
-- [x] 本批未修改 `mem_a`、DDR3 IP/FDC、FIFO、CDC/RDC 结构或时序例外。
-
-验收：原 38 条确定性告警消失，只剩精确记录的 `mem_a` 1 条；完整日志无新增未分类 critical；新增 `8/8` recovery 已映射到八个 OSERDES，并明确转入 O2 修复而非时序 waiver。
-
-### O1-C：OV7725 `mem_a`、IP 与板级约束对齐（已取消）
-
-- [x] owner 已停止 OV7725 产品主线；`mem_a` 14/15 bit 冲突保留为 legacy 事实，不再重生成旧工程 DDR3 IP、修改旧 RTL/FDC 或执行实板签核。双 OV5640 的 DDR3 地址组织在 C2/C3 中依据实际板卡重新建立。
-
-### O2：OV7725 分时钟域复位（已取消，legacy 归档）
-
-- [x] O2-A：建立 `doc/SERIALIZER_RESET_CONTRACT.md`，交叉核对 SP6.4 `GTP_OSERDES_E2` 仿真模型、`V_OSERDES_E2` timing model、PG2L100H 官方示例、当前 RTL 与最终 STA；本批不修改 RTL/FDC。
-- [x] O2-A：确认 `RST` 高有效，且同一端口对 `OCLK/SERCLK=pixel_clk_5x` 与 `OCLKDIV=pixel_clk` 都存在 recovery/removal 要求；比较候选释放结构，禁止把“仅高速域同步”写成未经证明的结论。
-- [x] O2-A：逐项映射 `serializer_b/g/r/clk × opit_2/opit_2_com` 八个 `OSR_IOLHR` endpoint，无遗漏或重复；记录 Slow Recovery `-0.643 ns / -4.191 ns / 8/8`、Slow Removal `+0.305 ns / 0/8`、Fast Recovery `+0.123 ns / 0/8`。
-- [x] O2-A：固定 O2-B 的复位源、释放基准、同步级数、极性、扇出、文件范围、gate 修改、仿真补测和回退边界。
-- [x] O2-B：曾仅修改 `dvi_transmitter_top.v`，保留 encoder 的 `pixel_clk` reset，并级联 `pixel_clk_5x` 两级释放生成 `serializer_reset`；compile 与七阶段 PDS 均退出 0，日志无 `E:`，五类产物非零。
-- [x] O2-B：真实 STA 否决该结构。Slow Recovery 为 `pixel_clk_5x → pixel_clk_5x -0.349 ns / 8/8`、`pixel_clk_5x → pixel_clk -2.173 ns / 8/8`；Fast Recovery 的反向组仍为 `-1.464 ns / 8/8`。
-- [x] O2-B：八个反向 endpoint 正好是四个 serializer 的 master/slave OSERDES `OCLKDIV` 检查；失败 RTL 已回退，旧 `pixel_clk → pixel_clk_5x 8/8` baseline 保持不变，未增加 waiver、时序例外或新失败指纹。
-- [x] O2-D1：依据 SP6.4 原语/timing model、官方 PG2L100H LVDS 示例、PLL 相位和 O2-B STA，拒绝普通双域同步器与单纯固定等待周期。
-- [x] O2-D1：确认同源高速时钟经 `GTP_IOCLKDIV_E2 /5` 生成 pixel 时钟是当前领先拓扑；同时确认 `GTP_IOCLKBUF` 具备可选门控能力，但官方示例没有实际启用或连接该门控，不能据此宣称复位释放已闭环。
-- [x] O2-D1：确认当前 `pixel_clk` 同时驱动 DDR read FIFO 读侧、video driver/display、encoder 与 serializer `OCLKDIV`；若采用 `/5` 时钟，必须原子迁移这些现有消费者，不能制造旧、新同频 pixel clock CDC。
-- [x] O2-D1：否决动态 `GTP_IOCLKBUF` 门控路线。功能模型可无毛刺停启，但 SP6.4 Liberty 没有 `DI` clock-gating check，也不能证明“停钟、复位、释放、启钟”的顺序；仿真观察、endpoint 消失或 waiver 均不能替代八端点 STA。
-- [x] O2-D1：唯一待验证候选为新增 `65.0026 MHz` 控制输出，目标参数 `STATIC_RATIO3=10`、`STATIC_CPHASE3=0`、`STATIC_PHASE3=1`，相位约 `+0.192 ns`；必须与每 serializer 一只本地 reset 寄存器复制原子实施，纯相位调整无效。
-- [x] O2-D1：确认 generated-clock 审查是必选前置。`/5` 为奇数分频，不能默认 50% duty；必须唯一确认 IOCLKDIV 的输入取点、输出 waveform 和 PDS clock object，实际 FDC 是否增加精确声明由该审查决定。
-- [x] O2-D1-R：从空 `build/` 完成七阶段重建；PDS 退出码 0、日志无 `^E:`、五类产物非零，baseline gate 精确匹配原 7 组失败并返回 0，严格 gate 按预期返回 1。
-- [x] O2-D1-R：Slow/Fast `ddrphy_sysclk → pixel_clk` Recovery 均恢复为 `53/53`，Removal 均为 `0/53`。详细集合为 read FIFO 控制 26、RAM reset 8、video driver 17、video display 1、原 DVI `reset_syn` 1。
-- [x] O2-D1-R：O2-B 的 `54` 由 video-driver endpoint 从 17 增为 18；新增 `serializer_reset_syn/reset_1` 属于独立的 `pixel_clk → pixel_clk_5x` clock pair。该漂移是实验结构/布局 delta，不修改旧 baseline。
-- [x] O2-D1-G：冻结 `HARD_HOLD → QUALIFY → ARM → SER_RELEASE → RUN` 唯一状态序列；固定 `QUALIFY=4`、`ENCODER_WARMUP=3`、`SERIALIZER_FILL=2`，统一采用 `counter == N-1` 的完整周期语义，并规定 counter 饱和不回卷。
-- [x] O2-D1-G：冻结 `sys_rst_n/pll_lock` 异步 hard reset、pixel/business reset 与四路 serializer 本地 reset 的分权；`ddr3_init_done` 不得参与 hard-reset、资格确认、ARM、OSERDES reset 或状态转移；FIFO 本批只迁移 `rd_clk`，不改变 reset/flush 语义。
-- [x] O2-D1-G：冻结 `/5` generated-clock 唯一对象：source=`u_pll_clk/clkout1`，target=唯一 `GTP_IOCLKDIV_E2.CLKDIVOUT`，pre-buffer 取点，waveform=`-edges {1 5 11} -edge_shift {0 0 0}`；对象重名、数量异常、waveform 不符或误接 post-buffer 均立即回退。
-- [x] O2-D1-G：冻结 encoder warm-up 与首个有效 TMDS symbol 条件；ARM/SER_RELEASE 期间强制 `de=0,c0=0,c1=0,din=0`，serializer 释放后至少延后两个 control 周期再进入 RUN，避免未复位 encoder 流水造成不确定首符号。
-- [x] O2-D1-G：原一次性 O2-D2 文件范围和预期 delta 已归档为 legacy 设计证据；不再在 OV7725 工程实现 PLL、TMDS clock/reset、generated-clock、分域复位或 FIFO reset 改造。
-- [x] O2-D1-M/O2-D2/O2-C1/O2-C2：因产品固定为双 OV5640 而取消。相关状态机、时序停止条件和 CDC/RDC 风险仅作为 C2/C3 的审核输入，不构成复用授权。
-
-历史 O2-D2 停止条件仍作为双 OV5640 C2/C3 的审核参考：控制相位或 generated clock 未被 PDS 唯一识别、端点覆盖不闭合、出现未预审 CDC/delta，或需要 waiver 掩盖问题时必须停止；具体对象、时钟和端点必须在新项目重新建立。
-
-归档结论：OV7725 O2 不再执行；双 OV5640 必须在新顶层独立证明 serializer recovery/removal、逐域复位与 FIFO 分侧复位。
-
-### O3：OV7725 业务 CDC 修复（已取消）
-
-- [x] owner 已停止 OV7725 产品主线；旧 `ddr3_init_done`、`video_vs/rd_load`、`cmos_frame_vsync/wr_load` 风险保留在 CDC/RDC 审计中。双 OV5640 的双路事件同步、单点扇出和复位期间无伪事件要求转入 C2/C3。
-
-### O4：OV7725 FIFO、约束与时序闭环（已取消）
-
-- [x] owner 已停止 OV7725 产品主线；不再为旧工程重跑 PNR、增加约束例外或生成发布位流。FIFO、约束对象、STA、SDF 和严格 gate 的关闭条件全部由双 OV5640 C2/C3/S3 在新项目重新证明。
+双 OV5640 必须在 `59_top_dual_ov5640_hdmi/` 重新建立接口、IP、约束、仿真和签核证据；legacy 记录不构成设计通过或复用授权。
 
 ### CI-2：板级证据清单完整性门禁（已完成）
 
@@ -409,7 +327,7 @@
 - [ ] 确认 HDMI 输出模式及外部时序要求。
 - [ ] 核对 DDR3 型号、32-bit 配置、800 MT/s 和 PCB 拓扑。
 - [ ] 确认双 OV5640 新项目使用的 DDR3 row address 位数和实际管脚。
-- [x] OV7725 `mem_a[14] / V3` 仅保留为 legacy 对照，O1-C 产品分支已取消。
+- [x] 旧摄像头工程的 `mem_a[14] / V3` 仅保留为 legacy 对照，O1-C 产品分支已取消。
 - [ ] 依据 OV5640 模组和 PCB 数据补摄像头时钟及 input delay。
 - [ ] 复核 `PAP_CLOCK_DEDICATED_ROUTE FALSE`、TMDS/DDR/share pin 和 I/O 电压。
 
@@ -424,7 +342,7 @@
 - [x] 将仿真器安装路径作为可覆盖外部参数，不写入工程源清单。
 - [x] 将许可证配置保持在仓库外部；禁止提交许可证绝对路径、服务器、feature、内容或许可证文件。
 - [x] S0-2-Q：已以新 run marker `966942334060436dba8444ae9155557c` 重跑 S2-A，唯一 `TEST PASS`、`Errors: 0, Warnings: 0` 和 PowerShell 退出码 0 均满足。
-- [x] S0-3-Q：当前三个仓库工程均建立项目内 `sim/questa/` 归档目录。PCIe 的 S2-A 至 S2-E `.f/.do/TB` 已收拢并作为唯一脚本来源；`scripts/check_sim_archives.ps1` 禁止项目自有 TB 再散落到工程外层，也禁止归档 `.mpf`、`work`、`modelsim.ini`、日志、transcript 和波形。`41_ov7725_hdmi/sim/questa/` 只服务 legacy，不承载双 OV5640 产品仿真。
+- [x] S0-3-Q：当前三个已纳管仓库工程均建立项目内 `sim/questa/` 归档目录。PCIe 的 S2-A 至 S2-E `.f/.do/TB` 已收拢并作为唯一脚本来源；`scripts/check_sim_archives.ps1` 禁止项目自有 TB 再散落到工程外层，也禁止归档 `.mpf`、`work`、`modelsim.ini`、日志、transcript 和波形。旧摄像头归档目录只服务 legacy，不承载双 OV5640 产品仿真。
 - [ ] S0-3-CAM：选择性导入 `59_top_dual_ov5640_hdmi/` 时同步建立其独立 `sim/questa/`，迁入经审核的参考 TB 并扩展 `scripts/check_sim_archives.ps1`；所有双 OV5640 仿真运行态只进入该项目 `build/`，许可证配置不进入 Git。
 - [x] S0-4-Q：PCIe 启动器为每个 run 在 `build/sim/launcher/` 创建并显式绑定 `modelsim.ini`，通过运行时 `SIM_PROJECT_ROOT` 返回工程根执行归档 DO。S2-A run `add7efa39f644384af9929e8a9366739` 与 S2-B run `30bad6e164be4a4b8284a00f1e96bd87` 均动态通过；两次运行后工程根 `modelsim.ini`、transcript、波形计数为 0。因 `run.ps1` 是 canonical 输入，PG2L50H PDS run `dde6ee70b2c84d2da4ee2256d8a5c127` 已重建为 complete/valid、43 输入/7 证据，baseline/strict gate=`0/1`、最差 slack `0.100 ns`。
 
@@ -458,12 +376,12 @@
 - [ ] S2-C-BAR1-INPUT：从同版本 PDS IP Compiler 完整 PCIe 实例工程取得配套 `index.xml`，再重新执行 staging；禁止跨版本、跨 IP 或未知模板复制。
 - [x] S2-D 综合后受限 smoke：项目内 `sim/questa/` 已归档 `post_syn.f`、DO 和自检 TB；Questa `2021.1` run `41135fd3fadd4c51a70508a6fa5af3e3` 使用当前 canonical 综合网表运行至 `491965 ns`，唯一 `INFO: POST_SYN_RESET_PATH_OK`、唯一 `TEST PASS`、`Errors: 0, Warnings: 1`、退出 0。只关闭综合网表展开、reset debounce/sync 和 reference-clock LED counter 路径，不关闭 S2-C、PNR、SDF、时序、H2-B1 或发布 gate。合同见 [`S2D_POST_SYN_SMOKE.md`](pcie_dma_test_100h/doc/S2D_POST_SYN_SMOKE.md)。
 - [x] S2-E PNR 后功能受限 smoke：项目内 `sim/questa/` 已归档 `.f/.do/TB`；PDS run `9952da4164f040d5924a558baa5cd8ca` 以双进程生成独立无 SDF 功能网表和 timing/SDF/bitstream，manifest=`complete/valid`、43 输入/9 证据，baseline/strict=`0/1`。Questa `2021.1` run `927abae8ed7d40aeb5d6f706b3723e0a` 运行至 `491965 ns`，唯一 `INFO: POST_PNR_FUNC_RESET_PATH_OK`、唯一 `TEST PASS`、`Errors: 0, Warnings: 1`、退出 0。只关闭无 SDF PNR 功能网表展开、reset debounce/sync 和 reference-clock LED counter 路径，不关闭链路、DMA、SDF 时序、H2-B1、实板或发布。合同见 [`S2E_POST_PNR_FUNC_SMOKE.md`](pcie_dma_test_100h/doc/S2E_POST_PNR_FUNC_SMOKE.md)。
-- [ ] S2-F PNR 后时序/SDF：项目内 `.f/.do/TB`、独立 PowerShell 启动器、静态合同和 SDF 层级已建立；Questa run `7fc77a7ec8db479db7332e8037426d6c` 成功标注 SDF，但自然复现两个 HSST `ext_rstn_debounce` 正 setup/hold error，终态 `Errors: 2`、PowerShell 退出 1。Pango `V_FFASYN` 四实参 timing model 另使 1590 个负限制退化为零。GLS 与全正裕量 STA 冲突，S2-F 保持未完成，详见 [`S2F_POST_PNR_TIMING_SMOKE.md`](pcie_dma_test_100h/doc/S2F_POST_PNR_TIMING_SMOKE.md)。
+- [ ] S2-F PNR 后时序/SDF：项目内 `.f/.do/TB`、独立 PowerShell 启动器、静态合同和 SDF 层级已建立；Questa run `7fc77a7ec8db479db7332e8037426d6c` 成功标注 SDF，但自然复现两个 HSST `ext_rstn_debounce` 正 setup/hold error，终态 `Errors: 2`、PowerShell 退出 1。模型诊断另有 1590 个来自 `V_DRM18K_E1` 的 `vsim-3004`，以及 1 个来自 `V_FFASYN` 的 `vsim-8756`；这些负限制求解退化不能解释或豁免上述两个正 setup/hold error。GLS 与全正裕量 STA 冲突，S2-F 保持未完成，详见 [`S2F_POST_PNR_TIMING_SMOKE.md`](pcie_dma_test_100h/doc/S2F_POST_PNR_TIMING_SMOKE.md)。
 - [ ] S2-F 关闭条件：取得厂商确认的兼容 timing model 或修复依据，以相同 canonical 网表/SDF 和无 force TB 重跑；要求 SDF 层级正确、0 errors、无未解决 timing-model 退化、唯一 marker/PASS 且 PowerShell 退出 0。
 
 ### S3：双 OV5640 集成仿真
 
-摄像头模型、行为级 TB 和纯 RTL 数据通路自检依赖 S0、C1 与已确认的双路输入格式契约。C0 审计见 [`OV5640_C0_REFERENCE_AUDIT.md`](docs/OV5640_C0_REFERENCE_AUDIT.md)：参考分支已有 4 个 TB，但尚未导入 canonical 项目、缺相对路径 `.f/.do`，且分支自述 PASS 尚未由本仓库复验。PNR 后功能/时序仿真依赖 C3、H3 和器件一致的网表/SDF；现有 OV7725 TB 计划不得直接改名复用。
+摄像头模型、行为级 TB 和纯 RTL 数据通路自检依赖 S0、C1 与已确认的双路输入格式契约。C0 审计见 [`OV5640_C0_REFERENCE_AUDIT.md`](docs/OV5640_C0_REFERENCE_AUDIT.md)：参考分支已有 4 个 TB，但尚未导入 canonical 项目、缺相对路径 `.f/.do`，且分支自述 PASS 尚未由本仓库复验。PNR 后功能/时序仿真依赖 C3、H3 和器件一致的网表/SDF；legacy 摄像头 TB 计划不得直接改名复用。
 
 - [ ] 在 `59_top_dual_ov5640_hdmi/sim/questa/` 归档经审核的双路 OV5640 帧输入模型、双路读 ID/配置检查和项目集成 TB；不得把参考分支 `sim_*` 编译库一并导入。
 - [ ] 覆盖两路摄像头独立/并发采集、每路 960×1080 半幅与 1920×1080 左右拼接、DDR 初始化延迟、双写通道、帧切换/读出、HDMI 有效区和 FIFO 边界。

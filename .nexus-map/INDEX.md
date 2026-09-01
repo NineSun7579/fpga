@@ -4,7 +4,7 @@
 
 # Embedded Completion Nexus Map
 
-本仓库汇集三个 Pango FPGA 工程，并以根目录文档约束后续整改方式：
+本仓库的三个活动产品项目是 DDR3、PCIe 和双 OV5640，并以根目录文档约束后续整改方式。`41_ov7725_hdmi/` 仅为 legacy 证据工程，不是活动 TODO 项目：
 
 - `41_ov7725_hdmi/`：OV7725 采集、DDR3 帧缓存与 HDMI/TMDS 输出 legacy；已完成的 SP6.4 构建、STA、CDC/RDC 和 gate 结果只保留为历史证据，不得改名冒充 OV5640 产品实现。
 - `ddr3_test/`：已用厂商 `test_ddr` 临时 bring-up 顶层完成 SP6.4 全流程实现、STA、网表/SDF、位流与构建 gate 验证；严格 gate 仍被板级和 RTL 已知问题阻断，它不是已验收的产品顶层。
