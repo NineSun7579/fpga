@@ -10,6 +10,7 @@
 - PCIe：`pcie_dma_test_100h/`；目录名保留历史命名，活动 PDS 目标必须为 PG2L50H。
 - 双 OV5640 HDMI：产品目录固定为 `59_top_dual_ov5640_hdmi/`；当前以 `origin/parallel_driver@485f3bb` 为只读参考，完成 C1/H3 后才选择性导入。
 - 排除项：`41_ov7725_hdmi/` 不再接受产品功能、IP、约束、Questa 或实板任务；其中事实只能作为双 OV5640 设计评审的反例或风险输入，不能作为复用授权和验收证据。
+- TODO 维护规则：摄像头新增待办只能归入双 OV5640 的 C1/C2/C3/S3；不得新增 OV7725 未完成项，OV7725 只能出现在已完成的 legacy 事实或风险引用中。
 
 ## 1. 总体验收目标
 
@@ -40,7 +41,7 @@
 - [x] 建立 Git 基线、根目录指南、`.gitignore` 和 repo-local `.nexus-map`。
 - [x] 用户确认三项目共用实际焊接 `PG2L50H-6IFBG484` 的 `RK3568+PG2L50H100H` 开发板，并批准统一迁移方案。
 - [x] owner 将摄像头产品目标固定为双 OV5640；现有 OV7725 工程和完成证据冻结为 legacy，不再推进旧传感器产品任务，也不机械改名或继承为双 OV5640 验收。
-- [x] 完成三项目 50H 只读审计：PCIe 活动 IP 已匹配 50H；DDR3 活动 IP 仍须迁移，OV7725 legacy 的四个活动 IP 保持 100H 冻结，不再处理。
+- [x] 完成存量工程 50H 只读审计：PCIe 活动 IP 已匹配 50H；DDR3 活动 IP 仍须迁移；OV7725 legacy 的四个 IP 保持 100H 冻结且不再处理。该审计不把 OV7725 计入活动项目；双 OV5640 由 C0/C1/C2/C3 独立推进。
 - [x] 明确 VSCS 只强制覆盖后续修改的手写 RTL/TB，排除厂商生成 IP。
 - [x] PCIe 建立相对路径 `build.tcl`、PowerShell 入口和严格产物检查器。
 - [x] PCIe 在错误的 PG2L100H 工程目标下完成历史全流程重建，慢角 setup WNS `0.584 ns`、TNS `0`；该数值不得继承为 50H 验收结果。
@@ -342,7 +343,7 @@ O0/O1/O2/M3-A 已从活动 TODO 移除，不再为 `41_ov7725_hdmi/` 安排 RTL�
 - [x] 将仿真器安装路径作为可覆盖外部参数，不写入工程源清单。
 - [x] 将许可证配置保持在仓库外部；禁止提交许可证绝对路径、服务器、feature、内容或许可证文件。
 - [x] S0-2-Q：已以新 run marker `966942334060436dba8444ae9155557c` 重跑 S2-A，唯一 `TEST PASS`、`Errors: 0, Warnings: 0` 和 PowerShell 退出码 0 均满足。
-- [x] S0-3-Q：当前三个已纳管仓库工程均建立项目内 `sim/questa/` 归档目录。PCIe 的 S2-A 至 S2-E `.f/.do/TB` 已收拢并作为唯一脚本来源；`scripts/check_sim_archives.ps1` 禁止项目自有 TB 再散落到工程外层，也禁止归档 `.mpf`、`work`、`modelsim.ini`、日志、transcript 和波形。旧摄像头归档目录只服务 legacy，不承载双 OV5640 产品仿真。
+- [x] S0-3-Q：现有 DDR3、PCIe 与 OV7725 legacy 三个存量工程均建立项目内 `sim/questa/` 归档目录；这不表示 OV7725 仍是活动项目。PCIe 的 S2-A 至 S2-E `.f/.do/TB` 已收拢并作为唯一脚本来源；`scripts/check_sim_archives.ps1` 禁止项目自有 TB 再散落到工程外层，也禁止归档 `.mpf`、`work`、`modelsim.ini`、日志、transcript 和波形。旧摄像头归档目录只服务 legacy，不承载双 OV5640 产品仿真。
 - [ ] S0-3-CAM：选择性导入 `59_top_dual_ov5640_hdmi/` 时同步建立其独立 `sim/questa/`，迁入经审核的参考 TB 并扩展 `scripts/check_sim_archives.ps1`；所有双 OV5640 仿真运行态只进入该项目 `build/`，许可证配置不进入 Git。
 - [x] S0-4-Q：PCIe 启动器为每个 run 在 `build/sim/launcher/` 创建并显式绑定 `modelsim.ini`，通过运行时 `SIM_PROJECT_ROOT` 返回工程根执行归档 DO。S2-A run `add7efa39f644384af9929e8a9366739` 与 S2-B run `30bad6e164be4a4b8284a00f1e96bd87` 均动态通过；两次运行后工程根 `modelsim.ini`、transcript、波形计数为 0。因 `run.ps1` 是 canonical 输入，PG2L50H PDS run `dde6ee70b2c84d2da4ee2256d8a5c127` 已重建为 complete/valid、43 输入/7 证据，baseline/strict gate=`0/1`、最差 slack `0.100 ns`。
 
