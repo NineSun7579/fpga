@@ -209,5 +209,7 @@
 - s2a_rx_halt_contract: `o_trgt1_radm_pkt_halt[2:0]` 接口分别对应 posted、non-posted 与 completion/CPLD halt；当前 bit0/bit1 有效、bit2 源端恒为 0，三位接口路径已由项目顶层贯通活动 `pcie_test` wrapper 至 hard-IP。wrapper 原 3'b0 tie-off 已删除；生成资产重生成会覆盖该修正，静态 gate 检测该已知接口漂移并要求重新审核。
 - s2a_warning_status: 原两条未连接端口 warning 已消失；PDS 仍保留 bit2 恒 0 引起的两条优化/清理 warning，不影响 S2-A 受控 smoke。
 - s2_next_layers: S2-B 使用厂商 `pango_pcie_top_sim` RC 与项目 `pcie_dma_test` EP 验证真实链路；S2-C 在 S2-B 后执行固定地址/长度/数据的基础 DMA 回读。S2-A 边界模型不得进入这两层或后级网表验收。
+- s2c_bar1_staging: `2026-09-01` 只取得同版本 PDS `2022.2-SP6.4`、PCIe `1.2c` 的 staging IDF；完整 IP Compiler 实例所需 `index.xml` 缺失，禁止升格或覆盖 canonical IP。活动 `pcie_test` 仍为 `BAR1_Enable=false`、`BAR1_ENABLED=1'b0`、`BAR1_MASK=31'h0`，S2-C 未通过。
+- s2c_archived_diagnostic: run `d1d25d3f23384590918f26abbfd2e839` 由 RC 主动访问 EP BAR0，在 `710535 ns` 完成写入/读回，0 errors、26 vendor warnings、唯一 `INFO: S2C_DMA_WRITE_READBACK_OK`、唯一 `TEST PASS`、PowerShell 退出 0。该 run 不是 Endpoint 主动 MRd/CplD/MWr DMA 闭环，不解除 BAR1 禁用与 `index.xml` 阻断。
 - h2b_stop_conditions: 板级 lane 极性/拓扑、I/O delay 或 SCBV 缺失，IDF/PDS 器件元数据不一致，或 UART2APB `rxd/txd` 归属未决时，H2-B 不得收紧 gate；不得用 waiver 掩盖缺口。
 - next_step: 保持五类 strict gate 阻断（UART RX tied low、顶层 I/O 未约束、PCIe serial I/O、share pin、SCBV）；在 S2-B 通过后执行 S2-C DMA，再推进项目后级网表/SDF 仿真
