@@ -412,3 +412,10 @@
 - 归档边界复验发现 Questa 会在启动目录创建 transcript，且 `vmap` 会在当前目录复制 `modelsim.ini`。`run.ps1` 现为每个 run 在 `build/sim/launcher/<run-id>/` 创建并显式绑定 ini，通过进程内 `SIM_PROJECT_ROOT` 执行项目 DO；静态合同锁定该边界。
 - 最新 S2-A run `add7efa39f644384af9929e8a9366739` 为 0 errors/0 warnings、`1476105 ns`、唯一 PASS、退出 0；最新 S2-B run `30bad6e164be4a4b8284a00f1e96bd87` 为 0 errors/26 warnings、`702175 ns`、唯一 link marker/PASS、退出 0。两次运行后工程根 ini/transcript/波形计数为 0。
 - `run.ps1` 属于 CI-8A canonical 输入，因此归档边界修正后重新执行完整 PG2L50H 七阶段。PDS run `dde6ee70b2c84d2da4ee2256d8a5c127` 退出 0，manifest=`complete/valid`、43 输入/7 证据，baseline/strict gate=`0/1`、最差 slack `0.100 ns`；五类 strict 发布阻断保持不变。
+
+## 2026-09-01：PCIe S2-C 归档诊断动态复验
+
+- Questa `2021.1` 不允许 automatic task 参数直接用于 `force`；只把归档 TB 的 RC APB 写 task 改为静态 task，未修改产品 RTL、活动 IDF/FDC 或厂商生成 IP。
+- run `d1d25d3f23384590918f26abbfd2e839` 从 `pcie_dma_test_100h/sim/questa/` 入口完成编译、elaboration 和运行，在 `710535 ns` 输出唯一 `INFO: S2C_DMA_WRITE_READBACK_OK` 与唯一 `TEST PASS`，`Errors: 0, Warnings: 26`，PowerShell 退出 0。
+- 26 条 warning 来自厂商/生成模型端口与受保护模型；运行库、日志、transcript 和 ini 仍只位于项目 `build/`。
+- 该 TB 是 RC 主动访问 EP BAR0 的诊断流，不是 Endpoint 主动 MRd/CplD/MWr 闭环。活动 BAR1 仍禁用，合法同版本 PCIe 实例 `index.xml` 仍是 S2-C-BAR1-INPUT 阻断。

@@ -99,6 +99,7 @@ flowchart TD
 - D3-0 旧接口结论只能作为 PG2L50H 重生成后的比对基准；若接口语义、地址单位、端口或 `I_ips_ddr_top` 层级变化，停止并重新更新 D3-0-R/CI-6，审核前不得新增 D3-A/B/C RTL。
 - 有限自检契约固定 16 个单 beat 写读比较 pair，地址 `0x0..0x78`、步长 8，pair/run timeout 分别为 4096/131072 周期；签核依赖稳定的 `test_done`、`test_failed`、`failure_code`、`error_count`、`completed_pairs` 和首错信息，而不是厂商 LED 或内部层级。
 - 新项目自有 DDR3 RTL 依赖根目录 VSCS；厂商 `ip_core/ddr3/**` 仍作为外部生成依赖，不因 D2 决策被改写。
+- S2-C 还依赖同版本 PDS PCIe IP Compiler 完整实例导出的 `index.xml`。当前 BAR1 staging 只有同版本 IDF，不能作为完整实例或 canonical 升格证据；活动 BAR1 继续禁用，故 DMA 回读依赖尚未满足。
 - 当前执行队列为：PCIe 维持 50H baseline，在 S2-B 真实 RC/EP 链路通过后进入 S2-C 与后级仿真；DDR3 重生成 50H IP/FDC/RCF并重审 D3-A；摄像头按 OV5640 C0/C1 冻结范围后进入 C2/C3，最后执行 S3。OV7725 O2/M3 只作 legacy 参考，不再作为产品必经链。
 - `docs/SIMULATION_READINESS_MATRIX.md` 已确认三个项目均保留各自 `sim/questa/` 工程定义目录；DDR3 与 OV5640 仍缺可运行的项目级 TB/`.f`/`.do`，厂商示例不形成产品顶层覆盖。PCIe 已有 S2-A/S2-B 项目定义且两层均已动态通过，但 S2-B 不覆盖 DMA、实板、电气、协商宽度/速率或后级网表。S1 还依赖 PG2L50H DDR3 IP契约、D3-A/B/C 与 D4，S2 依赖 H2-B/PG2L50H 产物一致性，S3 依赖 PG2L50H 新 baseline、输入格式契约与 O2-D2/O3 RTL 锁定。
 - PCIe 顶层依赖专用 HSST/IP 约束；`o_trgt1_radm_pkt_halt[2:0]` 接口分别对应 posted、non-posted 与 completion/CPLD halt，当前 bit0/bit1 有效、bit2 源端恒为 0，三位接口路径已由项目顶层贯通活动 `pcie_test` wrapper 至 hard-IP；UART2APB 是否保留是后续 RTL 与 FDC 的共同决策点。

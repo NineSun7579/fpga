@@ -46,6 +46,8 @@
 - S0-0/S0-0-R（2026-08-30）只保留为历史环境复核；其“未发现仿真器”的结论已被 2026-09-01 的 Questa Sim-64 2021.1 实际执行证据取代。
 - S0-1 仿真库入口已完成实际验收：Questa Sim-64 2021.1 最小 SystemVerilog 通过，PDS SP6.4 Logos2 USIM/VSIM 均编译成功；VSIM 编译入口退出 0、日志无 `^E:`、`vsim` 库目录非空。最小后级原语 smoke 从 VSIM 库加载 `V_BUF`，运行 `2 ns`，Errors 0/Warnings 0、唯一 `TEST PASS`。
 - CI-0 仓库级静态一致性门禁已完成并提交：`scripts/check_repo_consistency.ps1` 门禁退出码为 0，本批提交时全部 7 个 PowerShell 脚本 AST 解析错误数为 0；该门禁不启动或替代 PDS、STA、ModelSim/QuestaSim。
+- PCIe S2-C BAR1 staging（2026-09-01）当前仅有同版本 PDS `2022.2-SP6.4`、PCIe `1.2c` 的 `pcie_test.idf`，缺少完整 IP Compiler 实例导出的 `index.xml`，因此 staging 被阻断且不得覆盖 canonical IP。活动 `pcie_test` 仍保持 `BAR1_Enable=false`、`BAR1_ENABLED=1'b0`、`BAR1_MASK=31'h0`；S2-C DMA 未通过。PR #10 初次审计为 `OPEN/CLEAN`，随后于 `2026-09-01T12:14:57Z` 合并；最新状态为 `MERGED/UNKNOWN`。
+- PCIe S2-C 归档诊断 run `d1d25d3f23384590918f26abbfd2e839` 由 RC 主动完成 EP BAR0 写入/读回，在 `710535 ns` 输出唯一 `INFO: S2C_DMA_WRITE_READBACK_OK` 与唯一 `TEST PASS`，Errors 0、厂商 Warnings 26、PowerShell 退出 0。该结果只证明诊断路径可运行，不是 Endpoint 主动 MRd/CplD/MWr DMA 闭环；BAR1 仍禁用，`index.xml` 输入阻断不变，S2-C 不得标记为通过。
 - 三项目 S1/S2/S3 仿真就绪度盘点见 [仿真就绪度矩阵](../docs/SIMULATION_READINESS_MATRIX.md)：三个项目均在各自 `sim/questa/` 保留工程定义，DDR3 与 OV5640 仍无可运行的项目级 TB/`.f`/`.do`，OV7725 资产只作 legacy 参考；PCIe S2-A 当前受控 smoke 与 S2-B 真实 RC/EP 链路均已动态通过，S2-C 以及三个项目的综合后/PNR 功能/PNR 时序与 SDF 仿真仍未完成。
 - CI-1 仿真矩阵引用门禁已扩展到当前产品范围：矩阵必须包含 DDR3、PCIe、OV5640/S3，并明确 OV7725 为 legacy；根 README 和 TODO 也必须链接该矩阵。该门禁只验证静态文档一致性，不替代动态仿真。
 - CI-2 板级证据清单完整性门禁已由提交 `677808d` 落地：`scripts/check_repo_consistency.ps1` 为 OV7725、DDR3、PCIe 分别登记清单路径与关键词，要求各项目 README 直接链接清单，并强制三份清单包含“当前工程事实”“必须提供的资料”“关闭条件”结构；PCIe 清单已统一为同一章节规范。2026-08-30 复验退出码为 0。该门禁只验证结构与导航，不代表板级证据已经提供或关闭。
@@ -78,7 +80,7 @@
 3. OV5640 按 [`OV5640_TARGET_SCOPE.md`](../docs/OV5640_TARGET_SCOPE.md) 推进：C0 只读审计参考工程，C1 冻结单/双摄、模组与接口，C2 设计新项目/顶层和 SCCB/采集/DDR3/HDMI 边界，C3 在 PG2L50H 下完成实现；S3 建立四级自检仿真。OV7725 O0/O1/O2/M3-A 仅作 legacy 问题清单和可复用性参考。
 4. DDR3 M2-B1 已纠正 staging 生成路径并完成参数/资产差异审计；下一步依据原理图/BOM 审核 28 项 FDC pin 差异及 DDR3 颗粒/拓扑，再决定是否升格 canonical。升格后必须重跑 CI-6、空目录七阶段与 D3-0-R，审核通过后才可进入 D3-A → D3-B → D3-C。
 5. PCIe M1 已完成 build/PDS/gate 的 PG2L50H 迁移和空 `build/` 重建；活动 PCIe IP 无需因器件型号重生成。H2-B 仍等待 lane/refclk/PERST#/SCBV 与 UART 决策闭环。
-6. PCIe S2-A 当前受控行为 smoke 已通过（Questa run `add7efa39f644384af9929e8a9366739`）；S2-B 真实厂商 RC/EP 链路也已通过（run `30bad6e164be4a4b8284a00f1e96bd87`），且两次运行没有在项目根遗留 `modelsim.ini`、transcript 或 `vsim.wlf`。S2-C 下一步验证 DMA。S2-B 不证明 RK3568 实板、协商 x2/5.0 GT/s、电气或后级网表；五类 strict 阻断仍需按板级/功能证据关闭。
+6. PCIe S2-A 当前受控行为 smoke 已通过（Questa run `add7efa39f644384af9929e8a9366739`）；S2-B 真实厂商 RC/EP 链路也已通过（run `30bad6e164be4a4b8284a00f1e96bd87`）。S2-C 归档诊断已通过 RC 主动 BAR0 写入/读回，但不是 Endpoint 主动 DMA 闭环；BAR1 staging 仍受同版本 PDS PCIe 实例缺少 `index.xml` 阻断，活动 BAR1 仍禁用，取得完整实例前不得覆盖 canonical IP。S2-B 不证明 RK3568 实板、协商 x2/5.0 GT/s、电气或后级网表；五类 strict 阻断仍需按板级/功能证据关闭。
 7. 摄像头产品最终闭环属于 OV5640 C0 → C1 → C2 → C3 → S3；OV7725 的 O1-C/O2/O3/O4 链不再自动授权产品实现，只能在 C2 审核后选择性迁移结构经验。
 
 ## 更新规则

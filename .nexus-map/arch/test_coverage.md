@@ -109,6 +109,8 @@
 - PCIe/S2：S2-A 已用项目级 `tb_pcie_dma_test` 实例化产品顶层，并以受控 `pcie_test` 边界动态验证顶层/复位/LED/未知态；现有 `pango_pcie_top` RC/EP testbench 仍不实例化产品顶层，只能在 S2-B 中作为真实 RC/编译顺序 oracle；S2-C 才验证 DMA。
 - 验收边界：`ipcore/`、`ip_core/`、`ip_backup/` 中的厂商示例只能作为参考证据，不能计入产品集成覆盖，也不能通过改名冒充项目自有 testbench。
 - 四级共同门槛：所有入口使用相对路径 filelist/DO 和项目自有集成 TB；必须具备超时、`$fatal`、唯一 `TEST PASS` 与可靠非零失败退出；PNR 时序仿真必须按实际 DUT 实例层级标注 SDF。
+- PCIe/S2-C BAR1：staging 当前仅有同版本 PDS/PCIe IDF，缺少完整 IP Compiler 实例的 `index.xml`，因此尚无可升格的 wrapper、参数摘要与仿真资产集合；活动 BAR1 仍禁用，本层覆盖为未完成。
+- PCIe/S2-C 归档诊断：run `d1d25d3f23384590918f26abbfd2e839` 已动态覆盖 RC 主动 EP BAR0 写入/读回，运行至 `710535 ns`，0 errors、26 vendor warnings、唯一成功 marker 与唯一 `TEST PASS`、退出 0。覆盖边界不包含 Endpoint 主动 MRd/CplD/MWr DMA 闭环，不能关闭 BAR1/`index.xml` 阻断或升格 S2-C。
 - 公共状态：Questa Sim-64 2021.1 工具、Logos2 USIM/VSIM 与 PCIe S2-A 当前 smoke 均有通过证据；当前 S2-A/S2-B 静态门禁通过，S2-B 真实 RC/EP 动态链路已通过。DDR3/S1、OV5640/S3、S2-C 与三个项目后级仿真仍未完成。
 
 ## PCIe S2-A 行为 smoke（2026-09-01，动态通过）

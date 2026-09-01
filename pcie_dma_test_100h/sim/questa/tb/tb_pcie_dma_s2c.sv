@@ -169,7 +169,8 @@ module tb_pcie_dma_s2c;
     // Assumption: the vendor RC UART-to-APB bridge remains present at the
     // hierarchy used by the generated example. The global watchdog bounds a
     // missing APB ready transition.
-    task automatic rc_apb_write(
+    // Questa 2021.1 does not allow automatic task arguments in force statements.
+    task rc_apb_write(
         input logic [15:0] address,
         input logic [31:0] data,
         input logic [3:0] strobe
