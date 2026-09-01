@@ -66,9 +66,11 @@ powershell -ExecutionPolicy Bypass -File .\scripts\run.ps1 `
 2. 仓库根公共流程已将 Logos2 USIM 编译到仓库根 `build/simlib/usim`；项目 DO 从 `pcie_dma_test_100h` 目录以 `../build/simlib/usim` 映射该共享库；
 3. `GTP_DRM18K_E1`、`GTP_GRS` 能从该库展开。
 
-2026-09-01 使用 Questa Sim-64 `2021.1` 完成动态验证。run id `fab4ccef3e2445abbd9d1cad1e66b2ab` 的 RTL 编译为 `0 errors/0 warnings`，elaboration 成功，仿真运行至 `1476105 ns`，最终为 `Errors: 0, Warnings: 2`，同一 transcript 包含唯一 run marker 和唯一 `TEST PASS`，PowerShell 入口返回 0。
+2026-09-01 RX halt hygiene 后使用 Questa Sim-64 `2021.1` 完成当前动态复验。run id `966942334060436dba8444ae9155557c` 的 RTL 编译为 `0 errors/0 warnings`，elaboration 成功，仿真运行至 `1476105 ns`，最终为 `Errors: 0, Warnings: 0`，同一 transcript 包含唯一 run marker 和唯一 `TEST PASS`，PowerShell 入口返回 0。
 
-两条 warning 都来自项目 RTL 中 `u_ips2l_pcie_dma` 未连接输出 `o_trgt1_radm_pkt_halt`。该问题作为独立 RTL hygiene TODO 保留；本批不修改 canonical RTL，也不把 S2-A 通过解释为 RTL 零 warning、真实链路或 DMA 通过。
+后续 RTL hygiene 批次已将 `u_ips2l_pcie_dma.o_trgt1_radm_pkt_halt` 通过项目顶层连接到活动 `pcie_test` wrapper 的 hard-IP RX halt 输入。该 3-bit 接口分别对应 posted、non-posted 和 completion/CPLD halt；当前 bit0/bit1 有效，bit2 在源端恒为 0。丢弃 bit0/bit1 会绕过 DMA tag-full 和 completion-ready 流控。此改动修补了厂商生成 wrapper 原先的 `3'b0` tie-off，后续 IP 重生成会覆盖该接口；静态 gate 会检测这一已知接口漂移并要求重新审核。S2-A 仍只验证受控壳层；真实高流量流控正确性依赖 S2-B/S2-C。
+
+PG2L50H 完整 PDS run id `50b37eb3628e419592cecac02ff932bf` 完成七阶段，provenance 为 `complete/valid`，baseline/strict gate 为 `0/1`，最差 slack `0.100 ns`。原两条未连接端口 warning 已消失；PDS 仍对恒为 0 的 bit2 报告一条 stuck-register 优化和一条 dangling-register 清理 warning，二者不是端口悬空。
 
 ## 6. 后续分层
 

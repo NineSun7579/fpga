@@ -56,6 +56,7 @@ $CheckPath = $MyInvocation.MyCommand.Path
 $TopPath = Join-Path $ProjectRoot 'hdl\pcie_dma_test.v'
 $ModelPath = Join-Path $ProjectRoot 'tb\pcie_test_smoke_model.sv'
 $TestbenchPath = Join-Path $ProjectRoot 'tb\tb_pcie_dma_test.sv'
+$WrapperPath = Join-Path $ProjectRoot 'ipcore\pcie_test\pcie_test.v'
 
 $RequiredFiles = [ordered]@{
     $BehaviorListPath = 'PCIe behavior filelist'
@@ -66,6 +67,7 @@ $RequiredFiles = [ordered]@{
     $TopPath = 'PCIe project top'
     $ModelPath = 'PCIe controlled smoke model'
     $TestbenchPath = 'PCIe project testbench'
+    $WrapperPath = 'active generated PCIe wrapper'
 }
 
 $AllFilesExist = $true
@@ -142,8 +144,46 @@ foreach ($Entry in $PdsSourceEntries) {
 $TopText = Get-Content -Raw -Encoding UTF8 -LiteralPath $TopPath
 $ModelText = Get-Content -Raw -Encoding UTF8 -LiteralPath $ModelPath
 $TestbenchText = Get-Content -Raw -Encoding UTF8 -LiteralPath $TestbenchPath
+$WrapperText = Get-Content -Raw -Encoding UTF8 -LiteralPath $WrapperPath
 $DoText = Get-Content -Raw -Encoding UTF8 -LiteralPath $DoPath
 $RunText = Get-Content -Raw -Encoding UTF8 -LiteralPath $RunPath
+
+foreach ($Required in ([ordered]@{
+        'DMA RX halt top-level declaration' =
+            'wire\s*\[2:0\]\s*trgt1_radm_pkt_halt\s*;'
+        'DMA RX halt output connection' =
+            '\.o_trgt1_radm_pkt_halt\s*\(trgt1_radm_pkt_halt\)'
+        'PCIe wrapper RX halt input connection' =
+            '\.trgt1_radm_pkt_halt\s*\(trgt1_radm_pkt_halt\)'
+        'DMA RX halt backpressure intent' =
+            'DMA receive-queue backpressure must reach the PCIe hard IP'
+    }).GetEnumerator()) {
+    Require-Pattern -Text $TopText -Pattern $Required.Value -Description $Required.Key
+}
+if ([regex]::Matches(
+        $TopText,
+        '\.o_trgt1_radm_pkt_halt\s*\(trgt1_radm_pkt_halt\)').Count -ne 1 -or
+    [regex]::Matches(
+        $TopText,
+        '\.trgt1_radm_pkt_halt\s*\(trgt1_radm_pkt_halt\)').Count -ne 1) {
+    Add-Failure 'DMA RX halt signal must have exactly one producer and wrapper consumer'
+}
+foreach ($Required in ([ordered]@{
+        'active wrapper RX halt input port' =
+            'input\s*\[2:0\]\s*trgt1_radm_pkt_halt\s*,'
+        'active wrapper hard-IP halt connection' =
+            '\.i_trgt1_radm_pkt_halt\s*\(trgt1_radm_pkt_halt\s*\)'
+        'active wrapper regeneration warning' =
+            'IP regeneration must preserve this integration port'
+    }).GetEnumerator()) {
+    Require-Pattern -Text $WrapperText -Pattern $Required.Value -Description $Required.Key
+}
+if ($WrapperText -match 'assign\s+trgt1_radm_pkt_halt\s*=') {
+    Add-Failure 'Active PCIe wrapper still overrides the project RX halt request'
+}
+if ($ModelText -notmatch 'input\s+wire\s*\[2:0\]\s*trgt1_radm_pkt_halt\s*,') {
+    Add-Failure 'PCIe smoke model is missing the RX halt integration input'
+}
 
 $TopInstanceMatch = [regex]::Match(
     $TopText,

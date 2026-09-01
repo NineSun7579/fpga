@@ -12,7 +12,7 @@
       "implementation_status": "documented",
       "code_path": null,
       "evidence_path": "README.md",
-      "evidence_gap": "Questa Sim-64 2021.1、Logos2 USIM/VSIM、V_BUF 和 PCIe S2-A 保留历史通过证据；当前 S2-A/S2-B 静态门禁通过，但动态复验因仓库外许可证 checkout 失败返回 4，未产生新 PASS。摄像头产品目标为 OV5640，C0/C1/C2/C3/S3 尚未完成；OV7725 只作 legacy。",
+      "evidence_gap": "Questa Sim-64 2021.1、Logos2 USIM/VSIM、V_BUF 和 PCIe S2-A 当前动态复验已通过；S2-B 动态、三个项目后级仿真以及 OV5640 C0/C1/C2/C3/S3 尚未完成，OV7725 只作 legacy。",
       "s0_environment_review": {
         "date": "2026-09-01",
         "historical_review_date": "2026-08-30",
@@ -24,7 +24,7 @@
         "windows_uninstall_registry_scanned": true,
         "windows_uninstall_registry_hits": 0,
         "historical_missing_simulator_result_superseded": true,
-        "dynamic_simulation": "historical_pcie_s2a_pass_retained_current_revalidation_blocked_external_license_checkout_exit_4",
+        "dynamic_simulation": "pcie_s2a_current_revalidation_passed_exit_0_unique_test_pass",
         "s0_1_status": "completed_logos2_usim_vsim_and_primitive_smoke_verified",
         "compile_entry": {
           "tcl": "scripts/compile_simlib.tcl",
@@ -44,7 +44,7 @@
           "vsim_library_nonempty": true
         },
         "minimal_post_primitive_smoke": {"library": "VSIM", "primitive": "V_BUF", "library_load_verified": true, "runtime_ns": 2, "errors": 0, "warnings": 0, "test_pass_count": 1},
-        "next_step": "restore external license checkout, create a new run identity, revalidate S2-A, then execute project-specific simulations"
+        "next_step": "retain the repository-external license boundary, execute S2-B and project-specific post-synthesis, post-PNR functional and SDF timing simulations"
       },
       "ci_0_repository_consistency": {
         "date": "2026-08-30",
@@ -244,7 +244,7 @@
         {"order": 3, "id": "M2", "status": "staging_validated_blocked_board_review", "prerequisite": "board-approved PG2L50H DDR3 IP/FDC/RCF promotion and CI-6 rerun"},
         {"order": 4, "id": "C0/C1", "status": "next_reference_audit_and_scope_freeze", "prerequisite": "read-only OV5640 reference import and owner-approved camera module/interface facts"},
         {"order": 5, "id": "C2/C3", "status": "blocked_by_c0_c1", "prerequisite": "new OV5640 project/top boundary and PG2L50H IP/FDC implementation plan"},
-        {"order": 6, "id": "S1/S2/S3", "status": "current_dynamic_revalidation_blocked_external_license", "prerequisite": "external license recovery, locked project RTL/IP/netlist/SDF and project-owned simulation entrypoints"}
+        {"order": 6, "id": "S1/S2/S3", "status": "pcie_s2a_dynamic_passed_remaining_project_layers_pending", "prerequisite": "locked project RTL/IP/netlist/SDF and project-owned simulation entrypoints"}
       ],
       "tech_stack": ["PDS Tcl", "PowerShell", "ModelSim/QuestaSim"],
       "related_reqs": ["可重复构建", "四级仿真", "时序闭环"],
@@ -270,7 +270,7 @@
         "C3": "review or regenerate all IP and constraints for Logos2/PG2L50H/FBG484/-6, then run seven PDS stages and the strict gate",
         "S3": "project-owned self-checking behavior, post-synthesis, post-PNR functional and SDF timing simulations"
       },
-      "current_blockers": ["reference project not imported and audited", "camera module and interface facts not frozen", "new project/top not designed", "current dynamic license checkout unavailable"],
+      "current_blockers": ["reference project not imported and audited", "camera module and interface facts not frozen", "new project/top not designed", "project-level OV5640 simulation entrypoint not implemented"],
       "complexity": "high",
       "hotspot": true
     },
@@ -628,7 +628,7 @@
         "ddr3_test/ddr3_test/rtl/ddr3_finite_bist.sv"
       ],
       "evidence_path": "ddr3_test/ddr3_test/doc/FINITE_SELF_TEST_CONTRACT.md",
-      "evidence_gap": "D2 与旧 D3-0 只读决策已完成，M2-B1 正确 PG2L50H staging 与参数/差异审计已验证；canonical 升格、CI-6、D3-0-R 和 D3-A 仍未完成，两个项目自有 RTL 文件未创建。Questa 工具和库有历史验证，但当前动态 checkout 不可用。",
+      "evidence_gap": "D2 与旧 D3-0 只读决策已完成，M2-B1 正确 PG2L50H staging 与参数/差异审计已验证；canonical 升格、CI-6、D3-0-R 和 D3-A 仍未完成，两个项目自有 RTL 文件未创建。Questa 工具和公共库已验证，但 DDR3 项目动态入口尚未实现。",
       "transaction_contract": {
         "pair_count": 16,
         "burst": "single-beat write/read compare",
@@ -673,7 +673,7 @@
       "implementation_status": "implemented_with_known_functional_gap",
       "code_path": "pcie_dma_test_100h/hdl/",
       "evidence_path": "pcie_dma_test_100h/place_route/pcie_dma_test_timing_summary_after_hold_fix.txt",
-      "evidence_gap": "PCIe IDF、build/PDS/gate 与产物已统一匹配 PG2L50H；S2-A 保留历史动态 PASS，当前 S2-A/S2-B 静态门禁通过。当前动态复验因仓库外许可证 checkout 失败返回 4，未产生新 PASS；真实 RC/EP、DMA、板级证据和后级网表/SDF 仍缺失。",
+      "evidence_gap": "PCIe IDF、build/PDS/gate 与产物已统一匹配 PG2L50H；S2-A 当前动态复验和 S2-A/S2-B 静态门禁通过。真实 RC/EP、DMA、板级证据和后级网表/SDF 仍缺失。",
       "h2a_read_only_evidence": {
         "date": "2026-08-30",
         "top_module": "pcie_dma_test",
@@ -724,7 +724,7 @@
         "negative_gate_exit_1": ["partial compile", "missing PDS executable", "run-id drift", "artifact drift", "FDC input drift"],
         "final_results": {"full_build": 0, "baseline_gate": 0, "strict_gate": 1, "worst_slack_ns": 0.100, "h2b0_unique_signatures": 16, "h2b0_raw_occurrences": 42},
         "latest_verified_run": {
-          "run_id": "c24bc06b5d0643eeb6c9cb2878e7ace5",
+          "run_id": "50b37eb3628e419592cecac02ff932bf",
           "run_to": "gen_bit_stream",
           "status": "complete",
           "valid": true,
@@ -738,7 +738,7 @@
       },
       "s2a_behavior_smoke": {
         "date": "2026-09-01",
-        "status": "historical_controlled_dynamic_smoke_pass_current_revalidation_blocked_external_license",
+        "status": "current_controlled_dynamic_smoke_passed",
         "integration_testbench": "pcie_dma_test_100h/tb/tb_pcie_dma_test.sv",
         "controlled_ip_boundary": "pcie_dma_test_100h/tb/pcie_test_smoke_model.sv",
         "behavior_filelist": "pcie_dma_test_100h/sim/behav.f",
@@ -764,8 +764,8 @@
         "historical_dynamic_simulation_executed": true,
         "historical_dynamic_result": {"simulator": "Questa Sim-64 2021.1", "vlog_errors": 0, "vlog_warnings": 0, "elaboration_succeeded": true, "simulation_end_ns": 1476105, "vsim_errors": 0, "vsim_warnings": 2, "test_pass_count": 1, "powershell_same_run_id_gate_passed": true},
         "current_static_gate_passed": true,
-        "current_dynamic_revalidation": {"attempted": true, "exit_code": 4, "failure_stage": "external license checkout", "new_test_pass_count": 0, "historical_log_reuse_forbidden": true},
-        "warning_todo": {"count": 2, "module_instance": "u_ips2l_pcie_dma", "unconnected_output": "o_trgt1_radm_pkt_halt", "classification": "independent RTL hygiene TODO", "blocks_controlled_smoke": false},
+        "current_dynamic_revalidation": {"attempted": true, "run_id": "966942334060436dba8444ae9155557c", "exit_code": 0, "simulation_end_ns": 1476105, "vlog_errors": 0, "vlog_warnings": 0, "vsim_errors": 0, "vsim_warnings": 0, "test_pass_count": 1},
+        "rx_halt_hygiene": {"status": "complete", "signal": "o_trgt1_radm_pkt_halt[2:0]", "path": "DMA to project top to active pcie_test wrapper to hard IP", "wrapper_tie_off_removed": true, "regeneration_overwrite_risk_gated": true, "pds_run_id": "50b37eb3628e419592cecac02ff932bf", "unconnected_port_warnings_remaining": 0, "constant_bit2_optimization_warnings": 2},
         "next_layers": {
           "S2-B": "vendor pango_pcie_top_sim Root Complex plus project pcie_dma_test Endpoint for real-link verification",
           "S2-C": "fixed address, length and data DMA write/readback after S2-B passes"
@@ -775,7 +775,7 @@
         "static_gate_passed": true,
         "contract": ["vendor RC and project EP", "bidirectional x2 lanes", "both link states and LTSSM L0", "32-cycle stability", "6 ms watchdog", "unique PASS"],
         "dynamic_execution_passed": false,
-        "current_blocker": "external license checkout and S2-A current revalidation"
+        "current_blocker": "S2-B dynamic real-link execution"
       },
       "tech_stack": ["Verilog", "Pango Logos2", "PCIe x2", "DMA"],
       "related_reqs": ["H2-A read-only evidence", "H2-B board evidence", "IP regeneration", "UART 决策", "集成自检", "保持时序通过"],
@@ -793,8 +793,8 @@
         "TODO.md",
         "docs/SIMULATION_READINESS_MATRIX.md"
       ],
-      "evidence_gap": "Questa Sim-64 2021.1、Logos2 USIM/VSIM、V_BUF 和 S2-A 保留历史通过证据；当前 S2-A/S2-B 静态门禁通过，但动态复验因仓库外许可证 checkout 失败返回 4。DDR3 与 OV5640 项目入口、S2-B 动态/S2-C 和三个项目完整四级套件仍缺失。",
-      "environment_prerequisite": "Questa Sim-64 2021.1 tools and libraries are historically verified; current dynamic execution requires external license checkout recovery",
+      "evidence_gap": "Questa Sim-64 2021.1、Logos2 USIM/VSIM、V_BUF 和 S2-A 当前动态复验已通过；DDR3 与 OV5640 项目入口、S2-B 动态/S2-C 和三个项目完整四级套件仍缺失。",
+      "environment_prerequisite": "Questa Sim-64 2021.1 tools and libraries are verified; installation and license configuration remain repository-external inputs",
       "simlib_entry_status": "completed_usim_vsim_and_minimal_post_primitive_smoke",
       "readiness_matrix": {
         "status": "committed_and_linked_from_root_readme",
@@ -819,8 +819,8 @@
           "scope": "static documentation consistency only; does not execute PDS, ModelSim/QuestaSim or SDF simulation"
         },
         "historical_dynamic_simulation_executed": true,
-        "current_dynamic_revalidation_passed": false,
-        "common_blocker": "Current dynamic execution is blocked by external license checkout; project-specific post-synthesis, post-PNR functional and SDF timing simulations also remain pending",
+        "current_dynamic_revalidation_passed": true,
+        "common_blocker": "Project-specific post-synthesis, post-PNR functional and SDF timing simulation entrypoints and evidence remain pending",
         "acceptance_boundary": "Vendor examples under ipcore/, ip_core/ and ip_backup/ are reference assets only and do not count as project integration coverage.",
         "common_requirements": [
           "relative-path filelists and DO scripts",
@@ -843,7 +843,6 @@
               "C1 product scope freeze",
               "C2 new project and top boundary",
               "C3 PG2L50H implementation",
-              "external license checkout recovery",
               "project-level OV5640 camera/frame-buffer/HDMI integration testbench"
             ],
             "legacy_boundary": "OV7725 assets are reference-only and do not count as OV5640 coverage"
@@ -877,7 +876,7 @@
             "historical_dynamic_result": "Questa Sim-64 2021.1 controlled smoke PASS at 1476105 ns; 0 errors and 2 known unconnected-output warnings",
             "s2a_current_static_gate_passed": true,
             "s2b_current_static_gate_passed": true,
-            "current_dynamic_revalidation": "external license checkout failed with exit code 4; no new TEST PASS",
+            "current_dynamic_revalidation": "run 966942334060436dba8444ae9155557c passed with exit code 0, zero errors/warnings and one TEST PASS",
             "behavior_smoke_assets": [
               "pcie_dma_test_100h/tb/tb_pcie_dma_test.sv",
               "pcie_dma_test_100h/tb/pcie_test_smoke_model.sv",
@@ -1001,7 +1000,7 @@
       "source": "external-simulation-suite",
       "target": "pcie-dma-system",
       "type": "tests",
-      "description": "S2-A 保留历史受控 smoke PASS；当前 S2-A/S2-B 静态门禁通过，但动态复验因仓库外许可证 checkout 失败返回 4。S2-B 动态、S2-C 与后级仿真仍待完成。"
+      "description": "S2-A 当前受控 smoke 与 S2-A/S2-B 静态门禁通过；S2-B 动态、S2-C 与后级仿真仍待完成。"
     },
     {
       "source": "vscs-commenting-standard",
@@ -1043,7 +1042,7 @@
       "PCIe S2-A brings the repository to 61 commits; the history remains too shallow for reliable hotspot ranking.",
       "S0-1 is complete: the parameterized simulation-library entry compiled Logos2 USIM/VSIM and the minimal V_BUF post-primitive smoke passed.",
       "No HDL/raw source AST extraction was run; CI-0 PowerShell syntax parsing is recorded separately.",
-      "Questa Sim-64 2021.1 tools, Logos2 USIM/VSIM, V_BUF and the historical PCIe S2-A smoke are verified; the current dynamic revalidation exits 4 on external license checkout and has no new PASS.",
+      "Questa Sim-64 2021.1 tools, Logos2 USIM/VSIM and V_BUF are verified; PCIe S2-A current dynamic revalidation passed with exit code 0 and one TEST PASS.",
       "The camera product is OV5640. OV7725 evidence is legacy-only; C0/C1/C2/C3/S3 remain incomplete. CI-9 FullTree protects the current version after replacing 143 machine-local license references in 68 tracked logs, while Git history remains unchanged."
     ]
   }

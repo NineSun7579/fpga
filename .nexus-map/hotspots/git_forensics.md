@@ -42,7 +42,7 @@
 - `pcie_dma_test_100h/doc/H2B_BASELINE_GATE.md`、`H2B_BASELINE_FINGERPRINT.json`：H2-B0 的 16 签名/42 原始记录精确多重集和五个变异 fixture；metadata 漂移永久硬失败。partial run 复用旧 full-build 证据的风险已由 PCIe CI-8A 关闭。
 - `pcie_dma_test_100h/scripts/pds_sources.f`、`build_provenance.ps1`、`doc/CI8A_BUILD_PROVENANCE.md`：CI-8A 的 37 HDL 单一清单、43 输入/7 证据 SHA-256 manifest 与 32 位 run_id 状态机；partial/failed 和输入/产物漂移均拒绝。CI-8B 必须等待 DDR3/OV7725 canonical 升格并分别实现。
 - `pcie_dma_test_100h/tb/tb_pcie_dma_test.sv`、`tb/pcie_test_smoke_model.sv`、`sim/behav.f`：S2-A 项目级行为 smoke 的真实顶层、自检 TB、受控 PCIe 边界、DMA RAM init include 与 37 HDL 嵌套 filelist。`sim/behav.f` 另补仿真所需 `ips2l_pcie_apb_cross_v1_0.v`，不得为此修改由 IDF 管理实现侧源的 `scripts/pds_sources.f`；TB 全局复位实例保持 `GRS_INST`。评审时禁止把受控 link 当作 LTSSM/TLP/DMA 或板级链路证据。
-- `pcie_dma_test_100h/scripts/run_behav.do`、`scripts/check_sim.ps1`、`scripts/check_link_sim.ps1`、`scripts/run.ps1`：S2-A/S2-B 静态门禁当前通过；S2-A 历史动态运行保留唯一 `TEST PASS`。当前动态复验因仓库外许可证 checkout 失败返回 4，未产生新 PASS；旧日志不得复用。
+- `pcie_dma_test_100h/scripts/run_behav.do`、`scripts/check_sim.ps1`、`scripts/check_link_sim.ps1`、`scripts/run.ps1`：S2-A/S2-B 静态门禁当前通过；Questa Sim-64 2021.1 当前 S2-A run `966942334060436dba8444ae9155557c` 以 0 errors/0 warnings、唯一 `TEST PASS`、退出 0 完成。`o_trgt1_radm_pkt_halt[2:0]` 连接已锁定，原 tie-off 已删除；S2-B/S2-C 与五类 strict 阻断仍未关闭。
 - `docs/SIMULATION_READINESS_MATRIX.md`：三项目 S1/S2/S3 项目级资产缺口、厂商示例边界、四级共同门槛和 PG2L50H 迁移依赖的首要证据。
 - `scripts/compile_simlib.ps1`、`scripts/compile_simlib.tcl`：Questa Sim-64 2021.1 下 Logos2 USIM/VSIM 均已验证；VSIM 编译退出 0、日志无 `^E:`、库目录非空，`V_BUF` 原语 smoke 运行 `2 ns` 且 0 errors/0 warnings、唯一 `TEST PASS`。三个项目真实网表/SDF 仍待验证。
 

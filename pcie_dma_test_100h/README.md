@@ -79,7 +79,7 @@ powershell -ExecutionPolicy Bypass -File .\scripts\run.ps1 `
   -QuestaBin '<Questa-win64-directory>'
 ```
 
-该入口使用唯一 `SIM_RUN_ID` 绑定 `build/logs/sim-behav.log`，并要求日志只出现一次 `TEST PASS`。2026-09-01 的动态运行已通过；elaboration 仍报告项目 RTL 实例 `u_ips2l_pcie_dma` 未连接输出 `o_trgt1_radm_pkt_halt` 的两条 warning，该 RTL hygiene 项留待独立批次处理。详细范围和停止条件见 [S2-A 项目级行为 smoke 契约](doc/S2A_BEHAVIOR_SMOKE.md)。边界模型产生的 link indication 不是 LTSSM、TLP、DMA 或板级链路证据。
+该入口使用唯一 `SIM_RUN_ID` 绑定 `build/logs/sim-behav.log`，并要求日志只出现一次 `TEST PASS`。S2-A RTL hygiene 已将 `u_ips2l_pcie_dma.o_trgt1_radm_pkt_halt` 贯通到活动 `pcie_test` wrapper 的 hard-IP RX halt 输入，不再将 DMA tag/full 与 completion-ready 流控固定为 no-halt。该 wrapper 是生成资产，IP 重生成后必须通过静态 gate 重新确认接口。详细范围和停止条件见 [S2-A 项目级行为 smoke 契约](doc/S2A_BEHAVIOR_SMOKE.md)。边界模型产生的 link indication 不是 LTSSM、TLP、DMA 或板级链路证据。
 
 S2-B 静态合同检查：
 

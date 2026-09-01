@@ -82,6 +82,10 @@ wire	[127:0]	axis_slave2_tdata;
 wire			axis_slave2_tlast;
 wire			axis_slave2_tuser;
 
+// DMA receive-queue backpressure must reach the PCIe hard IP. Dropping this
+// request can admit more TLPs after tag or completion resources are exhausted.
+wire	[2:0]	trgt1_radm_pkt_halt;
+
 wire	[7:0]	cfg_pbus_num;			
 wire	[4:0]	cfg_pbus_dev_num; 		
 wire	[2:0]	cfg_max_rd_req_size;	
@@ -321,7 +325,8 @@ ips2l_pcie_dma #(
 	.i_apb_penable			(p_ce),						
 	.o_apb_prdy				(p_rdy_dma),				
 	.o_apb_prdata			(p_rdata_dma),				
-	.o_cross_4kb_boundary	(cross_4kb_boundary)		//4k边界
+	.o_cross_4kb_boundary	(cross_4kb_boundary),		//4k边界
+	.o_trgt1_radm_pkt_halt	(trgt1_radm_pkt_halt)
 );
 
 // CFG CTRL
@@ -432,6 +437,7 @@ pcie_test u_ips2l_pcie_wrap (
 														
 	.axis_master_tlast			(axis_master_tlast),	
 	.axis_master_tuser			(axis_master_tuser),	
+	.trgt1_radm_pkt_halt		(trgt1_radm_pkt_halt),
 
 	// AXI4-Stream slave 0 interface
 	.axis_slave0_tready			(axis_slave0_tready),	

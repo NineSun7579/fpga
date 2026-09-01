@@ -375,3 +375,12 @@
 - 本机复核确认 Questa Sim-64 `2021.1` 的 `vsim`、`vlog` 和 `vlib` 可执行文件位于安装根的 `win64` 子目录；tracked 文档不记录本机安装或许可证实际路径。
 - PCIe S2-A/S2-B 静态门禁和环境检查通过；当前 S2-A 动态启动因外部许可证 checkout 失败返回 4，没有生成新的 `TEST PASS`。历史 run id 的通过证据继续保留，但不作为本次复验结果。
 - 发现历史 PDS 日志中存在许可证绝对路径；当前版本统一替换为 `<license-path>`，并将 CI-9 扩展为当前树全量扫描和 PR 新增差异扫描。历史 `.log` 标记为 `-diff`，避免 PR 页面展开旧路径；该修复不改写 Git 历史。
+
+## 2026-09-01：PCIe S2-A RX halt 端口 hygiene
+
+- 发现 `u_ips2l_pcie_dma.o_trgt1_radm_pkt_halt` 是 DMA RX 队列的 3-bit halt 请求：bit0 由 tag full 驱动，bit1 由 completion transmit ready 反相驱动，bit2 当前为 0。原顶层未连接，且生成 wrapper 将 hard-IP 输入固定为 `3'b0`。
+- 独立审计确认 AXI ready 不是该 RX 资源流控的替代路径；把输出标成 unused 只会隐藏高流量下的 tag/完成队列风险。
+- 本批在项目顶层贯通 DMA 输出，为活动 `pcie_test` wrapper 增加输入并删除内部 tie-off，保留已有 hard-IP `i_trgt1_radm_pkt_halt` 连接。不修改 DMA 内部、example design、IDF 或 PDS 源清单。
+- S2-A 静态门禁现检查唯一 producer/consumer、wrapper 输入、hard-IP 连接、tie-off 消失、仿真替身端口和重生成风险注释。真实高流量下的流控闭环仍由 S2-B/S2-C 验证。
+- Questa Sim-64 `2021.1` 当前复验 run id `966942334060436dba8444ae9155557c` 编译 `0 errors/0 warnings`，elaboration 成功，运行到 `1476105 ns`，唯一 `TEST PASS`，PowerShell 退出 0。
+- PDS run id `50b37eb3628e419592cecac02ff932bf` 完成 PG2L50H 七阶段，provenance=`complete/valid`，baseline/strict gate=`0/1`，最差 slack `0.100 ns`，网表/SDF/位流均为非零。原两条未连接端口 warning 消失；bit2 恒 0 的 2 条优化/清理 warning 保留。
