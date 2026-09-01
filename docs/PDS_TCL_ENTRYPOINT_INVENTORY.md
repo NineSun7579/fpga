@@ -32,7 +32,7 @@ powershell.exe -ExecutionPolicy Bypass `
 
 | 项目 | `run.ps1` 实际入口 | 当前角色 | 器件事实 |
 |---|---|---|---|
-| OV7725 HDMI | `41_ov7725_hdmi/scripts/build.tcl` | `migration_blocked_project_build` | 仍为 PG2L100H；等待 M3 |
+| OV7725 HDMI legacy | `41_ov7725_hdmi/scripts/build.tcl` | `migration_blocked_project_build` | 仍为 PG2L100H；产品迁移已取消，仅复现历史基线 |
 | DDR3 bring-up | `ddr3_test/ddr3_test/scripts/build.tcl` | `migration_blocked_project_build` | 仍为 PG2L100H；等待 M2 |
 | PCIe DMA | `pcie_dma_test_100h/scripts/build.tcl` | `canonical_project_build` | 已为 PG2L50H |
 
@@ -67,4 +67,4 @@ powershell.exe -ExecutionPolicy Bypass `
 6. 历史 GUI 与厂商内部脚本不得标记为 `run_ps1` 入口。
 7. 公共 `compile_simlib.tcl` 必须继续通过环境变量提供外部仿真器路径覆盖。
 
-M2/M3 原子升格时必须同步更新 JSON 清单中的角色和器件集合；如果只修改 Tcl 而未更新清单，CI-7 会失败并要求重新审核。
+M2 升格或未来新增双 OV5640 canonical 构建入口时，必须同步更新 JSON 清单中的角色和器件集合；OV7725 不再执行 M3 升格。如果只修改 Tcl 而未更新清单，CI-7 会失败并要求重新审核。

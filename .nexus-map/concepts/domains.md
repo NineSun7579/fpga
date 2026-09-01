@@ -14,13 +14,13 @@ HDL 经 compile、synthesize、dev_map、PNR、timing report、netlist 和 bitst
 
 2026-09-01 CI-9 同时覆盖当前树和 PR 差异：`-FullTree` 扫描 tracked/untracked 工作树，PR 模式依据 Git merge-base 扫描 changed paths 与 added lines。当前版本已将 68 个 tracked 日志中的 143 处许可证绝对路径替换为 `<license-path>`；全树和差异门禁均通过。门禁不读取实际配置，也不改写 Git 历史。
 
-DDR3、PCIe 和摄像头 HDMI 共用 `RK3568+PG2L50H100H` 开发板与 `PG2L50H-6IFBG484`，统一 PDS 目标为 `Logos2/PG2L50H/FBG484/-6`。摄像头产品目标于 2026-09-01 校正为 OV5640；`41_ov7725_hdmi` 及其 O0/O1/O2/M3-A 只作 legacy。OV5640 按 C0 参考审计、C1 范围冻结、C2 项目边界、C3 PG2L50H 实现和 S3 四级仿真推进。
+摄像头产品固定双 OV5640。只读参考 `origin/parallel_driver@485f3bb` 的 `top_dual_ov5640_hdmi` 使用两路独立 SCCB/RESET/PWDN/DVP，每路采集 960x1080 半幅，通过双写 DDR3 组成 1920x1080。参考根 PDS/DDR3 仍为 PG2L100H，仅 PCIe IP 为 PG2L50H，因此新产品必须选择性导入到 `59_top_dual_ov5640_hdmi/` 并独立建立 PG2L50H 证据；`41_ov7725_hdmi` 仅 legacy。
 
 ## 外部四级仿真
 
 ModelSim/QuestaSim 分别承担行为级、综合后、PNR 后功能和 PNR 后时序仿真。USIM 用于 PNR 前原语，VSIM 用于 PNR 后原语；时序仿真还依赖正确层级的 SDF 标注。
 
-Questa Sim-64 2021.1、Logos2 USIM/VSIM、`V_BUF`、PCIe S2-A 当前受控 smoke 与 S2-B 真实 RC/EP 链路均有通过证据；S2-A/S2-B 静态门禁通过。三个项目的 Questa 工程定义分别保留在项目内 `sim/questa/`；启动器在 `build/sim/launcher/<run-id>/` 创建并显式绑定 run-scoped `modelsim.ini`，PowerShell 以进程内 `SIM_PROJECT_ROOT` 让 DO 切回项目根，work/vendor library、日志、transcript、波形与 ini 只写入 `build/`。DDR3 与 OV5640 仍缺可运行项目级入口，OV7725 资产只作 legacy 参考；PCIe S2-C 与三个产品方向的真实网表/SDF 仿真仍待完成。
+双 OV5640 参考仓库发现 4 个 TB，但尚未选择性导入；`tb_dual_ov5640_dri.v` force `cam_init_done`，成功字符串也不是 canonical `TEST PASS`，不能计入产品覆盖。未来可复现仿真源只进入 `59_top_dual_ov5640_hdmi/sim/questa/`，运行态只进入其 `build/`；禁止导入 `sim_*`、`work`、`.mpf`、`modelsim.ini`、日志、波形、绝对路径生成物或许可证配置。`41_ov7725_hdmi/sim/questa/` 仅 legacy。
 
 ## 产品顶层与 IP 示例边界
 
@@ -58,25 +58,25 @@ OV7725 的帧同步当前是长电平而非单周期脉冲，且 `wr_load`/`rd_l
 
 各时钟域应明确复位来源和释放方式。外部异步条件或其他时钟域状态直接释放复位会形成 recovery/removal 风险，应采用异步置位、同步释放或等效的经验证结构。
 
-OV7725 已确定 sys、I2C、camera、pixel 和 DDR UI 域需要各自的本地复位。O3-A 必须先将 `ddr3_init_done` 同步为 camera/pixel 域的状态与使能，O2-C1 才能解除它对其他域异步复位释放的直接控制并建立普通时钟域本地复位。
+OV7725 审计已确认 sys、I2C、camera、pixel 和 DDR UI 域的复位与 `ddr3_init_done` 存在风险；旧 O3-A/O2-C1 已取消，只作为双 OV5640 C2/C3 逐域复位设计的输入。
 
 O1-B 将高有效 reset 接入四个 serializer 内的八个 OSERDES 后，PDS 新报告 Slow Recovery `pixel_clk → pixel_clk_5x` `-0.643 ns / TNS -4.191 ns / 8/8`。O2-A 已确认 SP6.4 对同一 `RST` 同时建立 `OCLK/SERCLK=pixel_clk_5x` 与 `OCLKDIV=pixel_clk` 的 recovery/removal 检查，并将八个唯一 `opit_2/opit_2_com/OSR_IOLHR` endpoint 固定为验收集合。
 
 O2-B 已实现上述级联结构并完成 compile/七阶段实验，但 Slow Recovery 同时出现 `pixel_clk_5x → pixel_clk_5x -0.349 ns / 8/8` 和 `pixel_clk_5x → pixel_clk -2.173 ns / 8/8`，Fast Recovery 反向组仍为 `-1.464 ns / 8/8`。八个反向 endpoint 均为 OSERDES `OCLKDIV` 检查；方案已否决、RTL 已回退，baseline/gate 未放宽。
 
-旧 PG2L100H O2-D1 已否决动态 `GTP_IOCLKBUF` 门控，其 Liberty 没有 `DI` clock-gating check；O2-D1-G 曾收口出 `CLKOUT3=65.0026 MHz`、约 `+0.192 ns` 与本地 reset 复制候选。该结论不能机械继承到 PG2L50H；M3 必须重生成四个活动 IP、重建 50H baseline并重新计算相位/端点后，再提请 O2-D2 审核。
+旧 PG2L100H O2-D1 已否决动态 `GTP_IOCLKBUF` 门控，其 Liberty 没有 `DI` clock-gating check；O2-D1-G 曾收口出 `CLKOUT3=65.0026 MHz`、约 `+0.192 ns` 与本地 reset 复制候选。owner 已取消 OV7725 M3/O2-D2，该结论只能作为双 OV5640 新项目的风险提示，不能机械继承。
 
-M3-A 进一步确认迁移不能从旧 IDF 开始：DDR3、PLL、FIFO 的活动版本与 SP6.4 安装版本全部断层，`IPCompiler 0037/0057` 已否决 CLI override。唯一允许路径是 SP6.4 GUI 在 PG2L50H 目标下新建当前版本实例并只写 staging；DDR3 `DEVICE_100H_EN=false`、PLL `DEVICE_PG2L50H=true` 和 FIFO 85 DRM36K/170 DRM18K 上限必须由新实例证明。RCF 对象命中、DDR3 组织和板级电气未关闭前，不得升格 canonical。
+M3-A 进一步确认旧 IDF 不能迁移：DDR3、PLL、FIFO 的活动版本与 SP6.4 安装版本全部断层，`IPCompiler 0037/0057` 已否决 CLI override。OV7725 canonical 现已冻结，不再新建 50H 实例；双 OV5640 需要的 DDR3/PLL/FIFO 必须在新项目独立生成并证明派生参数、资源与 RCF/FDC 对象。
 
 O2-D1-R 已完成回退基线重建：七组失败精确复现，Slow/Fast `ddrphy_sysclk → pixel_clk` 均为 `53/53`，endpoint 分类为 read FIFO 控制 26、RAM reset 8、video driver 17、video display 1、原 DVI reset 同步器 1。O2-D1-G 已冻结 `/5` 奇数分频 waveform 和取点：必须显式且仅创建一个 `pixel_clk` generated clock，源为 PLL wrapper `u_pll_clk/clkout1`，目标为唯一 `GTP_IOCLKDIV_E2.CLKDIVOUT`，波形为 `-edges {1 5 11} -edge_shift {0 0 0}`，master 为唯一 `CLKOUT1_Inferred`，旧 `CLKOUT0_Inferred` 对 pixel 域零消费者，divider 不得接 post-buffer。
 
 O2-D1-G 的唯一控制器状态序列为 `HARD_HOLD → QUALIFY → ARM → SER_RELEASE → RUN`：`HARD_HOLD` 对 `!sys_rst_n || !pll_lock` 异步保持并清 divider、pixel/business、四路本地 serializer reset 和计数；`QUALIFY` 要求 4 个 control_clk 周期；`ARM` 释放 `/5`、同步释放 pixel reset、强制 encoder `CTRLTOKEN0` 条件并等待 3 个 pixel 周期；`SER_RELEASE` 在同步 `arm_req` 后下一个 control 周期清除四个本地 reset，驻留 2 个完整 control 周期；`RUN` 才撤销 encoder 强制。计数表示已完成周期且饱和，阈值统一用 `N-1`。
 
-复位分权固定为：sys_rst_n 下降或 pll_lock 丢失可异步回 HARD_HOLD；普通 video/business reset 只能撤销 RUN 并重新 warm-up，不得组合异步驱动 OSERDES 本地 reset；`ddr3_init_done` 不参与 hard reset、QUALIFY、ARM、OSERDES reset 或状态转移，后续仅作为同步业务 enable/status；FIFO reset/flush 独立归 O2-C2。首个有效 TMDS symbol 是 serializer reset 下降后首个 `OCLKDIV` 上升沿采入的四路同时确定完整 TMDS 并行字，不等同于首个活动像素；RUN 至少延后两个 control 周期确保其完整发送。
+旧复位契约曾固定 sys/pll hard reset、business reset、OSERDES 本地 reset、`ddr3_init_done` 与 FIFO reset/flush 的分权，并定义首个有效 TMDS symbol 与 warm-up 条件。相关实现任务已取消；这些规则只能作为双 OV5640 C2/C3 的候选审核输入。
 
-审核后只允许一次 O2-D2；generated-clock 对象为 0/多对象、源计数非 1、自动/显式重名、waveform 不符、divider 接 post-buffer、八个 OSERDES endpoint 的 Slow/Fast Recovery/Removal 未全覆盖或为负、PDS/gate/产物失败、或出现新 baseline 失败签名，均立即停止并完整回退。禁止第二相位扫描、false path、multicycle、clock-group waiver 或放宽 baseline。
+O2-D2 已取消。其 generated-clock 唯一性、waveform/取点、OSERDES recovery/removal 覆盖和禁止 waiver 的原则转为双 OV5640 C2/C3 的审核清单；具体对象与端点必须在新项目重新定义。
 
-两个厂商异步 FIFO 的 reset/flush 属于独立的 O2-C2，不与 O2-C1 的普通寄存器复位混批；帧事件 CDC 归 O3-B。O4 只有在 O2-C2 与 O3-B 都完成后才可进入约束和最终时序闭环。
+旧 O2-C1/C2、O3-B、O4 已取消。普通寄存器复位、FIFO reset/flush、双路帧事件 CDC 和最终约束闭环必须由双 OV5640 C2/C3/S3 在新项目重新拆批验证。
 
 ## 时序闭环
 
@@ -94,7 +94,7 @@ OV7725 O1-A 以 `RTL_HYGIENE_AUDIT.md` 固定手写 RTL 卫生契约，O1-B 已�
 
 serializer 接收高有效 reset；O1-B 已让该信号驱动四个 serializer 内共八个 OSERDES 的高有效 `RST`。O2-B 级联释放实验已由 STA 否决并回退，O2-D1-R 已证明当前仍精确复现旧七组失败基线；O2-D1-G 完成并经用户审核前不得启动新的 serializer RTL。
 
-`mem_a` 是板级接口冲突而非机械消警：活动 IP 为 14 bit，顶层/FDC 为 15 bit，当前综合网表将第 15 bit 绑 0。它必须等待 H3 板级 DDR3 事实并在 O1-C 独立处理；O1-B 不修改 `mem_a`、IP、FDC、CDC/RDC 或时序例外。
+`mem_a` 是板级接口冲突而非机械消警：活动 IP 为 14 bit，顶层/FDC 为 15 bit，当前综合网表将第 15 bit 绑 0。O1-C 已随 OV7725 产品主线取消；该事实只作双 OV5640 DDR3 参数审核的反例，旧工程不再修改。
 
 ## VSCS 注释治理
 

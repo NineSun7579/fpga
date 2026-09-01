@@ -390,8 +390,8 @@ if ($Ddr3M2B1AuditExists) {
     }
 }
 
-# M3-A is an audit-only gate. Protect the four active IDFs until the reviewed
-# PG2L50H staging set is promoted atomically in a later batch.
+# M3-A is now a frozen-legacy gate. Protect the four active IDFs from drift;
+# OV7725 will not be promoted to PG2L50H, and dual OV5640 uses a new project.
 $OvM3AuditExists = Require-File -Path $OvM3AuditPath `
     -Description 'OV7725 M3-A four-IP migration audit'
 if ($OvM3AuditExists) {
@@ -421,7 +421,7 @@ foreach ($Entry in $OvM3CanonicalIpHashes.GetEnumerator()) {
     if (Require-File -Path $IdfPath -Description "OV7725 canonical IP $($Entry.Key)") {
         $ActualHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $IdfPath).Hash
         if ($ActualHash -ne $Entry.Value) {
-            Add-Failure "OV7725 canonical IP changed before M3 promotion: $($Entry.Key)"
+            Add-Failure "OV7725 frozen legacy IP changed: $($Entry.Key)"
         } else {
             Write-Host "INFO: OV7725 canonical IP hash preserved: $($Entry.Key)"
         }
@@ -445,8 +445,8 @@ if ($MatrixExists) {
         -Description 'simulation matrix S1 DDR3 queue' | Out-Null
     Require-Pattern -Text $MatrixText -Pattern 'S2 PCIe' `
         -Description 'simulation matrix S2 PCIe queue' | Out-Null
-    Require-Pattern -Text $MatrixText -Pattern 'S3 OV5640' `
-        -Description 'simulation matrix S3 OV5640 queue' | Out-Null
+    Require-Pattern -Text $MatrixText -Pattern 'S3 双 OV5640' `
+        -Description 'simulation matrix S3 dual OV5640 queue' | Out-Null
 }
 
 if (Test-Path -LiteralPath $RootReadmePath -PathType Leaf) {
@@ -467,7 +467,7 @@ if (Test-Path -LiteralPath $TodoPath -PathType Leaf) {
 }
 
 $IgnoreText = Get-Content -Raw -LiteralPath (Join-Path $RepoRoot '.gitignore')
-Require-Pattern -Text $IgnoreText -Pattern '(?m)^build/$' `
+Require-Pattern -Text $IgnoreText -Pattern '(?m)^build/\r?$' `
     -Description 'build/ ignore rule' | Out-Null
 
 $TrackedBuild = @(git -C $RepoRoot ls-files -- '*build*' | Where-Object {

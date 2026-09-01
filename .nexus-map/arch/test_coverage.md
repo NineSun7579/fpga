@@ -77,7 +77,7 @@
 - 已验证：每次 build 的 32 位 run_id 原子失效旧证据；`running`、`partial`、`failed` 均无效，只有完整 `gen_bit_stream` 的 `complete/valid` 可继续 gate。
 - 负向覆盖：真实 partial compile、PDS executable 缺失、run-id 漂移、产物字节漂移与 FDC 输入漂移均返回 1，证明旧 full-build 证据不能复用。
 - 正向覆盖：最新完整 PG2L50H run `9952da4164f040d5924a558baa5cd8ca` 的 manifest 为 `complete/valid=true`，绑定 43 inputs/9 artifacts；baseline 返回 0、strict 返回 1，不表示 release-ready。
-- 边界：本批未修改 RTL、活动 IDF、FDC 或厂商 IP；CI-8B 等待 DDR3/OV7725 各自 PG2L50H canonical 升格，并按项目独立实现，不抽公共模块。
+- 边界：本批未修改 RTL、活动 IDF、FDC 或厂商 IP；CI-8B 等待 DDR3/双 OV5640 各自 PG2L50H canonical 升格，并按产品项目独立实现，不抽公共模块。OV7725 不再升格。
 
 ## CI-9 许可证敏感差异门禁（2026-09-01）
 
@@ -96,7 +96,7 @@
 
 | 项目 | PDS 实现证据 | 时序证据 | 行为仿真 | 综合后仿真 | PNR 功能仿真 | PNR 时序仿真 |
 |---|---|---|---|---|---|---|
-| OV5640 摄像头 HDMI | 产品目标已冻结为 OV5640；C0 参考审计和 C1 产品范围仍待完成 | C3 前无产品 STA；OV7725 旧时序只作 legacy 参考 | S3 项目级入口缺失 | 新产品网表尚未生成 | 新产品 PNR 网表尚未生成 | 新产品 SDF 尚未生成/标注 |
+| 双 OV5640 摄像头 HDMI | 产品固定双 OV5640；只读参考 `origin/parallel_driver@485f3bb`，未来选择性导入 `59_top_dual_ov5640_hdmi/` | 参考根 PDS/DDR3 为 PG2L100H；PG2L50H 产品 STA 未建立 | 参考 4 TB 未导入；其中一项 force init 且无 canonical PASS | 新产品网表尚未生成 | 新产品 PNR 网表尚未生成 | 新产品 SDF 尚未生成/标注 |
 | DDR3 外层 | 旧 PG2L100H 七阶段与五类产物已完成，但不可用于实际 PG2L50H；需重生成 50H IP/FDC/RCF | 旧 100H `All Constraints Met` 只保留历史；50H STA 未执行 | D2/D3-0 旧契约已定，PG2L50H 重生成后须重审；S1 项目级入口缺失 | 旧网表不可签核 | 旧 PNR 网表不可签核 | VSIM/SDF 未验证，旧 100H 结果不可签核 |
 | PCIe DMA | PDS run `9952da4164f040d5924a558baa5cd8ca` complete/valid，43 inputs/9 artifacts | timing/SDF 已生成；strict gate 仍失败 | S2-A/S2-B 动态 PASS | S2-D 受限 smoke PASS | S2-E run `927abae8ed7d40aeb5d6f706b3723e0a` 动态 PASS | SDF timing 未执行 |
 
@@ -104,7 +104,8 @@
 
 - 已验证盘点：`docs/SIMULATION_READINESS_MATRIX.md` 已逐项目记录项目级 testbench、filelist、DO、厂商示例和四级仿真前置条件；PCIe S2-A 已实际执行 Questa 动态 smoke。
 - DDR3 与 OV7725 的项目级资产仍为 `project_tb=0`、`project_f=0`、`project_do=0`。PCIe 已具备 S2-A/S2-B 两套项目 filelist/DO 定义、项目集成 TB、受控边界模型和真实 RC/EP TB；S2-A 与 S2-B 均已动态 PASS。
-- OV5640/S3：先完成 C0 参考审计与 C1 产品范围冻结，再由 C2/C3 建立新项目顶层、PG2L50H IP/约束和实现 baseline；OV7725 厂商示例与 O2/O3 结果只作 legacy 参考。
+- 双 OV5640/S3：参考顶层为 `top_dual_ov5640_hdmi`，两路 960x1080 半幅通过双写 DDR3 组成 1920x1080；未来只选择性导入到 `59_top_dual_ov5640_hdmi/`。4 个参考 TB 当前均不计覆盖，`tb_dual_ov5640_dri.v` 的 force 初始化与非 canonical 成功字符串必须整改。
+- 仿真归档边界：新项目 `.f/.do/TB` 只进入 `59_top_dual_ov5640_hdmi/sim/questa/`，运行态只进入其 `build/`；`41_ov7725_hdmi/sim/questa/` 仅 legacy。`sim_*`、work、mpf、ini、日志、波形、绝对路径生成物和许可证配置均不得导入。
 - DDR3/S1：现有厂商 `test_ddr`/memory-model 资产端口失配且含绝对路径与 FSDB/Verdi 假设。进入 S1 前必须关闭 S0-1、重生成并复核 PG2L50H DDR3 IP/FDC/RCF、完成 D3-A/B/C 与 D4，并提供项目自有有限 BIST/top 与自检 TB。
 - PCIe/S2：S2-A 已用项目级 `tb_pcie_dma_test` 实例化产品顶层，并以受控 `pcie_test` 边界动态验证顶层/复位/LED/未知态；现有 `pango_pcie_top` RC/EP testbench 仍不实例化产品顶层，只能在 S2-B 中作为真实 RC/编译顺序 oracle；S2-C 才验证 DMA。
 - 验收边界：`ipcore/`、`ip_core/`、`ip_backup/` 中的厂商示例只能作为参考证据，不能计入产品集成覆盖，也不能通过改名冒充项目自有 testbench。
@@ -153,11 +154,11 @@
 ## 已知功能与覆盖缺口
 
 - OV7725：`41_ov7725_hdmi/doc/CDC_RDC_AUDIT.md` 已记录七类时钟域、`wr_load`/`rd_load` 多点采样、两个异步 FIFO 数据方向和分侧复位风险，以及三条旧 STA 失败路径。
-- OV7725：O1-B 已完成 38 条确定性 RTL 卫生修复，手写 RTL 位宽告警只剩 `mem_a` 1 条；该单项因活动 IP 14 bit 与顶层/FDC 15 bit 冲突继续转 H3/O1-C，当前综合网表把 `mem_a[14]` 绑 0。
+- OV7725：O1-B 已完成 38 条确定性 RTL 卫生修复，手写 RTL 位宽告警只剩 `mem_a` 1 条；该单项因活动 IP 14 bit 与顶层/FDC 15 bit 冲突冻结为 legacy 风险，当前综合网表把 `mem_a[14]` 绑 0。
 - OV7725：O2-B 详细 STA 将反向八个 endpoint 唯一映射到 `serializer_b/g/r/clk × opit_2/opit_2_com` 的 OSERDES `OCLKDIV` 检查；慢角高速同域 `OCLK` 也仍为负。该覆盖证明候选失败，不构成 serializer reset 通过证据。
-- OV7725：O2-D1-R 已从空 `build/` 完成七阶段，baseline gate 精确匹配原七组 corner/check/clock pair/endpoints 并返回 0，严格 gate 返回 1；Slow/Fast `ddrphy_sysclk → pixel_clk` Recovery 均恢复为 `53/53`，endpoint 分类为 `26+8+17+1+1`，没有新增失败签名或 waiver。O2-D1-G 现已冻结：只允许一条 `pixel_clk` `/5` generated clock，源 `u_pll_clk/clkout1`、目标唯一 `GTP_IOCLKDIV_E2.CLKDIVOUT`、波形 `-edges {1 5 11} -edge_shift {0 0 0}`，并使用 `HARD_HOLD → QUALIFY → ARM → SER_RELEASE → RUN` 状态契约；审核前不实现 O2-D2，QuestaSim/S3 未完成。
+- OV7725：O2-D1-R 已从空 `build/` 完成七阶段，baseline gate 精确匹配原七组 corner/check/clock pair/endpoints 并返回 0，严格 gate 返回 1；O2-D1-G 的 generated-clock 和状态契约保留为历史设计证据。owner 已取消 O2-D2 与旧工程 Questa/S3，不再继续实现。
 - OV7725 M3-A：SP6.4 隔离探针已覆盖四个活动 IDF，确认不带安装定义时报 `IPCompiler 0037`，显式绑定当前定义时报版本不匹配 `IPCompiler 0057`，均退出 104。仓库门禁现检查迁移审计文档和四个 canonical IDF 的 SHA-256；该覆盖只证明旧 IDF 不可直接迁移及 canonical 未改，不证明 50H IP 已生成。
-- OV7725 M3-B 待覆盖：SP6.4 GUI 新建四个 PG2L50H staging 实例后，必须验证 DDR3/PLL 派生参数、FIFO 85 DRM36K/170 DRM18K 上限、wrapper/FDC/RCF/仿真资产差异和 RCF 对象命中；板级资料未关闭时禁止升格、50H PDS 和 S3。
+- OV7725 M3-B 已取消：不再新建四个 PG2L50H staging 实例、升格 canonical、执行 50H PDS 或旧工程 S3；M3-A 只防止旧 IP 被双 OV5640 误用。
 - DDR3：临时 `test_ddr` bring-up 已完成全流程与内部 STA/产物基线。严格 gate 因 7 类问题返回 1：BIST error-data 位宽不匹配、BIST dangling cleanup、`rst_board` 使用 share pin、BANKR4 VCCIO 3.3 不兼容、UART I/O 约束缺失、顶层输入 timing 缺失、顶层输出 timing 缺失。显式 baseline 放行返回 0，但明确标记不可发布。
 - DDR3 M2 只读审计（2026-08-30）：活动 IDF 为 `ip_core/ddr3/ddr3.idf`，metadata `Logos2/PG2L100H/FBG484/-6`、生成器 `2022.2-SP6.4`；canonical FDC/RCF 为 `ip_core/ddr3/pnr/ddr_test.fdc` 与 `ip_core/ddr3/pnr/ddr3.rcf`。唯一 50H 备份来自 SP6.1，不能直接替换；外层 `ip_core/ddr_test.fdc` 仅供差异参考。
 - DDR3 M2-B1 参数覆盖（2026-08-30）：PDS SP6.4 `ui.tcl` 静态证据确认 `DEVICE_100H_EN` 是隐藏派生参数，`PG2L100H/HX=true`、`PG2L50H=false`；已通过错误探针证明直接 `-device` 覆盖 100H IDF 会保留 `true` 并生成 PPLL `FALSE/CLKOUTF`，该路径已禁止。
@@ -184,10 +185,10 @@
 1. 行为级 testbench 自检通过，失败使用 `$fatal`，成功只输出一个 `TEST PASS`。
 2. PDS 各阶段退出码为 0，并对最终时序强制 `WNS >= 0`、`TNS = 0`。
 3. 综合后、PNR 后功能和 PNR 后时序仿真均使用集成顶层，而非仅 IP 示例。
-4. O2-D2 只允许一次已审核实验；八个 OSERDES endpoint 的 Slow/Fast × Recovery/Removal × `OCLK` 双边沿/`OCLKDIV`/`SERCLK` 全覆盖且非负，generated clock 唯一，旧 `CLKOUT0` 对 pixel 域为零消费者。generated-clock 对象/波形/取点、端点覆盖、PDS/gate/产物或新 baseline 失败任一异常即停止并完整回退，不得扫描第二相位或增加 waiver。
-4. 时序仿真确认 SDF 实例层级匹配，日志无标注错误和未批准的 timing violation。
-5. 最终位流文件存在且大小非零；关键未约束 I/O 必须修复或进入有依据的白名单。
-6. DDR3 有限自检必须完成恰好 16 个 pair；任一 pair 超过 4096 周期或整次运行超过 131072 周期均失败，成功与失败只能由公开结果接口和退出码判定。
+4. 双 OV5640 新项目必须重新证明 serializer recovery/removal、generated clock 唯一性、端点覆盖、逐域复位和 FIFO 分侧复位；不得把 OV7725 O2-D2 契约直接计为覆盖。
+5. 时序仿真确认 SDF 实例层级匹配，日志无标注错误和未批准的 timing violation。
+6. 最终位流文件存在且大小非零；关键未约束 I/O 必须修复或进入有依据的白名单。
+7. DDR3 有限自检必须完成恰好 16 个 pair；任一 pair 超过 4096 周期或整次运行超过 131072 周期均失败，成功与失败只能由公开结果接口和退出码判定。
 7. DDR3 D3-0 已冻结 AW/W/AR/R 握手语义与 `I_ips_ddr_top` 实例边界；D3-A/B/C 仍待用户审核和实现，且 D3-0 评审不构成 RTL/IP/约束变更或仿真通过证据。
 8. 三项目最终产物必须证明目标为 `PG2L50H/FBG484/-6`；任何 PG2L100H report、SDF 或位流均拒绝烧录和签核。
 9. PCIe H2-B 只有在 50H build/IDF/report/bitstream 一致、lane 极性/拓扑、I/O delay、SCBV 和 UART2APB 归属均有证据后才可发布。

@@ -14,14 +14,16 @@
 
 以下仅来自当前缺陷证据，不是 Git 统计热点：
 
-- `docs/OV5640_TARGET_SCOPE.md`：摄像头产品目标、OV7725 legacy 边界与 C0/C1/C2/C3/S3 关闭条件的首要入口；参考工程未审计前不得先改名或迁移 RTL。
+- `origin/parallel_driver@485f3bb`：双 OV5640 只读参考；`top_dual_ov5640_hdmi` 定义两路独立摄像头控制/采集、960x1080×2、双写 DDR3 与 1920x1080 输出。根 PDS/DDR3 为 PG2L100H、PCIe IP 为 PG2L50H，必须防止混合器件证据被误用。
+- `59_top_dual_ov5640_hdmi/`：未来选择性导入目标；可复现仿真源只能位于其 `sim/questa/`，运行态只能位于其 `build/`。参考 4 TB 尚未导入，`tb_dual_ov5640_dri.v` 的 force 初始化和非 canonical PASS 是首要审计点。
+- `41_ov7725_hdmi/sim/questa/`：仅 OV7725 legacy，不得用作双 OV5640 产品仿真归档目录。
 - `41_ov7725_hdmi/rtl/ov7725_hdmi.v`：OV7725 legacy 视频链路顶层、跨域控制和复位组合点，只能作为 OV5640 C2 的候选结构参考。
 - `41_ov7725_hdmi/doc/CDC_RDC_AUDIT.md`：O0-A CDC/RDC 事实、旧/新 STA 映射和后续整改契约的首要证据；O1-B 不得顺带修改该结构。
-- `41_ov7725_hdmi/doc/RTL_HYGIENE_AUDIT.md`：O1-A 的 39 条告警归属、38 条确定修复、`mem_a` H3/O1-C 阻断、隐式网络和 serializer reset 契约的首要证据。
+- `41_ov7725_hdmi/doc/RTL_HYGIENE_AUDIT.md`：O1-A 的 39 条告警归属、38 条确定修复、`mem_a` legacy 风险、隐式网络和 serializer reset 契约的首要历史证据。
 - `41_ov7725_hdmi/doc/SERIALIZER_RESET_CONTRACT.md`：记录旧 PG2L100H O2-A/O2-B/O2-D1 证据、`/5` generated-clock、状态机和 reset 分权。状态机与验证纪律可复用，但 `+0.192 ns` 裕量、七组时序指纹和 endpoint 数必须在 PG2L50H 新 baseline 后重新审核。
 - `41_ov7725_hdmi/doc/M3A_IP_MIGRATION_AUDIT.md`：记录四 IP 活动/安装版本断层、`IPCompiler 0037/0057` 探针、GUI new-instance/staging-only 规则、DDR3/PLL 隐藏派生参数、FIFO 资源上限、RCF 对象命中缺口和 canonical 升格条件。
-- `41_ov7725_hdmi/rtl/ov7725_dri/ov7725_dri.v`、`rtl/ddr3_ctrl_top/ddr3_ctrl_top.v`、`rtl/ov7725_hdmi.v`、`rtl/hdmi_top/serializer_10_to_1.v`、`rtl/hdmi_top/dvi_transmitter_top.v`：O1-B 的 38 条确定修复保留；O2-B 对 `dvi_transmitter_top.v` 的失败实验已完整回退，O2-D1-R 已完成，O2-D1-G 仅收口契约，用户审核前不得再修改 serializer RTL。
-- `41_ov7725_hdmi/scripts/build.tcl`：仍固定 16 RTL、4 个 PG2L100H 活动 IDF、1 FDC 和 PG2L100H 工程目标；M3 必须用 SP6.4 为 PG2L50H 重生成四个 IP 并重建 baseline，禁止手改 IDF。
+- `41_ov7725_hdmi/rtl/ov7725_dri/ov7725_dri.v`、`rtl/ddr3_ctrl_top/ddr3_ctrl_top.v`、`rtl/ov7725_hdmi.v`、`rtl/hdmi_top/serializer_10_to_1.v`、`rtl/hdmi_top/dvi_transmitter_top.v`：O1-B 的 38 条确定修复和 O2 失败实验保留为 legacy；产品主线冻结后不得继续修改旧 serializer RTL。
+- `41_ov7725_hdmi/scripts/build.tcl`：仍固定 16 RTL、4 个 PG2L100H 活动 IDF、1 FDC 和 PG2L100H 工程目标；该入口仅复现 legacy，不再迁移或生成产品位流，禁止手改 IDF。
 - `41_ov7725_hdmi/scripts/check_build.ps1`：严格模式因负时序返回非零；baseline 模式只证明产物与流程可重复，并明确标记不可发布。
 - `41_ov7725_hdmi/rtl/ddr3_ctrl_top/ctrl_fifo.v`：`wr_load`/`rd_load` 多点采样、两个异步 FIFO 数据方向和跨两侧复位分发点。
 - `41_ov7725_hdmi/prj/source/ov7725_hdmi.fdc`：时钟、CDC 例外和板级 I/O 约束入口。
