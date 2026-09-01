@@ -192,7 +192,7 @@ function Invoke-ModelSim {
 
     Assert-Executable -Path $Vsim -Description 'ModelSim/QuestaSim executable'
 
-    $DoFile = Join-Path $PSScriptRoot $DoFileName
+    $DoFile = Join-Path $ProjectRoot $DoFileName
     if (-not (Test-Path -LiteralPath $DoFile -PathType Leaf)) {
         throw "Simulation flow is not implemented yet: $DoFile"
     }
@@ -217,7 +217,7 @@ function Invoke-ModelSim {
     Push-Location $ProjectRoot
     try {
         Write-Host "INFO: running simulation script '$DoFileName' (run $RunId)"
-        & $Vsim -c -do "do scripts/$DoFileName"
+        & $Vsim -c -do "do $DoFileName"
         if ($LASTEXITCODE -ne 0) {
             throw "Simulation failed with exit code $LASTEXITCODE"
         }
@@ -289,12 +289,12 @@ switch ($Action) {
     }
     'sim-behav' {
         Invoke-ModelSim `
-            -DoFileName 'run_behav.do' `
+            -DoFileName 'sim/questa/run_behav.do' `
             -LogFileName 'sim-behav.log'
     }
     'sim-link' {
         Invoke-ModelSim `
-            -DoFileName 'run_link.do' `
+            -DoFileName 'sim/questa/run_link.do' `
             -LogFileName 'sim-link.log' `
             -PangoPdsRoot (Split-Path -Parent $PdsBin) `
             -SuccessMarker 'INFO: S2B_REAL_LINK_UP'

@@ -48,14 +48,14 @@ function Get-FileListEntries {
         Where-Object { $_ -and -not $_.StartsWith('#') -and -not $_.StartsWith('//') })
 }
 
-$LinkListPath = Join-Path $ProjectRoot 'sim\link.f'
-$VendorListPath = Join-Path $ProjectRoot 'sim\link_vendor_local.f'
+$LinkListPath = Join-Path $ProjectRoot 'sim\questa\link.f'
+$VendorListPath = Join-Path $ProjectRoot 'sim\questa\link_vendor_local.f'
 $VendorSourceListPath = Join-Path $ProjectRoot `
     'ipcore\pcie_test\sim\modelsim\pango_pcie_top_filelist.f'
 $VendorSourceDoPath = Join-Path $ProjectRoot `
     'ipcore\pcie_test\sim\modelsim\pango_pcie_top_sim.do'
-$CompileDoPath = Join-Path $PSScriptRoot 'compile_vendor_link.do'
-$RunDoPath = Join-Path $PSScriptRoot 'run_link.do'
+$CompileDoPath = Join-Path $ProjectRoot 'sim\questa\compile_vendor_link.do'
+$RunDoPath = Join-Path $ProjectRoot 'sim\questa\run_link.do'
 $RunPath = Join-Path $PSScriptRoot 'run.ps1'
 $TestbenchPath = Join-Path $ProjectRoot 'tb\tb_pcie_dma_link.sv'
 
@@ -86,7 +86,7 @@ $ExpectedLinkEntries = @(
     '+define+DWC_DISABLE_CDC_METHOD_REPORTING',
     '+incdir+hdl/pcie_dma_ctrl/ips2l_pcie_dma_ram/rtl',
     '+incdir+ipcore/pcie_test/sim/modelsim',
-    '-f sim/link_vendor_local.f',
+    '-f sim/questa/link_vendor_local.f',
     '-f scripts/pds_sources.f',
     'tb/tb_pcie_dma_link.sv'
 )
@@ -252,8 +252,8 @@ foreach ($Required in ([ordered]@{
         'DO run identity' = 'SIM_RUN_ID'
         'DO run-scoped work library' = 'build/sim/link/\$env\(SIM_RUN_ID\)'
         'DO separate vendor library' = 'vmap\s+pcie_vendor\s+\$vendor_dir'
-        'DO vendor compiler call' = 'do\s+scripts/compile_vendor_link\.do'
-        'DO S2-B filelist compile' = 'vlog\s+-sv\s+-work\s+work\s+-f\s+sim/link\.f'
+        'DO vendor compiler call' = 'do\s+sim/questa/compile_vendor_link\.do'
+        'DO S2-B filelist compile' = 'vlog\s+-sv\s+-work\s+work\s+-f\s+sim/questa/link\.f'
         'DO vendor library elaboration' = '-L\s+pcie_vendor'
         'DO S2-B testbench elaboration' = 'work\.tb_pcie_dma_link'
         'DO bounded completion' = 'run\s+-all'
