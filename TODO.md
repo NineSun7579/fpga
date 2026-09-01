@@ -2,7 +2,7 @@
 
 更新日期：2026-09-01
 
-状态：三项目器件迁移已获审核。用户确认 DDR3、PCIe、OV7725 HDMI 最终均运行在同一块 `RK3568+PG2L50H100H` 开发板，实际 FPGA 为 `PG2L50H-6IFBG484`，PDS 目标统一为 `Logos2 / PG2L50H / FBG484 / -6`。既有 PG2L100H 构建、STA、网表、SDF 和位流仅保留为历史证据，不得用于实际板卡验收或烧录。当前先按 PCIe → DDR3 → OV7725 的独立批次完成 50H 迁移；D3-A 与 O2-D2 在新 50H 基线复核前暂停。
+状态：三项目器件迁移已获审核。DDR3、PCIe 和摄像头 HDMI 最终均运行在同一块 `RK3568+PG2L50H100H` 开发板，实际 FPGA 为 `PG2L50H-6IFBG484`，PDS 目标统一为 `Logos2 / PG2L50H / FBG484 / -6`。摄像头产品目标已由 owner 校正为 OV5640；现有 `41_ov7725_hdmi` 仅保留为 OV7725 legacy 历史基线与可复用基础设施来源。既有 PG2L100H 构建、STA、网表、SDF 和位流不得用于实际板卡验收或烧录。OV5640 范围见 [`docs/OV5640_TARGET_SCOPE.md`](docs/OV5640_TARGET_SCOPE.md)。
 
 ## 1. 总体验收目标
 
@@ -31,7 +31,8 @@
 
 - [x] 建立 Git 基线、根目录指南、`.gitignore` 和 repo-local `.nexus-map`。
 - [x] 用户确认三项目共用实际焊接 `PG2L50H-6IFBG484` 的 `RK3568+PG2L50H100H` 开发板，并批准统一迁移方案。
-- [x] 完成三项目 50H 只读审计：PCIe 活动 IP 已匹配 50H；DDR3 活动 IP 和 OV7725 四个活动 IP 仍为 100H，必须分项目处理。
+- [x] owner 将摄像头产品目标校正为 OV5640；现有 OV7725 工程和完成证据保留为 legacy，不机械改名或继承为 OV5640 验收。
+- [x] 完成三项目 50H 只读审计：PCIe 活动 IP 已匹配 50H；DDR3 活动 IP 和 OV7725 legacy 的四个活动 IP 仍为 100H，必须分项目处理。
 - [x] 明确 VSCS 只强制覆盖后续修改的手写 RTL/TB，排除厂商生成 IP。
 - [x] PCIe 建立相对路径 `build.tcl`、PowerShell 入口和严格产物检查器。
 - [x] PCIe 在错误的 PG2L100H 工程目标下完成历史全流程重建，慢角 setup WNS `0.584 ns`、TNS `0`；该数值不得继承为 50H 验收结果。
@@ -56,17 +57,18 @@
 - [x] PCIe 完成 H2-A lane/refclk/PERST#/UART/SCBV/IP 目标证据矩阵；新器件事实证明活动 `pcie_test.idf` 的 PG2L50H 元数据正确，原“重生为 100H”结论作废。
 - [x] 识别 PCIe 静态 gate 的错误目标：已改为 PG2L50H，并增加日志、STA、bitstream 器件交叉检查。
 - [x] PCIe 完成 H2-B0 精确 baseline 指纹：16 个对象签名、42 次记录；任何对象/数量/位置或 IP metadata 漂移均失败，严格 gate 仍保持发布阻断。
-- [x] H0/H1/H3 资料准备：新增 OV7725 HDMI 与 DDR3 板级证据清单，统一收集板卡、器件、时钟、电压、拓扑和 I/O 时序依据；资料未提供前不修改硬件参数。
+- [x] H0/H1/H3 资料准备：现有 OV7725 HDMI 与 DDR3 板级证据清单保留历史事实；OV5640 另行收集模组、接口、时钟、电压、拓扑和 I/O 时序依据，资料未提供前不修改硬件参数。
 - [x] S0-0 完成公共仿真器可执行文件复核；2026-08-30 的历史复核未发现 `vsim.exe`、`vlog.exe`、`vlib.exe`。
 - [x] S0-0-Q（2026-09-01）：确认 Questa Sim-64 `2021.1` 的 `vsim.exe`、`vlog.exe`、`vlib.exe` 可执行；许可证由本机外部环境提供，仓库不得记录许可证路径、服务器、feature 或许可证文件。
 - [x] S0-0-Q：最小 SystemVerilog 编译、elaboration 和运行成功，退出码为 0，日志包含唯一 `TEST PASS`。
 - [x] S0-1-Q：PDS `2022.2-SP6.4` 已用 Questa `2021.1` 成功编译 Logos2 USIM，包括 Pango `modelsim10.2c` 保护模型、HSST 和 PCIe Gen2 库；日志无 `E:` 且库目录非空。
-- [x] 完成三项目 S1/S2/S3 仿真就绪度盘点；矩阵见 [`docs/SIMULATION_READINESS_MATRIX.md`](docs/SIMULATION_READINESS_MATRIX.md)。DDR3 与 OV7725 仍缺项目级 TB、`.f`、`.do`；PCIe 已具备 S2-A/S2-B 项目入口，厂商示例仍不能直接作为集成验收。
+- [x] 完成三项目 S1/S2/S3 仿真就绪度盘点；矩阵见 [`docs/SIMULATION_READINESS_MATRIX.md`](docs/SIMULATION_READINESS_MATRIX.md)。DDR3 与摄像头 HDMI 仍缺项目级 TB、`.f`、`.do`；PCIe 已具备 S2-A/S2-B 项目入口，厂商示例仍不能直接作为集成验收。
 - [x] 验证 QuestaSim 版本、三项可执行文件和最小 SystemVerilog smoke；许可证可用性仅由本机临时环境确认，不记录或提交任何许可证配置值。
 - [x] 编译并验证 Logos2 VSIM；PNR 原语 `V_BUF` 已从共享库成功加载并完成最小动态 smoke。
+- [ ] S0-2-Q（2026-09-01 当前复验）：Questa `2021.1` 环境检查、S2-A/S2-B 静态门禁通过，但 S2-A 动态启动因外部许可证 checkout 失败而以退出码 4 阻断；恢复仓库外许可证后必须生成新的 `SIM_RUN_ID` 和唯一 `TEST PASS`。
 - [ ] 完成三项目分级自检仿真。
 
-### 当前执行队列（2026-08-30）
+### 当前执行队列（2026-09-01）
 
 按以下顺序推进；每项独立提交，未满足前置条件时保持阻塞，不以 baseline 放行代替验收：
 
@@ -87,48 +89,54 @@
    - 当前正确 staging 为 PG2L50H、SP6.4、`DEVICE_100H_EN=false`，DDR PHY 使用 `TRUE/CLKOUT4` 分支，canonical 哈希不变；顶层新增 5 个端口，FDC 有 28 项管脚差异，尚未升格。
    - 验收：先用原理图/BOM 关闭新增 refclk、DDR byte lane、复位/UART/LED/状态输出和电压拓扑，再原子升格并重跑 CI-6、七阶段和 D3-0-R。D3-A 仍需另行审核。
 
-4. **M3：OV7725 PG2L50H 四 IP 重生成与新基线**
+4. **C0/C1：OV5640 参考工程审计与产品范围冻结**
+   - 前置：将 owner 指定的 `59_top_dual_ov5640_hdmi` 参考工程只读导入 staging；当前路径尚不可访问，不能声称已审核源码。
+   - 交付：源/IP/FDC/顶层/器件清单；单摄或双摄决策；模组、MCLK、RESET/PWDN、电压、DVP、格式、分辨率、帧率和字节序契约。
+   - 验收：明确新的 OV5640 项目目录与顶层；旧 OV7725 的 SCCB 地址、8 位寄存器表、640x480 RGB565 和板级假设均不得默认继承。
+
+5. **M3：OV7725 legacy 基础设施的 PG2L50H 可复用性审计**
    - 前置：先获得实际 DDR3 料号、x16/x32 组织、row 位数和管脚拓扑；当前 100H DDR 配置与仓库历史 50H DDR 工程不可互换。
    - M3-A 已完成 [`四 IP 迁移前审计`](41_ov7725_hdmi/doc/M3A_IP_MIGRATION_AUDIT.md)：活动版本为 DDR3 `1.12`、PLL `1.3`、FIFO `1.8`，SP6.4 安装版本为 `1.10/1.5/1.10`；旧 IDF override 和手改版本字段均禁止。
    - 下一批 M3-B 只允许用 SP6.4 IP Compiler GUI 在 `Logos2 / PG2L50H / FBG484 / -6` 下新建四个实例，输出到 `build/ipgen/pg2l50h/**`，先完成参数和完整资产差异审计，不原地覆盖 canonical。
    - 交付：板级参数审核后原子升格四个 IP，重建 FDC/RCF、clock object 和全流程 baseline；DDR3 `DEVICE_100H_EN=false`、PLL `DEVICE_PG2L50H=true`，FIFO 必须满足 85 个 DRM36K/170 个 DRM18K 资源上限。
    - 验收：旧 100H 七组时序指纹、endpoint 数和 `+0.192 ns` 裕量全部作废；基于新 50H STA 重新审核 O2-D2。
 
-5. **S0-1：关闭公共 Questa 仿真环境门禁（已完成）**
+6. **S0-1：关闭公共 Questa 仿真环境门禁（已完成）**
    - 已完成：Questa Sim-64 `2021.1` 三项可执行文件、外部许可证 checkout、最小 SystemVerilog smoke，以及 Logos2 USIM/VSIM 编译验证。
    - 保密边界：工具安装位置和许可证配置只通过运行参数或本机环境提供；许可证路径、服务器、feature、许可证内容和许可证文件均不得提交。
    - 验证证据：USIM/VSIM 各自编译退出码为 0、日志无 `^E:`、两个库目录均存在且非空；最小 SV smoke 与从 VSIM 加载 `V_BUF` 的原语 smoke 均为唯一 `TEST PASS`。
+   - 当前复验：三项工具和静态入口可用，但动态启动因仓库外许可证 checkout 失败返回 4；恢复后必须重跑，不能复用旧日志冒充本次结果。
    - 剩余边界：公共环境门禁完成不等于三个项目的后级网表、SDF 标注或板级功能通过；这些仍由 S1/S2/S3 分项目关闭。
 
-6. **H0/H1/H3：补齐其余板级事实（外部阻断）**
-   - 前置：板卡型号与 FPGA 型号已确认；仍需原理图/BOM、bank 电压、DDR3 料号/拓扑、OV7725/HDMI 时序资料。
+7. **H0/H1/H3：补齐其余板级事实（外部阻断）**
+   - 前置：板卡型号与 FPGA 型号已确认；仍需原理图/BOM、bank 电压、DDR3 料号/拓扑、OV5640/HDMI 时序资料。
    - 交付：经审核的板级参数清单，明确 OV7725 `mem_a` 为 14/15 bit、DDR3 组织、时钟与 I/O delay。
    - 验收：清单与 IDF/FDC/RTL 一致；资料缺失时禁止猜测或收紧 gate。
 
-7. **O2-D2：OV7725 serializer reset 单次实现（迁移后重新审核）**
+8. **O2-D2：OV7725 legacy serializer reset 研究（不得直接延续到 OV5640）**
    - 前置：M3 的 50H baseline 完成，并基于 50H PLL/STA 重新确认 O2-D1-G 契约；原 100H 审核不能直接作为编码授权。
    - 交付：一次性 PLL 重生成、项目自有控制器、`/5` generated-clock 和 pixel/read-FIFO 时钟原子迁移。
    - 验收：compile/elaboration 与七阶段 STA 均满足契约；八个 OSERDES endpoint 的 Slow/Fast Recovery/Removal 全部非负且覆盖完整。任一对象、warning、CDC、SDF 或 baseline 漂移触发整批回退。
 
-8. **D3-A → D3-B → D3-C：DDR3 项目自有有限 BIST**
+9. **D3-A → D3-B → D3-C：DDR3 项目自有有限 BIST**
    - 前置：M2 后重跑 CI-6，并重新审核 D3-0 握手语义与顶层边界；保持新生成的 `I_ips_ddr_top` 和厂商 IP 原样。
    - 交付：BIST/top 骨架、16 个单 beat pair、watchdog/错误接口，再完成七阶段 PDS 回归。
    - 验收：先 compile/elaboration，再功能实现；不得新增物理端口、未批准告警或修改 `ip_core/ddr3/**`。
 
-9. **H2-B1：PCIe 板级闭环**
+10. **H2-B1：PCIe 板级闭环**
    - 前置：M1 完成，补齐 H2 板级资料和 UART 保留/删除决策。
    - H2-B0 已完成精确 baseline 指纹；它只保护失败状态不漂移，不解除任何板级阻断。
    - 交付：PG2L50H 一致的工程/IDF/产物、lane/refclk/PERST#/SCBV 约束和精确 gate 指纹。
    - 验收：严格 gate 无 baseline 参数返回 0；UART 隐式网络、器件元数据和板级约束阻断全部关闭。
 
-10. **S1/S2/S3：三项目四级仿真**
+11. **S1/S2/S3：三项目四级 Questa 仿真**
    - 前置：S0-1 完成；对应项目 RTL/IP/网表/SDF 已锁定；先按 [`docs/SIMULATION_READINESS_MATRIX.md`](docs/SIMULATION_READINESS_MATRIX.md) 补齐项目级入口，禁止复用厂商示例顶层冒充集成验证。
    - 交付：相对路径 filelist/DO、自检 TB、行为/综合后/PNR 功能/PNR 时序日志；厂商示例仅保留为模型和接口参考。
    - 验收：每级只输出一次 `TEST PASS`；失败/超时 `$fatal`，退出码非零；SDF 无 annotation 或层级匹配错误。
 
-11. **O1-C → O3-A → O2-C1 → O2-C2 → O3-B → O4：OV7725 最终闭环**
-   - 前置：H3 与 O2-D2 结果；先完成 `mem_a`/IP/FDC 对齐，再处理 CDC、FIFO reset 和最窄时序例外。
-   - 交付：逐域复位与事件 CDC、FIFO 复位语义、约束和最终 gate。
+12. **C2/C3：OV5640 项目实现与最终闭环**
+   - 前置：C0/C1、H3 与 PG2L50H IP/FDC 决策完成；OV7725 O1/O2/O3/O4 只作问题清单和可复用性参考。
+   - 交付：新的 OV5640 SCCB/读 ID/采集路径、逐域复位与事件 CDC、FIFO reset、DDR3/HDMI 约束和最终 gate。
    - 验收：setup/hold/recovery/removal 全通过，SDF/位流/仿真齐全；不得用宽泛 `false_path`、multicycle 或 waiver 掩盖结构问题。
 
 ### 近期执行顺序
@@ -136,9 +144,10 @@
 1. **P0：M0 器件事实落盘。** 统一三项目实际目标为 PG2L50H，并禁止误用所有 100H 产物。
 2. **P0：M1 PCIe 先行。** 活动 PCIe IP 已是 SP6.4 50H，先修 build/gate，再从空 `build/` 建立新的 50H 七阶段基线。
 3. **P1：M2 DDR3 迁移。** 以 SP6.1 50H backup 为参数/差异 oracle，用 SP6.4 正式重生成；当前 100H FDC 不得复用。
-4. **P1：M3 OV7725 迁移。** 先闭合真实 DDR3 组织和管脚，再重生成四个 50H IP；不能把旧 `+0.192 ns` 或七组时序指纹机械继承到 50H。
-5. **P2：恢复功能主线。** M2 后重审 D3-A；M3 后重审 O2-D2；两者都不能由本次器件迁移批准自动解锁。
-6. **持续泳道：H0-H3、S0。** 原理图/BOM/DDR3/PCIe/OV7725 证据或仿真器一旦到位，立即关闭对应阻断。
+4. **P1：C0/C1 OV5640 范围。** 先导入并只读审计参考工程，再冻结单/双摄、模组接口和输出格式；不得先改名或移植 RTL。
+5. **P1：M3 基础设施迁移。** 只审核 OV7725 legacy 中 DDR3/PLL/FIFO/HDMI 基础设施的可复用性；不能继承旧 `+0.192 ns` 或七组时序指纹。
+6. **P2：恢复功能主线。** M2 后重审 D3-A；OV5640 仅在 C0/C1 审核完成后进入 C2/C3，不由旧 O2-D2 批准自动解锁。
+7. **持续泳道：H0-H3、S0-S3。** 原理图/BOM/DDR3/PCIe/OV5640 证据或项目级 Questa 入口一旦到位，立即关闭对应阻断。
 
 停止条件：缺少板级事实时不猜测管脚、电压、IP 参数或 I/O delay；任何 baseline 仅代表失败状态可重复，不得作为时序 waiver 或发布批准。
 
@@ -426,13 +435,14 @@ O2-D2 停止条件：控制相位或 `/5` generated clock 未被 PDS 唯一识�
 - [x] 使用 baseline 放行完成全流程重建并保留产物、STA 和阻断证据。
 - [ ] 关闭前述 H2 阻断后，完整重建并使 `check_build.ps1` 不带 baseline 放行参数返回 0。
 
-### H3：OV7725/HDMI 板级参数
+### H3：OV5640/HDMI 板级参数
 
-- [ ] 确认 OV7725 输入格式、RGB565 字节序、分辨率、帧率和像素时钟范围。
+- [ ] 确认 OV5640 模组完整料号、单摄或双摄、MCLK、RESET/PWDN、供电和 I/O 电压。
+- [ ] 确认 DVP 位宽、行场/像素时钟极性、输出格式、字节序、分辨率和帧率。
 - [ ] 确认 HDMI 输出模式及外部时序要求。
 - [ ] 核对 DDR3 型号、32-bit 配置、800 MT/s 和 PCB 拓扑。
 - [ ] 确认 DDR3 row address 位数及 `mem_a[14] / V3` 是否真实连接，关闭 O1-C 分支决策。
-- [ ] 依据传感器和 PCB 数据补 `cam_pclk` input delay。
+- [ ] 依据 OV5640 模组和 PCB 数据补摄像头时钟及 input delay。
 - [ ] 复核 `PAP_CLOCK_DEDICATED_ROUTE FALSE`、TMDS/DDR/share pin 和 I/O 电压。
 
 ## 6. 仿真验证泳道
@@ -445,6 +455,7 @@ O2-D2 停止条件：控制相位或 `/5` generated clock 未被 PDS 唯一识�
 - [x] 编译 Logos2 VSIM 到 `build/simlib/`；编译日志无 `^E:`，库目录非空，`V_BUF` 原语可被 Questa 加载并完成最小 smoke。
 - [x] 将仿真器安装路径作为可覆盖外部参数，不写入工程源清单。
 - [x] 将许可证配置保持在仓库外部；禁止提交许可证绝对路径、服务器、feature、内容或许可证文件。
+- [ ] S0-2-Q：当前 S2-A 动态复验在 Questa 启动时因许可证 checkout 失败返回 4；恢复外部许可证后重跑，并以新 run marker、唯一 `TEST PASS`、`Errors: 0` 和 PowerShell 退出码 0 关闭。
 
 ### S1：DDR3 四级仿真
 
@@ -463,7 +474,8 @@ O2-D2 停止条件：控制相位或 `/5` generated clock 未被 PDS 唯一识�
 
 - [x] S2-A：新建 `tb_pcie_dma_test.sv` 和受控 `pcie_test` 边界模型，覆盖项目顶层展开、真实 reset helper、复位释放/中断、LED 域、未知态和 3 ms watchdog；model-controlled link 不作为真实链路证据。
 - [x] S2-A：新建相对路径 `sim/behav.f`、行为级 DO、`SIM_RUN_ID`/唯一 PASS 日志门禁和 `check_sim.ps1`；不修改厂商示例，契约见 [`S2A_BEHAVIOR_SMOKE.md`](pcie_dma_test_100h/doc/S2A_BEHAVIOR_SMOKE.md)。
-- [x] S2-A 动态：仅在仿真专用 `sim/behav.f` 中补入 `ips2l_pcie_apb_cross_v1_0.v`，保持由 IDF 管理的 canonical PDS 源清单不变；Questa `2021.1` 下 RTL 编译为 0 errors/0 warnings，elaboration 成功并运行到 `1476105 ns`，同一 run marker、唯一 `TEST PASS` 和 PowerShell 退出码 0 均通过。
+- [x] S2-A 历史动态：仅在仿真专用 `sim/behav.f` 中补入 `ips2l_pcie_apb_cross_v1_0.v`，保持由 IDF 管理的 canonical PDS 源清单不变；Questa `2021.1` 下 RTL 编译为 0 errors/0 warnings，elaboration 成功并运行到 `1476105 ns`，同一 run marker、唯一 `TEST PASS` 和 PowerShell 退出码 0 均通过。
+- [ ] S2-A 当前复验：静态 gate 通过；动态运行等待 S0-2-Q 恢复后生成新的 run id，旧 `fab4ccef3e2445abbd9d1cad1e66b2ab` 日志不得作为本次复验结果。
 - [ ] S2-A RTL hygiene：显式处理 `u_ips2l_pcie_dma` 输出 `o_trgt1_radm_pkt_halt`，关闭现存 2 条未连接端口 warning；该项不改变 S2-A 受控 smoke 已通过的结论。
 - [x] S2-B 静态：以厂商 `pango_pcie_top_sim` 为 RC、项目真实 `pcie_dma_test` 为 EP，建立双库、参数化模型、双向 x2 lane、两端 link/LTSSM L0、32 周期稳定、6 ms watchdog 和唯一 PASS 合同；见 [`S2B_REAL_LINK.md`](pcie_dma_test_100h/doc/S2B_REAL_LINK.md)。
 - [ ] S2-B 动态：运行 `sim-link`，同一 `SIM_RUN_ID` 日志必须包含唯一 `INFO: S2B_REAL_LINK_UP` 和 `TEST PASS`；当前未生成真实 LTSSM/link-up 动态证据。
@@ -471,11 +483,11 @@ O2-D2 停止条件：控制相位或 `/5` generated clock 未被 PDS 唯一识�
 - [ ] 再完成综合后、PNR 功能和 PNR 时序仿真。
 - [ ] 每级成功只输出一个 `TEST PASS`，失败或超时返回非零。
 
-### S3：OV7725 集成仿真
+### S3：OV5640 集成仿真
 
-摄像头模型、行为级 TB 和纯 RTL 数据通路自检依赖 S0 与已确认的输入格式契约，可先于全部板级约束开发。PNR 后功能/时序仿真依赖 O4、H3 和器件一致的网表/SDF。
+摄像头模型、行为级 TB 和纯 RTL 数据通路自检依赖 S0、C0/C1 与已确认的输入格式契约。PNR 后功能/时序仿真依赖 C3、H3 和器件一致的网表/SDF；现有 OV7725 TB 计划不得直接改名复用。
 
-- [ ] 建立可重复摄像头帧输入模型和 `tb_ov7725_hdmi.sv`。
+- [ ] 建立可重复 OV5640 帧输入模型、读 ID/配置检查和 `tb_ov5640_hdmi.sv`。
 - [ ] 覆盖 DDR 初始化延迟、帧写入/切换/读出、HDMI 有效区和 FIFO 边界。
 - [ ] 覆盖复位中断、仿真超时和数据错误 `$fatal`。
 - [ ] 完成行为级、综合后、PNR 功能和 PNR 时序仿真。

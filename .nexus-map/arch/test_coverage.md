@@ -16,6 +16,7 @@
 - 已验证：S0-1 参数化入口 `scripts/compile_simlib.tcl` 与 `scripts/compile_simlib.ps1` 已提交；PowerShell AST 错误数为 0。入口支持 ModelSim/QuestaSim、USIM/VSIM/BOTH、family、语言、PDS/仿真器路径和输出目录覆盖，强制检查三项仿真器可执行文件，并检查 PDS 退出码、日志 `^E:` 与所选库目录。
 - 已验证：Questa Sim-64 2021.1 最小 SystemVerilog 通过；PDS SP6.4 Logos2 USIM/VSIM 均编译成功。VSIM 编译入口退出 0、日志无 `^E:`、`vsim` 目录非空。
 - 已验证：最小后级原语 smoke 从 VSIM 库加载 `V_BUF`，运行 `2 ns`，Errors 0/Warnings 0、唯一 `TEST PASS`。
+- 当前复验：S2-A/S2-B 静态门禁通过；S2-A 动态启动因仓库外许可证 checkout 失败返回 4，未产生新的 run marker 或 `TEST PASS`。历史 S2-A PASS 继续保留，但不得冒充当前复验。
 - 未验证：三个项目的综合后、PNR 功能、PNR 时序和 SDF 标注；公共 S0-1 完成不等于项目后级仿真通过。
 
 ## CI-0 仓库级静态一致性门禁（2026-08-30）
@@ -80,11 +81,11 @@
 
 ## CI-9 许可证敏感差异门禁（2026-09-01）
 
-- 已验证入口：`scripts/check_sensitive_diff.ps1` 以指定基线和 `HEAD` 的 merge-base 为起点，扫描 tracked 新增路径、diff 新增行和未跟踪文本；`docs/SENSITIVE_DIFF_GATE.md` 固化使用方法与边界。
+- 已验证入口：`scripts/check_sensitive_diff.ps1 -FullTree` 扫描当前 tracked/untracked 工作树；PR 模式以指定基线和 `HEAD` 的 merge-base 为起点，扫描 changed paths 与 added lines。`docs/SENSITIVE_DIFF_GATE.md` 固化使用方法与边界。
 - 已验证规则：严格占位符白名单之外，许可证文件名、Windows/UNC/Unix 绝对许可证路径、真实许可证环境赋值、裸端点、FlexNet 内容、签名与 host id 均返回非零。
 - 自检覆盖：2 个允许新增行、5 个拒绝新增行、1 个允许文件名和 1 个拒绝文件名均按预期判定。
-- 真实差异覆盖：CI-9 分支相对 `origin/main` 的最终扫描退出 0，扫描 20 paths/617 added lines。
-- 边界：门禁只阻止相对 merge-base 新增的泄露，不读取或打印实际许可证配置，不修改工作树，不检查二进制内容，也不清理 Git 历史；历史清理必须作为独立安全批次审核。
+- 当前树覆盖：68 个 tracked 日志中的 143 处许可证绝对路径已替换为 `<license-path>`；`-FullTree` 扫描通过，PR 差异扫描也通过。
+- 边界：全树门禁保证当前版本不再包含规则覆盖的敏感路径或内容，差异门禁阻止后续重新引入；两者均不读取或打印实际许可证配置，也不改写 Git 历史。
 
 ## S0-0-R 仿真器环境复核（2026-08-30）
 
@@ -95,7 +96,7 @@
 
 | 项目 | PDS 实现证据 | 时序证据 | 行为仿真 | 综合后仿真 | PNR 功能仿真 | PNR 时序仿真 |
 |---|---|---|---|---|---|---|
-| OV7725 HDMI | 旧 PG2L100H O1-B/O2-B/O2-D1-R 流程完成，但与实际 PG2L50H 不匹配；四个 IP 需重生成并建立 50H baseline | 旧 100H Recovery 失败只作为候选分析证据；50H STA 尚未执行，O2-D2 必须在新 baseline 后重审 | 未就绪；S3 项目级入口缺失 | 旧 100H 网表不可签核 | 旧 100H PNR 网表不可签核 | VSIM/SDF 未验证，旧 100H 结果不可签核 |
+| OV5640 摄像头 HDMI | 产品目标已冻结为 OV5640；C0 参考审计和 C1 产品范围仍待完成 | C3 前无产品 STA；OV7725 旧时序只作 legacy 参考 | S3 项目级入口缺失 | 新产品网表尚未生成 | 新产品 PNR 网表尚未生成 | 新产品 SDF 尚未生成/标注 |
 | DDR3 外层 | 旧 PG2L100H 七阶段与五类产物已完成，但不可用于实际 PG2L50H；需重生成 50H IP/FDC/RCF | 旧 100H `All Constraints Met` 只保留历史；50H STA 未执行 | D2/D3-0 旧契约已定，PG2L50H 重生成后须重审；S1 项目级入口缺失 | 旧网表不可签核 | 旧 PNR 网表不可签核 | VSIM/SDF 未验证，旧 100H 结果不可签核 |
 | PCIe DMA | 活动 IDF、build/PDS/gate 与新产物均为 PG2L50H；已从空 `build/` 完成七阶段重建 | 50H STA 已生成，最差解析 slack `0.100 ns`；严格 gate 仍受板级/功能缺口阻断 | S2-A 受控 smoke 动态 PASS；不覆盖真实链路/DMA/板级 | 顶层未闭环 | 新 50H 网表待集成仿真 | 公共 VSIM 已验证，项目 SDF 待标注 |
 
@@ -103,12 +104,12 @@
 
 - 已验证盘点：`docs/SIMULATION_READINESS_MATRIX.md` 已逐项目记录项目级 testbench、filelist、DO、厂商示例和四级仿真前置条件；PCIe S2-A 已实际执行 Questa 动态 smoke。
 - DDR3 与 OV7725 的项目级资产仍为 `project_tb=0`、`project_f=0`、`project_do=0`。PCIe 已具备 1 个项目集成 TB、1 个受控边界模型、1 个行为 filelist 和 1 个 DO 入口，并已动态 PASS。
-- OV7725/S3：现有厂商示例只覆盖单个 IP。进入 S3 前必须关闭 S0-1、重生成四个 PG2L50H IP并建立新 baseline、重新审核 O2-D2、固定摄像头输入格式契约并锁定 O2-D2/O3 RTL。
+- OV5640/S3：先完成 C0 参考审计与 C1 产品范围冻结，再由 C2/C3 建立新项目顶层、PG2L50H IP/约束和实现 baseline；OV7725 厂商示例与 O2/O3 结果只作 legacy 参考。
 - DDR3/S1：现有厂商 `test_ddr`/memory-model 资产端口失配且含绝对路径与 FSDB/Verdi 假设。进入 S1 前必须关闭 S0-1、重生成并复核 PG2L50H DDR3 IP/FDC/RCF、完成 D3-A/B/C 与 D4，并提供项目自有有限 BIST/top 与自检 TB。
 - PCIe/S2：S2-A 已用项目级 `tb_pcie_dma_test` 实例化产品顶层，并以受控 `pcie_test` 边界动态验证顶层/复位/LED/未知态；现有 `pango_pcie_top` RC/EP testbench 仍不实例化产品顶层，只能在 S2-B 中作为真实 RC/编译顺序 oracle；S2-C 才验证 DMA。
 - 验收边界：`ipcore/`、`ip_core/`、`ip_backup/` 中的厂商示例只能作为参考证据，不能计入产品集成覆盖，也不能通过改名冒充项目自有 testbench。
 - 四级共同门槛：所有入口使用相对路径 filelist/DO 和项目自有集成 TB；必须具备超时、`$fatal`、唯一 `TEST PASS` 与可靠非零失败退出；PNR 时序仿真必须按实际 DUT 实例层级标注 SDF。
-- 公共状态：S0-1 已完成，Questa Sim-64 2021.1、Logos2 USIM/VSIM 与最小 `V_BUF` 后级原语 smoke 均已验证；DDR3/S1、OV7725/S3、PCIe S2-B/S2-C 与三个项目后级仿真仍未完成。
+- 公共状态：Questa Sim-64 2021.1 工具、Logos2 USIM/VSIM 与历史 smoke 有通过证据；当前 S2-A/S2-B 静态门禁通过，动态复验受仓库外许可证 checkout 阻断。DDR3/S1、OV5640/S3、PCIe S2-B 动态/S2-C 与三个项目后级仿真仍未完成。
 
 ## PCIe S2-A 行为 smoke（2026-09-01，动态通过）
 
@@ -117,6 +118,7 @@
 - 已验证 reset ownership：button reset 断言后，TB 先检查 ref counter 没有被 button reset 改写，再等待额外 8 个 refclk 周期并要求其在 model link 撤销期间严格保持；button reset 完整重新释放后，PERST# 再被单独断言、复位两组 LED 域并独立重新释放，不能由初次联合释放遮蔽 debounce 行为。
 - 已验证复位与日志契约：TB 全局复位实例使用厂商要求的 `GRS_INST`；`run_behav.do` 通过 `echo` 将随机 32 位小写十六进制 `SIM_RUN_ID` 写入 transcript，PowerShell 只接受同 run-id marker 与 `TEST PASS` 各恰好一次。
 - 动态结果：Questa Sim-64 2021.1 下 `vlog` 为 0 errors/0 warnings；`vsim` elaboration 成功并运行到 `1476105 ns`，Errors 0/Warnings 2、唯一 `TEST PASS`；PowerShell 同 run-id/唯一 PASS 门禁通过。
+- 当前复验结果：S2-A 静态 gate 与 S2-B 静态契约 gate 通过；S2-A 动态启动因仓库外许可证 checkout 失败返回 4，未产生新的 `TEST PASS`。上一条仅为历史 PASS，不代表当前复验通过。
 - 构建回归：当前 manifest run id `c24bc06b5d0643eeb6c9cb2878e7ace5` 为 `gen_bit_stream/complete/valid=true`，43 项输入和 7 项证据完整；baseline gate 再次返回 0，strict gate 仍因 UART RX tied low、未约束顶层 I/O、PCIe serial I/O、share pin 与 SCBV 返回 1。该结果只证明失败基线可复现。
 - warning TODO：两条 warning 均为 `pcie_dma_test.v` 中 `u_ips2l_pcie_dma` 缺少输出 `o_trgt1_radm_pkt_halt` 连接；作为后续独立 RTL hygiene TODO，不影响本层受控 smoke PASS。
 - 覆盖边界：受控模型的 `smlh_link_up/rdlh_link_up` 是激励，不验证真实 LTSSM、TLP、DMA、lane/P/N 极性、100 MHz refclk 电气、PERST# 板级时序或 RK3568 Root Complex。S2-B 必须使用真实厂商 RC/EP，S2-C 必须在其后验证 DMA。
@@ -146,7 +148,7 @@
 - PCIe H2-A（只读证据矩阵）：顶层使用 x2 `rxn/rxp/txn/txp`、差分 `ref_clk_p/n`、`perst_n`、`button_rst_n` 与 `ref_led/pclk_led`；FDC 固定 refclk `F6/E6`、PERST# `M16`、button reset `M15`、LED `M17/J16`。当前没有 lane 极性/板级拓扑、I/O delay 或 SCBV 证据。
 - PCIe H2-A/M1 器件边界：活动 `pcie_test.idf`、build/PDS/gate、timing report 与 `bgr.db` 已统一匹配 `Logos2/PG2L50H/FBG484/-6`；UART2APB `rxd/txd`、SCBV、lane/refclk/PERST# 与 share pin 仍是独立功能/发布阻断。
 - 三项目新流程均已生成顶层 PNR SDF，但尚未由 QuestaSim 验证实例层级。
-- Questa Sim-64 2021.1 已完成最小 SystemVerilog、Logos2 USIM/VSIM、`V_BUF` 原语 smoke 与 PCIe S2-A 受控 smoke；不得将公共原语或 S2-A 证据外推为 DDR3/OV7725、真实 PCIe 链路、DMA 或项目后级网表/SDF 通过。
+- Questa Sim-64 2021.1、Logos2 USIM/VSIM、`V_BUF` 和 PCIe S2-A 保留历史通过证据；当前动态复验未通过许可证 checkout。不得将历史证据外推为当前运行、DDR3、OV5640、真实 PCIe 链路、DMA 或项目后级网表/SDF 通过。
 - PDS 可能在日志含 `E:` 时仍返回退出码 0；新 PowerShell 入口必须同时检查退出码和错误日志。
 - PCIe 位流阶段报告 SCBV 未配置，这是当前发布阻断项。
 

@@ -9,15 +9,16 @@ flowchart TD
   Guide["README.md\nPDS/仿真指南"] --> Todo["TODO.md\n整改与验收门槛"]
   Standard["VERILOG_SYSTEMVERILOG_COMMENTING_STANDARD.md"] --> HandRTL["后续手写 RTL/TB"]
 
-  OVTop["ov7725_hdmi\n顶层"] --> Camera["OV7725 采集"]
-  OVTop --> OVFifo["异步 FIFO"]
-  OVTop --> OVDDR["DDR3 IP"]
-  OVTop --> HDMI["HDMI/TMDS"]
-  OVTop --> OVFdc["ov7725_hdmi.fdc"]
-  OVAudit["CDC_RDC_AUDIT.md\nO0-A 决策证据"] --> OVTop
+  OV5640Target["OV5640 摄像头 HDMI\n产品目标 C0-C3/S3"] -. "C2 审核后选择性迁移" .-> OVLegacy["41_ov7725_hdmi\nOV7725 legacy"]
+  OVLegacy --> Camera["OV7725 legacy 采集"]
+  OVLegacy --> OVFifo["异步 FIFO"]
+  OVLegacy --> OVDDR["DDR3 IP"]
+  OVLegacy --> HDMI["HDMI/TMDS"]
+  OVLegacy --> OVFdc["ov7725_hdmi.fdc"]
+  OVAudit["CDC_RDC_AUDIT.md\nO0-A legacy 证据"] --> OVLegacy
   OVAudit --> OVBuild["O0-B\n16 RTL + 4 IDF + 1 FDC"]
   OVBuild --> OVGate["O1-B: strict=1 / baseline=0\n七组精确失败，不可发布"]
-  OVHygiene["RTL_HYGIENE_AUDIT.md\nO1-A: 39 = 1+4+26+6+2"] --> OVTop
+  OVHygiene["RTL_HYGIENE_AUDIT.md\nO1-A legacy 证据"] --> OVLegacy
   OVHygiene --> OVFix["O1-B 已完成\n38 条消失 / mem_a 1 条"]
   OVFix --> OVResetAudit["O2-A 已完成\n联合释放契约 / 8 endpoints"]
   OVResetAudit --> OVResetRejected["O2-B 已否决并回退\ncompile + 七阶段 / Recovery 失败"]
@@ -53,11 +54,11 @@ flowchart TD
   PCIeSources["pds_sources.f\n37 canonical HDL"] --> PCIeSmoke
   PCIeSmoke --> PCIeStaticGate["check_sim.ps1\n静态契约 gate=0"]
   SharedUSIM["仓库根 build/simlib/usim\nLogos2 USIM"] --> PCIeSmoke
-  PCIeSmoke -. "缺 Questa/USIM，动态阻断" .-> Questa
+  PCIeSmoke -. "当前许可证 checkout 失败，退出 4" .-> Questa
   PCIeRealLink["S2-B\n真实厂商 RC/EP"] --> PCIeDMAReadback["S2-C\n基础 DMA 回读"]
   PCIeTop --> PCIeRealLink
 
-  OVTop --> PDS["PDS 2022.2-SP6.4"]
+  OVLegacy --> PDS["PDS 2022.2-SP6.4"]
   DDRExample --> PDS
   PCIeTop --> PDS
   PDS --> Reports["综合网表 / PNR 网表 / SDF / 位流"]
@@ -67,9 +68,9 @@ flowchart TD
 
 ## 关键依赖约束
 
-- 用户于 2026-08-30 确认三个工程共用 `RK3568+PG2L50H100H` 开发板，实际 FPGA 为 `PG2L50H-6IFBG484`；统一有效 PDS 目标为 `Logos2 / PG2L50H / FBG484 / -6`。旧 PG2L100H 实现、STA 和位流均不得用于实板。
+- 用户确认三个产品方向共用 `RK3568+PG2L50H100H` 开发板，实际 FPGA 为 `PG2L50H-6IFBG484`；摄像头产品目标已校正为 OV5640，`41_ov7725_hdmi` 仅作 OV7725 legacy。统一有效 PDS 目标为 `Logos2 / PG2L50H / FBG484 / -6`，旧 PG2L100H 产物不得用于实板。
 - 厂商 `.idf`、生成 RTL 和 PDS 仿真库属于外部生成依赖，不应被误当作独立手写逻辑。
-- PCIe S2-A 的 `sim/behav.f` 依赖 `scripts/pds_sources.f` 的 37 个 canonical HDL、DMA RAM init include、两个厂商 reset helper、项目级 `tb_pcie_dma_test.sv` 和受控 `pcie_test` 边界模型；`run_behav.do` 从 PCIe 项目根映射仓库公共 `../build/simlib/usim`。`check_sim.ps1` 与根门禁当前均退出 0，Questa Sim-64 2021.1 动态 smoke 已通过同一 run-id、唯一 `TEST PASS` 和退出码门禁。
+- PCIe S2-A 的 `sim/behav.f` 依赖 37 个实现侧 canonical HDL、仿真专用补充源、DMA RAM init include、reset helper、项目 TB 与受控边界模型。历史动态 smoke 已通过同一 run-id 和唯一 `TEST PASS`；当前 S2-A/S2-B 静态门禁通过，但动态复验因仓库外许可证 checkout 失败返回 4，未产生新 PASS。
 - 每次 S2-A 动态运行按 `SIM_RUN_ID` 创建独立 `build/sim/behav/<run_id>/work`，避免上一次编译的 work library 被误用；日志身份、work 隔离和公共 USIM 是三个不同依赖，均不能由单独一个 `TEST PASS` 替代。
 - S2-A 的受控 link indication 只驱动顶层复位、LED 和未知态检查，不能替代 S2-B 的真实厂商 RC/EP、LTSSM/TLP，也不能替代 S2-C 的 DMA 数据回读。`SIM_RUN_ID` 与唯一 `TEST PASS` 只绑定一次仿真日志，不扩张覆盖范围。
 - OV7725 O0-A 已识别 `sys_clk`、`i2c_dri_clk`、`cam_pclk`、`pixel_clk`、`pixel_clk_5x`、`clk_50m/ref_clk` 和 `ui_clk`；证据入口为 `41_ov7725_hdmi/doc/CDC_RDC_AUDIT.md`。
@@ -95,7 +96,7 @@ flowchart TD
 - D3-0 旧接口结论只能作为 PG2L50H 重生成后的比对基准；若接口语义、地址单位、端口或 `I_ips_ddr_top` 层级变化，停止并重新更新 D3-0-R/CI-6，审核前不得新增 D3-A/B/C RTL。
 - 有限自检契约固定 16 个单 beat 写读比较 pair，地址 `0x0..0x78`、步长 8，pair/run timeout 分别为 4096/131072 周期；签核依赖稳定的 `test_done`、`test_failed`、`failure_code`、`error_count`、`completed_pairs` 和首错信息，而不是厂商 LED 或内部层级。
 - 新项目自有 DDR3 RTL 依赖根目录 VSCS；厂商 `ip_core/ddr3/**` 仍作为外部生成依赖，不因 D2 决策被改写。
-- 当前执行队列增加统一器件迁移前置：PCIe 修 build/gate并建立 50H baseline；DDR3 重生成 50H IP/FDC/RCF并重审 D3-A；OV7725 重生成四个 50H IP、建立 baseline并重审 O2-D2。之后才进入 D3-A/B/C、单次 O2-D2、H2-B 与 S1/S2/S3。
+- 当前执行队列为：PCIe 维持 50H baseline并恢复当前动态复验；DDR3 重生成 50H IP/FDC/RCF并重审 D3-A；摄像头按 OV5640 C0/C1 冻结范围后进入 C2/C3，最后执行 S3。OV7725 O2/M3 只作 legacy 参考，不再作为产品必经链。
 - `docs/SIMULATION_READINESS_MATRIX.md` 已确认三个项目的项目级 TB、`.f`、`.do` 均缺失；厂商示例不形成产品顶层覆盖。S1 还依赖 PG2L50H DDR3 IP契约、D3-A/B/C 与 D4，S2 依赖 H2-B/PG2L50H 产物一致性，S3 依赖 PG2L50H 新 baseline、输入格式契约与 O2-D2/O3 RTL 锁定。
 - PCIe 顶层依赖专用 HSST/IP 约束；UART2APB 是否保留是后续 RTL 与 FDC 的共同决策点。
 - PCIe H2-A（2026-08-30）固定顶层 x2 `rxn/rxp/txn/txp`、差分 `ref_clk_p/n`、`perst_n`/`button_rst_n` 与两枚 LED；FDC 当前映射 refclk `F6/E6`、PERST# `M16`、button reset `M15`、LED `M17/J16`。
@@ -104,7 +105,7 @@ flowchart TD
 - H2-A 器件审核已解除项目自有 build/gate 的只读限制；活动 IDF 保持 50H，RTL/FDC 仍等待 UART 与板级证据。H2-B 在 lane/refclk/PERST#/SCBV 和 UART 均闭合前不得宣称发布通过。
 - H2-B0 已将 PCIe 五类失败归一化为 16 个唯一签名、42 次原始记录；完整多重集对新增、消失、改名、share-pin 位置和次数漂移均失败，IDF metadata 漂移永久硬失败。canonical fixture 正向 0、strict 1，五个变异均 1。H2-B1 仍阻断于 lane/refclk/PERST#/SCBV/UART/I/O timing；partial run 复用旧 full-build 证据的风险已由 CI-8A 关闭。
 - PCIe CI-8A 已关闭上述复用风险：`run.ps1` 通过 `build_provenance.ps1` 为每次 build 原子发布 32 位 run_id manifest，37 HDL 单一清单扩展为 43 项 canonical 输入，并绑定 7 项最终证据的相对路径、长度和 SHA-256。partial/failed 或 run-id、产物、FDC 漂移均拒绝；最终 full build/baseline/strict 为 `0/0/1`，slack `0.100 ns`，H2-B0 16/42 不变。
-- CI-8B 依赖 DDR3 M2 和 OV7725 M3 各自完成 PG2L50H canonical 升格及最终构建入口闭合；两项目必须按自身源清单和产物布局实现 provenance，验证前不抽公共模块。
+- CI-8B 依赖 DDR3 M2 与未来 OV5640 C3 各自完成 PG2L50H canonical 升格及最终构建入口闭合；OV7725 legacy 只有在被 C2 明确选中时才提供结构参考，不能代替 OV5640 provenance。
 - S0 环境复核（2026-08-30）的未发现仿真器结论已被 2026-09-01 实际执行证据取代：Questa Sim-64 2021.1 最小 SystemVerilog 通过，PDS SP6.4 Logos2 USIM 编译成功。
 - S0-1 已准备 `scripts/compile_simlib.ps1` → 环境变量 → `scripts/compile_simlib.tcl` → PDS `compile_simlib` 的参数化链路，可选择 ModelSim/QuestaSim、USIM/VSIM/BOTH、family、语言、工具路径与输出目录；入口准备不等于库已生成。
 - PCIe S2-A 已依赖编译后的 Logos2 USIM 动态通过；Logos2 VSIM 与最小 `V_BUF` 后级原语 smoke 也已验证。三个项目的综合后、PNR 功能、PNR 时序和 SDF 标注仍未执行。
@@ -112,4 +113,4 @@ flowchart TD
 - CI-0 仓库级静态一致性门禁依赖根指南/TODO/VSCS、三个项目 README 与各自 `build.tcl`/`run.ps1`/`check_build.ps1`；当前工作区门禁退出码为 0，7 个 PowerShell 脚本 AST 解析错误数为 0。它只验证结构、入口与文档关系，不解除任何 PDS、STA、板级或仿真阻断。
 - CI-7 依赖 `docs/PDS_TCL_ENTRYPOINT_INVENTORY.json` 与 `scripts/check_pds_tcl_entrypoints.ps1`：13 个 tracked Tcl 必须逐项分类；只有三个 `scripts/build.tcl` 可由 `run.ps1` 调用。PCIe build 目标为 PG2L50H，OV7725/DDR3 build 仍为 PG2L100H migration-blocked；历史 GUI、厂商内部和厂商仿真 Tcl 不得进入当前器件/STA/位流证据链。正向门禁为 0，缺失清单项负向测试为 1。
 - CI-2 在 CI-0 上增加三项目板级证据清单路径、项目关键词、README 链接和统一章节门禁；清单结构通过只允许继续收集证据，不会自动解锁 H0/H1/H2/H3、PCIe H2-B 或 DDR3/OV7725 板级整改。
-- CI-9 依赖 `scripts/check_sensitive_diff.ps1`、`docs/SENSITIVE_DIFF_GATE.md`、可解析的基线 ref 与唯一 merge-base；门禁只消费 tracked 变更路径、diff 新增行和未跟踪文本。严格占位符白名单是唯一允许的许可证配置表达边界，真实配置继续由仓库外环境提供。真实分支扫描 20 paths/617 added lines 已通过，但该结果只证明本次新增差异未命中规则，不证明 Git 历史不存在旧敏感信息。
+- CI-9 依赖 `scripts/check_sensitive_diff.ps1` 与 `docs/SENSITIVE_DIFF_GATE.md`：`-FullTree` 扫描当前 tracked/untracked 工作树，PR 模式扫描 merge-base 后的路径和新增行。68 个 tracked 日志中的 143 处许可证绝对路径已替换为 `<license-path>`；全树通过证明当前版本已清理，差异通过阻止后续重引入，但两者都不改写 Git 历史。

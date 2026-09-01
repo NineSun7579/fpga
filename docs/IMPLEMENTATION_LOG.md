@@ -367,3 +367,11 @@
 - 新增 [`SENSITIVE_DIFF_GATE.md`](SENSITIVE_DIFF_GATE.md)，记录 `BaseRef`、堆叠 PR 用法、允许占位符和历史边界。
 - `scripts/check_repo_consistency.ps1` 现自动运行 CI-9 规则自检和真实 Git 差异检查；规则自检覆盖 2 个允许的新增行场景、5 个拒绝的新增行场景、1 个允许文件名和 1 个拒绝文件名，当前分支相对 `origin/main` 的扫描退出码为 0。
 - CI-9 只阻止新增泄露，不清理已跟踪历史日志或 Git 历史；历史重写和强推仍属于单独人工审核批次。
+## 2026-09-01：OV5640 范围校正、Questa 复验与许可证日志脱敏
+
+- 从远端快进到 PR #5 合并后的最新 `origin/main`，后续工作基于该主线。
+- owner 将摄像头产品目标校正为 OV5640；现有 `41_ov7725_hdmi`、O0/O1/O2/M3-A 和对应 STA/CDC/RDC 证据保留为 OV7725 legacy，不改名冒充新项目。
+- 新增 `docs/OV5640_TARGET_SCOPE.md`，将参考工程只读导入、单/双摄与模组接口冻结、项目边界、PG2L50H 迁移和四级 Questa 验证拆为 C0/C1/C2/C3/S3。
+- 本机复核确认 Questa Sim-64 `2021.1` 的 `vsim`、`vlog` 和 `vlib` 可执行文件位于安装根的 `win64` 子目录；tracked 文档不记录本机安装或许可证实际路径。
+- PCIe S2-A/S2-B 静态门禁和环境检查通过；当前 S2-A 动态启动因外部许可证 checkout 失败返回 4，没有生成新的 `TEST PASS`。历史 run id 的通过证据继续保留，但不作为本次复验结果。
+- 发现历史 PDS 日志中存在许可证绝对路径；当前版本统一替换为 `<license-path>`，并将 CI-9 扩展为当前树全量扫描和 PR 新增差异扫描。历史 `.log` 标记为 `-diff`，避免 PR 页面展开旧路径；该修复不改写 Git 历史。

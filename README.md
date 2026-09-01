@@ -62,7 +62,7 @@ $QuestaBin = 'C:\questasim64\win64'   # 按实际安装路径修改
 2022.2-SP6.4
 ```
 
-本机当前没有找到 `vsim.exe`，因此必须先安装 ModelSim/QuestaSim。
+本仓库已有 Questa Sim-64 `2021.1`、最小 SystemVerilog smoke 与 Logos2 USIM/VSIM 的历史通过证据；当前动态复验受仓库外许可证 checkout 阻断。实际可执行目录仍通过脚本参数提供，不写入 tracked 配置。
 
 ## 3. 编译 Pango 仿真库
 
@@ -530,9 +530,9 @@ Negative timing check
 powershell.exe -ExecutionPolicy Bypass -File .\scripts\check_repo_consistency.ps1
 ```
 
-该检查确认三个项目的 README、`build.tcl`、`run.ps1`、`check_build.ps1`、顶层声明、七阶段入口、版本记录和 `build/` 忽略状态；同时调用 [PDS Tcl 入口门禁](docs/PDS_TCL_ENTRYPOINT_INVENTORY.md)，要求全部 tracked Tcl 均被分类，防止 GUI 历史脚本或厂商内部脚本被误当作 canonical 构建入口。它还调用 [许可证敏感差异门禁](docs/SENSITIVE_DIFF_GATE.md)，拒绝在新增差异中写入许可证文件、绝对路径、服务器端点、环境变量实际值或 FlexNet 内容。它不能替代项目级 PDS gate、STA 或四级仿真。
+该检查确认三个项目的 README、`build.tcl`、`run.ps1`、`check_build.ps1`、顶层声明、七阶段入口、版本记录和 `build/` 忽略状态；同时调用 [PDS Tcl 入口门禁](docs/PDS_TCL_ENTRYPOINT_INVENTORY.md)，要求全部 tracked Tcl 均被分类，防止 GUI 历史脚本或厂商内部脚本被误当作 canonical 构建入口。它还调用 [许可证敏感差异门禁](docs/SENSITIVE_DIFF_GATE.md)，全量检查当前树并拒绝在新增差异中写入许可证文件、绝对路径、服务器端点、环境变量实际值或 FlexNet 内容。它不能替代项目级 PDS gate、STA 或四级仿真。
 
-三项目当前的仿真入口、厂商示例边界和 S1/S2/S3 前置条件见 [`docs/SIMULATION_READINESS_MATRIX.md`](docs/SIMULATION_READINESS_MATRIX.md)；完整整改顺序和验收门槛见 [`TODO.md`](TODO.md)。
+三项目当前的仿真入口、厂商示例边界和 S1/S2/S3 前置条件见 [`docs/SIMULATION_READINESS_MATRIX.md`](docs/SIMULATION_READINESS_MATRIX.md)；OV5640 产品目标与 legacy 边界见 [`docs/OV5640_TARGET_SCOPE.md`](docs/OV5640_TARGET_SCOPE.md)；完整整改顺序和验收门槛见 [`TODO.md`](TODO.md)。
 
 ## 11. 常见问题
 
