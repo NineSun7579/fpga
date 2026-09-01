@@ -48,9 +48,9 @@ function Get-FileListEntries {
         Where-Object { $_ -and -not $_.StartsWith('#') -and -not $_.StartsWith('//') })
 }
 
-$BehaviorListPath = Join-Path $ProjectRoot 'sim\behav.f'
+$BehaviorListPath = Join-Path $ProjectRoot 'sim\questa\behav.f'
 $PdsSourceListPath = Join-Path $PSScriptRoot 'pds_sources.f'
-$DoPath = Join-Path $PSScriptRoot 'run_behav.do'
+$DoPath = Join-Path $ProjectRoot 'sim\questa\run_behav.do'
 $RunPath = Join-Path $PSScriptRoot 'run.ps1'
 $CheckPath = $MyInvocation.MyCommand.Path
 $TopPath = Join-Path $ProjectRoot 'hdl\pcie_dma_test.v'
@@ -255,7 +255,7 @@ foreach ($Required in ([ordered]@{
         'DO transcript run identity' = 'echo\s+"INFO:\s+SIM_RUN_ID=\$env\(SIM_RUN_ID\)"'
         'DO run-scoped work library' = 'set\s+work_dir\s+"build/sim/behav/\$env\(SIM_RUN_ID\)/work"'
         'DO shared USIM mapping' = 'vmap\s+usim\s+\.\./build/simlib/usim'
-        'DO behavior filelist compile' = 'vlog\s+-sv\s+-work\s+work\s+-f\s+sim/behav\.f'
+        'DO behavior filelist compile' = 'vlog\s+-sv\s+-work\s+work\s+-f\s+sim/questa/behav\.f'
         'DO project testbench elaboration' = 'work\.tb_pcie_dma_test'
         'DO bounded completion' = 'run\s+-all'
     }).GetEnumerator()) {

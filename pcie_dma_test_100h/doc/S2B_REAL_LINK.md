@@ -19,7 +19,7 @@ PCB lane/polarity、AC 耦合、refclk/PERST# 电气或 DMA 数据闭环。H2-B1
 - 每次运行独立的 `work`：50 个审核后的厂商本地 PCIe/RC 源、项目 canonical
   37 个 HDL、真实 EP wrapper 和项目 TB。
 
-`sim/link_vendor_local.f` 从厂商 filelist 派生，但排除厂商 TB、厂商 EP top
+`sim/questa/link_vendor_local.f` 从厂商 filelist 派生，但排除厂商 TB、厂商 EP top
 和重复 UART/DMA example RTL。厂商文件保持只读，安装路径由
 `PANGO_PDS_ROOT` 参数化，不复制模型到仓库。
 

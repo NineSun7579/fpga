@@ -70,8 +70,8 @@ DDR3 与摄像头 HDMI 当前仍没有面向项目集成顶层的仿真入口。
 - 项目顶层为 `pcie_dma_test_100h/hdl/pcie_dma_test.v`。
 - 厂商示例位于 `pcie_dma_test_100h/ipcore/pcie_test/example_design/bench/`，testbench 为 `pango_pcie_top_tb.v`。
 - 对应 filelist/DO 为 `ipcore/pcie_test/sim/modelsim/pango_pcie_top_filelist.f` 和 `pango_pcie_top_sim.do`。
-- S2-A 项目资产位于 `tb/tb_pcie_dma_test.sv`、`tb/pcie_test_smoke_model.sv`、`sim/behav.f` 和 `scripts/run_behav.do`；静态门禁为 `scripts/check_sim.ps1`。
-- S2-B 项目资产位于 `tb/tb_pcie_dma_link.sv`、`sim/link.f`、`sim/link_vendor_local.f`、`scripts/compile_vendor_link.do` 和 `scripts/run_link.do`；静态门禁为 `scripts/check_link_sim.ps1`。
+- S2-A 项目资产位于 `tb/tb_pcie_dma_test.sv`、`tb/pcie_test_smoke_model.sv`、`sim/questa/behav.f` 和 `sim/questa/run_behav.do`；静态门禁为 `scripts/check_sim.ps1`。
+- S2-B 项目资产位于 `tb/tb_pcie_dma_link.sv`、`sim/questa/link.f`、`sim/questa/link_vendor_local.f`、`sim/questa/compile_vendor_link.do` 和 `sim/questa/run_link.do`；静态门禁为 `scripts/check_link_sim.ps1`。
 
 ### 缺口与风险
 
@@ -79,7 +79,7 @@ DDR3 与摄像头 HDMI 当前仍没有面向项目集成顶层的仿真入口。
 - `pango_pcie_top_sim.do` 含大量历史绝对路径，filelist 与工作目录耦合。
 - S2-A 受控模型只验证项目顶层外壳、复位链和 LED 域；其 link indication 不是真实 LTSSM、TLP、DMA 或板级链路证据。
 - S2-B 已参数化厂商加密模型并以 `pango_pcie_top_sim` 为 RC；当前只完成静态合同，尚无动态 LTSSM/link-up 日志。S2-C 再增加基础 DMA 回读。
-- Questa `2021.1` 与 Logos2 USIM 已验证；S2-A 仅在仿真专用 `sim/behav.f` 中补入 `ipcore/pcie_test/rtl/ips2l_pcie_apb_cross_v1_0.v`，未修改由 IDF 管理的 canonical PDS 源清单。动态 smoke 的 RTL 编译为 0 errors/0 warnings，elaboration 成功并运行到 `1476105 ns`，同一 run marker、唯一 `TEST PASS` 和 PowerShell 退出码 0 均通过。
+- Questa `2021.1` 与 Logos2 USIM 已验证；S2-A 仅在仿真专用 `sim/questa/behav.f` 中补入 `ipcore/pcie_test/rtl/ips2l_pcie_apb_cross_v1_0.v`，未修改由 IDF 管理的 canonical PDS 源清单。动态 smoke 的 RTL 编译为 0 errors/0 warnings，elaboration 成功并运行到 `1476105 ns`，同一 run marker、唯一 `TEST PASS` 和 PowerShell 退出码 0 均通过。
 - 当前复验确认 Questa 版本、S2-A/S2-B 静态 gate 和现有 USIM/VSIM 目录；S2-A 以新 `SIM_RUN_ID` 动态通过，不复用历史 transcript。
 - S2-A RTL hygiene 已贯通 DMA `o_trgt1_radm_pkt_halt` 到 hard-IP RX halt 输入。Questa 为 `0 warnings`；PDS 原两条未连接端口 warning 消失，只保留 bit2 恒 0 的两条优化/清理 warning。受控 link indication 仍不证明真实 LTSSM、TLP、DMA 或板级链路。
 - 活动 PCIe IP、PDS 目标和新构建产物均与实际 PG2L50H 一致；lane/refclk/PERST#/SCBV 和 UART 决策继续由 H2-B1 阻断。

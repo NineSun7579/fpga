@@ -26,7 +26,7 @@ vlib $work_dir
 vmap work $work_dir
 vmap usim ../build/simlib/usim
 
-vlog -sv -work work -f sim/behav.f
+vlog -sv -work work -f sim/questa/behav.f
 
 vsim \
     -voptargs="+acc" \

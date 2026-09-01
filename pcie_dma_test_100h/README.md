@@ -65,6 +65,8 @@ powershell -ExecutionPolicy Bypass -File .\scripts\run.ps1 `
 
 ## 仿真命令接口
 
+项目自有 Questa 工程定义集中归档在 [`sim/questa/`](sim/questa/README.md)。该目录保存可复现的 `.f/.do` 和边界说明；运行生成的 `work`、日志、transcript 与波形仍位于 `build/`，不提交版本库。
+
 S2-A 静态契约检查不依赖仿真器：
 
 ```powershell

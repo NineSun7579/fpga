@@ -195,11 +195,12 @@
 - h2a_uart_gap: UART2APB 使用隐式 `rxd/txd` 网络，当前 `rxd` 被绑 0；该功能缺口不因 PDS/STA 成功而关闭。
 - h2a_boundary: 器件型号已获用户审核；活动 PCIe IDF 不需仅因型号重生成。M1 已修改项目自有 build/gate，并依据 PDS 模板迁移 HSSTLP 资源后重建生成物；RTL/FDC 其余内容仍受 UART 与板级证据审核约束。
 - s2a_status: current_controlled_dynamic_smoke_passed; current_static_gate_passed; current_run_id_966942334060436dba8444ae9155557c; exit_0; errors_0; warnings_0; unique_test_pass
-- s2a_assets: `tb/tb_pcie_dma_test.sv` 实例化真实 `pcie_dma_test`，全局复位实例名为厂商要求的 `GRS_INST`；`tb/pcie_test_smoke_model.sv` 只替代生成 PCIe IP 边界，两个时序过程恰好使用两个 `always_ff`；`sim/behav.f` 复用 `scripts/pds_sources.f` 的 37 个 canonical HDL，并单独补入仿真所需 `ipcore/pcie_test/rtl/ips2l_pcie_apb_cross_v1_0.v`。`scripts/pds_sources.f` 不修改，因为该源在实现侧由 IDF 管理。
+- s2a_assets: `tb/tb_pcie_dma_test.sv` 实例化真实 `pcie_dma_test`，全局复位实例名为厂商要求的 `GRS_INST`；`tb/pcie_test_smoke_model.sv` 只替代生成 PCIe IP 边界，两个时序过程恰好使用两个 `always_ff`；项目自有 Questa 定义集中在 `sim/questa/`，其中 `behav.f` 复用 `scripts/pds_sources.f` 的 37 个 canonical HDL，并单独补入仿真所需 `ipcore/pcie_test/rtl/ips2l_pcie_apb_cross_v1_0.v`。`scripts/pds_sources.f` 不修改，因为该源在实现侧由 IDF 管理。
 - s2a_log_contract: 每次动态运行使用随机 32 位小写十六进制 `SIM_RUN_ID`；DO 通过 `echo` 将 marker 写入 transcript，并为本次运行创建独立 work。PowerShell 只接受同一 run id marker 恰好一次且 `TEST PASS` 恰好一次，任一失败由 `$fatal` 或非零退出传播。
 - s2a_reset_contract: button reset 只拥有 PCIe core/pclk 域；TB 在断言后先确认 ref counter 没有被清零，再跨额外 8 个 refclk 周期确认 link 撤销期间严格保持原值。随后 button reset 完整重新释放并恢复 model link，PERST# 才单独断言以复位两组 LED 域，再独立释放并重新通过 debounce/link 检查。
 - s2a_coverage_boundary: 只覆盖产品顶层展开、外部/同步复位、上述 reset ownership、两组 LED 计数门控及 TX/LED 未知态；受控 `smlh_link_up/rdlh_link_up` 只是激励，不证明 LTSSM、TLP、DMA、x2 lane、电气 refclk/PERST# 或 RK3568 Root Complex。
 - s2a_dynamic_result: Questa Sim-64 2021.1 当前 run `966942334060436dba8444ae9155557c`；运行至 `1476105 ns`；0 errors/0 warnings；唯一 `TEST PASS`；退出码 0；PowerShell 同 run-id/唯一 PASS 门禁通过。
+- s2a_questa_archive: 三项目均建立 `sim/questa/` 归档目录；PCIe `.f/.do` 已迁入并由 run/gate 唯一引用，迁移后 run `26db7d3206c542218634caff2c6e71ea` 为 0 errors/0 warnings、唯一 PASS、退出 0。DDR3/摄像头当前仅记录项目入口缺口，不把厂商示例当作集成验证。
 - s2a_current_revalidation: 当前版本 S2-A/S2-B 静态 gate 通过，S2-A 动态复验已通过；该受控模型仍不证明真实 RC/EP 链路、TLP 或 DMA。
 - s2b_static_status: 厂商 RC/项目 EP 双库、双向 x2 lane、双端 link/LTSSM L0、32 周期稳定、6 ms watchdog 和唯一 PASS 静态契约门禁通过；动态真实链路证据尚未生成。
 - s2a_rx_halt_contract: `o_trgt1_radm_pkt_halt[2:0]` 接口分别对应 posted、non-posted 与 completion/CPLD halt；当前 bit0/bit1 有效、bit2 源端恒为 0，三位接口路径已由项目顶层贯通活动 `pcie_test` wrapper 至 hard-IP。wrapper 原 3'b0 tie-off 已删除；生成资产重生成会覆盖该修正，静态 gate 检测该已知接口漂移并要求重新审核。

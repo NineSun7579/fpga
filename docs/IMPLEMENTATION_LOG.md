@@ -384,3 +384,10 @@
 - S2-A 静态门禁现检查唯一 producer/consumer、wrapper 输入、hard-IP 连接、tie-off 消失、仿真替身端口和重生成风险注释。真实高流量下的流控闭环仍由 S2-B/S2-C 验证。
 - Questa Sim-64 `2021.1` 当前复验 run id `966942334060436dba8444ae9155557c` 编译 `0 errors/0 warnings`，elaboration 成功，运行到 `1476105 ns`，唯一 `TEST PASS`，PowerShell 退出 0。
 - PDS run id `50b37eb3628e419592cecac02ff932bf` 完成 PG2L50H 七阶段，provenance=`complete/valid`，baseline/strict gate=`0/1`，最差 slack `0.100 ns`，网表/SDF/位流均为非零。原两条未连接端口 warning 消失；bit2 恒 0 的 2 条优化/清理 warning 保留。
+
+## 2026-09-01：三项目 Questa 工程归档
+
+- 三个项目均建立项目内 `sim/questa/` 目录，归档项目自有的 Questa 工程定义；不提交仿真器二进制 `work` 库、transcript、日志、波形、安装位置或许可证配置。
+- PCIe 的 S2-A/S2-B `.f/.do` 从分散的 `sim/` 与 `scripts/` 迁入 `pcie_dma_test_100h/sim/questa/`，`scripts/run.ps1` 和两项静态 gate 改为只认新位置，避免双份 filelist 漂移。
+- DDR3 与摄像头目录目前只记录厂商 IP 示例边界和项目级入口缺口：厂商 `sim/modelsim` 资产不计作项目集成仿真；DDR3 等待 D3 canonical 闭环，摄像头等待 OV5640 C0/C1/C2/C3 后再补四级入口。
+- 迁移后使用 Questa Sim-64 `2021.1` 从新入口复验 S2-A；run `26db7d3206c542218634caff2c6e71ea` 编译 0 errors/0 warnings，运行至 `1476105 ns`，唯一 `TEST PASS`，PowerShell 退出 0。

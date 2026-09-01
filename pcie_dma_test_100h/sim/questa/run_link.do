@@ -30,8 +30,8 @@ vlib $vendor_dir
 vmap work $work_dir
 vmap pcie_vendor $vendor_dir
 
-do scripts/compile_vendor_link.do
-vlog -sv -work work -f sim/link.f
+do sim/questa/compile_vendor_link.do
+vlog -sv -work work -f sim/questa/link.f
 
 vsim \
     -voptargs="+acc" \

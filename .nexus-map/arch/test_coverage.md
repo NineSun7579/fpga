@@ -113,11 +113,12 @@
 
 ## PCIe S2-A 行为 smoke（2026-09-01，动态通过）
 
-- 已验证源边界：`sim/behav.f` 嵌套复用 `scripts/pds_sources.f` 的 37 个 canonical HDL，并单独补入仿真所需 `ipcore/pcie_test/rtl/ips2l_pcie_apb_cross_v1_0.v`；`scripts/pds_sources.f` 不修改，因为该源在实现侧由 IDF 管理。
+- 已验证源边界：`sim/questa/behav.f` 嵌套复用 `scripts/pds_sources.f` 的 37 个 canonical HDL，并单独补入仿真所需 `ipcore/pcie_test/rtl/ips2l_pcie_apb_cross_v1_0.v`；`scripts/pds_sources.f` 不修改，因为该源在实现侧由 IDF 管理。
 - 已验证编码与自检边界：受控模型恰好包含两个 `always_ff` 时序过程，静态 gate 禁止普通 `always @` 回退。TB 覆盖 `button_rst_n`、`perst_n`、同步复位、LED 计数门控和 TX/LED 未知态；3 ms watchdog 或检查失败调用 `$fatal`，正向源只包含一次 `$display("TEST PASS")`。
 - 已验证 reset ownership：button reset 断言后，TB 先检查 ref counter 没有被 button reset 改写，再等待额外 8 个 refclk 周期并要求其在 model link 撤销期间严格保持；button reset 完整重新释放后，PERST# 再被单独断言、复位两组 LED 域并独立重新释放，不能由初次联合释放遮蔽 debounce 行为。
 - 已验证复位与日志契约：TB 全局复位实例使用厂商要求的 `GRS_INST`；`run_behav.do` 通过 `echo` 将随机 32 位小写十六进制 `SIM_RUN_ID` 写入 transcript，PowerShell 只接受同 run-id marker 与 `TEST PASS` 各恰好一次。
 - 动态结果：Questa Sim-64 2021.1 当前 run id `966942334060436dba8444ae9155557c`，运行至 `1476105 ns`，0 errors/0 warnings、唯一 `TEST PASS`、退出码 0；PowerShell 同 run-id/唯一 PASS 门禁通过。
+- 工程归档回归：PCIe `.f/.do` 迁入 `sim/questa/` 后，run id `26db7d3206c542218634caff2c6e71ea` 再次运行至 `1476105 ns`，0 errors/0 warnings、唯一 `TEST PASS`、退出码 0；DDR3 与摄像头的项目级动态入口仍待实现。
 - 当前复验结果：S2-A 静态 gate 与 S2-B 静态契约 gate 通过，S2-A 动态复验通过；受控模型仍不覆盖真实 RC/EP、LTSSM/TLP 或 DMA。
 - 构建回归：当前 PDS run id `50b37eb3628e419592cecac02ff932bf` 为 `gen_bit_stream/complete/valid=true`，43 项输入和 7 项证据完整；baseline gate 返回 0，strict gate 仍因 UART RX tied low、未约束顶层 I/O、PCIe serial I/O、share pin 与 SCBV 返回 1，最差 slack `0.100 ns`。原两条未连接端口 warning 已消失，仅保留 bit2 恒 0 引起的两条优化/清理 warning。
 - RX halt hygiene：`o_trgt1_radm_pkt_halt[2:0]` 接口分别对应 posted、non-posted 与 completion/CPLD halt；当前 bit0/bit1 有效、bit2 源端恒为 0，三位接口路径已由项目顶层贯通活动 `pcie_test` wrapper 至 hard-IP。wrapper 原 3'b0 tie-off 已删除；生成资产重生成会覆盖该修正，静态 gate 检测该已知接口漂移并要求重新审核。
