@@ -62,6 +62,80 @@ function Assert-Executable {
     }
 }
 
+function Invoke-PdsFunctionalNetlist {
+    param([Parameter(Mandatory)][string]$RunId)
+
+    # Keep the copied project at the same directory depth as build/pds so the
+    # relative source paths recorded by PDS still resolve to the project root.
+    $FunctionalWorkDir = Join-Path $BuildRoot "pds-func-$RunId"
+    $FunctionalProject = Join-Path $FunctionalWorkDir 'pcie_dma_test.pds'
+    $FunctionalLog = Join-Path $LogDir 'pds-post-pnr-func-netlist.log'
+    $GeneratedNetlist = Join-Path $FunctionalWorkDir `
+        'generate_netlist\pcie_dma_test_sim.v'
+    $ArchivedNetlist = Join-Path $PdsWorkDir `
+        'generate_netlist\pcie_dma_test_func.v'
+
+    New-Item -ItemType Directory -Force -Path $FunctionalWorkDir | Out-Null
+    Copy-Item `
+        -Path (Join-Path $PdsWorkDir '*') `
+        -Destination $FunctionalWorkDir `
+        -Recurse `
+        -Force
+    if (-not (Test-Path -LiteralPath $FunctionalProject -PathType Leaf)) {
+        throw "Copied PDS project not found: $FunctionalProject"
+    }
+
+    $ProjectText = Get-Content -Raw -LiteralPath $FunctionalProject
+    $FunctionalOption = '(_option func_sim_only (_switch ON))'
+    if ([regex]::Matches(
+            $ProjectText,
+            [regex]::Escape($FunctionalOption)
+        ).Count -ne 0) {
+        throw 'Copied timing PDS project already enables functional-netlist mode.'
+    }
+    $TimingOption = '(_option sdf_annotate (_boolean TRUE))'
+    if ([regex]::Matches(
+            $ProjectText,
+            [regex]::Escape($TimingOption)
+        ).Count -ne 1) {
+        throw 'Copied PDS project does not contain exactly one enabled SDF annotation option.'
+    }
+    $ProjectText = $ProjectText.Replace(
+        $TimingOption,
+        "(_option func_sim_only (_switch ON))`r`n            (_option sdf_annotate (_boolean FALSE))"
+    )
+    $Utf8NoBom = New-Object Text.UTF8Encoding($false)
+    [IO.File]::WriteAllText($FunctionalProject, $ProjectText, $Utf8NoBom)
+
+    "INFO: PDS_RUN_ID=$RunId" | Set-Content `
+        -LiteralPath $FunctionalLog `
+        -Encoding UTF8
+    Write-Host "INFO: generating post-PNR functional netlist (run $RunId)"
+    & $PdsShell `
+        -project $FunctionalProject `
+        -run gen_netlist `
+        2>&1 | Tee-Object -FilePath $FunctionalLog -Append
+    if ($LASTEXITCODE -ne 0) {
+        throw "PDS functional netlist generation failed with exit code $LASTEXITCODE. See $FunctionalLog"
+    }
+    if (Select-String -LiteralPath $FunctionalLog -Pattern '^E:' -Quiet) {
+        throw "PDS functional netlist generation reported errors. See $FunctionalLog"
+    }
+    if (-not (Test-Path -LiteralPath $GeneratedNetlist -PathType Leaf) -or
+        (Get-Item -LiteralPath $GeneratedNetlist).Length -le 0) {
+        throw "PDS functional netlist was not generated: $GeneratedNetlist"
+    }
+    if (Select-String `
+            -LiteralPath $GeneratedNetlist `
+            -SimpleMatch '$sdf_annotate' `
+            -Quiet) {
+        throw "PDS functional netlist contains embedded SDF annotation: $GeneratedNetlist"
+    }
+
+    Copy-Item -LiteralPath $GeneratedNetlist -Destination $ArchivedNetlist -Force
+    Write-Host "INFO: archived post-PNR functional netlist: $ArchivedNetlist"
+}
+
 function Invoke-PdsBuild {
     $LogFile = Join-Path $LogDir "pds-$RunTo.log"
     $ManifestPath = Get-PdsProvenanceManifestPath -ProjectRoot $ProjectRoot
@@ -141,6 +215,7 @@ function Invoke-PdsBuild {
                 [regex]::Matches($LogText, [regex]::Escape($CompleteMarker)).Count -ne 1) {
                 throw "PDS log does not contain exactly one run marker and completion marker: $LogFile"
             }
+            Invoke-PdsFunctionalNetlist -RunId $RunId
             Assert-PdsFileRecordsMatch `
                 -Expected $InputRecords `
                 -Actual (Get-PdsFileRecords -ProjectRoot $ProjectRoot -RelativePaths $InputPaths) `
@@ -329,8 +404,9 @@ switch ($Action) {
     }
     'sim-post-pnr-func' {
         Invoke-ModelSim `
-            -DoFileName 'run_post_pnr_func.do' `
-            -LogFileName 'sim-post-pnr-func.log'
+            -DoFileName 'sim/questa/run_post_pnr_func.do' `
+            -LogFileName 'sim-post-pnr-func.log' `
+            -SuccessMarker 'INFO: POST_PNR_FUNC_RESET_PATH_OK'
     }
     'sim-post-pnr-timing' {
         Invoke-ModelSim `

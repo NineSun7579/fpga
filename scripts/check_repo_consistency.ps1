@@ -46,6 +46,10 @@ $PciePostSynSimCheckPath = Join-Path $RepoRoot `
     'pcie_dma_test_100h\scripts\check_post_syn_sim.ps1'
 $PciePostSynDocPath = Join-Path $RepoRoot `
     'pcie_dma_test_100h\doc\S2D_POST_SYN_SMOKE.md'
+$PciePostPnrFuncSimCheckPath = Join-Path $RepoRoot `
+    'pcie_dma_test_100h\scripts\check_post_pnr_func_sim.ps1'
+$PciePostPnrFuncDocPath = Join-Path $RepoRoot `
+    'pcie_dma_test_100h\doc\S2E_POST_PNR_FUNC_SMOKE.md'
 $PcieS2bDocPath = Join-Path $RepoRoot `
     'pcie_dma_test_100h\doc\S2B_REAL_LINK.md'
 $PcieS2cBar1GatePath = Join-Path $RepoRoot `
@@ -694,7 +698,9 @@ if ($PcieProvenanceDocExists) {
         -LiteralPath $PcieProvenanceDocPath
     foreach ($Required in ([ordered]@{
             'PCIe CI-8A 43-input contract' = '43\s*\u9879\s*canonical'
-            'PCIe CI-8A seven-artifact contract' = '\u4e03\u9879\u6700\u7ec8\u8bc1\u636e'
+            'PCIe CI-8A nine-artifact contract' = '(?:9|\u4e5d)\s*\u9879\s*\u6700\u7ec8\u8bc1\u636e'
+            'PCIe CI-8A functional netlist artifact' = 'pcie_dma_test_func\.v'
+            'PCIe CI-8A functional netlist log artifact' = 'pds-post-pnr-func-netlist\.log'
             'PCIe CI-8A partial rejection' = '`partial`'
             'PCIe CI-8A failed rejection' = '`failed`'
             'PCIe CI-8B migration boundary' = 'CI-8B'
@@ -808,6 +814,16 @@ if ($PciePostSynSimCheckExists) {
         Add-Failure "PCIe post-synthesis static simulation gate failed: $($_.Exception.Message)"
     }
 }
+$PciePostPnrFuncSimCheckExists = Require-File `
+    -Path $PciePostPnrFuncSimCheckPath `
+    -Description 'PCIe post-PNR functional static simulation gate'
+if ($PciePostPnrFuncSimCheckExists) {
+    try {
+        & $PciePostPnrFuncSimCheckPath
+    } catch {
+        Add-Failure "PCIe post-PNR functional static simulation gate failed: $($_.Exception.Message)"
+    }
+}
 $PciePostSynDocExists = Require-File `
     -Path $PciePostSynDocPath `
     -Description 'PCIe S2-D post-synthesis smoke contract'
@@ -823,6 +839,25 @@ if ($PciePostSynDocExists) {
             'PCIe S2-D SDF exclusion' = 'SDF'
         }).GetEnumerator()) {
         Require-Pattern -Text $PciePostSynDocText -Pattern $Required.Value `
+            -Description $Required.Key | Out-Null
+    }
+}
+$PciePostPnrFuncDocExists = Require-File `
+    -Path $PciePostPnrFuncDocPath `
+    -Description 'PCIe S2-E post-PNR functional smoke contract'
+if ($PciePostPnrFuncDocExists) {
+    $PciePostPnrFuncDocText = Get-Content -Raw -Encoding UTF8 `
+        -LiteralPath $PciePostPnrFuncDocPath
+    foreach ($Required in ([ordered]@{
+            'PCIe S2-E functional netlist' = 'pcie_dma_test_func\.v'
+            'PCIe S2-E current run evidence' =
+                '927abae8ed7d40aeb5d6f706b3723e0a'
+            'PCIe S2-E success marker' = 'POST_PNR_FUNC_RESET_PATH_OK'
+            'PCIe S2-E dynamic PASS evidence' = '`TEST PASS`'
+            'PCIe S2-E SDF exclusion' = 'SDF'
+            'PCIe S2-E board exclusion' = 'RK3568'
+        }).GetEnumerator()) {
+        Require-Pattern -Text $PciePostPnrFuncDocText -Pattern $Required.Value `
             -Description $Required.Key | Out-Null
     }
 }
@@ -878,6 +913,8 @@ if (Test-Path -LiteralPath $PcieReadmePath -PathType Leaf) {
         -Description 'PCIe README S2-B real-link link' | Out-Null
     Require-Pattern -Text $PcieReadmeText -Pattern 'S2D_POST_SYN_SMOKE\.md' `
         -Description 'PCIe README S2-D post-synthesis smoke link' | Out-Null
+    Require-Pattern -Text $PcieReadmeText -Pattern 'S2E_POST_PNR_FUNC_SMOKE\.md' `
+        -Description 'PCIe README S2-E post-PNR functional smoke link' | Out-Null
 }
 $PcieEvidencePath = Join-Path $RepoRoot `
     'pcie_dma_test_100h\doc\PCIE_BOARD_EVIDENCE.md'

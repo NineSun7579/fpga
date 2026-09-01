@@ -17,7 +17,7 @@
 - 已验证：Questa Sim-64 2021.1 最小 SystemVerilog 通过；PDS SP6.4 Logos2 USIM/VSIM 均编译成功。VSIM 编译入口退出 0、日志无 `^E:`、`vsim` 目录非空。
 - 已验证：最小后级原语 smoke 从 VSIM 库加载 `V_BUF`，运行 `2 ns`，Errors 0/Warnings 0、唯一 `TEST PASS`。
 - 当前复验：S2-A/S2-B 静态门禁通过；S2-A 当前 Questa run `add7efa39f644384af9929e8a9366739` 运行至 `1476105 ns`，Errors 0、Warnings 0、唯一 `TEST PASS`、退出 0。S2-B run `30bad6e164be4a4b8284a00f1e96bd87` 编译/elaboration 成功，输出唯一 link-up marker 与唯一 `TEST PASS`，Errors 0、Warnings 26、PowerShell 退出 0。
-- 未验证：三个项目的综合后、PNR 功能、PNR 时序和 SDF 标注；公共 S0-1 完成不等于项目后级仿真通过。
+- 未验证：PCIe PNR 时序/SDF，以及 DDR3/OV5640 项目后级仿真；S2-E PNR 功能通过不等于这些层级通过。
 
 ## CI-0 仓库级静态一致性门禁（2026-08-30）
 
@@ -76,7 +76,7 @@
 - 已验证：37 个 HDL 由 `scripts/pds_sources.f` 单一有序清单驱动；`run.ps1` 中 build-scoped Questa launcher 属于 canonical 输入，合计 43 项 canonical 输入和 7 项最终证据均以相对 POSIX path、length 和 SHA-256 写入固定 manifest。launcher 变更必须触发完整构建证据重绑定。
 - 已验证：每次 build 的 32 位 run_id 原子失效旧证据；`running`、`partial`、`failed` 均无效，只有完整 `gen_bit_stream` 的 `complete/valid` 可继续 gate。
 - 负向覆盖：真实 partial compile、PDS executable 缺失、run-id 漂移、产物字节漂移与 FDC 输入漂移均返回 1，证明旧 full-build 证据不能复用。
-- 正向覆盖：最新完整 PG2L50H run `cfe1a55a670c4eb794a75e5f8a26137c` 的 manifest 为 `complete/valid=true`；baseline 返回 0、strict 返回 1、最差解析 slack `0.100 ns`。baseline=0 不表示 release-ready，五类 strict 阻断保持不变。
+- 正向覆盖：最新完整 PG2L50H run `9952da4164f040d5924a558baa5cd8ca` 的 manifest 为 `complete/valid=true`，绑定 43 inputs/9 artifacts；baseline 返回 0、strict 返回 1，不表示 release-ready。
 - 边界：本批未修改 RTL、活动 IDF、FDC 或厂商 IP；CI-8B 等待 DDR3/OV7725 各自 PG2L50H canonical 升格，并按项目独立实现，不抽公共模块。
 
 ## CI-9 许可证敏感差异门禁（2026-09-01）
@@ -98,7 +98,7 @@
 |---|---|---|---|---|---|---|
 | OV5640 摄像头 HDMI | 产品目标已冻结为 OV5640；C0 参考审计和 C1 产品范围仍待完成 | C3 前无产品 STA；OV7725 旧时序只作 legacy 参考 | S3 项目级入口缺失 | 新产品网表尚未生成 | 新产品 PNR 网表尚未生成 | 新产品 SDF 尚未生成/标注 |
 | DDR3 外层 | 旧 PG2L100H 七阶段与五类产物已完成，但不可用于实际 PG2L50H；需重生成 50H IP/FDC/RCF | 旧 100H `All Constraints Met` 只保留历史；50H STA 未执行 | D2/D3-0 旧契约已定，PG2L50H 重生成后须重审；S1 项目级入口缺失 | 旧网表不可签核 | 旧 PNR 网表不可签核 | VSIM/SDF 未验证，旧 100H 结果不可签核 |
-| PCIe DMA | 活动 IDF、build/PDS/gate 与新产物均为 PG2L50H；最新完整 run `cfe1a55a670c4eb794a75e5f8a26137c` complete/valid | 50H STA 已生成，最差解析 slack `0.100 ns`；严格 gate 仍受板级/功能缺口阻断 | S2-A 受控 smoke 与 S2-B 链路动态 PASS | S2-D 受限 smoke PASS；只覆盖网表展开、reset debounce/sync、ref-clock LED counter | 新 50H PNR 功能仿真待完成 | 公共 VSIM 已验证，项目 SDF 待标注 |
+| PCIe DMA | PDS run `9952da4164f040d5924a558baa5cd8ca` complete/valid，43 inputs/9 artifacts | timing/SDF 已生成；strict gate 仍失败 | S2-A/S2-B 动态 PASS | S2-D 受限 smoke PASS | S2-E run `927abae8ed7d40aeb5d6f706b3723e0a` 动态 PASS | SDF timing 未执行 |
 
 ## S1/S2/S3 仿真就绪度矩阵（2026-08-30）
 
@@ -111,14 +111,21 @@
 - 四级共同门槛：所有入口使用相对路径 filelist/DO 和项目自有集成 TB；必须具备超时、`$fatal`、唯一 `TEST PASS` 与可靠非零失败退出；PNR 时序仿真必须按实际 DUT 实例层级标注 SDF。
 - PCIe/S2-C BAR1：staging 当前仅有同版本 PDS/PCIe IDF，缺少完整 IP Compiler 实例的 `index.xml`，因此尚无可升格的 wrapper、参数摘要与仿真资产集合；活动 BAR1 仍禁用，本层覆盖为未完成。
 - PCIe/S2-C 归档诊断：run `d1d25d3f23384590918f26abbfd2e839` 已动态覆盖 RC 主动 EP BAR0 写入/读回，运行至 `710535 ns`，0 errors、26 vendor warnings、唯一成功 marker 与唯一 `TEST PASS`、退出 0。覆盖边界不包含 Endpoint 主动 MRd/CplD/MWr DMA 闭环，不能关闭 BAR1/`index.xml` 阻断或升格 S2-C。
-- 公共状态：三个项目的可复现工程源均留在各自 `sim/questa/`，运行态只进入各工程 `build/`。Questa Sim-64 2021.1、Logos2 USIM/VSIM、PCIe S2-A/S2-B/S2-D 均有通过证据；DDR3/S1、OV5640/S3、S2-C 与 PCIe PNR 功能/PNR 时序/SDF 仍未完成。
+- 公共状态：三个项目的可复现工程源均留在各自 `sim/questa/`，运行态只进入各工程 `build/`。PCIe S2-E PNR 后功能已动态通过；DDR3/S1、OV5640/S3、S2-C 与 PCIe PNR 时序/SDF 仍未完成。
 
 ## PCIe S2-D 综合后受限 smoke（2026-09-01，动态通过）
 
 - 工程归档：`sim/questa/post_syn.f`、`run_post_syn.do` 与 `tb/tb_pcie_dma_post_syn.sv` 保存在 PCIe 项目内；work/vendor library、launcher ini、日志、transcript 和波形只进入 `build/`。
-- 构建前提：PDS run `cfe1a55a670c4eb794a75e5f8a26137c` 为 `complete/valid=true`，baseline/strict=`0/1`，最差解析 slack `0.100 ns`。
+- 构建前提：后续 PDS run 已更新，S2-D 通过事实仍只限其当时绑定的 canonical 综合网表与受限覆盖。
 - 动态结果：Questa 2021.1 run `41135fd3fadd4c51a70508a6fa5af3e3` 运行至 `491965 ns`，Errors 0、Warnings 1，唯一 `INFO: POST_SYN_RESET_PATH_OK` 与唯一 `TEST PASS`，退出 0。
 - 覆盖边界：只验证综合网表展开、项目 reset debounce/sync 和 reference-clock LED counter 路径；不验证 PCIe 链路、DMA、PNR、SDF、时序、H2-B1 或发布。
+
+## PCIe S2-E PNR 后功能 smoke（动态通过）
+
+- 工程归档：三个项目的可复现仿真工程分别保留在各自工程内独立 `sim/questa/`；运行库、launcher ini、日志、transcript 与波形只进入对应 `build/`。
+- PDS 证据：run `9952da4164f040d5924a558baa5cd8ca` 为 `complete/valid=true`，绑定 43 inputs/9 artifacts。
+- 动态结果：Questa run `927abae8ed7d40aeb5d6f706b3723e0a` 运行至 `491965 ns`，唯一 `INFO: POST_PNR_FUNC_RESET_PATH_OK`、唯一 `TEST PASS`、Errors 0、Warnings 1、Suppressed Warnings 80、PowerShell 退出 0。
+- 覆盖边界：只验证无 SDF PNR 功能网表展开、reset debounce/sync 与 reference-clock LED counter；不证明 PCIe link、DMA、SDF timing、H2-B1、实板或 release。
 
 ## PCIe S2-A 行为 smoke（2026-09-01，动态通过）
 

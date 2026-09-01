@@ -99,7 +99,9 @@ function Get-PdsCanonicalInputPaths {
 function Get-PdsArtifactPaths {
     return @(
         'build/logs/pds-gen_bit_stream.log',
+        'build/logs/pds-post-pnr-func-netlist.log',
         'build/pds/report_timing/pcie_dma_test.rtr',
+        'build/pds/generate_netlist/pcie_dma_test_func.v',
         'build/pds/generate_netlist/pcie_dma_test_sim.v',
         'build/pds/generate_netlist/pcie_dma_test_sta.sdf',
         'build/pds/generate_bitstream/pcie_dma_test.sbit',

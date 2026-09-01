@@ -31,8 +31,8 @@
 - PCIe H2-B0 精确 baseline（2026-08-30）已将五类问题归一化为 16 个唯一签名、42 次原始记录；baseline 使用精确多重集，签名新增/消失/改名、share-pin 位置或次数漂移均失败，活动 IDF metadata 漂移永久硬失败。canonical fixture 正向退出 0、strict 退出 1，5 个变异（缺失/重复 UART、Timing 端口改名、share pin 改位、IDF 改为 PG2L100H）均退出 1。
 - H2-B1 仍等待 lane/refclk/PERST#/SCBV/UART/I/O timing 的板级资料和决策。H2-B0 发现的 partial run 复用旧 full-build 日志/产物风险已由 PCIe CI-8A 关闭；DDR3/OV7725 的 CI-8B 仍待各自 canonical 升格。
 - PCIe CI-8A provenance pilot（2026-08-31）已完成：`scripts/pds_sources.f` 成为 37 个 HDL 的单一有序清单，`build_provenance.ps1` 为每次 build 生成 32 位 `run_id`，并原子发布固定的 `build/provenance/pds-build.json`。manifest 状态为 `running/partial/failed/complete`，只有 `complete + valid=true` 可进入 gate；43 项 canonical 输入和 7 项最终证据均以相对 POSIX 路径、长度和 SHA-256 绑定。partial compile、PDS executable 缺失、run-id、产物与 FDC 漂移均使 gate 返回 1。
-- CI-8A 最新完整 PG2L50H 构建 run id 为 `cfe1a55a670c4eb794a75e5f8a26137c`；manifest 为 `run_to=gen_bit_stream / status=complete / valid=true`。baseline gate 返回 0、strict gate 返回 1，最差解析 slack `0.100 ns`。baseline=0 只证明已知失败基线可复现，五类 strict 阻断仍为 UART RX tied low、顶层 I/O 未约束、PCIe serial I/O、share pin 与 SCBV；该结果不表示可发布。CI-8B 仅在 DDR3/OV7725 各自 PG2L50H canonical 升格后迁移同一事实模型。
-- 三个项目的可复现仿真工程源分别保留在各自 `sim/questa/`；PCIe 已归档 `.f/.do/TB`，DDR3 与摄像头目录已固化待建入口和厂商示例边界。所有 work/vendor library、日志、transcript、波形与 `modelsim.ini` 只写入各工程 `build/`，不将 `.mpf`、运行态或许可证配置纳入 Git。PCIe S2-D run `41135fd3fadd4c51a70508a6fa5af3e3` 使用当前 canonical 综合网表通过受限 smoke；S2-C、PNR 功能、PNR 时序/SDF、五类 strict 阻断、实板/电气与发布仍未关闭。
+- CI-8A 最新完整 PG2L50H 构建 run id 为 `9952da4164f040d5924a558baa5cd8ca`；manifest 为 `run_to=gen_bit_stream / status=complete / valid=true`，绑定 43 项输入和 9 项产物。baseline gate 返回 0、strict gate 返回 1；该结果不表示可发布。
+- 三个项目的可复现仿真工程分别保留在各自工程内独立的 `sim/questa/`，运行态只进入对应 `build/`。PCIe S2-E run `927abae8ed7d40aeb5d6f706b3723e0a` 已运行至 `491965 ns`，唯一 `INFO: POST_PNR_FUNC_RESET_PATH_OK`、唯一 `TEST PASS`、Errors 0、Warnings 1、Suppressed Warnings 80、PowerShell 退出 0。覆盖仅限无 SDF PNR 功能网表展开、reset debounce/sync 与 reference-clock LED counter；link、DMA、SDF timing、H2-B1、实板与发布仍未关闭。
 - OV7725 O0-A 已形成 [CDC/RDC 审计与整改契约](../41_ov7725_hdmi/doc/CDC_RDC_AUDIT.md)，覆盖七类时钟域、帧事件多点采样、两个异步 FIFO 的数据方向/分侧复位风险及三条旧 STA 失败路径；本批只建立事实和契约，未修改 RTL、IP 或 FDC。
 - OV7725 O1-B 已按 [RTL 卫生修复评审](../41_ov7725_hdmi/doc/RTL_HYGIENE_AUDIT.md) 完成：原 39 条手写 RTL 位宽告警中的 38 条确定性问题已消失，只保留活动 IP 14 bit 与顶层/FDC 15 bit 冲突的 `ddr3_ip.mem_a` 1 条；该项仍属于 H3/O1-C。
 - O1-B 已从空 `build/` 完成 SP6.4 七阶段，进程退出 0、日志 `E: 0`，warning `4067`、critical `81`；非零产物为综合网表 `6,873,482`、PNR 网表 `11,604,756`、SDF `8,898,464`、`.sbit` `3,791,112` 和 `.bin` `3,789,476` 字节。
@@ -48,7 +48,7 @@
 - CI-0 仓库级静态一致性门禁已完成并提交：`scripts/check_repo_consistency.ps1` 门禁退出码为 0，本批提交时全部 7 个 PowerShell 脚本 AST 解析错误数为 0；该门禁不启动或替代 PDS、STA、ModelSim/QuestaSim。
 - PCIe S2-C BAR1 staging（2026-09-01）当前仅有同版本 PDS `2022.2-SP6.4`、PCIe `1.2c` 的 `pcie_test.idf`，缺少完整 IP Compiler 实例导出的 `index.xml`，因此 staging 被阻断且不得覆盖 canonical IP。活动 `pcie_test` 仍保持 `BAR1_Enable=false`、`BAR1_ENABLED=1'b0`、`BAR1_MASK=31'h0`；S2-C DMA 未通过。PR #10 初次审计为 `OPEN/CLEAN`，随后于 `2026-09-01T12:14:57Z` 合并；最新状态为 `MERGED/UNKNOWN`。
 - PCIe S2-C 归档诊断 run `d1d25d3f23384590918f26abbfd2e839` 由 RC 主动完成 EP BAR0 写入/读回，在 `710535 ns` 输出唯一 `INFO: S2C_DMA_WRITE_READBACK_OK` 与唯一 `TEST PASS`，Errors 0、厂商 Warnings 26、PowerShell 退出 0。该结果只证明诊断路径可运行，不是 Endpoint 主动 MRd/CplD/MWr DMA 闭环；BAR1 仍禁用，`index.xml` 输入阻断不变，S2-C 不得标记为通过。
-- 三项目 S1/S2/S3 仿真就绪度盘点见 [仿真就绪度矩阵](../docs/SIMULATION_READINESS_MATRIX.md)：三个项目均在各自 `sim/questa/` 保留工程定义，DDR3 与 OV5640 仍无可运行的项目级 TB/`.f`/`.do`，OV7725 资产只作 legacy 参考；PCIe S2-A、S2-B 与 S2-D 已动态通过，S2-C、PCIe PNR 功能/PNR 时序/SDF，以及 DDR3/OV5640 四级仿真仍未完成。
+- 三项目 S1/S2/S3 仿真就绪度盘点见 [仿真就绪度矩阵](../docs/SIMULATION_READINESS_MATRIX.md)：PCIe S2-E PNR 后功能已动态通过；S2-C、PCIe PNR 时序/SDF，以及 DDR3/OV5640 四级仿真仍未完成。
 - CI-1 仿真矩阵引用门禁已扩展到当前产品范围：矩阵必须包含 DDR3、PCIe、OV5640/S3，并明确 OV7725 为 legacy；根 README 和 TODO 也必须链接该矩阵。该门禁只验证静态文档一致性，不替代动态仿真。
 - CI-2 板级证据清单完整性门禁已由提交 `677808d` 落地：`scripts/check_repo_consistency.ps1` 为 OV7725、DDR3、PCIe 分别登记清单路径与关键词，要求各项目 README 直接链接清单，并强制三份清单包含“当前工程事实”“必须提供的资料”“关闭条件”结构；PCIe 清单已统一为同一章节规范。2026-08-30 复验退出码为 0。该门禁只验证结构与导航，不代表板级证据已经提供或关闭。
 - CI-3 README 元数据完整性门禁已由提交 `5bfaae9` 落地：按项目特征检查三项目 README 是否记录器件目标、顶层、时钟、主要接口、构建入口、IP/IDF 来源和当前阻断；2026-08-30 复验退出码为 0。该门禁只检查静态可追溯表达，不代表硬件参数已审核或功能阻断已关闭。
@@ -75,7 +75,7 @@
 
 ## 当前优先级
 
-1. Questa Sim-64 2021.1、Logos2 USIM/VSIM、PCIe S2-A、S2-B 与 S2-D 当前动态复验已通过；下一步保持 S2-D 的受限覆盖边界，继续 S2-C DMA、PCIe PNR 功能/时序仿真，并为 DDR3/OV5640 建立项目级入口。
+1. PCIe S2-E PNR 后功能已通过；下一步继续 S2-C DMA 与 SDF 时序仿真，不把该无 SDF smoke 外推为链路、DMA、时序、实板或发布证据。
 2. H0/H1/H3 补齐板卡、原理图/BOM、器件丝印、bank 电压、DDR3 料号/拓扑及 OV5640/HDMI 时序资料；资料缺失时不得猜测参数、I/O delay 或收紧 gate。
 3. OV5640 按 [`OV5640_TARGET_SCOPE.md`](../docs/OV5640_TARGET_SCOPE.md) 推进：C0 只读审计参考工程，C1 冻结单/双摄、模组与接口，C2 设计新项目/顶层和 SCCB/采集/DDR3/HDMI 边界，C3 在 PG2L50H 下完成实现；S3 建立四级自检仿真。OV7725 O0/O1/O2/M3-A 仅作 legacy 问题清单和可复用性参考。
 4. DDR3 M2-B1 已纠正 staging 生成路径并完成参数/资产差异审计；下一步依据原理图/BOM 审核 28 项 FDC pin 差异及 DDR3 颗粒/拓扑，再决定是否升格 canonical。升格后必须重跑 CI-6、空目录七阶段与 D3-0-R，审核通过后才可进入 D3-A → D3-B → D3-C。
