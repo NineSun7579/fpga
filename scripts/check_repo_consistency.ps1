@@ -1,6 +1,7 @@
 param(
     [string]$RepoRoot,
-    [string]$PdsTclInventoryPath
+    [string]$PdsTclInventoryPath,
+    [string]$SensitiveDiffBaseRef = 'origin/main'
 )
 
 # Perform the repository-level checks that do not require PDS or a simulator.
@@ -21,6 +22,8 @@ if ([string]::IsNullOrWhiteSpace($PdsTclInventoryPath)) {
         'docs\PDS_TCL_ENTRYPOINT_INVENTORY.json'
 }
 $PdsTclGatePath = Join-Path $RepoRoot 'scripts\check_pds_tcl_entrypoints.ps1'
+$SensitiveDiffGatePath = Join-Path $RepoRoot 'scripts\check_sensitive_diff.ps1'
+$SensitiveDiffGateDocPath = Join-Path $RepoRoot 'docs\SENSITIVE_DIFF_GATE.md'
 $PcieBaselineDocPath = Join-Path $RepoRoot `
     'pcie_dma_test_100h\doc\H2B_BASELINE_GATE.md'
 $PcieBaselineFingerprintPath = Join-Path $RepoRoot `
@@ -181,6 +184,40 @@ if ($PdsTclInventoryExists -and $PdsTclGateExists) {
         }
     } catch {
         Add-Failure ("PDS Tcl entrypoint inventory gate failed: {0}" -f `
+                $_.Exception.Message)
+    }
+}
+
+$SensitiveDiffGateExists = Require-File -Path $SensitiveDiffGatePath `
+    -Description 'license sensitive diff gate'
+$SensitiveDiffGateDocExists = Require-File -Path $SensitiveDiffGateDocPath `
+    -Description 'license sensitive diff gate guide'
+if ($SensitiveDiffGateDocExists) {
+    $SensitiveDiffGateDocText = Get-Content -Raw -Encoding UTF8 `
+        -LiteralPath $SensitiveDiffGateDocPath
+    foreach ($Required in ([ordered]@{
+            'sensitive diff gate command' = 'check_sensitive_diff\.ps1'
+            'sensitive diff gate base ref' = 'BaseRef'
+            'sensitive diff gate history boundary' = '\u5386\u53f2'
+            'sensitive diff gate placeholder rule' = '<license-source>'
+        }).GetEnumerator()) {
+        Require-Pattern -Text $SensitiveDiffGateDocText -Pattern $Required.Value `
+            -Description $Required.Key | Out-Null
+    }
+}
+if ($SensitiveDiffGateExists) {
+    try {
+        & $SensitiveDiffGatePath -RepoRoot $RepoRoot -SelfTest
+        if ($LASTEXITCODE -ne 0) {
+            Add-Failure 'License sensitive diff gate self-test failed'
+        }
+        & $SensitiveDiffGatePath -RepoRoot $RepoRoot `
+            -BaseRef $SensitiveDiffBaseRef
+        if ($LASTEXITCODE -ne 0) {
+            Add-Failure 'License sensitive diff gate failed'
+        }
+    } catch {
+        Add-Failure ("License sensitive diff gate failed: {0}" -f `
                 $_.Exception.Message)
     }
 }
