@@ -350,3 +350,12 @@
 - `pcie_vendor` 独立编译 10 个加密 DWC 头和厂商 DO 的 DWC/HSST/GTP block；216 条旧安装前缀由 `PANGO_PDS_ROOT` 替换，项目/RC/TB 则编译到每个 `SIM_RUN_ID` 的独立 `work`。
 - 新增 `check_link_sim.ps1`，静态检查源清单、双库、路径、拓扑、私有层级、LTSSM、watchdog、marker 和唯一 PASS。`tclsh` mock probe 验证 11 次预期 `vlog` 调用的 Tcl 语义，但不等同于模型编译或仿真。
 - 当前机器仍缺少 ModelSim/QuestaSim，因此 S2-B 仅标记静态入口完成，未声明动态链路、RK3568 实板、协商宽度/速率或 DMA 通过。
+
+## 2026-09-01：PCIe S2-A Questa 动态闭环
+
+- 使用 Questa Sim-64 `2021.1` 和已编译的 Logos2 USIM 执行项目级 S2-A；工具安装与许可证配置均由仓库外参数提供，仓库不记录许可证路径、服务器、feature、内容或许可证文件。
+- 首次动态运行证明 `sim/behav.f` 缺少 `ipcore/pcie_test/rtl/ips2l_pcie_apb_cross_v1_0.v`。该文件已由 PCIe IDF 管理实现侧资产，因此只加入仿真 filelist，不修改 37 项 canonical PDS 源清单。
+- Pango RAM 模型固定引用顶层 `GRS_INST.GRSNET`，TB 的 `GTP_GRS` 实例名按厂商模型契约改为 `GRS_INST`；厂商生成文件保持只读。
+- Questa 2021.1 的 transcript 不记录 Tcl `puts` 输出，`run_behav.do` 改用 `echo` 写入随机 `SIM_RUN_ID`；PowerShell 仍要求同一日志中匹配 run marker 和唯一 `TEST PASS`。
+- 最终 run id `fab4ccef3e2445abbd9d1cad1e66b2ab`：RTL 编译 `0 errors/0 warnings`，elaboration 成功，运行至 `1476105 ns`，`Errors: 0, Warnings: 2`，唯一 `TEST PASS`，PowerShell 动态入口返回 0。
+- 两条 warning 精确指向 `u_ips2l_pcie_dma` 未连接输出 `o_trgt1_radm_pkt_halt`，作为后续独立 RTL hygiene TODO；S2-A 通过仍只证明受控边界、复位链和 LED 域，不证明真实 LTSSM、TLP、DMA、RK3568 链路或可发布位流。

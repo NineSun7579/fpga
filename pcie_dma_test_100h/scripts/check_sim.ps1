@@ -84,6 +84,7 @@ $ExpectedBehaviorEntries = @(
     '+incdir+hdl/pcie_dma_ctrl/ips2l_pcie_dma_ram/rtl',
     'ipcore/pcie_test/rtl/hsst_pipe/hsst_rst_cross_sync_v1_0.v',
     'ipcore/pcie_test/rtl/hsst_pipe/hsst_rst_sync_v1_0.v',
+    'ipcore/pcie_test/rtl/ips2l_pcie_apb_cross_v1_0.v',
     'tb/pcie_test_smoke_model.sv',
     '-f scripts/pds_sources.f',
     'tb/tb_pcie_dma_test.sv'
@@ -185,7 +186,7 @@ if ($ModelText -match '(?m)^\s*always\s*@') {
 foreach ($Required in ([ordered]@{
         'project testbench module' = '(?m)^module\s+tb_pcie_dma_test\s*;'
         'project top DUT instance' = '\bpcie_dma_test\s+dut\s*\('
-        'global reset primitive' = '\bGTP_GRS\s+grs_inst\s*\('
+        'global reset primitive' = '\bGTP_GRS\s+GRS_INST\s*\('
         'bounded watchdog' = '#3ms\s*;\s*\r?\n\s*\$fatal'
         'reset release check' = 'wait_for_reset_release'
         'minimum debounce assertion' = 'RESET_RELEASE_MINIMUM'
@@ -211,7 +212,7 @@ foreach ($Required in ([ordered]@{
         'DO fail-fast handler' = 'onerror\s*\{'
         'DO stale transcript cleanup' = 'file\s+delete\s+-force\s+build/logs/sim-behav\.log'
         'DO transcript path' = 'transcript\s+file\s+build/logs/sim-behav\.log'
-        'DO run identity' = 'SIM_RUN_ID'
+        'DO transcript run identity' = 'echo\s+"INFO:\s+SIM_RUN_ID=\$env\(SIM_RUN_ID\)"'
         'DO run-scoped work library' = 'set\s+work_dir\s+"build/sim/behav/\$env\(SIM_RUN_ID\)/work"'
         'DO shared USIM mapping' = 'vmap\s+usim\s+\.\./build/simlib/usim'
         'DO behavior filelist compile' = 'vlog\s+-sv\s+-work\s+work\s+-f\s+sim/behav\.f'

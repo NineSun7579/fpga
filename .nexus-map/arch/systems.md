@@ -9,14 +9,14 @@
 - implementation_status: documented
 - code_path: null
 - evidence_path: `README.md`, `TODO.md`, `docs/SIMULATION_READINESS_MATRIX.md`, `scripts/check_repo_consistency.ps1`, `scripts/compile_simlib.tcl`, `scripts/compile_simlib.ps1`
-- evidence_gap: 三项目均已建立 SP6.4 可重复全流程与严格/baseline gate 证据；2026-08-30 S0 复核仅确认 `E:/pango/PDS_2022.2-SP6.4/bin/pds_shell.exe` 存在，PATH、`C:/questasim64/win64` 和常见 ModelSim/QuestaSim 目录均未找到 `vsim.exe`、`vlog.exe`、`vlib.exe`，因此动态仿真及 USIM/VSIM 编译仍阻塞。
+- evidence_gap: 三项目均已建立 SP6.4 可重复全流程与严格/baseline gate 证据；Questa Sim-64 2021.1 最小 SystemVerilog、Logos2 USIM/VSIM、最小 `V_BUF` 后级原语 smoke 与 PCIe S2-A 受控行为 smoke 已验证。DDR3/S1、OV7725/S3、PCIe S2-B/S2-C 及三个项目真实网表/SDF 仿真仍缺失。
 - responsibility: 定义 PDS 2022.2-SP6.4 的实现流程、ModelSim/QuestaSim 四级仿真流程及三工程整改门槛。
-- s0_environment_review: `2026-08-30`；PDS shell 为唯一已发现工具，仿真器安装后才允许执行 `compile_simlib` 并编译 USIM/VSIM。
-- s0_0_status: completed_read_only_environment_review; ModelSim/QuestaSim 安装与 USIM/VSIM 编译仍待外部环境
-- s0_1_status: parameterized_entry_committed; library_compilation_blocked_external
+- s0_environment_review: `2026-09-01`；Questa Sim-64 2021.1 最小 SystemVerilog已通过，PDS SP6.4 Logos2 USIM/VSIM 均已成功编译。
+- s0_0_status: historical_environment_review_superseded_by_actual_questa_execution
+- s0_1_status: completed; logos2_usim_and_vsim_compiled; minimal_post_primitive_smoke_passed
 - s0_1_entry: `scripts/compile_simlib.ps1` 参数化 Simulator（ModelSim/QuestaSim）、Library（USIM/VSIM/BOTH）、Family、Language、PdsBin、SimulatorExecPath 与 OutputDirectory，并通过环境变量调用 `scripts/compile_simlib.tcl` 的 PDS `compile_simlib`；默认输出 `build/simlib`，工作目录 `build/pds-simlib`，日志 `build/logs/compile-simlib.log`。入口不再定义仿真器预检绕过参数。
 - s0_1_gate: 调用 PDS 前无条件检查 `pds_shell.exe`、Tcl 入口和 `vsim.exe`/`vlog.exe`/`vlib.exe`；任一缺失立即非零失败。PDS 后检查退出码、日志 `^E:` 及所选 `usim`/`vsim` 库目录存在。
-- s0_1_result: `compile_simlib.ps1` 与 `check_repo_consistency.ps1` AST 错误数均为 0，CI-0 门禁退出 0；默认运行因 `C:/questasim64/win64/vsim.exe` 缺失而在 PDS 前返回 1，未执行实际 USIM/VSIM 编译。
+- s0_1_result: Logos2 VSIM 编译入口退出 0、日志无 `^E:`、`vsim` 目录非空；最小后级原语 smoke 从 VSIM 库加载 `V_BUF`，运行 `2 ns`，Errors 0/Warnings 0、唯一 `TEST PASS`。
 - ci_0_status: committed_as_85d9b64
 - ci_0_scope: 检查根指南/TODO/VSCS、三个项目 README、`build.tcl`、`run.ps1`、`check_build.ps1`、顶层声明、七阶段入口、可配置 PDS 路径、进程退出码、显式 baseline 开关、产物/时序检查接口、`build/` 忽略与未跟踪生成物状态；拒绝活动 Tcl 的 `simulate` 命令和反斜杠绝对路径。
 - ci_0_result: `scripts/check_repo_consistency.ps1` 退出码 0，并输出 `INFO: repository consistency gate passed`；三个项目 README 缺口已修正，全部 7 个 PowerShell 脚本 AST 解析错误数为 0。
@@ -57,11 +57,11 @@
 - hardware_target_decision: 用户于 2026-08-30 确认三个项目共用 `RK3568+PG2L50H100H` 开发板，实际 FPGA 为 `PG2L50H-6IFBG484`；统一 PDS 目标为 `Logos2 / PG2L50H / FBG484 / -6`。
 - legacy_100h_boundary: 全部 PG2L100H PDS/STA/网表/位流仅保留为历史证据，不得烧录或作为实板验收；三个项目必须分别建立 PG2L50H 新 baseline。
 - ci_0_boundary: 仅为仓库结构与文档静态一致性门禁，不启动或替代 PDS 构建、STA、项目严格 gate 或四级仿真。
-- simulation_readiness_status: PCIe S2-A project-level behavior smoke contract implemented in uncommitted worktree; DDR3 and OV7725 project-level TB/filelist/DO still missing; all dynamic simulation blocked externally
+- simulation_readiness_status: S0-1 completed with Logos2 USIM/VSIM and V_BUF primitive smoke; PCIe S2-A controlled behavior smoke passed; DDR3 and OV7725 project-level TB/filelist/DO and all three projects' netlist/SDF simulations remain pending
 - simulation_asset_boundary: `ipcore/`、`ip_core/`、`ip_backup/` 内的 DDR3、PLL、FIFO 和 PCIe RC/EP testbench/filelist/DO 均为厂商示例，只能作为模型与接口参考；不得改名或直接计入 `ov7725_hdmi`、`ddr3_bringup_top` 或 `pcie_dma_test` 的集成覆盖。
-- simulation_common_gap: PCIe S2-A 已具备项目自有 TB、相对路径 filelist/DO、超时/`$fatal`、`SIM_RUN_ID` 和唯一 `TEST PASS` 静态契约；DDR3/S1 与 OV7725/S3 仍缺项目级入口，PCIe S2-B/S2-C 及三项目后级网表/SDF 仿真仍未实现或执行。
-- next_step: 安装并验证有许可证的 ModelSim/QuestaSim，将实际路径传给 `compile_simlib.ps1`，随后编译 Logos2 USIM/VSIM；只有退出 0、日志无 `E:` 且所选库目录非空后才解除 S0-1 阻断。
-- s0_0_recheck: 2026-08-30 再次检查 PATH、`C:/questasim64/win64`、常见安装目录和 `vsim.exe`/`vlog.exe`/`vlib.exe`，仍全部缺失；提交 `ef5cc9a` 仅记录证据，不运行库编译或动态仿真。
+- simulation_common_gap: PCIe S2-A 已具备项目自有 TB、相对路径 filelist/DO、超时/`$fatal`、随机 `SIM_RUN_ID` 和唯一 `TEST PASS` 动态证据；DDR3/S1 与 OV7725/S3 仍缺项目级入口，PCIe S2-B/S2-C 及三项目后级网表/SDF 仿真仍未实现或执行。
+- next_step: 将 `u_ips2l_pcie_dma` 未连接输出 `o_trgt1_radm_pkt_halt` 作为独立 RTL hygiene TODO 处理，并继续推进 S2-B 真实 RC/EP、S2-C DMA 与三个项目真实网表/SDF 仿真。
+- s0_0_recheck: 2026-08-30 的未发现仿真器结论已被 2026-09-01 的实际 Questa 执行、USIM 编译与 PCIe S2-A 动态 PASS 取代。
 
 ## Verilog/SystemVerilog 注释规范
 
@@ -140,7 +140,7 @@
 - implementation_status: designed_pending_implementation
 - code_path: planned `ddr3_test/ddr3_test/rtl/ddr3_bringup_top.sv`, `ddr3_test/ddr3_test/rtl/ddr3_finite_bist.sv`
 - evidence_path: D2 只读评审决策；厂商 `test_ddr`、BIST 和 testbench 源码静态证据
-- evidence_gap: 两个项目自有 RTL 文件尚未创建；QuestaSim 缺失，行为级、综合后和 PNR 后仿真均未执行；D3-A/B/C 尚待用户审核与实现。
+- evidence_gap: 两个项目自有 RTL 文件尚未创建；公共 Questa/USIM/VSIM 已验证，但 DDR3 行为级、综合后和 PNR 后项目仿真均未执行；D3-A/B/C 尚待用户审核与实现。
 - responsibility: 在不修改厂商 `test_ddr`、持续运行 BIST 和旧 testbench 的前提下，提供有限、确定且可由 CI 判定的 DDR3 写读比较测试。
 - transaction_contract: 16 个单 beat 写读比较 pair；控制器地址 `0x0..0x78`、步长 8；每 pair timeout 4096 周期；整次 run timeout 131072 周期。
 - result_contract: 稳定公开 `test_done`、`test_failed`、`failure_code`、`error_count`、`completed_pairs`，并提供首错地址/期望值/实际值等首错信息。
@@ -165,7 +165,7 @@
 - project_path: `pcie_dma_test_100h/pcie_dma_test.pds`
 - constraint_path: `pcie_dma_test_100h/fdc/pcie_dma_test.fdc`
 - evidence_path: `pcie_dma_test_100h/place_route/pcie_dma_test_timing_summary_after_hold_fix.txt`
-- evidence_gap: 活动 `pcie_test.idf`、build/PDS/gate、timing report 与新 `.sbit/.bin` 已统一为 PG2L50H，并从空 `build/` 完成七阶段重建；S2-A 项目级行为 smoke 静态契约已在未提交工作树落地，但无 QuestaSim 动态证据。UART2APB、SCBV、lane/refclk/PERST# 板级证据、真实 RC/EP、DMA 与后级网表/SDF 仿真仍缺失。
+- evidence_gap: 活动 `pcie_test.idf`、build/PDS/gate、timing report 与新 `.sbit/.bin` 已统一为 PG2L50H，并从空 `build/` 完成七阶段重建；S2-A 项目级受控行为 smoke 已动态通过，公共 VSIM 与 `V_BUF` 原语 smoke 已验证。UART2APB、SCBV、lane/refclk/PERST# 板级证据、真实 RC/EP、DMA 与项目后级网表/SDF 仿真仍缺失。
 - responsibility: 集成 PCIe x2 IP、DMA、RAM/FIFO 与 UART2APB 管理路径。
 - build_entry: `pcie_dma_test_100h/scripts/run.ps1`
 - build_definition: `pcie_dma_test_100h/scripts/build.tcl`
@@ -175,11 +175,13 @@
 - h2a_constraint_gaps: FDC 未提供 lane 极性、板级拓扑、I/O delay 或 SCBV；`pcie_test.idf` metadata、build/PDS/gate 与新产物已与实物目标 `Logos2 / PG2L50H / FBG484 / -6` 一致，HSSTLP 资源为 PDS 模板指定的 `HSSTLP_292_612`。
 - h2a_uart_gap: UART2APB 使用隐式 `rxd/txd` 网络，当前 `rxd` 被绑 0；该功能缺口不因 PDS/STA 成功而关闭。
 - h2a_boundary: 器件型号已获用户审核；活动 PCIe IDF 不需仅因型号重生成。M1 已修改项目自有 build/gate，并依据 PDS 模板迁移 HSSTLP 资源后重建生成物；RTL/FDC 其余内容仍受 UART 与板级证据审核约束。
-- s2a_status: 2026-08-31 implemented_in_uncommitted_worktree; static_check_sim_exit_0; root_consistency_gate_exit_0; dynamic_blocked_missing_questa
-- s2a_assets: `tb/tb_pcie_dma_test.sv` 实例化真实 `pcie_dma_test`；`tb/pcie_test_smoke_model.sv` 只替代生成 PCIe IP 边界，两个时序过程恰好使用两个 `always_ff`，不允许退回普通 `always @`；`sim/behav.f` 通过 `-f scripts/pds_sources.f` 复用 37 个 canonical HDL，并显式加入 `hdl/pcie_dma_ctrl/ips2l_pcie_dma_ram/rtl` init include；`scripts/run_behav.do`、`scripts/check_sim.ps1` 与 `scripts/run.ps1 -Action sim-behav` 形成入口和门禁。
-- s2a_log_contract: 每次动态运行使用 32 位小写十六进制 `SIM_RUN_ID`；DO 从项目根映射仓库公共 `../build/simlib/usim`，并为本次运行创建 `build/sim/behav/<run_id>/work`，禁止复用 stale work。DO 写入同一 run marker，PowerShell 只接受该 marker 恰好一次且 `TEST PASS` 恰好一次的日志，任一失败由 `$fatal` 或非零退出传播。
+- s2a_status: 2026-09-01 controlled_dynamic_smoke_passed; vlog_0_errors_0_warnings; vsim_errors_0_warnings_2; unique_test_pass; powershell_run_id_gate_passed
+- s2a_assets: `tb/tb_pcie_dma_test.sv` 实例化真实 `pcie_dma_test`，全局复位实例名为厂商要求的 `GRS_INST`；`tb/pcie_test_smoke_model.sv` 只替代生成 PCIe IP 边界，两个时序过程恰好使用两个 `always_ff`；`sim/behav.f` 复用 `scripts/pds_sources.f` 的 37 个 canonical HDL，并单独补入仿真所需 `ipcore/pcie_test/rtl/ips2l_pcie_apb_cross_v1_0.v`。`scripts/pds_sources.f` 不修改，因为该源在实现侧由 IDF 管理。
+- s2a_log_contract: 每次动态运行使用随机 32 位小写十六进制 `SIM_RUN_ID`；DO 通过 `echo` 将 marker 写入 transcript，并为本次运行创建独立 work。PowerShell 只接受同一 run id marker 恰好一次且 `TEST PASS` 恰好一次，任一失败由 `$fatal` 或非零退出传播。
 - s2a_reset_contract: button reset 只拥有 PCIe core/pclk 域；TB 在断言后先确认 ref counter 没有被清零，再跨额外 8 个 refclk 周期确认 link 撤销期间严格保持原值。随后 button reset 完整重新释放并恢复 model link，PERST# 才单独断言以复位两组 LED 域，再独立释放并重新通过 debounce/link 检查。
 - s2a_coverage_boundary: 只覆盖产品顶层展开、外部/同步复位、上述 reset ownership、两组 LED 计数门控及 TX/LED 未知态；受控 `smlh_link_up/rdlh_link_up` 只是激励，不证明 LTSSM、TLP、DMA、x2 lane、电气 refclk/PERST# 或 RK3568 Root Complex。
+- s2a_dynamic_result: Questa Sim-64 2021.1；`vlog` 0 errors/0 warnings；`vsim` elaboration 成功并运行到 `1476105 ns`；Errors 0/Warnings 2；唯一 `TEST PASS`；PowerShell 同 run-id/唯一 PASS 门禁通过。
+- s2a_warning_todo: 两条 warning 均为 `pcie_dma_test.v` 中 `u_ips2l_pcie_dma` 缺少输出 `o_trgt1_radm_pkt_halt` 连接；作为独立 RTL hygiene TODO，不影响本层受控 smoke PASS。
 - s2_next_layers: S2-B 使用厂商 `pango_pcie_top_sim` RC 与项目 `pcie_dma_test` EP 验证真实链路；S2-C 在 S2-B 后执行固定地址/长度/数据的基础 DMA 回读。S2-A 边界模型不得进入这两层或后级网表验收。
 - h2b_stop_conditions: 板级 lane 极性/拓扑、I/O delay 或 SCBV 缺失，IDF/PDS 器件元数据不一致，或 UART2APB `rxd/txd` 归属未决时，H2-B 不得收紧 gate；不得用 waiver 掩盖缺口。
-- next_step: 保持 H2-B1 strict gate 阻断并等待 lane/refclk/PERST#/SCBV 与 UART 决策；安装/验证 QuestaSim 与 USIM 后先动态执行 S2-A，再进入真实 RC/EP 的 S2-B，最后进入 S2-C DMA
+- next_step: 保持 H2-B1 strict gate 阻断并等待 lane/refclk/PERST#/SCBV 与 UART 决策；独立处理 `o_trgt1_radm_pkt_halt` RTL hygiene TODO，再进入真实 RC/EP 的 S2-B、S2-C DMA 与项目后级网表/SDF 仿真

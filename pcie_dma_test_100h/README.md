@@ -10,8 +10,8 @@
 - 历史实现内部时序通过，但该结果不能替代新脚本的重建验证。
 - UART2APB 当前连接隐式 `rxd/txd`，其中 `rxd` 被编译器绑为 0；硬件接口决策前不修改该功能。
 - PCIe IDF 已由 SP6.4 为 PG2L50H 生成，与实际器件一致；需要修正的是旧 PG2L100H 顶层构建目标和 gate，不需要仅为器件型号重生成 IP。
-- S2-A 已建立项目级行为 smoke：真实 `pcie_dma_test` 顶层配合受控 PCIe 边界模型，覆盖复位链、LED 域和唯一 PASS 契约；因本机缺少 QuestaSim，动态运行仍未完成。
-- S2-B 已建立真实 RC/EP 静态入口：厂商 `pango_pcie_top_sim` 对接项目真实 Endpoint，检查两端 link/LTSSM L0 和 32 周期稳定窗口；动态链路仍因本机缺少 QuestaSim 而未验证。
+- S2-A 已用 Questa Sim-64 `2021.1` 动态通过：真实 `pcie_dma_test` 顶层配合受控 PCIe 边界模型，覆盖复位链、LED 域、同一 run id 和唯一 `TEST PASS`；该结果不代表真实 LTSSM、DMA 或板级链路通过。
+- S2-B 已建立真实 RC/EP 静态入口：厂商 `pango_pcie_top_sim` 对接项目真实 Endpoint，检查两端 link/LTSSM L0 和 32 周期稳定窗口；厂商加密模型的动态链路训练仍待执行。
 - 已从空 `build/` 以 PG2L50H 完成 SP6.4 七阶段重建，生成新的网表、SDF 和位流；旧 PG2L100H 结果仍只作为历史证据。
 - 严格发布 gate 已验证仍会失败；UART 死通道、未约束端口、lane/refclk/PERST# 和 SCBV 继续阻断发布。
 - H2-A 已完成只读证据收口，详见 [PCIe 板级证据与 IP 目标契约](doc/PCIE_BOARD_EVIDENCE.md)。活动 IDF 保持只读；FDC 在原理图资料闭合前不修改。
@@ -71,15 +71,15 @@ S2-A 静态契约检查不依赖仿真器：
 powershell -ExecutionPolicy Bypass -File .\scripts\check_sim.ps1
 ```
 
-安装 QuestaSim 并编译 Logos2 USIM 后，执行项目级行为 smoke：
+QuestaSim 和 Logos2 USIM 就绪后，执行项目级行为 smoke：
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\run.ps1 `
   -Action sim-behav `
-  -QuestaBin C:\questasim64\win64
+  -QuestaBin '<Questa-win64-directory>'
 ```
 
-该入口使用唯一 `SIM_RUN_ID` 绑定 `build/logs/sim-behav.log`，并要求日志只出现一次 `TEST PASS`。详细范围和停止条件见 [S2-A 项目级行为 smoke 契约](doc/S2A_BEHAVIOR_SMOKE.md)。边界模型产生的 link indication 不是 LTSSM、TLP、DMA 或板级链路证据。
+该入口使用唯一 `SIM_RUN_ID` 绑定 `build/logs/sim-behav.log`，并要求日志只出现一次 `TEST PASS`。2026-09-01 的动态运行已通过；elaboration 仍报告项目 RTL 实例 `u_ips2l_pcie_dma` 未连接输出 `o_trgt1_radm_pkt_halt` 的两条 warning，该 RTL hygiene 项留待独立批次处理。详细范围和停止条件见 [S2-A 项目级行为 smoke 契约](doc/S2A_BEHAVIOR_SMOKE.md)。边界模型产生的 link indication 不是 LTSSM、TLP、DMA 或板级链路证据。
 
 S2-B 静态合同检查：
 
@@ -87,12 +87,12 @@ S2-B 静态合同检查：
 powershell -ExecutionPolicy Bypass -File .\scripts\check_link_sim.ps1
 ```
 
-安装 QuestaSim 后执行真实 RC/EP 链路训练：
+执行真实 RC/EP 链路训练：
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\run.ps1 `
   -Action sim-link `
-  -QuestaBin C:\questasim64\win64
+  -QuestaBin '<Questa-win64-directory>'
 ```
 
 该入口使用参数化 PDS 安装根读取厂商加密模型，独立 `pcie_vendor`/`work` 库和唯一 `SIM_RUN_ID`。动态成功必须同时出现一次 `INFO: S2B_REAL_LINK_UP` 与一次 `TEST PASS`。详细审核边界见 [S2-B 真实 RC/EP 仿真入口](doc/S2B_REAL_LINK.md)。它不证明 RK3568 实板链路、x2/5.0 GT/s、PCB 电气或 DMA 数据闭环。
