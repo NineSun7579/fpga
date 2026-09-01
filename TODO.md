@@ -483,6 +483,7 @@ O2-D2 停止条件：控制相位或 `/5` generated clock 未被 PDS 唯一识�
 - [x] S2-B 静态：以厂商 `pango_pcie_top_sim` 为 RC、项目真实 `pcie_dma_test` 为 EP，建立双库、参数化模型、双向 x2 lane、两端 link/LTSSM L0、32 周期稳定、6 ms watchdog 和唯一 PASS 合同；见 [`S2B_REAL_LINK.md`](pcie_dma_test_100h/doc/S2B_REAL_LINK.md)。
 - [x] S2-B 动态：Questa `2021.1` 最新 run `30bad6e164be4a4b8284a00f1e96bd87` 完成厂商模型与项目 RTL 编译/elaboration，并在首次速率重训练后取得连续 32 周期双端 link-up/L0；`702175 ns` 输出唯一 `INFO: S2B_REAL_LINK_UP`、唯一 `TEST PASS`，`Errors: 0, Warnings: 26`，PowerShell 退出 0。该结果不证明 DMA、RK3568 实板链路、协商宽度/速率或板级电气。
 - [ ] S2-C：归档入口和静态合同已建立，但当前诊断 TB 只是 RC 主动访问 EP BAR0；活动 EP 的 BAR1 被禁用，尚不能完成厂商 canonical Endpoint 主动 DMA 闭环。先审核并通过 PDS IP Compiler 原子重生成 BAR1 配置，再验证 EP MRd RC BAR0 → CplD 落 EP BAR2 → EP MWr 写回 RC BAR0 的固定 1 DW 全 32-bit 数据合同。
+- [x] S2-C-BAR1：冻结 BAR1 重生成和原子升格边界，见 [`S2C_BAR1_REGENERATION.md`](pcie_dma_test_100h/doc/S2C_BAR1_REGENERATION.md)；当前仅通过阻断门禁，未修改生成 IP。
 - [ ] 再完成综合后、PNR 功能和 PNR 时序仿真。
 - [ ] 每级成功只输出一个 `TEST PASS`，失败或超时返回非零。
 

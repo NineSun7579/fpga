@@ -44,6 +44,8 @@ $PcieLinkSimCheckPath = Join-Path $RepoRoot `
     'pcie_dma_test_100h\scripts\check_link_sim.ps1'
 $PcieS2bDocPath = Join-Path $RepoRoot `
     'pcie_dma_test_100h\doc\S2B_REAL_LINK.md'
+$PcieS2cBar1GatePath = Join-Path $RepoRoot `
+    'pcie_dma_test_100h\scripts\check_s2c_bar1.ps1'
 $SimArchiveGatePath = Join-Path $RepoRoot `
     'scripts\check_sim_archives.ps1'
 $ApprovedBoard = 'RK3568+PG2L50H100H'
@@ -284,6 +286,22 @@ if ($SimArchiveGateExists) {
     } catch {
         Add-Failure ("Three-project simulation archive gate failed: {0}" -f `
                 $_.Exception.Message)
+    }
+}
+
+$PcieS2cBar1GateExists = Require-File -Path $PcieS2cBar1GatePath `
+    -Description 'PCIe S2-C BAR1 regeneration gate'
+if ($PcieS2cBar1GateExists) {
+    try {
+        Push-Location (Join-Path $RepoRoot 'pcie_dma_test_100h')
+        & $PcieS2cBar1GatePath
+        if ($LASTEXITCODE -ne 0) {
+            Add-Failure 'PCIe S2-C BAR1 regeneration gate failed'
+        }
+    } catch {
+        Add-Failure ("PCIe S2-C BAR1 regeneration gate failed: {0}" -f $_.Exception.Message)
+    } finally {
+        Pop-Location
     }
 }
 
