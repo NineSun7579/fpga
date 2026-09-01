@@ -6,8 +6,8 @@
 
 S2-F 的项目内 Questa 工程入口已经形成，slow-corner SDF 也已成功标注到真实
 `pcie_dma_test` DUT；但当前动态运行存在两个自然复现的正 setup/hold error，且
-Pango `V_FFASYN` 模型不能完整表达负 timing check 语义。因此 S2-F 仍为阻断状态，
-不得勾选为通过。
+Pango `V_FFASYN` 与 `V_DRM18K_E1` 模型不能完整表达或求解负 timing check 语义。
+因此 S2-F 仍为阻断状态，不得勾选为通过。
 
 ```text
 Status: blocked
@@ -90,14 +90,15 @@ u_ips2l_pcie_wrap/.../hsst_pciex4_rst/ext_rstn_debounce
 
 ## Pango timing model 边界
 
-PDS `2022.2-SP6.4` 提供的 `V_FFASYN`：
+PDS `2022.2-SP6.4` 提供的相关模型均使用四实参 timing check：
 
-- 功能逻辑直接采样原始 `CK`、`D`；
-- `$setuphold` 与 `$recrem` 均只有四个实参；
-- 没有 delayed reference/data、notifier 或 delayed copy。
+- `V_FFASYN` 功能逻辑直接采样原始 `CK`、`D`，没有 delayed reference/data、
+  notifier 或 delayed copy；
+- `V_DRM18K_E1` 的负 `$setuphold/$recrem` 无法由当前 solver 全部求解。
 
-本次运行记录 1 条 `vsim-8756` 和 1590 条 `vsim-3004`。Questa 因无法求解模型中的
-负 timing limit 而把相关负限制清零，说明负 timing check 覆盖不完整。当前 DO 保留：
+canonical run 的 1 条 `vsim-8756` 来自 `V_FFASYN`，1590 条 `vsim-3004` 全部来自
+`V_DRM18K_E1`。Questa 把无法求解的相关负限制清零，说明负 timing check 覆盖不完整。
+当前 DO 保留：
 
 ```text
 +delayed_timing_checks
@@ -105,8 +106,21 @@ PDS `2022.2-SP6.4` 提供的 `V_FFASYN`：
 -glsnegtchk level2
 ```
 
-禁止通过 `+notimingchecks`、`+no_notifier`、`+nospecify`、`+no_neg_tchk` 或
-`-glsnegtchk level3` 隐藏问题。上述模型缺陷不能豁免本次两个正 setup/hold error。
+禁止通过 `+notimingchecks`、`+no_notifier`、`+nospecify` 或 `+no_neg_tchk` 隐藏
+问题。`level3` 不关闭 timing checks，但本设计没有 conditional solver 的模型依据，
+只允许在独立诊断入口使用，不得替换 canonical `level2` 验收。上述模型缺陷不能豁免
+本次两个正 setup/hold error。
+
+## 负时序求解器诊断
+
+独立矩阵 run `f79dc238c12949b7b67db2ef0d0ddd0b` 使用相同网表、SDF、TB、模型哈希和
+激励比较 `level1/level2/level3`。三档均保留 timing checks、成功标注 SDF，并自然
+复现相同的 1 个 setup 与 1 个 hold error。`level1` 的 `vsim-3004` 增至 3624，
+`level2/level3` 均为 1590；三档 `vsim-8756` 均为 1。
+
+因此 solver 只改变负限制退化数量，没有修复模型语义或两个正 timing error。完整输入
+哈希、统计和关闭边界见
+[`S2F_NEGATIVE_TIMING_DIAGNOSTIC.md`](S2F_NEGATIVE_TIMING_DIAGNOSTIC.md)。
 
 ## STA 对照
 

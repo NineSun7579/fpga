@@ -77,7 +77,7 @@ DDR3 当前仍没有面向项目集成顶层的仿真入口。摄像头产品目
 - S2-B 项目资产位于 `sim/questa/tb/tb_pcie_dma_link.sv`、`sim/questa/link.f`、`sim/questa/link_vendor_local.f`、`sim/questa/compile_vendor_link.do` 和 `sim/questa/run_link.do`；静态门禁为 `scripts/check_link_sim.ps1`。
 - S2-D 项目资产位于 `sim/questa/tb/tb_pcie_dma_post_syn.sv`、`sim/questa/post_syn.f` 和 `sim/questa/run_post_syn.do`；静态门禁为 `scripts/check_post_syn_sim.ps1`，契约为 [`S2D_POST_SYN_SMOKE.md`](../pcie_dma_test_100h/doc/S2D_POST_SYN_SMOKE.md)。
 - S2-E 项目资产位于 `sim/questa/tb/tb_pcie_dma_post_pnr_func.sv`、`sim/questa/post_pnr_func.f` 和 `sim/questa/run_post_pnr_func.do`；静态门禁为 `scripts/check_post_pnr_func_sim.ps1`，契约为 [`S2E_POST_PNR_FUNC_SMOKE.md`](../pcie_dma_test_100h/doc/S2E_POST_PNR_FUNC_SMOKE.md)。
-- S2-F 项目资产位于 `sim/questa/tb/tb_pcie_dma_post_pnr_timing.sv`、`sim/questa/post_pnr_timing.f` 和 `sim/questa/run_post_pnr_timing.do`；静态门禁为 `scripts/check_post_pnr_timing_sim.ps1`，阻断报告为 [`S2F_POST_PNR_TIMING_SMOKE.md`](../pcie_dma_test_100h/doc/S2F_POST_PNR_TIMING_SMOKE.md)。
+- S2-F 项目资产位于 `sim/questa/tb/tb_pcie_dma_post_pnr_timing.sv`、`sim/questa/post_pnr_timing.f` 和 `sim/questa/run_post_pnr_timing.do`；静态门禁为 `scripts/check_post_pnr_timing_sim.ps1`。独立 `level1/level2/level3` 诊断入口及门禁不会修改 canonical 验收配置；阻断报告为 [`S2F_POST_PNR_TIMING_SMOKE.md`](../pcie_dma_test_100h/doc/S2F_POST_PNR_TIMING_SMOKE.md)，solver 证据见 [`S2F_NEGATIVE_TIMING_DIAGNOSTIC.md`](../pcie_dma_test_100h/doc/S2F_NEGATIVE_TIMING_DIAGNOSTIC.md)。
 
 ### 缺口与风险
 
@@ -91,7 +91,7 @@ DDR3 当前仍没有面向项目集成顶层的仿真入口。摄像头产品目
 - 活动 PCIe IP、PDS 目标和新构建产物均与实际 PG2L50H 一致；lane/refclk/PERST#/SCBV 和 UART 决策继续由 H2-B1 阻断。
 - S2-D 已用当前 canonical 综合网表完成受限动态 smoke，只证明综合网表展开、项目 reset debounce/sync 与 reference-clock LED counter 路径；强制 link 观察网络不构成 LTSSM、DMA、PNR、SDF 或时序证据。
 - S2-E 已生成并绑定不含 `$sdf_annotate` 的独立 PNR 功能网表；Questa run `927abae8ed7d40aeb5d6f706b3723e0a` 动态通过，只证明网表展开、reset debounce/sync 和 reference-clock LED counter 路径，不构成链路、DMA、SDF/时序、H2-B1 或发布证据。
-- S2-F run `7fc77a7ec8db479db7332e8037426d6c` 由独立启动器复验，成功标注 SDF，但无 force 仍在 HSST `ext_rstn_debounce` 自然复现两个正 setup/hold error；`V_FFASYN` 四实参模型同时使 1590 个负限制退化为零。GLS 与 slow-corner STA 全正裕量冲突，既不能标记通过，也不能据此断言硅上失败。
+- S2-F run `7fc77a7ec8db479db7332e8037426d6c` 由独立启动器复验，成功标注 SDF，但无 force 仍在 HSST `ext_rstn_debounce` 自然复现两个正 setup/hold error；另有 1590 个 `V_DRM18K_E1` 负限制无法求解和 1 个 `V_FFASYN` delayed-copy 告警。solver 矩阵 run `f79dc238c12949b7b67db2ef0d0ddd0b` 中，`level1/2/3` 仍各有同一个 setup/hold error，`vsim-3004` 分别为 `3624/1590/1590`。GLS 与 slow-corner STA 全正裕量冲突，既不能标记通过，也不能据此断言硅上失败。
 
 ### TODO（S2）
 

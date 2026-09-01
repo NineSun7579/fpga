@@ -10,6 +10,7 @@
 - `post_syn.f`、`run_post_syn.do`、`tb/tb_pcie_dma_post_syn.sv`：S2-D 综合后受限结构 smoke。
 - `post_pnr_func.f`、`run_post_pnr_func.do`、`tb/tb_pcie_dma_post_pnr_func.sv`：S2-E PNR 后功能受限结构 smoke；动态已通过。
 - `post_pnr_timing.f`、`run_post_pnr_timing.do`、`tb/tb_pcie_dma_post_pnr_timing.sv`：S2-F slow-corner SDF 时序入口；SDF 已成功标注，但动态结果被 timing error 与模型语义缺口阻断。
+- `run_post_pnr_timing_diagnostic.do`：S2-F 负时序求解器诊断矩阵；复用同一网表、SDF、filelist 和 TB，仅比较 `level1/level2/level3`，不改变 canonical 验收配置。
 - 项目自有 testbench 和仿真模型统一保留在 `tb/`；canonical 实现源清单仍位于 `../../scripts/pds_sources.f`，避免维护重复 RTL 清单。
 
 ## 运行边界
@@ -45,6 +46,17 @@ complete/valid manifest；Questa run `927abae8ed7d40aeb5d6f706b3723e0a` 运行�
 S2-F 使用 canonical timing netlist 内嵌的单次 `$sdf_annotate`，不追加外部
 `-sdfmax`。Questa run `7fc77a7ec8db479db7332e8037426d6c` 在无 force TB 下成功
 标注 SDF，但自然复现两个 HSST reset debounce 正 setup/hold error；终态
-`Errors: 2`、PowerShell 退出 1。`V_FFASYN` 模型同时使 1590 个负 timing limit
-退化为零，因此 S2-F 保持阻断。详见
+`Errors: 2`、PowerShell 退出 1。另有 1590 个 `V_DRM18K_E1` 负 timing limit
+无法求解，以及 1 个 `V_FFASYN` delayed-copy 模型告警，因此 S2-F 保持阻断。详见
 [`../../doc/S2F_POST_PNR_TIMING_SMOKE.md`](../../doc/S2F_POST_PNR_TIMING_SMOKE.md)。
+
+诊断矩阵通过 `scripts/run_post_pnr_timing_diagnostic.ps1` 启动，一次编译后依次运行
+Questa `level1/level2/level3`，并记录工具版本及网表、SDF、TB、`V_FFASYN`、
+`V_DRM18K_E1` 的 SHA-256。每级日志和汇总 JSON 只写入 `build/`；矩阵完成只表示
+取得了对照数据。每级结束后删除该 run 的临时 work/launcher 目录以限制磁盘占用；
+`AcceptanceStatus` 固定为 `blocked`，不能替代 canonical S2-F gate。
+
+最终矩阵 run `f79dc238c12949b7b67db2ef0d0ddd0b` 的 `level1/level2/level3`
+统计为：`vsim-3004=3624/1590/1590`、`vsim-8756=1/1/1`，三档均有同一个
+setup 与 hold error，终态均为 `Errors: 2`。完整证据见
+[`../../doc/S2F_NEGATIVE_TIMING_DIAGNOSTIC.md`](../../doc/S2F_NEGATIVE_TIMING_DIAGNOSTIC.md)。
