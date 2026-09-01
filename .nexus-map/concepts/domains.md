@@ -14,13 +14,13 @@ HDL 经 compile、synthesize、dev_map、PNR、timing report、netlist 和 bitst
 
 2026-09-01 CI-9 同时覆盖当前树和 PR 差异：`-FullTree` 扫描 tracked/untracked 工作树，PR 模式依据 Git merge-base 扫描 changed paths 与 added lines。当前版本已将 68 个 tracked 日志中的 143 处许可证绝对路径替换为 `<license-path>`；全树和差异门禁均通过。门禁不读取实际配置，也不改写 Git 历史。
 
-DDR3、PCIe 和摄像头 HDMI 共用 `RK3568+PG2L50H100H` 开发板与 `PG2L50H-6IFBG484`，统一 PDS 目标为 `Logos2/PG2L50H/FBG484/-6`。摄像头产品目标于 2026-09-01 校正为 OV5640；`41_ov7725_hdmi` 及其 O0/O1/O2/M3-A 只作 legacy。OV5640 按 C0 参考审计、C1 范围冻结、C2 项目边界、C3 PG2L50H 实现和 S3 四级仿真推进。
+摄像头产品固定双 OV5640。只读参考 `origin/parallel_driver@485f3bb` 的 `top_dual_ov5640_hdmi` 使用两路独立 SCCB/RESET/PWDN/DVP，每路采集 960x1080 半幅，通过双写 DDR3 组成 1920x1080。参考根 PDS/DDR3 仍为 PG2L100H，仅 PCIe IP 为 PG2L50H，因此新产品必须选择性导入到 `59_top_dual_ov5640_hdmi/` 并独立建立 PG2L50H 证据；`41_ov7725_hdmi` 仅 legacy。
 
 ## 外部四级仿真
 
 ModelSim/QuestaSim 分别承担行为级、综合后、PNR 后功能和 PNR 后时序仿真。USIM 用于 PNR 前原语，VSIM 用于 PNR 后原语；时序仿真还依赖正确层级的 SDF 标注。
 
-Questa Sim-64 2021.1、Logos2 USIM/VSIM、`V_BUF`、PCIe S2-A 当前受控 smoke 与 S2-B 真实 RC/EP 链路均有通过证据；S2-A/S2-B 静态门禁通过。三个项目的 Questa 工程定义分别保留在项目内 `sim/questa/`；启动器在 `build/sim/launcher/<run-id>/` 创建并显式绑定 run-scoped `modelsim.ini`，PowerShell 以进程内 `SIM_PROJECT_ROOT` 让 DO 切回项目根，work/vendor library、日志、transcript、波形与 ini 只写入 `build/`。DDR3 与 OV5640 仍缺可运行项目级入口，OV7725 资产只作 legacy 参考；PCIe S2-C 与三个产品方向的真实网表/SDF 仿真仍待完成。
+双 OV5640 参考仓库发现 4 个 TB，但尚未选择性导入；`tb_dual_ov5640_dri.v` force `cam_init_done`，成功字符串也不是 canonical `TEST PASS`，不能计入产品覆盖。未来可复现仿真源只进入 `59_top_dual_ov5640_hdmi/sim/questa/`，运行态只进入其 `build/`；禁止导入 `sim_*`、`work`、`.mpf`、`modelsim.ini`、日志、波形、绝对路径生成物或许可证配置。`41_ov7725_hdmi/sim/questa/` 仅 legacy。
 
 ## 产品顶层与 IP 示例边界
 

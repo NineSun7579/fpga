@@ -6,39 +6,41 @@
 
 ## 结论
 
-DDR3 与摄像头 HDMI 当前仍没有面向项目集成顶层的仿真入口。现有摄像头资产属于 OV7725 legacy，产品目标已校正为 OV5640，必须先完成 C0/C1 再设计项目 TB。Questa Sim-64 `2021.1`、Logos2 USIM/VSIM 和 `V_BUF` 原语 smoke 已验证，许可证配置保持在仓库外部。PCIe S2-A 最新归档边界回归 run id `add7efa39f644384af9929e8a9366739` 的 RTL 编译为 `0 errors/0 warnings`，elaboration 成功，仿真运行到 `1476105 ns`，同一 run marker、唯一 `TEST PASS` 和 PowerShell 退出码 0 均通过。当前 PG2L50H 完整 PDS run id `9952da4164f040d5924a558baa5cd8ca` 为 complete/valid，43 输入/9 证据，baseline/strict gate=`0/1`、最差 slack `0.100 ns`；S2-B run `30bad6e164be4a4b8284a00f1e96bd87` 已通过真实 RC/EP link-up。PCIe S2-D 综合后受限 smoke run `41135fd3fadd4c51a70508a6fa5af3e3` 使用当前 canonical 综合网表，唯一 marker/PASS 和退出 0 均通过。S2-E PNR 功能 run `927abae8ed7d40aeb5d6f706b3723e0a` 运行至 `491965 ns`，唯一 marker/PASS、`Errors: 0, Warnings: 1` 和退出 0 均通过。所有 ini、work、日志、transcript 与波形只在 `build/`。DDR3、摄像头、S2-C Endpoint 主动 DMA 和三个项目的 SDF 时序仿真仍待完成。
+DDR3 当前仍没有面向项目集成顶层的仿真入口。摄像头产品目标已固定为双 OV5640；`origin/parallel_driver@485f3bb` 可见 4 个相关 TB 和两项数据面 PASS 自述，但资产尚未选择性导入新的 `59_top_dual_ov5640_hdmi/`，也没有本仓库 canonical `.f/.do`、run marker 和日志门禁，因此仍未形成可审核项目入口。Questa Sim-64 `2021.1`、Logos2 USIM/VSIM 和 `V_BUF` 原语 smoke 已验证，许可证配置保持在仓库外部。PCIe S2-A 最新归档边界回归 run id `add7efa39f644384af9929e8a9366739` 的 RTL 编译为 `0 errors/0 warnings`，elaboration 成功，仿真运行到 `1476105 ns`，同一 run marker、唯一 `TEST PASS` 和 PowerShell 退出码 0 均通过。当前 PG2L50H 完整 PDS run id `9952da4164f040d5924a558baa5cd8ca` 为 complete/valid，43 输入/9 证据，baseline/strict gate=`0/1`、最差 slack `0.100 ns`；S2-B run `30bad6e164be4a4b8284a00f1e96bd87` 已通过真实 RC/EP link-up。PCIe S2-D 综合后受限 smoke run `41135fd3fadd4c51a70508a6fa5af3e3` 使用当前 canonical 综合网表，唯一 marker/PASS 和退出 0 均通过。S2-E PNR 功能 run `927abae8ed7d40aeb5d6f706b3723e0a` 运行至 `491965 ns`，唯一 marker/PASS、`Errors: 0, Warnings: 1` 和退出 0 均通过。所有 ini、work、日志、transcript 与波形只在各项目 `build/`。DDR3、双 OV5640、S2-C Endpoint 主动 DMA 和三个项目的 SDF 时序仿真仍待完成。
 
-项目级仿真必须在各工程自身 `sim/questa/` 下归档相对路径 filelist、DO 脚本和自检 testbench；版本库只保留可复现源，不提交 `.mpf` 或任何运行态文件。不得批量修改 `ipcore/`、`ip_core/`、`ip_backup/` 下的厂商生成文件，也不得把厂商示例顶层改名后冒充集成验证。
+项目级仿真必须在各工程自身 `sim/questa/` 下归档相对路径 filelist、DO 脚本和自检 testbench；双 OV5640 使用 `59_top_dual_ov5640_hdmi/sim/questa/`，不得放入 OV7725 legacy 目录。版本库只保留可复现源，不提交 `.mpf`、`sim_*` 编译库或任何运行态文件。不得批量修改 `ipcore/`、`ip_core/`、`ip_backup/` 下的厂商生成文件，也不得把厂商示例顶层改名后冒充集成验证。
 
 ## 总览
 
 | 项目 | 项目级 TB | 项目级 `.f/.do` | 厂商示例资产 | 当前最高阻断 | 进入动态仿真的前置 |
 |---|---:|---:|---|---|---|
-| 摄像头 HDMI（OV5640 目标） | 无 | 无 | OV7725 legacy 的 DDR3、PLL、FIFO 示例 | 参考工程未导入、产品范围未冻结、无集成 TB | C0/C1、OV5640 输入契约和新项目边界 |
+| 摄像头 HDMI（双 OV5640） | 参考分支有 4 个 TB，尚未导入 canonical 项目 | 无 canonical `.f/.do` | 双 OV5640 参考 TB；OV7725 legacy 基础设施 | 参考资产未选择性导入、板级接口未冻结、PASS 未复验 | C0/C1、独立 `sim/questa/`、双路输入契约和新项目边界 |
 | DDR3 | 无 | 无 | DDR3 `test_ddr`/memory model 示例 | 旧 TB 端口失配 | D3-A/B/C 项目自有 BIST/top |
 | PCIe DMA | S2-A 受控 TB；S2-B 真实 RC/EP TB；S2-C 诊断 TB；S2-D 综合后 TB；S2-E PNR 功能 TB | `behav`、`link`、`dma`、`post_syn`、`post_pnr_func` 五组 `.f/.do` | `pango_pcie_top` RC/EP 示例 | S2-C BAR1、H2-B1、SDF 时序 | BAR1 与 PNR 时序分别推进 |
 
-## 摄像头 HDMI：OV7725 legacy 与 OV5640 目标
+## 摄像头 HDMI：OV7725 legacy 与双 OV5640 目标
 
 ### 已发现资产
 
 - legacy 设计顶层为 `41_ov7725_hdmi/rtl/ov7725_hdmi.v`，不能改名冒充 OV5640。
-- owner 指定的 `59_top_dual_ov5640_hdmi` 参考工程尚未导入仓库，当前不能审核其源码和约束。
+- `origin/parallel_driver@485f3bb` 已提供双 OV5640 参考实现，包含 `top_dual_ov5640_hdmi`、两路独立 SCCB/RESET/PWDN/DVP、每路 960×1080 半幅、双写 DDR3 通道、HDMI/PCIe 数据路径及约束；尚未选择性导入新的项目目录。
+- 参考分支提供 `sim/tb/Video_Image_Simulate_CMOS.v`、`tb_ov5640_dri.v`、`tb_dual_ov5640_dri.v` 和 `tb_rgb565_to_axis128.v`；README 自述双摄采集环路和 RGB565→AXI128/BAR2 通过，但未提供本仓库 canonical `.f/.do` 与受控日志证据。`tb_dual_ov5640_dri.v` 还直接 force 两路 `cam_init_done`，只覆盖驱动级像素计数，且成功字符串不是仓库要求的唯一 `TEST PASS`。
 - 活动 IP 示例位于 `41_ov7725_hdmi/prj/ipcore/ddr3_ip/example_design/bench/`，并配有 `sim/modelsim/sim_file_list.f` 与 `sim/modelsim/ctrl_phy_sim.tcl`。
 - `prj/ipcore/` 下还存在 PLL、FIFO 的厂商示例 testbench，但它们只验证单个 IP，不覆盖 `ov7725_hdmi` 集成数据通路。
 
 ### 缺口与风险
 
-- 没有项目级 `sim/`、`tb/`、行为级 DO 或门级 SDF 入口。
+- 当前分支没有 `59_top_dual_ov5640_hdmi/sim/questa/`、相对路径 `.f/.do`、受控启动器或门级 SDF 入口。
+- 参考分支跟踪了 `sim_*` Questa 编译库和带本机绝对路径的生成文件；这些必须排除，不能整体合并。
 - DDR3 示例 filelist 面向 `ddr3_test_top_tb`/`test_ddr`，不包含摄像头输入、帧缓存切换和 HDMI 输出检查。
 - `ctrl_phy_sim.tcl` 含历史绝对路径；不能在另一台 Windows 主机上直接复用。
-- 尚未冻结 OV5640 的单/双摄、模组接口、DVP 格式、分辨率和帧率，也没有项目级 `TEST PASS`、超时和 `$fatal` 退出契约。
+- 双摄拓扑已经由 owner 固定；参考设计的两路独立 SCCB/RESET/PWDN 与 100H 管脚约束尚未对照实际板卡，两路模组料号、DVP 格式、960×1080 半幅/1920×1080 拼接和帧率也未完成产品审核。本仓库仍没有项目级唯一 `TEST PASS`、受控 run marker 和完整退出契约。
 
 ### TODO（S3）
 
-1. 先按 [`OV5640_TARGET_SCOPE.md`](OV5640_TARGET_SCOPE.md) 完成 C0/C1，只读审计参考工程并冻结产品接口。
-2. 新建 OV5640 项目级 `tb_ov5640_hdmi.sv`、相对路径 filelist 和四级 DO；不得直接改名复用 OV7725 TB 计划。
-3. 覆盖读 ID/配置、复位、DDR 初始化延迟、帧写入/切换/读出、HDMI 有效区和 FIFO 边界。
+1. 先按 [`OV5640_TARGET_SCOPE.md`](OV5640_TARGET_SCOPE.md) 从 `origin/parallel_driver` 选择性导入 `59_top_dual_ov5640_hdmi/`，审核双路产品接口并排除生成物与编译库。
+2. 在新工程自己的 `sim/questa/` 下归档经审核的 4 个参考 TB，补项目集成 TB、相对路径 filelist 和四级 DO；不得直接改名复用 OV7725 TB 计划。
+3. 覆盖双路读 ID/配置、独立/并发采集、每路 960×1080 半幅与 1920×1080 左右拼接、复位、DDR 初始化延迟、双写通道、帧切换/读出、HDMI 有效区和 FIFO 边界。
 4. 为每个级别加入超时、错误计数、唯一 `TEST PASS` 和非零失败退出；C3 锁定后再接入综合网表、PNR 功能网表和 SDF。
 
 ## DDR3
@@ -112,7 +114,7 @@ DDR3 与摄像头 HDMI 当前仍没有面向项目集成顶层的仿真入口。
 S0-1 Questa、USIM、VSIM 已验证
         ├─ S1 DDR3：D3-A → D3-B → D3-C → D4
         ├─ S2 PCIe：S2-A/S2-B 已完成 → S2-C → 后级网表仿真
-        └─ S3 OV5640：C0/C1 → 新项目边界 → 集成 TB → 四级仿真
+        └─ S3 双 OV5640：C0/C1 → 选择性导入 → 项目内 sim/questa → 集成 TB → 四级仿真
 ```
 
 S0-1 完成只证明公共仿真器和 Pango 原语库可用，不替代任何项目级 `TEST PASS`、后级网表或 SDF 标注。厂商示例保留为参考证据；所有项目验收必须由项目自有顶层和自检 TB 完成。

@@ -10,7 +10,9 @@
 - `ddr3_test/`：已用厂商 `test_ddr` 临时 bring-up 顶层完成 SP6.4 全流程实现、STA、网表/SDF、位流与构建 gate 验证；严格 gate 仍被板级和 RTL 已知问题阻断，它不是已验收的产品顶层。
 - `pcie_dma_test_100h/`：PCIe x2 DMA 集成顶层；已按 PG2L50H 修正构建脚本/gate，并从空 `build/` 完成七阶段重建，HSSTLP 资源固定为 `HSSTLP_292_612`；S2-A 项目级受控行为 smoke、S2-B 真实 RC/EP 链路和 S2-D 综合后受限 smoke 均已由 Questa Sim-64 2021.1 当前复验通过。S2-D run `41135fd3fadd4c51a70508a6fa5af3e3` 运行至 `491965 ns`，Errors 0、Warnings 1、唯一 `INFO: POST_SYN_RESET_PATH_OK` 与唯一 `TEST PASS`、退出 0；它只证明综合网表展开、reset debounce/sync 和 reference-clock LED counter 路径，不证明 PCIe 链路、DMA、PNR、SDF、时序、H2-B1 或发布。`o_trgt1_radm_pkt_halt[2:0]` 已从项目顶层贯通活动 `pcie_test` wrapper 至 hard-IP，UART2APB 仍有隐式 `rxd/txd`、`rxd` 被绑 0 的功能缺口。
 
-用户于 2026-08-30 确认三个产品方向最终共用 `RK3568+PG2L50H100H` 开发板，实际焊接器件为 `PG2L50H-6IFBG484`；PDS 统一目标因此修正为 `Logos2 / PG2L50H / FBG484 / -6`。摄像头 HDMI 产品目标于 2026-09-01 校正为 OV5640，范围见 [`OV5640_TARGET_SCOPE.md`](../docs/OV5640_TARGET_SCOPE.md)；现有 OV7725 工程只作 legacy。全部 PG2L100H 构建、STA 和位流只保留为历史证据，不得烧录或作为实板签核。
+用户已将摄像头 HDMI 产品固定为双 OV5640。只读参考为 `origin/parallel_driver@485f3bb`，其 HDMI 顶层为 `top_dual_ov5640_hdmi`：两路独立 SCCB/RESET/PWDN/DVP，每路采集 960x1080 半幅，双写 DDR3 后组成 1920x1080 输出。参考工程根 PDS/DDR3 仍为 PG2L100H，仅 PCIe IP 为 PG2L50H，不能作为实际 `PG2L50H-6IFBG484` 产品实现证据。未来只选择性导入到 `59_top_dual_ov5640_hdmi/`；现有 `41_ov7725_hdmi/` 及其 `sim/questa/` 均只作 legacy。
+
+参考仓库发现 4 个 TB，但尚未选择性导入；`tb_dual_ov5640_dri.v` 会 force `cam_init_done`，且成功字符串不是 canonical `TEST PASS`，不能计为产品自检通过。未来可复现仿真源只进入 `59_top_dual_ov5640_hdmi/sim/questa/`，运行态只进入该工程 `build/`；禁止导入 `sim_*`、`work`、`.mpf`、`modelsim.ini`、日志、波形、绝对路径生成物或许可证配置。
 
 ## 当前基线
 
@@ -77,11 +79,11 @@
 
 1. PCIe S2-E PNR 后功能已通过；下一步继续 S2-C DMA 与 SDF 时序仿真，不把该无 SDF smoke 外推为链路、DMA、时序、实板或发布证据。
 2. H0/H1/H3 补齐板卡、原理图/BOM、器件丝印、bank 电压、DDR3 料号/拓扑及 OV5640/HDMI 时序资料；资料缺失时不得猜测参数、I/O delay 或收紧 gate。
-3. OV5640 按 [`OV5640_TARGET_SCOPE.md`](../docs/OV5640_TARGET_SCOPE.md) 推进：C0 只读审计参考工程，C1 冻结单/双摄、模组与接口，C2 设计新项目/顶层和 SCCB/采集/DDR3/HDMI 边界，C3 在 PG2L50H 下完成实现；S3 建立四级自检仿真。OV7725 O0/O1/O2/M3-A 仅作 legacy 问题清单和可复用性参考。
+3. 双 OV5640 范围已冻结：以 `origin/parallel_driver@485f3bb` 为只读参考，未来选择性导入 `top_dual_ov5640_hdmi` 相关源到 `59_top_dual_ov5640_hdmi/`，并重建 PG2L50H PDS/DDR3 baseline；4 个参考 TB 必须逐个审核，不能原样计入 S3。
 4. DDR3 M2-B1 已纠正 staging 生成路径并完成参数/资产差异审计；下一步依据原理图/BOM 审核 28 项 FDC pin 差异及 DDR3 颗粒/拓扑，再决定是否升格 canonical。升格后必须重跑 CI-6、空目录七阶段与 D3-0-R，审核通过后才可进入 D3-A → D3-B → D3-C。
 5. PCIe M1 已完成 build/PDS/gate 的 PG2L50H 迁移和空 `build/` 重建；活动 PCIe IP 无需因器件型号重生成。H2-B 仍等待 lane/refclk/PERST#/SCBV 与 UART 决策闭环。
 6. PCIe S2-A 受控行为 smoke、S2-B 真实厂商 RC/EP 链路和 S2-D 综合后受限 smoke 均已通过。S2-D 只关闭综合网表展开、reset debounce/sync 与 reference-clock LED counter 路径；S2-C Endpoint 主动 DMA、PNR、SDF、时序、H2-B1 和发布 gate 保持未完成。
-7. 摄像头产品最终闭环属于 OV5640 C0 → C1 → C2 → C3 → S3；OV7725 的 O1-C/O2/O3/O4 链不再自动授权产品实现，只能在 C2 审核后选择性迁移结构经验。
+7. 摄像头产品最终闭环属于双 OV5640 C2 → C3 → S3；`41_ov7725_hdmi/sim/questa/` 仅 legacy，新的可复现仿真源必须归档到 `59_top_dual_ov5640_hdmi/sim/questa/`，运行态只进其 `build/`。
 
 ## 更新规则
 

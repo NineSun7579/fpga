@@ -445,8 +445,8 @@ if ($MatrixExists) {
         -Description 'simulation matrix S1 DDR3 queue' | Out-Null
     Require-Pattern -Text $MatrixText -Pattern 'S2 PCIe' `
         -Description 'simulation matrix S2 PCIe queue' | Out-Null
-    Require-Pattern -Text $MatrixText -Pattern 'S3 OV5640' `
-        -Description 'simulation matrix S3 OV5640 queue' | Out-Null
+    Require-Pattern -Text $MatrixText -Pattern 'S3 双 OV5640' `
+        -Description 'simulation matrix S3 dual OV5640 queue' | Out-Null
 }
 
 if (Test-Path -LiteralPath $RootReadmePath -PathType Leaf) {
@@ -467,7 +467,7 @@ if (Test-Path -LiteralPath $TodoPath -PathType Leaf) {
 }
 
 $IgnoreText = Get-Content -Raw -LiteralPath (Join-Path $RepoRoot '.gitignore')
-Require-Pattern -Text $IgnoreText -Pattern '(?m)^build/$' `
+Require-Pattern -Text $IgnoreText -Pattern '(?m)^build/\r?$' `
     -Description 'build/ ignore rule' | Out-Null
 
 $TrackedBuild = @(git -C $RepoRoot ls-files -- '*build*' | Where-Object {

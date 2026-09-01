@@ -371,7 +371,7 @@
 
 - 从远端快进到 PR #5 合并后的最新 `origin/main`，后续工作基于该主线。
 - owner 将摄像头产品目标校正为 OV5640；现有 `41_ov7725_hdmi`、O0/O1/O2/M3-A 和对应 STA/CDC/RDC 证据保留为 OV7725 legacy，不改名冒充新项目。
-- 新增 `docs/OV5640_TARGET_SCOPE.md`，将参考工程只读导入、单/双摄与模组接口冻结、项目边界、PG2L50H 迁移和四级 Questa 验证拆为 C0/C1/C2/C3/S3。
+- 新增 `docs/OV5640_TARGET_SCOPE.md`，将参考工程只读导入、摄像头数量与模组接口冻结、项目边界、PG2L50H 迁移和四级 Questa 验证拆为 C0/C1/C2/C3/S3；后续 owner 已进一步确认产品固定为双 OV5640。
 - 本机复核确认 Questa Sim-64 `2021.1` 的 `vsim`、`vlog` 和 `vlib` 可执行文件位于安装根的 `win64` 子目录；tracked 文档不记录本机安装或许可证实际路径。
 - PCIe S2-A/S2-B 静态门禁和环境检查通过；当前 S2-A 动态启动因外部许可证 checkout 失败返回 4，没有生成新的 `TEST PASS`。历史 run id 的通过证据继续保留，但不作为本次复验结果。
 - 发现历史 PDS 日志中存在许可证绝对路径；当前版本统一替换为 `<license-path>`，并将 CI-9 扩展为当前树全量扫描和 PR 新增差异扫描。历史 `.log` 标记为 `-diff`，避免 PR 页面展开旧路径；该修复不改写 Git 历史。
@@ -438,3 +438,12 @@
 - 最终 PDS run `9952da4164f040d5924a558baa5cd8ca` 为 complete/valid、43 inputs/9 artifacts；功能网表 11,132,812 bytes 且不含 `$sdf_annotate`，baseline/strict gate=`0/1`、最差 slack `0.100 ns`。
 - 首次 Questa run `e7e63e79454148048d2dcd00abdf29a7` 因运行盘 ENOSPC 在 elaboration 失败。可恢复地转移四个可重建 `build/` 目录后，当前 run `927abae8ed7d40aeb5d6f706b3723e0a` 使用重建功能网表运行至 `491965 ns`，唯一 `INFO: POST_PNR_FUNC_RESET_PATH_OK`、唯一 `TEST PASS`、`Errors: 0, Warnings: 1, Suppressed Warnings: 80`，PowerShell 退出 0。唯一未抑制 warning 来自厂商 HSST 受保护模型。
 - S2-E 只覆盖 PNR 功能网表展开、reset debounce/sync 和 reference-clock LED counter 路径；PCIe link、DMA、SDF 时序、H2-B1 和发布 gate 保持未完成。
+# 2026-09-01：双 OV5640 范围与仿真归档边界修正
+
+- owner 明确摄像头产品采用双 OV5640，不再保留单摄/双摄待决项。
+- 只读核对 `origin/parallel_driver@485f3bb`：参考分支包含顶层 `top_dual_ov5640_hdmi`、两路独立 SCCB/RESET/PWDN/DVP、每路 960×1080 半幅、双写 DDR3/HDMI/PCIe 数据路径、约束和 4 个 TB；README 自述双路采集及 RGB565→AXI128/BAR2 通过。
+- 根 PDS 工程和 DDR3 IP 仍指向 PG2L100H；双摄 TB force `cam_init_done`，只验证驱动级像素计数且成功字符串不是 `TEST PASS`。上述 PASS 尚无本仓库 canonical `.f/.do`、run marker 和日志门禁支撑，只登记为待复验参考事实。
+- 后续选择性导入到 `59_top_dual_ov5640_hdmi/`；可复现仿真源统一归档到该项目 `sim/questa/`，运行态只进入该项目 `build/`。
+- 参考分支的 `sim_*`/`work` 编译库、`.mpf`、`modelsim.ini`、日志、波形和带本机绝对路径的生成文件不得导入；许可证配置继续保持在仓库外。
+- `41_ov7725_hdmi/sim/questa/` 只保留 OV7725 legacy 档案，不再作为双 OV5640 仿真入口。
+- linked worktree 复验暴露 `.gitignore` 的 `build/` 门禁只接受 LF；已将正则收紧为同时接受 LF/CRLF，不改变必须存在精确 `build/` 规则的语义。

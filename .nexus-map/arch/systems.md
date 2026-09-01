@@ -108,18 +108,21 @@
 - o2d2_stop_conditions: O2-D2 仅一次、经用户审核后执行；generated-clock 对象为 0/多对象、源计数非 1、自动/显式重名、waveform 不符、divider 取 post-buffer、任一八 OSERDES endpoint 的 Slow/Fast Recovery/Removal 未全覆盖或为负、出现新 baseline 失败签名、PDS/gate/产物失败，均立即停止并完整回退，不得扫描第二相位或新增 waiver。
 - next_step: 保留 OV7725 legacy 证据不改名；只有在 OV5640 C0/C1 完成后，才能于 C2 逐项审核哪些 DDR3/HDMI、CDC/RDC 或复位结构可迁移，新产品 IP/约束必须在 C3 独立建立。
 
-## OV5640 摄像头 HDMI 产品目标
+## 双 OV5640 摄像头 HDMI 产品目标
 
-- implementation_status: target_scoped_pending_reference_audit
+- implementation_status: dual_camera_scope_frozen_selective_import_pending
 - code_path: null
-- evidence_path: `docs/OV5640_TARGET_SCOPE.md`
-- product_boundary: 产品摄像头为 OV5640，目标板卡与器件为 `RK3568+PG2L50H100H` / `PG2L50H-6IFBG484`；现有 `41_ov7725_hdmi` 不属于产品实现。
-- c0_boundary: 只读导入并审计参考工程的源、IP、约束、顶层、器件元数据和绝对路径，不覆盖 canonical。
-- c1_boundary: 冻结单/双摄、模组料号、MCLK、RESET/PWDN、I/O 电压、管脚、DVP 位宽/极性、输出格式、分辨率、帧率与字节序。
-- c2_boundary: 设计新的项目目录与顶层，形成 OV5640 SCCB/寄存器配置、读 ID 自检、采集、DDR3 帧缓存和 HDMI 输出迁移方案。
+- evidence_path: `docs/OV5640_TARGET_SCOPE.md`, read-only `origin/parallel_driver@485f3bb`
+- product_boundary: 产品固定双 OV5640；未来项目目录为 `59_top_dual_ov5640_hdmi/`，目标板卡与器件为 `RK3568+PG2L50H100H` / `PG2L50H-6IFBG484`。`41_ov7725_hdmi` 及其 `sim/questa/` 只作 legacy。
+- reference_top: `top_dual_ov5640_hdmi`；两路独立 SCCB/RESET/PWDN/DVP，每路 960x1080 半幅，双写 DDR3 后组成 1920x1080。
+- reference_device_boundary: 参考工程根 PDS 与 DDR3 仍为 PG2L100H，仅 PCIe IP 为 PG2L50H；不得据此宣称 PG2L50H 摄像头产品已实现。
+- c0_boundary: `origin/parallel_driver@485f3bb` 只读参考，不覆盖 canonical；选择性审核源、IP、约束、顶层、器件元数据与仿真资产。
+- c1_boundary: 双 OV5640 数量与 960x1080×2 → 1920x1080 组合方式已冻结；模组料号、电气与板级管脚证据仍需闭合。
+- c2_boundary: 只向 `59_top_dual_ov5640_hdmi/` 选择性导入所需 RTL/IP/约束，建立项目自有双摄 SCCB、复位、采集、DDR3 与 HDMI 边界。
 - c3_boundary: 所有 IP/约束按 `Logos2 / PG2L50H / FBG484 / -6` 重新审核或生成，完成七阶段 PDS 与严格 gate；旧 100H 产物不可继承。
-- s3_boundary: 建立 OV5640 项目级自检 TB、相对路径 filelist/DO，并依次关闭行为级、综合后、PNR 功能和 PNR 时序仿真；公共 Questa/USIM/VSIM 证据不等于产品通过。
-- next_step: 先完成 C0 参考工程可访问性与只读审计，再由 C1 冻结产品范围；C0/C1 未完成前不修改活动 RTL、IP 或约束。
+- reference_tb_boundary: 参考仓库 4 个 TB 尚未选择性导入；`tb_dual_ov5640_dri.v` force `cam_init_done`，成功字符串不是 canonical `TEST PASS`，不能计为产品自检通过。
+- s3_boundary: 可复现仿真源只进入 `59_top_dual_ov5640_hdmi/sim/questa/`，运行态只进入其 `build/`。不导入 `sim_*`、`work`、`.mpf`、`modelsim.ini`、日志、波形、绝对路径生成物或许可证配置。
+- next_step: 建立 `59_top_dual_ov5640_hdmi/` 选择性导入清单，先迁移产品必要源并重建 PG2L50H PDS/DDR3 baseline，再审核和改造 4 个参考 TB。
 - high_attention: `i2c_dri_clk` 逻辑生成时钟、`cam_pclk`/DDR `ui_clk`/`pixel_clk` 间业务 CDC、FIFO 分侧复位，以及 `ddr3_init_done` 参与的复位释放。
 
 ## DDR3 外层工程
