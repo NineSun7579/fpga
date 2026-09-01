@@ -96,7 +96,7 @@
 
 | 项目 | PDS 实现证据 | 时序证据 | 行为仿真 | 综合后仿真 | PNR 功能仿真 | PNR 时序仿真 |
 |---|---|---|---|---|---|---|
-| 双 OV5640 摄像头 HDMI | 产品固定双 OV5640；只读参考 `origin/parallel_driver@485f3bb`，未来选择性导入 `59_top_dual_ov5640_hdmi/` | 参考根 PDS/DDR3 为 PG2L100H；PG2L50H 产品 STA 未建立 | 参考 4 TB 未导入；其中一项 force init 且无 canonical PASS | 新产品网表尚未生成 | 新产品 PNR 网表尚未生成 | 新产品 SDF 尚未生成/标注 |
+| 双 OV5640 摄像头 HDMI | C0 已完成只读审计且 Import=none；C1/H3 blocked，`59_top_dual_ov5640_hdmi/` 尚未建立 | 参考根 PDS 与 4 个必要 IP 为 PG2L100H；FDC 缺 I/O delay，PG2L50H 产品 STA 未建立 | C0 已审计 4 个参考 TB，但未导入；其中一项 force init 且无 canonical PASS | 新产品网表尚未生成 | 新产品 PNR 网表尚未生成 | 新产品 SDF 尚未生成/标注 |
 | DDR3 外层 | 旧 PG2L100H 七阶段与五类产物已完成，但不可用于实际 PG2L50H；需重生成 50H IP/FDC/RCF | 旧 100H `All Constraints Met` 只保留历史；50H STA 未执行 | D2/D3-0 旧契约已定，PG2L50H 重生成后须重审；S1 项目级入口缺失 | 旧网表不可签核 | 旧 PNR 网表不可签核 | VSIM/SDF 未验证，旧 100H 结果不可签核 |
 | PCIe DMA | PDS run `9952da4164f040d5924a558baa5cd8ca` complete/valid，43 inputs/9 artifacts | timing/SDF 已生成；strict gate 仍失败 | S2-A/S2-B 动态 PASS | S2-D 受限 smoke PASS | S2-E run `927abae8ed7d40aeb5d6f706b3723e0a` 动态 PASS | S2-F 已执行；SDF 标注成功，但 2 errors、退出 1，GLS/STA 冲突且负时序模型语义不完整，blocked |
 
@@ -104,7 +104,7 @@
 
 - 已验证盘点：`docs/SIMULATION_READINESS_MATRIX.md` 已逐项目记录项目级 testbench、filelist、DO、厂商示例和四级仿真前置条件；PCIe S2-A 已实际执行 Questa 动态 smoke。
 - DDR3 与 OV7725 的项目级资产仍为 `project_tb=0`、`project_f=0`、`project_do=0`。PCIe 已具备 S2-A/S2-B 两套项目 filelist/DO 定义、项目集成 TB、受控边界模型和真实 RC/EP TB；S2-A 与 S2-B 均已动态 PASS。
-- 双 OV5640/S3：参考顶层为 `top_dual_ov5640_hdmi`，两路 960x1080 半幅通过双写 DDR3 组成 1920x1080；未来只选择性导入到 `59_top_dual_ov5640_hdmi/`。4 个参考 TB 当前均不计覆盖，`tb_dual_ov5640_dri.v` 的 force 初始化与非 canonical 成功字符串必须整改。
+- 双 OV5640/S3：C0 已在 `docs/OV5640_C0_REFERENCE_AUDIT.md` 完成逐文件审计；17 个明文 RTL、4 个 TB、4 个 PCIe video 参考文件和 4 个 PG2L100H 生成 IP 均未导入。C1/H3 输入冻结后才允许选择性导入 `59_top_dual_ov5640_hdmi/`；4 个参考 TB 当前均不计覆盖，`tb_dual_ov5640_dri.v` 的 force 初始化与非 canonical 成功字符串必须整改。
 - 仿真归档边界：新项目 `.f/.do/TB` 只进入 `59_top_dual_ov5640_hdmi/sim/questa/`，运行态只进入其 `build/`；`41_ov7725_hdmi/sim/questa/` 仅 legacy。`sim_*`、work、mpf、ini、日志、波形、绝对路径生成物和许可证配置均不得导入。
 - DDR3/S1：现有厂商 `test_ddr`/memory-model 资产端口失配且含绝对路径与 FSDB/Verdi 假设。进入 S1 前必须关闭 S0-1、重生成并复核 PG2L50H DDR3 IP/FDC/RCF、完成 D3-A/B/C 与 D4，并提供项目自有有限 BIST/top 与自检 TB。
 - PCIe/S2：S2-A 已用项目级 `tb_pcie_dma_test` 实例化产品顶层，并以受控 `pcie_test` 边界动态验证顶层/复位/LED/未知态；现有 `pango_pcie_top` RC/EP testbench 仍不实例化产品顶层，只能在 S2-B 中作为真实 RC/编译顺序 oracle；S2-C 才验证 DMA。

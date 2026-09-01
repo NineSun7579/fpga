@@ -464,3 +464,12 @@
 - TB 后续虽输出唯一功能 marker 和 `TEST PASS`，simulator 终态仍为 `Errors: 2, Warnings: 1591, Suppressed Warnings: 340`，PowerShell 正确退出 1；PASS 字符串不得覆盖 simulator error。
 - Pango `V_FFASYN` 的 `$setuphold/$recrem` 只有四个实参，没有 delayed CK/D、notifier 或 delayed copy；本次 1 条 `vsim-8756` 与 1590 条 `vsim-3004` 证明负 timing limit 被清零，负检查覆盖不完整。
 - 同一 PDS run 的 slow setup/hold 均为正裕量且 0 failing endpoints，因此结论限定为“GLS 与 STA 冲突且负时序模型语义不完整”；S2-F 不勾选，也不扩张为硅上时序失败、链路/DMA、H2-B1、实板或发布结论。
+
+# 2026-09-01：双 OV5640 C0 参考工程审计
+
+- 从 `origin/parallel_driver@485f3bba71e4b57fb8bb49cec30e9d331b952be3` 完成只读 C0 审计；本批没有导入 RTL、IP、FDC、PDS、TB 或生成物，也没有创建可烧录工程。
+- 新增 `docs/OV5640_C0_REFERENCE_AUDIT.md`，登记 17 个 HDMI 明文 RTL、4 个 TB、4 个 PCIe video 参考文件、4 个 PG2L100H 生成 IP wrapper、FDC blob 和处置结论。
+- 参考 PDS 为 PG2L100H，当前 top 是 `top_dual_ov5640_pcie`，却仍加载 HDMI FDC/PCF 和旧 HDMI 阶段产物；PCIe IP 虽为 PG2L50H，但 BAR1/BAR2 均禁用。混合工程和 README PASS 不构成产品证据。
+- 主代理用原始 blob 字节独立确认 17 个候选 RTL 中 10 个不是严格 UTF-8；所有候选导入前必须按 VSCS 1.0.0 关闭文件职责、接口、逐域复位、CDC/RDC、FIFO 和 FSM 文档缺口。
+- 参考 FDC 统计为 3 个 primary clock、6 个 generated clock、0 个 input delay、0 个 output delay、2 个 camera dedicated-route override 和 4 个 camera `PAP_IO_UNUSED`；管脚、电压、时序和层级必须依据 PG2L50H 实板重建。
+- TODO 已拆为 C0 完成、C1 仍受 H3 阻断；选择性导入、PG2L50H IP/FDC、项目内 Questa 和四级仿真留给后续独立批次。
