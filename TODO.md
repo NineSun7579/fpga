@@ -1,6 +1,6 @@
 # 三项目整改 TODO
 
-更新日期：2026-08-30
+更新日期：2026-09-01
 
 状态：三项目器件迁移已获审核。用户确认 DDR3、PCIe、OV7725 HDMI 最终均运行在同一块 `RK3568+PG2L50H100H` 开发板，实际 FPGA 为 `PG2L50H-6IFBG484`，PDS 目标统一为 `Logos2 / PG2L50H / FBG484 / -6`。既有 PG2L100H 构建、STA、网表、SDF 和位流仅保留为历史证据，不得用于实际板卡验收或烧录。当前先按 PCIe → DDR3 → OV7725 的独立批次完成 50H 迁移；D3-A 与 O2-D2 在新 50H 基线复核前暂停。
 
@@ -57,11 +57,13 @@
 - [x] 识别 PCIe 静态 gate 的错误目标：已改为 PG2L50H，并增加日志、STA、bitstream 器件交叉检查。
 - [x] PCIe 完成 H2-B0 精确 baseline 指纹：16 个对象签名、42 次记录；任何对象/数量/位置或 IP metadata 漂移均失败，严格 gate 仍保持发布阻断。
 - [x] H0/H1/H3 资料准备：新增 OV7725 HDMI 与 DDR3 板级证据清单，统一收集板卡、器件、时钟、电压、拓扑和 I/O 时序依据；资料未提供前不修改硬件参数。
-- [x] S0-0 完成公共仿真器可执行文件复核；当前未发现 `vsim.exe`、`vlog.exe`、`vlib.exe`。
-- [x] S0-0 扩展复核 PATH、常见安装目录和 Windows 卸载注册表；仍未发现 ModelSim/QuestaSim 安装线索，保持外部阻断。
+- [x] S0-0 完成公共仿真器可执行文件复核；2026-08-30 的历史复核未发现 `vsim.exe`、`vlog.exe`、`vlib.exe`。
+- [x] S0-0-Q（2026-09-01）：确认 Questa Sim-64 `2021.1` 的 `vsim.exe`、`vlog.exe`、`vlib.exe` 可执行；许可证由本机外部环境提供，仓库不得记录许可证路径、服务器、feature 或许可证文件。
+- [x] S0-0-Q：最小 SystemVerilog 编译、elaboration 和运行成功，退出码为 0，日志包含唯一 `TEST PASS`。
+- [x] S0-1-Q：PDS `2022.2-SP6.4` 已用 Questa `2021.1` 成功编译 Logos2 USIM，包括 Pango `modelsim10.2c` 保护模型、HSST 和 PCIe Gen2 库；日志无 `E:` 且库目录非空。
 - [x] 完成三项目 S1/S2/S3 仿真就绪度只读盘点；矩阵见 [`docs/SIMULATION_READINESS_MATRIX.md`](docs/SIMULATION_READINESS_MATRIX.md)。三项目项目级 TB、`.f`、`.do` 均缺失，现有资产均为厂商 IP 示例，不能直接作为集成验收。
-- [ ] 安装 QuestaSim/ModelSim 并记录版本和路径。
-- [ ] 编译 Logos2 USIM/VSIM。
+- [x] 验证 QuestaSim 版本、三项可执行文件、许可证 checkout 和最小 SystemVerilog smoke；安装与许可证位置保持为仓库外部参数。
+- [x] 编译并验证 Logos2 VSIM；PNR 原语 `V_BUF` 已从共享库成功加载并完成最小动态 smoke。
 - [ ] 完成三项目分级自检仿真。
 
 ### 当前执行队列（2026-08-30）
@@ -92,10 +94,11 @@
    - 交付：板级参数审核后原子升格四个 IP，重建 FDC/RCF、clock object 和全流程 baseline；DDR3 `DEVICE_100H_EN=false`、PLL `DEVICE_PG2L50H=true`，FIFO 必须满足 85 个 DRM36K/170 个 DRM18K 资源上限。
    - 验收：旧 100H 七组时序指纹、endpoint 数和 `+0.192 ns` 裕量全部作废；基于新 50H STA 重新审核 O2-D2。
 
-5. **S0-1：恢复公共仿真环境（外部阻断）**
-   - 前置：安装 ModelSim/QuestaSim，并提供许可证可用的 `vsim.exe`、`vlog.exe`、`vlib.exe` 路径与版本。
-   - 交付：可覆盖路径参数、`build/simlib/usim` 与 `build/simlib/vsim`，以及编译日志。
-   - 验收：USIM/VSIM 编译退出码为 0，库目录存在且非空；否则不进入动态仿真。
+5. **S0-1：关闭公共 Questa 仿真环境门禁（已完成）**
+   - 已完成：Questa Sim-64 `2021.1` 三项可执行文件、外部许可证 checkout、最小 SystemVerilog smoke，以及 Logos2 USIM/VSIM 编译验证。
+   - 保密边界：工具安装位置和许可证配置只通过运行参数或本机环境提供；许可证路径、服务器、feature、许可证内容和许可证文件均不得提交。
+   - 验证证据：USIM/VSIM 各自编译退出码为 0、日志无 `^E:`、两个库目录均存在且非空；最小 SV smoke 与从 VSIM 加载 `V_BUF` 的原语 smoke 均为唯一 `TEST PASS`。
+   - 剩余边界：公共环境门禁完成不等于三个项目的后级网表、SDF 标注或板级功能通过；这些仍由 S1/S2/S3 分项目关闭。
 
 6. **H0/H1/H3：补齐其余板级事实（外部阻断）**
    - 前置：板卡型号与 FPGA 型号已确认；仍需原理图/BOM、bank 电压、DDR3 料号/拓扑、OV7725/HDMI 时序资料。
@@ -436,11 +439,12 @@ O2-D2 停止条件：控制相位或 `/5` generated clock 未被 PDS 唯一识�
 
 ### S0：公共仿真环境
 
-- [x] S0-0（2026-08-30）：复核 PDS 与仿真器可执行文件；仅发现 `E:/pango/PDS_2022.2-SP6.4/bin/pds_shell.exe`，PATH、`C:/questasim64/win64` 和常见 ModelSim/Questa 安装目录均未找到 `vsim.exe`、`vlog.exe`、`vlib.exe`。
-- [x] S0-0-R（2026-08-30）：再次检查 PATH、`C:/questasim64/win64`、常见安装目录及递归文件名，三项可执行文件仍未发现；S0-1 阻断状态未改变。
-- [ ] 安装 ModelSim/QuestaSim，记录 `vsim.exe`、`vlog.exe` 的实际目录和版本。
-- [ ] 编译 Logos2 USIM/VSIM 到仓库根 `build/simlib/`。
-- [ ] 将仿真器安装路径作为可覆盖外部参数，不写入工程源清单。
+- [x] S0-0（2026-08-30）：历史环境复核未发现 ModelSim/QuestaSim 三项可执行文件；该结论已由 2026-09-01 的新环境证据取代。
+- [x] S0-0-Q（2026-09-01）：确认 Questa Sim-64 `2021.1` 的 `vsim.exe`、`vlog.exe`、`vlib.exe` 可执行，最小 SystemVerilog smoke 编译、elaboration、运行和退出码均通过。
+- [x] S0-1-Q：编译 Logos2 USIM 到 `build/simlib/`，Pango 保护模型、HSST 和 PCIe Gen2 库编译成功，日志无 `^E:`。
+- [x] 编译 Logos2 VSIM 到 `build/simlib/`；编译日志无 `^E:`，库目录非空，`V_BUF` 原语可被 Questa 加载并完成最小 smoke。
+- [x] 将仿真器安装路径作为可覆盖外部参数，不写入工程源清单。
+- [x] 将许可证配置保持在仓库外部；禁止提交许可证绝对路径、服务器、feature、内容或许可证文件。
 
 ### S1：DDR3 四级仿真
 
@@ -459,7 +463,7 @@ O2-D2 停止条件：控制相位或 `/5` generated clock 未被 PDS 唯一识�
 
 - [x] S2-A：新建 `tb_pcie_dma_test.sv` 和受控 `pcie_test` 边界模型，覆盖项目顶层展开、真实 reset helper、复位释放/中断、LED 域、未知态和 3 ms watchdog；model-controlled link 不作为真实链路证据。
 - [x] S2-A：新建相对路径 `sim/behav.f`、行为级 DO、`SIM_RUN_ID`/唯一 PASS 日志门禁和 `check_sim.ps1`；不修改厂商示例，契约见 [`S2A_BEHAVIOR_SMOKE.md`](pcie_dma_test_100h/doc/S2A_BEHAVIOR_SMOKE.md)。
-- [ ] S2-A 动态：安装 QuestaSim、编译 Logos2 USIM 后运行 smoke；当前只完成静态门禁，未生成动态 `TEST PASS`。
+- [ ] S2-A 动态：Questa/USIM 前置已通过；首次正式运行完成 RTL 编译但在 elaboration 被仿真专用 filelist 缺少 `ips2l_pcie_apb_cross_v1_0` 阻断。该文件已由 PCIe IDF 管理实现侧资产，不得加入 canonical PDS 源清单；先补齐并静态验证 `sim/behav.f`，再要求同一 run marker、退出码 0 和唯一 `TEST PASS`。
 - [x] S2-B 静态：以厂商 `pango_pcie_top_sim` 为 RC、项目真实 `pcie_dma_test` 为 EP，建立双库、参数化模型、双向 x2 lane、两端 link/LTSSM L0、32 周期稳定、6 ms watchdog 和唯一 PASS 合同；见 [`S2B_REAL_LINK.md`](pcie_dma_test_100h/doc/S2B_REAL_LINK.md)。
 - [ ] S2-B 动态：S2-A 动态通过后运行 `sim-link`，同一 `SIM_RUN_ID` 日志必须包含唯一 `INFO: S2B_REAL_LINK_UP` 和 `TEST PASS`；当前未生成动态链路证据。
 - [ ] S2-C：S2-B 通过后增加一次地址、长度和数据固定的基础 DMA 写读回。
