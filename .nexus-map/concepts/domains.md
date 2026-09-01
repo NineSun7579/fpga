@@ -14,13 +14,13 @@ HDL 经 compile、synthesize、dev_map、PNR、timing report、netlist 和 bitst
 
 2026-09-01 CI-9 同时覆盖当前树和 PR 差异：`-FullTree` 扫描 tracked/untracked 工作树，PR 模式依据 Git merge-base 扫描 changed paths 与 added lines。当前版本已将 68 个 tracked 日志中的 143 处许可证绝对路径替换为 `<license-path>`；全树和差异门禁均通过。门禁不读取实际配置，也不改写 Git 历史。
 
-摄像头产品固定双 OV5640。只读参考 `origin/parallel_driver@485f3bb` 的 `top_dual_ov5640_hdmi` 使用两路独立 SCCB/RESET/PWDN/DVP，每路采集 960x1080 半幅，通过双写 DDR3 组成 1920x1080。参考根 PDS/DDR3 仍为 PG2L100H，仅 PCIe IP 为 PG2L50H，因此新产品必须选择性导入到 `59_top_dual_ov5640_hdmi/` 并独立建立 PG2L50H 证据；`41_ov7725_hdmi` 仅 legacy。
+摄像头产品固定双 OV5640。C0 已对 `origin/parallel_driver@485f3bba71e4b57fb8bb49cec30e9d331b952be3` 完成只读审计，登记 17 个 HDMI 明文 RTL、83 个生成/受保护依赖、4 个 TB、4 个 PCIe video 参考文件、4 个 PG2L100H 生成 IP 及 FDC/PDS 风险；本批没有导入文件。参考 `top_dual_ov5640_hdmi` 使用两路独立 SCCB/RESET/PWDN/DVP，每路采集 960x1080 半幅，通过双写 DDR3 组成 1920x1080。C1 仍受 H3 阻断，新产品必须在输入冻结后选择性导入到 `59_top_dual_ov5640_hdmi/` 并独立建立 PG2L50H 证据；`41_ov7725_hdmi` 仅 legacy。
 
 ## 外部四级仿真
 
 ModelSim/QuestaSim 分别承担行为级、综合后、PNR 后功能和 PNR 后时序仿真。USIM 用于 PNR 前原语，VSIM 用于 PNR 后原语；时序仿真还依赖正确层级的 SDF 标注。
 
-双 OV5640 参考仓库发现 4 个 TB，但尚未选择性导入；`tb_dual_ov5640_dri.v` force `cam_init_done`，成功字符串也不是 canonical `TEST PASS`，不能计入产品覆盖。未来可复现仿真源只进入 `59_top_dual_ov5640_hdmi/sim/questa/`，运行态只进入其 `build/`；禁止导入 `sim_*`、`work`、`.mpf`、`modelsim.ini`、日志、波形、绝对路径生成物或许可证配置。`41_ov7725_hdmi/sim/questa/` 仅 legacy。
+双 OV5640 C0 已审计 4 个参考 TB，但尚未选择性导入；`tb_dual_ov5640_dri.v` force `cam_init_done`，成功字符串也不是 canonical `TEST PASS`，且没有覆盖双摄→DDR3→HDMI 集成链，不能计入产品覆盖。未来可复现仿真源只进入 `59_top_dual_ov5640_hdmi/sim/questa/`，运行态只进入其 `build/`；禁止导入 `sim_*`、`work`、`.mpf`、`modelsim.ini`、日志、波形、绝对路径生成物或许可证配置。`41_ov7725_hdmi/sim/questa/` 仅 legacy。
 
 ## 产品顶层与 IP 示例边界
 

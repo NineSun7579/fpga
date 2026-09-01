@@ -26,6 +26,8 @@ $SensitiveDiffGatePath = Join-Path $RepoRoot 'scripts\check_sensitive_diff.ps1'
 $SensitiveDiffGateDocPath = Join-Path $RepoRoot 'docs\SENSITIVE_DIFF_GATE.md'
 $GitAttributesPath = Join-Path $RepoRoot '.gitattributes'
 $Ov5640ScopePath = Join-Path $RepoRoot 'docs\OV5640_TARGET_SCOPE.md'
+$Ov5640C0AuditPath = Join-Path $RepoRoot `
+    'docs\OV5640_C0_REFERENCE_AUDIT.md'
 $PcieBaselineDocPath = Join-Path $RepoRoot `
     'pcie_dma_test_100h\doc\H2B_BASELINE_GATE.md'
 $PcieBaselineFingerprintPath = Join-Path $RepoRoot `
@@ -194,6 +196,25 @@ if ($Ov5640ScopeExists) {
             'Questa validation requirement' = 'Questa.*2021\.1'
         }).GetEnumerator()) {
         Require-Pattern -Text $Ov5640ScopeText -Pattern $Required.Value `
+            -Description $Required.Key | Out-Null
+    }
+}
+$Ov5640C0AuditExists = Require-File -Path $Ov5640C0AuditPath `
+    -Description 'OV5640 C0 reference audit'
+if ($Ov5640C0AuditExists) {
+    $Ov5640C0AuditText = Get-Content -Raw -Encoding UTF8 `
+        -LiteralPath $Ov5640C0AuditPath
+    foreach ($Required in ([ordered]@{
+            'C0 reference commit' = '485f3bba71e4b57fb8bb49cec30e9d331b952be3'
+            'C0 complete status' = 'Status: C0 complete; C1 blocked'
+            'C0 approved FPGA' = 'PG2L50H-6IFBG484'
+            'C0 future project' = '59_top_dual_ov5640_hdmi'
+            'C0 old device exclusion' = 'PG2L100H'
+            'C0 BAR conflict' = 'BAR1_Enable=false'
+            'C0 commenting standard' = 'VSCS'
+            'C0 no-import boundary' = 'Import: none'
+        }).GetEnumerator()) {
+        Require-Pattern -Text $Ov5640C0AuditText -Pattern $Required.Value `
             -Description $Required.Key | Out-Null
     }
 }

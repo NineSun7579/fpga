@@ -14,7 +14,7 @@ DDR3 当前仍没有面向项目集成顶层的仿真入口。摄像头产品目
 
 | 项目 | 项目级 TB | 项目级 `.f/.do` | 厂商示例资产 | 当前最高阻断 | 进入动态仿真的前置 |
 |---|---:|---:|---|---|---|
-| 摄像头 HDMI（双 OV5640） | 参考分支有 4 个 TB，尚未导入 canonical 项目 | 无 canonical `.f/.do` | 双 OV5640 参考 TB；OV7725 legacy 基础设施 | 参考资产未选择性导入、板级接口未冻结、PASS 未复验 | C0/C1、独立 `sim/questa/`、双路输入契约和新项目边界 |
+| 摄像头 HDMI（双 OV5640） | C0 已审计 4 个参考 TB，尚未导入 canonical 项目 | 无 canonical `.f/.do` | 双 OV5640 参考 TB；OV7725 legacy 基础设施 | C1 板级接口未冻结、参考 TB force init、PASS 未复验 | C1、独立 `sim/questa/`、双路输入契约和新项目边界 |
 | DDR3 | 无 | 无 | DDR3 `test_ddr`/memory model 示例 | 旧 TB 端口失配 | D3-A/B/C 项目自有 BIST/top |
 | PCIe DMA | S2-A 受控 TB；S2-B 真实 RC/EP TB；S2-C 诊断 TB；S2-D 综合后 TB；S2-E PNR 功能 TB | `behav`、`link`、`dma`、`post_syn`、`post_pnr_func` 五组 `.f/.do` | `pango_pcie_top` RC/EP 示例 | S2-C BAR1、H2-B1、SDF 时序 | BAR1 与 PNR 时序分别推进 |
 
@@ -24,6 +24,7 @@ DDR3 当前仍没有面向项目集成顶层的仿真入口。摄像头产品目
 
 - legacy 设计顶层为 `41_ov7725_hdmi/rtl/ov7725_hdmi.v`，不能改名冒充 OV5640。
 - `origin/parallel_driver@485f3bb` 已提供双 OV5640 参考实现，包含 `top_dual_ov5640_hdmi`、两路独立 SCCB/RESET/PWDN/DVP、每路 960×1080 半幅、双写 DDR3 通道、HDMI/PCIe 数据路径及约束；尚未选择性导入新的项目目录。
+- C0 逐文件审计已经完成，见 [`OV5640_C0_REFERENCE_AUDIT.md`](OV5640_C0_REFERENCE_AUDIT.md)；17 个 HDMI 明文 RTL、4 个 TB、4 个 PCIe video 参考文件、PDS/IP/FDC 和排除资产均已登记，但未导入产品工程。
 - 参考分支提供 `sim/tb/Video_Image_Simulate_CMOS.v`、`tb_ov5640_dri.v`、`tb_dual_ov5640_dri.v` 和 `tb_rgb565_to_axis128.v`；README 自述双摄采集环路和 RGB565→AXI128/BAR2 通过，但未提供本仓库 canonical `.f/.do` 与受控日志证据。`tb_dual_ov5640_dri.v` 还直接 force 两路 `cam_init_done`，只覆盖驱动级像素计数，且成功字符串不是仓库要求的唯一 `TEST PASS`。
 - 活动 IP 示例位于 `41_ov7725_hdmi/prj/ipcore/ddr3_ip/example_design/bench/`，并配有 `sim/modelsim/sim_file_list.f` 与 `sim/modelsim/ctrl_phy_sim.tcl`。
 - `prj/ipcore/` 下还存在 PLL、FIFO 的厂商示例 testbench，但它们只验证单个 IP，不覆盖 `ov7725_hdmi` 集成数据通路。
@@ -38,7 +39,7 @@ DDR3 当前仍没有面向项目集成顶层的仿真入口。摄像头产品目
 
 ### TODO（S3）
 
-1. 先按 [`OV5640_TARGET_SCOPE.md`](OV5640_TARGET_SCOPE.md) 从 `origin/parallel_driver` 选择性导入 `59_top_dual_ov5640_hdmi/`，审核双路产品接口并排除生成物与编译库。
+1. 先按 [`OV5640_C0_REFERENCE_AUDIT.md`](OV5640_C0_REFERENCE_AUDIT.md) 关闭 C1 双路产品/板级输入，再从登记候选中选择性导入 `59_top_dual_ov5640_hdmi/`，不得导入生成物与编译库。
 2. 在新工程自己的 `sim/questa/` 下归档经审核的 4 个参考 TB，补项目集成 TB、相对路径 filelist 和四级 DO；不得直接改名复用 OV7725 TB 计划。
 3. 覆盖双路读 ID/配置、独立/并发采集、每路 960×1080 半幅与 1920×1080 左右拼接、复位、DDR 初始化延迟、双写通道、帧切换/读出、HDMI 有效区和 FIFO 边界。
 4. 为每个级别加入超时、错误计数、唯一 `TEST PASS` 和非零失败退出；C3 锁定后再接入综合网表、PNR 功能网表和 SDF。

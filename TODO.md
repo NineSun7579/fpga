@@ -92,7 +92,8 @@
 
 4. **C0/C1：OV5640 参考工程审计与产品范围冻结**
    - 前置：以可访问的 `origin/parallel_driver@485f3bb` 为只读参考源；双摄拓扑已由 owner 固定，不再保留单/双摄决策项。
-   - 交付：选择性导入到新的 `59_top_dual_ov5640_hdmi/` 项目，登记源/IP/FDC/顶层/器件与历史绝对路径；参考顶层已采用两路独立 SCCB/RESET/PWDN 和每路 960×1080 半幅输入，仍需审核实际两路模组、MCLK、电压、DVP、左右拼接、分辨率、帧率和字节序契约。
+   - C0 已完成：[`OV5640_C0_REFERENCE_AUDIT.md`](docs/OV5640_C0_REFERENCE_AUDIT.md) 已登记参考 commit、17 个 HDMI 明文 RTL、4 个 TB、4 个 PCIe video 参考文件、4 个 100H 生成 IP、FDC、PDS 混合 top、绝对路径与 VSCS/CDC/RDC 缺口；本批未导入任何产品文件。
+   - C1 未完成：实际两路模组、MCLK、电压、DVP、左右拼接、分辨率、帧率、字节序、DDR3 和 HDMI 合同仍受 H3 阻断；输入冻结后再另开选择性导入批次。
    - 仿真归档：将参考分支 `sim/tb/*.v` 中可复用的 TB 审核后归档到 `59_top_dual_ov5640_hdmi/sim/questa/tb/`，补相对路径 `.f/.do` 与 README；运行态只写 `59_top_dual_ov5640_hdmi/build/`。
    - 排除项：不导入参考分支的 `sim_*` 编译库、`work`、`.mpf`、`modelsim.ini`、日志、波形和带本机绝对路径的生成文件。
    - 验收：项目目录固定为 `59_top_dual_ov5640_hdmi/`，HDMI 顶层候选为 `top_dual_ov5640_hdmi`；根 PDS 工程与 DDR3 IP 的 100H 目标必须迁移，参考 FDC 管脚必须逐项对照实板。分支自述的双摄采集与 RGB565→AXI128/BAR2 PASS 必须由本仓库入口复验。旧 OV7725 的 SCCB 地址、8 位寄存器表、640x480 RGB565 和板级假设均不得默认继承。
@@ -135,7 +136,7 @@
 1. **P0：M0 器件事实落盘。** 统一三项目实际目标为 PG2L50H，并禁止误用所有 100H 产物。
 2. **P0：M1 PCIe 先行。** 活动 PCIe IP 已是 SP6.4 50H，先修 build/gate，再从空 `build/` 建立新的 50H 七阶段基线。
 3. **P1：M2 DDR3 迁移。** 以 SP6.1 50H backup 为参数/差异 oracle，用 SP6.4 正式重生成；当前 100H FDC 不得复用。
-4. **P1：C0/C1 双 OV5640 范围。** 从 `origin/parallel_driver` 选择性导入并只读审计，双摄拓扑已冻结；继续审核两路模组接口、共享/独立控制、输出格式和数据路径，不得整体合并生成物或编译库。
+4. **P1：C1 双 OV5640 产品输入。** C0 只读审计已完成；继续审核两路模组接口、共享/独立控制、输出格式、数据路径和板级约束，全部冻结后再选择性导入，不得整体合并生成物或编译库。
 5. **P1：C2/C3 双 OV5640 实现。** 在新项目中独立建立 PG2L50H IP/FDC、双路采集、DDR3/HDMI 和 CDC/RDC；OV7725 只提供问题清单，旧 `+0.192 ns`、七组时序指纹和 IP 不得继承。
 6. **P2：恢复功能主线。** M2 后重审 D3-A；双 OV5640 在 C0/C1 审核完成后进入 C2/C3。
 7. **持续泳道：H0-H3、S0-S3。** 原理图/BOM/DDR3/PCIe/双 OV5640 证据或项目级 Questa 入口一旦到位，立即关闭对应阻断。
@@ -462,7 +463,7 @@
 
 ### S3：双 OV5640 集成仿真
 
-摄像头模型、行为级 TB 和纯 RTL 数据通路自检依赖 S0、C0/C1 与已确认的双路输入格式契约。`origin/parallel_driver@485f3bb` 已有 `tb_ov5640_dri.v`、`tb_dual_ov5640_dri.v`、`tb_rgb565_to_axis128.v` 和 `Video_Image_Simulate_CMOS.v`，但尚未导入 canonical 项目、缺相对路径 `.f/.do`，且分支自述 PASS 尚未由本仓库复验。PNR 后功能/时序仿真依赖 C3、H3 和器件一致的网表/SDF；现有 OV7725 TB 计划不得直接改名复用。
+摄像头模型、行为级 TB 和纯 RTL 数据通路自检依赖 S0、C1 与已确认的双路输入格式契约。C0 审计见 [`OV5640_C0_REFERENCE_AUDIT.md`](docs/OV5640_C0_REFERENCE_AUDIT.md)：参考分支已有 4 个 TB，但尚未导入 canonical 项目、缺相对路径 `.f/.do`，且分支自述 PASS 尚未由本仓库复验。PNR 后功能/时序仿真依赖 C3、H3 和器件一致的网表/SDF；现有 OV7725 TB 计划不得直接改名复用。
 
 - [ ] 在 `59_top_dual_ov5640_hdmi/sim/questa/` 归档经审核的双路 OV5640 帧输入模型、双路读 ID/配置检查和项目集成 TB；不得把参考分支 `sim_*` 编译库一并导入。
 - [ ] 覆盖两路摄像头独立/并发采集、每路 960×1080 半幅与 1920×1080 左右拼接、DDR 初始化延迟、双写通道、帧切换/读出、HDMI 有效区和 FIFO 边界。

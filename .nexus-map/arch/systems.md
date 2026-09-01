@@ -106,24 +106,24 @@
 - reset_ownership: 旧契约规定 `sys_rst_n`/`pll_lock`、business reset、OSERDES 本地 reset 与 `ddr3_init_done` 分权，FIFO reset/flush 独立处理；O2-C2 已取消，双 OV5640 必须在 C2/C3 重新定义并验证。
 - first_valid_tmds_symbol: 首个有效 symbol 定义为 serializer reset 下降后、首个 `OCLKDIV` 上升沿采入的四路同时确定的完整 TMDS 并行字，而非首个活动视频像素；RUN 至少延后两个 control 周期，确保该 symbol 完整串行发送。
 - o2d2_stop_conditions: O2-D2 已取消；generated-clock 唯一性、waveform/取点、OSERDES recovery/removal 覆盖与禁止 waiver 的原则仅作为双 OV5640 C2/C3 审核清单。
-- next_step: 保留 OV7725 legacy 证据不改名且不再实现；只有在双 OV5640 C0/C1 完成后，才能于 C2 逐项审核哪些 DDR3/HDMI、CDC/RDC 或复位结构值得重写，新产品 IP/约束必须在 C3 独立建立。
+- next_step: 保留 OV7725 legacy 证据不改名且不再实现；双 OV5640 C0 已完成，只有 C1/H3 输入冻结后，才能于 C2 逐项审核哪些 DDR3/HDMI、CDC/RDC 或复位结构值得重写，新产品 IP/约束必须在 C3 独立建立。
 
 ## 双 OV5640 摄像头 HDMI 产品目标
 
-- implementation_status: dual_camera_scope_frozen_selective_import_pending
+- implementation_status: c0_complete_c1_blocked_selective_import_pending
 - code_path: null
-- evidence_path: `docs/OV5640_TARGET_SCOPE.md`, read-only `origin/parallel_driver@485f3bb`
+- evidence_path: `docs/OV5640_TARGET_SCOPE.md`, `docs/OV5640_C0_REFERENCE_AUDIT.md`, read-only `origin/parallel_driver@485f3bba71e4b57fb8bb49cec30e9d331b952be3`
 - product_boundary: 产品固定双 OV5640；未来项目目录为 `59_top_dual_ov5640_hdmi/`，目标板卡与器件为 `RK3568+PG2L50H100H` / `PG2L50H-6IFBG484`。`41_ov7725_hdmi` 及其 `sim/questa/` 只作 legacy。
 - reference_top: `top_dual_ov5640_hdmi`；两路独立 SCCB/RESET/PWDN/DVP，每路 960x1080 半幅，双写 DDR3 后组成 1920x1080。
-- reference_device_boundary: 参考工程根 PDS 与 DDR3 仍为 PG2L100H，仅 PCIe IP 为 PG2L50H；不得据此宣称 PG2L50H 摄像头产品已实现。
-- c0_boundary: `origin/parallel_driver@485f3bb` 只读参考，不覆盖 canonical；选择性审核源、IP、约束、顶层、器件元数据与仿真资产。
-- c1_boundary: 双 OV5640 数量与 960x1080×2 → 1920x1080 组合方式已冻结；模组料号、电气与板级管脚证据仍需闭合。
+- reference_device_boundary: 参考根 PDS 与 DDR3/PLL/读写 FIFO 为 PG2L100H；PCIe IP 虽为 PG2L50H，但 BAR1/BAR2 均禁用。混合工程、旧阶段产物和参考 README PASS 均不得作为 PG2L50H 产品证据。
+- c0_boundary: 已完成只读审计；登记 17 个 HDMI 明文 RTL、83 个生成/受保护依赖、4 个 TB、4 个 PCIe video 参考文件、4 个 PG2L100H 生成 IP、FDC/PDS 冲突及 VSCS/CDC/RDC 风险。本批 Import=none，未创建产品目录、未运行 PDS/Questa。
+- c1_boundary: blocked_by_h3；双 OV5640 数量与 960x1080×2 → 1920x1080 参考组合已知，但模组料号、MCLK、电压、DVP/字节序/帧率、DDR3、HDMI 和板级管脚证据仍需 owner 闭合。
 - c2_boundary: 只向 `59_top_dual_ov5640_hdmi/` 选择性导入所需 RTL/IP/约束，建立项目自有双摄 SCCB、复位、采集、DDR3 与 HDMI 边界。
 - c3_boundary: 所有 IP/约束按 `Logos2 / PG2L50H / FBG484 / -6` 重新审核或生成，完成七阶段 PDS 与严格 gate；旧 100H 产物不可继承。
 - reference_tb_boundary: 参考仓库 4 个 TB 尚未选择性导入；`tb_dual_ov5640_dri.v` force `cam_init_done`，成功字符串不是 canonical `TEST PASS`，不能计为产品自检通过。
 - s3_boundary: 可复现仿真源只进入 `59_top_dual_ov5640_hdmi/sim/questa/`，运行态只进入其 `build/`。不导入 `sim_*`、`work`、`.mpf`、`modelsim.ini`、日志、波形、绝对路径生成物或许可证配置。
-- next_step: 建立 `59_top_dual_ov5640_hdmi/` 选择性导入清单，先迁移产品必要源并重建 PG2L50H PDS/DDR3 baseline，再审核和改造 4 个参考 TB。
-- high_attention: `i2c_dri_clk` 逻辑生成时钟、`cam_pclk`/DDR `ui_clk`/`pixel_clk` 间业务 CDC、FIFO 分侧复位，以及 `ddr3_init_done` 参与的复位释放。
+- next_step: 先关闭 C1/H3 产品输入；随后另开 PR，从 C0 登记候选中选择性导入，并重建 PG2L50H PDS/IP/FDC 与项目内 Questa 入口。
+- high_attention: 组合全局复位跨域释放、`ddr3_init_done` CDC/RDC、frame event CDC、FIFO 双侧复位、serializer reset 未使用、1080p/720p 模式冲突、camera init 未纳入系统完成条件，以及关键 FSM/UTF-8/VSCS 缺口。
 
 ## DDR3 外层工程
 

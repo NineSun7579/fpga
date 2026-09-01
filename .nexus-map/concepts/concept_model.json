@@ -237,14 +237,15 @@
         "h3_status": "blocked_external",
         "boundary": "documentation and README collection entries only; required board evidence is still missing"
       },
-      "queue_status": "pcie_revalidation_m2_and_ov5640_c0_c1_next",
+      "queue_status": "pcie_revalidation_m2_and_ov5640_c1_next_c0_complete",
       "execution_queue": [
         {"order": 1, "id": "M0", "status": "approved_documented", "prerequisite": "user-confirmed PG2L50H-6IFBG484 board target"},
         {"order": 2, "id": "M1", "status": "next", "prerequisite": "fix PCIe project-owned build/gate while retaining the matching PG2L50H IDF"},
         {"order": 3, "id": "M2", "status": "staging_validated_blocked_board_review", "prerequisite": "board-approved PG2L50H DDR3 IP/FDC/RCF promotion and CI-6 rerun"},
-        {"order": 4, "id": "C0/C1", "status": "next_reference_audit_and_scope_freeze", "prerequisite": "read-only OV5640 reference import and owner-approved camera module/interface facts"},
-        {"order": 5, "id": "C2/C3", "status": "blocked_by_c0_c1", "prerequisite": "new OV5640 project/top boundary and PG2L50H IP/FDC implementation plan"},
-        {"order": 6, "id": "S1/S2/S3", "status": "pcie_s2a_dynamic_passed_remaining_project_layers_pending", "prerequisite": "locked project RTL/IP/netlist/SDF and project-owned simulation entrypoints"}
+        {"order": 4, "id": "C0", "status": "complete_read_only_import_none", "prerequisite": "reference audit evidence is recorded in docs/OV5640_C0_REFERENCE_AUDIT.md"},
+        {"order": 5, "id": "C1", "status": "blocked_by_h3", "prerequisite": "owner-approved dual-camera module, MCLK, DVP, electrical, DDR3, HDMI and pin facts"},
+        {"order": 6, "id": "C2/C3", "status": "blocked_by_c1_h3", "prerequisite": "new OV5640 project/top boundary and PG2L50H IP/FDC implementation plan"},
+        {"order": 7, "id": "S1/S2/S3", "status": "pcie_s2a_dynamic_passed_remaining_project_layers_pending", "prerequisite": "locked project RTL/IP/netlist/SDF and project-owned simulation entrypoints"}
       ],
       "tech_stack": ["PDS Tcl", "PowerShell", "ModelSim/QuestaSim"],
       "related_reqs": ["可重复构建", "四级仿真", "时序闭环"],
@@ -258,28 +259,29 @@
       "responsibility": "选择性迁移双 OV5640 采集、双写 DDR3 与 1920x1080 HDMI 链，建立 PG2L50H 产品工程。",
       "implementation_status": "planned",
       "code_path": null,
-      "evidence_path": "docs/OV5640_TARGET_SCOPE.md",
-      "evidence_gap": "59_top_dual_ov5640_hdmi 尚未建立；参考工程根 PDS/DDR3 为 PG2L100H，4 个参考 TB 尚未选择性导入和整改。",
+      "evidence_path": "docs/OV5640_C0_REFERENCE_AUDIT.md",
+      "evidence_gap": "C0 已完成且未导入文件；59_top_dual_ov5640_hdmi 尚未建立，C1 仍缺两路模组、电气、DVP、DDR3、HDMI 和板级管脚事实。",
       "board": "RK3568+PG2L50H100H",
       "physical_fpga": "PG2L50H-6IFBG484",
       "product_camera_count": 2,
-      "reference_source": "origin/parallel_driver@485f3bb",
+      "reference_source": "origin/parallel_driver@485f3bba71e4b57fb8bb49cec30e9d331b952be3",
       "reference_top": "top_dual_ov5640_hdmi",
       "reference_video_contract": {"independent_interfaces": ["SCCB", "RESET", "PWDN", "DVP"], "per_camera_half_frame": "960x1080", "ddr_write_channels": 2, "composed_output": "1920x1080"},
-      "reference_device_metadata": {"root_pds": "PG2L100H", "ddr3": "PG2L100H", "pcie_ip": "PG2L50H", "product_compatible_as_is": false},
+      "reference_device_metadata": {"root_pds": "PG2L100H", "ddr3": "PG2L100H", "pll": "PG2L100H", "read_fifo": "PG2L100H", "write_fifo": "PG2L100H", "pcie_ip": "PG2L50H", "pcie_bar1_enabled": false, "pcie_bar2_enabled": false, "product_compatible_as_is": false},
+      "c0_audit": {"status": "complete", "imported_files": 0, "plaintext_hdmi_rtl": 17, "generated_or_protected_hdmi_sources": 83, "reference_testbenches": 4, "pcie_video_reference_files": 4, "pg2l100h_generated_ip_wrappers": 4, "pds_or_questa_executed": false, "hardware_validated": false},
       "selective_import_target": "59_top_dual_ov5640_hdmi/",
       "legacy_reference": "41_ov7725_hdmi",
       "legacy_boundary": "41_ov7725_hdmi and 41_ov7725_hdmi/sim/questa are legacy-only and do not count as dual-OV5640 implementation or simulation coverage",
       "reference_testbenches": {"count": 4, "selectively_imported": 0, "known_issue": "tb_dual_ov5640_dri.v forces cam_init_done and its success string is not canonical TEST PASS", "accepted_as_product_coverage": false},
       "simulation_archive": {"source_root": "59_top_dual_ov5640_hdmi/sim/questa/", "runtime_root": "59_top_dual_ov5640_hdmi/build/", "forbidden_imports": ["sim_*", "work", "mpf", "modelsim.ini", "logs", "waveforms", "absolute-path generated outputs", "license configuration"]},
       "phases": {
-        "C0": "audit origin/parallel_driver@485f3bb read-only and reject mixed-device or generated-runtime assets",
-        "C1": "dual-camera count and 960x1080 by two to 1920x1080 composition are frozen; remaining electrical and board facts still require evidence",
+        "C0": "complete: audited origin/parallel_driver@485f3bba71e4b57fb8bb49cec30e9d331b952be3 read-only; imported no RTL, IP, FDC, PDS or testbench",
+        "C1": "blocked by H3: dual-camera count is fixed, but module, MCLK, DVP, electrical, DDR3, HDMI and pin facts still require owner evidence",
         "C2": "selectively import required sources into 59_top_dual_ov5640_hdmi and establish independent dual SCCB/reset/capture/DDR3/HDMI boundaries",
         "C3": "review or regenerate all IP and constraints for Logos2/PG2L50H/FBG484/-6, then run seven PDS stages and the strict gate",
         "S3": "project-owned self-checking behavior, post-synthesis, post-PNR functional and SDF timing simulations"
       },
-      "current_blockers": ["selective import target not created", "root PDS and DDR3 still target PG2L100H in the reference", "four reference testbenches not selectively imported", "tb_dual_ov5640_dri.v bypasses initialization and lacks canonical TEST PASS", "project-level simulation entrypoint not implemented"],
+      "current_blockers": ["C1/H3 board and product inputs are not frozen", "selective import target not created", "root PDS and four required generated IPs target PG2L100H in the reference", "reference PCIe BAR1 and BAR2 are disabled", "four reference testbenches not selectively imported", "tb_dual_ov5640_dri.v bypasses initialization and lacks canonical TEST PASS", "project-level simulation entrypoint not implemented"],
       "complexity": "high",
       "hotspot": true
     },
@@ -898,7 +900,9 @@
             "project_level_filelist_count": 0,
             "project_level_do_count": 0,
             "product_camera_count": 2,
-            "reference_source": "origin/parallel_driver@485f3bb",
+            "reference_source": "origin/parallel_driver@485f3bba71e4b57fb8bb49cec30e9d331b952be3",
+            "c0_status": "complete_read_only_import_none",
+            "c1_status": "blocked_by_h3",
             "reference_top": "top_dual_ov5640_hdmi",
             "reference_tb_count": 4,
             "reference_tb_imported_count": 0,
@@ -912,7 +916,7 @@
               "41_ov7725_hdmi/prj/ipcore/** PLL/FIFO example benches"
             ],
             "prerequisites": [
-              "selective source audit of origin/parallel_driver@485f3bb",
+              "C1/H3 owner-approved module, electrical, DVP, DDR3, HDMI and pin facts",
               "PG2L50H regeneration of root PDS and DDR3 assets",
               "C2 new dual-camera project and top boundary",
               "C3 PG2L50H implementation",
@@ -1138,7 +1142,7 @@
       "S0-1 is complete: the parameterized simulation-library entry compiled Logos2 USIM/VSIM and the minimal V_BUF post-primitive smoke passed.",
       "No HDL/raw source AST extraction was run; CI-0 PowerShell syntax parsing is recorded separately.",
       "Questa Sim-64 2021.1 tools, Logos2 USIM/VSIM and V_BUF are verified; PCIe S2-A current dynamic revalidation passed with exit code 0 and one TEST PASS.",
-      "The camera product is fixed to dual OV5640. origin/parallel_driver@485f3bb is read-only reference material; its root PDS and DDR3 remain PG2L100H, four testbenches are not imported, and 59_top_dual_ov5640_hdmi remains planned. OV7725 evidence is legacy-only."
+      "The camera product is fixed to dual OV5640. C0 completed a read-only audit of origin/parallel_driver@485f3bba71e4b57fb8bb49cec30e9d331b952be3 with no imported files or PDS/Questa/hardware claim; C1 remains blocked by H3. The reference root PDS and four required generated IPs target PG2L100H, four testbenches are not imported, and 59_top_dual_ov5640_hdmi remains planned. OV7725 evidence is legacy-only."
     ]
   }
 }
