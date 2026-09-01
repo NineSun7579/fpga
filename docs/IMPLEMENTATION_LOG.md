@@ -395,6 +395,7 @@
 - 结构门禁拒绝归档目录中的 `.mpf`、`work`、`modelsim.ini`、transcript、日志和波形；`.gitignore` 同步覆盖常见 Questa 工程运行态扩展名。
 - 收拢后复验 S2-A run `517c1897a6dd433bb3c5cfc84acd0ba9`：编译 `0 errors/0 warnings`、运行至 `1476105 ns`、唯一 PASS、退出 0；S2-B run `6a7817195de44fc6b1ab55a16f073e31`：运行至 `702175 ns`、唯一 link marker/PASS、`Errors: 0, Warnings: 26`、退出 0。
 - S2-C 下一小批冻结 `S2C_BAR1_REGENERATION.md` 和 `check_s2c_bar1.ps1`：活动 BAR1 仍为禁用事实，只有 PDS IP Compiler staging、完整参数/资产差异审核和原子升格后才允许进入 Endpoint 主动 DMA 动态闭环。
+- 已确认 SP6.4 `ip_generate.exe` 的现有实例 CLI；新增 `regenerate_bar1_staging.ps1`，只把 BAR1 启用/512 Bytes 改动写入 `build/ipgen/pcie_bar1/`，默认不执行生成，避免覆盖 canonical IP。
 
 ## 2026-09-01：PCIe S2-B 动态入口推进
 
