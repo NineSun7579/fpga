@@ -398,6 +398,7 @@
 - 已确认 SP6.4 `ip_generate.exe` 的现有实例 CLI；新增 `regenerate_bar1_staging.ps1`，只把 BAR1 启用/512 Bytes 改动写入 `build/ipgen/pcie_bar1/`，默认不执行生成，避免覆盖 canonical IP。
 - 首次 `-Execute` staging 试运行发现活动 IDF 旁缺少 PDS 所需 `index.xml`，生成器因此非零退出。脚本现改为在执行前检查该元数据；待从完整 IP Compiler 实例工程取得同版本 `index.xml` 后再重试。
 - 复核发现 DDR3 README 残留旧的“未发现 Questa”表述，已改为记录当前 Questa `2021.1` 可用、但 DDR3 项目级四级仿真仍未执行。
+- PR #10 复核：远端状态 `OPEN/CLEAN`，无评论和 review；新增 `S2-C-BAR1-INPUT` TODO，明确等待同版本完整 PCIe 实例导出的 `index.xml`。
 
 ## 2026-09-01：PCIe S2-B 动态入口推进
 

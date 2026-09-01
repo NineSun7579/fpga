@@ -107,7 +107,7 @@ PowerShell 入口还预留以下后级动作：
 - `sim-post-pnr-func`
 - `sim-post-pnr-timing`
 
-对应三个网表后级 testbench/DO 尚未实现；当前调用会明确失败。基础 DMA 回读属于 S2-C，不会用 S2-A 受控模型或 S2-B link-up 冒充通过。
+对应三个网表后级 testbench/DO 尚未实现；当前调用会明确失败。基础 DMA 回读属于 S2-C，不会用 S2-A 受控模型或 S2-B link-up 冒充通过。BAR1 staging 还需要同版本完整 IP Compiler 实例导出的 `index.xml`，取得前不覆盖 canonical IP。
 
 ## 验收条件
 
