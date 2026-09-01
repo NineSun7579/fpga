@@ -41,10 +41,12 @@ INFO: PDS_RUN_COMPLETE=<run_id>
 - `ipcore/pcie_test/pcie_test.idf`；
 - `fdc/pcie_dma_test.fdc`。
 
-PDS 前后会重新计算输入记录；构建期间任一路径、长度或 SHA-256 漂移均失败。manifest 固定七项最终证据：
+PDS 前后会重新计算输入记录；构建期间任一路径、长度或 SHA-256 漂移均失败。manifest 固定九项最终证据：
 
 - `build/logs/pds-gen_bit_stream.log`；
+- `build/logs/pds-post-pnr-func-netlist.log`；
 - 最终 timing report；
+- 不含 `$sdf_annotate` 的 post-PNR 功能网表 `build/pds/generate_netlist/pcie_dma_test_func.v`；
 - post-PNR Verilog 网表；
 - slow-corner SDF；
 - `.sbit`；
@@ -60,7 +62,7 @@ PDS 前后会重新计算输入记录；构建期间任一路径、长度或 SHA
 - 真实 `compile` partial run 返回 0，manifest 为 `partial/false`，baseline gate 返回 1；
 - PDS executable 缺失返回 1，manifest 为 `failed/false`，baseline gate 返回 1；
 - manifest run-id、`bgr.db` 字节和 FDC 输入三类漂移均使 baseline gate 返回 1；
-- 最终 PG2L50H 七阶段构建返回 0，manifest 为 `complete/true`，包含 43 项输入和 7 项证据；
+- 当前 PG2L50H run `9952da4164f040d5924a558baa5cd8ca` 完成 canonical timing/SDF/bitstream 流程和隔离 PDS 功能网表流程，manifest 为 `complete/true`，包含 43 项输入和 9 项证据；
 - H2-B0 baseline gate 返回 0，仍精确匹配 16 个签名、42 次记录并输出不可发布；
 - strict gate 返回 1，最差解析 slack 为 `0.100 ns`，五类 H2-B1 阻断保持可见。
 

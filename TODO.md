@@ -390,7 +390,7 @@ O2-D2 停止条件：控制相位或 `/5` generated clock 未被 PDS 唯一识�
 ### CI-8：PDS 构建证据新鲜度（实施中，PCIe 试点已完成）
 
 - [x] CI-8A PCIe：每次 build 以唯一 `run_id` 原子发布 `running/partial/failed/complete` manifest，partial 或失败运行立即使旧 complete 证据失效。
-- [x] CI-8A PCIe：固定 43 项 canonical 输入和 7 项最终证据的相对路径、长度与 SHA-256；日志必须含唯一且匹配的开始/完成标志，不使用时间窗口猜测。
+- [x] CI-8A PCIe：固定 43 项 canonical 输入和 9 项最终证据的相对路径、长度与 SHA-256；新增独立 PNR 功能网表及其生成日志，日志必须含唯一且匹配的 run id，不使用时间窗口猜测。
 - [x] CI-8A PCIe：真实 full build、partial、PDS 启动失败、run-id/输入/产物漂移和 baseline/strict gate 已验证，详见 `pcie_dma_test_100h/doc/CI8A_BUILD_PROVENANCE.md`。
 - [ ] CI-8B DDR3：在 PG2L50H canonical IP/FDC 升格并可执行最终构建后，按项目真实源清单和产物布局实现 provenance manifest。
 - [ ] CI-8B OV7725：在四个 PG2L50H IP 升格并可执行最终构建后，按项目真实源清单和产物布局实现 provenance manifest。
@@ -488,7 +488,8 @@ O2-D2 停止条件：控制相位或 `/5` generated clock 未被 PDS 唯一识�
 - [x] S2-C-BAR1：新增 `scripts/regenerate_bar1_staging.ps1`，默认 dry-run，显式 `-Execute` 才在 `build/ipgen/pcie_bar1/` 调用 PDS IP Generator；canonical IP 不被覆盖。
 - [ ] S2-C-BAR1-INPUT：从同版本 PDS IP Compiler 完整 PCIe 实例工程取得配套 `index.xml`，再重新执行 staging；禁止跨版本、跨 IP 或未知模板复制。
 - [x] S2-D 综合后受限 smoke：项目内 `sim/questa/` 已归档 `post_syn.f`、DO 和自检 TB；Questa `2021.1` run `41135fd3fadd4c51a70508a6fa5af3e3` 使用当前 canonical 综合网表运行至 `491965 ns`，唯一 `INFO: POST_SYN_RESET_PATH_OK`、唯一 `TEST PASS`、`Errors: 0, Warnings: 1`、退出 0。只关闭综合网表展开、reset debounce/sync 和 reference-clock LED counter 路径，不关闭 S2-C、PNR、SDF、时序、H2-B1 或发布 gate。合同见 [`S2D_POST_SYN_SMOKE.md`](pcie_dma_test_100h/doc/S2D_POST_SYN_SMOKE.md)。
-- [ ] 完成 PNR 后功能和 PNR 后时序仿真。
+- [x] S2-E PNR 后功能受限 smoke：项目内 `sim/questa/` 已归档 `.f/.do/TB`；PDS run `9952da4164f040d5924a558baa5cd8ca` 以双进程生成独立无 SDF 功能网表和 timing/SDF/bitstream，manifest=`complete/valid`、43 输入/9 证据，baseline/strict=`0/1`。Questa `2021.1` run `927abae8ed7d40aeb5d6f706b3723e0a` 运行至 `491965 ns`，唯一 `INFO: POST_PNR_FUNC_RESET_PATH_OK`、唯一 `TEST PASS`、`Errors: 0, Warnings: 1`、退出 0。只关闭无 SDF PNR 功能网表展开、reset debounce/sync 和 reference-clock LED counter 路径，不关闭链路、DMA、SDF 时序、H2-B1、实板或发布。合同见 [`S2E_POST_PNR_FUNC_SMOKE.md`](pcie_dma_test_100h/doc/S2E_POST_PNR_FUNC_SMOKE.md)。
+- [ ] 完成 PNR 后时序/SDF 仿真。
 - [ ] 每级成功只输出一个 `TEST PASS`，失败或超时返回非零。
 
 ### S3：OV5640 集成仿真

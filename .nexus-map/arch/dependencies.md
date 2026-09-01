@@ -73,7 +73,7 @@ flowchart TD
 - 厂商 `.idf`、生成 RTL 和 PDS 仿真库属于外部生成依赖，不应被误当作独立手写逻辑。
 - PCIe S2-A 的 `sim/questa/behav.f` 依赖 37 个实现侧 canonical HDL、仿真专用补充源、DMA RAM init include、reset helper、项目 TB 与受控边界模型。当前 Questa run `add7efa39f644384af9929e8a9366739` 运行至 `1476105 ns`，以唯一 `TEST PASS` 通过（0 errors/0 warnings、退出 0）；S2-A/S2-B 静态门禁通过。
 - 每次 S2-A 动态运行按 `SIM_RUN_ID` 创建独立 `build/sim/behav/<run_id>/work`，避免上一次编译的 work library 被误用；日志身份、work 隔离和公共 USIM 是三个不同依赖，均不能由单独一个 `TEST PASS` 替代。
-- 三项目的 Questa 工程定义分别位于各自 `sim/questa/`；启动器在 `build/sim/launcher/<run-id>/` 创建并显式绑定 run-scoped `modelsim.ini`，PowerShell 通过进程内 `SIM_PROJECT_ROOT` 让 DO 切回项目根。work/vendor library、日志、transcript、波形与 ini 统一依赖 `build/`，不与工程定义混放。
+- 三个项目的可复现 Questa 工程分别位于各自工程内独立 `sim/questa/`；work/vendor library、日志、transcript、波形与 ini 等运行态只进入对应 `build/`，不与工程定义混放。
 - S2-B 每次运行同时创建 run-scoped `work` 与物理 vendor library，厂商模型必须直接编译到该物理目录；TB 的 `GTP_GRS GRS_INST` 为 `GRS_INST.GRSNET` 层级依赖，项目源的 `1ns/10ps` 和 DO transcript `echo` 为厂商兼容与日志身份依赖。
 - S2-A 的受控 link indication 只驱动顶层复位、LED 和未知态检查，不能替代 S2-B 的真实厂商 RC/EP、LTSSM/TLP，也不能替代 S2-C 的 DMA 数据回读。S2-B 首次 L0 后允许 RC 合法进入 `0x0d` Recovery/速率重训练，在 6 ms 总窗口内寻找连续 32 周期双端 link-up/L0，任何中断将计数归零；run `30bad6e164be4a4b8284a00f1e96bd87` 输出唯一 link-up marker 和唯一 `TEST PASS`，Errors 0、Warnings 26、PowerShell 退出 0。最新 S2-A/S2-B 运行后项目根 `modelsim.ini`、transcript、`vsim.wlf` 计数均为 0。`SIM_RUN_ID` 与唯一 `TEST PASS` 只绑定一次仿真日志，不扩张到 DMA、RK3568 实板、协商 x2/5.0 GT/s、电气或后级网表。
 - OV7725 O0-A 已识别 `sys_clk`、`i2c_dri_clk`、`cam_pclk`、`pixel_clk`、`pixel_clk_5x`、`clk_50m/ref_clk` 和 `ui_clk`；证据入口为 `41_ov7725_hdmi/doc/CDC_RDC_AUDIT.md`。
@@ -100,19 +100,19 @@ flowchart TD
 - 有限自检契约固定 16 个单 beat 写读比较 pair，地址 `0x0..0x78`、步长 8，pair/run timeout 分别为 4096/131072 周期；签核依赖稳定的 `test_done`、`test_failed`、`failure_code`、`error_count`、`completed_pairs` 和首错信息，而不是厂商 LED 或内部层级。
 - 新项目自有 DDR3 RTL 依赖根目录 VSCS；厂商 `ip_core/ddr3/**` 仍作为外部生成依赖，不因 D2 决策被改写。
 - S2-C 还依赖同版本 PDS PCIe IP Compiler 完整实例导出的 `index.xml`。当前 BAR1 staging 只有同版本 IDF，不能作为完整实例或 canonical 升格证据；活动 BAR1 继续禁用，故 DMA 回读依赖尚未满足。
-- 当前执行队列为：PCIe 维持 50H baseline，S2-D 只关闭综合后结构/reset/LED 受限 smoke，继续 S2-C 与 PNR 功能/时序仿真；DDR3 重生成 50H IP/FDC/RCF并重审 D3-A；摄像头按 OV5640 C0/C1 冻结范围后进入 C2/C3，最后执行 S3。OV7725 O2/M3 只作 legacy 参考。
-- `docs/SIMULATION_READINESS_MATRIX.md` 已确认三个项目均保留各自 `sim/questa/` 工程定义目录；可复现工程源保留在项目内，运行态只进入各工程 `build/`。DDR3 与 OV5640 仍缺可运行项目级入口。PCIe S2-A/S2-B/S2-D 已动态通过，但 S2-D 仅覆盖综合网表展开、reset debounce/sync 与 reference-clock LED counter，不覆盖链路、DMA、PNR、SDF 或时序。
+- 当前执行队列为：PCIe S2-E PNR 后功能已动态通过；继续 S2-C 与 SDF 时序仿真，同时保持 link/DMA/H2-B1/实板/发布边界未关闭。
+- `docs/SIMULATION_READINESS_MATRIX.md` 已确认项目工程源保留在各自独立 `sim/questa/`、运行态只进入对应 `build/`。S2-E run `927abae8ed7d40aeb5d6f706b3723e0a` 的通过不构成链路、DMA、SDF 时序、H2-B1、实板或发布证据。
 - PCIe 顶层依赖专用 HSST/IP 约束；`o_trgt1_radm_pkt_halt[2:0]` 接口分别对应 posted、non-posted 与 completion/CPLD halt，当前 bit0/bit1 有效、bit2 源端恒为 0，三位接口路径已由项目顶层贯通活动 `pcie_test` wrapper 至 hard-IP；UART2APB 是否保留是后续 RTL 与 FDC 的共同决策点。
 - PCIe H2-A（2026-08-30）固定顶层 x2 `rxn/rxp/txn/txp`、差分 `ref_clk_p/n`、`perst_n`/`button_rst_n` 与两枚 LED；FDC 当前映射 refclk `F6/E6`、PERST# `M16`、button reset `M15`、LED `M17/J16`。
 - 活动 PCIe `pcie_test.idf` 已正确匹配 `Logos2/PG2L50H/FBG484/-6`，无需仅为器件型号重生成；必须修正的是 PG2L100H build/PDS/gate并清除旧 `build/` 后重建。lane 极性、板级拓扑、I/O delay 和 SCBV 仍是独立缺口。
 - UART2APB 在 `pcie_dma_test.v` 以隐式 `rxd/txd` 网络连接，当前 `rxd` 被绑 0；H2-A 只记录该功能缺口，H2-B 需先决定端口归属和板级连接。
 - H2-A 器件审核已解除项目自有 build/gate 的只读限制；活动 IDF 保持 50H，RTL/FDC 仍等待 UART 与板级证据。H2-B 在 lane/refclk/PERST#/SCBV 和 UART 均闭合前不得宣称发布通过。
 - H2-B0 已将 PCIe 五类失败归一化为 16 个唯一签名、42 次原始记录；完整多重集对新增、消失、改名、share-pin 位置和次数漂移均失败，IDF metadata 漂移永久硬失败。canonical fixture 正向 0、strict 1，五个变异均 1。H2-B1 仍阻断于 lane/refclk/PERST#/SCBV/UART/I/O timing；partial run 复用旧 full-build 证据的风险已由 CI-8A 关闭。
-- PCIe CI-8A 已关闭上述复用风险：最新完整 run `cfe1a55a670c4eb794a75e5f8a26137c` 为 `complete/valid=true`，baseline/strict 为 `0/1`，最差解析 slack `0.100 ns`。baseline=0 不解除 UART RX tied low、顶层 I/O 未约束、PCIe serial I/O、share pin、SCBV 五类 strict 阻断，也不表示 release-ready。
+- PCIe CI-8A 已关闭上述复用风险：最新完整 run `9952da4164f040d5924a558baa5cd8ca` 为 `complete/valid=true`，绑定 43 inputs/9 artifacts；baseline/strict 为 `0/1`，不表示 release-ready。
 - CI-8B 依赖 DDR3 M2 与未来 OV5640 C3 各自完成 PG2L50H canonical 升格及最终构建入口闭合；OV7725 legacy 只有在被 C2 明确选中时才提供结构参考，不能代替 OV5640 provenance。
 - S0 环境复核（2026-08-30）的未发现仿真器结论已被 2026-09-01 实际执行证据取代：Questa Sim-64 2021.1 最小 SystemVerilog 通过，PDS SP6.4 Logos2 USIM 编译成功。
 - S0-1 已准备 `scripts/compile_simlib.ps1` → 环境变量 → `scripts/compile_simlib.tcl` → PDS `compile_simlib` 的参数化链路，可选择 ModelSim/QuestaSim、USIM/VSIM/BOTH、family、语言、工具路径与输出目录；入口准备不等于库已生成。
-- PCIe S2-A 已依赖编译后的 Logos2 USIM 动态通过；Logos2 VSIM 与最小 `V_BUF` 后级原语 smoke 也已验证。PCIe S2-D 综合后受限 smoke 已通过；S2-C、PCIe PNR 功能/PNR 时序/SDF，以及 DDR3/OV5640 项目级仿真仍未完成。
+- PCIe S2-A、S2-B、S2-D 与 S2-E 均有动态通过证据；S2-E 仅覆盖无 SDF PNR 功能网表、复位路径与 reference-clock LED counter。S2-C、PNR 时序/SDF，以及 DDR3/OV5640 项目级仿真仍未完成。
 - PCIe `sim/questa/behav.f` 单独包含仿真所需 `ips2l_pcie_apb_cross_v1_0.v`；不得为此修改 `scripts/pds_sources.f`，因为实现侧由 IDF 管理该源。
 - CI-0 仓库级静态一致性门禁依赖根指南/TODO/VSCS、三个项目 README 与各自 `build.tcl`/`run.ps1`/`check_build.ps1`；当前工作区门禁退出码为 0，7 个 PowerShell 脚本 AST 解析错误数为 0。它只验证结构、入口与文档关系，不解除任何 PDS、STA、板级或仿真阻断。
 - CI-7 依赖 `docs/PDS_TCL_ENTRYPOINT_INVENTORY.json` 与 `scripts/check_pds_tcl_entrypoints.ps1`：13 个 tracked Tcl 必须逐项分类；只有三个 `scripts/build.tcl` 可由 `run.ps1` 调用。PCIe build 目标为 PG2L50H，OV7725/DDR3 build 仍为 PG2L100H migration-blocked；历史 GUI、厂商内部和厂商仿真 Tcl 不得进入当前器件/STA/位流证据链。正向门禁为 0，缺失清单项负向测试为 1。

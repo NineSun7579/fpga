@@ -429,3 +429,12 @@
 - 当前 canonical 网表由 PDS run `cfe1a55a670c4eb794a75e5f8a26137c` 生成，manifest=`complete/valid`，baseline/strict gate=`0/1`，最差 slack `0.100 ns`；综合网表 SHA-256 为 `96F1758BE7EA9E94D463F531D42587B10B32F0D4DEE34893D786E6FCF7158058`。
 - 最终 Questa `2021.1` run `41135fd3fadd4c51a70508a6fa5af3e3` 在 `491965 ns` 输出唯一 `INFO: POST_SYN_RESET_PATH_OK` 与唯一 `TEST PASS`，`Errors: 0, Warnings: 1`，PowerShell 退出 0。唯一 warning 来自厂商 HSST 受保护模型。
 - 结果只关闭综合网表展开、项目 reset debounce/sync 与 reference-clock LED counter 路径；S2-C Endpoint 主动 DMA、H2-B1、PNR 功能、SDF 时序和发布 gate 均保持未完成。
+
+## 2026-09-01：PCIe S2-E PNR 后功能受限 smoke
+
+- 在 PCIe 项目 `sim/questa/` 归档 `post_pnr_func.f`、`run_post_pnr_func.do` 和按 VSCS 记录职责、复位/时钟假设、Hazard、watchdog 与唯一 PASS 的 `tb/tb_pcie_dma_post_pnr_func.sv`；运行态继续只写入 `build/`。
+- 证明原 timing netlist 内嵌 `$sdf_annotate`，不能用于功能仿真。PDS SP6.4 同一 shell 不能连续执行两次 `gen_netlist`，因此 `run.ps1` 以两个隔离 PDS 进程分别生成 timing/SDF/bitstream 和无 SDF 功能网表。
+- 隔离 PDS 副本必须与 canonical `build/pds/` 保持相同目录深度，才能维持 `.pds` 中相对 HDL 路径；副本只改 `func_sim_only=ON`、`sdf_annotate=FALSE`，不修改产品 RTL、IDF 或 FDC。
+- 最终 PDS run `9952da4164f040d5924a558baa5cd8ca` 为 complete/valid、43 inputs/9 artifacts；功能网表 11,132,812 bytes 且不含 `$sdf_annotate`，baseline/strict gate=`0/1`、最差 slack `0.100 ns`。
+- 首次 Questa run `e7e63e79454148048d2dcd00abdf29a7` 因运行盘 ENOSPC 在 elaboration 失败。可恢复地转移四个可重建 `build/` 目录后，当前 run `927abae8ed7d40aeb5d6f706b3723e0a` 使用重建功能网表运行至 `491965 ns`，唯一 `INFO: POST_PNR_FUNC_RESET_PATH_OK`、唯一 `TEST PASS`、`Errors: 0, Warnings: 1, Suppressed Warnings: 80`，PowerShell 退出 0。唯一未抑制 warning 来自厂商 HSST 受保护模型。
+- S2-E 只覆盖 PNR 功能网表展开、reset debounce/sync 和 reference-clock LED counter 路径；PCIe link、DMA、SDF 时序、H2-B1 和发布 gate 保持未完成。

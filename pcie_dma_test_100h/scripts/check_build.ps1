@@ -10,7 +10,11 @@ $ProjectRoot = Split-Path -Parent $PSScriptRoot
 $BuildRoot = Join-Path $ProjectRoot 'build'
 $PdsRoot = Join-Path $BuildRoot 'pds'
 $BuildLog = Join-Path $BuildRoot 'logs\pds-gen_bit_stream.log'
+$FunctionalNetlistLog = Join-Path $BuildRoot `
+    'logs\pds-post-pnr-func-netlist.log'
 $TimingReport = Join-Path $PdsRoot 'report_timing\pcie_dma_test.rtr'
+$FunctionalNetlist = Join-Path $PdsRoot `
+    'generate_netlist\pcie_dma_test_func.v'
 $IpDefinition = Join-Path $ProjectRoot 'ipcore\pcie_test\pcie_test.idf'
 $BitstreamDatabase = Join-Path $PdsRoot 'generate_bitstream\bgr.db'
 $BaselineFingerprintPath = Join-Path $ProjectRoot `
@@ -43,6 +47,9 @@ function Assert-NonEmptyFile {
 }
 
 Assert-NonEmptyFile -Path $BuildLog -Description 'PDS build log'
+Assert-NonEmptyFile `
+    -Path $FunctionalNetlistLog `
+    -Description 'PDS post-PNR functional netlist log'
 Assert-NonEmptyFile -Path $TimingReport -Description 'Final timing report'
 Assert-NonEmptyFile -Path $IpDefinition -Description 'PCIe IP definition'
 Assert-NonEmptyFile -Path $BitstreamDatabase -Description 'Bitstream database'
@@ -152,6 +159,7 @@ if ($MetadataIssues.Count -gt 0) {
 }
 
 $RequiredArtifacts = [ordered]@{
+    'Post-PNR functional netlist' = $FunctionalNetlist
     'Post-PNR simulation netlist' = Join-Path $PdsRoot 'generate_netlist\pcie_dma_test_sim.v'
     'Slow-corner SDF' = Join-Path $PdsRoot 'generate_netlist\pcie_dma_test_sta.sdf'
     'PDS bitstream' = Join-Path $PdsRoot 'generate_bitstream\pcie_dma_test.sbit'
@@ -162,8 +170,18 @@ foreach ($Artifact in $RequiredArtifacts.GetEnumerator()) {
     Assert-NonEmptyFile -Path $Artifact.Value -Description $Artifact.Key
 }
 
+if (Select-String `
+        -LiteralPath $FunctionalNetlist `
+        -SimpleMatch '$sdf_annotate' `
+        -Quiet) {
+    throw 'Post-PNR functional netlist contains an embedded SDF annotation.'
+}
+
 if (Select-String -LiteralPath $BuildLog -Pattern '^E:' -Quiet) {
     throw "PDS log contains one or more error records: $BuildLog"
+}
+if (Select-String -LiteralPath $FunctionalNetlistLog -Pattern '^E:' -Quiet) {
+    throw "PDS functional-netlist log contains one or more error records: $FunctionalNetlistLog"
 }
 
 $TimingText = Get-Content -Raw -LiteralPath $TimingReport
@@ -187,6 +205,13 @@ if ([regex]::Matches(
         [regex]::Escape("INFO: PDS_RUN_COMPLETE=$RunId")
     ).Count -ne 1) {
     throw 'PDS build log run-id or completion marker does not match provenance manifest.'
+}
+$FunctionalLogText = Get-Content -Raw -LiteralPath $FunctionalNetlistLog
+if ([regex]::Matches(
+        $FunctionalLogText,
+        [regex]::Escape("INFO: PDS_RUN_ID=$RunId")
+    ).Count -ne 1) {
+    throw 'PDS functional-netlist log run-id does not match provenance manifest.'
 }
 if ($BuildText -notmatch '(?im)-device\s+PG2L50H') {
     throw 'PDS build log does not record set_arch device PG2L50H.'

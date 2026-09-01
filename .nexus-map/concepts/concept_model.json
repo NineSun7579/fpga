@@ -12,7 +12,7 @@
       "implementation_status": "documented",
       "code_path": null,
       "evidence_path": "README.md",
-      "evidence_gap": "Questa Sim-64 2021.1、Logos2 USIM/VSIM、V_BUF、PCIe S2-A 受控 smoke 与 S2-B 真实 RC/EP 链路当前动态复验已通过；S2-C、三个项目后级仿真以及 OV5640 C0/C1/C2/C3/S3 尚未完成，OV7725 只作 legacy。",
+      "evidence_gap": "PCIe S2-E PNR 后功能已动态通过，但覆盖仅限无 SDF PNR 功能网表展开、reset debounce/sync 与 reference-clock LED counter；PCIe link/DMA、SDF timing、H2-B1、实板、发布以及 DDR3/OV5640 套件仍未完成。",
       "s0_environment_review": {
         "date": "2026-09-01",
         "historical_review_date": "2026-08-30",
@@ -44,7 +44,7 @@
           "vsim_library_nonempty": true
         },
         "minimal_post_primitive_smoke": {"library": "VSIM", "primitive": "V_BUF", "library_load_verified": true, "runtime_ns": 2, "errors": 0, "warnings": 0, "test_pass_count": 1},
-        "next_step": "execute S2-C DMA without expanding the S2-B coverage claim; then execute project-specific post-synthesis, post-PNR functional and SDF timing simulations"
+        "next_step": "continue SDF timing and S2-C DMA without expanding the S2-E functional-smoke coverage claim"
       },
       "ci_0_repository_consistency": {
         "date": "2026-08-30",
@@ -716,7 +716,7 @@
         "hdl_count": 37,
         "canonical_input_count": 43,
         "build_scoped_questa_launcher": {"location": "pcie_dma_test_100h/scripts/run.ps1", "canonical_input": true, "change_requires_full_build_evidence_rebind": true},
-        "artifact_count": 7,
+        "artifact_count": 9,
         "manifest": "pcie_dma_test_100h/build/provenance/pds-build.json",
         "run_id": "32-character lowercase hexadecimal",
         "states": ["running", "partial", "failed", "complete"],
@@ -726,16 +726,16 @@
         "final_results": {"full_build": 0, "baseline_gate": 0, "strict_gate": 1, "worst_slack_ns": 0.1, "h2b0_unique_signatures": 16, "h2b0_raw_occurrences": 42},
         "strict_release_blockers": ["UART RX tied low", "unconstrained top-level I/O", "PCIe serial I/O", "share pin", "SCBV"],
         "latest_verified_run": {
-          "run_id": "dde6ee70b2c84d2da4ee2256d8a5c127",
+          "run_id": "9952da4164f040d5924a558baa5cd8ca",
           "run_to": "gen_bit_stream",
           "status": "complete",
           "valid": true,
           "input_count": 43,
-          "artifact_count": 7,
+          "artifact_count": 9,
           "baseline_gate_exit_code": 0,
           "strict_gate_exit_code": 1,
-          "worst_slack_ns": 0.1,
-          "launcher_input_rebound": true,
+          "functional_netlist_without_sdf": true,
+          "timing_sdf_bitstream_artifacts_present": true,
           "interpretation": "current inputs reproduce the approved non-release baseline; baseline exit 0 is not release-ready and all five strict release blockers remain"
         },
         "ci8b_boundary": "DDR3 and OV7725 migrate only after their own PG2L50H canonical promotion; audit each source list and artifact layout independently before considering shared modules."
@@ -801,6 +801,19 @@
         "dynamic_result": {"simulator": "Questa Sim-64 2021.1", "run_id": "30bad6e164be4a4b8284a00f1e96bd87", "compilation_succeeded": true, "elaboration_succeeded": true, "rc_ep_reached_l0": true, "stability_window_cycles": 32, "stability_window_passed": true, "link_up_marker_count": 1, "test_pass_count": 1, "errors": 0, "warnings": 26, "powershell_exit_code": 0},
         "coverage_boundary": ["no DMA proof", "no RK3568 hardware proof", "no negotiated x2 or 5.0 GT/s proof", "no electrical proof", "no post-netlist proof"]
       },
+      "post_pnr_functional_smoke": {
+        "status": "dynamic_passed_limited_no_sdf",
+        "definition_root": "pcie_dma_test_100h/sim/questa",
+        "filelist": "pcie_dma_test_100h/sim/questa/post_pnr_func.f",
+        "run_do": "pcie_dma_test_100h/sim/questa/run_post_pnr_func.do",
+        "testbench": "pcie_dma_test_100h/sim/questa/tb/tb_pcie_dma_post_pnr_func.sv",
+        "runtime_outputs_root": "pcie_dma_test_100h/build",
+        "pds_run": {"run_id": "9952da4164f040d5924a558baa5cd8ca", "status": "complete", "valid": true, "input_count": 43, "artifact_count": 9, "functional_netlist_without_sdf": true, "timing_sdf_bitstream_artifacts_present": true, "baseline_gate_exit_code": 0, "strict_gate_exit_code": 1},
+        "dynamic_result": {"run_id": "927abae8ed7d40aeb5d6f706b3723e0a", "simulation_end_ns": 491965, "success_marker": "INFO: POST_PNR_FUNC_RESET_PATH_OK", "success_marker_count": 1, "test_pass_count": 1, "errors": 0, "warnings": 1, "suppressed_warnings": 80, "powershell_exit_code": 0, "dynamic_passed": true},
+        "historical_failed_attempts": [{"run_id": "e7e63e79454148048d2dcd00abdf29a7", "elaboration_succeeded": false, "failure": "D drive ENOSPC", "current_blocker": false}],
+        "covered": ["no-SDF post-PNR functional netlist elaboration", "reset debounce and synchronization", "reference-clock LED counter"],
+        "coverage_boundary": ["no PCIe link proof", "no DMA proof", "no SDF timing proof", "no H2-B1 closure", "no hardware proof", "no release proof"]
+      },
       "tech_stack": ["Verilog", "Pango Logos2", "PCIe x2", "DMA"],
       "related_reqs": ["H2-A read-only evidence", "H2-B board evidence", "IP regeneration", "UART 决策", "集成自检", "保持时序通过"],
       "complexity": "high",
@@ -817,7 +830,7 @@
         "TODO.md",
         "docs/SIMULATION_READINESS_MATRIX.md"
       ],
-      "evidence_gap": "Questa Sim-64 2021.1、Logos2 USIM/VSIM、V_BUF、S2-A 受控 smoke 与 S2-B 真实 RC/EP 链路当前动态复验已通过；DDR3 与 OV5640 可运行项目入口、S2-C 和三个项目完整四级套件仍缺失。",
+      "evidence_gap": "PCIe S2-E PNR 后功能已动态通过；DDR3 与 OV5640 可运行项目入口、S2-C 和 PCIe SDF timing 仍缺失。",
       "environment_prerequisite": "Questa Sim-64 2021.1 tools and libraries are verified; installation and license configuration remain repository-external inputs",
       "simlib_entry_status": "completed_usim_vsim_and_minimal_post_primitive_smoke",
       "readiness_matrix": {
@@ -844,7 +857,7 @@
         },
         "historical_dynamic_simulation_executed": true,
         "current_dynamic_revalidation_passed": true,
-        "common_blocker": "Project-specific post-synthesis, post-PNR functional and SDF timing simulation entrypoints and evidence remain pending",
+        "common_blocker": "PCIe S2-E post-PNR functional smoke passed with a no-SDF netlist; SDF timing, S2-C, DDR3 and OV5640 evidence remain pending",
         "acceptance_boundary": "Vendor examples under ipcore/, ip_core/ and ip_backup/ are reference assets only and do not count as project integration coverage.",
         "common_requirements": [
           "relative-path filelists and DO scripts",
@@ -889,11 +902,11 @@
           },
           "pcie_dma": {
             "suite": "S2",
-            "project_level_tb_count": 1,
+            "project_level_tb_count": 5,
             "controlled_boundary_model_count": 1,
-            "project_level_filelist_count": 2,
-            "project_level_do_count": 2,
-            "static_gate_count": 2,
+            "project_level_filelist_count": 5,
+            "project_level_do_count": 5,
+            "static_gate_count": 5,
             "static_gate_exit_code": 0,
             "root_consistency_gate_exit_code": 0,
             "historical_dynamic_simulation_executed": true,
@@ -902,6 +915,13 @@
             "s2b_current_static_gate_passed": true,
             "current_dynamic_revalidation": "run add7efa39f644384af9929e8a9366739 passed at 1476105 ns with exit code 0, zero errors/warnings and one TEST PASS",
             "s2b_current_dynamic_result": "run 30bad6e164be4a4b8284a00f1e96bd87 passed with successful compile/elaboration, one link-up marker, one TEST PASS, zero errors, 26 warnings and PowerShell exit 0",
+            "post_pnr_functional_assets": [
+              "pcie_dma_test_100h/sim/questa/post_pnr_func.f",
+              "pcie_dma_test_100h/sim/questa/run_post_pnr_func.do",
+              "pcie_dma_test_100h/sim/questa/tb/tb_pcie_dma_post_pnr_func.sv",
+              "pcie_dma_test_100h/scripts/check_post_pnr_func_sim.ps1"
+            ],
+            "post_pnr_functional_dynamic_result": "run 927abae8ed7d40aeb5d6f706b3723e0a passed at 491965 ns with one POST_PNR_FUNC_RESET_PATH_OK, one TEST PASS, zero errors, one warning, 80 suppressed warnings and PowerShell exit 0",
             "behavior_smoke_assets": [
               "pcie_dma_test_100h/tb/tb_pcie_dma_test.sv",
               "pcie_dma_test_100h/tb/pcie_test_smoke_model.sv",
@@ -936,7 +956,7 @@
               "compiled Logos2 VSIM for post-PNR simulation",
               "H2-B1 board/UART closure before release and later netlist acceptance"
             ],
-            "coverage_boundary": "S2-A covers top/reset/LED/unknown-state only; S2-B uses the real vendor RC/EP for LTSSM/link and S2-C covers DMA"
+            "coverage_boundary": "S2-E covers only no-SDF post-PNR functional-netlist elaboration, reset debounce/sync and the reference-clock LED counter; it does not cover link, DMA, SDF timing, H2-B1, hardware or release"
           }
         }
       },
@@ -1039,7 +1059,7 @@
       "source": "external-simulation-suite",
       "target": "pcie-dma-system",
       "type": "tests",
-      "description": "S2-A 当前受控 smoke、S2-B 真实 RC/EP 链路与 S2-A/S2-B 静态门禁通过；S2-A run add7efa39f644384af9929e8a9366739 于 1476105 ns 以 Errors 0、Warnings 0、唯一 TEST PASS、退出 0 通过；S2-B run 30bad6e164be4a4b8284a00f1e96bd87 输出唯一 link-up marker 与唯一 TEST PASS，Errors 0、Warnings 26、PowerShell 退出 0；S2-C 与后级仿真仍待完成。"
+      "description": "三个项目的可复现仿真工程分别保留在各自工程内独立 sim/questa，运行态只进入对应 build；PCIe PDS run 9952da4164f040d5924a558baa5cd8ca complete/valid，Questa run 927abae8ed7d40aeb5d6f706b3723e0a 在 491965 ns 动态通过。覆盖仅限无 SDF 网表展开、reset debounce/sync 与 reference-clock LED counter；link/DMA、SDF timing、H2-B1、实板与 release 仍未关闭。"
     },
     {
       "source": "vscs-commenting-standard",
