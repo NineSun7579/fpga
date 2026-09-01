@@ -65,7 +65,7 @@
 - [x] 完成三项目 S1/S2/S3 仿真就绪度盘点；矩阵见 [`docs/SIMULATION_READINESS_MATRIX.md`](docs/SIMULATION_READINESS_MATRIX.md)。DDR3 与摄像头 HDMI 仍缺项目级 TB、`.f`、`.do`；PCIe 已具备 S2-A/S2-B 项目入口，厂商示例仍不能直接作为集成验收。
 - [x] 验证 QuestaSim 版本、三项可执行文件和最小 SystemVerilog smoke；许可证可用性仅由本机临时环境确认，不记录或提交任何许可证配置值。
 - [x] 编译并验证 Logos2 VSIM；PNR 原语 `V_BUF` 已从共享库成功加载并完成最小动态 smoke。
-- [ ] S0-2-Q（2026-09-01 当前复验）：Questa `2021.1` 环境检查、S2-A/S2-B 静态门禁通过，但 S2-A 动态启动因外部许可证 checkout 失败而以退出码 4 阻断；恢复仓库外许可证后必须生成新的 `SIM_RUN_ID` 和唯一 `TEST PASS`。
+- [x] S0-2-Q（2026-09-01 当前复验）：仓库外许可证恢复后，Questa `2021.1` 以新 run id `966942334060436dba8444ae9155557c` 完成 S2-A；编译/elaboration/运行均成功，`Errors: 0, Warnings: 0`、唯一 `TEST PASS`、PowerShell 退出 0。仓库仍不记录许可证配置。
 - [ ] 完成三项目分级自检仿真。
 
 ### 当前执行队列（2026-09-01）
@@ -105,7 +105,7 @@
    - 已完成：Questa Sim-64 `2021.1` 三项可执行文件、外部许可证 checkout、最小 SystemVerilog smoke，以及 Logos2 USIM/VSIM 编译验证。
    - 保密边界：工具安装位置和许可证配置只通过运行参数或本机环境提供；许可证路径、服务器、feature、许可证内容和许可证文件均不得提交。
    - 验证证据：USIM/VSIM 各自编译退出码为 0、日志无 `^E:`、两个库目录均存在且非空；最小 SV smoke 与从 VSIM 加载 `V_BUF` 的原语 smoke 均为唯一 `TEST PASS`。
-   - 当前复验：三项工具和静态入口可用，但动态启动因仓库外许可证 checkout 失败返回 4；恢复后必须重跑，不能复用旧日志冒充本次结果。
+   - 当前复验：Questa 新 run id `966942334060436dba8444ae9155557c` 已完成 S2-A，编译与运行均为 0 errors/0 warnings、唯一 `TEST PASS`、退出码 0；安装和许可证配置继续作为仓库外输入，不复用旧日志冒充新结果。
    - 剩余边界：公共环境门禁完成不等于三个项目的后级网表、SDF 标注或板级功能通过；这些仍由 S1/S2/S3 分项目关闭。
 
 7. **H0/H1/H3：补齐其余板级事实（外部阻断）**
@@ -455,7 +455,7 @@ O2-D2 停止条件：控制相位或 `/5` generated clock 未被 PDS 唯一识�
 - [x] 编译 Logos2 VSIM 到 `build/simlib/`；编译日志无 `^E:`，库目录非空，`V_BUF` 原语可被 Questa 加载并完成最小 smoke。
 - [x] 将仿真器安装路径作为可覆盖外部参数，不写入工程源清单。
 - [x] 将许可证配置保持在仓库外部；禁止提交许可证绝对路径、服务器、feature、内容或许可证文件。
-- [ ] S0-2-Q：当前 S2-A 动态复验在 Questa 启动时因许可证 checkout 失败返回 4；恢复外部许可证后重跑，并以新 run marker、唯一 `TEST PASS`、`Errors: 0` 和 PowerShell 退出码 0 关闭。
+- [x] S0-2-Q：已以新 run marker `966942334060436dba8444ae9155557c` 重跑 S2-A，唯一 `TEST PASS`、`Errors: 0, Warnings: 0` 和 PowerShell 退出码 0 均满足。
 
 ### S1：DDR3 四级仿真
 
@@ -475,8 +475,9 @@ O2-D2 停止条件：控制相位或 `/5` generated clock 未被 PDS 唯一识�
 - [x] S2-A：新建 `tb_pcie_dma_test.sv` 和受控 `pcie_test` 边界模型，覆盖项目顶层展开、真实 reset helper、复位释放/中断、LED 域、未知态和 3 ms watchdog；model-controlled link 不作为真实链路证据。
 - [x] S2-A：新建相对路径 `sim/behav.f`、行为级 DO、`SIM_RUN_ID`/唯一 PASS 日志门禁和 `check_sim.ps1`；不修改厂商示例，契约见 [`S2A_BEHAVIOR_SMOKE.md`](pcie_dma_test_100h/doc/S2A_BEHAVIOR_SMOKE.md)。
 - [x] S2-A 历史动态：仅在仿真专用 `sim/behav.f` 中补入 `ips2l_pcie_apb_cross_v1_0.v`，保持由 IDF 管理的 canonical PDS 源清单不变；Questa `2021.1` 下 RTL 编译为 0 errors/0 warnings，elaboration 成功并运行到 `1476105 ns`，同一 run marker、唯一 `TEST PASS` 和 PowerShell 退出码 0 均通过。
-- [ ] S2-A 当前复验：静态 gate 通过；动态运行等待 S0-2-Q 恢复后生成新的 run id，旧 `fab4ccef3e2445abbd9d1cad1e66b2ab` 日志不得作为本次复验结果。
-- [ ] S2-A RTL hygiene：显式处理 `u_ips2l_pcie_dma` 输出 `o_trgt1_radm_pkt_halt`，关闭现存 2 条未连接端口 warning；该项不改变 S2-A 受控 smoke 已通过的结论。
+- [x] S2-A 当前复验：静态 gate 通过；Questa 新 run id `966942334060436dba8444ae9155557c` 编译 `0 errors/0 warnings`，运行到 `1476105 ns`，唯一 `TEST PASS`，PowerShell 退出 0。
+- [x] S2-A RTL hygiene：将 `u_ips2l_pcie_dma.o_trgt1_radm_pkt_halt` 贯通到活动 `pcie_test` wrapper 的 hard-IP RX halt 输入，关闭悬空端口和原 `3'b0` tie-off；静态 gate 锁定生成 wrapper 重生成覆盖风险。S2-A 只验证布线/壳层，真实高流量 backpressure 正确性仍依赖 S2-B/S2-C。
+- [x] S2-A RTL hygiene 实现回归：PDS run id `50b37eb3628e419592cecac02ff932bf` 完成 PG2L50H 七阶段，provenance=`complete/valid`，baseline/strict gate=`0/1`，最差 slack `0.100 ns`。原两条未连接端口 warning 消失；bit2 恒 0 仍产生 2 条寄存器优化/清理 warning，不得误写为端口悬空。
 - [x] S2-B 静态：以厂商 `pango_pcie_top_sim` 为 RC、项目真实 `pcie_dma_test` 为 EP，建立双库、参数化模型、双向 x2 lane、两端 link/LTSSM L0、32 周期稳定、6 ms watchdog 和唯一 PASS 合同；见 [`S2B_REAL_LINK.md`](pcie_dma_test_100h/doc/S2B_REAL_LINK.md)。
 - [ ] S2-B 动态：运行 `sim-link`，同一 `SIM_RUN_ID` 日志必须包含唯一 `INFO: S2B_REAL_LINK_UP` 和 `TEST PASS`；当前未生成真实 LTSSM/link-up 动态证据。
 - [ ] S2-C：S2-B 通过后增加一次地址、长度和数据固定的基础 DMA 写读回。

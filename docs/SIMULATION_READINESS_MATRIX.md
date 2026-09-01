@@ -6,7 +6,7 @@
 
 ## 结论
 
-DDR3 与摄像头 HDMI 当前仍没有面向项目集成顶层的仿真入口。现有摄像头资产属于 OV7725 legacy，产品目标已校正为 OV5640，必须先完成 C0/C1 再设计项目 TB。Questa Sim-64 `2021.1`、最小 SystemVerilog smoke、Logos2 USIM/VSIM 和 `V_BUF` 原语 smoke 均有历史通过证据，许可证配置保持在仓库外部。PCIe S2-A 历史动态已完成项目级受控行为 smoke：RTL 编译 0 errors/0 warnings，elaboration 成功，仿真运行到 `1476105 ns`，同一 run marker、唯一 `TEST PASS` 和 PowerShell 退出码 0 均通过；2026-09-01 当前复验的环境检查和 S2-A/S2-B 静态门禁通过，但动态启动因外部许可证 checkout 失败返回 4，必须在恢复后产生新 run id。S2-B 仍只有静态入口，三个项目的后级网表和 SDF 动态仿真仍待完成。
+DDR3 与摄像头 HDMI 当前仍没有面向项目集成顶层的仿真入口。现有摄像头资产属于 OV7725 legacy，产品目标已校正为 OV5640，必须先完成 C0/C1 再设计项目 TB。Questa Sim-64 `2021.1`、Logos2 USIM/VSIM 和 `V_BUF` 原语 smoke 已验证，许可证配置保持在仓库外部。PCIe S2-A 当前复验 run id `966942334060436dba8444ae9155557c` 的 RTL 编译为 `0 errors/0 warnings`，elaboration 成功，仿真运行到 `1476105 ns`，同一 run marker、唯一 `TEST PASS` 和 PowerShell 退出码 0 均通过。RX halt hygiene 后的 PG2L50H 完整 PDS run id `50b37eb3628e419592cecac02ff932bf` 也已完成；S2-B 仍只有静态入口，三个项目的后级网表和 SDF 动态仿真仍待完成。
 
 项目级仿真必须新增相对路径的 filelist、DO 脚本和自检 testbench；不得批量修改 `ipcore/`、`ip_core/`、`ip_backup/` 下的厂商生成文件，也不得把厂商示例顶层改名后冒充集成验证。
 
@@ -16,7 +16,7 @@ DDR3 与摄像头 HDMI 当前仍没有面向项目集成顶层的仿真入口。
 |---|---:|---:|---|---|---|
 | 摄像头 HDMI（OV5640 目标） | 无 | 无 | OV7725 legacy 的 DDR3、PLL、FIFO 示例 | 参考工程未导入、产品范围未冻结、无集成 TB | C0/C1、OV5640 输入契约和新项目边界 |
 | DDR3 | 无 | 无 | DDR3 `test_ddr`/memory model 示例 | 旧 TB 端口失配 | D3-A/B/C 项目自有 BIST/top |
-| PCIe DMA | S2-A 受控 TB；S2-B 真实 RC/EP TB | `behav.f/run_behav.do`；`link.f/run_link.do` | `pango_pcie_top` RC/EP 示例 | S2-B 动态、DMA、H2-B1；S2-A 有 2 条 RTL hygiene warning | 运行 S2-B 真实链路；再进入 S2-C DMA |
+| PCIe DMA | S2-A 受控 TB；S2-B 真实 RC/EP TB | `behav.f/run_behav.do`；`link.f/run_link.do` | `pango_pcie_top` RC/EP 示例 | S2-B 动态、DMA、H2-B1 | 运行 S2-B 真实链路；再进入 S2-C DMA |
 
 ## 摄像头 HDMI：OV7725 legacy 与 OV5640 目标
 
@@ -80,13 +80,13 @@ DDR3 与摄像头 HDMI 当前仍没有面向项目集成顶层的仿真入口。
 - S2-A 受控模型只验证项目顶层外壳、复位链和 LED 域；其 link indication 不是真实 LTSSM、TLP、DMA 或板级链路证据。
 - S2-B 已参数化厂商加密模型并以 `pango_pcie_top_sim` 为 RC；当前只完成静态合同，尚无动态 LTSSM/link-up 日志。S2-C 再增加基础 DMA 回读。
 - Questa `2021.1` 与 Logos2 USIM 已验证；S2-A 仅在仿真专用 `sim/behav.f` 中补入 `ipcore/pcie_test/rtl/ips2l_pcie_apb_cross_v1_0.v`，未修改由 IDF 管理的 canonical PDS 源清单。动态 smoke 的 RTL 编译为 0 errors/0 warnings，elaboration 成功并运行到 `1476105 ns`，同一 run marker、唯一 `TEST PASS` 和 PowerShell 退出码 0 均通过。
-- 当前复验确认 Questa 版本、三项工具、S2-A/S2-B 静态 gate 和现有 USIM/VSIM 目录；S2-A 动态启动被外部许可证 checkout 阻断并返回 4，恢复后必须生成新的 `SIM_RUN_ID`，不能复用历史 transcript。
-- S2-A 最终 2 条 warning 均来自 `u_ips2l_pcie_dma` 未连接输出 `o_trgt1_radm_pkt_halt`，作为独立 RTL hygiene TODO；受控 link indication 仍不证明真实 LTSSM、TLP、DMA 或板级链路。
+- 当前复验确认 Questa 版本、S2-A/S2-B 静态 gate 和现有 USIM/VSIM 目录；S2-A 以新 `SIM_RUN_ID` 动态通过，不复用历史 transcript。
+- S2-A RTL hygiene 已贯通 DMA `o_trgt1_radm_pkt_halt` 到 hard-IP RX halt 输入。Questa 为 `0 warnings`；PDS 原两条未连接端口 warning 消失，只保留 bit2 恒 0 的两条优化/清理 warning。受控 link indication 仍不证明真实 LTSSM、TLP、DMA 或板级链路。
 - 活动 PCIe IP、PDS 目标和新构建产物均与实际 PG2L50H 一致；lane/refclk/PERST#/SCBV 和 UART 决策继续由 H2-B1 阻断。
 
 ### TODO（S2）
 
-1. S2-A 静态与动态 smoke 已完成；后续独立关闭 `o_trgt1_radm_pkt_halt` 的 2 条未连接端口 warning，不扩大本级验证范围。
+1. S2-A 静态、动态 smoke 和 RX halt RTL hygiene 已完成；生成 wrapper 重生成后必须重跑接口 gate。
 2. S2-B 静态入口已完成；运行厂商 RC/项目 EP，覆盖真实 LTSSM/link-up、32 周期稳定窗口和 watchdog。
 3. S2-C 在真实链路上增加一次可预测 DMA 写读回；LTSSM、完成状态、数据和超时失败均 `$fatal`。
 4. 对应项目网表/SDF 锁定且 H2-B1 关闭后，完成综合后、PNR 功能和 PNR 时序仿真。

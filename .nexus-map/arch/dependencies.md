@@ -54,7 +54,7 @@ flowchart TD
   PCIeSources["pds_sources.f\n37 canonical HDL"] --> PCIeSmoke
   PCIeSmoke --> PCIeStaticGate["check_sim.ps1\n静态契约 gate=0"]
   SharedUSIM["仓库根 build/simlib/usim\nLogos2 USIM"] --> PCIeSmoke
-  PCIeSmoke -. "当前许可证 checkout 失败，退出 4" .-> Questa
+  PCIeSmoke -. "当前 run 966942...：退出 0，唯一 PASS" .-> Questa
   PCIeRealLink["S2-B\n真实厂商 RC/EP"] --> PCIeDMAReadback["S2-C\n基础 DMA 回读"]
   PCIeTop --> PCIeRealLink
 
@@ -70,7 +70,7 @@ flowchart TD
 
 - 用户确认三个产品方向共用 `RK3568+PG2L50H100H` 开发板，实际 FPGA 为 `PG2L50H-6IFBG484`；摄像头产品目标已校正为 OV5640，`41_ov7725_hdmi` 仅作 OV7725 legacy。统一有效 PDS 目标为 `Logos2 / PG2L50H / FBG484 / -6`，旧 PG2L100H 产物不得用于实板。
 - 厂商 `.idf`、生成 RTL 和 PDS 仿真库属于外部生成依赖，不应被误当作独立手写逻辑。
-- PCIe S2-A 的 `sim/behav.f` 依赖 37 个实现侧 canonical HDL、仿真专用补充源、DMA RAM init include、reset helper、项目 TB 与受控边界模型。历史动态 smoke 已通过同一 run-id 和唯一 `TEST PASS`；当前 S2-A/S2-B 静态门禁通过，但动态复验因仓库外许可证 checkout 失败返回 4，未产生新 PASS。
+- PCIe S2-A 的 `sim/behav.f` 依赖 37 个实现侧 canonical HDL、仿真专用补充源、DMA RAM init include、reset helper、项目 TB 与受控边界模型。当前 Questa run `966942334060436dba8444ae9155557c` 以唯一 `TEST PASS` 通过（0 errors/0 warnings、退出 0）；S2-A/S2-B 静态门禁通过。
 - 每次 S2-A 动态运行按 `SIM_RUN_ID` 创建独立 `build/sim/behav/<run_id>/work`，避免上一次编译的 work library 被误用；日志身份、work 隔离和公共 USIM 是三个不同依赖，均不能由单独一个 `TEST PASS` 替代。
 - S2-A 的受控 link indication 只驱动顶层复位、LED 和未知态检查，不能替代 S2-B 的真实厂商 RC/EP、LTSSM/TLP，也不能替代 S2-C 的 DMA 数据回读。`SIM_RUN_ID` 与唯一 `TEST PASS` 只绑定一次仿真日志，不扩张覆盖范围。
 - OV7725 O0-A 已识别 `sys_clk`、`i2c_dri_clk`、`cam_pclk`、`pixel_clk`、`pixel_clk_5x`、`clk_50m/ref_clk` 和 `ui_clk`；证据入口为 `41_ov7725_hdmi/doc/CDC_RDC_AUDIT.md`。
@@ -96,9 +96,9 @@ flowchart TD
 - D3-0 旧接口结论只能作为 PG2L50H 重生成后的比对基准；若接口语义、地址单位、端口或 `I_ips_ddr_top` 层级变化，停止并重新更新 D3-0-R/CI-6，审核前不得新增 D3-A/B/C RTL。
 - 有限自检契约固定 16 个单 beat 写读比较 pair，地址 `0x0..0x78`、步长 8，pair/run timeout 分别为 4096/131072 周期；签核依赖稳定的 `test_done`、`test_failed`、`failure_code`、`error_count`、`completed_pairs` 和首错信息，而不是厂商 LED 或内部层级。
 - 新项目自有 DDR3 RTL 依赖根目录 VSCS；厂商 `ip_core/ddr3/**` 仍作为外部生成依赖，不因 D2 决策被改写。
-- 当前执行队列为：PCIe 维持 50H baseline并恢复当前动态复验；DDR3 重生成 50H IP/FDC/RCF并重审 D3-A；摄像头按 OV5640 C0/C1 冻结范围后进入 C2/C3，最后执行 S3。OV7725 O2/M3 只作 legacy 参考，不再作为产品必经链。
+- 当前执行队列为：PCIe 维持 50H baseline并推进 S2-B/S2-C 与后级仿真；DDR3 重生成 50H IP/FDC/RCF并重审 D3-A；摄像头按 OV5640 C0/C1 冻结范围后进入 C2/C3，最后执行 S3。OV7725 O2/M3 只作 legacy 参考，不再作为产品必经链。
 - `docs/SIMULATION_READINESS_MATRIX.md` 已确认三个项目的项目级 TB、`.f`、`.do` 均缺失；厂商示例不形成产品顶层覆盖。S1 还依赖 PG2L50H DDR3 IP契约、D3-A/B/C 与 D4，S2 依赖 H2-B/PG2L50H 产物一致性，S3 依赖 PG2L50H 新 baseline、输入格式契约与 O2-D2/O3 RTL 锁定。
-- PCIe 顶层依赖专用 HSST/IP 约束；UART2APB 是否保留是后续 RTL 与 FDC 的共同决策点。
+- PCIe 顶层依赖专用 HSST/IP 约束；`o_trgt1_radm_pkt_halt[2:0]` 接口分别对应 posted、non-posted 与 completion/CPLD halt，当前 bit0/bit1 有效、bit2 源端恒为 0，三位接口路径已由项目顶层贯通活动 `pcie_test` wrapper 至 hard-IP；UART2APB 是否保留是后续 RTL 与 FDC 的共同决策点。
 - PCIe H2-A（2026-08-30）固定顶层 x2 `rxn/rxp/txn/txp`、差分 `ref_clk_p/n`、`perst_n`/`button_rst_n` 与两枚 LED；FDC 当前映射 refclk `F6/E6`、PERST# `M16`、button reset `M15`、LED `M17/J16`。
 - 活动 PCIe `pcie_test.idf` 已正确匹配 `Logos2/PG2L50H/FBG484/-6`，无需仅为器件型号重生成；必须修正的是 PG2L100H build/PDS/gate并清除旧 `build/` 后重建。lane 极性、板级拓扑、I/O delay 和 SCBV 仍是独立缺口。
 - UART2APB 在 `pcie_dma_test.v` 以隐式 `rxd/txd` 网络连接，当前 `rxd` 被绑 0；H2-A 只记录该功能缺口，H2-B 需先决定端口归属和板级连接。

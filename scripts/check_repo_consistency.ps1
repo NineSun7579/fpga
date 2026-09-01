@@ -751,7 +751,8 @@ if ($PcieS2aDocExists) {
             'PCIe S2-B real-link boundary' = 'S2-B'
             'PCIe S2-C DMA boundary' = 'S2-C'
             'PCIe S2-A Questa version evidence' = 'Questa Sim-64\s+`2021\.1`'
-            'PCIe S2-A dynamic run evidence' = 'fab4ccef3e2445abbd9d1cad1e66b2ab'
+            'PCIe S2-A current dynamic run evidence' =
+                '966942334060436dba8444ae9155557c'
             'PCIe S2-A dynamic PASS evidence' = '`TEST PASS`'
         }).GetEnumerator()) {
         Require-Pattern -Text $PcieS2aDocText -Pattern $Required.Value `

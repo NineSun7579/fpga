@@ -55,6 +55,10 @@ module pcie_test
     output  wire                    axis_master_tlast   ,
     output  wire    [7:0]           axis_master_tuser   ,
 
+    // Project DMA backpressure for posted, non-posted, and completion TLPs.
+    // IP regeneration must preserve this integration port instead of tying it low.
+    input           [2:0]           trgt1_radm_pkt_halt ,
+
     //axis slave 0 interface
     output  wire                    axis_slave0_tready  ,
     input                           axis_slave0_tvalid  ,
@@ -354,10 +358,7 @@ assign app_req_retry_en     = 1'b0;
 
 
 //Rcv_Queue_Manage
-wire  [2:0]            trgt1_radm_pkt_halt ;
 wire  [5:0]            radm_grant_tlp_type ;
-
-assign trgt1_radm_pkt_halt = 3'b0;
 
 //legacy interrupt
 wire                  cfg_int_disable     ;

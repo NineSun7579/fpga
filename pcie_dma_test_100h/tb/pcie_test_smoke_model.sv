@@ -50,6 +50,7 @@ module pcie_test (
     output wire [3:0]   axis_master_tkeep,
     output wire         axis_master_tlast,
     output wire [7:0]   axis_master_tuser,
+    input  wire [2:0]   trgt1_radm_pkt_halt,
     output wire         axis_slave0_tready,
     input  wire         axis_slave0_tvalid,
     input  wire [127:0] axis_slave0_tdata,

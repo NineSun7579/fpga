@@ -9,7 +9,7 @@
 - implementation_status: documented
 - code_path: null
 - evidence_path: `README.md`, `TODO.md`, `docs/SIMULATION_READINESS_MATRIX.md`, `scripts/check_repo_consistency.ps1`, `scripts/compile_simlib.tcl`, `scripts/compile_simlib.ps1`
-- evidence_gap: Questa Sim-64 2021.1 工具、Logos2 USIM/VSIM、最小 `V_BUF` 和 PCIe S2-A 历史受控 smoke 均有通过证据；当前 S2-A/S2-B 静态门禁通过，但动态复验因仓库外许可证 checkout 失败返回 4，未产生新 PASS。摄像头产品目标为 OV5640，C0/C1/C2/C3/S3 尚未完成；OV7725 只作 legacy。
+- evidence_gap: Questa Sim-64 2021.1 工具、Logos2 USIM/VSIM、最小 `V_BUF` 和 PCIe S2-A 当前受控 smoke 均有通过证据；S2-A/S2-B 静态门禁通过，S2-A 当前动态复验已通过。摄像头产品目标为 OV5640，C0/C1/C2/C3/S3 尚未完成；OV7725 只作 legacy。
 - responsibility: 定义 PDS 2022.2-SP6.4 的实现流程、ModelSim/QuestaSim 四级仿真流程及三工程整改门槛。
 - s0_environment_review: `2026-09-01`；Questa Sim-64 2021.1 最小 SystemVerilog已通过，PDS SP6.4 Logos2 USIM/VSIM 均已成功编译。
 - s0_0_status: historical_environment_review_superseded_by_actual_questa_execution
@@ -52,7 +52,7 @@
 - ci_8a_inputs: `scripts/pds_sources.f` 是 37 个 HDL 的单一有序清单；与 `run.ps1`、`build.tcl`、`build_provenance.ps1`、活动 IDF/FDC 等合计形成 43 项 canonical 输入。
 - ci_8a_manifest: 每次 build 以 32 位小写十六进制 `run_id` 原子替换固定 `build/provenance/pds-build.json`；状态为 `running/partial/failed/complete`，只有 `complete` 且 `valid=true` 可进入最终 gate。
 - ci_8a_binding: 43 项输入与 full log、timing report、PNR 网表、slow SDF、`.sbit`、`.bin`、`bgr.db` 七项最终证据均绑定相对 POSIX path、length、SHA-256；日志中的唯一开始/完成标志必须与 manifest run_id 一致。
-- ci_8a_result: partial compile、PDS executable 缺失、run-id 漂移、产物漂移和 FDC 输入漂移均 gate=1；最新完整 PG2L50H run `c24bc06b5d0643eeb6c9cb2878e7ace5` 为 `gen_bit_stream/complete/valid=true`，绑定 43 inputs/7 artifacts，full build=0、baseline=0、strict=1、slack=`0.100 ns`，H2-B0 16/42 多重集不变。baseline 可复现不解除发布阻断。
+- ci_8a_result: partial compile、PDS executable 缺失、run-id 漂移、产物漂移和 FDC 输入漂移均 gate=1；最新完整 PG2L50H run `50b37eb3628e419592cecac02ff932bf` 为 `gen_bit_stream/complete/valid=true`，绑定 43 inputs/7 artifacts，full build=0、baseline=0、strict=1、slack=`0.100 ns`，H2-B0 16/42 多重集不变。原两条未连接端口 warning 已消失，仅保留 bit2 恒 0 的两条优化/清理 warning；baseline 可复现不解除发布阻断。
 - ci_8b_boundary: DDR3 与 OV7725 仅在各自 PG2L50H canonical IP/约束和最终构建入口升格后迁移 provenance；先按项目真实源清单/产物布局独立实现，不抽公共模块。
 - ci_9_status: 2026-09-01 implemented_and_verified_sensitive_diff_gate
 - ci_9_entry: `scripts/check_sensitive_diff.ps1`；契约文档为 `docs/SENSITIVE_DIFF_GATE.md`，并由 `scripts/check_repo_consistency.ps1` 调用规则自检、`-FullTree` 当前树扫描和 PR merge-base 差异扫描。
@@ -63,10 +63,10 @@
 - hardware_target_decision: 用户于 2026-08-30 确认三个项目共用 `RK3568+PG2L50H100H` 开发板，实际 FPGA 为 `PG2L50H-6IFBG484`；统一 PDS 目标为 `Logos2 / PG2L50H / FBG484 / -6`。
 - legacy_100h_boundary: 全部 PG2L100H PDS/STA/网表/位流仅保留为历史证据，不得烧录或作为实板验收；三个项目必须分别建立 PG2L50H 新 baseline。
 - ci_0_boundary: 仅为仓库结构与文档静态一致性门禁，不启动或替代 PDS 构建、STA、项目严格 gate 或四级仿真。
-- simulation_readiness_status: Questa 2021.1 tools and Logos2 USIM/VSIM verified historically; PCIe S2-A historical controlled smoke PASS retained; current S2-A/S2-B static gates pass but dynamic revalidation exits 4 on external license checkout; DDR3 and OV5640 project suites remain pending
+- simulation_readiness_status: Questa 2021.1 tools and Logos2 USIM/VSIM verified; PCIe S2-A current controlled smoke PASS; current S2-A/S2-B static gates pass; DDR3 and OV5640 project suites remain pending
 - simulation_asset_boundary: `ipcore/`、`ip_core/`、`ip_backup/` 内的 DDR3、PLL、FIFO 和 PCIe RC/EP testbench/filelist/DO 均为厂商示例，只能作为模型与接口参考；不得改名或直接计入 `ov7725_hdmi`、`ddr3_bringup_top` 或 `pcie_dma_test` 的集成覆盖。
-- simulation_common_gap: PCIe S2-A 保留项目自有 TB、相对路径 filelist/DO 与历史唯一 `TEST PASS`；当前动态复验未产生新 PASS。DDR3/S1 与 OV5640/S3 仍缺项目级入口，PCIe S2-B 动态/S2-C 及三项目后级网表/SDF 仿真仍未完成。
-- next_step: 恢复仓库外许可证后以新 run id 复验 S2-A，再进入 S2-B 动态和 S2-C；摄像头产品按 C0/C1/C2/C3/S3 推进 OV5640，不延续 OV7725 产品主线。
+- simulation_common_gap: PCIe S2-A 保留项目自有 TB、相对路径 filelist/DO 与当前唯一 `TEST PASS`；其受控模型不覆盖真实 RC/EP。DDR3/S1 与 OV5640/S3 仍缺项目级入口，PCIe S2-B 动态/S2-C 及三项目后级网表/SDF 仿真仍未完成。
+- next_step: 在五类 strict 阻断仍受控的前提下进入 S2-B 真实 RC/EP 动态，再执行 S2-C DMA；摄像头产品按 C0/C1/C2/C3/S3 推进 OV5640，不延续 OV7725 产品主线。
 - s0_0_recheck: 2026-08-30 的未发现仿真器结论已被 2026-09-01 的实际 Questa 执行、USIM 编译与 PCIe S2-A 动态 PASS 取代。
 
 ## Verilog/SystemVerilog 注释规范
@@ -184,7 +184,7 @@
 - project_path: `pcie_dma_test_100h/pcie_dma_test.pds`
 - constraint_path: `pcie_dma_test_100h/fdc/pcie_dma_test.fdc`
 - evidence_path: `pcie_dma_test_100h/place_route/pcie_dma_test_timing_summary_after_hold_fix.txt`
-- evidence_gap: 活动 `pcie_test.idf`、build/PDS/gate 与产物已统一为 PG2L50H；S2-A 保留历史动态 PASS，当前 S2-A/S2-B 静态门禁通过。当前动态复验因仓库外许可证 checkout 失败返回 4，未产生新 PASS；真实 RC/EP、DMA、板级证据和后级网表/SDF 仍缺失。
+- evidence_gap: 活动 `pcie_test.idf`、build/PDS/gate 与产物已统一为 PG2L50H；S2-A 当前动态 PASS，S2-A/S2-B 静态门禁通过。`o_trgt1_radm_pkt_halt[2:0]` 已由项目顶层贯通活动 `pcie_test` wrapper 至 hard-IP，wrapper 原 3'b0 tie-off 已删除并由静态 gate 锁定；真实 RC/EP、DMA、板级证据和后级网表/SDF 仍缺失。
 - responsibility: 集成 PCIe x2 IP、DMA、RAM/FIFO 与 UART2APB 管理路径。
 - build_entry: `pcie_dma_test_100h/scripts/run.ps1`
 - build_definition: `pcie_dma_test_100h/scripts/build.tcl`
@@ -194,15 +194,16 @@
 - h2a_constraint_gaps: FDC 未提供 lane 极性、板级拓扑、I/O delay 或 SCBV；`pcie_test.idf` metadata、build/PDS/gate 与新产物已与实物目标 `Logos2 / PG2L50H / FBG484 / -6` 一致，HSSTLP 资源为 PDS 模板指定的 `HSSTLP_292_612`。
 - h2a_uart_gap: UART2APB 使用隐式 `rxd/txd` 网络，当前 `rxd` 被绑 0；该功能缺口不因 PDS/STA 成功而关闭。
 - h2a_boundary: 器件型号已获用户审核；活动 PCIe IDF 不需仅因型号重生成。M1 已修改项目自有 build/gate，并依据 PDS 模板迁移 HSSTLP 资源后重建生成物；RTL/FDC 其余内容仍受 UART 与板级证据审核约束。
-- s2a_status: historical_controlled_dynamic_smoke_pass_retained; current_static_gate_passed; current_dynamic_revalidation_blocked_external_license_checkout_exit_4; no_new_test_pass
+- s2a_status: current_controlled_dynamic_smoke_passed; current_static_gate_passed; current_run_id_966942334060436dba8444ae9155557c; exit_0; errors_0; warnings_0; unique_test_pass
 - s2a_assets: `tb/tb_pcie_dma_test.sv` 实例化真实 `pcie_dma_test`，全局复位实例名为厂商要求的 `GRS_INST`；`tb/pcie_test_smoke_model.sv` 只替代生成 PCIe IP 边界，两个时序过程恰好使用两个 `always_ff`；`sim/behav.f` 复用 `scripts/pds_sources.f` 的 37 个 canonical HDL，并单独补入仿真所需 `ipcore/pcie_test/rtl/ips2l_pcie_apb_cross_v1_0.v`。`scripts/pds_sources.f` 不修改，因为该源在实现侧由 IDF 管理。
 - s2a_log_contract: 每次动态运行使用随机 32 位小写十六进制 `SIM_RUN_ID`；DO 通过 `echo` 将 marker 写入 transcript，并为本次运行创建独立 work。PowerShell 只接受同一 run id marker 恰好一次且 `TEST PASS` 恰好一次，任一失败由 `$fatal` 或非零退出传播。
 - s2a_reset_contract: button reset 只拥有 PCIe core/pclk 域；TB 在断言后先确认 ref counter 没有被清零，再跨额外 8 个 refclk 周期确认 link 撤销期间严格保持原值。随后 button reset 完整重新释放并恢复 model link，PERST# 才单独断言以复位两组 LED 域，再独立释放并重新通过 debounce/link 检查。
 - s2a_coverage_boundary: 只覆盖产品顶层展开、外部/同步复位、上述 reset ownership、两组 LED 计数门控及 TX/LED 未知态；受控 `smlh_link_up/rdlh_link_up` 只是激励，不证明 LTSSM、TLP、DMA、x2 lane、电气 refclk/PERST# 或 RK3568 Root Complex。
-- s2a_dynamic_result: Questa Sim-64 2021.1；`vlog` 0 errors/0 warnings；`vsim` elaboration 成功并运行到 `1476105 ns`；Errors 0/Warnings 2；唯一 `TEST PASS`；PowerShell 同 run-id/唯一 PASS 门禁通过。
-- s2a_current_revalidation: 当前版本静态 gate 通过；Questa 动态启动因仓库外许可证 checkout 失败返回 4，未产生新的 run marker 或 `TEST PASS`，历史日志不得复用为当前结果。
+- s2a_dynamic_result: Questa Sim-64 2021.1 当前 run `966942334060436dba8444ae9155557c`；运行至 `1476105 ns`；0 errors/0 warnings；唯一 `TEST PASS`；退出码 0；PowerShell 同 run-id/唯一 PASS 门禁通过。
+- s2a_current_revalidation: 当前版本 S2-A/S2-B 静态 gate 通过，S2-A 动态复验已通过；该受控模型仍不证明真实 RC/EP 链路、TLP 或 DMA。
 - s2b_static_status: 厂商 RC/项目 EP 双库、双向 x2 lane、双端 link/LTSSM L0、32 周期稳定、6 ms watchdog 和唯一 PASS 静态契约门禁通过；动态真实链路证据尚未生成。
-- s2a_warning_todo: 两条 warning 均为 `pcie_dma_test.v` 中 `u_ips2l_pcie_dma` 缺少输出 `o_trgt1_radm_pkt_halt` 连接；作为独立 RTL hygiene TODO，不影响本层受控 smoke PASS。
+- s2a_rx_halt_contract: `o_trgt1_radm_pkt_halt[2:0]` 接口分别对应 posted、non-posted 与 completion/CPLD halt；当前 bit0/bit1 有效、bit2 源端恒为 0，三位接口路径已由项目顶层贯通活动 `pcie_test` wrapper 至 hard-IP。wrapper 原 3'b0 tie-off 已删除；生成资产重生成会覆盖该修正，静态 gate 检测该已知接口漂移并要求重新审核。
+- s2a_warning_status: 原两条未连接端口 warning 已消失；PDS 仍保留 bit2 恒 0 引起的两条优化/清理 warning，不影响 S2-A 受控 smoke。
 - s2_next_layers: S2-B 使用厂商 `pango_pcie_top_sim` RC 与项目 `pcie_dma_test` EP 验证真实链路；S2-C 在 S2-B 后执行固定地址/长度/数据的基础 DMA 回读。S2-A 边界模型不得进入这两层或后级网表验收。
 - h2b_stop_conditions: 板级 lane 极性/拓扑、I/O delay 或 SCBV 缺失，IDF/PDS 器件元数据不一致，或 UART2APB `rxd/txd` 归属未决时，H2-B 不得收紧 gate；不得用 waiver 掩盖缺口。
-- next_step: 保持 H2-B1 strict gate 阻断并等待 lane/refclk/PERST#/SCBV 与 UART 决策；独立处理 `o_trgt1_radm_pkt_halt` RTL hygiene TODO，再进入真实 RC/EP 的 S2-B、S2-C DMA 与项目后级网表/SDF 仿真
+- next_step: 保持五类 strict gate 阻断（UART RX tied low、顶层 I/O 未约束、PCIe serial I/O、share pin、SCBV），先进入真实 RC/EP 的 S2-B，再执行 S2-C DMA 与项目后级网表/SDF 仿真

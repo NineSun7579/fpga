@@ -16,7 +16,7 @@
 - 已验证：S0-1 参数化入口 `scripts/compile_simlib.tcl` 与 `scripts/compile_simlib.ps1` 已提交；PowerShell AST 错误数为 0。入口支持 ModelSim/QuestaSim、USIM/VSIM/BOTH、family、语言、PDS/仿真器路径和输出目录覆盖，强制检查三项仿真器可执行文件，并检查 PDS 退出码、日志 `^E:` 与所选库目录。
 - 已验证：Questa Sim-64 2021.1 最小 SystemVerilog 通过；PDS SP6.4 Logos2 USIM/VSIM 均编译成功。VSIM 编译入口退出 0、日志无 `^E:`、`vsim` 目录非空。
 - 已验证：最小后级原语 smoke 从 VSIM 库加载 `V_BUF`，运行 `2 ns`，Errors 0/Warnings 0、唯一 `TEST PASS`。
-- 当前复验：S2-A/S2-B 静态门禁通过；S2-A 动态启动因仓库外许可证 checkout 失败返回 4，未产生新的 run marker 或 `TEST PASS`。历史 S2-A PASS 继续保留，但不得冒充当前复验。
+- 当前复验：S2-A/S2-B 静态门禁通过；S2-A 当前 Questa 复验已通过，run id 为 `966942334060436dba8444ae9155557c`，退出码 0。
 - 未验证：三个项目的综合后、PNR 功能、PNR 时序和 SDF 标注；公共 S0-1 完成不等于项目后级仿真通过。
 
 ## CI-0 仓库级静态一致性门禁（2026-08-30）
@@ -109,7 +109,7 @@
 - PCIe/S2：S2-A 已用项目级 `tb_pcie_dma_test` 实例化产品顶层，并以受控 `pcie_test` 边界动态验证顶层/复位/LED/未知态；现有 `pango_pcie_top` RC/EP testbench 仍不实例化产品顶层，只能在 S2-B 中作为真实 RC/编译顺序 oracle；S2-C 才验证 DMA。
 - 验收边界：`ipcore/`、`ip_core/`、`ip_backup/` 中的厂商示例只能作为参考证据，不能计入产品集成覆盖，也不能通过改名冒充项目自有 testbench。
 - 四级共同门槛：所有入口使用相对路径 filelist/DO 和项目自有集成 TB；必须具备超时、`$fatal`、唯一 `TEST PASS` 与可靠非零失败退出；PNR 时序仿真必须按实际 DUT 实例层级标注 SDF。
-- 公共状态：Questa Sim-64 2021.1 工具、Logos2 USIM/VSIM 与历史 smoke 有通过证据；当前 S2-A/S2-B 静态门禁通过，动态复验受仓库外许可证 checkout 阻断。DDR3/S1、OV5640/S3、PCIe S2-B 动态/S2-C 与三个项目后级仿真仍未完成。
+- 公共状态：Questa Sim-64 2021.1 工具、Logos2 USIM/VSIM 与 PCIe S2-A 当前 smoke 均有通过证据；当前 S2-A/S2-B 静态门禁通过。DDR3/S1、OV5640/S3、PCIe S2-B 动态/S2-C 与三个项目后级仿真仍未完成。
 
 ## PCIe S2-A 行为 smoke（2026-09-01，动态通过）
 
@@ -117,10 +117,10 @@
 - 已验证编码与自检边界：受控模型恰好包含两个 `always_ff` 时序过程，静态 gate 禁止普通 `always @` 回退。TB 覆盖 `button_rst_n`、`perst_n`、同步复位、LED 计数门控和 TX/LED 未知态；3 ms watchdog 或检查失败调用 `$fatal`，正向源只包含一次 `$display("TEST PASS")`。
 - 已验证 reset ownership：button reset 断言后，TB 先检查 ref counter 没有被 button reset 改写，再等待额外 8 个 refclk 周期并要求其在 model link 撤销期间严格保持；button reset 完整重新释放后，PERST# 再被单独断言、复位两组 LED 域并独立重新释放，不能由初次联合释放遮蔽 debounce 行为。
 - 已验证复位与日志契约：TB 全局复位实例使用厂商要求的 `GRS_INST`；`run_behav.do` 通过 `echo` 将随机 32 位小写十六进制 `SIM_RUN_ID` 写入 transcript，PowerShell 只接受同 run-id marker 与 `TEST PASS` 各恰好一次。
-- 动态结果：Questa Sim-64 2021.1 下 `vlog` 为 0 errors/0 warnings；`vsim` elaboration 成功并运行到 `1476105 ns`，Errors 0/Warnings 2、唯一 `TEST PASS`；PowerShell 同 run-id/唯一 PASS 门禁通过。
-- 当前复验结果：S2-A 静态 gate 与 S2-B 静态契约 gate 通过；S2-A 动态启动因仓库外许可证 checkout 失败返回 4，未产生新的 `TEST PASS`。上一条仅为历史 PASS，不代表当前复验通过。
-- 构建回归：当前 manifest run id `c24bc06b5d0643eeb6c9cb2878e7ace5` 为 `gen_bit_stream/complete/valid=true`，43 项输入和 7 项证据完整；baseline gate 再次返回 0，strict gate 仍因 UART RX tied low、未约束顶层 I/O、PCIe serial I/O、share pin 与 SCBV 返回 1。该结果只证明失败基线可复现。
-- warning TODO：两条 warning 均为 `pcie_dma_test.v` 中 `u_ips2l_pcie_dma` 缺少输出 `o_trgt1_radm_pkt_halt` 连接；作为后续独立 RTL hygiene TODO，不影响本层受控 smoke PASS。
+- 动态结果：Questa Sim-64 2021.1 当前 run id `966942334060436dba8444ae9155557c`，运行至 `1476105 ns`，0 errors/0 warnings、唯一 `TEST PASS`、退出码 0；PowerShell 同 run-id/唯一 PASS 门禁通过。
+- 当前复验结果：S2-A 静态 gate 与 S2-B 静态契约 gate 通过，S2-A 动态复验通过；受控模型仍不覆盖真实 RC/EP、LTSSM/TLP 或 DMA。
+- 构建回归：当前 PDS run id `50b37eb3628e419592cecac02ff932bf` 为 `gen_bit_stream/complete/valid=true`，43 项输入和 7 项证据完整；baseline gate 返回 0，strict gate 仍因 UART RX tied low、未约束顶层 I/O、PCIe serial I/O、share pin 与 SCBV 返回 1，最差 slack `0.100 ns`。原两条未连接端口 warning 已消失，仅保留 bit2 恒 0 引起的两条优化/清理 warning。
+- RX halt hygiene：`o_trgt1_radm_pkt_halt[2:0]` 接口分别对应 posted、non-posted 与 completion/CPLD halt；当前 bit0/bit1 有效、bit2 源端恒为 0，三位接口路径已由项目顶层贯通活动 `pcie_test` wrapper 至 hard-IP。wrapper 原 3'b0 tie-off 已删除；生成资产重生成会覆盖该修正，静态 gate 检测该已知接口漂移并要求重新审核。
 - 覆盖边界：受控模型的 `smlh_link_up/rdlh_link_up` 是激励，不验证真实 LTSSM、TLP、DMA、lane/P/N 极性、100 MHz refclk 电气、PERST# 板级时序或 RK3568 Root Complex。S2-B 必须使用真实厂商 RC/EP，S2-C 必须在其后验证 DMA。
 
 ## 已知功能与覆盖缺口
@@ -148,7 +148,7 @@
 - PCIe H2-A（只读证据矩阵）：顶层使用 x2 `rxn/rxp/txn/txp`、差分 `ref_clk_p/n`、`perst_n`、`button_rst_n` 与 `ref_led/pclk_led`；FDC 固定 refclk `F6/E6`、PERST# `M16`、button reset `M15`、LED `M17/J16`。当前没有 lane 极性/板级拓扑、I/O delay 或 SCBV 证据。
 - PCIe H2-A/M1 器件边界：活动 `pcie_test.idf`、build/PDS/gate、timing report 与 `bgr.db` 已统一匹配 `Logos2/PG2L50H/FBG484/-6`；UART2APB `rxd/txd`、SCBV、lane/refclk/PERST# 与 share pin 仍是独立功能/发布阻断。
 - 三项目新流程均已生成顶层 PNR SDF，但尚未由 QuestaSim 验证实例层级。
-- Questa Sim-64 2021.1、Logos2 USIM/VSIM、`V_BUF` 和 PCIe S2-A 保留历史通过证据；当前动态复验未通过许可证 checkout。不得将历史证据外推为当前运行、DDR3、OV5640、真实 PCIe 链路、DMA 或项目后级网表/SDF 通过。
+- Questa Sim-64 2021.1、Logos2 USIM/VSIM、`V_BUF` 和 PCIe S2-A 当前动态复验已通过。不得将该证据外推为 DDR3、OV5640、真实 PCIe 链路、DMA 或项目后级网表/SDF 通过。
 - PDS 可能在日志含 `E:` 时仍返回退出码 0；新 PowerShell 入口必须同时检查退出码和错误日志。
 - PCIe 位流阶段报告 SCBV 未配置，这是当前发布阻断项。
 
