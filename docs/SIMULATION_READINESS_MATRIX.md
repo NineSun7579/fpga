@@ -6,7 +6,7 @@
 
 ## 结论
 
-DDR3 与 OV7725 当前仍没有面向项目集成顶层的仿真入口。Questa Sim-64 `2021.1`、最小 SystemVerilog smoke、Logos2 USIM/VSIM 和 `V_BUF` 原语 smoke 均已验证，许可证配置保持在仓库外部。PCIe S2-A 已完成项目级受控行为 smoke：RTL 编译 0 errors/0 warnings，elaboration 成功，仿真运行到 `1476105 ns`，同一 run marker、唯一 `TEST PASS` 和 PowerShell 退出码 0 均通过；现存 2 条未连接输出 warning 转入独立 RTL hygiene TODO。S2-B 仍只有静态入口，三个项目的后级网表和 SDF 动态仿真仍待完成。
+DDR3 与摄像头 HDMI 当前仍没有面向项目集成顶层的仿真入口。现有摄像头资产属于 OV7725 legacy，产品目标已校正为 OV5640，必须先完成 C0/C1 再设计项目 TB。Questa Sim-64 `2021.1`、最小 SystemVerilog smoke、Logos2 USIM/VSIM 和 `V_BUF` 原语 smoke 均有历史通过证据，许可证配置保持在仓库外部。PCIe S2-A 历史动态已完成项目级受控行为 smoke：RTL 编译 0 errors/0 warnings，elaboration 成功，仿真运行到 `1476105 ns`，同一 run marker、唯一 `TEST PASS` 和 PowerShell 退出码 0 均通过；2026-09-01 当前复验的环境检查和 S2-A/S2-B 静态门禁通过，但动态启动因外部许可证 checkout 失败返回 4，必须在恢复后产生新 run id。S2-B 仍只有静态入口，三个项目的后级网表和 SDF 动态仿真仍待完成。
 
 项目级仿真必须新增相对路径的 filelist、DO 脚本和自检 testbench；不得批量修改 `ipcore/`、`ip_core/`、`ip_backup/` 下的厂商生成文件，也不得把厂商示例顶层改名后冒充集成验证。
 
@@ -14,15 +14,16 @@ DDR3 与 OV7725 当前仍没有面向项目集成顶层的仿真入口。Questa 
 
 | 项目 | 项目级 TB | 项目级 `.f/.do` | 厂商示例资产 | 当前最高阻断 | 进入动态仿真的前置 |
 |---|---:|---:|---|---|---|
-| OV7725 HDMI | 无 | 无 | DDR3、PLL、FIFO 示例 | 无摄像头/HDMI 集成 TB | 输入格式契约、O2-D2/O3 相关 RTL 锁定 |
+| 摄像头 HDMI（OV5640 目标） | 无 | 无 | OV7725 legacy 的 DDR3、PLL、FIFO 示例 | 参考工程未导入、产品范围未冻结、无集成 TB | C0/C1、OV5640 输入契约和新项目边界 |
 | DDR3 | 无 | 无 | DDR3 `test_ddr`/memory model 示例 | 旧 TB 端口失配 | D3-A/B/C 项目自有 BIST/top |
 | PCIe DMA | S2-A 受控 TB；S2-B 真实 RC/EP TB | `behav.f/run_behav.do`；`link.f/run_link.do` | `pango_pcie_top` RC/EP 示例 | S2-B 动态、DMA、H2-B1；S2-A 有 2 条 RTL hygiene warning | 运行 S2-B 真实链路；再进入 S2-C DMA |
 
-## OV7725 HDMI
+## 摄像头 HDMI：OV7725 legacy 与 OV5640 目标
 
 ### 已发现资产
 
-- 设计顶层为 `41_ov7725_hdmi/rtl/ov7725_hdmi.v`。
+- legacy 设计顶层为 `41_ov7725_hdmi/rtl/ov7725_hdmi.v`，不能改名冒充 OV5640。
+- owner 指定的 `59_top_dual_ov5640_hdmi` 参考工程尚未导入仓库，当前不能审核其源码和约束。
 - 活动 IP 示例位于 `41_ov7725_hdmi/prj/ipcore/ddr3_ip/example_design/bench/`，并配有 `sim/modelsim/sim_file_list.f` 与 `sim/modelsim/ctrl_phy_sim.tcl`。
 - `prj/ipcore/` 下还存在 PLL、FIFO 的厂商示例 testbench，但它们只验证单个 IP，不覆盖 `ov7725_hdmi` 集成数据通路。
 
@@ -31,14 +32,14 @@ DDR3 与 OV7725 当前仍没有面向项目集成顶层的仿真入口。Questa 
 - 没有项目级 `sim/`、`tb/`、行为级 DO 或门级 SDF 入口。
 - DDR3 示例 filelist 面向 `ddr3_test_top_tb`/`test_ddr`，不包含摄像头输入、帧缓存切换和 HDMI 输出检查。
 - `ctrl_phy_sim.tcl` 含历史绝对路径；不能在另一台 Windows 主机上直接复用。
-- 尚未定义可重复的 OV7725 RGB565 帧模型，也没有 `TEST PASS`、超时和 `$fatal` 退出契约。
+- 尚未冻结 OV5640 的单/双摄、模组接口、DVP 格式、分辨率和帧率，也没有项目级 `TEST PASS`、超时和 `$fatal` 退出契约。
 
 ### TODO（S3）
 
-1. 新建 `tb_ov7725_hdmi.sv` 与项目级 `sim/rtl.f`、`sim/tb.f`、四级 DO 脚本。
-2. 先覆盖复位、DDR 初始化延迟、帧写入/切换/读出、HDMI 有效区和 FIFO 边界。
-3. 为每个级别加入超时、错误计数、唯一 `TEST PASS` 和非零失败退出。
-4. O2-D2/O3/O4 锁定后再接入综合后、PNR 功能和 PNR 时序网表/SDF。
+1. 先按 [`OV5640_TARGET_SCOPE.md`](OV5640_TARGET_SCOPE.md) 完成 C0/C1，只读审计参考工程并冻结产品接口。
+2. 新建 OV5640 项目级 `tb_ov5640_hdmi.sv`、相对路径 filelist 和四级 DO；不得直接改名复用 OV7725 TB 计划。
+3. 覆盖读 ID/配置、复位、DDR 初始化延迟、帧写入/切换/读出、HDMI 有效区和 FIFO 边界。
+4. 为每个级别加入超时、错误计数、唯一 `TEST PASS` 和非零失败退出；C3 锁定后再接入综合网表、PNR 功能网表和 SDF。
 
 ## DDR3
 
@@ -79,6 +80,7 @@ DDR3 与 OV7725 当前仍没有面向项目集成顶层的仿真入口。Questa 
 - S2-A 受控模型只验证项目顶层外壳、复位链和 LED 域；其 link indication 不是真实 LTSSM、TLP、DMA 或板级链路证据。
 - S2-B 已参数化厂商加密模型并以 `pango_pcie_top_sim` 为 RC；当前只完成静态合同，尚无动态 LTSSM/link-up 日志。S2-C 再增加基础 DMA 回读。
 - Questa `2021.1` 与 Logos2 USIM 已验证；S2-A 仅在仿真专用 `sim/behav.f` 中补入 `ipcore/pcie_test/rtl/ips2l_pcie_apb_cross_v1_0.v`，未修改由 IDF 管理的 canonical PDS 源清单。动态 smoke 的 RTL 编译为 0 errors/0 warnings，elaboration 成功并运行到 `1476105 ns`，同一 run marker、唯一 `TEST PASS` 和 PowerShell 退出码 0 均通过。
+- 当前复验确认 Questa 版本、三项工具、S2-A/S2-B 静态 gate 和现有 USIM/VSIM 目录；S2-A 动态启动被外部许可证 checkout 阻断并返回 4，恢复后必须生成新的 `SIM_RUN_ID`，不能复用历史 transcript。
 - S2-A 最终 2 条 warning 均来自 `u_ips2l_pcie_dma` 未连接输出 `o_trgt1_radm_pkt_halt`，作为独立 RTL hygiene TODO；受控 link indication 仍不证明真实 LTSSM、TLP、DMA 或板级链路。
 - 活动 PCIe IP、PDS 目标和新构建产物均与实际 PG2L50H 一致；lane/refclk/PERST#/SCBV 和 UART 决策继续由 H2-B1 阻断。
 
@@ -106,7 +108,7 @@ DDR3 与 OV7725 当前仍没有面向项目集成顶层的仿真入口。Questa 
 S0-1 Questa、USIM、VSIM 已验证
         ├─ S1 DDR3：D3-A → D3-B → D3-C → D4
         ├─ S2 PCIe：S2-A 已完成 → S2-B 动态 → S2-C → 后级网表仿真
-        └─ S3 OV7725：输入格式确认 → O2-D2/O3 锁定 → 集成 TB → 四级仿真
+        └─ S3 OV5640：C0/C1 → 新项目边界 → 集成 TB → 四级仿真
 ```
 
 S0-1 完成只证明公共仿真器和 Pango 原语库可用，不替代任何项目级 `TEST PASS`、后级网表或 SDF 标注。厂商示例保留为参考证据；所有项目验收必须由项目自有顶层和自检 TB 完成。

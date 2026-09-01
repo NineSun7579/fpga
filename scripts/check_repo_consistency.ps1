@@ -24,6 +24,8 @@ if ([string]::IsNullOrWhiteSpace($PdsTclInventoryPath)) {
 $PdsTclGatePath = Join-Path $RepoRoot 'scripts\check_pds_tcl_entrypoints.ps1'
 $SensitiveDiffGatePath = Join-Path $RepoRoot 'scripts\check_sensitive_diff.ps1'
 $SensitiveDiffGateDocPath = Join-Path $RepoRoot 'docs\SENSITIVE_DIFF_GATE.md'
+$GitAttributesPath = Join-Path $RepoRoot '.gitattributes'
+$Ov5640ScopePath = Join-Path $RepoRoot 'docs\OV5640_TARGET_SCOPE.md'
 $PcieBaselineDocPath = Join-Path $RepoRoot `
     'pcie_dma_test_100h\doc\H2B_BASELINE_GATE.md'
 $PcieBaselineFingerprintPath = Join-Path $RepoRoot `
@@ -155,6 +157,28 @@ Require-File -Path (Join-Path $RepoRoot 'README.md') -Description 'root guide' |
 Require-File -Path (Join-Path $RepoRoot 'TODO.md') -Description 'root TODO' | Out-Null
 Require-File -Path (Join-Path $RepoRoot 'VERILOG_SYSTEMVERILOG_COMMENTING_STANDARD.md') `
     -Description 'Verilog/SystemVerilog commenting standard' | Out-Null
+$GitAttributesExists = Require-File -Path $GitAttributesPath `
+    -Description 'Git attributes'
+if ($GitAttributesExists) {
+    $GitAttributesText = Get-Content -Raw -Encoding UTF8 -LiteralPath $GitAttributesPath
+    Require-Pattern -Text $GitAttributesText -Pattern '(?m)^\*\.log\s+-diff\s*$' `
+        -Description 'historical log no-text-diff rule' | Out-Null
+}
+$Ov5640ScopeExists = Require-File -Path $Ov5640ScopePath `
+    -Description 'OV5640 target scope'
+if ($Ov5640ScopeExists) {
+    $Ov5640ScopeText = Get-Content -Raw -Encoding UTF8 -LiteralPath $Ov5640ScopePath
+    foreach ($Required in ([ordered]@{
+            'OV5640 product target' = 'OV5640'
+            'OV7725 legacy boundary' = 'OV7725.*(?:legacy|\u5386\u53f2)'
+            'approved FPGA target' = 'PG2L50H-6IFBG484'
+            'reference import boundary' = '59_top_dual_ov5640_hdmi'
+            'Questa validation requirement' = 'Questa.*2021\.1'
+        }).GetEnumerator()) {
+        Require-Pattern -Text $Ov5640ScopeText -Pattern $Required.Value `
+            -Description $Required.Key | Out-Null
+    }
+}
 
 $PdsTclInventoryDocExists = Require-File -Path $PdsTclInventoryDocPath `
     -Description 'PDS Tcl entrypoint inventory guide'
@@ -210,6 +234,10 @@ if ($SensitiveDiffGateExists) {
         & $SensitiveDiffGatePath -RepoRoot $RepoRoot -SelfTest
         if ($LASTEXITCODE -ne 0) {
             Add-Failure 'License sensitive diff gate self-test failed'
+        }
+        & $SensitiveDiffGatePath -RepoRoot $RepoRoot -FullTree
+        if ($LASTEXITCODE -ne 0) {
+            Add-Failure 'License sensitive full-tree gate failed'
         }
         & $SensitiveDiffGatePath -RepoRoot $RepoRoot `
             -BaseRef $SensitiveDiffBaseRef
@@ -344,8 +372,10 @@ $TodoPath = Join-Path $RepoRoot 'TODO.md'
 $MatrixExists = Require-File -Path $MatrixPath -Description 'simulation readiness matrix'
 if ($MatrixExists) {
     $MatrixText = Get-Content -Raw -Encoding UTF8 -LiteralPath $MatrixPath
-    Require-Pattern -Text $MatrixText -Pattern 'OV7725 HDMI' `
-        -Description 'simulation matrix OV7725 coverage' | Out-Null
+    Require-Pattern -Text $MatrixText -Pattern 'OV7725 legacy' `
+        -Description 'simulation matrix OV7725 legacy boundary' | Out-Null
+    Require-Pattern -Text $MatrixText -Pattern 'OV5640' `
+        -Description 'simulation matrix OV5640 target coverage' | Out-Null
     Require-Pattern -Text $MatrixText -Pattern 'DDR3' `
         -Description 'simulation matrix DDR3 coverage' | Out-Null
     Require-Pattern -Text $MatrixText -Pattern 'PCIe DMA' `
@@ -354,8 +384,8 @@ if ($MatrixExists) {
         -Description 'simulation matrix S1 DDR3 queue' | Out-Null
     Require-Pattern -Text $MatrixText -Pattern 'S2 PCIe' `
         -Description 'simulation matrix S2 PCIe queue' | Out-Null
-    Require-Pattern -Text $MatrixText -Pattern 'S3 OV7725' `
-        -Description 'simulation matrix S3 OV7725 queue' | Out-Null
+    Require-Pattern -Text $MatrixText -Pattern 'S3 OV5640' `
+        -Description 'simulation matrix S3 OV5640 queue' | Out-Null
 }
 
 if (Test-Path -LiteralPath $RootReadmePath -PathType Leaf) {
@@ -411,7 +441,8 @@ foreach ($Project in $Projects) {
             -Description "$($Project.Name) PDS version in README" | Out-Null
         Require-Pattern -Text $ReadmeText -Pattern $TopPattern `
             -Description "$($Project.Name) top module in README" | Out-Null
-        Require-Pattern -Text $ReadmeText -Pattern '(?i)仿真|ModelSim|QuestaSim' `
+        Require-Pattern -Text $ReadmeText `
+            -Pattern '(?i)ModelSim|Questa(?:Sim| Sim-64)|USIM|VSIM' `
             -Description "$($Project.Name) simulation status in README" | Out-Null
         $EvidenceLinkPattern = [regex]::Escape(($Project.BoardEvidence -replace '\\', '/'))
         Require-Pattern -Text $ReadmeText -Pattern $EvidenceLinkPattern `

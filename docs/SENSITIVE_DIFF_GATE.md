@@ -4,7 +4,7 @@
 
 ## 目标
 
-`scripts/check_sensitive_diff.ps1` 只检查相对 Git 基线新增的文件名和新增行，阻止新的 PDS、Questa 或 FlexNet 许可证配置进入提交。它不读取或打印本机许可证环境变量的实际值。
+`scripts/check_sensitive_diff.ps1` 提供两层检查：全量扫描当前 tracked/untracked 工作树，以及检查相对 Git 基线新增的文件名和新增行。它阻止 PDS、Questa 或 FlexNet 许可证配置进入当前版本或后续提交，不读取或打印本机许可证环境变量的实际值。
 
 门禁拒绝：
 
@@ -21,6 +21,7 @@
 从仓库根目录执行：
 
 ```powershell
+.\scripts\check_sensitive_diff.ps1 -FullTree
 .\scripts\check_sensitive_diff.ps1 -BaseRef origin/main
 ```
 
@@ -30,7 +31,7 @@
 .\scripts\check_sensitive_diff.ps1 -SelfTest
 ```
 
-仓库一致性门禁会自动运行规则自检，并以 `origin/main` 与 `HEAD` 的 merge-base 检查当前提交差异；未跟踪文本文件也会逐行检查。堆叠 PR 可显式传入其真实基线：
+仓库一致性门禁会自动运行规则自检、当前树全量扫描，并以 `origin/main` 与 `HEAD` 的 merge-base 检查当前提交差异；未跟踪文本文件也会逐行检查。堆叠 PR 可显式传入其真实基线：
 
 ```powershell
 .\scripts\check_repo_consistency.ps1 `
@@ -39,4 +40,6 @@
 
 ## 边界
 
-该门禁只阻止新增泄露，不会修改已有文件，也不会清除 Git 历史中的旧路径。历史清理必须作为独立安全批次审核；若需要重写历史和强推，必须先协调所有克隆与开放 PR。
+全量模式保证当前版本不再包含许可证敏感路径或内容，差异模式阻止后续重新引入。门禁不会清除 Git 历史中的旧路径；历史清理必须作为独立安全批次审核，若需要重写历史和强推，必须先协调所有克隆与开放 PR。
+
+历史 `.log` 在 `.gitattributes` 中标记为 `-diff`，避免 PR 页面展开被删除的旧机器路径；这不影响全量门禁读取当前文件。日志内容仍不应作为长期源码资产继续增加。

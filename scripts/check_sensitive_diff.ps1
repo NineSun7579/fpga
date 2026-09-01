@@ -1,18 +1,21 @@
 param(
     [string]$RepoRoot,
     [string]$BaseRef = 'origin/main',
-    [switch]$SelfTest
+    [switch]$SelfTest,
+    [switch]$FullTree
 )
 
-# Reject newly introduced vendor-license configuration without scanning or
-# rewriting historical files. Only changed paths and added diff lines matter.
+# Reject vendor-license configuration without reading or printing local
+# license environment values. Diff mode checks additions; FullTree checks the
+# current tracked and untracked worktree after legacy logs have been redacted.
 $ErrorActionPreference = 'Stop'
 
 if ([string]::IsNullOrWhiteSpace($RepoRoot)) {
     $RepoRoot = Split-Path -Parent $PSScriptRoot
 }
 $RepoRoot = (Resolve-Path -LiteralPath $RepoRoot).Path
-$AbsolutePathPrefixPattern = '(?i)(?:\b[A-Z]:' + '[\\/]|\\\\|/(?:[^/\s]+/)+)'
+$AbsolutePathPrefixPattern = '(?i)(?:\b[A-Z]:' + '[\\/]|\\\\|' +
+    '(?<![A-Za-z0-9._:/-])/(?:[^/\s]+/)+)'
 $LicenseNamePattern = '(?:' + 'licen' + '[cs]e|' + '\.' + 'lic\b)'
 $AbsoluteLicensePathPattern = $AbsolutePathPrefixPattern + '[^\r\n]*' +
     $LicenseNamePattern
@@ -47,7 +50,7 @@ function Test-ForbiddenLicensePath {
         $FileNamePattern + '$')
 }
 
-function Get-UntrackedTextLines {
+function Get-TextLines {
     param([Parameter(Mandatory)][string]$Path)
 
     $Stream = [System.IO.File]::OpenRead($Path)
@@ -127,6 +130,10 @@ function Invoke-SelfTest {
     $ForbiddenServer = 'License server: ' + '27000' + '@' + 'private-host'
     $ForbiddenFeature = 'FEATURE ' + 'private_feature vendor 1.0 permanent 1 ' +
         'SIGN=' + 'ABCDEF123456'
+    $ForbiddenUnixPath = '/opt/' + 'vendor/' +
+        'license' + '.lic'
+    $AllowedRelativeLink = '[gate](../docs/' + 'SENSITIVE_DIFF_GATE.md): ' +
+        'license policy'
 
     $LineCases = @(
         [pscustomobject]@{
@@ -137,6 +144,11 @@ function Invoke-SelfTest {
         [pscustomobject]@{
             Name = 'placeholder server value'
             Line = '<port>@<host>'
+            MustFail = $false
+        },
+        [pscustomobject]@{
+            Name = 'relative Markdown link near license prose'
+            Line = $AllowedRelativeLink
             MustFail = $false
         },
         [pscustomobject]@{
@@ -163,6 +175,11 @@ function Invoke-SelfTest {
             Name = 'license feature content'
             Line = $ForbiddenFeature
             MustFail = $true
+        },
+        [pscustomobject]@{
+            Name = 'actual Unix license path'
+            Line = $ForbiddenUnixPath
+            MustFail = $true
         }
     )
 
@@ -187,6 +204,99 @@ function Invoke-SelfTest {
 
 if ($SelfTest) {
     Invoke-SelfTest
+    exit 0
+}
+
+if ($FullTree) {
+    $TrackedPaths = @(& git -C $RepoRoot ls-files)
+    if ($LASTEXITCODE -ne 0) {
+        Write-Error 'git ls-files failed while enumerating tracked paths'
+        exit 1
+    }
+    $UntrackedPaths = @(& git -C $RepoRoot ls-files --others --exclude-standard)
+    if ($LASTEXITCODE -ne 0) {
+        Write-Error 'git ls-files failed while enumerating untracked paths'
+        exit 1
+    }
+
+    $Failures = [System.Collections.Generic.List[string]]::new()
+    $FailureKeys = [System.Collections.Generic.HashSet[string]]::new(
+        [System.StringComparer]::OrdinalIgnoreCase)
+    $ScannedLineCount = 0
+    $AllPaths = @($TrackedPaths + $UntrackedPaths | Sort-Object -Unique)
+
+    foreach ($Path in $AllPaths) {
+        if (Test-ForbiddenLicensePath -Path $Path) {
+            $Key = "$Path|license file path"
+            if ($FailureKeys.Add($Key)) {
+                $Failures.Add("${Path}: license file path")
+            }
+        }
+    }
+
+    # Let Git prefilter tracked text lines. Reading every vendor database and
+    # multi-megabyte PDS log through PowerShell makes the full-tree gate slow.
+    $CandidatePattern = 'licen[cs]e|\.lic([^A-Za-z0-9]|$)|' +
+        '_LICENSE_FILE|SALT_LICENSE_SERVER|[0-9]{2,5}@[A-Za-z0-9]|' +
+        '^[[:space:]]*(USE_SERVER|SERVER|VENDOR|DAEMON|FEATURE|INCREMENT|' +
+        'UPGRADE|PACKAGE)[[:space:]]+|' +
+        '(SIGN|SIGN2|VENDOR_STRING|HOSTID|FLEXID)[[:space:]]*=' +
+        '[[:space:]]*[A-Za-z0-9+/=_-]{8,}'
+    $TrackedCandidateLines = @(& git -C $RepoRoot grep -n -I -i -E `
+            $CandidatePattern -- . ':(exclude)*.log')
+    $TextGrepExitCode = $LASTEXITCODE
+    $TrackedLogCandidateLines = @(& git -C $RepoRoot grep -n -a -i -E `
+            $CandidatePattern -- '*.log')
+    $LogGrepExitCode = $LASTEXITCODE
+    if ($TextGrepExitCode -notin @(0, 1) -or $LogGrepExitCode -notin @(0, 1)) {
+        Write-Error 'git grep failed while prefiltering tracked text lines'
+        exit 1
+    }
+    foreach ($Candidate in @($TrackedCandidateLines + $TrackedLogCandidateLines)) {
+        $Match = [regex]::Match(
+            $Candidate,
+            '^(?<path>.*?):(?<line>\d+):(?<text>.*)$')
+        if (-not $Match.Success) {
+            continue
+        }
+        $ScannedLineCount++
+        $Path = $Match.Groups['path'].Value
+        $Violation = Get-AddedLineViolation -Line $Match.Groups['text'].Value
+        if ([string]::IsNullOrWhiteSpace($Violation)) {
+            continue
+        }
+        $Key = "$Path|$Violation"
+        if ($FailureKeys.Add($Key)) {
+            $Failures.Add("${Path}: $Violation")
+        }
+    }
+
+    foreach ($Path in $UntrackedPaths) {
+        $FullPath = Join-Path $RepoRoot ($Path -replace '/', '\\')
+        if (-not (Test-Path -LiteralPath $FullPath -PathType Leaf)) {
+            continue
+        }
+        foreach ($Line in @(Get-TextLines -Path $FullPath)) {
+            $ScannedLineCount++
+            $Violation = Get-AddedLineViolation -Line $Line
+            if ([string]::IsNullOrWhiteSpace($Violation)) {
+                continue
+            }
+            $Key = "$Path|$Violation"
+            if ($FailureKeys.Add($Key)) {
+                $Failures.Add("${Path}: $Violation")
+            }
+        }
+    }
+
+    if ($Failures.Count -gt 0) {
+        Write-Error ("Sensitive full-tree gate failed with {0} issue(s):`n- {1}" -f `
+                $Failures.Count, ($Failures -join "`n- "))
+        exit 1
+    }
+
+    Write-Host ("INFO: sensitive full-tree gate passed; checked {0} path(s) and {1} text line(s)" -f `
+            $AllPaths.Count, $ScannedLineCount)
     exit 0
 }
 
@@ -246,7 +356,7 @@ foreach ($UntrackedPath in $UntrackedPaths) {
     if (-not (Test-Path -LiteralPath $FullPath -PathType Leaf)) {
         continue
     }
-    foreach ($Line in @(Get-UntrackedTextLines -Path $FullPath)) {
+    foreach ($Line in @(Get-TextLines -Path $FullPath)) {
         $AddedLineCount++
         $Violation = Get-AddedLineViolation -Line $Line
         if ([string]::IsNullOrWhiteSpace($Violation)) {

@@ -1,8 +1,10 @@
-# OV7725 HDMI 工程状态
+# OV7725 HDMI legacy 工程状态
 
 ## 当前定位
 
-本工程采集 OV7725 RGB565 数据，经两个异步 FIFO 和 DDR3 帧缓存后，以 1024×768 时序输出 HDMI/TMDS。
+本目录是现有 OV7725 RGB565 工程和历史迁移证据，不是新的 OV5640 产品实现。摄像头产品目标、参考工程和迁移停止条件见 [OV5640 产品目标与迁移边界](../docs/OV5640_TARGET_SCOPE.md)。在 C0/C1 审核完成前，不通过目录、模块或文档改名把本工程冒充 OV5640。
+
+现有 legacy 数据通路经两个异步 FIFO 和 DDR3 帧缓存后，以 1024×768 时序输出 HDMI/TMDS。
 
 实际器件与最终 PDS 目标为：
 
@@ -35,7 +37,7 @@ Logos2 / PG2L50H / FBG484 / -6
 - 完整日志包含 81 条 critical 和 4067 条 warning；其中仅 1 条项目手写 RTL 位宽告警，另有 88 条 `STA-3011`、4 条 `SDC-2025`、3 条 `Route-2036` 和 72 条 share-pin critical。
 - 已生成非零综合网表、PNR 网表、slow-corner SDF、`.sbit` 和 `.bin`。
 - 严格 gate 会因已知发布阻断返回非零；显式 baseline 模式精确核对 7 组 `corner/check/clock pair/endpoints` 失败指纹，只证明当前失败基线可重复，并明确标记不可发布。
-- 本机尚无 ModelSim/QuestaSim，因此项目级四级自检仿真未运行。
+- Questa Sim-64 `2021.1` 与 Logos2 USIM/VSIM 有公共历史验证；当前动态复验受仓库外许可证 checkout 阻断。本 legacy 工程仍没有项目级 TB/filelist/DO，因此四级自检仿真未运行。公共环境通过不等于 OV7725 或 OV5640 项目通过。
 - M3-A 已确认四个活动 SP4.2 IDF 与 SP6.4 安装版本不兼容：CLI 探针分别被 `IPCompiler 0037` 和 `IPCompiler 0057` 拒绝。M3-B 只能在 SP6.4 GUI 中为 PG2L50H 新建当前版本实例，并只输出到 `build/ipgen/pg2l50h/**`。
 - DDR3 `DEVICE_100H_EN=false`、PLL `DEVICE_PG2L50H=true` 和 FIFO 的 85 个 DRM36K/170 个 DRM18K 上限属于 50H staging 必检项；原理图/BOM 未关闭 DDR3 组织和管脚前，禁止 canonical 升格及 50H 最终构建。
 
@@ -73,7 +75,7 @@ powershell.exe -ExecutionPolicy Bypass -File .\scripts\run.ps1 `
 
 ## 下一步
 
-O1-B 已按 [RTL 卫生修复评审](doc/RTL_HYGIENE_AUDIT.md) 实现并完成七阶段回归。下一批拆为：
+O1-B 已按 [RTL 卫生修复评审](doc/RTL_HYGIENE_AUDIT.md) 实现并完成七阶段回归。以下 O2/O3/M3 条目只保留 legacy 研究价值；OV5640 产品主线先执行 C0/C1，不直接延续旧传感器配置：
 
 1. O2-B：级联双域 reset 实验已由真实 STA 否决，失败 RTL 已回退；契约保留其完整证据，旧 baseline 不变。
 2. O2-D1-R：已完成回退基线重建和 53/54 endpoint 复核；未修改功能文件、gate 或 baseline。
@@ -84,4 +86,4 @@ O1-B 已按 [RTL 卫生修复评审](doc/RTL_HYGIENE_AUDIT.md) 实现并完成�
 7. O2-C2：单独依据厂商 FIFO reset/flush 语义处理两个异步 FIFO 的读写侧复位。
 8. O3-B → O4：修复两条帧事件 CDC；只有 O2-C2 与 O3-B 都完成后才进入约束和最终时序闭环。
 
-O2 不修改 `mem_a` 或 DDR3 IP，不通过 `false_path` 掩盖 recovery。PLL/IP 与必要的精确 FDC 已明确属于 O2-D2 待审核边界；generated-clock 无法唯一建模时不得实现。新增或修改的 RTL 注释必须遵守根目录 `VERILOG_SYSTEMVERILOG_COMMENTING_STANDARD.md`；QuestaSim 未就绪前不声明 HDMI 动态复位或串化功能通过。
+O2 不修改 `mem_a` 或 DDR3 IP，不通过 `false_path` 掩盖 recovery。PLL/IP 与必要的精确 FDC 已明确属于 O2-D2 待审核边界；generated-clock 无法唯一建模时不得实现。新增或修改的 RTL 注释必须遵守根目录 `VERILOG_SYSTEMVERILOG_COMMENTING_STANDARD.md`；项目级 Questa 入口和唯一 `TEST PASS` 证据形成前，不声明 HDMI 动态复位或串化功能通过。

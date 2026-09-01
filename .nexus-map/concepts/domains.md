@@ -12,15 +12,15 @@ HDL 经 compile、synthesize、dev_map、PNR、timing report、netlist 和 bitst
 
 2026-08-30 CI-7 入口分类确认全部 13 个 tracked Tcl 已登记。只有三个项目 `scripts/build.tcl` 通过 `run.ps1` 进入 `pds_shell`；PCIe 为 PG2L50H canonical，OV7725/DDR3 仍为 PG2L100H migration-blocked。`impl.tcl`、parse-design screen、厂商 IP PNR 和单 IP 仿真脚本中的旧器件、混合目标或绝对路径只保留为历史/内部证据，不能用于当前器件、STA、网表、SDF、位流或集成仿真签核。
 
-2026-09-01 CI-9 将许可证保密边界落实为新增差异门禁：`scripts/check_sensitive_diff.ps1` 依据 Git merge-base 扫描 tracked 新增路径、diff 新增行和未跟踪文本，仅接受严格白名单占位表达，并拒绝新增许可证文件、绝对许可证路径、真实许可证环境赋值、裸端点、FlexNet 内容、签名及 host id。门禁自检与真实分支扫描均通过；它只防止新的泄露进入提交，不读取实际配置，也不清理历史。
+2026-09-01 CI-9 同时覆盖当前树和 PR 差异：`-FullTree` 扫描 tracked/untracked 工作树，PR 模式依据 Git merge-base 扫描 changed paths 与 added lines。当前版本已将 68 个 tracked 日志中的 143 处许可证绝对路径替换为 `<license-path>`；全树和差异门禁均通过。门禁不读取实际配置，也不改写 Git 历史。
 
-2026-08-30 用户确认 DDR3、PCIe、OV7725 HDMI 共用 `RK3568+PG2L50H100H` 开发板，实际 FPGA 为 `PG2L50H-6IFBG484`，统一 PDS 目标为 `Logos2/PG2L50H/FBG484/-6`。M0 已完成器件事实审核；M1 先迁移 PCIe build/gate，M2 重生成 DDR3 50H IP/FDC/RCF，M3 重生成 OV7725 四个 50H IP并建立新 baseline。所有 PG2L100H 产物不得烧录。
+DDR3、PCIe 和摄像头 HDMI 共用 `RK3568+PG2L50H100H` 开发板与 `PG2L50H-6IFBG484`，统一 PDS 目标为 `Logos2/PG2L50H/FBG484/-6`。摄像头产品目标于 2026-09-01 校正为 OV5640；`41_ov7725_hdmi` 及其 O0/O1/O2/M3-A 只作 legacy。OV5640 按 C0 参考审计、C1 范围冻结、C2 项目边界、C3 PG2L50H 实现和 S3 四级仿真推进。
 
 ## 外部四级仿真
 
 ModelSim/QuestaSim 分别承担行为级、综合后、PNR 后功能和 PNR 后时序仿真。USIM 用于 PNR 前原语，VSIM 用于 PNR 后原语；时序仿真还依赖正确层级的 SDF 标注。
 
-2026-08-30 仿真就绪度盘点时三个项目均无项目级 TB、`.f` 或 `.do`。截至 2026-09-01，PCIe S2-A 已完成项目级受控行为 smoke 动态验证：`sim/behav.f` 单独补入仿真所需 `ips2l_pcie_apb_cross_v1_0.v`，不修改由 IDF 管理实现侧源的 `scripts/pds_sources.f`；TB 使用厂商要求的 `GRS_INST`，DO 通过 `echo` 将随机 `SIM_RUN_ID` 写入 transcript。最终 `vlog` 为 0 errors/0 warnings，`vsim` elaboration 成功并运行到 `1476105 ns`，Errors 0/Warnings 2、唯一 `TEST PASS`，PowerShell 同 run-id/唯一 PASS 门禁通过。另有最小后级原语 smoke 从 VSIM 库加载 `V_BUF`，运行 `2 ns`，Errors 0/Warnings 0、唯一 `TEST PASS`。OV7725 与 DDR3 仍缺项目级入口，三个项目真实网表/SDF 仿真仍待完成。
+Questa Sim-64 2021.1、Logos2 USIM/VSIM、`V_BUF` 和 PCIe S2-A 受控 smoke 均保留历史通过证据。当前版本 S2-A/S2-B 静态门禁通过，但 S2-A 动态复验因仓库外许可证 checkout 失败返回 4，未产生新 PASS。DDR3 与 OV5640 仍缺项目级入口，OV7725 资产只作 legacy 参考；三个产品方向的真实网表/SDF 仿真仍待完成。
 
 ## 产品顶层与 IP 示例边界
 
@@ -38,7 +38,7 @@ PCIe H2-B0（2026-08-30）将五类 baseline 问题归一化为 16 个唯一签�
 
 PCIe CI-8A（2026-08-31）把构建证据定义为一次运行的不可拆分集合：37 个 HDL 单一清单、43 项 canonical 输入和 7 项最终证据由同一 32 位 run_id 与 SHA-256 manifest 绑定。每次 build 开始即原子失效旧 complete 证据；`running/partial/failed` 均不可验收，只有 `complete/valid` 可继续 H2-B0/strict gate。partial、工具缺失、run-id、产物或 FDC 漂移均失败；最终 PG2L50H full build/baseline/strict 为 `0/0/1`，slack `0.100 ns`。CI-8B 等待 DDR3/OV7725 canonical 升格后逐项目迁移，不预先共享实现。
 
-PCIe S2-A（2026-09-01）只验证产品壳层受控行为 smoke。受控模型替代生成的 `pcie_test`，提供确定性时钟、复位、idle 接口和延迟 link 激励；TB 验证顶层展开、两路外部/同步复位、两组 LED 计数门控及可观察输出未知态。两条 `vsim` warning 均来自 `pcie_dma_test.v` 中 `u_ips2l_pcie_dma` 未连接输出 `o_trgt1_radm_pkt_halt`，作为独立 RTL hygiene TODO，不影响本层受控 smoke PASS。模型产生的 link indication 不证明真实 LTSSM、TLP、DMA 或板级链路；S2-B 必须改用厂商 RC/EP 验证真实链路，S2-C 才执行基础 DMA 回读。
+PCIe S2-A 的历史 PASS 只验证产品壳层受控行为 smoke；当前复验因仓库外许可证 checkout 失败而未运行。受控 link 不证明真实 LTSSM、TLP、DMA 或板级链路；S2-B 静态契约已通过，仍必须在许可证恢复后产生新的真实 RC/EP 动态证据，S2-C 才执行基础 DMA 回读。
 
 实物确认后，活动 `pcie_test.idf` 的 `Logos2/PG2L50H/FBG484/-6` metadata 被证明正确；错误项是顶层 build/PDS/gate 和现有主产物仍为 PG2L100H。M1 不为型号重复生成 PCIe IP，而是修正项目自有 build/gate、清空旧 build并建立 50H baseline，同时继续阻断 UART2APB、lane/refclk/PERST# 与 SCBV 缺口。
 

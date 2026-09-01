@@ -14,7 +14,8 @@
 
 以下仅来自当前缺陷证据，不是 Git 统计热点：
 
-- `41_ov7725_hdmi/rtl/ov7725_hdmi.v`：视频链路顶层、跨域控制和复位组合点。
+- `docs/OV5640_TARGET_SCOPE.md`：摄像头产品目标、OV7725 legacy 边界与 C0/C1/C2/C3/S3 关闭条件的首要入口；参考工程未审计前不得先改名或迁移 RTL。
+- `41_ov7725_hdmi/rtl/ov7725_hdmi.v`：OV7725 legacy 视频链路顶层、跨域控制和复位组合点，只能作为 OV5640 C2 的候选结构参考。
 - `41_ov7725_hdmi/doc/CDC_RDC_AUDIT.md`：O0-A CDC/RDC 事实、旧/新 STA 映射和后续整改契约的首要证据；O1-B 不得顺带修改该结构。
 - `41_ov7725_hdmi/doc/RTL_HYGIENE_AUDIT.md`：O1-A 的 39 条告警归属、38 条确定修复、`mem_a` H3/O1-C 阻断、隐式网络和 serializer reset 契约的首要证据。
 - `41_ov7725_hdmi/doc/SERIALIZER_RESET_CONTRACT.md`：记录旧 PG2L100H O2-A/O2-B/O2-D1 证据、`/5` generated-clock、状态机和 reset 分权。状态机与验证纪律可复用，但 `+0.192 ns` 裕量、七组时序指纹和 endpoint 数必须在 PG2L50H 新 baseline 后重新审核。
@@ -35,16 +36,16 @@
 - `pcie_dma_test_100h/fdc/pcie_dma_test.fdc`：PCIe 专用资源、复位和普通 I/O 约束入口。
 - `pcie_dma_test_100h/hdl/pcie_dma_test.v`、`pcie_dma_test_100h/ipcore/pcie_test/pcie_test.idf`：活动 PCIe IDF、build/PDS/gate 和新主产物已统一匹配 PG2L50H；M1 还依据 PDS 模板将 HSSTLP 资源迁移到 `HSSTLP_292_612`，RTL/FDC 其余内容继续受板级审核约束。
 - `scripts/check_repo_consistency.ps1`：CI-0 至 CI-9、M0 与 M3-A 静态门禁入口；现强制三项目 README/板级证据包含已批准的器件事实，以 XML 解析确认活动 PCIe IDF 为 PG2L50H，并保护 OV7725 四个 canonical IDF 哈希及 M3-A 迁移契约。当前退出码为 0，但不能替代 PDS、STA、板级审核或仿真。
-- `scripts/check_sensitive_diff.ps1`、`docs/SENSITIVE_DIFF_GATE.md`：CI-9 的许可证敏感新增差异门禁和审计契约。评审重点是 merge-base 选择、tracked 新增路径/新增行和未跟踪文本覆盖、严格占位符白名单、8 项正负向自检以及“不清理历史”的边界；真实分支最终扫描为 20 paths/617 added lines 且通过。
+- `scripts/check_sensitive_diff.ps1`、`docs/SENSITIVE_DIFF_GATE.md`：CI-9 当前树与 PR 差异门禁。68 个 tracked 日志中的 143 处本机许可证引用已替换为 `<license-path>`；评审重点是 `-FullTree`、merge-base diff、严格占位符白名单和“不改写历史”的边界。
 - `scripts/compile_simlib.tcl`、`scripts/compile_simlib.ps1`：S0-1 参数化 Pango USIM/VSIM 编译入口；支持模拟器、库类型、family、语言、PDS/仿真器路径与输出目录覆盖，并校验工具、退出码、`E:` 记录和库目录。Questa Sim-64 2021.1 下 Logos2 USIM/VSIM 均已完成实际编译验证。
 - `docs/PDS_TCL_ENTRYPOINT_INVENTORY.json`、`scripts/check_pds_tcl_entrypoints.ps1`：CI-7 的 13 项 tracked Tcl 分类与入口事实；仅三个 `scripts/build.tcl` 属于项目 `run.ps1` 链，其余为公共支持、历史 GUI、厂商内部或厂商仿真脚本。canonical 只接受 PG2L50H/FBG484/-6 且无绝对路径，历史/厂商脚本不得作为器件或 STA 证明。
 - `pcie_dma_test_100h/doc/H2B_BASELINE_GATE.md`、`H2B_BASELINE_FINGERPRINT.json`：H2-B0 的 16 签名/42 原始记录精确多重集和五个变异 fixture；metadata 漂移永久硬失败。partial run 复用旧 full-build 证据的风险已由 PCIe CI-8A 关闭。
 - `pcie_dma_test_100h/scripts/pds_sources.f`、`build_provenance.ps1`、`doc/CI8A_BUILD_PROVENANCE.md`：CI-8A 的 37 HDL 单一清单、43 输入/7 证据 SHA-256 manifest 与 32 位 run_id 状态机；partial/failed 和输入/产物漂移均拒绝。CI-8B 必须等待 DDR3/OV7725 canonical 升格并分别实现。
 - `pcie_dma_test_100h/tb/tb_pcie_dma_test.sv`、`tb/pcie_test_smoke_model.sv`、`sim/behav.f`：S2-A 项目级行为 smoke 的真实顶层、自检 TB、受控 PCIe 边界、DMA RAM init include 与 37 HDL 嵌套 filelist。`sim/behav.f` 另补仿真所需 `ips2l_pcie_apb_cross_v1_0.v`，不得为此修改由 IDF 管理实现侧源的 `scripts/pds_sources.f`；TB 全局复位实例保持 `GRS_INST`。评审时禁止把受控 link 当作 LTSSM/TLP/DMA 或板级链路证据。
-- `pcie_dma_test_100h/scripts/run_behav.do`、`scripts/check_sim.ps1`、`scripts/run.ps1`：DO 通过 `echo` 将随机 `SIM_RUN_ID` 写入 transcript，PowerShell 执行同 run-id + 唯一 `TEST PASS` 验收。Questa Sim-64 2021.1 动态运行已到 `1476105 ns` 并 PASS；两条 `o_trgt1_radm_pkt_halt` 未连接 warning 作为独立 RTL hygiene TODO。
+- `pcie_dma_test_100h/scripts/run_behav.do`、`scripts/check_sim.ps1`、`scripts/check_link_sim.ps1`、`scripts/run.ps1`：S2-A/S2-B 静态门禁当前通过；S2-A 历史动态运行保留唯一 `TEST PASS`。当前动态复验因仓库外许可证 checkout 失败返回 4，未产生新 PASS；旧日志不得复用。
 - `docs/SIMULATION_READINESS_MATRIX.md`：三项目 S1/S2/S3 项目级资产缺口、厂商示例边界、四级共同门槛和 PG2L50H 迁移依赖的首要证据。
 - `scripts/compile_simlib.ps1`、`scripts/compile_simlib.tcl`：Questa Sim-64 2021.1 下 Logos2 USIM/VSIM 均已验证；VSIM 编译退出 0、日志无 `^E:`、库目录非空，`V_BUF` 原语 smoke 运行 `2 ns` 且 0 errors/0 warnings、唯一 `TEST PASS`。三个项目真实网表/SDF 仍待验证。
 
 ## 后续更新
 
-只有积累足够多、内容独立的提交后，才适合增加真实 churn 与共同变更分析。后续按 M1 PCIe 50H 重建 → M2 DDR3 50H IP/FDC/RCF → M3 OV7725 四 IP/新 baseline 推进；M2/M3 后分别重新审核 D3-A/O2-D2。S0 与其余板级证据持续并行，缺少一手资料时不修改对应功能 RTL或物理约束。
+只有积累足够多、内容独立的提交后，才适合增加真实 churn 与共同变更分析。后续按 PCIe 当前动态复验、DDR3 M2、OV5640 C0/C1/C2/C3/S3 推进；OV7725 保持 legacy。缺少一手资料或仓库外许可证不可用时，不修改对应功能 RTL/物理约束，也不把历史仿真日志冒充当前结果。
