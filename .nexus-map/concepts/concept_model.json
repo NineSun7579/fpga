@@ -117,6 +117,42 @@
         "checked_invariants": ["module and parameter declarations", "128-bit data and 28-bit address evidence", "I_ips_ddr_top hierarchy", "AXI-like handshake fields", "no axi_rready in core"],
         "boundary": "static consistency only; PG2L50H IP regeneration, D3-A re-review and dynamic verification remain pending"
       },
+      "ci_9_sensitive_diff_gate": {
+        "date": "2026-09-01",
+        "status": "implemented_and_verified",
+        "script": "scripts/check_sensitive_diff.ps1",
+        "document": "docs/SENSITIVE_DIFF_GATE.md",
+        "integration": "scripts/check_repo_consistency.ps1 runs the rule self-test and the real-branch scan",
+        "diff_base": "merge-base of the selected base ref and HEAD",
+        "scanned_inputs": [
+          "tracked changed paths",
+          "tracked added diff lines",
+          "untracked text files"
+        ],
+        "placeholder_policy": "strict whitelist only; actual license configuration remains external to the repository",
+        "rejected_categories": [
+          "license-sensitive file names",
+          "Windows, UNC and Unix absolute license paths",
+          "actual license environment assignments",
+          "bare license server endpoints",
+          "FlexNet license content",
+          "license signatures and host identifiers"
+        ],
+        "self_test": {
+          "allowed_added_lines": 2,
+          "rejected_added_lines": 5,
+          "allowed_file_names": 1,
+          "rejected_file_names": 1,
+          "passed": true
+        },
+        "real_branch_scan": {
+          "base_ref": "origin/main",
+          "paths_checked": 20,
+          "added_lines_checked": 617,
+          "passed": true
+        },
+        "boundary": "prevents only newly introduced leaks relative to the merge-base; does not read or print actual license configuration, modify scanned files, or clean Git history"
+      },
       "m0_m3_pg2l50h_migration": {
         "date": "2026-08-30",
         "board": "RK3568+PG2L50H100H",

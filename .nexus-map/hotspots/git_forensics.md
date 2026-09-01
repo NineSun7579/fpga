@@ -1,5 +1,5 @@
 > generated_by: Codex manual bootstrap
-> verified_at: 2026-08-31
+> verified_at: 2026-09-01
 > provenance: `git status`, `git log`, current worktree, and static project audit
 
 # Git Forensics
@@ -34,7 +34,8 @@
 - `pcie_dma_test_100h/hdl/pcie_dma_test.v`：UART2APB 隐式 `rxd/txd` 连接与 PCIe DMA 集成入口。
 - `pcie_dma_test_100h/fdc/pcie_dma_test.fdc`：PCIe 专用资源、复位和普通 I/O 约束入口。
 - `pcie_dma_test_100h/hdl/pcie_dma_test.v`、`pcie_dma_test_100h/ipcore/pcie_test/pcie_test.idf`：活动 PCIe IDF、build/PDS/gate 和新主产物已统一匹配 PG2L50H；M1 还依据 PDS 模板将 HSSTLP 资源迁移到 `HSSTLP_292_612`，RTL/FDC 其余内容继续受板级审核约束。
-- `scripts/check_repo_consistency.ps1`：CI-0 至 CI-6、M0 与 M3-A 静态门禁入口；现强制三项目 README/板级证据包含已批准的器件事实，以 XML 解析确认活动 PCIe IDF 为 PG2L50H，并保护 OV7725 四个 canonical IDF 哈希及 M3-A 迁移契约。当前退出码为 0，但不能替代 PDS、STA、板级审核或仿真。
+- `scripts/check_repo_consistency.ps1`：CI-0 至 CI-9、M0 与 M3-A 静态门禁入口；现强制三项目 README/板级证据包含已批准的器件事实，以 XML 解析确认活动 PCIe IDF 为 PG2L50H，并保护 OV7725 四个 canonical IDF 哈希及 M3-A 迁移契约。当前退出码为 0，但不能替代 PDS、STA、板级审核或仿真。
+- `scripts/check_sensitive_diff.ps1`、`docs/SENSITIVE_DIFF_GATE.md`：CI-9 的许可证敏感新增差异门禁和审计契约。评审重点是 merge-base 选择、tracked 新增路径/新增行和未跟踪文本覆盖、严格占位符白名单、8 项正负向自检以及“不清理历史”的边界；真实分支最终扫描为 20 paths/617 added lines 且通过。
 - `scripts/compile_simlib.tcl`、`scripts/compile_simlib.ps1`：S0-1 参数化 Pango USIM/VSIM 编译入口；支持模拟器、库类型、family、语言、PDS/仿真器路径与输出目录覆盖，并校验工具、退出码、`E:` 记录和库目录。Questa Sim-64 2021.1 下 Logos2 USIM/VSIM 均已完成实际编译验证。
 - `docs/PDS_TCL_ENTRYPOINT_INVENTORY.json`、`scripts/check_pds_tcl_entrypoints.ps1`：CI-7 的 13 项 tracked Tcl 分类与入口事实；仅三个 `scripts/build.tcl` 属于项目 `run.ps1` 链，其余为公共支持、历史 GUI、厂商内部或厂商仿真脚本。canonical 只接受 PG2L50H/FBG484/-6 且无绝对路径，历史/厂商脚本不得作为器件或 STA 证明。
 - `pcie_dma_test_100h/doc/H2B_BASELINE_GATE.md`、`H2B_BASELINE_FINGERPRINT.json`：H2-B0 的 16 签名/42 原始记录精确多重集和五个变异 fixture；metadata 漂移永久硬失败。partial run 复用旧 full-build 证据的风险已由 PCIe CI-8A 关闭。

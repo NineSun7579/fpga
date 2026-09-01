@@ -359,3 +359,11 @@
 - Questa 2021.1 的 transcript 不记录 Tcl `puts` 输出，`run_behav.do` 改用 `echo` 写入随机 `SIM_RUN_ID`；PowerShell 仍要求同一日志中匹配 run marker 和唯一 `TEST PASS`。
 - 最终 run id `fab4ccef3e2445abbd9d1cad1e66b2ab`：RTL 编译 `0 errors/0 warnings`，elaboration 成功，运行至 `1476105 ns`，`Errors: 0, Warnings: 2`，唯一 `TEST PASS`，PowerShell 动态入口返回 0。
 - 两条 warning 精确指向 `u_ips2l_pcie_dma` 未连接输出 `o_trgt1_radm_pkt_halt`，作为后续独立 RTL hygiene TODO；S2-A 通过仍只证明受控边界、复位链和 LED 域，不证明真实 LTSSM、TLP、DMA、RK3568 链路或可发布位流。
+
+## 2026-09-01：CI-9 许可证敏感差异门禁
+
+- 新增 `scripts/check_sensitive_diff.ps1`，只检查相对 Git 基线的新增文件名和新增行，不读取或回显本机许可证环境变量实际值。
+- 门禁拒绝许可证文件、包含许可证信息的 Windows 绝对路径、许可证环境变量实际赋值、真实服务器端点、FlexNet 内容、签名和 host id；`<license-source>` 等明确占位符允许用于文档。
+- 新增 [`SENSITIVE_DIFF_GATE.md`](SENSITIVE_DIFF_GATE.md)，记录 `BaseRef`、堆叠 PR 用法、允许占位符和历史边界。
+- `scripts/check_repo_consistency.ps1` 现自动运行 CI-9 规则自检和真实 Git 差异检查；规则自检覆盖 2 个允许的新增行场景、5 个拒绝的新增行场景、1 个允许文件名和 1 个拒绝文件名，当前分支相对 `origin/main` 的扫描退出码为 0。
+- CI-9 只阻止新增泄露，不清理已跟踪历史日志或 Git 历史；历史重写和强推仍属于单独人工审核批次。

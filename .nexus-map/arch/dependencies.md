@@ -1,5 +1,5 @@
 > generated_by: Codex manual bootstrap
-> verified_at: 2026-08-31
+> verified_at: 2026-09-01
 > provenance: manual inspection of current source tree and PDS artifacts
 
 # Dependencies
@@ -112,3 +112,4 @@ flowchart TD
 - CI-0 仓库级静态一致性门禁依赖根指南/TODO/VSCS、三个项目 README 与各自 `build.tcl`/`run.ps1`/`check_build.ps1`；当前工作区门禁退出码为 0，7 个 PowerShell 脚本 AST 解析错误数为 0。它只验证结构、入口与文档关系，不解除任何 PDS、STA、板级或仿真阻断。
 - CI-7 依赖 `docs/PDS_TCL_ENTRYPOINT_INVENTORY.json` 与 `scripts/check_pds_tcl_entrypoints.ps1`：13 个 tracked Tcl 必须逐项分类；只有三个 `scripts/build.tcl` 可由 `run.ps1` 调用。PCIe build 目标为 PG2L50H，OV7725/DDR3 build 仍为 PG2L100H migration-blocked；历史 GUI、厂商内部和厂商仿真 Tcl 不得进入当前器件/STA/位流证据链。正向门禁为 0，缺失清单项负向测试为 1。
 - CI-2 在 CI-0 上增加三项目板级证据清单路径、项目关键词、README 链接和统一章节门禁；清单结构通过只允许继续收集证据，不会自动解锁 H0/H1/H2/H3、PCIe H2-B 或 DDR3/OV7725 板级整改。
+- CI-9 依赖 `scripts/check_sensitive_diff.ps1`、`docs/SENSITIVE_DIFF_GATE.md`、可解析的基线 ref 与唯一 merge-base；门禁只消费 tracked 变更路径、diff 新增行和未跟踪文本。严格占位符白名单是唯一允许的许可证配置表达边界，真实配置继续由仓库外环境提供。真实分支扫描 20 paths/617 added lines 已通过，但该结果只证明本次新增差异未命中规则，不证明 Git 历史不存在旧敏感信息。

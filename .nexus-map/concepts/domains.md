@@ -12,6 +12,8 @@ HDL 经 compile、synthesize、dev_map、PNR、timing report、netlist 和 bitst
 
 2026-08-30 CI-7 入口分类确认全部 13 个 tracked Tcl 已登记。只有三个项目 `scripts/build.tcl` 通过 `run.ps1` 进入 `pds_shell`；PCIe 为 PG2L50H canonical，OV7725/DDR3 仍为 PG2L100H migration-blocked。`impl.tcl`、parse-design screen、厂商 IP PNR 和单 IP 仿真脚本中的旧器件、混合目标或绝对路径只保留为历史/内部证据，不能用于当前器件、STA、网表、SDF、位流或集成仿真签核。
 
+2026-09-01 CI-9 将许可证保密边界落实为新增差异门禁：`scripts/check_sensitive_diff.ps1` 依据 Git merge-base 扫描 tracked 新增路径、diff 新增行和未跟踪文本，仅接受严格白名单占位表达，并拒绝新增许可证文件、绝对许可证路径、真实许可证环境赋值、裸端点、FlexNet 内容、签名及 host id。门禁自检与真实分支扫描均通过；它只防止新的泄露进入提交，不读取实际配置，也不清理历史。
+
 2026-08-30 用户确认 DDR3、PCIe、OV7725 HDMI 共用 `RK3568+PG2L50H100H` 开发板，实际 FPGA 为 `PG2L50H-6IFBG484`，统一 PDS 目标为 `Logos2/PG2L50H/FBG484/-6`。M0 已完成器件事实审核；M1 先迁移 PCIe build/gate，M2 重生成 DDR3 50H IP/FDC/RCF，M3 重生成 OV7725 四个 50H IP并建立新 baseline。所有 PG2L100H 产物不得烧录。
 
 ## 外部四级仿真
