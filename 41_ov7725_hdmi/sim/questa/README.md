@@ -4,4 +4,4 @@
 
 现有 `prj/ipcore/ddr3_ip/sim/modelsim/` 只属于厂商 DDR3 IP 示例资产，不能替代 OV5640 摄像头采集、帧缓存和 HDMI 输出的项目级自检 testbench。完成 C0/C1 范围冻结和 C2/C3 新项目实现后，在本目录加入 OV5640 行为级、综合后、PNR 后功能和 SDF 时序入口。
 
-Questa 安装位置和许可证配置保持在仓库外；`work` 库、transcript、日志和波形写入 `build/`，不提交 Git。
+后续只在本目录归档项目自有 `.f`、`.do`、testbench、仿真模型和说明，不提交 `.mpf`。Questa 安装位置和许可证配置保持在仓库外；`work` 库、`modelsim.ini`、transcript、日志和波形写入本工程 `build/`，不提交 Git。

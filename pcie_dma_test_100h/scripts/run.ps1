@@ -4,6 +4,7 @@ param(
         'build',
         'sim-behav',
         'sim-link',
+        'sim-dma',
         'sim-post-syn',
         'sim-post-pnr-func',
         'sim-post-pnr-timing',
@@ -311,6 +312,13 @@ switch ($Action) {
             -LogFileName 'sim-link.log' `
             -PangoPdsRoot (Split-Path -Parent $PdsBin) `
             -SuccessMarker 'INFO: S2B_REAL_LINK_UP'
+    }
+    'sim-dma' {
+        Invoke-ModelSim `
+            -DoFileName 'sim/questa/run_dma.do' `
+            -LogFileName 'sim-dma.log' `
+            -PangoPdsRoot (Split-Path -Parent $PdsBin) `
+            -SuccessMarker 'INFO: S2C_DMA_WRITE_READBACK_OK'
     }
     'sim-post-syn' {
         Invoke-ModelSim `

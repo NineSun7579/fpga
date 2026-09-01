@@ -24,8 +24,8 @@ S2-A **不验证**真实 LTSSM、TLP、DMA 数据一致性、x2 lane、P/N 极�
 | 文件 | 职责 |
 |---|---|
 | `sim/questa/behav.f` | 以 POSIX 相对路径组合 reset helper、PCIe IP 仿真辅助源、受控模型、37 个 canonical HDL 和项目 TB |
-| `tb/pcie_test_smoke_model.sv` | 提供确定性的时钟、复位、idle 协议输出和延迟 link 激励 |
-| `tb/tb_pcie_dma_test.sv` | 实例化 `pcie_dma_test` 和固定层级名 `GRS_INST` 的 `GTP_GRS`，执行复位/计数/未知态自检 |
+| `sim/questa/tb/pcie_test_smoke_model.sv` | 提供确定性的时钟、复位、idle 协议输出和延迟 link 激励 |
+| `sim/questa/tb/tb_pcie_dma_test.sv` | 实例化 `pcie_dma_test` 和固定层级名 `GRS_INST` 的 `GTP_GRS`，执行复位/计数/未知态自检 |
 | `sim/questa/run_behav.do` | 为每个 run id 建立独立 work、映射共享 USIM、记录 run id、编译和运行 |
 | `scripts/check_sim.ps1` | 不依赖仿真器的 filelist、端口、TB、DO 和入口契约门禁 |
 | `scripts/run.ps1` | 为每次仿真生成唯一 `SIM_RUN_ID`，校验同一日志中的 run marker 和唯一 PASS |

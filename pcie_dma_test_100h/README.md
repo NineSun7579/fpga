@@ -65,7 +65,7 @@ powershell -ExecutionPolicy Bypass -File .\scripts\run.ps1 `
 
 ## 仿真命令接口
 
-项目自有 Questa 工程定义集中归档在 [`sim/questa/`](sim/questa/README.md)。该目录保存可复现的 `.f/.do` 和边界说明；运行生成的 `work`、日志、transcript 与波形仍位于 `build/`，不提交版本库。
+项目自有 Questa 工程定义集中归档在 [`sim/questa/`](sim/questa/README.md)。该目录保存可复现的 `.f/.do/TB` 和边界说明；运行生成的 `work`、`modelsim.ini`、日志、transcript 与波形仍位于 `build/`，不提交 `.mpf` 或运行态文件。
 
 S2-A 静态契约检查不依赖仿真器：
 
@@ -107,7 +107,7 @@ PowerShell 入口还预留以下后级动作：
 - `sim-post-pnr-func`
 - `sim-post-pnr-timing`
 
-对应三个网表后级 testbench/DO 尚未实现；当前调用会明确失败。基础 DMA 回读属于 S2-C，不会用 S2-A 受控模型或 S2-B link-up 冒充通过。
+对应三个网表后级 testbench/DO 尚未实现；当前调用会明确失败。基础 DMA 回读属于 S2-C，不会用 S2-A 受控模型或 S2-B link-up 冒充通过。BAR1 staging 还需要同版本完整 IP Compiler 实例导出的 `index.xml`，取得前不覆盖 canonical IP。
 
 ## 验收条件
 

@@ -3,6 +3,6 @@
 ipcore/pcie_test/rtl/hsst_pipe/hsst_rst_cross_sync_v1_0.v
 ipcore/pcie_test/rtl/hsst_pipe/hsst_rst_sync_v1_0.v
 ipcore/pcie_test/rtl/ips2l_pcie_apb_cross_v1_0.v
-tb/pcie_test_smoke_model.sv
+sim/questa/tb/pcie_test_smoke_model.sv
 -f scripts/pds_sources.f
-tb/tb_pcie_dma_test.sv
+sim/questa/tb/tb_pcie_dma_test.sv

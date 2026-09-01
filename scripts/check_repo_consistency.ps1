@@ -44,6 +44,12 @@ $PcieLinkSimCheckPath = Join-Path $RepoRoot `
     'pcie_dma_test_100h\scripts\check_link_sim.ps1'
 $PcieS2bDocPath = Join-Path $RepoRoot `
     'pcie_dma_test_100h\doc\S2B_REAL_LINK.md'
+$PcieS2cBar1GatePath = Join-Path $RepoRoot `
+    'pcie_dma_test_100h\scripts\check_s2c_bar1.ps1'
+$PcieS2cBar1RegenPath = Join-Path $RepoRoot `
+    'pcie_dma_test_100h\scripts\regenerate_bar1_staging.ps1'
+$SimArchiveGatePath = Join-Path $RepoRoot `
+    'scripts\check_sim_archives.ps1'
 $ApprovedBoard = 'RK3568+PG2L50H100H'
 $ApprovedFpgaPart = 'PG2L50H-6IFBG484'
 $ApprovedPdsFamily = 'Logos2'
@@ -269,6 +275,53 @@ if ($SimlibPsExists) {
         -Description 'compile_simlib exit-code check' | Out-Null
     Require-Pattern -Text $SimlibPsText -Pattern 'vsim\.exe' `
         -Description 'mandatory simulator preflight' | Out-Null
+}
+
+$SimArchiveGateExists = Require-File -Path $SimArchiveGatePath `
+    -Description 'three-project simulation archive gate'
+if ($SimArchiveGateExists) {
+    try {
+        & $SimArchiveGatePath -RepoRoot $RepoRoot
+        if ($LASTEXITCODE -ne 0) {
+            Add-Failure 'Three-project simulation archive gate failed'
+        }
+    } catch {
+        Add-Failure ("Three-project simulation archive gate failed: {0}" -f `
+                $_.Exception.Message)
+    }
+}
+
+$PcieS2cBar1GateExists = Require-File -Path $PcieS2cBar1GatePath `
+    -Description 'PCIe S2-C BAR1 regeneration gate'
+if ($PcieS2cBar1GateExists) {
+    try {
+        Push-Location (Join-Path $RepoRoot 'pcie_dma_test_100h')
+        & $PcieS2cBar1GatePath
+        if ($LASTEXITCODE -ne 0) {
+            Add-Failure 'PCIe S2-C BAR1 regeneration gate failed'
+        }
+    } catch {
+        Add-Failure ("PCIe S2-C BAR1 regeneration gate failed: {0}" -f $_.Exception.Message)
+    } finally {
+        Pop-Location
+    }
+}
+$PcieS2cBar1RegenExists = Require-File -Path $PcieS2cBar1RegenPath `
+    -Description 'PCIe S2-C BAR1 staging regeneration entry'
+if ($PcieS2cBar1RegenExists) {
+    $PcieS2cBar1RegenText = Get-Content -Raw -Encoding UTF8 -LiteralPath $PcieS2cBar1RegenPath
+    foreach ($Required in @(
+            'ip_generate\.exe',
+            'build\\ipgen\\pcie_bar1',
+            '-family Logos2',
+            '-device PG2L50H',
+            '-pack FBG484',
+            '-speed -6',
+            '(?i)canonical generated IP is untouched',
+            'dry run only')) {
+        Require-Pattern -Text $PcieS2cBar1RegenText -Pattern $Required `
+            -Description "BAR1 staging regeneration contract '$Required'" | Out-Null
+    }
 }
 
 $Ddr3RegenerateExists = Require-File -Path $Ddr3RegeneratePath `

@@ -57,7 +57,7 @@ $VendorSourceDoPath = Join-Path $ProjectRoot `
 $CompileDoPath = Join-Path $ProjectRoot 'sim\questa\compile_vendor_link.do'
 $RunDoPath = Join-Path $ProjectRoot 'sim\questa\run_link.do'
 $RunPath = Join-Path $PSScriptRoot 'run.ps1'
-$TestbenchPath = Join-Path $ProjectRoot 'tb\tb_pcie_dma_link.sv'
+$TestbenchPath = Join-Path $ProjectRoot 'sim\questa\tb\tb_pcie_dma_link.sv'
 
 $RequiredFiles = [ordered]@{
     $LinkListPath = 'PCIe S2-B filelist'
@@ -88,7 +88,7 @@ $ExpectedLinkEntries = @(
     '+incdir+ipcore/pcie_test/sim/modelsim',
     '-f sim/questa/link_vendor_local.f',
     '-f scripts/pds_sources.f',
-    'tb/tb_pcie_dma_link.sv'
+    'sim/questa/tb/tb_pcie_dma_link.sv'
 )
 $LinkEntries = @(Get-FileListEntries -Path $LinkListPath)
 if ((Compare-Object $ExpectedLinkEntries $LinkEntries -SyncWindow 0).Count -gt 0) {

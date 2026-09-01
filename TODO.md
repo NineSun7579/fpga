@@ -456,7 +456,7 @@ O2-D2 停止条件：控制相位或 `/5` generated clock 未被 PDS 唯一识�
 - [x] 将仿真器安装路径作为可覆盖外部参数，不写入工程源清单。
 - [x] 将许可证配置保持在仓库外部；禁止提交许可证绝对路径、服务器、feature、内容或许可证文件。
 - [x] S0-2-Q：已以新 run marker `966942334060436dba8444ae9155557c` 重跑 S2-A，唯一 `TEST PASS`、`Errors: 0, Warnings: 0` 和 PowerShell 退出码 0 均满足。
-- [x] S0-3-Q：三个项目均建立项目内 `sim/questa/` 归档目录。PCIe 的 S2-A/S2-B `.f/.do` 已迁入并作为唯一脚本来源；迁移后 run `26db7d3206c542218634caff2c6e71ea` 为 0 errors/0 warnings、唯一 `TEST PASS`、退出 0。DDR3 与摄像头目录记录厂商示例边界和待建项目级入口；Questa `work`、日志、transcript、波形及许可证配置不进入 Git。
+- [x] S0-3-Q：三个项目均建立项目内 `sim/questa/` 归档目录。PCIe 的 S2-A/S2-B/S2-C `.f/.do/TB` 已收拢并作为唯一脚本来源；`scripts/check_sim_archives.ps1` 禁止项目自有 TB 再散落到工程外层，也禁止归档 `.mpf`、`work`、`modelsim.ini`、日志、transcript 和波形。DDR3 与摄像头目录记录厂商示例边界和待建项目级入口；许可证配置不进入 Git。
 - [x] S0-4-Q：PCIe 启动器为每个 run 在 `build/sim/launcher/` 创建并显式绑定 `modelsim.ini`，通过运行时 `SIM_PROJECT_ROOT` 返回工程根执行归档 DO。S2-A run `add7efa39f644384af9929e8a9366739` 与 S2-B run `30bad6e164be4a4b8284a00f1e96bd87` 均动态通过；两次运行后工程根 `modelsim.ini`、transcript、波形计数为 0。因 `run.ps1` 是 canonical 输入，PG2L50H PDS run `dde6ee70b2c84d2da4ee2256d8a5c127` 已重建为 complete/valid、43 输入/7 证据，baseline/strict gate=`0/1`、最差 slack `0.100 ns`。
 
 ### S1：DDR3 四级仿真
@@ -474,7 +474,7 @@ O2-D2 停止条件：控制相位或 `/5` generated clock 未被 PDS 唯一识�
 
 行为级 smoke 依赖 S0、项目级 TB/filelist 和器件一致的 PCIe IP；不要求先关闭全部板级约束。综合后和 PNR 两级仿真还依赖 PCIe 严格构建闭环及对应网表/SDF。
 
-- [x] S2-A：新建 `tb_pcie_dma_test.sv` 和受控 `pcie_test` 边界模型，覆盖项目顶层展开、真实 reset helper、复位释放/中断、LED 域、未知态和 3 ms watchdog；model-controlled link 不作为真实链路证据。
+- [x] S2-A：在 `sim/questa/tb/` 归档 `tb_pcie_dma_test.sv` 和受控 `pcie_test` 边界模型，覆盖项目顶层展开、真实 reset helper、复位释放/中断、LED 域、未知态和 3 ms watchdog；model-controlled link 不作为真实链路证据。
 - [x] S2-A：新建相对路径 `sim/questa/behav.f`、行为级 DO、`SIM_RUN_ID`/唯一 PASS 日志门禁和 `check_sim.ps1`；不修改厂商示例，契约见 [`S2A_BEHAVIOR_SMOKE.md`](pcie_dma_test_100h/doc/S2A_BEHAVIOR_SMOKE.md)。
 - [x] S2-A 历史动态：仅在仿真专用 `sim/questa/behav.f` 中补入 `ips2l_pcie_apb_cross_v1_0.v`，保持由 IDF 管理的 canonical PDS 源清单不变；Questa `2021.1` 下 RTL 编译为 0 errors/0 warnings，elaboration 成功并运行到 `1476105 ns`，同一 run marker、唯一 `TEST PASS` 和 PowerShell 退出码 0 均通过。
 - [x] S2-A 当前复验：静态 gate 通过；Questa 新 run id `966942334060436dba8444ae9155557c` 编译 `0 errors/0 warnings`，运行到 `1476105 ns`，唯一 `TEST PASS`，PowerShell 退出 0。
@@ -482,7 +482,10 @@ O2-D2 停止条件：控制相位或 `/5` generated clock 未被 PDS 唯一识�
 - [x] S2-A RTL hygiene 实现回归：PDS run id `50b37eb3628e419592cecac02ff932bf` 完成 PG2L50H 七阶段，provenance=`complete/valid`，baseline/strict gate=`0/1`，最差 slack `0.100 ns`。原两条未连接端口 warning 消失；bit2 恒 0 仍产生 2 条寄存器优化/清理 warning，不得误写为端口悬空。
 - [x] S2-B 静态：以厂商 `pango_pcie_top_sim` 为 RC、项目真实 `pcie_dma_test` 为 EP，建立双库、参数化模型、双向 x2 lane、两端 link/LTSSM L0、32 周期稳定、6 ms watchdog 和唯一 PASS 合同；见 [`S2B_REAL_LINK.md`](pcie_dma_test_100h/doc/S2B_REAL_LINK.md)。
 - [x] S2-B 动态：Questa `2021.1` 最新 run `30bad6e164be4a4b8284a00f1e96bd87` 完成厂商模型与项目 RTL 编译/elaboration，并在首次速率重训练后取得连续 32 周期双端 link-up/L0；`702175 ns` 输出唯一 `INFO: S2B_REAL_LINK_UP`、唯一 `TEST PASS`，`Errors: 0, Warnings: 26`，PowerShell 退出 0。该结果不证明 DMA、RK3568 实板链路、协商宽度/速率或板级电气。
-- [ ] S2-C：S2-B 通过后增加一次地址、长度和数据固定的基础 DMA 写读回。
+- [ ] S2-C：归档入口和静态合同已建立，但当前诊断 TB 只是 RC 主动访问 EP BAR0；活动 EP 的 BAR1 被禁用，尚不能完成厂商 canonical Endpoint 主动 DMA 闭环。先审核并通过 PDS IP Compiler 原子重生成 BAR1 配置，再验证 EP MRd RC BAR0 → CplD 落 EP BAR2 → EP MWr 写回 RC BAR0 的固定 1 DW 全 32-bit 数据合同。
+- [x] S2-C-BAR1：冻结 BAR1 重生成和原子升格边界，见 [`S2C_BAR1_REGENERATION.md`](pcie_dma_test_100h/doc/S2C_BAR1_REGENERATION.md)；当前仅通过阻断门禁，未修改生成 IP。
+- [x] S2-C-BAR1：新增 `scripts/regenerate_bar1_staging.ps1`，默认 dry-run，显式 `-Execute` 才在 `build/ipgen/pcie_bar1/` 调用 PDS IP Generator；canonical IP 不被覆盖。
+- [ ] S2-C-BAR1-INPUT：从同版本 PDS IP Compiler 完整 PCIe 实例工程取得配套 `index.xml`，再重新执行 staging；禁止跨版本、跨 IP 或未知模板复制。
 - [ ] 再完成综合后、PNR 功能和 PNR 时序仿真。
 - [ ] 每级成功只输出一个 `TEST PASS`，失败或超时返回非零。
 

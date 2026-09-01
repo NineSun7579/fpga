@@ -391,6 +391,15 @@
 - PCIe 的 S2-A/S2-B `.f/.do` 从分散的 `sim/` 与 `scripts/` 迁入 `pcie_dma_test_100h/sim/questa/`，`scripts/run.ps1` 和两项静态 gate 改为只认新位置，避免双份 filelist 漂移。
 - DDR3 与摄像头目录目前只记录厂商 IP 示例边界和项目级入口缺口：厂商 `sim/modelsim` 资产不计作项目集成仿真；DDR3 等待 D3 canonical 闭环，摄像头等待 OV5640 C0/C1/C2/C3 后再补四级入口。
 - 迁移后使用 Questa Sim-64 `2021.1` 从新入口复验 S2-A；run `26db7d3206c542218634caff2c6e71ea` 编译 0 errors/0 warnings，运行至 `1476105 ns`，唯一 `TEST PASS`，PowerShell 退出 0。
+- 后续审核明确要求仿真工程完整留在各自项目内：新增 `scripts/check_sim_archives.ps1`，将 PCIe 的三个既有项目自有 SV 仿真源收拢到 `sim/questa/tb/`，并把该检查纳入根仓库门禁。
+- 结构门禁拒绝归档目录中的 `.mpf`、`work`、`modelsim.ini`、transcript、日志和波形；`.gitignore` 同步覆盖常见 Questa 工程运行态扩展名。
+- 收拢后复验 S2-A run `517c1897a6dd433bb3c5cfc84acd0ba9`：编译 `0 errors/0 warnings`、运行至 `1476105 ns`、唯一 PASS、退出 0；S2-B run `6a7817195de44fc6b1ab55a16f073e31`：运行至 `702175 ns`、唯一 link marker/PASS、`Errors: 0, Warnings: 26`、退出 0。
+- S2-C 下一小批冻结 `S2C_BAR1_REGENERATION.md` 和 `check_s2c_bar1.ps1`：活动 BAR1 仍为禁用事实，只有 PDS IP Compiler staging、完整参数/资产差异审核和原子升格后才允许进入 Endpoint 主动 DMA 动态闭环。
+- 已确认 SP6.4 `ip_generate.exe` 的现有实例 CLI；新增 `regenerate_bar1_staging.ps1`，只把 BAR1 启用/512 Bytes 改动写入 `build/ipgen/pcie_bar1/`，默认不执行生成，避免覆盖 canonical IP。
+- 首次 `-Execute` staging 试运行发现活动 IDF 旁缺少 PDS 所需 `index.xml`，生成器因此非零退出。脚本现改为在执行前检查该元数据；待从完整 IP Compiler 实例工程取得同版本 `index.xml` 后再重试。
+- 复核发现 DDR3 README 残留旧的“未发现 Questa”表述，已改为记录当前 Questa `2021.1` 可用、但 DDR3 项目级四级仿真仍未执行。
+- PR #10 复核：远端状态 `OPEN/CLEAN`，无评论和 review；新增 `S2-C-BAR1-INPUT` TODO，明确等待同版本完整 PCIe 实例导出的 `index.xml`。
+- 追加事实审计：Git 历史、工作区其他工程和 PDS 安装目录均没有该 PCIe 实例配套的 `index.xml`；其他 IP 的同名文件明确不可复用。
 
 ## 2026-09-01：PCIe S2-B 动态入口推进
 

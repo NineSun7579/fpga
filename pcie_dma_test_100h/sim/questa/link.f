@@ -5,4 +5,4 @@
 +incdir+ipcore/pcie_test/sim/modelsim
 -f sim/questa/link_vendor_local.f
 -f scripts/pds_sources.f
-tb/tb_pcie_dma_link.sv
+sim/questa/tb/tb_pcie_dma_link.sv
