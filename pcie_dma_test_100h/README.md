@@ -155,7 +155,10 @@ setup/hold error；终态为 `Errors: 2`，PowerShell 退出 1。Pango `V_FFASYN
 
 综合后/PNR 功能 smoke 不等于 SDF 时序验证。基础 DMA 回读属于 S2-C，不会用
 S2-A 受控模型或 S2-B link-up 冒充通过。BAR1 staging 还需要同版本完整 IP
-Compiler 实例导出的 `index.xml`，取得前不覆盖 canonical IP。
+Compiler 实例导出的 `index.xml`，取得前不覆盖 canonical IP。当前 dry-run 已由
+`check_s2c_bar1.ps1` 验证为有效 XML，且只改变 `BAR1_Enable=false→true` 和
+`BAR1_Size=256→512 Bytes`；`BAR1_MASK_EN=false` 与 `BAR1_MASK=31'h0` 保持不变。
+缺元数据的 `-Execute` 和损坏 staging 均按预期非零失败。
 
 ## 验收条件
 

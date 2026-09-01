@@ -473,3 +473,11 @@
 - 主代理用原始 blob 字节独立确认 17 个候选 RTL 中 10 个不是严格 UTF-8；所有候选导入前必须按 VSCS 1.0.0 关闭文件职责、接口、逐域复位、CDC/RDC、FIFO 和 FSM 文档缺口。
 - 参考 FDC 统计为 3 个 primary clock、6 个 generated clock、0 个 input delay、0 个 output delay、2 个 camera dedicated-route override 和 4 个 camera `PAP_IO_UNUSED`；管脚、电压、时序和层级必须依据 PG2L50H 实板重建。
 - TODO 已拆为 C0 完成、C1 仍受 H3 阻断；选择性导入、PG2L50H IP/FDC、项目内 Questa 和四级仿真留给后续独立批次。
+
+## 2026-09-01：PCIe S2-C BAR1 staging 输入完整性
+
+- 只读审计覆盖 17 个实时 `origin` 分支、完整 Git 历史/reflog、工作区和 PDS SP6.4 安装：未找到匹配 PCIe `1.2c` 的 `index.xml`。`origin/parallel_driver` 的 PCIe IDF 与活动 IDF 是同一 blob；安装中的 46 个 `index.xml` 均属其他 IP，`iplist.xml` 列出的 PCIe `1.4/1.5/1.6` 归档也未落盘。
+- dry-run 稳定复现 `regenerate_bar1_staging.ps1` 把 `BAR1_MASK` 从 `31'h0` 损坏为 `31'h0(`。根因是 no-op replacement 的结束标签写成字面量括号。
+- 脚本现只执行两个唯一替换：`BAR1_Enable=false→true`、`BAR1_Size=256→512`；写入前解析 XML，并验证 Size Unit、MASK_EN 与 MASK 均保持合同值。dry-run 使用 `return`，允许门禁在同一 PowerShell 进程继续检查。
+- `check_s2c_bar1.ps1` 现执行真实 dry-run，验证 staging XML 和唯一差异，同时以 SHA-256 证明 canonical IDF/wrapper 未修改。正常样本通过；人工损坏 mask 的样本以两项精确失败被拒绝；缺 `index.xml` 的 `-Execute` 在调用生成器前退出 1。
+- 本批不启用 canonical BAR1、不修改生成 wrapper、不运行 IP Generator 或 S2-C DMA；所有 staging 与负向样本仍只位于 ignored `build/`。
