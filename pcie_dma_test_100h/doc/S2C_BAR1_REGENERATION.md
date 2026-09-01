@@ -31,3 +31,5 @@
 ## 工具前置条件
 
 2026-09-01 使用 SP6.4 `ip_generate.exe -i` 对 staging IDF 做实际试运行时，工具在生成前报告实例目录缺少 `index.xml`，以非零退出。当前仓库的活动 PCIe IDF 旁确实没有该文件。脚本因此在 `-Execute` 前置检查中明确拒绝继续；需要从同版本 PDS IP Compiler GUI 或完整实例工程导出合法 `index.xml` 后，再重新执行 staging 生成。
+
+2026-09-01 追加审计确认：Git 历史、当前工作区其他工程和 PDS 安装目录均未发现与该 PCIe 实例配套的 `index.xml`。现有 PDS 目录中的同名文件属于其他 IP，不能复用。
