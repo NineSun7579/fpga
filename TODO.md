@@ -1,6 +1,6 @@
 # DDR3、PCIe 与双 OV5640 项目整改 TODO
 
-更新日期：2026-09-02
+更新日期：2026-09-01
 
 状态：三项目器件迁移已获审核。活动项目仅指 DDR3、PCIe 和双 OV5640 摄像头 HDMI，最终均运行在同一块 `RK3568+PG2L50H100H` 开发板，实际 FPGA 为 `PG2L50H-6IFBG484`，PDS 目标统一为 `Logos2 / PG2L50H / FBG484 / -6`。摄像头产品目标固定为双 OV5640；`41_ov7725_hdmi/` 不属于三个活动项目，只保留为只读 legacy 历史证据。既有 PG2L100H 构建、STA、网表、SDF 和位流不得用于实际板卡验收或烧录。双 OV5640 范围见 [`docs/OV5640_TARGET_SCOPE.md`](docs/OV5640_TARGET_SCOPE.md)。
 
