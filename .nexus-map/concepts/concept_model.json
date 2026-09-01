@@ -288,12 +288,12 @@
       "type": "System",
       "label": "OV7725 HDMI Legacy 顶层",
       "responsibility": "保存 OV7725 采集、DDR3 帧缓存与 HDMI/TMDS 的历史实现和问题证据，供 OV5640 C2 选择性参考。",
-      "implementation_status": "legacy_evidence_with_timing_failures",
+      "implementation_status": "frozen_legacy_evidence_with_timing_failures",
       "code_path": "41_ov7725_hdmi/rtl/",
       "evidence_path": "41_ov7725_hdmi/doc/M3A_IP_MIGRATION_AUDIT.md",
       "evidence_gap": "M3-A、O1-B、O2-B/O2-D1 和旧 PDS/STA 结果只属于 OV7725 legacy；不得直接继承为 OV5640 产品实现、板级签核或 S3 结果。",
       "m3a_ip_migration_audit": {
-        "status": "documented_staging_blocked",
+        "status": "documented_frozen_legacy",
         "active_target": "Logos2/PG2L100H/FBG484/-6, PDS SP4.2 build 132111",
         "approved_target": "Logos2/PG2L50H/FBG484/-6, PDS SP6.4",
         "version_gaps": {
@@ -303,15 +303,16 @@
           "wr_fifo": {"active": "1.8", "installed": "1.10"}
         },
         "probe_failures": ["IPCompiler 0037", "IPCompiler 0057"],
-        "approved_generation_path": "SP6.4 IP Compiler GUI new-instance only; output only to 41_ov7725_hdmi/build/ipgen/pg2l50h/**",
+        "historical_generation_rule": "If migration had continued, SP6.4 IP Compiler GUI new-instance output was restricted to 41_ov7725_hdmi/build/ipgen/pg2l50h/**; product migration is now cancelled.",
         "derived_parameter_gates": {"DEVICE_100H_EN": false, "DEVICE_PG2L50H": true},
         "fifo_pg2l50h_limits": {"DRM36K": 85, "DRM18K": 170},
         "rcf_status": "legacy hierarchy mismatch; historical processing hit zero nets; explicit load and object hit remain unproven",
         "canonical_hash_gate": true,
-        "promotion_blockers": ["DDR3 part and x16/x32 organization", "row14 versus row15", "byte lanes and pinout", "VCCIO/VREF/ODT", "wrapper/FDC/RCF/clock-object diff review", "PG2L50H clean baseline"]
+        "promotion_status": "cancelled_no_ov7725_pg2l50h_promotion",
+        "legacy_risks": ["DDR3 part and x16/x32 organization", "row14 versus row15", "byte lanes and pinout", "VCCIO/VREF/ODT", "wrapper/FDC/RCF/clock-object diff review", "PG2L50H clean baseline never established"]
       },
       "tech_stack": ["Verilog", "Pango Logos2", "DDR3", "TMDS"],
-      "related_reqs": ["逐域复位", "单点事件同步", "FIFO 分侧复位", "结构后精确例外", "O1-B complete", "M3-A complete", "O2-A/O2-B rejected/O2-D1/O2-D2/O3-A/O2-C1/O2-C2/O3-B/O4", "H3/O1-C mem_a"],
+      "related_reqs": ["O1-B complete", "M3-A complete", "O2-A/O2-B rejected/O2-D1 historical evidence", "M3-B/O1-C/O2-D2/O3/O4 cancelled", "dual OV5640 C2/C3 re-audit"],
       "complexity": "high",
       "hotspot": true
     },
@@ -372,17 +373,17 @@
         "failing_endpoints": 8,
         "total_endpoints": 8,
         "endpoint_scope": "four serializers, eight OSERDES",
-        "next_steps": ["user review", "O2-D2 single attempt", "H3 board evidence", "O1-C", "O3-A", "O2-C1", "O2-C2", "O3-B", "O4"]
+        "next_steps": ["retain as frozen legacy evidence", "re-audit applicable risks in dual OV5640 C2/C3"]
       },
       "decisions": [
         "显式声明 rst_n",
         "删除无消费者 sys_init_done",
         "高有效 reset 驱动四个 serializer 内的八个 OSERDES",
-        "mem_a 从 O1-B 排除并转 H3/O1-C",
+        "mem_a 从 O1-B 排除并冻结为 legacy 风险",
         "O1-B 不修改 IP、FDC、CDC/RDC"
       ],
       "tech_stack": ["Verilog-2001", "PDS SP6.4 elaboration", "DDR3 IP", "GTP_OSERDES_E2"],
-      "related_reqs": ["O1-A complete", "O1-B complete", "O2-A/O2-B rejected/O2-D1/O2-D2/O3-A/O2-C1/O2-C2/O3-B/O4", "H3/O1-C", "VSCS"],
+      "related_reqs": ["O1-A complete", "O1-B complete", "O2-A/O2-B rejected/O2-D1 historical evidence", "future OV7725 work cancelled", "dual OV5640 C2/C3 re-audit", "VSCS"],
       "complexity": "medium",
       "hotspot": true
     },
@@ -429,10 +430,10 @@
         ],
         "fast_reverse_recovery": {"launch_clock": "pixel_clk_5x", "capture_clock": "pixel_clk", "wns_ns": -1.464, "failing_endpoints": 8, "total_endpoints": 8},
         "reverse_endpoint_scope": "serializer_b/g/r/clk x opit_2/opit_2_com OSERDES OCLKDIV",
-        "next_phase": "O2-D1-G contract complete; pending user review before one O2-D2 attempt"
+        "next_phase": "frozen legacy; O2-D2 cancelled; re-audit principles only in dual OV5640 C2/C3"
       },
       "o2d1_architecture_decision": {
-        "status": "contract_frozen_pending_implementation",
+        "status": "contract_frozen_legacy_no_implementation",
         "dynamic_ioclkbuf_gating": "rejected",
         "gating_rejection_reason": "SP6.4 PG2L100H Liberty has no DI clock-gating check and cannot statically prove stop-reset-release-restart ordering",
         "only_candidate": {
@@ -466,7 +467,7 @@
             "hard_reset_targets": ["divider reset", "pixel/business reset", "four local serializer reset registers", "controller counter"],
             "business_reset": "exit RUN and re-warm up; never asynchronously or combinationally drive OSERDES local reset",
             "ddr3_init_done": "excluded from hard reset, QUALIFY, ARM, OSERDES reset and state transitions; later synchronized as business enable/status",
-            "fifo_reset_flush": "reserved for O2-C2"
+            "fifo_reset_flush": "legacy O2-C2 cancelled; must be redesigned in dual OV5640 C2/C3"
           },
           "first_valid_tmds_symbol": "first OCLKDIV rising edge after serializer reset deassertion that captures a simultaneously determined complete TMDS parallel word across all four lanes; not the first active video pixel; RUN is delayed at least two control cycles",
           "stop_conditions": ["generated-clock object resolves to zero or multiple objects", "source count is not one", "automatic/explicit clock name collision", "waveform mismatch", "divider connected to post-buffer", "any required Slow/Fast Recovery or Removal endpoint missing or negative", "new baseline failure signature", "PDS/gate/artifact failure" ]
@@ -747,7 +748,7 @@
           "timing_sdf_bitstream_artifacts_present": true,
           "interpretation": "current inputs reproduce the approved non-release baseline; baseline exit 0 is not release-ready and all five strict release blockers remain"
         },
-        "ci8b_boundary": "DDR3 and OV7725 migrate only after their own PG2L50H canonical promotion; audit each source list and artifact layout independently before considering shared modules."
+        "ci8b_boundary": "DDR3 and the new dual-OV5640 project receive independent provenance manifests only after their own PG2L50H canonical promotion; OV7725 remains frozen legacy."
       },
       "s2a_behavior_smoke": {
         "date": "2026-09-01",

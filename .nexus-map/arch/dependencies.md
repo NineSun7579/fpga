@@ -25,15 +25,8 @@ flowchart TD
   OVResetAudit --> OVResetRejected["O2-B 已否决并回退\ncompile + 七阶段 / Recovery 失败"]
   OVResetRejected --> OVBaseline["O2-D1-R\n回退基线重建"]
   OVBaseline --> OVResetReview["O2-D1-G\ngenerated-clock / 状态契约"]
-  OVResetReview --> OVResetImpl["O2-D2\n审核后只执行一次"]
-  OVResetImpl --> OVMemA["O1-C mem_a"]
-  OVMemA --> OVInitSync["O3-A\n同步 ddr3_init_done"]
-  OVInitSync --> OVDomainReset["O2-C1\n普通时钟域本地复位"]
-  OVDomainReset --> OVFifoReset["O2-C2\nFIFO reset/flush"]
-  OVFifoReset --> OVEventCdc["O3-B\n帧事件 CDC"]
-  OVFifoReset --> OVTimingClose["O4\n约束与时序闭环"]
-  OVEventCdc --> OVTimingClose
-  OVBoard["H3 板级 DDR3 事实"] -. "决定 14/15 bit" .-> OVMemA
+  OVResetReview --> OVFrozen["M3-B/O1-C/O2-D2/O3/O4\n产品主线取消"]
+  OVFrozen -. "风险与结构逐项重审" .-> DualOV5640
 
   DDRBringup["ddr3_test\n临时 bring-up 工程"] --> DDRIdf["ddr3.idf\n厂商 IP"]
   DDRBringup --> DDRExample["test_ddr\n临时 bring-up 顶层"]
@@ -86,10 +79,9 @@ flowchart TD
 - OV7725 O1-B 已消除 38 条确定性手写 RTL 位宽告警，只剩精确的 `ddr3_ip.mem_a` 1 条；严格 gate 返回 1，baseline 仅在七组 corner/check/clock pair/endpoints 精确匹配时返回 0，且继续标记不可发布。
 - 高有效 reset 已驱动四个 serializer 内的八个 OSERDES。O2-B 曾按 O2-A 契约级联 `pixel_clk_5x` 两级释放并完成 compile/七阶段，但 Slow Recovery 出现 `pixel_clk_5x → pixel_clk_5x -0.349 ns / 8/8` 与 `pixel_clk_5x → pixel_clk -2.173 ns / 8/8`，Fast Recovery 反向组仍为 `-1.464 ns / 8/8`；八个反向 endpoint 正是四个 serializer 的 master/slave OSERDES `OCLKDIV` 检查。
 - O2-B 已触发停止条件并完整回退；`check_build.ps1`、旧七组 baseline、FDC/RCF、PLL/IP 和时序例外均未修改。O2-D1 已否决动态门控，O2-D1-G 进一步冻结唯一候选：`CLKOUT3=65.0026 MHz`、约 `+0.192 ns` 相位、每 serializer 本地 reset 复制，以及唯一 `/5` generated-clock（`u_pll_clk/clkout1` → 唯一 `GTP_IOCLKDIV_E2.CLKDIVOUT`，`-edges {1 5 11}`）。
-- `mem_a` 不属于 O1-B：活动 IP 是 14 bit，顶层/FDC 是 15 bit，综合网表把第 15 bit 绑 0。该冲突转入 H3/O1-C，必须依据 DDR3 料号、组织和原理图决定收窄 RTL/FDC 或重生成 IP。
-- OV7725 O2-D1-R 与 O2-D1-G 是旧 PG2L100H 基线上的历史证据；必须先用 SP6.4 为 PG2L50H 重生成四个活动 IP并建立新 baseline，再重新审核 O2-D2。重新审核通过后仍只允许一次实现；任一 generated-clock、waveform、端点覆盖或新 baseline 失败即完整回退，不扫描第二相位或增加 waiver。
-- OV7725 M3-A 已证明旧 IDF 不能直接迁移：活动/安装版本为 DDR3 `1.12/1.10`、PLL `1.3/1.5`、FIFO `1.8/1.10`，探针以 `IPCompiler 0037/0057` 失败。M3-B 唯一入口是 SP6.4 GUI 新建 PG2L50H 当前版本实例，输出只到 `build/ipgen/pg2l50h/**`；禁止旧 IDF override、版本字段编辑和 canonical 原地生成。
-- M3-B 的派生与资源依赖固定为 DDR3 `DEVICE_100H_EN=false`、PLL `DEVICE_PG2L50H=true`、FIFO 不超过 85 个 DRM36K/170 个 DRM18K；真实 DDR3 颗粒/组织、row14/15、byte lane、VCCIO/VREF/ODT、I/O pin 与 RCF 对象命中未审核时，四 IP 不得升格或用于 50H 构建。
+- `mem_a` 不属于 O1-B：活动 IP 是 14 bit，顶层/FDC 是 15 bit，综合网表把第 15 bit 绑 0。该冲突冻结为 OV7725 legacy 风险，不再修改旧 RTL/FDC/IP；双 OV5640 的 DDR3 地址组织必须在新项目依据一手板级资料重新建立。
+- OV7725 O2-D1-R、O2-D1-G 与 M3-A 均为旧 PG2L100H 历史证据。owner 已取消 M3-B、O1-C、O2-D2、O2-C1/C2、O3 与 O4；不得再为旧工程重生成 PG2L50H IP、修改功能 RTL/约束或生成产品位流。
+- 双 OV5640 C2/C3 可逐项参考旧 generated-clock、端点覆盖、CDC/RDC、FIFO reset 与 IP 版本断层风险，但必须在 `59_top_dual_ov5640_hdmi/` 独立设计、生成和验证，不继承旧参数、对象或 baseline。
 - DDR3 新入口已用 `test_ddr`、`ddr3.idf`、FDC 和 RCF 从空 `build/` 完成七阶段全流程，内部 STA 为 `All Constraints Met`，且综合网表、PNR 网表、SDF 和位流均非零。
 - DDR3 M2 只读审计（2026-08-30）确认：活动 `ddr3_test/ddr3_test/ip_core/ddr3/ddr3.idf` metadata 为 `Logos2/PG2L100H/FBG484/-6`，生成器为 `2022.2-SP6.4`；canonical 约束是 `ip_core/ddr3/pnr/ddr_test.fdc` 与 `ip_core/ddr3/pnr/ddr3.rcf`。外层 `ip_core/ddr_test.fdc` 仅作为旧硬宏位置参考，不得覆盖 canonical 约束。
 - DDR3 现存 `ip_backup/20250108100125/ddr3/ddr3.idf` 虽标识 `Logos2/PG2L50H/FBG484/-6`，但由 `2022.2-SP6.1` 生成；它只能用于参数/器件差异比对，不能直接恢复、复制或作为 SP6.4 发布输入。M2 必须在 SP6.4 中重新生成 controller、PHY、wrapper、仿真资产、FDC 和 RCF。
@@ -120,5 +112,5 @@ flowchart TD
 - PCIe `sim/questa/behav.f` 单独包含仿真所需 `ips2l_pcie_apb_cross_v1_0.v`；不得为此修改 `scripts/pds_sources.f`，因为实现侧由 IDF 管理该源。
 - CI-0 仓库级静态一致性门禁依赖根指南/TODO/VSCS、三个项目 README 与各自 `build.tcl`/`run.ps1`/`check_build.ps1`；当前工作区门禁退出码为 0，7 个 PowerShell 脚本 AST 解析错误数为 0。它只验证结构、入口与文档关系，不解除任何 PDS、STA、板级或仿真阻断。
 - CI-7 依赖 `docs/PDS_TCL_ENTRYPOINT_INVENTORY.json` 与 `scripts/check_pds_tcl_entrypoints.ps1`：13 个 tracked Tcl 必须逐项分类；只有三个 `scripts/build.tcl` 可由 `run.ps1` 调用。PCIe build 目标为 PG2L50H，OV7725/DDR3 build 仍为 PG2L100H migration-blocked；历史 GUI、厂商内部和厂商仿真 Tcl 不得进入当前器件/STA/位流证据链。正向门禁为 0，缺失清单项负向测试为 1。
-- CI-2 在 CI-0 上增加三项目板级证据清单路径、项目关键词、README 链接和统一章节门禁；清单结构通过只允许继续收集证据，不会自动解锁 H0/H1/H2/H3、PCIe H2-B 或 DDR3/OV7725 板级整改。
+- CI-2 在 CI-0 上增加三项目板级证据清单路径、项目关键词、README 链接和统一章节门禁；清单结构通过只允许继续收集证据，不会自动解锁 H0/H1/H2/H3、PCIe H2-B、DDR3 或双 OV5640 板级整改。OV7725 清单仅保留 legacy 事实。
 - CI-9 依赖 `scripts/check_sensitive_diff.ps1` 与 `docs/SENSITIVE_DIFF_GATE.md`：`-FullTree` 扫描当前 tracked/untracked 工作树，PR 模式扫描 merge-base 后的路径和新增行。68 个 tracked 日志中的 143 处许可证绝对路径已替换为 `<license-path>`；全树通过证明当前版本已清理，差异通过阻止后续重引入，但两者都不改写 Git 历史。

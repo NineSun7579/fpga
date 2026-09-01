@@ -447,3 +447,9 @@
 - 参考分支的 `sim_*`/`work` 编译库、`.mpf`、`modelsim.ini`、日志、波形和带本机绝对路径的生成文件不得导入；许可证配置继续保持在仓库外。
 - `41_ov7725_hdmi/sim/questa/` 只保留 OV7725 legacy 档案，不再作为双 OV5640 仿真入口。
 - linked worktree 复验暴露 `.gitignore` 的 `build/` 门禁只接受 LF；已将正则收紧为同时接受 LF/CRLF，不改变必须存在精确 `build/` 规则的语义。
+
+# 2026-09-01：OV7725 TODO 冻结并收口到双 OV5640
+
+- owner 再次明确不再使用 OV7725，摄像头产品唯一主线为双 OV5640。
+- `41_ov7725_hdmi/`、O0/O1/O2/M3-A、旧 PDS/STA/CDC/RDC 和失败实验继续保留为 legacy 证据，但 M3-B、O1-C、O2-D2/O2-C1/O2-C2、O3、O4 和旧工程 CI-8B 均取消，不再重生成 PG2L50H IP、修改旧 RTL/FDC、执行项目级 Questa 或实板签核。
+- 摄像头 CI-8B、C2/C3 和 S3 全部改由 `59_top_dual_ov5640_hdmi/` 承担；参考分支与 OV7725 只能提供选择性审核输入，不能直接继承模块、IP、约束、STA、SDF、位流或 PASS。
