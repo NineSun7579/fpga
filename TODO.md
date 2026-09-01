@@ -63,7 +63,7 @@
 - [x] S0-1-Q：PDS `2022.2-SP6.4` 已用 Questa `2021.1` 成功编译 Logos2 USIM，包括 Pango `modelsim10.2c` 保护模型、HSST 和 PCIe Gen2 库；日志无 `E:` 且库目录非空。
 - [x] 完成三项目 S1/S2/S3 仿真就绪度只读盘点；矩阵见 [`docs/SIMULATION_READINESS_MATRIX.md`](docs/SIMULATION_READINESS_MATRIX.md)。三项目项目级 TB、`.f`、`.do` 均缺失，现有资产均为厂商 IP 示例，不能直接作为集成验收。
 - [x] 验证 QuestaSim 版本、三项可执行文件、许可证 checkout 和最小 SystemVerilog smoke；安装与许可证位置保持为仓库外部参数。
-- [ ] 编译并验证 Logos2 VSIM；USIM 已通过，不重复列为阻断。
+- [x] 编译并验证 Logos2 VSIM；PNR 原语 `V_BUF` 已从共享库成功加载并完成最小动态 smoke。
 - [ ] 完成三项目分级自检仿真。
 
 ### 当前执行队列（2026-08-30）
@@ -94,11 +94,11 @@
    - 交付：板级参数审核后原子升格四个 IP，重建 FDC/RCF、clock object 和全流程 baseline；DDR3 `DEVICE_100H_EN=false`、PLL `DEVICE_PG2L50H=true`，FIFO 必须满足 85 个 DRM36K/170 个 DRM18K 资源上限。
    - 验收：旧 100H 七组时序指纹、endpoint 数和 `+0.192 ns` 裕量全部作废；基于新 50H STA 重新审核 O2-D2。
 
-5. **S0-1：关闭公共 Questa 仿真环境门禁（部分完成）**
-   - 已完成：Questa Sim-64 `2021.1` 三项可执行文件、外部许可证 checkout、最小 SystemVerilog smoke 和 Logos2 USIM 编译验证。
+5. **S0-1：关闭公共 Questa 仿真环境门禁（已完成）**
+   - 已完成：Questa Sim-64 `2021.1` 三项可执行文件、外部许可证 checkout、最小 SystemVerilog smoke，以及 Logos2 USIM/VSIM 编译验证。
    - 保密边界：工具安装位置和许可证配置只通过运行参数或本机环境提供；许可证路径、服务器、feature、许可证内容和许可证文件均不得提交。
-   - 待交付：编译 Logos2 VSIM；验证 USIM/VSIM 可从项目 DO 脚本映射，并保存不含本机敏感路径的结果摘要。
-   - 验收：USIM/VSIM 各自编译退出码为 0、日志无 `^E:`、库目录存在且非空；最小 SV smoke 和项目仿真均能可靠传播退出码。
+   - 验证证据：USIM/VSIM 各自编译退出码为 0、日志无 `^E:`、两个库目录均存在且非空；最小 SV smoke 与从 VSIM 加载 `V_BUF` 的原语 smoke 均为唯一 `TEST PASS`。
+   - 剩余边界：公共环境门禁完成不等于三个项目的后级网表、SDF 标注或板级功能通过；这些仍由 S1/S2/S3 分项目关闭。
 
 6. **H0/H1/H3：补齐其余板级事实（外部阻断）**
    - 前置：板卡型号与 FPGA 型号已确认；仍需原理图/BOM、bank 电压、DDR3 料号/拓扑、OV7725/HDMI 时序资料。
@@ -442,7 +442,7 @@ O2-D2 停止条件：控制相位或 `/5` generated clock 未被 PDS 唯一识�
 - [x] S0-0（2026-08-30）：历史环境复核未发现 ModelSim/QuestaSim 三项可执行文件；该结论已由 2026-09-01 的新环境证据取代。
 - [x] S0-0-Q（2026-09-01）：确认 Questa Sim-64 `2021.1` 的 `vsim.exe`、`vlog.exe`、`vlib.exe` 可执行，最小 SystemVerilog smoke 编译、elaboration、运行和退出码均通过。
 - [x] S0-1-Q：编译 Logos2 USIM 到 `build/simlib/`，Pango 保护模型、HSST 和 PCIe Gen2 库编译成功，日志无 `^E:`。
-- [ ] 编译 Logos2 VSIM 到 `build/simlib/`，并验证 PNR 后功能/时序仿真所需原语可加载。
+- [x] 编译 Logos2 VSIM 到 `build/simlib/`；编译日志无 `^E:`，库目录非空，`V_BUF` 原语可被 Questa 加载并完成最小 smoke。
 - [x] 将仿真器安装路径作为可覆盖外部参数，不写入工程源清单。
 - [x] 将许可证配置保持在仓库外部；禁止提交许可证绝对路径、服务器、feature、内容或许可证文件。
 

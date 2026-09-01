@@ -6,7 +6,7 @@
 
 ## 结论
 
-DDR3 与 OV7725 当前仍没有面向项目集成顶层的仿真入口。Questa Sim-64 `2021.1` 已通过三项可执行文件、外部许可证 checkout、最小 SystemVerilog smoke 和 Logos2 USIM 编译验证；许可证配置保持在仓库外部。PCIe S2-A 首次动态运行完成 RTL 编译，但在 elaboration 因仿真专用 filelist 缺少 `ips2l_pcie_apb_cross_v1_0` 而失败，尚无动态 `TEST PASS`；S2-B 仍只有静态入口。VSIM 库和三个项目的完整动态仿真仍待完成。
+DDR3 与 OV7725 当前仍没有面向项目集成顶层的仿真入口。Questa Sim-64 `2021.1` 已通过三项可执行文件、外部许可证 checkout、最小 SystemVerilog smoke，以及 Logos2 USIM/VSIM 编译验证；VSIM 的 `V_BUF` 原语已成功加载并输出唯一 `TEST PASS`，许可证配置保持在仓库外部。PCIe S2-A 首次动态运行完成 RTL 编译，但在 elaboration 因仿真专用 filelist 缺少 `ips2l_pcie_apb_cross_v1_0` 而失败，尚无动态 `TEST PASS`；S2-B 仍只有静态入口。三个项目的后级网表和 SDF 动态仿真仍待完成。
 
 项目级仿真必须新增相对路径的 filelist、DO 脚本和自检 testbench；不得批量修改 `ipcore/`、`ip_core/`、`ip_backup/` 下的厂商生成文件，也不得把厂商示例顶层改名后冒充集成验证。
 
@@ -14,8 +14,8 @@ DDR3 与 OV7725 当前仍没有面向项目集成顶层的仿真入口。Questa 
 
 | 项目 | 项目级 TB | 项目级 `.f/.do` | 厂商示例资产 | 当前最高阻断 | 进入动态仿真的前置 |
 |---|---:|---:|---|---|---|
-| OV7725 HDMI | 无 | 无 | DDR3、PLL、FIFO 示例 | 无摄像头/HDMI 集成 TB；VSIM 未验证 | 输入格式契约、O2-D2/O3 相关 RTL 锁定 |
-| DDR3 | 无 | 无 | DDR3 `test_ddr`/memory model 示例 | 旧 TB 端口失配；VSIM 未验证 | D3-A/B/C 项目自有 BIST/top |
+| OV7725 HDMI | 无 | 无 | DDR3、PLL、FIFO 示例 | 无摄像头/HDMI 集成 TB | 输入格式契约、O2-D2/O3 相关 RTL 锁定 |
+| DDR3 | 无 | 无 | DDR3 `test_ddr`/memory model 示例 | 旧 TB 端口失配 | D3-A/B/C 项目自有 BIST/top |
 | PCIe DMA | S2-A 受控 TB；S2-B 真实 RC/EP TB | `behav.f/run_behav.do`；`link.f/run_link.do` | `pango_pcie_top` RC/EP 示例 | S2-A filelist 漏项；S2-B 动态、DMA、H2-B1 | 修复 S2-A canonical filelist 后重跑；再运行 S2-B |
 
 ## OV7725 HDMI
@@ -102,10 +102,10 @@ DDR3 与 OV7725 当前仍没有面向项目集成顶层的仿真入口。Questa 
 ## 依赖顺序
 
 ```text
-S0-1 Questa/USIM 已验证，继续完成 VSIM 编译
+S0-1 Questa、USIM、VSIM 已验证
         ├─ S1 DDR3：D3-A → D3-B → D3-C → D4
         ├─ S2 PCIe：S2-A 动态 → S2-B 动态 → S2-C → 后级网表仿真
         └─ S3 OV7725：输入格式确认 → O2-D2/O3 锁定 → 集成 TB → 四级仿真
 ```
 
-在 VSIM 与对应项目入口完成前，不声称四级动态仿真通过。Questa/USIM 工具验证只解除公共环境的一部分阻断，不替代项目 `TEST PASS`。厂商示例保留为参考证据；所有项目验收必须由项目自有顶层和自检 TB 完成。
+S0-1 完成只证明公共仿真器和 Pango 原语库可用，不替代任何项目级 `TEST PASS`、后级网表或 SDF 标注。厂商示例保留为参考证据；所有项目验收必须由项目自有顶层和自检 TB 完成。
