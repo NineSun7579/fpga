@@ -40,6 +40,7 @@ $CheckBuildScript = Join-Path $PSScriptRoot 'check_build.ps1'
 $ProvenanceScript = Join-Path $PSScriptRoot 'build_provenance.ps1'
 $PdsShell = Join-Path $PdsBin 'pds_shell.exe'
 $Vsim = Join-Path $QuestaBin 'vsim.exe'
+$Vmap = Join-Path $QuestaBin 'vmap.exe'
 
 if (-not (Test-Path -LiteralPath $ProvenanceScript -PathType Leaf)) {
     throw "PDS provenance helper not found: $ProvenanceScript"
@@ -191,6 +192,7 @@ function Invoke-ModelSim {
     )
 
     Assert-Executable -Path $Vsim -Description 'ModelSim/QuestaSim executable'
+    Assert-Executable -Path $Vmap -Description 'ModelSim/QuestaSim library mapper'
 
     $DoFile = Join-Path $ProjectRoot $DoFileName
     if (-not (Test-Path -LiteralPath $DoFile -PathType Leaf)) {
@@ -207,23 +209,34 @@ function Invoke-ModelSim {
 
     $LogFile = Join-Path $LogDir $LogFileName
     $RunId = ([Guid]::NewGuid().ToString('N')).ToLowerInvariant()
+    $LaunchDir = Join-Path $BuildRoot "sim\launcher\$RunId"
+    $ModelsimIni = Join-Path $LaunchDir 'modelsim.ini'
+    $DoFileForTcl = $DoFile.Replace('\', '/')
     $PreviousRunId = $env:SIM_RUN_ID
+    $PreviousSimProjectRoot = $env:SIM_PROJECT_ROOT
     $PreviousPangoPdsRoot = $env:PANGO_PDS_ROOT
     $env:SIM_RUN_ID = $RunId
+    $env:SIM_PROJECT_ROOT = $ProjectRoot
     if ($ResolvedPangoPdsRoot) {
         $env:PANGO_PDS_ROOT = $ResolvedPangoPdsRoot
     }
 
-    Push-Location $ProjectRoot
+    New-Item -ItemType Directory -Force -Path $LaunchDir | Out-Null
+    Push-Location $LaunchDir
     try {
+        & $Vmap -c
+        if ($LASTEXITCODE -ne 0) {
+            throw "Failed to create run-scoped modelsim.ini with exit code $LASTEXITCODE"
+        }
         Write-Host "INFO: running simulation script '$DoFileName' (run $RunId)"
-        & $Vsim -c -do "do $DoFileName"
+        & $Vsim -c -modelsimini $ModelsimIni -do "do {$DoFileForTcl}"
         if ($LASTEXITCODE -ne 0) {
             throw "Simulation failed with exit code $LASTEXITCODE"
         }
     } finally {
         Pop-Location
         $env:SIM_RUN_ID = $PreviousRunId
+        $env:SIM_PROJECT_ROOT = $PreviousSimProjectRoot
         $env:PANGO_PDS_ROOT = $PreviousPangoPdsRoot
     }
 

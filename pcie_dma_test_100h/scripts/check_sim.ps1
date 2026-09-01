@@ -250,6 +250,9 @@ if ($TestbenchText -match '\bpango_pcie_top(?:_sim)?\b') {
 
 foreach ($Required in ([ordered]@{
         'DO fail-fast handler' = 'onerror\s*\{'
+        'DO project-root environment requirement' = 'info exists env\(SIM_PROJECT_ROOT\)'
+        'DO project-root discovery' = 'set\s+project_root\s+\[file normalize \$env\(SIM_PROJECT_ROOT\)\]'
+        'DO project-root working directory' = 'cd\s+\$project_root'
         'DO stale transcript cleanup' = 'file\s+delete\s+-force\s+build/logs/sim-behav\.log'
         'DO transcript path' = 'transcript\s+file\s+build/logs/sim-behav\.log'
         'DO transcript run identity' = 'echo\s+"INFO:\s+SIM_RUN_ID=\$env\(SIM_RUN_ID\)"'
@@ -268,6 +271,12 @@ if ($DoText -match '[A-Za-z]:[/\\]') {
 foreach ($Required in ([ordered]@{
         'PowerShell behavior action' = "'sim-behav'"
         'PowerShell simulation run identity' = 'SIM_RUN_ID'
+        'PowerShell project-root export' = '\$env:SIM_PROJECT_ROOT\s*=\s*\$ProjectRoot'
+        'PowerShell project-root restore' = '\$env:SIM_PROJECT_ROOT\s*=\s*\$PreviousSimProjectRoot'
+        'PowerShell build-scoped launcher directory' = '\$LaunchDir\s*=\s*Join-Path\s+\$BuildRoot\s+"sim\\launcher\\\$RunId"'
+        'PowerShell launcher working directory' = 'Push-Location\s+\$LaunchDir'
+        'PowerShell run-scoped modelsim.ini' = '\$ModelsimIni\s*=\s*Join-Path\s+\$LaunchDir\s+''modelsim\.ini'''
+        'PowerShell explicit modelsim.ini binding' = '&\s+\$Vsim\s+-c\s+-modelsimini\s+\$ModelsimIni'
         'PowerShell unique PASS gate' = 'does not contain exactly one TEST PASS line'
         'PowerShell behavior log binding' = "-LogFileName 'sim-behav\.log'"
     }).GetEnumerator()) {

@@ -20,7 +20,7 @@ DDR3、PCIe 和摄像头 HDMI 共用 `RK3568+PG2L50H100H` 开发板与 `PG2L50H-
 
 ModelSim/QuestaSim 分别承担行为级、综合后、PNR 后功能和 PNR 后时序仿真。USIM 用于 PNR 前原语，VSIM 用于 PNR 后原语；时序仿真还依赖正确层级的 SDF 标注。
 
-Questa Sim-64 2021.1、Logos2 USIM/VSIM、`V_BUF` 和 PCIe S2-A 当前受控 smoke 均有通过证据；S2-A/S2-B 静态门禁通过。DDR3 与 OV5640 仍缺项目级入口，OV7725 资产只作 legacy 参考；三个产品方向的真实网表/SDF 仿真仍待完成。
+Questa Sim-64 2021.1、Logos2 USIM/VSIM、`V_BUF`、PCIe S2-A 当前受控 smoke 与 S2-B 真实 RC/EP 链路均有通过证据；S2-A/S2-B 静态门禁通过。三个项目的 Questa 工程定义分别保留在项目内 `sim/questa/`；启动器在 `build/sim/launcher/<run-id>/` 创建并显式绑定 run-scoped `modelsim.ini`，PowerShell 以进程内 `SIM_PROJECT_ROOT` 让 DO 切回项目根，work/vendor library、日志、transcript、波形与 ini 只写入 `build/`。DDR3 与 OV5640 仍缺可运行项目级入口，OV7725 资产只作 legacy 参考；PCIe S2-C 与三个产品方向的真实网表/SDF 仿真仍待完成。
 
 ## 产品顶层与 IP 示例边界
 
@@ -36,9 +36,9 @@ PCIe H2-A（2026-08-30）固定产品顶层的板级边界：`pcie_dma_test` 使
 
 PCIe H2-B0（2026-08-30）将五类 baseline 问题归一化为 16 个唯一签名、42 次原始记录，并以完整多重集保护失败状态；任何签名新增、消失、改名、share-pin 位置或次数漂移均失败，IDF metadata 漂移永久硬失败。canonical fixture 正向为 0、strict 为 1，缺失/重复 UART、Timing 端口改名、share pin 改位和 100H IDF 五个变异均为 1。H2-B1 仍受 lane/refclk/PERST#/SCBV/UART/I/O timing 外部资料阻断；partial run 复用旧 full-build 证据的风险已由 PCIe CI-8A 关闭。
 
-PCIe CI-8A（2026-08-31）把构建证据定义为一次运行的不可拆分集合：37 个 HDL 单一清单、43 项 canonical 输入和 7 项最终证据由同一 32 位 run_id 与 SHA-256 manifest 绑定。每次 build 开始即原子失效旧 complete 证据；`running/partial/failed` 均不可验收，只有 `complete/valid` 可继续 H2-B0/strict gate。partial、工具缺失、run-id、产物或 FDC 漂移均失败；最终 PG2L50H full build/baseline/strict 为 `0/0/1`，slack `0.100 ns`。CI-8B 等待 DDR3/OV7725 canonical 升格后逐项目迁移，不预先共享实现。
+PCIe CI-8A（2026-08-31）把构建证据定义为一次运行的不可拆分集合：37 个 HDL 单一清单、43 项 canonical 输入和 7 项最终证据由同一 32 位 run_id 与 SHA-256 manifest 绑定。`run.ps1` 中 build-scoped Questa launcher 属于 canonical 输入；其变更已由最新完整 run `dde6ee70b2c84d2da4ee2256d8a5c127` 重新绑定，manifest 为 `complete/valid=true`。每次 build 开始即原子失效旧 complete 证据；`running/partial/failed` 均不可验收，只有 `complete/valid` 可继续 H2-B0/strict gate。当前 full build/baseline/strict 为 `0/0/1`，slack `0.1 ns`；baseline=0 只证明已知失败可复现，UART RX tied low、顶层 I/O 未约束、PCIe serial I/O、share pin、SCBV 五类 strict 阻断不变。CI-8B 等待 DDR3/OV7725 canonical 升格后逐项目迁移，不预先共享实现。
 
-PCIe S2-A 当前 PASS 只验证产品壳层受控行为 smoke；run `966942334060436dba8444ae9155557c` 为 0 errors/0 warnings、唯一 `TEST PASS`、退出 0。受控 link 不证明真实 LTSSM、TLP、DMA 或板级链路；S2-B 静态契约已通过，仍必须产生真实 RC/EP 动态证据，S2-C 才执行基础 DMA 回读。`o_trgt1_radm_pkt_halt[2:0]` 已贯通项目顶层、活动 `pcie_test` wrapper 和 hard-IP，原 3'b0 tie-off 已删除并由静态 gate 锁定。
+PCIe S2-A 当前 PASS 只验证产品壳层受控行为 smoke；run `add7efa39f644384af9929e8a9366739` 运行至 `1476105 ns`，0 errors/0 warnings、唯一 `TEST PASS`、退出 0。受控 link 不证明真实 LTSSM、TLP、DMA 或板级链路。S2-B 使用 run-scoped 物理 vendor library、固定 `GTP_GRS GRS_INST` 以满足 `GRS_INST.GRSNET`、厂商兼容 `1ns/10ps` 和 transcript `echo`；首次 L0 后允许 RC 合法进入 `0x0d` Recovery/速率重训练，TB 在 6 ms 总窗口内寻找连续 32 周期双端 link-up/L0，任何中断将计数归零。run `30bad6e164be4a4b8284a00f1e96bd87` 编译/elaboration 成功，输出唯一 link-up marker 与唯一 `TEST PASS`，Errors 0、Warnings 26、PowerShell 退出 0。两个 run 后项目根 `modelsim.ini`、transcript、`vsim.wlf` 计数均为 0。该结果不证明 DMA、RK3568 实板、协商 x2/5.0 GT/s、电气或后级网表；S2-C 下一步执行基础 DMA 回读。`o_trgt1_radm_pkt_halt[2:0]` 已贯通项目顶层、活动 `pcie_test` wrapper 和 hard-IP，原 3'b0 tie-off 已删除并由静态 gate 锁定。
 
 实物确认后，活动 `pcie_test.idf` 的 `Logos2/PG2L50H/FBG484/-6` metadata 被证明正确；错误项是顶层 build/PDS/gate 和现有主产物仍为 PG2L100H。M1 不为型号重复生成 PCIe IP，而是修正项目自有 build/gate、清空旧 build并建立 50H baseline，同时继续阻断 UART2APB、lane/refclk/PERST# 与 SCBV 缺口。
 

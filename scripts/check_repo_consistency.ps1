@@ -767,7 +767,11 @@ if ($PcieS2bDocExists) {
     foreach ($Required in ([ordered]@{
             'PCIe S2-B real RC role' = 'pango_pcie_top_sim'
             'PCIe S2-B real EP role' = 'pcie_dma_test'
-            'PCIe S2-B dynamic blocker' = 'vsim\.exe'
+            'PCIe S2-B Questa version evidence' = 'Questa Sim-64\s+`2021\.1`'
+            'PCIe S2-B current dynamic run evidence' =
+                '30bad6e164be4a4b8284a00f1e96bd87'
+            'PCIe S2-B dynamic link marker' = 'S2B_REAL_LINK_UP'
+            'PCIe S2-B dynamic PASS evidence' = '`TEST PASS`'
             'PCIe S2-B non-board boundary' = 'RK3568'
         }).GetEnumerator()) {
         Require-Pattern -Text $PcieS2bDocText -Pattern $Required.Value `

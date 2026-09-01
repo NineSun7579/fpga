@@ -16,7 +16,7 @@
 - 已验证：S0-1 参数化入口 `scripts/compile_simlib.tcl` 与 `scripts/compile_simlib.ps1` 已提交；PowerShell AST 错误数为 0。入口支持 ModelSim/QuestaSim、USIM/VSIM/BOTH、family、语言、PDS/仿真器路径和输出目录覆盖，强制检查三项仿真器可执行文件，并检查 PDS 退出码、日志 `^E:` 与所选库目录。
 - 已验证：Questa Sim-64 2021.1 最小 SystemVerilog 通过；PDS SP6.4 Logos2 USIM/VSIM 均编译成功。VSIM 编译入口退出 0、日志无 `^E:`、`vsim` 目录非空。
 - 已验证：最小后级原语 smoke 从 VSIM 库加载 `V_BUF`，运行 `2 ns`，Errors 0/Warnings 0、唯一 `TEST PASS`。
-- 当前复验：S2-A/S2-B 静态门禁通过；S2-A 当前 Questa 复验已通过，run id 为 `966942334060436dba8444ae9155557c`，退出码 0。
+- 当前复验：S2-A/S2-B 静态门禁通过；S2-A 当前 Questa run `add7efa39f644384af9929e8a9366739` 运行至 `1476105 ns`，Errors 0、Warnings 0、唯一 `TEST PASS`、退出 0。S2-B run `30bad6e164be4a4b8284a00f1e96bd87` 编译/elaboration 成功，输出唯一 link-up marker 与唯一 `TEST PASS`，Errors 0、Warnings 26、PowerShell 退出 0。
 - 未验证：三个项目的综合后、PNR 功能、PNR 时序和 SDF 标注；公共 S0-1 完成不等于项目后级仿真通过。
 
 ## CI-0 仓库级静态一致性门禁（2026-08-30）
@@ -73,10 +73,10 @@
 
 ## PCIe CI-8A 构建证据绑定（2026-08-31）
 
-- 已验证：37 个 HDL 由 `scripts/pds_sources.f` 单一有序清单驱动；43 项 canonical 输入和 7 项最终证据均以相对 POSIX path、length 和 SHA-256 写入固定 manifest。
+- 已验证：37 个 HDL 由 `scripts/pds_sources.f` 单一有序清单驱动；`run.ps1` 中 build-scoped Questa launcher 属于 canonical 输入，合计 43 项 canonical 输入和 7 项最终证据均以相对 POSIX path、length 和 SHA-256 写入固定 manifest。launcher 变更必须触发完整构建证据重绑定。
 - 已验证：每次 build 的 32 位 run_id 原子失效旧证据；`running`、`partial`、`failed` 均无效，只有完整 `gen_bit_stream` 的 `complete/valid` 可继续 gate。
 - 负向覆盖：真实 partial compile、PDS executable 缺失、run-id 漂移、产物字节漂移与 FDC 输入漂移均返回 1，证明旧 full-build 证据不能复用。
-- 正向覆盖：最终 PG2L50H full build 返回 0、baseline 返回 0、strict 返回 1、最差 slack `0.100 ns`；H2-B0 的 16 签名/42 次记录未漂移。
+- 正向覆盖：最新完整 PG2L50H run `dde6ee70b2c84d2da4ee2256d8a5c127` 的 manifest 为 `complete/valid=true`，绑定 43 inputs/7 artifacts；full build 返回 0、baseline 返回 0、strict 返回 1、最差 slack `0.1 ns`，H2-B0 的 16 签名/42 次记录未漂移。baseline=0 不表示 release-ready，五类 strict 阻断保持不变。
 - 边界：本批未修改 RTL、活动 IDF、FDC 或厂商 IP；CI-8B 等待 DDR3/OV7725 各自 PG2L50H canonical 升格，并按项目独立实现，不抽公共模块。
 
 ## CI-9 许可证敏感差异门禁（2026-09-01）
@@ -103,13 +103,13 @@
 ## S1/S2/S3 仿真就绪度矩阵（2026-08-30）
 
 - 已验证盘点：`docs/SIMULATION_READINESS_MATRIX.md` 已逐项目记录项目级 testbench、filelist、DO、厂商示例和四级仿真前置条件；PCIe S2-A 已实际执行 Questa 动态 smoke。
-- DDR3 与 OV7725 的项目级资产仍为 `project_tb=0`、`project_f=0`、`project_do=0`。PCIe 已具备 1 个项目集成 TB、1 个受控边界模型、1 个行为 filelist 和 1 个 DO 入口，并已动态 PASS。
+- DDR3 与 OV7725 的项目级资产仍为 `project_tb=0`、`project_f=0`、`project_do=0`。PCIe 已具备 S2-A/S2-B 两套项目 filelist/DO 定义、项目集成 TB、受控边界模型和真实 RC/EP TB；S2-A 与 S2-B 均已动态 PASS。
 - OV5640/S3：先完成 C0 参考审计与 C1 产品范围冻结，再由 C2/C3 建立新项目顶层、PG2L50H IP/约束和实现 baseline；OV7725 厂商示例与 O2/O3 结果只作 legacy 参考。
 - DDR3/S1：现有厂商 `test_ddr`/memory-model 资产端口失配且含绝对路径与 FSDB/Verdi 假设。进入 S1 前必须关闭 S0-1、重生成并复核 PG2L50H DDR3 IP/FDC/RCF、完成 D3-A/B/C 与 D4，并提供项目自有有限 BIST/top 与自检 TB。
 - PCIe/S2：S2-A 已用项目级 `tb_pcie_dma_test` 实例化产品顶层，并以受控 `pcie_test` 边界动态验证顶层/复位/LED/未知态；现有 `pango_pcie_top` RC/EP testbench 仍不实例化产品顶层，只能在 S2-B 中作为真实 RC/编译顺序 oracle；S2-C 才验证 DMA。
 - 验收边界：`ipcore/`、`ip_core/`、`ip_backup/` 中的厂商示例只能作为参考证据，不能计入产品集成覆盖，也不能通过改名冒充项目自有 testbench。
 - 四级共同门槛：所有入口使用相对路径 filelist/DO 和项目自有集成 TB；必须具备超时、`$fatal`、唯一 `TEST PASS` 与可靠非零失败退出；PNR 时序仿真必须按实际 DUT 实例层级标注 SDF。
-- 公共状态：Questa Sim-64 2021.1 工具、Logos2 USIM/VSIM 与 PCIe S2-A 当前 smoke 均有通过证据；当前 S2-A/S2-B 静态门禁通过。DDR3/S1、OV5640/S3、PCIe S2-B 动态/S2-C 与三个项目后级仿真仍未完成。
+- 公共状态：Questa Sim-64 2021.1 工具、Logos2 USIM/VSIM 与 PCIe S2-A 当前 smoke 均有通过证据；当前 S2-A/S2-B 静态门禁通过，S2-B 真实 RC/EP 动态链路已通过。DDR3/S1、OV5640/S3、S2-C 与三个项目后级仿真仍未完成。
 
 ## PCIe S2-A 行为 smoke（2026-09-01，动态通过）
 
@@ -117,12 +117,22 @@
 - 已验证编码与自检边界：受控模型恰好包含两个 `always_ff` 时序过程，静态 gate 禁止普通 `always @` 回退。TB 覆盖 `button_rst_n`、`perst_n`、同步复位、LED 计数门控和 TX/LED 未知态；3 ms watchdog 或检查失败调用 `$fatal`，正向源只包含一次 `$display("TEST PASS")`。
 - 已验证 reset ownership：button reset 断言后，TB 先检查 ref counter 没有被 button reset 改写，再等待额外 8 个 refclk 周期并要求其在 model link 撤销期间严格保持；button reset 完整重新释放后，PERST# 再被单独断言、复位两组 LED 域并独立重新释放，不能由初次联合释放遮蔽 debounce 行为。
 - 已验证复位与日志契约：TB 全局复位实例使用厂商要求的 `GRS_INST`；`run_behav.do` 通过 `echo` 将随机 32 位小写十六进制 `SIM_RUN_ID` 写入 transcript，PowerShell 只接受同 run-id marker 与 `TEST PASS` 各恰好一次。
-- 动态结果：Questa Sim-64 2021.1 当前 run id `966942334060436dba8444ae9155557c`，运行至 `1476105 ns`，0 errors/0 warnings、唯一 `TEST PASS`、退出码 0；PowerShell 同 run-id/唯一 PASS 门禁通过。
+- 动态结果：Questa Sim-64 2021.1 当前 run id `add7efa39f644384af9929e8a9366739`，运行至 `1476105 ns`，0 errors/0 warnings、唯一 `TEST PASS`、退出码 0；PowerShell 同 run-id/唯一 PASS 门禁通过。
 - 工程归档回归：PCIe `.f/.do` 迁入 `sim/questa/` 后，run id `26db7d3206c542218634caff2c6e71ea` 再次运行至 `1476105 ns`，0 errors/0 warnings、唯一 `TEST PASS`、退出码 0；DDR3 与摄像头的项目级动态入口仍待实现。
-- 当前复验结果：S2-A 静态 gate 与 S2-B 静态契约 gate 通过，S2-A 动态复验通过；受控模型仍不覆盖真实 RC/EP、LTSSM/TLP 或 DMA。
-- 构建回归：当前 PDS run id `50b37eb3628e419592cecac02ff932bf` 为 `gen_bit_stream/complete/valid=true`，43 项输入和 7 项证据完整；baseline gate 返回 0，strict gate 仍因 UART RX tied low、未约束顶层 I/O、PCIe serial I/O、share pin 与 SCBV 返回 1，最差 slack `0.100 ns`。原两条未连接端口 warning 已消失，仅保留 bit2 恒 0 引起的两条优化/清理 warning。
+- 当前复验结果：S2-A 静态 gate 与 S2-B 静态契约 gate 通过，S2-A 动态复验通过；S2-B 真实 RC/EP 动态链路也已通过。S2-A 受控模型仍不覆盖真实 RC/EP、LTSSM/TLP 或 DMA，S2-B 也不覆盖 DMA、实板、电气或后级网表。
+- 构建回归：build-scoped Questa launcher 纳入 canonical 输入后，当前 PDS run id `dde6ee70b2c84d2da4ee2256d8a5c127` 为 `gen_bit_stream/complete/valid=true`，43 项输入和 7 项证据完整；baseline gate 返回 0，strict gate 仍因 UART RX tied low、未约束顶层 I/O、PCIe serial I/O、share pin 与 SCBV 返回 1，最差 slack `0.1 ns`。baseline=0 只复现获准失败基线，不表示 release-ready。
 - RX halt hygiene：`o_trgt1_radm_pkt_halt[2:0]` 接口分别对应 posted、non-posted 与 completion/CPLD halt；当前 bit0/bit1 有效、bit2 源端恒为 0，三位接口路径已由项目顶层贯通活动 `pcie_test` wrapper 至 hard-IP。wrapper 原 3'b0 tie-off 已删除；生成资产重生成会覆盖该修正，静态 gate 检测该已知接口漂移并要求重新审核。
 - 覆盖边界：受控模型的 `smlh_link_up/rdlh_link_up` 是激励，不验证真实 LTSSM、TLP、DMA、lane/P/N 极性、100 MHz refclk 电气、PERST# 板级时序或 RK3568 Root Complex。S2-B 必须使用真实厂商 RC/EP，S2-C 必须在其后验证 DMA。
+
+## PCIe S2-B 真实链路（2026-09-01，动态通过）
+
+- 工程与生成物边界：三个项目的 Questa 工程定义分别保留在各自 `sim/questa/`；启动器在 `build/sim/launcher/<run-id>/` 创建并显式绑定 run-scoped `modelsim.ini`，PowerShell 通过进程内 `SIM_PROJECT_ROOT` 让 DO 切回项目根。work/vendor library、日志、transcript、波形与 ini 全部只写入 `build/`，不将本机安装或许可证信息纳入仓库证据。
+- 运行隔离：S2-B 的 `work` 与物理 vendor library 均按 `SIM_RUN_ID` 隔离；厂商模型直接编译到本次运行的物理库目录，避免逻辑库映射或旧运行产物被误用。
+- 厂商兼容契约：TB 固定唯一 `GTP_GRS GRS_INST`，满足 RAM 模型对 `GRS_INST.GRSNET` 的层级解析；项目源统一以 `1ns/10ps` 编译；DO 使用 `echo` 将 run marker 写入 transcript。
+- 稳定窗口契约：首次进入 L0 后，RC 可合法进入 `0x0d` Recovery/速率重训练；TB 在 6 ms 总窗口内寻找连续 32 周期双端 link-up/L0，任一中断只将连续计数归零，不立即误判失败。
+- 动态结果：Questa Sim-64 2021.1 run `30bad6e164be4a4b8284a00f1e96bd87` 的厂商模型与项目 RTL 编译成功，elaboration 成功；输出唯一 `INFO: S2B_REAL_LINK_UP` 与唯一 `TEST PASS`，Errors 0、Warnings 26、PowerShell 退出 0。
+- 根目录洁净性：最新 S2-A/S2-B 运行后，项目根 `modelsim.ini`、transcript、`vsim.wlf` 计数均为 0，验证所有运行生成物均留在 `build/`。
+- 覆盖边界：该结果只证明仿真模型中的真实 RC/项目 EP 能取得连续 32 周期双端 link-up/L0；不证明 DMA、RK3568 实板、协商 x2/5.0 GT/s、PCB/时钟/PERST# 电气或后级网表。
 
 ## 已知功能与覆盖缺口
 
