@@ -463,7 +463,7 @@ O2-D2 停止条件：控制相位或 `/5` generated clock 未被 PDS 唯一识�
 
 - [x] S2-A：新建 `tb_pcie_dma_test.sv` 和受控 `pcie_test` 边界模型，覆盖项目顶层展开、真实 reset helper、复位释放/中断、LED 域、未知态和 3 ms watchdog；model-controlled link 不作为真实链路证据。
 - [x] S2-A：新建相对路径 `sim/behav.f`、行为级 DO、`SIM_RUN_ID`/唯一 PASS 日志门禁和 `check_sim.ps1`；不修改厂商示例，契约见 [`S2A_BEHAVIOR_SMOKE.md`](pcie_dma_test_100h/doc/S2A_BEHAVIOR_SMOKE.md)。
-- [ ] S2-A 动态：Questa/USIM 前置已通过；首次正式运行完成 RTL 编译但在 elaboration 被 `ips2l_pcie_apb_cross_v1_0` 未加入 canonical filelist 阻断。先修复并静态验证 filelist，再要求同一 run marker、退出码 0 和唯一 `TEST PASS`。
+- [ ] S2-A 动态：Questa/USIM 前置已通过；首次正式运行完成 RTL 编译但在 elaboration 被仿真专用 filelist 缺少 `ips2l_pcie_apb_cross_v1_0` 阻断。该文件已由 PCIe IDF 管理实现侧资产，不得加入 canonical PDS 源清单；先补齐并静态验证 `sim/behav.f`，再要求同一 run marker、退出码 0 和唯一 `TEST PASS`。
 - [x] S2-B 静态：以厂商 `pango_pcie_top_sim` 为 RC、项目真实 `pcie_dma_test` 为 EP，建立双库、参数化模型、双向 x2 lane、两端 link/LTSSM L0、32 周期稳定、6 ms watchdog 和唯一 PASS 合同；见 [`S2B_REAL_LINK.md`](pcie_dma_test_100h/doc/S2B_REAL_LINK.md)。
 - [ ] S2-B 动态：S2-A 动态通过后运行 `sim-link`，同一 `SIM_RUN_ID` 日志必须包含唯一 `INFO: S2B_REAL_LINK_UP` 和 `TEST PASS`；当前未生成动态链路证据。
 - [ ] S2-C：S2-B 通过后增加一次地址、长度和数据固定的基础 DMA 写读回。

@@ -6,7 +6,7 @@
 
 ## 结论
 
-DDR3 与 OV7725 当前仍没有面向项目集成顶层的仿真入口。Questa Sim-64 `2021.1` 已通过三项可执行文件、外部许可证 checkout、最小 SystemVerilog smoke 和 Logos2 USIM 编译验证；许可证配置保持在仓库外部。PCIe S2-A 首次动态运行完成 RTL 编译，但在 elaboration 因 canonical filelist 缺少 `ips2l_pcie_apb_cross_v1_0` 而失败，尚无动态 `TEST PASS`；S2-B 仍只有静态入口。VSIM 库和三个项目的完整动态仿真仍待完成。
+DDR3 与 OV7725 当前仍没有面向项目集成顶层的仿真入口。Questa Sim-64 `2021.1` 已通过三项可执行文件、外部许可证 checkout、最小 SystemVerilog smoke 和 Logos2 USIM 编译验证；许可证配置保持在仓库外部。PCIe S2-A 首次动态运行完成 RTL 编译，但在 elaboration 因仿真专用 filelist 缺少 `ips2l_pcie_apb_cross_v1_0` 而失败，尚无动态 `TEST PASS`；S2-B 仍只有静态入口。VSIM 库和三个项目的完整动态仿真仍待完成。
 
 项目级仿真必须新增相对路径的 filelist、DO 脚本和自检 testbench；不得批量修改 `ipcore/`、`ip_core/`、`ip_backup/` 下的厂商生成文件，也不得把厂商示例顶层改名后冒充集成验证。
 
@@ -78,12 +78,12 @@ DDR3 与 OV7725 当前仍没有面向项目集成顶层的仿真入口。Questa 
 - `pango_pcie_top_sim.do` 含大量历史绝对路径，filelist 与工作目录耦合。
 - S2-A 受控模型只验证项目顶层外壳、复位链和 LED 域；其 link indication 不是真实 LTSSM、TLP、DMA 或板级链路证据。
 - S2-B 已参数化厂商加密模型并以 `pango_pcie_top_sim` 为 RC；当前只完成静态合同，尚无动态 LTSSM/link-up 日志。S2-C 再增加基础 DMA 回读。
-- Questa `2021.1` 与 Logos2 USIM 已验证；S2-A 首次动态运行的 RTL 编译为 0 error，elaboration 因 `scripts/pds_sources.f` 未包含现存模块 `ipcore/pcie_test/rtl/ips2l_pcie_apb_cross_v1_0.v` 而失败。该结果证明仿真器入口可运行，但不构成项目行为仿真通过。
+- Questa `2021.1` 与 Logos2 USIM 已验证；S2-A 首次动态运行的 RTL 编译为 0 error，elaboration 因 `sim/behav.f` 未包含现存模块 `ipcore/pcie_test/rtl/ips2l_pcie_apb_cross_v1_0.v` 而失败。该文件已由 PCIe IDF 管理实现侧资产，不应加入 canonical PDS 源清单。该结果证明仿真器入口可运行，但不构成项目行为仿真通过。
 - 活动 PCIe IP、PDS 目标和新构建产物均与实际 PG2L50H 一致；lane/refclk/PERST#/SCBV 和 UART 决策继续由 H2-B1 阻断。
 
 ### TODO（S2）
 
-1. S2-A 静态入口已完成；先把 `ips2l_pcie_apb_cross_v1_0.v` 纳入 canonical filelist 和静态契约，再重跑受控边界 smoke，确认同一 run marker、退出码 0 和唯一 `TEST PASS`。
+1. S2-A 静态入口已完成；先把 `ips2l_pcie_apb_cross_v1_0.v` 纳入仿真专用 `sim/behav.f` 和静态契约，保持 canonical PDS 源清单不变，再重跑受控边界 smoke，确认同一 run marker、退出码 0 和唯一 `TEST PASS`。
 2. S2-B 静态入口已完成；S2-A 动态通过后运行厂商 RC/项目 EP，覆盖真实 LTSSM/link-up、32 周期稳定窗口和 watchdog。
 3. S2-C 在真实链路上增加一次可预测 DMA 写读回；LTSSM、完成状态、数据和超时失败均 `$fatal`。
 4. 对应项目网表/SDF 锁定且 H2-B1 关闭后，完成综合后、PNR 功能和 PNR 时序仿真。
