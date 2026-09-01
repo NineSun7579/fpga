@@ -20,7 +20,7 @@
 ## 2. 执行原则
 
 1. 每批只解决一个可独立验证的问题，并形成独立提交。
-2. 不因缺少板卡资料或 QuestaSim 阻塞可重复构建、日志 gate、静态 CDC/RDC 审计等工作。
+2. 不因缺少板卡资料或某一项目尚未完成动态仿真而阻塞可重复构建、日志 gate、静态 CDC/RDC 审计等工作。
 3. 不把厂商示例顶层、内部 STA 通过或非零位流描述为产品验收完成。
 4. 修改手写 RTL/TB 时遵守 `VERILOG_SYSTEMVERILOG_COMMENTING_STANDARD.md`；厂商生成 IP 不批量改写。
 5. 不直接修改厂商示例 TB 来伪装集成测试；新增项目级自检 TB。
@@ -61,8 +61,8 @@
 - [x] S0-0-Q（2026-09-01）：确认 Questa Sim-64 `2021.1` 的 `vsim.exe`、`vlog.exe`、`vlib.exe` 可执行；许可证由本机外部环境提供，仓库不得记录许可证路径、服务器、feature 或许可证文件。
 - [x] S0-0-Q：最小 SystemVerilog 编译、elaboration 和运行成功，退出码为 0，日志包含唯一 `TEST PASS`。
 - [x] S0-1-Q：PDS `2022.2-SP6.4` 已用 Questa `2021.1` 成功编译 Logos2 USIM，包括 Pango `modelsim10.2c` 保护模型、HSST 和 PCIe Gen2 库；日志无 `E:` 且库目录非空。
-- [x] 完成三项目 S1/S2/S3 仿真就绪度只读盘点；矩阵见 [`docs/SIMULATION_READINESS_MATRIX.md`](docs/SIMULATION_READINESS_MATRIX.md)。三项目项目级 TB、`.f`、`.do` 均缺失，现有资产均为厂商 IP 示例，不能直接作为集成验收。
-- [x] 验证 QuestaSim 版本、三项可执行文件、许可证 checkout 和最小 SystemVerilog smoke；安装与许可证位置保持为仓库外部参数。
+- [x] 完成三项目 S1/S2/S3 仿真就绪度盘点；矩阵见 [`docs/SIMULATION_READINESS_MATRIX.md`](docs/SIMULATION_READINESS_MATRIX.md)。DDR3 与 OV7725 仍缺项目级 TB、`.f`、`.do`；PCIe 已具备 S2-A/S2-B 项目入口，厂商示例仍不能直接作为集成验收。
+- [x] 验证 QuestaSim 版本、三项可执行文件和最小 SystemVerilog smoke；许可证可用性仅由本机临时环境确认，不记录或提交任何许可证配置值。
 - [x] 编译并验证 Logos2 VSIM；PNR 原语 `V_BUF` 已从共享库成功加载并完成最小动态 smoke。
 - [ ] 完成三项目分级自检仿真。
 
@@ -435,7 +435,7 @@ O2-D2 停止条件：控制相位或 `/5` generated clock 未被 PDS 唯一识�
 - [ ] 依据传感器和 PCB 数据补 `cam_pclk` input delay。
 - [ ] 复核 `PAP_CLOCK_DEDICATED_ROUTE FALSE`、TMDS/DDR/share pin 和 I/O 电压。
 
-## 6. 仿真器阻断泳道
+## 6. 仿真验证泳道
 
 ### S0：公共仿真环境
 
@@ -463,9 +463,10 @@ O2-D2 停止条件：控制相位或 `/5` generated clock 未被 PDS 唯一识�
 
 - [x] S2-A：新建 `tb_pcie_dma_test.sv` 和受控 `pcie_test` 边界模型，覆盖项目顶层展开、真实 reset helper、复位释放/中断、LED 域、未知态和 3 ms watchdog；model-controlled link 不作为真实链路证据。
 - [x] S2-A：新建相对路径 `sim/behav.f`、行为级 DO、`SIM_RUN_ID`/唯一 PASS 日志门禁和 `check_sim.ps1`；不修改厂商示例，契约见 [`S2A_BEHAVIOR_SMOKE.md`](pcie_dma_test_100h/doc/S2A_BEHAVIOR_SMOKE.md)。
-- [ ] S2-A 动态：Questa/USIM 前置已通过；首次正式运行完成 RTL 编译但在 elaboration 被仿真专用 filelist 缺少 `ips2l_pcie_apb_cross_v1_0` 阻断。该文件已由 PCIe IDF 管理实现侧资产，不得加入 canonical PDS 源清单；先补齐并静态验证 `sim/behav.f`，再要求同一 run marker、退出码 0 和唯一 `TEST PASS`。
+- [x] S2-A 动态：仅在仿真专用 `sim/behav.f` 中补入 `ips2l_pcie_apb_cross_v1_0.v`，保持由 IDF 管理的 canonical PDS 源清单不变；Questa `2021.1` 下 RTL 编译为 0 errors/0 warnings，elaboration 成功并运行到 `1476105 ns`，同一 run marker、唯一 `TEST PASS` 和 PowerShell 退出码 0 均通过。
+- [ ] S2-A RTL hygiene：显式处理 `u_ips2l_pcie_dma` 输出 `o_trgt1_radm_pkt_halt`，关闭现存 2 条未连接端口 warning；该项不改变 S2-A 受控 smoke 已通过的结论。
 - [x] S2-B 静态：以厂商 `pango_pcie_top_sim` 为 RC、项目真实 `pcie_dma_test` 为 EP，建立双库、参数化模型、双向 x2 lane、两端 link/LTSSM L0、32 周期稳定、6 ms watchdog 和唯一 PASS 合同；见 [`S2B_REAL_LINK.md`](pcie_dma_test_100h/doc/S2B_REAL_LINK.md)。
-- [ ] S2-B 动态：S2-A 动态通过后运行 `sim-link`，同一 `SIM_RUN_ID` 日志必须包含唯一 `INFO: S2B_REAL_LINK_UP` 和 `TEST PASS`；当前未生成动态链路证据。
+- [ ] S2-B 动态：运行 `sim-link`，同一 `SIM_RUN_ID` 日志必须包含唯一 `INFO: S2B_REAL_LINK_UP` 和 `TEST PASS`；当前未生成真实 LTSSM/link-up 动态证据。
 - [ ] S2-C：S2-B 通过后增加一次地址、长度和数据固定的基础 DMA 写读回。
 - [ ] 再完成综合后、PNR 功能和 PNR 时序仿真。
 - [ ] 每级成功只输出一个 `TEST PASS`，失败或超时返回非零。
@@ -487,6 +488,8 @@ O2-D2 停止条件：控制相位或 `/5` generated clock 未被 PDS 唯一识�
 - [x] S0-1 准备参数化 `scripts/compile_simlib.tcl`/`scripts/compile_simlib.ps1`，支持外部覆盖仿真器路径并在调用 PDS 前检查三项可执行文件。
 - [x] S0-1 收紧入口为强制仿真器预检，移除绕过检查的参数，避免产生误导性库编译结果。
 - [x] CI-1 将仿真就绪度矩阵纳入仓库门禁，并检查根指南/TODO 对矩阵的引用；门禁仍只做静态检查，不替代 PDS/仿真器执行。
+- [ ] 增加提交差异安全门禁：拒绝新增许可证绝对路径、服务器、feature、环境变量实际值、许可证内容或许可证文件；仿真日志仅作为仓库外 CI artifact。
+- [ ] 单独审计并清理已跟踪的历史工具日志中的旧许可证路径。普通删除不能清除 Git 历史；若需历史重写和强推，必须单独提案、人工审核并协调所有克隆。
 - [ ] 行为级仿真失败立即停止后续流程。
 - [ ] 同时检查 PDS 退出码、日志 `^E:` 和阶段完成标志。
 - [ ] 解析最终时序摘要，要求 `All Constraints Met`、`WNS >= 0`、`TNS = 0`。
@@ -513,6 +516,7 @@ O2-D2 停止条件：控制相位或 `/5` generated clock 未被 PDS 唯一识�
 - 修改范围单一，可独立说明和回退。
 - 新增 RTL/TB、Tcl、DO 和 PowerShell 包含必要注释与阶段日志。
 - 不新增工程内绝对路径、隐式 net 或仅打印但不失败的错误处理。
+- 不新增许可证路径、服务器、feature、环境变量实际值、许可证内容或许可证文件。
 - 对应最低级别测试已通过；不能运行的测试明确记录阻断原因。
 - README、实现日志、`.nexus-map` 和 TODO 状态同步。
 - `git diff --check`、PowerShell 语法和 JSON 检查通过。

@@ -69,7 +69,7 @@ flowchart TD
 
 - 用户于 2026-08-30 确认三个工程共用 `RK3568+PG2L50H100H` 开发板，实际 FPGA 为 `PG2L50H-6IFBG484`；统一有效 PDS 目标为 `Logos2 / PG2L50H / FBG484 / -6`。旧 PG2L100H 实现、STA 和位流均不得用于实板。
 - 厂商 `.idf`、生成 RTL 和 PDS 仿真库属于外部生成依赖，不应被误当作独立手写逻辑。
-- PCIe S2-A 的 `sim/behav.f` 依赖 `scripts/pds_sources.f` 的 37 个 canonical HDL、DMA RAM init include、两个厂商 reset helper、项目级 `tb_pcie_dma_test.sv` 和受控 `pcie_test` 边界模型；`run_behav.do` 从 PCIe 项目根映射仓库公共 `../build/simlib/usim`。`check_sim.ps1` 与根门禁当前均退出 0，但本机缺少 QuestaSim，未产生动态通过证据。
+- PCIe S2-A 的 `sim/behav.f` 依赖 `scripts/pds_sources.f` 的 37 个 canonical HDL、DMA RAM init include、两个厂商 reset helper、项目级 `tb_pcie_dma_test.sv` 和受控 `pcie_test` 边界模型；`run_behav.do` 从 PCIe 项目根映射仓库公共 `../build/simlib/usim`。`check_sim.ps1` 与根门禁当前均退出 0，Questa Sim-64 2021.1 动态 smoke 已通过同一 run-id、唯一 `TEST PASS` 和退出码门禁。
 - 每次 S2-A 动态运行按 `SIM_RUN_ID` 创建独立 `build/sim/behav/<run_id>/work`，避免上一次编译的 work library 被误用；日志身份、work 隔离和公共 USIM 是三个不同依赖，均不能由单独一个 `TEST PASS` 替代。
 - S2-A 的受控 link indication 只驱动顶层复位、LED 和未知态检查，不能替代 S2-B 的真实厂商 RC/EP、LTSSM/TLP，也不能替代 S2-C 的 DMA 数据回读。`SIM_RUN_ID` 与唯一 `TEST PASS` 只绑定一次仿真日志，不扩张覆盖范围。
 - OV7725 O0-A 已识别 `sys_clk`、`i2c_dri_clk`、`cam_pclk`、`pixel_clk`、`pixel_clk_5x`、`clk_50m/ref_clk` 和 `ui_clk`；证据入口为 `41_ov7725_hdmi/doc/CDC_RDC_AUDIT.md`。
@@ -107,7 +107,7 @@ flowchart TD
 - CI-8B 依赖 DDR3 M2 和 OV7725 M3 各自完成 PG2L50H canonical 升格及最终构建入口闭合；两项目必须按自身源清单和产物布局实现 provenance，验证前不抽公共模块。
 - S0 环境复核（2026-08-30）的未发现仿真器结论已被 2026-09-01 实际执行证据取代：Questa Sim-64 2021.1 最小 SystemVerilog 通过，PDS SP6.4 Logos2 USIM 编译成功。
 - S0-1 已准备 `scripts/compile_simlib.ps1` → 环境变量 → `scripts/compile_simlib.tcl` → PDS `compile_simlib` 的参数化链路，可选择 ModelSim/QuestaSim、USIM/VSIM/BOTH、family、语言、工具路径与输出目录；入口准备不等于库已生成。
-- PCIe S2-A 已依赖编译后的 Logos2 USIM 动态通过；综合后、PNR 功能、PNR 时序和 SDF 标注仍依赖待编译验证的 VSIM。
+- PCIe S2-A 已依赖编译后的 Logos2 USIM 动态通过；Logos2 VSIM 与最小 `V_BUF` 后级原语 smoke 也已验证。三个项目的综合后、PNR 功能、PNR 时序和 SDF 标注仍未执行。
 - PCIe `sim/behav.f` 单独包含仿真所需 `ips2l_pcie_apb_cross_v1_0.v`；不得为此修改 `scripts/pds_sources.f`，因为实现侧由 IDF 管理该源。
 - CI-0 仓库级静态一致性门禁依赖根指南/TODO/VSCS、三个项目 README 与各自 `build.tcl`/`run.ps1`/`check_build.ps1`；当前工作区门禁退出码为 0，7 个 PowerShell 脚本 AST 解析错误数为 0。它只验证结构、入口与文档关系，不解除任何 PDS、STA、板级或仿真阻断。
 - CI-7 依赖 `docs/PDS_TCL_ENTRYPOINT_INVENTORY.json` 与 `scripts/check_pds_tcl_entrypoints.ps1`：13 个 tracked Tcl 必须逐项分类；只有三个 `scripts/build.tcl` 可由 `run.ps1` 调用。PCIe build 目标为 PG2L50H，OV7725/DDR3 build 仍为 PG2L100H migration-blocked；历史 GUI、厂商内部和厂商仿真 Tcl 不得进入当前器件/STA/位流证据链。正向门禁为 0，缺失清单项负向测试为 1。

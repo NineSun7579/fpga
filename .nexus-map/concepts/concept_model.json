@@ -12,7 +12,7 @@
       "implementation_status": "documented",
       "code_path": null,
       "evidence_path": "README.md",
-      "evidence_gap": "三项目可重复全流程和严格/baseline gate 证据均已建立；Questa Sim-64 2021.1 最小 SystemVerilog、PDS SP6.4 Logos2 USIM 与 PCIe S2-A 受控行为 smoke 已验证。VSIM、DDR3/S1、OV7725/S3、PCIe S2-B/S2-C 及后级网表/SDF 仿真仍缺失。",
+      "evidence_gap": "三项目可重复全流程和严格/baseline gate 证据均已建立；Questa Sim-64 2021.1 最小 SystemVerilog、PDS SP6.4 Logos2 USIM/VSIM、最小 V_BUF 后级原语 smoke 与 PCIe S2-A 受控行为 smoke 已验证。DDR3/S1、OV7725/S3、PCIe S2-B/S2-C 及三个项目真实网表/SDF 仿真仍缺失。",
       "s0_environment_review": {
         "date": "2026-09-01",
         "historical_review_date": "2026-08-30",
@@ -25,7 +25,7 @@
         "windows_uninstall_registry_hits": 0,
         "historical_missing_simulator_result_superseded": true,
         "dynamic_simulation": "pcie_s2a_controlled_smoke_passed",
-        "s0_1_status": "parameterized_entry_committed_logos2_usim_compiled_vsim_pending",
+        "s0_1_status": "completed_logos2_usim_vsim_and_primitive_smoke_verified",
         "compile_entry": {
           "tcl": "scripts/compile_simlib.tcl",
           "powershell": "scripts/compile_simlib.ps1",
@@ -38,9 +38,13 @@
           "powershell_ast_errors": 0,
           "actual_library_compilation": true,
           "usim_compiled": true,
-          "vsim_compiled": false
+          "vsim_compiled": true,
+          "vsim_compile_exit_code": 0,
+          "vsim_compile_log_error_records": 0,
+          "vsim_library_nonempty": true
         },
-        "next_step": "compile and verify Logos2 VSIM, then continue post-synthesis and post-PNR simulation"
+        "minimal_post_primitive_smoke": {"library": "VSIM", "primitive": "V_BUF", "library_load_verified": true, "runtime_ns": 2, "errors": 0, "warnings": 0, "test_pass_count": 1},
+        "next_step": "execute project-specific post-synthesis, post-PNR functional and SDF timing simulations"
       },
       "ci_0_repository_consistency": {
         "date": "2026-08-30",
@@ -201,7 +205,7 @@
         {"order": 3, "id": "M2", "status": "staging_validated_blocked_board_review", "prerequisite": "board-approved PG2L50H DDR3 IP/FDC/RCF promotion and CI-6 rerun"},
         {"order": 4, "id": "M3", "status": "audit_complete_staging_blocked_board_review", "prerequisite": "SP6.4 GUI new-instance staging of four OV7725 project IPs and full asset review"},
         {"order": 5, "id": "D3-A/O2-D2/H2-B", "status": "blocked_dependency_and_evidence", "prerequisite": "M2/M3 re-review and M1 plus board/UART/SCBV evidence"},
-        {"order": 6, "id": "S0-1/S1/S2/S3", "status": "blocked_external_and_dependency", "prerequisite": "licensed simulator plus locked PG2L50H RTL/IP/netlist/SDF"}
+        {"order": 6, "id": "S0-1/S1/S2/S3", "status": "s0_1_complete_project_suites_blocked_dependency", "prerequisite": "locked PG2L50H RTL/IP/netlist/SDF and project-owned simulation entrypoints"}
       ],
       "tech_stack": ["PDS Tcl", "PowerShell", "ModelSim/QuestaSim"],
       "related_reqs": ["可重复构建", "四级仿真", "时序闭环"],
@@ -607,7 +611,7 @@
       "implementation_status": "implemented_with_known_functional_gap",
       "code_path": "pcie_dma_test_100h/hdl/",
       "evidence_path": "pcie_dma_test_100h/place_route/pcie_dma_test_timing_summary_after_hold_fix.txt",
-      "evidence_gap": "活动 PCIe IDF、build/PDS/gate、timing report 与新主产物已统一匹配 PG2L50H；CI-8A 已绑定单次 full-build 输入和证据，S2-A 项目级受控行为 smoke 已由 Questa Sim-64 2021.1 动态通过。UART2APB、SCBV、lane/refclk/PERST#、I/O timing、真实 RC/EP、DMA、VSIM 和后级网表/SDF 仿真仍缺失。",
+      "evidence_gap": "活动 PCIe IDF、build/PDS/gate、timing report 与新主产物已统一匹配 PG2L50H；CI-8A 已绑定单次 full-build 输入和证据，S2-A 项目级受控行为 smoke 已由 Questa Sim-64 2021.1 动态通过，公共 VSIM 与 V_BUF 原语 smoke 已验证。UART2APB、SCBV、lane/refclk/PERST#、I/O timing、真实 RC/EP、DMA 和项目后级网表/SDF 仿真仍缺失。",
       "h2a_read_only_evidence": {
         "date": "2026-08-30",
         "top_module": "pcie_dma_test",
@@ -719,9 +723,9 @@
         "TODO.md",
         "docs/SIMULATION_READINESS_MATRIX.md"
       ],
-      "evidence_gap": "S0-1 参数化 compile_simlib Tcl/PowerShell 入口及强制仿真器预检已提交；Questa Sim-64 2021.1 最小 SystemVerilog、Logos2 USIM 与 PCIe S2-A 受控行为 smoke 已验证。VSIM、DDR3 与 OV7725 项目级入口、PCIe S2-B/S2-C 和三项目完整四级套件仍缺失。",
+      "evidence_gap": "S0-1 已完成：Questa Sim-64 2021.1 最小 SystemVerilog、Logos2 USIM/VSIM 和 V_BUF 后级原语 smoke 已验证；PCIe S2-A 受控行为 smoke 已通过。DDR3 与 OV7725 项目级入口、PCIe S2-B/S2-C 和三个项目完整四级套件仍缺失。",
       "environment_prerequisite": "Questa Sim-64 2021.1 is verified for minimal SystemVerilog and PCIe S2-A controlled smoke",
-      "simlib_entry_status": "committed_mandatory_preflight_usim_compiled_vsim_pending",
+      "simlib_entry_status": "completed_usim_vsim_and_minimal_post_primitive_smoke",
       "readiness_matrix": {
         "status": "committed_and_linked_from_root_readme",
         "root_readme_linked": true,
@@ -745,7 +749,7 @@
           "scope": "static documentation consistency only; does not execute PDS, ModelSim/QuestaSim or SDF simulation"
         },
         "dynamic_simulation_executed": true,
-        "common_blocker": "Logos2 VSIM and all simulation levels beyond PCIe S2-A controlled behavior smoke remain pending",
+        "common_blocker": "Project-specific post-synthesis, post-PNR functional and SDF timing simulations remain pending despite completed USIM/VSIM library validation",
         "acceptance_boundary": "Vendor examples under ipcore/, ip_core/ and ip_backup/ are reference assets only and do not count as project integration coverage.",
         "common_requirements": [
           "relative-path filelists and DO scripts",
@@ -942,9 +946,9 @@
     "raw_ast_available": false,
     "limitations": [
       "PCIe S2-A brings the repository to 61 commits; the history remains too shallow for reliable hotspot ranking.",
-      "The S0-1 parameterized simulation-library entry is committed with mandatory simulator preflight; Logos2 USIM is compiled and VSIM remains pending.",
+      "S0-1 is complete: the parameterized simulation-library entry compiled Logos2 USIM/VSIM and the minimal V_BUF post-primitive smoke passed.",
       "No HDL/raw source AST extraction was run; CI-0 PowerShell syntax parsing is recorded separately.",
-      "Questa Sim-64 2021.1 execution is available for minimal SystemVerilog and PCIe S2-A controlled behavior smoke; VSIM and later simulation levels remain pending.",
+      "Questa Sim-64 2021.1 execution is available for minimal SystemVerilog, PCIe S2-A controlled behavior smoke, Logos2 USIM/VSIM and a minimal V_BUF post-primitive smoke; project netlist/SDF simulations remain pending.",
       "The 61-commit history includes CI-1 through CI-7, H2-B0, CI-8A, PCIe S2-A, board-evidence checklists, simulator-path review, M0 target approval, M1 PCIe migration, M2-A/M2-B1, and the M3-A OV7725 migration audit. S2-A controlled smoke PASS does not prove real PCIe link, DMA, H2-B1 board closure, CI-8B migration, IP generation, canonical promotion, or a complete product baseline. M2/M3 remain incomplete."
     ]
   }

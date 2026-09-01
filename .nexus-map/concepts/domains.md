@@ -8,7 +8,7 @@
 
 HDL 经 compile、synthesize、dev_map、PNR、timing report、netlist 和 bitstream 阶段形成实现产物。阶段命令成功不等于时序或板级接口已经满足约束。
 
-2026-08-30 S0 环境复核的“未发现仿真器”结论已被后续实际执行证据取代。截至 2026-09-01，Questa Sim-64 2021.1 最小 SystemVerilog 已通过，参数化 `scripts/compile_simlib.tcl`/`.ps1` 已成功生成 Logos2 USIM；VSIM 仍待编译验证。
+2026-08-30 S0 环境复核的“未发现仿真器”结论已被后续实际执行证据取代。截至 2026-09-01，Questa Sim-64 2021.1 最小 SystemVerilog 已通过，参数化 `scripts/compile_simlib.tcl`/`.ps1` 已成功生成 Logos2 USIM/VSIM；VSIM 编译退出 0、日志无 `^E:` 且库目录非空。
 
 2026-08-30 CI-7 入口分类确认全部 13 个 tracked Tcl 已登记。只有三个项目 `scripts/build.tcl` 通过 `run.ps1` 进入 `pds_shell`；PCIe 为 PG2L50H canonical，OV7725/DDR3 仍为 PG2L100H migration-blocked。`impl.tcl`、parse-design screen、厂商 IP PNR 和单 IP 仿真脚本中的旧器件、混合目标或绝对路径只保留为历史/内部证据，不能用于当前器件、STA、网表、SDF、位流或集成仿真签核。
 
@@ -18,7 +18,7 @@ HDL 经 compile、synthesize、dev_map、PNR、timing report、netlist 和 bitst
 
 ModelSim/QuestaSim 分别承担行为级、综合后、PNR 后功能和 PNR 后时序仿真。USIM 用于 PNR 前原语，VSIM 用于 PNR 后原语；时序仿真还依赖正确层级的 SDF 标注。
 
-2026-08-30 仿真就绪度盘点时三个项目均无项目级 TB、`.f` 或 `.do`。截至 2026-09-01，PCIe S2-A 已完成项目级受控行为 smoke 动态验证：`sim/behav.f` 单独补入仿真所需 `ips2l_pcie_apb_cross_v1_0.v`，不修改由 IDF 管理实现侧源的 `scripts/pds_sources.f`；TB 使用厂商要求的 `GRS_INST`，DO 通过 `echo` 将随机 `SIM_RUN_ID` 写入 transcript。最终 `vlog` 为 0 errors/0 warnings，`vsim` elaboration 成功并运行到 `1476105 ns`，Errors 0/Warnings 2、唯一 `TEST PASS`，PowerShell 同 run-id/唯一 PASS 门禁通过。OV7725 与 DDR3 仍缺项目级入口，VSIM 与后级网表/SDF 仿真仍待完成。
+2026-08-30 仿真就绪度盘点时三个项目均无项目级 TB、`.f` 或 `.do`。截至 2026-09-01，PCIe S2-A 已完成项目级受控行为 smoke 动态验证：`sim/behav.f` 单独补入仿真所需 `ips2l_pcie_apb_cross_v1_0.v`，不修改由 IDF 管理实现侧源的 `scripts/pds_sources.f`；TB 使用厂商要求的 `GRS_INST`，DO 通过 `echo` 将随机 `SIM_RUN_ID` 写入 transcript。最终 `vlog` 为 0 errors/0 warnings，`vsim` elaboration 成功并运行到 `1476105 ns`，Errors 0/Warnings 2、唯一 `TEST PASS`，PowerShell 同 run-id/唯一 PASS 门禁通过。另有最小后级原语 smoke 从 VSIM 库加载 `V_BUF`，运行 `2 ns`，Errors 0/Warnings 0、唯一 `TEST PASS`。OV7725 与 DDR3 仍缺项目级入口，三个项目真实网表/SDF 仿真仍待完成。
 
 ## 产品顶层与 IP 示例边界
 
