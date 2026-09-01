@@ -1,6 +1,6 @@
 > generated_by: Codex manual bootstrap
-> verified_at: 2026-08-31
-> provenance: existing PDS logs/reports, new DDR3 and OV7725 full-build logs, timing reports, artifact gate runs, and static audit; no simulator execution in this repository session
+> verified_at: 2026-09-01
+> provenance: existing PDS logs/reports, simulation runs, artifact gates, CI-9 self-tests and real-branch sensitive-diff scan
 
 # Test Coverage
 
@@ -77,6 +77,14 @@
 - 负向覆盖：真实 partial compile、PDS executable 缺失、run-id 漂移、产物字节漂移与 FDC 输入漂移均返回 1，证明旧 full-build 证据不能复用。
 - 正向覆盖：最终 PG2L50H full build 返回 0、baseline 返回 0、strict 返回 1、最差 slack `0.100 ns`；H2-B0 的 16 签名/42 次记录未漂移。
 - 边界：本批未修改 RTL、活动 IDF、FDC 或厂商 IP；CI-8B 等待 DDR3/OV7725 各自 PG2L50H canonical 升格，并按项目独立实现，不抽公共模块。
+
+## CI-9 许可证敏感差异门禁（2026-09-01）
+
+- 已验证入口：`scripts/check_sensitive_diff.ps1` 以指定基线和 `HEAD` 的 merge-base 为起点，扫描 tracked 新增路径、diff 新增行和未跟踪文本；`docs/SENSITIVE_DIFF_GATE.md` 固化使用方法与边界。
+- 已验证规则：严格占位符白名单之外，许可证文件名、Windows/UNC/Unix 绝对许可证路径、真实许可证环境赋值、裸端点、FlexNet 内容、签名与 host id 均返回非零。
+- 自检覆盖：2 个允许新增行、5 个拒绝新增行、1 个允许文件名和 1 个拒绝文件名均按预期判定。
+- 真实差异覆盖：CI-9 分支相对 `origin/main` 的最终扫描退出 0，扫描 20 paths/617 added lines。
+- 边界：门禁只阻止相对 merge-base 新增的泄露，不读取或打印实际许可证配置，不修改工作树，不检查二进制内容，也不清理 Git 历史；历史清理必须作为独立安全批次审核。
 
 ## S0-0-R 仿真器环境复核（2026-08-30）
 
