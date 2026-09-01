@@ -212,7 +212,8 @@
 - s2a_rx_halt_contract: `o_trgt1_radm_pkt_halt[2:0]` 接口分别对应 posted、non-posted 与 completion/CPLD halt；当前 bit0/bit1 有效、bit2 源端恒为 0，三位接口路径已由项目顶层贯通活动 `pcie_test` wrapper 至 hard-IP。wrapper 原 3'b0 tie-off 已删除；生成资产重生成会覆盖该修正，静态 gate 检测该已知接口漂移并要求重新审核。
 - s2a_warning_status: 原两条未连接端口 warning 已消失；PDS 仍保留 bit2 恒 0 引起的两条优化/清理 warning，不影响 S2-A 受控 smoke。
 - s2_next_layers: S2-B 使用厂商 `pango_pcie_top_sim` RC 与项目 `pcie_dma_test` EP 验证真实链路；S2-C 在 S2-B 后执行固定地址/长度/数据的基础 DMA 回读。S2-A 边界模型不得进入这两层或后级网表验收。
-- s2c_bar1_staging: `2026-09-01` 只取得同版本 PDS `2022.2-SP6.4`、PCIe `1.2c` 的 staging IDF；完整 IP Compiler 实例所需 `index.xml` 缺失，禁止升格或覆盖 canonical IP。活动 `pcie_test` 仍为 `BAR1_Enable=false`、`BAR1_ENABLED=1'b0`、`BAR1_MASK=31'h0`，S2-C 未通过。
+- s2c_bar1_staging: `2026-09-01` 静态合同只允许 `BAR1_Enable: false→true`、`BAR1_Size: 256→512 Bytes`，必须保持 `BAR1_MASK_EN=false`、`BAR1_MASK=31'h0`；旧 dry-run 会生成非法 `BAR1_MASK=31'h0(`，已禁止。`check_s2c_bar1` 动态生成/解析 XML，验证唯一差异及 canonical IDF/wrapper SHA 不变；损坏 mask 和缺 `index.xml` 的负向测试均失败。
+- s2c_bar1_source_gap: 17 个实时 origin 分支、完整历史/reflog、工作区和 SP6.4 安装均无匹配 PCIe 1.2c `index.xml`。可接受的原始完整实例必须匹配 IP ID `042004`、build `146967`、`PG2L50H/FBG484/-6`；若只能取得新版本，迁移必须另立批次。canonical BAR1 仍关闭，S2-C 未通过。
 - s2c_archived_diagnostic: run `d1d25d3f23384590918f26abbfd2e839` 由 RC 主动访问 EP BAR0，在 `710535 ns` 完成写入/读回，0 errors、26 vendor warnings、唯一 `INFO: S2C_DMA_WRITE_READBACK_OK`、唯一 `TEST PASS`、PowerShell 退出 0。该 run 不是 Endpoint 主动 MRd/CplD/MWr DMA 闭环，不解除 BAR1 禁用与 `index.xml` 阻断。
 - s2f_archive: `sim/questa/post_pnr_timing.f`、`sim/questa/run_post_pnr_timing.do` 与 `sim/questa/tb/tb_pcie_dma_post_pnr_timing.sv` 保存在 PCIe 项目内；检查入口为 `scripts/check_post_pnr_timing_sim.ps1`，运行库、ini、日志、transcript 与波形只进入 `build/`。
 - s2f_pds_provenance: 未重跑 PDS；继续绑定 run `9952da4164f040d5924a558baa5cd8ca`，状态 `complete/valid=true`，43 inputs/9 artifacts。

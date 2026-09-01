@@ -815,6 +815,20 @@
         "dynamic_result": {"simulator": "Questa Sim-64 2021.1", "run_id": "30bad6e164be4a4b8284a00f1e96bd87", "compilation_succeeded": true, "elaboration_succeeded": true, "rc_ep_reached_l0": true, "stability_window_cycles": 32, "stability_window_passed": true, "link_up_marker_count": 1, "test_pass_count": 1, "errors": 0, "warnings": 26, "powershell_exit_code": 0},
         "coverage_boundary": ["no DMA proof", "no RK3568 hardware proof", "no negotiated x2 or 5.0 GT/s proof", "no electrical proof", "no post-netlist proof"]
       },
+      "s2c_bar1_staging": {
+        "status": "static_contract_verified_source_instance_missing_canonical_disabled",
+        "allowed_parameter_changes": {"BAR1_Enable": "false to true", "BAR1_Size": "256 to 512 Bytes"},
+        "required_unchanged_parameters": {"BAR1_MASK_EN": false, "BAR1_MASK": "31'h0"},
+        "forbidden_legacy_dry_run_output": "BAR1_MASK=31'h0(",
+        "gate": "pcie_dma_test_100h/scripts/check_s2c_bar1.ps1",
+        "gate_contract": ["dynamically generate and parse XML", "verify the only parameter differences", "verify canonical IDF SHA unchanged", "verify canonical wrapper SHA unchanged"],
+        "negative_tests": {"corrupted_mask_rejected": true, "missing_index_xml_rejected": true},
+        "source_search": {"live_origin_branches": 17, "full_history_and_reflog_searched": true, "worktree_searched": true, "pds_sp6_4_installation_searched": true, "matching_pcie_1_2c_index_xml_found": false},
+        "required_original_instance_identity": {"ip_id": "042004", "pds_build": 146967, "device": "PG2L50H", "package": "FBG484", "speedgrade": "-6"},
+        "newer_version_migration_requires_separate_change": true,
+        "canonical_bar1_enabled": false,
+        "s2c_passed": false
+      },
       "post_pnr_functional_smoke": {
         "status": "dynamic_passed_limited_no_sdf",
         "definition_root": "pcie_dma_test_100h/sim/questa",

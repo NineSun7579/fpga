@@ -95,7 +95,8 @@ flowchart TD
 - D3-0 旧接口结论只能作为 PG2L50H 重生成后的比对基准；若接口语义、地址单位、端口或 `I_ips_ddr_top` 层级变化，停止并重新更新 D3-0-R/CI-6，审核前不得新增 D3-A/B/C RTL。
 - 有限自检契约固定 16 个单 beat 写读比较 pair，地址 `0x0..0x78`、步长 8，pair/run timeout 分别为 4096/131072 周期；签核依赖稳定的 `test_done`、`test_failed`、`failure_code`、`error_count`、`completed_pairs` 和首错信息，而不是厂商 LED 或内部层级。
 - 新项目自有 DDR3 RTL 依赖根目录 VSCS；厂商 `ip_core/ddr3/**` 仍作为外部生成依赖，不因 D2 决策被改写。
-- S2-C 还依赖同版本 PDS PCIe IP Compiler 完整实例导出的 `index.xml`。当前 BAR1 staging 只有同版本 IDF，不能作为完整实例或 canonical 升格证据；活动 BAR1 继续禁用，故 DMA 回读依赖尚未满足。
+- S2-C 依赖匹配 IP ID `042004`、PDS build `146967`、`PG2L50H/FBG484/-6` 的 PCIe 1.2c 完整实例 `index.xml`。17 个实时 origin 分支、完整历史/reflog、工作区和 SP6.4 安装均未找到该输入；新版本迁移必须另立批次。
+- BAR1 staging 只允许 `Enable false→true` 与 `Size 256→512 Bytes`，同时保持 `MASK_EN=false`、`MASK=31'h0`。`check_s2c_bar1` 动态生成/解析 XML，要求唯一差异且 canonical IDF/wrapper SHA 不变；非法 `31'h0(`、损坏 mask 或缺失 `index.xml` 均失败。该门禁不启用 canonical BAR1，S2-C 仍未通过。
 - 当前执行队列为：PCIe S2-E PNR 后功能已动态通过；S2-F 已执行但因 GLS/STA 冲突和负时序模型语义不完整而 blocked；继续解决 S2-C 与 S2-F 阻断，同时保持 link/DMA/H2-B1/实板/发布边界未关闭。
 - `docs/SIMULATION_READINESS_MATRIX.md` 已确认项目工程源保留在各自独立 `sim/questa/`、运行态只进入对应 `build/`。S2-F 的 `.f/.do/TB` 同样归档在 PCIe 工程内，依赖 provenance run `9952da4164f040d5924a558baa5cd8ca` 的 timing netlist/SDF、Logos2 USIM/VSIM 和 Questa 2021.1；本机工具与许可证配置不进入仓库证据。
 - PCIe 顶层依赖专用 HSST/IP 约束；`o_trgt1_radm_pkt_halt[2:0]` 接口分别对应 posted、non-posted 与 completion/CPLD halt，当前 bit0/bit1 有效、bit2 源端恒为 0，三位接口路径已由项目顶层贯通活动 `pcie_test` wrapper 至 hard-IP；UART2APB 是否保留是后续 RTL 与 FDC 的共同决策点。

@@ -110,7 +110,8 @@
 - PCIe/S2：S2-A 已用项目级 `tb_pcie_dma_test` 实例化产品顶层，并以受控 `pcie_test` 边界动态验证顶层/复位/LED/未知态；现有 `pango_pcie_top` RC/EP testbench 仍不实例化产品顶层，只能在 S2-B 中作为真实 RC/编译顺序 oracle；S2-C 才验证 DMA。
 - 验收边界：`ipcore/`、`ip_core/`、`ip_backup/` 中的厂商示例只能作为参考证据，不能计入产品集成覆盖，也不能通过改名冒充项目自有 testbench。
 - 四级共同门槛：所有入口使用相对路径 filelist/DO 和项目自有集成 TB；必须具备超时、`$fatal`、唯一 `TEST PASS` 与可靠非零失败退出；PNR 时序仿真必须按实际 DUT 实例层级标注 SDF。
-- PCIe/S2-C BAR1：staging 当前仅有同版本 PDS/PCIe IDF，缺少完整 IP Compiler 实例的 `index.xml`，因此尚无可升格的 wrapper、参数摘要与仿真资产集合；活动 BAR1 仍禁用，本层覆盖为未完成。
+- PCIe/S2-C BAR1：`check_s2c_bar1` 已覆盖动态 XML 生成/解析、唯一允许差异（Enable false→true、Size 256→512 Bytes）、`MASK_EN=false`/`MASK=31'h0` 保持，以及 canonical IDF/wrapper SHA 不变。损坏 mask 与缺 `index.xml` 的负向测试均按预期失败；旧 dry-run 的非法 `BAR1_MASK=31'h0(` 不再允许。
+- 输入证据缺口：17 个实时 origin 分支、完整历史/reflog、工作区和 SP6.4 安装均无匹配 PCIe 1.2c `index.xml`；完整实例还必须匹配 IP ID `042004`、build `146967`、`PG2L50H/FBG484/-6`。因此 canonical BAR1 仍关闭，S2-C 未通过。
 - PCIe/S2-C 归档诊断：run `d1d25d3f23384590918f26abbfd2e839` 已动态覆盖 RC 主动 EP BAR0 写入/读回，运行至 `710535 ns`，0 errors、26 vendor warnings、唯一成功 marker 与唯一 `TEST PASS`、退出 0。覆盖边界不包含 Endpoint 主动 MRd/CplD/MWr DMA 闭环，不能关闭 BAR1/`index.xml` 阻断或升格 S2-C。
 - 公共状态：三个项目的可复现工程源均留在各自 `sim/questa/`，运行态只进入各工程 `build/`。PCIe S2-E PNR 后功能已动态通过；S2-F 工程已归档并执行，但保持 blocked。DDR3/S1、OV5640/S3 与 S2-C 仍未完成。
 
