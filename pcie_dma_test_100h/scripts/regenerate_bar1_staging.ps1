@@ -7,6 +7,7 @@ param(
 $ErrorActionPreference = 'Stop'
 $ProjectRoot = Split-Path -Parent $PSScriptRoot
 $SourceIdf = Join-Path $ProjectRoot 'ipcore\pcie_test\pcie_test.idf'
+$SourceIndex = Join-Path $ProjectRoot 'ipcore\pcie_test\index.xml'
 $StageRoot = Join-Path $ProjectRoot 'build\ipgen\pcie_bar1'
 $StageIdf = Join-Path $StageRoot 'pcie_test.idf'
 $Generator = Join-Path $PdsBin 'ip_generate.exe'
@@ -14,12 +15,18 @@ $Generator = Join-Path $PdsBin 'ip_generate.exe'
 if (-not (Test-Path -LiteralPath $SourceIdf -PathType Leaf)) {
     throw "Active PCIe IDF not found: $SourceIdf"
 }
+if ($Execute -and -not (Test-Path -LiteralPath $SourceIndex -PathType Leaf)) {
+    throw "PDS IP generation requires instance metadata index.xml beside the active IDF: $SourceIndex"
+}
 New-Item -ItemType Directory -Force -Path $StageRoot | Out-Null
 $Text = Get-Content -Raw -Encoding UTF8 -LiteralPath $SourceIdf
 $Text = $Text -replace '(?s)(<name>BAR1_Size</name>\s*.*?<value>)256(</value>)', '${1}512${2}'
 $Text = $Text -replace '(?s)(<name>BAR1_Enable</name>\s*<value>)false(</value>)', '${1}true${2}'
 $Text = $Text -replace '(?s)(<name>BAR1_MASK</name>\s*<value>)31''h0(</value>)', '${1}31''h0(</value>)'
 [IO.File]::WriteAllText($StageIdf, $Text, [Text.UTF8Encoding]::new($false))
+if (Test-Path -LiteralPath $SourceIndex -PathType Leaf) {
+    Copy-Item -LiteralPath $SourceIndex -Destination (Join-Path $StageRoot 'index.xml') -Force
+}
 
 Write-Host "INFO: prepared BAR1 staging IDF at $StageIdf"
 Write-Host 'INFO: target Logos2 / PG2L50H / FBG484 / -6; BAR1 size 512 Bytes'

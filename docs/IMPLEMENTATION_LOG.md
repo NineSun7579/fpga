@@ -396,6 +396,7 @@
 - 收拢后复验 S2-A run `517c1897a6dd433bb3c5cfc84acd0ba9`：编译 `0 errors/0 warnings`、运行至 `1476105 ns`、唯一 PASS、退出 0；S2-B run `6a7817195de44fc6b1ab55a16f073e31`：运行至 `702175 ns`、唯一 link marker/PASS、`Errors: 0, Warnings: 26`、退出 0。
 - S2-C 下一小批冻结 `S2C_BAR1_REGENERATION.md` 和 `check_s2c_bar1.ps1`：活动 BAR1 仍为禁用事实，只有 PDS IP Compiler staging、完整参数/资产差异审核和原子升格后才允许进入 Endpoint 主动 DMA 动态闭环。
 - 已确认 SP6.4 `ip_generate.exe` 的现有实例 CLI；新增 `regenerate_bar1_staging.ps1`，只把 BAR1 启用/512 Bytes 改动写入 `build/ipgen/pcie_bar1/`，默认不执行生成，避免覆盖 canonical IP。
+- 首次 `-Execute` staging 试运行发现活动 IDF 旁缺少 PDS 所需 `index.xml`，生成器因此非零退出。脚本现改为在执行前检查该元数据；待从完整 IP Compiler 实例工程取得同版本 `index.xml` 后再重试。
 
 ## 2026-09-01：PCIe S2-B 动态入口推进
 

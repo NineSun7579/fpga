@@ -27,3 +27,7 @@
 ## 当前结论
 
 本文件只冻结整改边界，不表示 BAR1 已启用，也不表示 S2-C 已通过。当前 `sim/questa/tb/tb_pcie_dma_s2c.sv` 保留为前置诊断入口。
+
+## 工具前置条件
+
+2026-09-01 使用 SP6.4 `ip_generate.exe -i` 对 staging IDF 做实际试运行时，工具在生成前报告实例目录缺少 `index.xml`，以非零退出。当前仓库的活动 PCIe IDF 旁确实没有该文件。脚本因此在 `-Execute` 前置检查中明确拒绝继续；需要从同版本 PDS IP Compiler GUI 或完整实例工程导出合法 `index.xml` 后，再重新执行 staging 生成。
