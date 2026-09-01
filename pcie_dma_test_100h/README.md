@@ -13,6 +13,7 @@
 - S2-A 已用 Questa Sim-64 `2021.1` 动态通过：真实 `pcie_dma_test` 顶层配合受控 PCIe 边界模型，覆盖复位链、LED 域、同一 run id 和唯一 `TEST PASS`；该结果不代表真实 LTSSM、DMA 或板级链路通过。
 - S2-B 已用厂商 `pango_pcie_top_sim` RC 对接项目真实 Endpoint 动态通过：首次速率重训练后，两端 link/LTSSM L0 连续稳定 32 个周期；该结果仍不覆盖 DMA 或板级链路。
 - S2-C 项目内归档诊断入口已用 Questa `2021.1` 完成 RC 主动访问 EP BAR0 的写入/读回；活动 BAR1 仍禁用，因此该结果不是 Endpoint 主动 DMA 闭环证据。
+- S2-D 综合后受限 smoke 已用 Questa `2021.1` 动态通过，覆盖综合网表展开、项目 reset debounce/sync 和 reference-clock LED counter 路径；不覆盖 PCIe 链路、DMA、PNR、SDF 或时序。
 - 已从空 `build/` 以 PG2L50H 完成 SP6.4 七阶段重建，生成新的网表、SDF 和位流；旧 PG2L100H 结果仍只作为历史证据。
 - 严格发布 gate 已验证仍会失败；UART 死通道、未约束端口、lane/refclk/PERST# 和 SCBV 继续阻断发布。
 - H2-A 已完成只读证据收口，详见 [PCIe 板级证据与 IP 目标契约](doc/PCIE_BOARD_EVIDENCE.md)。活动 IDF 保持只读；FDC 在原理图资料闭合前不修改。
@@ -104,13 +105,29 @@ powershell -ExecutionPolicy Bypass -File .\scripts\run.ps1 `
 
 S2-C 归档诊断 run `d1d25d3f23384590918f26abbfd2e839` 在 `710535 ns` 输出唯一 `INFO: S2C_DMA_WRITE_READBACK_OK` 和唯一 `TEST PASS`，`Errors: 0, Warnings: 26`，PowerShell 退出 0。该 TB 由 RC 主动访问 EP BAR0，只证明当前诊断路径可运行；Endpoint 主动 MRd/CplD/MWr 闭环继续等待 BAR1 staging 输入闭合。
 
-PowerShell 入口还预留以下后级动作：
+执行综合后受限 smoke：
 
-- `sim-post-syn`
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\run.ps1 `
+  -Action sim-post-syn `
+  -QuestaBin '<Questa-win64-directory>' `
+  -PdsBin '<PDS-bin-directory>'
+```
+
+当前 run `41135fd3fadd4c51a70508a6fa5af3e3` 使用当前 canonical 综合网表，运行至
+`491965 ns`，唯一 `INFO: POST_SYN_RESET_PATH_OK`、唯一 `TEST PASS`、
+`Errors: 0, Warnings: 1`，PowerShell 退出 0。详细范围见
+[S2-D 综合后受限 smoke 契约](doc/S2D_POST_SYN_SMOKE.md)。
+
+PowerShell 入口还预留以下 PNR 后级动作：
+
 - `sim-post-pnr-func`
 - `sim-post-pnr-timing`
 
-对应三个网表后级 testbench/DO 尚未实现；当前调用会明确失败。基础 DMA 回读属于 S2-C，不会用 S2-A 受控模型或 S2-B link-up 冒充通过。BAR1 staging 还需要同版本完整 IP Compiler 实例导出的 `index.xml`，取得前不覆盖 canonical IP。
+对应两个 PNR 后级 testbench/DO 尚未实现；当前调用会明确失败。综合后受限 smoke
+不等于 PNR 或 SDF 验证。基础 DMA 回读属于 S2-C，不会用 S2-A 受控模型或 S2-B
+link-up 冒充通过。BAR1 staging 还需要同版本完整 IP Compiler 实例导出的
+`index.xml`，取得前不覆盖 canonical IP。
 
 ## 验收条件
 

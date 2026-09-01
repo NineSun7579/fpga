@@ -419,3 +419,13 @@
 - run `d1d25d3f23384590918f26abbfd2e839` 从 `pcie_dma_test_100h/sim/questa/` 入口完成编译、elaboration 和运行，在 `710535 ns` 输出唯一 `INFO: S2C_DMA_WRITE_READBACK_OK` 与唯一 `TEST PASS`，`Errors: 0, Warnings: 26`，PowerShell 退出 0。
 - 26 条 warning 来自厂商/生成模型端口与受保护模型；运行库、日志、transcript 和 ini 仍只位于项目 `build/`。
 - 该 TB 是 RC 主动访问 EP BAR0 的诊断流，不是 Endpoint 主动 MRd/CplD/MWr 闭环。活动 BAR1 仍禁用，合法同版本 PCIe 实例 `index.xml` 仍是 S2-C-BAR1-INPUT 阻断。
+
+## 2026-09-01：PCIe S2-D 综合后受限 smoke
+
+- 在 PCIe 项目内部 `sim/questa/` 归档 `post_syn.f`、`run_post_syn.do` 与 `tb/tb_pcie_dma_post_syn.sv`，继续执行“三项目各自留档、运行态只进 build”的边界。
+- 新增 `scripts/check_post_syn_sim.ps1`，静态锁定 canonical 综合网表、USIM、PCIe/HSST 厂商模型、run-scoped 库、watchdog、唯一 marker/PASS 和 PowerShell 入口。
+- 第一次动态 elaboration 暴露 `HSSTLP_LANE`、`HSSTLP_PLL`、`PCIE` 未定义；根因是 USIM wrapper 之外仍需厂商加密模型，修正为复用已验证的 `compile_vendor_link.do`。
+- 第二次动态运行因等待 hard-IP `core_rst_n` 超时；无真实 RC 时该信号属于 hard-IP bring-up，不是本受限 smoke 的合法前置，合同收紧为只等待项目 `sync_button_rst_n` 与 `sync_perst_n`。
+- 当前 canonical 网表由 PDS run `cfe1a55a670c4eb794a75e5f8a26137c` 生成，manifest=`complete/valid`，baseline/strict gate=`0/1`，最差 slack `0.100 ns`；综合网表 SHA-256 为 `96F1758BE7EA9E94D463F531D42587B10B32F0D4DEE34893D786E6FCF7158058`。
+- 最终 Questa `2021.1` run `41135fd3fadd4c51a70508a6fa5af3e3` 在 `491965 ns` 输出唯一 `INFO: POST_SYN_RESET_PATH_OK` 与唯一 `TEST PASS`，`Errors: 0, Warnings: 1`，PowerShell 退出 0。唯一 warning 来自厂商 HSST 受保护模型。
+- 结果只关闭综合网表展开、项目 reset debounce/sync 与 reference-clock LED counter 路径；S2-C Endpoint 主动 DMA、H2-B1、PNR 功能、SDF 时序和发布 gate 均保持未完成。

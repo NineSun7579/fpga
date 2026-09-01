@@ -68,7 +68,8 @@ $RequiredPcieSources = @(
     'tb\pcie_test_smoke_model.sv',
     'tb\tb_pcie_dma_test.sv',
     'tb\tb_pcie_dma_link.sv',
-    'tb\tb_pcie_dma_s2c.sv'
+    'tb\tb_pcie_dma_s2c.sv',
+    'tb\tb_pcie_dma_post_syn.sv'
 )
 foreach ($RelativePath in $RequiredPcieSources) {
     $SourcePath = Join-Path $PcieArchive $RelativePath

@@ -322,8 +322,10 @@ switch ($Action) {
     }
     'sim-post-syn' {
         Invoke-ModelSim `
-            -DoFileName 'run_post_syn.do' `
-            -LogFileName 'sim-post-syn.log'
+            -DoFileName 'sim/questa/run_post_syn.do' `
+            -LogFileName 'sim-post-syn.log' `
+            -PangoPdsRoot (Split-Path -Parent $PdsBin) `
+            -SuccessMarker 'INFO: POST_SYN_RESET_PATH_OK'
     }
     'sim-post-pnr-func' {
         Invoke-ModelSim `

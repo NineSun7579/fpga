@@ -7,6 +7,7 @@
 - `behav.f`、`run_behav.do`：S2-A 受控行为级 smoke。
 - `link.f`、`link_vendor_local.f`、`compile_vendor_link.do`、`run_link.do`：S2-B 厂商 RC 与项目 EP 真实链路入口。
 - `dma.f`、`run_dma.do`、`tb/tb_pcie_dma_s2c.sv`：S2-C 诊断入口；当前尚未形成最终 Endpoint 主动 DMA 通过证据。
+- `post_syn.f`、`run_post_syn.do`、`tb/tb_pcie_dma_post_syn.sv`：S2-D 综合后受限结构 smoke。
 - 项目自有 testbench 和仿真模型统一保留在 `tb/`；canonical 实现源清单仍位于 `../../scripts/pds_sources.f`，避免维护重复 RTL 清单。
 
 ## 运行边界
@@ -25,3 +26,10 @@
 `scripts/run.ps1` 为每次运行在 `build/sim/launcher/<run-id>/` 创建并显式绑定 `modelsim.ini`，DO 通过进程内 `SIM_PROJECT_ROOT` 定位工程根。两次回归后工程根 `modelsim.ini`、transcript 与波形计数均为 0。
 
 S2-C 归档诊断 run `d1d25d3f23384590918f26abbfd2e839` 运行至 `710535 ns`，唯一 `INFO: S2C_DMA_WRITE_READBACK_OK`、唯一 `TEST PASS`、`Errors: 0, Warnings: 26`，PowerShell 退出 0。运行态仍只写入 `build/`。
+
+S2-D 综合后受限 smoke run `41135fd3fadd4c51a70508a6fa5af3e3` 使用当前 canonical
+`build/pds/synthesize/pcie_dma_test_syn.vm`，运行至 `491965 ns`，唯一
+`INFO: POST_SYN_RESET_PATH_OK`、唯一 `TEST PASS`、`Errors: 0, Warnings: 1`，
+PowerShell 退出 0。它只覆盖综合网表展开、项目 reset debounce/sync 和 reference-clock
+LED counter 路径；不覆盖 PCIe 链路、DMA、PNR、SDF 或时序。合同见
+[`../../doc/S2D_POST_SYN_SMOKE.md`](../../doc/S2D_POST_SYN_SMOKE.md)。

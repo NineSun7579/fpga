@@ -9,7 +9,7 @@
 - implementation_status: documented
 - code_path: null
 - evidence_path: `README.md`, `TODO.md`, `docs/SIMULATION_READINESS_MATRIX.md`, `scripts/check_repo_consistency.ps1`, `scripts/compile_simlib.tcl`, `scripts/compile_simlib.ps1`
-- evidence_gap: Questa Sim-64 2021.1 工具、Logos2 USIM/VSIM、最小 `V_BUF`、PCIe S2-A 受控 smoke 与 S2-B 真实 RC/EP 链路均有当前通过证据。最新 S2-A run `add7efa39f644384af9929e8a9366739` 为 Errors 0、Warnings 0、唯一 PASS、退出 0；最新 S2-B run `30bad6e164be4a4b8284a00f1e96bd87` 为唯一 link-up marker、唯一 PASS、Errors 0、Warnings 26、退出 0；仍不证明 DMA、实板、电气、协商 x2/5.0 GT/s 或后级网表。摄像头产品目标为 OV5640，C0/C1/C2/C3/S3 尚未完成；OV7725 只作 legacy。
+- evidence_gap: Questa Sim-64 2021.1 工具、Logos2 USIM/VSIM、最小 `V_BUF`、PCIe S2-A、S2-B 与 S2-D 均有当前通过证据。S2-D run `41135fd3fadd4c51a70508a6fa5af3e3` 为 Errors 0、Warnings 1、唯一 `POST_SYN_RESET_PATH_OK`、唯一 PASS、退出 0；只覆盖综合网表展开、reset debounce/sync 与 reference-clock LED counter。S2-C、PNR、SDF、时序、H2-B1、发布，以及 DDR3/OV5640 项目级套件仍未完成。
 - responsibility: 定义 PDS 2022.2-SP6.4 的实现流程、ModelSim/QuestaSim 四级仿真流程及三工程整改门槛。
 - s0_environment_review: `2026-09-01`；Questa Sim-64 2021.1 最小 SystemVerilog已通过，PDS SP6.4 Logos2 USIM/VSIM 均已成功编译。
 - s0_0_status: historical_environment_review_superseded_by_actual_questa_execution
@@ -52,7 +52,7 @@
 - ci_8a_inputs: `scripts/pds_sources.f` 是 37 个 HDL 的单一有序清单；与 `run.ps1`、`build.tcl`、`build_provenance.ps1`、活动 IDF/FDC 等合计形成 43 项 canonical 输入。`run.ps1` 中 build-scoped Questa launcher 属于该输入集合，launcher 逻辑变更必须重新绑定完整构建证据。
 - ci_8a_manifest: 每次 build 以 32 位小写十六进制 `run_id` 原子替换固定 `build/provenance/pds-build.json`；状态为 `running/partial/failed/complete`，只有 `complete` 且 `valid=true` 可进入最终 gate。
 - ci_8a_binding: 43 项输入与 full log、timing report、PNR 网表、slow SDF、`.sbit`、`.bin`、`bgr.db` 七项最终证据均绑定相对 POSIX path、length、SHA-256；日志中的唯一开始/完成标志必须与 manifest run_id 一致。
-- ci_8a_result: partial compile、PDS executable 缺失、run-id 漂移、产物漂移和 FDC 输入漂移均 gate=1；build-scoped Questa launcher 纳入 canonical 输入后的最新完整 PG2L50H run `dde6ee70b2c84d2da4ee2256d8a5c127` 为 `gen_bit_stream/complete/valid=true`，绑定 43 inputs/7 artifacts，full build=0、baseline=0、strict=1、slack=`0.1 ns`，H2-B0 16/42 多重集不变。baseline=0 仅证明失败基线可复现；UART RX tied low、顶层 I/O 未约束、PCIe serial I/O、share pin、SCBV 五类 strict 阻断不变，仍不可发布。
+- ci_8a_result: partial compile、PDS executable 缺失、run-id 漂移、产物漂移和 FDC 输入漂移均 gate=1；最新完整 PG2L50H run `cfe1a55a670c4eb794a75e5f8a26137c` 为 `gen_bit_stream/complete/valid=true`，baseline=0、strict=1、最差解析 slack=`0.100 ns`。baseline=0 仅证明失败基线可复现；UART RX tied low、顶层 I/O 未约束、PCIe serial I/O、share pin、SCBV 五类 strict 阻断不变，仍不可发布。
 - ci_8b_boundary: DDR3 与 OV7725 仅在各自 PG2L50H canonical IP/约束和最终构建入口升格后迁移 provenance；先按项目真实源清单/产物布局独立实现，不抽公共模块。
 - ci_9_status: 2026-09-01 implemented_and_verified_sensitive_diff_gate
 - ci_9_entry: `scripts/check_sensitive_diff.ps1`；契约文档为 `docs/SENSITIVE_DIFF_GATE.md`，并由 `scripts/check_repo_consistency.ps1` 调用规则自检、`-FullTree` 当前树扫描和 PR merge-base 差异扫描。
@@ -63,10 +63,10 @@
 - hardware_target_decision: 用户于 2026-08-30 确认三个项目共用 `RK3568+PG2L50H100H` 开发板，实际 FPGA 为 `PG2L50H-6IFBG484`；统一 PDS 目标为 `Logos2 / PG2L50H / FBG484 / -6`。
 - legacy_100h_boundary: 全部 PG2L100H PDS/STA/网表/位流仅保留为历史证据，不得烧录或作为实板验收；三个项目必须分别建立 PG2L50H 新 baseline。
 - ci_0_boundary: 仅为仓库结构与文档静态一致性门禁，不启动或替代 PDS 构建、STA、项目严格 gate 或四级仿真。
-- simulation_readiness_status: Questa 2021.1 tools and Logos2 USIM/VSIM verified; PCIe S2-A controlled smoke and S2-B real RC/EP link PASS; current S2-A/S2-B static gates pass; DDR3 and OV5640 project suites remain pending
+- simulation_readiness_status: Questa 2021.1 tools and Logos2 USIM/VSIM verified; PCIe S2-A controlled smoke, S2-B real RC/EP link and S2-D limited post-synthesis smoke PASS; DDR3 and OV5640 project suites remain pending
 - simulation_asset_boundary: `ipcore/`、`ip_core/`、`ip_backup/` 内的 DDR3、PLL、FIFO 和 PCIe RC/EP testbench/filelist/DO 均为厂商示例，只能作为模型与接口参考；不得改名或直接计入 `ov7725_hdmi`、`ddr3_bringup_top` 或 `pcie_dma_test` 的集成覆盖。
-- simulation_common_gap: 三项目均在各自 `sim/questa/` 保留工程定义；启动器在 `build/sim/launcher/<run-id>/` 创建并显式绑定 run-scoped `modelsim.ini`，通过进程内 `SIM_PROJECT_ROOT` 让 DO 切回项目根，work/vendor library、日志、transcript、波形与 ini 全部只在 `build/`。PCIe S2-A 保留项目自有 TB、相对路径 filelist/DO 与当前唯一 `TEST PASS`，其受控模型不覆盖真实 RC/EP；S2-B 真实 RC/EP 链路已通过，但不覆盖 DMA、实板、电气、协商宽度/速率或后级网表。DDR3/S1 与 OV5640/S3 仍缺可运行项目级入口，PCIe S2-C 及三项目后级网表/SDF 仿真仍未完成。
-- next_step: 在五类 strict 阻断仍受控且不扩张 S2-B 覆盖结论的前提下执行 S2-C DMA；摄像头产品按 C0/C1/C2/C3/S3 推进 OV5640，不延续 OV7725 产品主线。
+- simulation_common_gap: 三项目均在各自 `sim/questa/` 保留可复现工程源；PCIe 已归档 `.f/.do/TB`，DDR3 与摄像头目录记录待建入口和厂商示例边界。work/vendor library、日志、transcript、波形、`modelsim.ini` 等运行态全部只在各工程 `build/`，`.mpf` 与许可证配置不进入 Git。PCIe S2-D 已通过，但只覆盖综合网表展开、reset debounce/sync 和 reference-clock LED counter；S2-C、PNR 功能、PNR 时序/SDF、DDR3/S1 与 OV5640/S3 仍未完成。
+- next_step: 保持 S2-D 受限覆盖边界，继续 S2-C DMA、PCIe PNR 功能/时序仿真，并为 DDR3/OV5640 建立项目级 Questa 入口。
 - s0_0_recheck: 2026-08-30 的未发现仿真器结论已被 2026-09-01 的实际 Questa 执行、USIM 编译与 PCIe S2-A 动态 PASS 取代。
 
 ## Verilog/SystemVerilog 注释规范
