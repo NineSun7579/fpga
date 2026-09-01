@@ -8,7 +8,7 @@
 
 DDR3 与摄像头 HDMI 当前仍没有面向项目集成顶层的仿真入口。现有摄像头资产属于 OV7725 legacy，产品目标已校正为 OV5640，必须先完成 C0/C1 再设计项目 TB。Questa Sim-64 `2021.1`、Logos2 USIM/VSIM 和 `V_BUF` 原语 smoke 已验证，许可证配置保持在仓库外部。PCIe S2-A 最新归档边界回归 run id `add7efa39f644384af9929e8a9366739` 的 RTL 编译为 `0 errors/0 warnings`，elaboration 成功，仿真运行到 `1476105 ns`，同一 run marker、唯一 `TEST PASS` 和 PowerShell 退出码 0 均通过。启动器变更后的 PG2L50H 完整 PDS run id `dde6ee70b2c84d2da4ee2256d8a5c127` 为 complete/valid、43 输入/7 证据，baseline/strict gate=`0/1`、最差 slack `0.100 ns`；S2-B 最新 run `30bad6e164be4a4b8284a00f1e96bd87` 在首次速率重训练后取得连续 32 周期双端 link-up/L0，唯一 marker/PASS 和退出 0 均通过。两次 Questa 运行的 ini、work、日志、transcript 与波形均只在 `build/`，工程根运行文件计数为 0。三个项目的后级网表和 SDF 动态仿真仍待完成。
 
-项目级仿真必须新增相对路径的 filelist、DO 脚本和自检 testbench；不得批量修改 `ipcore/`、`ip_core/`、`ip_backup/` 下的厂商生成文件，也不得把厂商示例顶层改名后冒充集成验证。
+项目级仿真必须在各工程自身 `sim/questa/` 下归档相对路径 filelist、DO 脚本和自检 testbench；版本库只保留可复现源，不提交 `.mpf` 或任何运行态文件。不得批量修改 `ipcore/`、`ip_core/`、`ip_backup/` 下的厂商生成文件，也不得把厂商示例顶层改名后冒充集成验证。
 
 ## 总览
 
@@ -16,7 +16,7 @@ DDR3 与摄像头 HDMI 当前仍没有面向项目集成顶层的仿真入口。
 |---|---:|---:|---|---|---|
 | 摄像头 HDMI（OV5640 目标） | 无 | 无 | OV7725 legacy 的 DDR3、PLL、FIFO 示例 | 参考工程未导入、产品范围未冻结、无集成 TB | C0/C1、OV5640 输入契约和新项目边界 |
 | DDR3 | 无 | 无 | DDR3 `test_ddr`/memory model 示例 | 旧 TB 端口失配 | D3-A/B/C 项目自有 BIST/top |
-| PCIe DMA | S2-A 受控 TB；S2-B 真实 RC/EP TB | `behav.f/run_behav.do`；`link.f/run_link.do` | `pango_pcie_top` RC/EP 示例 | S2-C DMA、H2-B1、后级网表 | 在 S2-B 真实链路上进入 S2-C DMA |
+| PCIe DMA | S2-A 受控 TB；S2-B 真实 RC/EP TB；S2-C 诊断 TB | `behav.f/run_behav.do`；`link.f/run_link.do`；`dma.f/run_dma.do` | `pango_pcie_top` RC/EP 示例 | S2-C Endpoint 主动 DMA 的 BAR1 被禁用、H2-B1、后级网表 | 先审核并重生成启用 BAR1 的活动 PCIe IP |
 
 ## 摄像头 HDMI：OV7725 legacy 与 OV5640 目标
 
@@ -70,15 +70,15 @@ DDR3 与摄像头 HDMI 当前仍没有面向项目集成顶层的仿真入口。
 - 项目顶层为 `pcie_dma_test_100h/hdl/pcie_dma_test.v`。
 - 厂商示例位于 `pcie_dma_test_100h/ipcore/pcie_test/example_design/bench/`，testbench 为 `pango_pcie_top_tb.v`。
 - 对应 filelist/DO 为 `ipcore/pcie_test/sim/modelsim/pango_pcie_top_filelist.f` 和 `pango_pcie_top_sim.do`。
-- S2-A 项目资产位于 `tb/tb_pcie_dma_test.sv`、`tb/pcie_test_smoke_model.sv`、`sim/questa/behav.f` 和 `sim/questa/run_behav.do`；静态门禁为 `scripts/check_sim.ps1`。
-- S2-B 项目资产位于 `tb/tb_pcie_dma_link.sv`、`sim/questa/link.f`、`sim/questa/link_vendor_local.f`、`sim/questa/compile_vendor_link.do` 和 `sim/questa/run_link.do`；静态门禁为 `scripts/check_link_sim.ps1`。
+- S2-A 项目资产位于 `sim/questa/tb/tb_pcie_dma_test.sv`、`sim/questa/tb/pcie_test_smoke_model.sv`、`sim/questa/behav.f` 和 `sim/questa/run_behav.do`；静态门禁为 `scripts/check_sim.ps1`。
+- S2-B 项目资产位于 `sim/questa/tb/tb_pcie_dma_link.sv`、`sim/questa/link.f`、`sim/questa/link_vendor_local.f`、`sim/questa/compile_vendor_link.do` 和 `sim/questa/run_link.do`；静态门禁为 `scripts/check_link_sim.ps1`。
 
 ### 缺口与风险
 
 - 示例 TB 针对 `pango_pcie_top` RC/EP，不实例化项目 `pcie_dma_test`，不能证明 DMA、RAM/FIFO 和 UART 管理路径。
 - `pango_pcie_top_sim.do` 含大量历史绝对路径，filelist 与工作目录耦合。
 - S2-A 受控模型只验证项目顶层外壳、复位链和 LED 域；其 link indication 不是真实 LTSSM、TLP、DMA 或板级链路证据。
-- S2-B 已参数化厂商加密模型并以 `pango_pcie_top_sim` 为 RC；动态 run 在首次速率重训练后取得连续 32 周期双端 link-up/L0，并通过唯一 marker/PASS 和退出码门禁。S2-C 现在可以在该真实链路上增加基础 DMA 回读。
+- S2-B 已参数化厂商加密模型并以 `pango_pcie_top_sim` 为 RC；动态 run 在首次速率重训练后取得连续 32 周期双端 link-up/L0，并通过唯一 marker/PASS 和退出码门禁。S2-C 已建立归档入口和静态合同，但当前活动 IP 的 BAR1 被禁用，厂商 Endpoint DMA 命令窗口不可达；不得用 RC 主动 BAR0 往返冒充最终 S2-C。
 - Questa `2021.1` 与 Logos2 USIM 已验证；S2-A 仅在仿真专用 `sim/questa/behav.f` 中补入 `ipcore/pcie_test/rtl/ips2l_pcie_apb_cross_v1_0.v`，未修改由 IDF 管理的 canonical PDS 源清单。动态 smoke 的 RTL 编译为 0 errors/0 warnings，elaboration 成功并运行到 `1476105 ns`，同一 run marker、唯一 `TEST PASS` 和 PowerShell 退出码 0 均通过。
 - 当前复验确认 Questa 版本、S2-A/S2-B 静态 gate 和现有 USIM/VSIM 目录；S2-A 以新 `SIM_RUN_ID` 动态通过，不复用历史 transcript。
 - S2-A RTL hygiene 已贯通 DMA `o_trgt1_radm_pkt_halt` 到 hard-IP RX halt 输入。Questa 为 `0 warnings`；PDS 原两条未连接端口 warning 消失，只保留 bit2 恒 0 的两条优化/清理 warning。受控 link indication 仍不证明真实 LTSSM、TLP、DMA 或板级链路。

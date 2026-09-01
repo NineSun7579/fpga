@@ -44,6 +44,8 @@ $PcieLinkSimCheckPath = Join-Path $RepoRoot `
     'pcie_dma_test_100h\scripts\check_link_sim.ps1'
 $PcieS2bDocPath = Join-Path $RepoRoot `
     'pcie_dma_test_100h\doc\S2B_REAL_LINK.md'
+$SimArchiveGatePath = Join-Path $RepoRoot `
+    'scripts\check_sim_archives.ps1'
 $ApprovedBoard = 'RK3568+PG2L50H100H'
 $ApprovedFpgaPart = 'PG2L50H-6IFBG484'
 $ApprovedPdsFamily = 'Logos2'
@@ -269,6 +271,20 @@ if ($SimlibPsExists) {
         -Description 'compile_simlib exit-code check' | Out-Null
     Require-Pattern -Text $SimlibPsText -Pattern 'vsim\.exe' `
         -Description 'mandatory simulator preflight' | Out-Null
+}
+
+$SimArchiveGateExists = Require-File -Path $SimArchiveGatePath `
+    -Description 'three-project simulation archive gate'
+if ($SimArchiveGateExists) {
+    try {
+        & $SimArchiveGatePath -RepoRoot $RepoRoot
+        if ($LASTEXITCODE -ne 0) {
+            Add-Failure 'Three-project simulation archive gate failed'
+        }
+    } catch {
+        Add-Failure ("Three-project simulation archive gate failed: {0}" -f `
+                $_.Exception.Message)
+    }
 }
 
 $Ddr3RegenerateExists = Require-File -Path $Ddr3RegeneratePath `

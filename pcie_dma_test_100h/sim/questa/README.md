@@ -6,13 +6,15 @@
 
 - `behav.f`、`run_behav.do`：S2-A 受控行为级 smoke。
 - `link.f`、`link_vendor_local.f`、`compile_vendor_link.do`、`run_link.do`：S2-B 厂商 RC 与项目 EP 真实链路入口。
-- 项目 testbench 保留在 `../../tb/`，canonical 实现源清单保留在 `../../scripts/pds_sources.f`，避免维护重复 RTL 清单。
+- `dma.f`、`run_dma.do`、`tb/tb_pcie_dma_s2c.sv`：S2-C 诊断入口；当前尚未形成最终 Endpoint 主动 DMA 通过证据。
+- 项目自有 testbench 和仿真模型统一保留在 `tb/`；canonical 实现源清单仍位于 `../../scripts/pds_sources.f`，避免维护重复 RTL 清单。
 
 ## 运行边界
 
 - 从 `pcie_dma_test_100h` 工程根目录通过 `scripts/run.ps1` 启动，不直接依赖当前工作目录之外的工程路径。
 - Questa 安装位置和许可证配置由仓库外参数或环境提供，不写入本目录。
-- `work` 库、transcript、日志和波形写入 `build/`，不作为 Git 归档内容。
+- 版本库只归档 `.f`、`.do`、testbench、仿真模型和本说明，不提交 `.mpf`。
+- `work` 库、`modelsim.ini`、transcript、日志和波形写入 `build/`，不作为 Git 归档内容。
 - 当前 S2-A 与 S2-B 均已动态通过；S2-B 只证明厂商 RC 与项目 EP 可形成连续 32 周期的双端 link-up/L0，不证明 DMA 或 RK3568 实板链路。
 
 迁移后的历史验证 run 为 `26db7d3206c542218634caff2c6e71ea`：Questa Sim-64 `2021.1` 编译 0 errors/0 warnings，运行至 `1476105 ns`，唯一 `TEST PASS`，退出码 0。

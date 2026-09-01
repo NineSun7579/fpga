@@ -391,6 +391,9 @@
 - PCIe 的 S2-A/S2-B `.f/.do` 从分散的 `sim/` 与 `scripts/` 迁入 `pcie_dma_test_100h/sim/questa/`，`scripts/run.ps1` 和两项静态 gate 改为只认新位置，避免双份 filelist 漂移。
 - DDR3 与摄像头目录目前只记录厂商 IP 示例边界和项目级入口缺口：厂商 `sim/modelsim` 资产不计作项目集成仿真；DDR3 等待 D3 canonical 闭环，摄像头等待 OV5640 C0/C1/C2/C3 后再补四级入口。
 - 迁移后使用 Questa Sim-64 `2021.1` 从新入口复验 S2-A；run `26db7d3206c542218634caff2c6e71ea` 编译 0 errors/0 warnings，运行至 `1476105 ns`，唯一 `TEST PASS`，PowerShell 退出 0。
+- 后续审核明确要求仿真工程完整留在各自项目内：新增 `scripts/check_sim_archives.ps1`，将 PCIe 的三个既有项目自有 SV 仿真源收拢到 `sim/questa/tb/`，并把该检查纳入根仓库门禁。
+- 结构门禁拒绝归档目录中的 `.mpf`、`work`、`modelsim.ini`、transcript、日志和波形；`.gitignore` 同步覆盖常见 Questa 工程运行态扩展名。
+- 收拢后复验 S2-A run `517c1897a6dd433bb3c5cfc84acd0ba9`：编译 `0 errors/0 warnings`、运行至 `1476105 ns`、唯一 PASS、退出 0；S2-B run `6a7817195de44fc6b1ab55a16f073e31`：运行至 `702175 ns`、唯一 link marker/PASS、`Errors: 0, Warnings: 26`、退出 0。
 
 ## 2026-09-01：PCIe S2-B 动态入口推进
 

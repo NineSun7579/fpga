@@ -54,8 +54,8 @@ $DoPath = Join-Path $ProjectRoot 'sim\questa\run_behav.do'
 $RunPath = Join-Path $PSScriptRoot 'run.ps1'
 $CheckPath = $MyInvocation.MyCommand.Path
 $TopPath = Join-Path $ProjectRoot 'hdl\pcie_dma_test.v'
-$ModelPath = Join-Path $ProjectRoot 'tb\pcie_test_smoke_model.sv'
-$TestbenchPath = Join-Path $ProjectRoot 'tb\tb_pcie_dma_test.sv'
+$ModelPath = Join-Path $ProjectRoot 'sim\questa\tb\pcie_test_smoke_model.sv'
+$TestbenchPath = Join-Path $ProjectRoot 'sim\questa\tb\tb_pcie_dma_test.sv'
 $WrapperPath = Join-Path $ProjectRoot 'ipcore\pcie_test\pcie_test.v'
 
 $RequiredFiles = [ordered]@{
@@ -87,9 +87,9 @@ $ExpectedBehaviorEntries = @(
     'ipcore/pcie_test/rtl/hsst_pipe/hsst_rst_cross_sync_v1_0.v',
     'ipcore/pcie_test/rtl/hsst_pipe/hsst_rst_sync_v1_0.v',
     'ipcore/pcie_test/rtl/ips2l_pcie_apb_cross_v1_0.v',
-    'tb/pcie_test_smoke_model.sv',
+    'sim/questa/tb/pcie_test_smoke_model.sv',
     '-f scripts/pds_sources.f',
-    'tb/tb_pcie_dma_test.sv'
+    'sim/questa/tb/tb_pcie_dma_test.sv'
 )
 $BehaviorEntries = @(Get-FileListEntries -Path $BehaviorListPath)
 $BehaviorDifference = @(Compare-Object `
