@@ -1,5 +1,5 @@
 > generated_by: Codex manual bootstrap
-> verified_at: 2026-08-31
+> verified_at: 2026-09-01
 > provenance: root guide, TODO, source tree, PDS reports, and manual inspection
 
 # Domains
@@ -8,7 +8,7 @@
 
 HDL 经 compile、synthesize、dev_map、PNR、timing report、netlist 和 bitstream 阶段形成实现产物。阶段命令成功不等于时序或板级接口已经满足约束。
 
-2026-08-30 S0 环境复核确认 `E:/pango/PDS_2022.2-SP6.4/bin/pds_shell.exe` 存在，是当前唯一已发现工具；PATH、`C:/questasim64/win64` 与常见 ModelSim/QuestaSim 目录均没有 `vsim.exe`、`vlog.exe`、`vlib.exe`。S0-1 已准备参数化 `scripts/compile_simlib.tcl`/`.ps1` 入口，但默认运行在 PDS 前即因缺少 `vsim.exe` 返回 1；安装有许可证的仿真器并实际生成非空 USIM/VSIM 库前，动态仿真仍阻塞。
+2026-08-30 S0 环境复核的“未发现仿真器”结论已被后续实际执行证据取代。截至 2026-09-01，Questa Sim-64 2021.1 最小 SystemVerilog 已通过，参数化 `scripts/compile_simlib.tcl`/`.ps1` 已成功生成 Logos2 USIM；VSIM 仍待编译验证。
 
 2026-08-30 CI-7 入口分类确认全部 13 个 tracked Tcl 已登记。只有三个项目 `scripts/build.tcl` 通过 `run.ps1` 进入 `pds_shell`；PCIe 为 PG2L50H canonical，OV7725/DDR3 仍为 PG2L100H migration-blocked。`impl.tcl`、parse-design screen、厂商 IP PNR 和单 IP 仿真脚本中的旧器件、混合目标或绝对路径只保留为历史/内部证据，不能用于当前器件、STA、网表、SDF、位流或集成仿真签核。
 
@@ -18,7 +18,7 @@ HDL 经 compile、synthesize、dev_map、PNR、timing report、netlist 和 bitst
 
 ModelSim/QuestaSim 分别承担行为级、综合后、PNR 后功能和 PNR 后时序仿真。USIM 用于 PNR 前原语，VSIM 用于 PNR 后原语；时序仿真还依赖正确层级的 SDF 标注。
 
-2026-08-30 仿真就绪度盘点时三个项目均无项目级 TB、`.f` 或 `.do`。截至 2026-08-31，PCIe S2-A 已在未提交工作树新增项目级行为 smoke：真实 `pcie_dma_test` 顶层、受控 `pcie_test` 边界模型、嵌套复用 37 个 canonical HDL 并包含 DMA RAM init 目录的相对路径 filelist、DO、静态 gate、`SIM_RUN_ID`、超时/`$fatal` 和唯一 `TEST PASS` 契约；DO 映射仓库根公共 USIM，并按 run id 隔离 work library。静态 gate 与根门禁均为 0。OV7725 与 DDR3 仍缺项目级入口，三个项目的动态仿真仍因缺少 ModelSim/QuestaSim 与实际 USIM/VSIM 而阻断。
+2026-08-30 仿真就绪度盘点时三个项目均无项目级 TB、`.f` 或 `.do`。截至 2026-09-01，PCIe S2-A 已完成项目级受控行为 smoke 动态验证：`sim/behav.f` 单独补入仿真所需 `ips2l_pcie_apb_cross_v1_0.v`，不修改由 IDF 管理实现侧源的 `scripts/pds_sources.f`；TB 使用厂商要求的 `GRS_INST`，DO 通过 `echo` 将随机 `SIM_RUN_ID` 写入 transcript。最终 `vlog` 为 0 errors/0 warnings，`vsim` elaboration 成功并运行到 `1476105 ns`，Errors 0/Warnings 2、唯一 `TEST PASS`，PowerShell 同 run-id/唯一 PASS 门禁通过。OV7725 与 DDR3 仍缺项目级入口，VSIM 与后级网表/SDF 仿真仍待完成。
 
 ## 产品顶层与 IP 示例边界
 
@@ -36,7 +36,7 @@ PCIe H2-B0（2026-08-30）将五类 baseline 问题归一化为 16 个唯一签�
 
 PCIe CI-8A（2026-08-31）把构建证据定义为一次运行的不可拆分集合：37 个 HDL 单一清单、43 项 canonical 输入和 7 项最终证据由同一 32 位 run_id 与 SHA-256 manifest 绑定。每次 build 开始即原子失效旧 complete 证据；`running/partial/failed` 均不可验收，只有 `complete/valid` 可继续 H2-B0/strict gate。partial、工具缺失、run-id、产物或 FDC 漂移均失败；最终 PG2L50H full build/baseline/strict 为 `0/0/1`，slack `0.100 ns`。CI-8B 等待 DDR3/OV7725 canonical 升格后逐项目迁移，不预先共享实现。
 
-PCIe S2-A（2026-08-31）只建立产品壳层行为 smoke。受控模型替代生成的 `pcie_test`，提供确定性时钟、复位、idle 接口和延迟 link 激励；TB 验证顶层展开、两路外部/同步复位、两组 LED 计数门控及可观察输出未知态。模型产生的 link indication 不证明真实 LTSSM、TLP、DMA 或板级链路；S2-B 必须改用厂商 RC/EP 验证真实链路，S2-C 才执行基础 DMA 回读。`SIM_RUN_ID` 与唯一 `TEST PASS` 仅保证单次日志身份和结果可判定，不改变覆盖边界。
+PCIe S2-A（2026-09-01）只验证产品壳层受控行为 smoke。受控模型替代生成的 `pcie_test`，提供确定性时钟、复位、idle 接口和延迟 link 激励；TB 验证顶层展开、两路外部/同步复位、两组 LED 计数门控及可观察输出未知态。两条 `vsim` warning 均来自 `pcie_dma_test.v` 中 `u_ips2l_pcie_dma` 未连接输出 `o_trgt1_radm_pkt_halt`，作为独立 RTL hygiene TODO，不影响本层受控 smoke PASS。模型产生的 link indication 不证明真实 LTSSM、TLP、DMA 或板级链路；S2-B 必须改用厂商 RC/EP 验证真实链路，S2-C 才执行基础 DMA 回读。
 
 实物确认后，活动 `pcie_test.idf` 的 `Logos2/PG2L50H/FBG484/-6` metadata 被证明正确；错误项是顶层 build/PDS/gate 和现有主产物仍为 PG2L100H。M1 不为型号重复生成 PCIe IP，而是修正项目自有 build/gate、清空旧 build并建立 50H baseline，同时继续阻断 UART2APB、lane/refclk/PERST# 与 SCBV 缺口。
 

@@ -23,14 +23,14 @@ S2-A **不验证**真实 LTSSM、TLP、DMA 数据一致性、x2 lane、P/N 极�
 
 | 文件 | 职责 |
 |---|---|
-| `sim/behav.f` | 以 POSIX 相对路径组合 reset helper、受控模型、37 个 canonical HDL 和项目 TB |
+| `sim/behav.f` | 以 POSIX 相对路径组合 reset helper、PCIe IP 仿真辅助源、受控模型、37 个 canonical HDL 和项目 TB |
 | `tb/pcie_test_smoke_model.sv` | 提供确定性的时钟、复位、idle 协议输出和延迟 link 激励 |
-| `tb/tb_pcie_dma_test.sv` | 实例化 `pcie_dma_test`、`GTP_GRS`，执行复位/计数/未知态自检 |
+| `tb/tb_pcie_dma_test.sv` | 实例化 `pcie_dma_test` 和固定层级名 `GRS_INST` 的 `GTP_GRS`，执行复位/计数/未知态自检 |
 | `scripts/run_behav.do` | 为每个 run id 建立独立 work、映射共享 USIM、记录 run id、编译和运行 |
 | `scripts/check_sim.ps1` | 不依赖仿真器的 filelist、端口、TB、DO 和入口契约门禁 |
 | `scripts/run.ps1` | 为每次仿真生成唯一 `SIM_RUN_ID`，校验同一日志中的 run marker 和唯一 PASS |
 
-`sim/behav.f` 通过 `-f scripts/pds_sources.f` 复用 PDS 的 37 个 HDL 唯一有序清单，不维护第二份项目 RTL 清单。它还为 DMA RAM wrapper 的 basename `` `include "ips2l_pcie_dma_ram_init_param.v" `` 显式添加 `+incdir+hdl/pcie_dma_ctrl/ips2l_pcie_dma_ram/rtl`。`GTP_DRM18K_E1` 和 `GTP_GRS` 由 Logos2 USIM 解析。
+`sim/behav.f` 通过 `-f scripts/pds_sources.f` 复用 PDS 的 37 个 HDL 唯一有序清单，不维护第二份项目 RTL 清单。它只额外加载 `ips2l_pcie_apb_cross_v1_0.v` 这一仿真辅助源；该文件已由 PCIe IDF 管理实现侧资产，不加入 canonical PDS 源清单。filelist 还为 DMA RAM wrapper 的 basename `` `include "ips2l_pcie_dma_ram_init_param.v" `` 显式添加 `+incdir+hdl/pcie_dma_ctrl/ips2l_pcie_dma_ram/rtl`。`GTP_DRM18K_E1` 和 `GTP_GRS` 由 Logos2 USIM 解析；Pango RAM 模型固定引用顶层 `GRS_INST.GRSNET`，因此 TB 的全局复位实例名必须保持为 `GRS_INST`。
 
 ## 4. 自检时序
 
@@ -57,7 +57,7 @@ powershell -ExecutionPolicy Bypass -File .\scripts\check_sim.ps1
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\run.ps1 `
   -Action sim-behav `
-  -QuestaBin C:\questasim64\win64
+  -QuestaBin '<Questa-win64-directory>'
 ```
 
 动态执行前必须满足：
@@ -66,13 +66,15 @@ powershell -ExecutionPolicy Bypass -File .\scripts\run.ps1 `
 2. 仓库根公共流程已将 Logos2 USIM 编译到仓库根 `build/simlib/usim`；项目 DO 从 `pcie_dma_test_100h` 目录以 `../build/simlib/usim` 映射该共享库；
 3. `GTP_DRM18K_E1`、`GTP_GRS` 能从该库展开。
 
-截至 2026-08-31，本机未发现 ModelSim/QuestaSim，因此只完成静态门禁，不能声明 S2-A 动态通过。
+2026-09-01 使用 Questa Sim-64 `2021.1` 完成动态验证。run id `fab4ccef3e2445abbd9d1cad1e66b2ab` 的 RTL 编译为 `0 errors/0 warnings`，elaboration 成功，仿真运行至 `1476105 ns`，最终为 `Errors: 0, Warnings: 2`，同一 transcript 包含唯一 run marker 和唯一 `TEST PASS`，PowerShell 入口返回 0。
+
+两条 warning 都来自项目 RTL 中 `u_ips2l_pcie_dma` 未连接输出 `o_trgt1_radm_pkt_halt`。该问题作为独立 RTL hygiene TODO 保留；本批不修改 canonical RTL，也不把 S2-A 通过解释为 RTL 零 warning、真实链路或 DMA 通过。
 
 ## 6. 后续分层
 
 ### S2-B：真实 RC/EP 链路
 
-安装 QuestaSim 后，以厂商 `pango_pcie_top_sim` 作为 RC、项目 `pcie_dma_test` 作为 EP，参数化本机 PDS 根目录并复用厂商加密模型的原始编译顺序。必须在时限内检查 DUT 的真实 `smlh_link_up/rdlh_link_up` 和 LTSSM 状态；不得用 S2-A 边界模型。
+下一步以厂商 `pango_pcie_top_sim` 作为 RC、项目 `pcie_dma_test` 作为 EP，参数化 PDS 根目录并复用厂商加密模型的原始编译顺序。必须在时限内检查 DUT 的真实 `smlh_link_up/rdlh_link_up` 和 LTSSM 状态；不得用 S2-A 边界模型。
 
 ### S2-C：基础 DMA 回读
 

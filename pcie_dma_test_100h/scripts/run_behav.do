@@ -18,7 +18,7 @@ if {![file isdirectory ../build/simlib/usim]} {
     error "USIM library not found: ../build/simlib/usim"
 }
 
-puts "INFO: SIM_RUN_ID=$env(SIM_RUN_ID)"
+echo "INFO: SIM_RUN_ID=$env(SIM_RUN_ID)"
 
 set work_dir "build/sim/behav/$env(SIM_RUN_ID)/work"
 file mkdir [file dirname $work_dir]

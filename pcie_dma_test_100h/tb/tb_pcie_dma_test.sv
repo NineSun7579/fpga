@@ -53,7 +53,7 @@ module tb_pcie_dma_test;
         .pclk_led     (pclk_led)
     );
 
-    GTP_GRS grs_inst (
+    GTP_GRS GRS_INST (
         .GRS_N (1'b1)
     );
 
