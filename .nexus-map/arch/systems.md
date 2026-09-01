@@ -9,7 +9,7 @@
 - implementation_status: documented
 - code_path: null
 - evidence_path: `README.md`, `TODO.md`, `docs/SIMULATION_READINESS_MATRIX.md`, `scripts/check_repo_consistency.ps1`, `scripts/compile_simlib.tcl`, `scripts/compile_simlib.ps1`
-- evidence_gap: PCIe S2-E run `927abae8ed7d40aeb5d6f706b3723e0a` 已动态通过；覆盖仅限无 SDF PNR 功能网表展开、reset debounce/sync 与 reference-clock LED counter。PCIe link/DMA、SDF timing、H2-B1、实板、发布及 DDR3/OV5640 套件仍未完成。
+- evidence_gap: PCIe S2-E run `927abae8ed7d40aeb5d6f706b3723e0a` 已动态通过。S2-F 工程已在项目内归档并成功标注 SDF，但当前 run `7fc77a7ec8db479db7332e8037426d6c` 因 2 个 timing error、GLS/STA 冲突和 `V_FFASYN` 负时序语义不完整而 blocked。PCIe link/DMA、H2-B1、实板、发布及 DDR3/OV5640 套件仍未完成。
 - responsibility: 定义 PDS 2022.2-SP6.4 的实现流程、ModelSim/QuestaSim 四级仿真流程及三工程整改门槛。
 - s0_environment_review: `2026-09-01`；Questa Sim-64 2021.1 最小 SystemVerilog已通过，PDS SP6.4 Logos2 USIM/VSIM 均已成功编译。
 - s0_0_status: historical_environment_review_superseded_by_actual_questa_execution
@@ -65,8 +65,8 @@
 - ci_0_boundary: 仅为仓库结构与文档静态一致性门禁，不启动或替代 PDS 构建、STA、项目严格 gate 或四级仿真。
 - simulation_readiness_status: Questa 2021.1 tools and Logos2 USIM/VSIM verified; PCIe S2-A controlled smoke, S2-B real RC/EP link and S2-D limited post-synthesis smoke PASS; DDR3 and OV5640 project suites remain pending
 - simulation_asset_boundary: `ipcore/`、`ip_core/`、`ip_backup/` 内的 DDR3、PLL、FIFO 和 PCIe RC/EP testbench/filelist/DO 均为厂商示例，只能作为模型与接口参考；不得改名或直接计入 `ov7725_hdmi`、`ddr3_bringup_top` 或 `pcie_dma_test` 的集成覆盖。
-- simulation_common_gap: 三个项目的可复现仿真工程分别保留在各自工程内独立 `sim/questa/`，运行态只进入对应 `build/`。PCIe S2-E 已通过；link/DMA、PNR 时序/SDF、H2-B1、实板与发布仍未关闭。
-- next_step: 保持 S2-E 受限覆盖边界，继续 SDF timing 与 S2-C DMA。
+- simulation_common_gap: 三个项目的可复现仿真工程分别保留在各自工程内独立 `sim/questa/`，运行态只进入对应 `build/`。PCIe S2-E 已通过；S2-F 已执行但被 GLS/STA 冲突和仿真模型语义阻断。link/DMA、H2-B1、实板与发布仍未关闭。
+- next_step: 保持 S2-E 受限覆盖边界；先解决或取得可审核依据处理 S2-F 的 HSST timing-model 冲突，再继续 S2-C DMA。
 - s0_0_recheck: 2026-08-30 的未发现仿真器结论已被 2026-09-01 的实际 Questa 执行、USIM 编译与 PCIe S2-A 动态 PASS 取代。
 
 ## Verilog/SystemVerilog 注释规范
@@ -187,7 +187,7 @@
 - project_path: `pcie_dma_test_100h/pcie_dma_test.pds`
 - constraint_path: `pcie_dma_test_100h/fdc/pcie_dma_test.fdc`
 - evidence_path: `pcie_dma_test_100h/place_route/pcie_dma_test_timing_summary_after_hold_fix.txt`
-- evidence_gap: 活动 `pcie_test.idf`、build/PDS/gate 与产物已统一为 PG2L50H；S2-A 受控 smoke 与 S2-B 真实 RC/EP 链路当前动态 PASS，S2-A/S2-B 静态门禁通过。`o_trgt1_radm_pkt_halt[2:0]` 已由项目顶层贯通活动 `pcie_test` wrapper 至 hard-IP，wrapper 原 3'b0 tie-off 已删除并由静态 gate 锁定；DMA、RK3568 实板、协商 x2/5.0 GT/s、电气、板级证据和后级网表/SDF 仍缺失。
+- evidence_gap: 活动 `pcie_test.idf`、build/PDS/gate 与产物已统一为 PG2L50H；S2-A/S2-B/S2-D/S2-E 有动态通过证据。S2-F 的 timing netlist/SDF 工程已归档且 SDF 标注成功，但动态运行被 2 个 HSST reset timing error、GLS/STA 冲突和负时序模型语义不完整阻断。`o_trgt1_radm_pkt_halt[2:0]` 已贯通至 hard-IP；DMA、RK3568 实板、电气与板级证据仍缺失。
 - responsibility: 集成 PCIe x2 IP、DMA、RAM/FIFO 与 UART2APB 管理路径。
 - build_entry: `pcie_dma_test_100h/scripts/run.ps1`
 - build_definition: `pcie_dma_test_100h/scripts/build.tcl`
@@ -198,7 +198,7 @@
 - h2a_uart_gap: UART2APB 使用隐式 `rxd/txd` 网络，当前 `rxd` 被绑 0；该功能缺口不因 PDS/STA 成功而关闭。
 - h2a_boundary: 器件型号已获用户审核；活动 PCIe IDF 不需仅因型号重生成。M1 已修改项目自有 build/gate，并依据 PDS 模板迁移 HSSTLP 资源后重建生成物；RTL/FDC 其余内容仍受 UART 与板级证据审核约束。
 - s2a_status: current_controlled_dynamic_smoke_passed; current_static_gate_passed; current_run_id_add7efa39f644384af9929e8a9366739; exit_0; errors_0; warnings_0; unique_test_pass
-- s2a_assets: `tb/tb_pcie_dma_test.sv` 实例化真实 `pcie_dma_test`，全局复位实例名为厂商要求的 `GRS_INST`；`tb/pcie_test_smoke_model.sv` 只替代生成 PCIe IP 边界，两个时序过程恰好使用两个 `always_ff`；项目自有 Questa 定义集中在 `sim/questa/`，其中 `behav.f` 复用 `scripts/pds_sources.f` 的 37 个 canonical HDL，并单独补入仿真所需 `ipcore/pcie_test/rtl/ips2l_pcie_apb_cross_v1_0.v`。`scripts/pds_sources.f` 不修改，因为该源在实现侧由 IDF 管理。
+- s2a_assets: `sim/questa/tb/tb_pcie_dma_test.sv` 实例化真实 `pcie_dma_test`，全局复位实例名为厂商要求的 `GRS_INST`；`sim/questa/tb/pcie_test_smoke_model.sv` 只替代生成 PCIe IP 边界，两个时序过程恰好使用两个 `always_ff`；项目自有 Questa 定义集中在 `sim/questa/`，其中 `behav.f` 复用 `scripts/pds_sources.f` 的 37 个 canonical HDL，并单独补入仿真所需 `ipcore/pcie_test/rtl/ips2l_pcie_apb_cross_v1_0.v`。`scripts/pds_sources.f` 不修改，因为该源在实现侧由 IDF 管理。
 - s2a_log_contract: 每次动态运行使用随机 32 位小写十六进制 `SIM_RUN_ID`；启动器在 `build/sim/launcher/<run-id>/` 创建并显式绑定 run-scoped `modelsim.ini`，PowerShell 通过进程内 `SIM_PROJECT_ROOT` 让 DO 切回项目根；DO 通过 `echo` 将 marker 写入 transcript，并为本次运行创建独立 work。PowerShell 只接受同一 run id marker 恰好一次且 `TEST PASS` 恰好一次，任一失败由 `$fatal` 或非零退出传播。
 - s2a_reset_contract: button reset 只拥有 PCIe core/pclk 域；TB 在断言后先确认 ref counter 没有被清零，再跨额外 8 个 refclk 周期确认 link 撤销期间严格保持原值。随后 button reset 完整重新释放并恢复 model link，PERST# 才单独断言以复位两组 LED 域，再独立释放并重新通过 debounce/link 检查。
 - s2a_coverage_boundary: 只覆盖产品顶层展开、外部/同步复位、上述 reset ownership、两组 LED 计数门控及 TX/LED 未知态；受控 `smlh_link_up/rdlh_link_up` 只是激励，不证明 LTSSM、TLP、DMA、x2 lane、电气 refclk/PERST# 或 RK3568 Root Complex。
@@ -214,5 +214,9 @@
 - s2_next_layers: S2-B 使用厂商 `pango_pcie_top_sim` RC 与项目 `pcie_dma_test` EP 验证真实链路；S2-C 在 S2-B 后执行固定地址/长度/数据的基础 DMA 回读。S2-A 边界模型不得进入这两层或后级网表验收。
 - s2c_bar1_staging: `2026-09-01` 只取得同版本 PDS `2022.2-SP6.4`、PCIe `1.2c` 的 staging IDF；完整 IP Compiler 实例所需 `index.xml` 缺失，禁止升格或覆盖 canonical IP。活动 `pcie_test` 仍为 `BAR1_Enable=false`、`BAR1_ENABLED=1'b0`、`BAR1_MASK=31'h0`，S2-C 未通过。
 - s2c_archived_diagnostic: run `d1d25d3f23384590918f26abbfd2e839` 由 RC 主动访问 EP BAR0，在 `710535 ns` 完成写入/读回，0 errors、26 vendor warnings、唯一 `INFO: S2C_DMA_WRITE_READBACK_OK`、唯一 `TEST PASS`、PowerShell 退出 0。该 run 不是 Endpoint 主动 MRd/CplD/MWr DMA 闭环，不解除 BAR1 禁用与 `index.xml` 阻断。
+- s2f_archive: `sim/questa/post_pnr_timing.f`、`sim/questa/run_post_pnr_timing.do` 与 `sim/questa/tb/tb_pcie_dma_post_pnr_timing.sv` 保存在 PCIe 项目内；检查入口为 `scripts/check_post_pnr_timing_sim.ps1`，运行库、ini、日志、transcript 与波形只进入 `build/`。
+- s2f_pds_provenance: 未重跑 PDS；继续绑定 run `9952da4164f040d5924a558baa5cd8ca`，状态 `complete/valid=true`，43 inputs/9 artifacts。
+- s2f_dynamic_result: Questa 当前 run `7fc77a7ec8db479db7332e8037426d6c` 成功标注 SDF 且层级匹配，未对设计信号使用 force/release；自然复现 setup `cnt_rst[5]` 与 hold `rstn_sync` 两个 HSST `ext_rstn_debounce` timing error，Errors 2，独立脚本汇总 5 类失败并退出 1。
+- s2f_model_boundary: `V_FFASYN` 四实参模型产生 `vsim-8756=1` 与 `vsim-3004=1590`，负 timing check 语义不完整；slow-corner STA setup/hold 均为正。当前状态为 `blocked_gls_sta_conflict_and_incomplete_negative_timing_semantics`，TB 后续出现 `TEST PASS` 不能覆盖仿真器 error/退出码。
 - h2b_stop_conditions: 板级 lane 极性/拓扑、I/O delay 或 SCBV 缺失，IDF/PDS 器件元数据不一致，或 UART2APB `rxd/txd` 归属未决时，H2-B 不得收紧 gate；不得用 waiver 掩盖缺口。
-- next_step: 保持五类 strict gate 阻断（UART RX tied low、顶层 I/O 未约束、PCIe serial I/O、share pin、SCBV）；在 S2-B 通过后执行 S2-C DMA，再推进项目后级网表/SDF 仿真
+- next_step: 保持五类 strict gate 阻断（UART RX tied low、顶层 I/O 未约束、PCIe serial I/O、share pin、SCBV）；S2-F 保持 blocked，取得可信 timing-model/工具解释后再决定修复或重验，同时继续解决 S2-C DMA 前置条件

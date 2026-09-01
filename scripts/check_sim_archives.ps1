@@ -70,7 +70,8 @@ $RequiredPcieSources = @(
     'tb\tb_pcie_dma_link.sv',
     'tb\tb_pcie_dma_s2c.sv',
     'tb\tb_pcie_dma_post_syn.sv',
-    'tb\tb_pcie_dma_post_pnr_func.sv'
+    'tb\tb_pcie_dma_post_pnr_func.sv',
+    'tb\tb_pcie_dma_post_pnr_timing.sv'
 )
 foreach ($RelativePath in $RequiredPcieSources) {
     $SourcePath = Join-Path $PcieArchive $RelativePath

@@ -453,3 +453,14 @@
 - owner 再次明确不再使用 OV7725，摄像头产品唯一主线为双 OV5640。
 - `41_ov7725_hdmi/`、O0/O1/O2/M3-A、旧 PDS/STA/CDC/RDC 和失败实验继续保留为 legacy 证据，但 M3-B、O1-C、O2-D2/O2-C1/O2-C2、O3、O4 和旧工程 CI-8B 均取消，不再重生成 PG2L50H IP、修改旧 RTL/FDC、执行项目级 Questa 或实板签核。
 - 摄像头 CI-8B、C2/C3 和 S3 全部改由 `59_top_dual_ov5640_hdmi/` 承担；参考分支与 OV7725 只能提供选择性审核输入，不能直接继承模块、IP、约束、STA、SDF、位流或 PASS。
+
+# 2026-09-01：PCIe S2-F PNR 后时序 smoke 阻断归档
+
+- 在项目 `sim/questa/` 归档 timing filelist、DO 和按 VSCS 记录职责、排除范围、时钟/复位假设、Hazard、watchdog 与唯一 PASS 合同的自检 TB；运行态继续只进入 `build/`。
+- S2-F 使用独立 `run_post_pnr_timing_sim.ps1` 启动与检查日志，避免修改 canonical PDS 输入 `scripts/run.ps1`；恢复其原始字节与哈希后 baseline provenance gate 返回 0，无需重跑 PDS。
+- canonical PDS run `9952da4164f040d5924a558baa5cd8ca` 保持 `complete/valid`、43 inputs/9 artifacts；本批不重跑 PDS，也不修改 RTL、IP 或 FDC。
+- Questa run `7fc77a7ec8db479db7332e8037426d6c` 由独立入口完成复验，成功输出唯一 SDF backannotation marker，并在无任何设计信号 force/release 时于 HSST `ext_rstn_debounce` 自然复现一个正 setup error 和一个正 hold error。
+- 独立入口明确汇总 negative timing-check diagnostic、正 timing-check error、非零 error summary、`vsim-8756` 与 `vsim-3004` 五类失败并退出 1，证明日志门禁不会被 TB 的 PASS 字符串绕过。
+- TB 后续虽输出唯一功能 marker 和 `TEST PASS`，simulator 终态仍为 `Errors: 2, Warnings: 1591, Suppressed Warnings: 340`，PowerShell 正确退出 1；PASS 字符串不得覆盖 simulator error。
+- Pango `V_FFASYN` 的 `$setuphold/$recrem` 只有四个实参，没有 delayed CK/D、notifier 或 delayed copy；本次 1 条 `vsim-8756` 与 1590 条 `vsim-3004` 证明负 timing limit 被清零，负检查覆盖不完整。
+- 同一 PDS run 的 slow setup/hold 均为正裕量且 0 failing endpoints，因此结论限定为“GLS 与 STA 冲突且负时序模型语义不完整”；S2-F 不勾选，也不扩张为硅上时序失败、链路/DMA、H2-B1、实板或发布结论。

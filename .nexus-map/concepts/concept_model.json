@@ -683,7 +683,7 @@
       "implementation_status": "implemented_with_known_functional_gap",
       "code_path": "pcie_dma_test_100h/hdl/",
       "evidence_path": "pcie_dma_test_100h/place_route/pcie_dma_test_timing_summary_after_hold_fix.txt",
-      "evidence_gap": "PCIe IDF、build/PDS/gate 与产物已统一匹配 PG2L50H；S2-A 受控 smoke、S2-B 真实 RC/EP 链路和 S2-A/S2-B 静态门禁通过。DMA、RK3568 实板、协商 x2/5.0 GT/s、电气、板级证据和后级网表/SDF 仍缺失。",
+      "evidence_gap": "PCIe IDF、build/PDS/gate 与产物已统一匹配 PG2L50H；S2-A/S2-B/S2-D/S2-E 有动态通过证据。S2-F 工程已归档且 SDF 标注成功，但因 2 个 timing error、GLS/STA 冲突和负时序模型语义不完整而 blocked。DMA、RK3568 实板、电气与板级证据仍缺失。",
       "h2a_read_only_evidence": {
         "date": "2026-08-30",
         "top_module": "pcie_dma_test",
@@ -753,8 +753,8 @@
       "s2a_behavior_smoke": {
         "date": "2026-09-01",
         "status": "current_controlled_dynamic_smoke_passed",
-        "integration_testbench": "pcie_dma_test_100h/tb/tb_pcie_dma_test.sv",
-        "controlled_ip_boundary": "pcie_dma_test_100h/tb/pcie_test_smoke_model.sv",
+        "integration_testbench": "pcie_dma_test_100h/sim/questa/tb/tb_pcie_dma_test.sv",
+        "controlled_ip_boundary": "pcie_dma_test_100h/sim/questa/tb/pcie_test_smoke_model.sv",
         "behavior_filelist": "pcie_dma_test_100h/sim/questa/behav.f",
         "do_entry": "pcie_dma_test_100h/sim/questa/run_behav.do",
         "static_gate": "pcie_dma_test_100h/scripts/check_sim.ps1",
@@ -823,6 +823,22 @@
         "historical_failed_attempts": [{"run_id": "e7e63e79454148048d2dcd00abdf29a7", "elaboration_succeeded": false, "failure": "D drive ENOSPC", "current_blocker": false}],
         "covered": ["no-SDF post-PNR functional netlist elaboration", "reset debounce and synchronization", "reference-clock LED counter"],
         "coverage_boundary": ["no PCIe link proof", "no DMA proof", "no SDF timing proof", "no H2-B1 closure", "no hardware proof", "no release proof"]
+      },
+      "post_pnr_timing_smoke": {
+        "status": "blocked_gls_sta_conflict_and_incomplete_negative_timing_semantics",
+        "definition_root": "pcie_dma_test_100h/sim/questa",
+        "filelist": "pcie_dma_test_100h/sim/questa/post_pnr_timing.f",
+        "run_do": "pcie_dma_test_100h/sim/questa/run_post_pnr_timing.do",
+        "testbench": "pcie_dma_test_100h/sim/questa/tb/tb_pcie_dma_post_pnr_timing.sv",
+        "launcher": "pcie_dma_test_100h/scripts/run_post_pnr_timing_sim.ps1",
+        "static_gate": "pcie_dma_test_100h/scripts/check_post_pnr_timing_sim.ps1",
+        "evidence_document": "pcie_dma_test_100h/doc/S2F_POST_PNR_TIMING_SMOKE.md",
+        "runtime_outputs_root": "pcie_dma_test_100h/build",
+        "pds_run": {"run_id": "9952da4164f040d5924a558baa5cd8ca", "status": "complete", "valid": true, "input_count": 43, "artifact_count": 9, "canonical_launcher": "pcie_dma_test_100h/scripts/run.ps1", "canonical_launcher_original_bytes_and_sha256_restored": true, "simulation_launcher_is_separate": true, "simulation_entrypoint_change_invalidates_pds_provenance": false, "baseline_provenance_gate_exit_code": 0, "pds_rerun_required": false},
+        "dynamic_result": {"simulator": "Questa Sim-64 2021.1", "run_id": "7fc77a7ec8db479db7332e8037426d6c", "sdf_annotation_succeeded": true, "sdf_instance_hierarchy_matched": true, "design_signal_force_used": false, "setup_error_signal": "cnt_rst[5]", "hold_error_signal": "rstn_sync", "errors": 2, "launcher_failure_category_count": 5, "powershell_exit_code": 1, "vsim_8756_count": 1, "vsim_3004_count": 1590, "sta_slow_setup_hold_positive": true, "dynamic_passed": false},
+        "interpretation": "GLS and STA conflict while negative timing-check semantics are incomplete; this is neither a simulation pass nor proof of silicon timing failure",
+        "test_pass_override_forbidden": true,
+        "coverage_boundary": ["no PCIe link proof", "no DMA proof", "no H2-B1 closure", "no hardware proof", "no release proof"]
       },
       "tech_stack": ["Verilog", "Pango Logos2", "PCIe x2", "DMA"],
       "related_reqs": ["H2-A read-only evidence", "H2-B board evidence", "IP regeneration", "UART 决策", "集成自检", "保持时序通过"],
@@ -943,8 +959,8 @@
             ],
             "post_pnr_functional_dynamic_result": "run 927abae8ed7d40aeb5d6f706b3723e0a passed at 491965 ns with one POST_PNR_FUNC_RESET_PATH_OK, one TEST PASS, zero errors, one warning, 80 suppressed warnings and PowerShell exit 0",
             "behavior_smoke_assets": [
-              "pcie_dma_test_100h/tb/tb_pcie_dma_test.sv",
-              "pcie_dma_test_100h/tb/pcie_test_smoke_model.sv",
+              "pcie_dma_test_100h/sim/questa/tb/tb_pcie_dma_test.sv",
+              "pcie_dma_test_100h/sim/questa/tb/pcie_test_smoke_model.sv",
               "pcie_dma_test_100h/sim/questa/behav.f",
               "pcie_dma_test_100h/sim/questa/run_behav.do",
               "pcie_dma_test_100h/scripts/check_sim.ps1"
@@ -1079,7 +1095,7 @@
       "source": "external-simulation-suite",
       "target": "pcie-dma-system",
       "type": "tests",
-      "description": "三个项目的可复现仿真工程分别保留在各自工程内独立 sim/questa，运行态只进入对应 build；PCIe PDS run 9952da4164f040d5924a558baa5cd8ca complete/valid，Questa run 927abae8ed7d40aeb5d6f706b3723e0a 在 491965 ns 动态通过。覆盖仅限无 SDF 网表展开、reset debounce/sync 与 reference-clock LED counter；link/DMA、SDF timing、H2-B1、实板与 release 仍未关闭。"
+      "description": "三个项目的可复现仿真工程分别保留在各自工程内独立 sim/questa，运行态只进入对应 build；PCIe S2-E 动态通过。S2-F 工程已归档并成功标注 SDF，但当前 run 7fc77a7ec8db479db7332e8037426d6c 因 2 个 timing error、GLS/STA 冲突和负时序模型语义不完整而 blocked；link/DMA、H2-B1、实板与 release 仍未关闭。"
     },
     {
       "source": "vscs-commenting-standard",

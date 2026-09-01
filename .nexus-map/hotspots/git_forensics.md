@@ -43,12 +43,13 @@
 - `docs/PDS_TCL_ENTRYPOINT_INVENTORY.json`、`scripts/check_pds_tcl_entrypoints.ps1`：CI-7 的 13 项 tracked Tcl 分类与入口事实；仅三个 `scripts/build.tcl` 属于项目 `run.ps1` 链，其余为公共支持、历史 GUI、厂商内部或厂商仿真脚本。canonical 只接受 PG2L50H/FBG484/-6 且无绝对路径，历史/厂商脚本不得作为器件或 STA 证明。
 - `pcie_dma_test_100h/doc/H2B_BASELINE_GATE.md`、`H2B_BASELINE_FINGERPRINT.json`：H2-B0 的 16 签名/42 原始记录精确多重集和五个变异 fixture；metadata 漂移永久硬失败。partial run 复用旧 full-build 证据的风险已由 PCIe CI-8A 关闭。
 - `pcie_dma_test_100h/scripts/pds_sources.f`、`run.ps1`、`build_provenance.ps1`、`doc/CI8A_BUILD_PROVENANCE.md`：最新 PDS run `9952da4164f040d5924a558baa5cd8ca` 为 `complete/valid=true`，manifest 绑定 43 inputs/9 artifacts；baseline/strict=`0/1`，不可解释为发布通过。
-- `pcie_dma_test_100h/tb/tb_pcie_dma_test.sv`、`tb/pcie_test_smoke_model.sv`、`sim/questa/behav.f`：S2-A 项目级行为 smoke 的真实顶层、自检 TB、受控 PCIe 边界、DMA RAM init include 与 37 HDL 嵌套 filelist。`behav.f` 另补仿真所需 `ips2l_pcie_apb_cross_v1_0.v`，不得为此修改由 IDF 管理实现侧源的 `scripts/pds_sources.f`；TB 全局复位实例保持 `GRS_INST`。评审时禁止把受控 link 当作 LTSSM/TLP/DMA 或板级链路证据。
-- 三个项目的可复现仿真工程分别保留在各自工程内独立 `sim/questa/`，运行态只进入对应 `build/`。PCIe S2-E run `927abae8ed7d40aeb5d6f706b3723e0a` 使用无 SDF PNR 功能网表，在 `491965 ns` 以唯一 marker/PASS、Errors 0、Warnings 1、Suppressed Warnings 80、PowerShell 退出 0 通过；不关闭 link、DMA、SDF timing、H2-B1、实板或 release。
+- `pcie_dma_test_100h/sim/questa/tb/tb_pcie_dma_test.sv`、`sim/questa/tb/pcie_test_smoke_model.sv`、`sim/questa/behav.f`：S2-A 项目级行为 smoke 的真实顶层、自检 TB、受控 PCIe 边界、DMA RAM init include 与 37 HDL 嵌套 filelist。`behav.f` 另补仿真所需 `ips2l_pcie_apb_cross_v1_0.v`，不得为此修改由 IDF 管理实现侧源的 `scripts/pds_sources.f`；TB 全局复位实例保持 `GRS_INST`。评审时禁止把受控 link 当作 LTSSM/TLP/DMA 或板级链路证据。
+- 三个项目的可复现仿真工程分别保留在各自工程内独立 `sim/questa/`，运行态只进入对应 `build/`。PCIe S2-E run `927abae8ed7d40aeb5d6f706b3723e0a` 使用无 SDF PNR 功能网表动态通过；S2-F 的 `.f/.do/TB` 也已归档，但当前 run `7fc77a7ec8db479db7332e8037426d6c` 在 SDF 标注成功、无设计信号 force 的前提下产生 2 个 HSST reset timing error，脚本汇总 5 类失败并退出 1。slow-corner STA setup/hold 为正，且 `V_FFASYN` 负时序语义不完整，故保持 blocked。
+- `pcie_dma_test_100h/doc/S2F_POST_PNR_TIMING_SMOKE.md`、`sim/questa/run_post_pnr_timing.do`、`scripts/run_post_pnr_timing_sim.ps1`、`scripts/check_post_pnr_timing_sim.ps1`：S2-F 审计首要入口。S2-F 使用独立仿真启动器，不修改 canonical PDS `scripts/run.ps1`；后者原始字节/SHA 已恢复，baseline provenance gate 返回 0，故仿真入口变更不使 run `9952da4164f040d5924a558baa5cd8ca` 失效，也无需重跑 PDS。评审仍必须同时检查 SDF annotation、DUT 层级、仿真器 Errors/退出码、`vsim-8756`/`vsim-3004` 计数与 STA；TB 的 `TEST PASS` 不得覆盖仿真器 error。
 - `pcie_dma_test_100h/doc/S2C_BAR1_REGENERATION.md` 与 BAR1 staging：同版本 PDS `2022.2-SP6.4`、PCIe `1.2c` 的 staging 当前只有 IDF，因缺少完整实例 `index.xml` 而阻断；canonical 未覆盖，活动 BAR1 仍禁用。PR #10 初次审计为 `OPEN/CLEAN`，随后于 `2026-09-01T12:14:57Z` 合并，最新为 `MERGED/UNKNOWN`。
 - `pcie_dma_test_100h/sim/questa/tb/tb_pcie_dma_s2c.sv` 与归档诊断 run `d1d25d3f23384590918f26abbfd2e839`：RC 主动 EP BAR0 写入/读回在 `710535 ns` 以 0 errors、26 vendor warnings、唯一 marker/PASS、退出 0 完成。该入口只作前置诊断，不是 Endpoint 主动 DMA 闭环；BAR1 禁用和 `index.xml` 输入缺口仍是 S2-C 阻断。
 - `docs/SIMULATION_READINESS_MATRIX.md`：三项目 S1/S2/S3 项目级资产缺口、厂商示例边界、四级共同门槛和 PG2L50H 迁移依赖的首要证据。
-- `scripts/compile_simlib.ps1`、`scripts/compile_simlib.tcl`：Questa Sim-64 2021.1 下 Logos2 USIM/VSIM 均已验证；S2-E 当前通过仍只属于无 SDF PNR 功能 smoke，不扩展为 SDF timing 或发布证据。
+- `scripts/compile_simlib.ps1`、`scripts/compile_simlib.tcl`：Questa Sim-64 2021.1 下 Logos2 USIM/VSIM 均已验证；S2-E 通过仍只属于无 SDF PNR 功能 smoke，S2-F 的 blocked 结果也不能扩展为硅上失败或发布证据。
 
 ## 后续更新
 
