@@ -42,6 +42,10 @@ $PcieS2aDocPath = Join-Path $RepoRoot `
     'pcie_dma_test_100h\doc\S2A_BEHAVIOR_SMOKE.md'
 $PcieLinkSimCheckPath = Join-Path $RepoRoot `
     'pcie_dma_test_100h\scripts\check_link_sim.ps1'
+$PciePostSynSimCheckPath = Join-Path $RepoRoot `
+    'pcie_dma_test_100h\scripts\check_post_syn_sim.ps1'
+$PciePostSynDocPath = Join-Path $RepoRoot `
+    'pcie_dma_test_100h\doc\S2D_POST_SYN_SMOKE.md'
 $PcieS2bDocPath = Join-Path $RepoRoot `
     'pcie_dma_test_100h\doc\S2B_REAL_LINK.md'
 $PcieS2cBar1GatePath = Join-Path $RepoRoot `
@@ -794,6 +798,34 @@ if ($PcieLinkSimCheckExists) {
         Add-Failure "PCIe S2-B static simulation gate failed: $($_.Exception.Message)"
     }
 }
+$PciePostSynSimCheckExists = Require-File `
+    -Path $PciePostSynSimCheckPath `
+    -Description 'PCIe post-synthesis static simulation gate'
+if ($PciePostSynSimCheckExists) {
+    try {
+        & $PciePostSynSimCheckPath
+    } catch {
+        Add-Failure "PCIe post-synthesis static simulation gate failed: $($_.Exception.Message)"
+    }
+}
+$PciePostSynDocExists = Require-File `
+    -Path $PciePostSynDocPath `
+    -Description 'PCIe S2-D post-synthesis smoke contract'
+if ($PciePostSynDocExists) {
+    $PciePostSynDocText = Get-Content -Raw -Encoding UTF8 `
+        -LiteralPath $PciePostSynDocPath
+    foreach ($Required in ([ordered]@{
+            'PCIe S2-D canonical netlist' = 'pcie_dma_test_syn\.vm'
+            'PCIe S2-D current run evidence' =
+                '41135fd3fadd4c51a70508a6fa5af3e3'
+            'PCIe S2-D success marker' = 'POST_SYN_RESET_PATH_OK'
+            'PCIe S2-D PNR exclusion' = 'PNR'
+            'PCIe S2-D SDF exclusion' = 'SDF'
+        }).GetEnumerator()) {
+        Require-Pattern -Text $PciePostSynDocText -Pattern $Required.Value `
+            -Description $Required.Key | Out-Null
+    }
+}
 $PcieS2aDocExists = Require-File `
     -Path $PcieS2aDocPath `
     -Description 'PCIe S2-A behavior smoke contract'
@@ -844,6 +876,8 @@ if (Test-Path -LiteralPath $PcieReadmePath -PathType Leaf) {
         -Description 'PCIe README S2-A behavior smoke link' | Out-Null
     Require-Pattern -Text $PcieReadmeText -Pattern 'S2B_REAL_LINK\.md' `
         -Description 'PCIe README S2-B real-link link' | Out-Null
+    Require-Pattern -Text $PcieReadmeText -Pattern 'S2D_POST_SYN_SMOKE\.md' `
+        -Description 'PCIe README S2-D post-synthesis smoke link' | Out-Null
 }
 $PcieEvidencePath = Join-Path $RepoRoot `
     'pcie_dma_test_100h\doc\PCIE_BOARD_EVIDENCE.md'

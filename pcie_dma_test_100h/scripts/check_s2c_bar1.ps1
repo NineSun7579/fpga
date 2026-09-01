@@ -26,7 +26,7 @@ if ($Failures.Count -eq 0) {
     Require-Pattern $Idf '(?s)<name>BAR1_Enable</name>\s*<value>false</value>' 'disabled BAR1 IDF fact'
     Require-Pattern $Wrapper 'BAR1_ENABLED\s*=\s*1''b0' 'disabled BAR1 wrapper fact'
     Require-Pattern $Wrapper 'BAR1_MASK\s*=\s*31''h0' 'zero BAR1 wrapper mask'
-    Require-Pattern $Doc '禁止只手改' 'generated-file edit prohibition'
+    Require-Pattern $Doc 'pcie_test\.v.*BAR1_ENABLED.*BAR1_MASK' 'generated-file edit prohibition'
     Require-Pattern $Doc '0x110..0x113' 'DMA command-window coverage'
     Require-Pattern $Doc '5432_1000' 'canonical DMA data contract'
 }

@@ -456,7 +456,7 @@ O2-D2 停止条件：控制相位或 `/5` generated clock 未被 PDS 唯一识�
 - [x] 将仿真器安装路径作为可覆盖外部参数，不写入工程源清单。
 - [x] 将许可证配置保持在仓库外部；禁止提交许可证绝对路径、服务器、feature、内容或许可证文件。
 - [x] S0-2-Q：已以新 run marker `966942334060436dba8444ae9155557c` 重跑 S2-A，唯一 `TEST PASS`、`Errors: 0, Warnings: 0` 和 PowerShell 退出码 0 均满足。
-- [x] S0-3-Q：三个项目均建立项目内 `sim/questa/` 归档目录。PCIe 的 S2-A/S2-B/S2-C `.f/.do/TB` 已收拢并作为唯一脚本来源；`scripts/check_sim_archives.ps1` 禁止项目自有 TB 再散落到工程外层，也禁止归档 `.mpf`、`work`、`modelsim.ini`、日志、transcript 和波形。DDR3 与摄像头目录记录厂商示例边界和待建项目级入口；许可证配置不进入 Git。
+- [x] S0-3-Q：三个项目均建立项目内 `sim/questa/` 归档目录。PCIe 的 S2-A/S2-B/S2-C/S2-D `.f/.do/TB` 已收拢并作为唯一脚本来源；`scripts/check_sim_archives.ps1` 禁止项目自有 TB 再散落到工程外层，也禁止归档 `.mpf`、`work`、`modelsim.ini`、日志、transcript 和波形。DDR3 与摄像头目录记录厂商示例边界和待建项目级入口；许可证配置不进入 Git。
 - [x] S0-4-Q：PCIe 启动器为每个 run 在 `build/sim/launcher/` 创建并显式绑定 `modelsim.ini`，通过运行时 `SIM_PROJECT_ROOT` 返回工程根执行归档 DO。S2-A run `add7efa39f644384af9929e8a9366739` 与 S2-B run `30bad6e164be4a4b8284a00f1e96bd87` 均动态通过；两次运行后工程根 `modelsim.ini`、transcript、波形计数为 0。因 `run.ps1` 是 canonical 输入，PG2L50H PDS run `dde6ee70b2c84d2da4ee2256d8a5c127` 已重建为 complete/valid、43 输入/7 证据，baseline/strict gate=`0/1`、最差 slack `0.100 ns`。
 
 ### S1：DDR3 四级仿真
@@ -487,7 +487,8 @@ O2-D2 停止条件：控制相位或 `/5` generated clock 未被 PDS 唯一识�
 - [x] S2-C-BAR1：冻结 BAR1 重生成和原子升格边界，见 [`S2C_BAR1_REGENERATION.md`](pcie_dma_test_100h/doc/S2C_BAR1_REGENERATION.md)；当前仅通过阻断门禁，未修改生成 IP。
 - [x] S2-C-BAR1：新增 `scripts/regenerate_bar1_staging.ps1`，默认 dry-run，显式 `-Execute` 才在 `build/ipgen/pcie_bar1/` 调用 PDS IP Generator；canonical IP 不被覆盖。
 - [ ] S2-C-BAR1-INPUT：从同版本 PDS IP Compiler 完整 PCIe 实例工程取得配套 `index.xml`，再重新执行 staging；禁止跨版本、跨 IP 或未知模板复制。
-- [ ] 再完成综合后、PNR 功能和 PNR 时序仿真。
+- [x] S2-D 综合后受限 smoke：项目内 `sim/questa/` 已归档 `post_syn.f`、DO 和自检 TB；Questa `2021.1` run `41135fd3fadd4c51a70508a6fa5af3e3` 使用当前 canonical 综合网表运行至 `491965 ns`，唯一 `INFO: POST_SYN_RESET_PATH_OK`、唯一 `TEST PASS`、`Errors: 0, Warnings: 1`、退出 0。只关闭综合网表展开、reset debounce/sync 和 reference-clock LED counter 路径，不关闭 S2-C、PNR、SDF、时序、H2-B1 或发布 gate。合同见 [`S2D_POST_SYN_SMOKE.md`](pcie_dma_test_100h/doc/S2D_POST_SYN_SMOKE.md)。
+- [ ] 完成 PNR 后功能和 PNR 后时序仿真。
 - [ ] 每级成功只输出一个 `TEST PASS`，失败或超时返回非零。
 
 ### S3：OV5640 集成仿真
