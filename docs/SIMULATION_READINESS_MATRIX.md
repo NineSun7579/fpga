@@ -6,7 +6,7 @@
 
 ## 结论
 
-DDR3 当前仍没有面向项目集成顶层的仿真入口。摄像头产品目标已固定为双 OV5640；`origin/parallel_driver@485f3bb` 可见 4 个相关 TB 和两项数据面 PASS 自述，但资产尚未选择性导入新的 `59_top_dual_ov5640_hdmi/`，也没有本仓库 canonical `.f/.do`、run marker 和日志门禁，因此仍未形成可审核项目入口。Questa Sim-64 `2021.1`、Logos2 USIM/VSIM 和 `V_BUF` 原语 smoke 已验证，许可证配置保持在仓库外部。PCIe S2-A 最新归档边界回归 run id `add7efa39f644384af9929e8a9366739` 的 RTL 编译为 `0 errors/0 warnings`，elaboration 成功，仿真运行到 `1476105 ns`，同一 run marker、唯一 `TEST PASS` 和 PowerShell 退出码 0 均通过。当前 PG2L50H 完整 PDS run id `9952da4164f040d5924a558baa5cd8ca` 为 complete/valid，43 输入/9 证据，baseline/strict gate=`0/1`、最差 slack `0.100 ns`；S2-B run `30bad6e164be4a4b8284a00f1e96bd87` 已通过真实 RC/EP link-up。PCIe S2-D 综合后受限 smoke run `41135fd3fadd4c51a70508a6fa5af3e3` 使用当前 canonical 综合网表，唯一 marker/PASS 和退出 0 均通过。S2-E PNR 功能 run `927abae8ed7d40aeb5d6f706b3723e0a` 运行至 `491965 ns`，唯一 marker/PASS、`Errors: 0, Warnings: 1` 和退出 0 均通过。所有 ini、work、日志、transcript 与波形只在各项目 `build/`。DDR3、双 OV5640、S2-C Endpoint 主动 DMA 和三个项目的 SDF 时序仿真仍待完成。
+DDR3 当前仍没有面向项目集成顶层的仿真入口。摄像头产品目标已固定为双 OV5640；`origin/parallel_driver@485f3bb` 可见 4 个相关 TB 和两项数据面 PASS 自述，但资产尚未选择性导入新的 `59_top_dual_ov5640_hdmi/`，也没有本仓库 canonical `.f/.do`、run marker 和日志门禁，因此仍未形成可审核项目入口。Questa Sim-64 `2021.1`、Logos2 USIM/VSIM 和 `V_BUF` 原语 smoke 已验证，许可证配置保持在仓库外部。PCIe S2-A 最新归档边界回归 run id `add7efa39f644384af9929e8a9366739` 的 RTL 编译为 `0 errors/0 warnings`，elaboration 成功，仿真运行到 `1476105 ns`，同一 run marker、唯一 `TEST PASS` 和 PowerShell 退出码 0 均通过。当前 PG2L50H 完整 PDS run id `9952da4164f040d5924a558baa5cd8ca` 为 complete/valid，43 输入/9 证据，baseline/strict gate=`0/1`、最差 slack `0.100 ns`；S2-B run `30bad6e164be4a4b8284a00f1e96bd87` 已通过真实 RC/EP link-up。PCIe S2-D 综合后受限 smoke run `41135fd3fadd4c51a70508a6fa5af3e3` 使用当前 canonical 综合网表，唯一 marker/PASS 和退出 0 均通过。S2-E PNR 功能 run `927abae8ed7d40aeb5d6f706b3723e0a` 运行至 `491965 ns`，唯一 marker/PASS、`Errors: 0, Warnings: 1` 和退出 0 均通过。S2-F 已完成 SDF 标注与无 force 动态复验，但因两个正 timing error、GLS/STA 冲突和负模型语义缺口保持 blocked。所有 ini、work、日志、transcript 与波形只在各项目 `build/`。DDR3、双 OV5640、S2-C Endpoint 主动 DMA，以及 DDR3/双 OV5640 的 SDF 时序仿真仍待完成。
 
 项目级仿真必须在各工程自身 `sim/questa/` 下归档相对路径 filelist、DO 脚本和自检 testbench；双 OV5640 使用 `59_top_dual_ov5640_hdmi/sim/questa/`，不得放入 OV7725 legacy 目录。版本库只保留可复现源，不提交 `.mpf`、`sim_*` 编译库或任何运行态文件。不得批量修改 `ipcore/`、`ip_core/`、`ip_backup/` 下的厂商生成文件，也不得把厂商示例顶层改名后冒充集成验证。
 
@@ -76,6 +76,7 @@ DDR3 当前仍没有面向项目集成顶层的仿真入口。摄像头产品目
 - S2-B 项目资产位于 `sim/questa/tb/tb_pcie_dma_link.sv`、`sim/questa/link.f`、`sim/questa/link_vendor_local.f`、`sim/questa/compile_vendor_link.do` 和 `sim/questa/run_link.do`；静态门禁为 `scripts/check_link_sim.ps1`。
 - S2-D 项目资产位于 `sim/questa/tb/tb_pcie_dma_post_syn.sv`、`sim/questa/post_syn.f` 和 `sim/questa/run_post_syn.do`；静态门禁为 `scripts/check_post_syn_sim.ps1`，契约为 [`S2D_POST_SYN_SMOKE.md`](../pcie_dma_test_100h/doc/S2D_POST_SYN_SMOKE.md)。
 - S2-E 项目资产位于 `sim/questa/tb/tb_pcie_dma_post_pnr_func.sv`、`sim/questa/post_pnr_func.f` 和 `sim/questa/run_post_pnr_func.do`；静态门禁为 `scripts/check_post_pnr_func_sim.ps1`，契约为 [`S2E_POST_PNR_FUNC_SMOKE.md`](../pcie_dma_test_100h/doc/S2E_POST_PNR_FUNC_SMOKE.md)。
+- S2-F 项目资产位于 `sim/questa/tb/tb_pcie_dma_post_pnr_timing.sv`、`sim/questa/post_pnr_timing.f` 和 `sim/questa/run_post_pnr_timing.do`；静态门禁为 `scripts/check_post_pnr_timing_sim.ps1`，阻断报告为 [`S2F_POST_PNR_TIMING_SMOKE.md`](../pcie_dma_test_100h/doc/S2F_POST_PNR_TIMING_SMOKE.md)。
 
 ### 缺口与风险
 
@@ -89,13 +90,14 @@ DDR3 当前仍没有面向项目集成顶层的仿真入口。摄像头产品目
 - 活动 PCIe IP、PDS 目标和新构建产物均与实际 PG2L50H 一致；lane/refclk/PERST#/SCBV 和 UART 决策继续由 H2-B1 阻断。
 - S2-D 已用当前 canonical 综合网表完成受限动态 smoke，只证明综合网表展开、项目 reset debounce/sync 与 reference-clock LED counter 路径；强制 link 观察网络不构成 LTSSM、DMA、PNR、SDF 或时序证据。
 - S2-E 已生成并绑定不含 `$sdf_annotate` 的独立 PNR 功能网表；Questa run `927abae8ed7d40aeb5d6f706b3723e0a` 动态通过，只证明网表展开、reset debounce/sync 和 reference-clock LED counter 路径，不构成链路、DMA、SDF/时序、H2-B1 或发布证据。
+- S2-F run `7fc77a7ec8db479db7332e8037426d6c` 由独立启动器复验，成功标注 SDF，但无 force 仍在 HSST `ext_rstn_debounce` 自然复现两个正 setup/hold error；`V_FFASYN` 四实参模型同时使 1590 个负限制退化为零。GLS 与 slow-corner STA 全正裕量冲突，既不能标记通过，也不能据此断言硅上失败。
 
 ### TODO（S2）
 
 1. S2-A 静态、动态 smoke 和 RX halt RTL hygiene 已完成；生成 wrapper 重生成后必须重跑接口 gate。
 2. S2-B 静态与动态真实链路已完成；生成 IP 或仿真模型变化后必须重跑 32 周期稳定窗口和 watchdog 门禁。
 3. S2-C 在已通过的真实链路上增加一次可预测 DMA 写读回；LTSSM、完成状态、数据和超时失败均 `$fatal`。
-4. 综合后与 PNR 功能受限结构 smoke 已完成；H2-B1 和 SDF 层级锁定后再完成 PNR 时序仿真。
+4. 综合后与 PNR 功能受限结构 smoke 已完成；PNR 时序入口和 SDF 层级已锁定，但动态结果被两个正 timing error 与负模型语义缺口阻断，需厂商确认兼容模型后按原合同复验。
 
 ## 四级仿真共同门槛
 

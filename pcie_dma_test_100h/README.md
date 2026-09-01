@@ -136,10 +136,26 @@ Questa run `927abae8ed7d40aeb5d6f706b3723e0a` 运行至 `491965 ns`，唯一
 PowerShell 退出 0；详见
 [S2-E PNR 后功能受限 smoke 契约](doc/S2E_POST_PNR_FUNC_SMOKE.md)。
 
-`sim-post-pnr-timing` 仍为未实现的下一独立批次。综合后/PNR 功能 smoke 不等于 SDF
-时序验证。基础 DMA 回读属于 S2-C，不会用 S2-A 受控模型或 S2-B link-up 冒充通过。
-BAR1 staging 还需要同版本完整 IP Compiler 实例导出的 `index.xml`，取得前不覆盖
-canonical IP。
+PNR 后时序入口已经归档：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\check_post_pnr_timing_sim.ps1
+
+powershell -ExecutionPolicy Bypass -File .\scripts\run_post_pnr_timing_sim.ps1 `
+  -QuestaBin '<Questa-win64-directory>'
+```
+
+Questa run `7fc77a7ec8db479db7332e8037426d6c` 已由独立入口复验并成功标注
+slow-corner SDF，但在无
+任何设计信号 `force/release` 时自然复现两个 HSST `ext_rstn_debounce` 正
+setup/hold error；终态为 `Errors: 2`，PowerShell 退出 1。Pango `V_FFASYN` 的四
+实参 timing check 还造成 1590 个负限制被 Questa 清零，因此负检查覆盖不完整。
+当前 GLS 与全正裕量 STA 冲突，S2-F 保持阻断；详细证据和关闭条件见
+[S2-F PNR 后时序 smoke 阻断报告](doc/S2F_POST_PNR_TIMING_SMOKE.md)。
+
+综合后/PNR 功能 smoke 不等于 SDF 时序验证。基础 DMA 回读属于 S2-C，不会用
+S2-A 受控模型或 S2-B link-up 冒充通过。BAR1 staging 还需要同版本完整 IP
+Compiler 实例导出的 `index.xml`，取得前不覆盖 canonical IP。
 
 ## 验收条件
 

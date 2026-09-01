@@ -98,7 +98,7 @@
 |---|---|---|---|---|---|---|
 | 双 OV5640 摄像头 HDMI | 产品固定双 OV5640；只读参考 `origin/parallel_driver@485f3bb`，未来选择性导入 `59_top_dual_ov5640_hdmi/` | 参考根 PDS/DDR3 为 PG2L100H；PG2L50H 产品 STA 未建立 | 参考 4 TB 未导入；其中一项 force init 且无 canonical PASS | 新产品网表尚未生成 | 新产品 PNR 网表尚未生成 | 新产品 SDF 尚未生成/标注 |
 | DDR3 外层 | 旧 PG2L100H 七阶段与五类产物已完成，但不可用于实际 PG2L50H；需重生成 50H IP/FDC/RCF | 旧 100H `All Constraints Met` 只保留历史；50H STA 未执行 | D2/D3-0 旧契约已定，PG2L50H 重生成后须重审；S1 项目级入口缺失 | 旧网表不可签核 | 旧 PNR 网表不可签核 | VSIM/SDF 未验证，旧 100H 结果不可签核 |
-| PCIe DMA | PDS run `9952da4164f040d5924a558baa5cd8ca` complete/valid，43 inputs/9 artifacts | timing/SDF 已生成；strict gate 仍失败 | S2-A/S2-B 动态 PASS | S2-D 受限 smoke PASS | S2-E run `927abae8ed7d40aeb5d6f706b3723e0a` 动态 PASS | SDF timing 未执行 |
+| PCIe DMA | PDS run `9952da4164f040d5924a558baa5cd8ca` complete/valid，43 inputs/9 artifacts | timing/SDF 已生成；strict gate 仍失败 | S2-A/S2-B 动态 PASS | S2-D 受限 smoke PASS | S2-E run `927abae8ed7d40aeb5d6f706b3723e0a` 动态 PASS | S2-F 已执行；SDF 标注成功，但 2 errors、退出 1，GLS/STA 冲突且负时序模型语义不完整，blocked |
 
 ## S1/S2/S3 仿真就绪度矩阵（2026-08-30）
 
@@ -112,7 +112,7 @@
 - 四级共同门槛：所有入口使用相对路径 filelist/DO 和项目自有集成 TB；必须具备超时、`$fatal`、唯一 `TEST PASS` 与可靠非零失败退出；PNR 时序仿真必须按实际 DUT 实例层级标注 SDF。
 - PCIe/S2-C BAR1：staging 当前仅有同版本 PDS/PCIe IDF，缺少完整 IP Compiler 实例的 `index.xml`，因此尚无可升格的 wrapper、参数摘要与仿真资产集合；活动 BAR1 仍禁用，本层覆盖为未完成。
 - PCIe/S2-C 归档诊断：run `d1d25d3f23384590918f26abbfd2e839` 已动态覆盖 RC 主动 EP BAR0 写入/读回，运行至 `710535 ns`，0 errors、26 vendor warnings、唯一成功 marker 与唯一 `TEST PASS`、退出 0。覆盖边界不包含 Endpoint 主动 MRd/CplD/MWr DMA 闭环，不能关闭 BAR1/`index.xml` 阻断或升格 S2-C。
-- 公共状态：三个项目的可复现工程源均留在各自 `sim/questa/`，运行态只进入各工程 `build/`。PCIe S2-E PNR 后功能已动态通过；DDR3/S1、OV5640/S3、S2-C 与 PCIe PNR 时序/SDF 仍未完成。
+- 公共状态：三个项目的可复现工程源均留在各自 `sim/questa/`，运行态只进入各工程 `build/`。PCIe S2-E PNR 后功能已动态通过；S2-F 工程已归档并执行，但保持 blocked。DDR3/S1、OV5640/S3 与 S2-C 仍未完成。
 
 ## PCIe S2-D 综合后受限 smoke（2026-09-01，动态通过）
 
@@ -127,6 +127,14 @@
 - PDS 证据：run `9952da4164f040d5924a558baa5cd8ca` 为 `complete/valid=true`，绑定 43 inputs/9 artifacts。
 - 动态结果：Questa run `927abae8ed7d40aeb5d6f706b3723e0a` 运行至 `491965 ns`，唯一 `INFO: POST_PNR_FUNC_RESET_PATH_OK`、唯一 `TEST PASS`、Errors 0、Warnings 1、Suppressed Warnings 80、PowerShell 退出 0。
 - 覆盖边界：只验证无 SDF PNR 功能网表展开、reset debounce/sync 与 reference-clock LED counter；不证明 PCIe link、DMA、SDF timing、H2-B1、实板或 release。
+
+## PCIe S2-F PNR 后时序 smoke（动态阻断）
+
+- 工程归档：`sim/questa/post_pnr_timing.f`、`run_post_pnr_timing.do` 与 `tb/tb_pcie_dma_post_pnr_timing.sv` 保存在 PCIe 项目内；独立启动器为 `scripts/run_post_pnr_timing_sim.ps1`，检查入口为 `scripts/check_post_pnr_timing_sim.ps1`，运行态只进入 `build/`。
+- PDS 证据：S2-F 未修改 canonical PDS `scripts/run.ps1`，其原始字节/SHA 已恢复；仿真入口变更不属于 PDS 实现输入漂移。baseline provenance gate 返回 0，因此无需重跑 PDS，继续沿用 run `9952da4164f040d5924a558baa5cd8ca` 的 `complete/valid=true`、43 inputs/9 artifacts。
+- 动态结果：独立启动器当前 run `7fc77a7ec8db479db7332e8037426d6c` 成功标注 SDF 且 DUT 层级匹配，未对设计信号使用 force/release；HSST `ext_rstn_debounce` 自然产生与先前 run `d64e2f32ac7f4e2e93fa961b3695abc0` 相同的 setup `cnt_rst[5]` 与 hold `rstn_sync` 两个正 timing error。Questa Errors 2，脚本汇总 5 类失败并退出 1。
+- 模型边界：`V_FFASYN` 四实参模型产生 `vsim-8756=1`、`vsim-3004=1590`，负 timing check 语义不完整；slow-corner STA setup/hold 均为正。当前只能判定 GLS 与 STA 冲突，不能宣称仿真通过，也不能据此断言硅上时序失败。
+- 判定规则：TB 即使输出 `TEST PASS`，也不能覆盖仿真器 error summary 和非零退出码；S2-F 保持 blocked，不关闭 PCIe link、DMA、H2-B1、实板或发布。
 
 ## PCIe S2-A 行为 smoke（2026-09-01，动态通过）
 

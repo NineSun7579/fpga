@@ -50,6 +50,10 @@ $PciePostPnrFuncSimCheckPath = Join-Path $RepoRoot `
     'pcie_dma_test_100h\scripts\check_post_pnr_func_sim.ps1'
 $PciePostPnrFuncDocPath = Join-Path $RepoRoot `
     'pcie_dma_test_100h\doc\S2E_POST_PNR_FUNC_SMOKE.md'
+$PciePostPnrTimingSimCheckPath = Join-Path $RepoRoot `
+    'pcie_dma_test_100h\scripts\check_post_pnr_timing_sim.ps1'
+$PciePostPnrTimingDocPath = Join-Path $RepoRoot `
+    'pcie_dma_test_100h\doc\S2F_POST_PNR_TIMING_SMOKE.md'
 $PcieS2bDocPath = Join-Path $RepoRoot `
     'pcie_dma_test_100h\doc\S2B_REAL_LINK.md'
 $PcieS2cBar1GatePath = Join-Path $RepoRoot `
@@ -445,7 +449,7 @@ if ($MatrixExists) {
         -Description 'simulation matrix S1 DDR3 queue' | Out-Null
     Require-Pattern -Text $MatrixText -Pattern 'S2 PCIe' `
         -Description 'simulation matrix S2 PCIe queue' | Out-Null
-    Require-Pattern -Text $MatrixText -Pattern 'S3 双 OV5640' `
+    Require-Pattern -Text $MatrixText -Pattern 'S3.*OV5640' `
         -Description 'simulation matrix S3 dual OV5640 queue' | Out-Null
 }
 
@@ -824,6 +828,16 @@ if ($PciePostPnrFuncSimCheckExists) {
         Add-Failure "PCIe post-PNR functional static simulation gate failed: $($_.Exception.Message)"
     }
 }
+$PciePostPnrTimingSimCheckExists = Require-File `
+    -Path $PciePostPnrTimingSimCheckPath `
+    -Description 'PCIe post-PNR timing static simulation gate'
+if ($PciePostPnrTimingSimCheckExists) {
+    try {
+        & $PciePostPnrTimingSimCheckPath
+    } catch {
+        Add-Failure "PCIe post-PNR timing static simulation gate failed: $($_.Exception.Message)"
+    }
+}
 $PciePostSynDocExists = Require-File `
     -Path $PciePostSynDocPath `
     -Description 'PCIe S2-D post-synthesis smoke contract'
@@ -858,6 +872,28 @@ if ($PciePostPnrFuncDocExists) {
             'PCIe S2-E board exclusion' = 'RK3568'
         }).GetEnumerator()) {
         Require-Pattern -Text $PciePostPnrFuncDocText -Pattern $Required.Value `
+            -Description $Required.Key | Out-Null
+    }
+}
+$PciePostPnrTimingDocExists = Require-File `
+    -Path $PciePostPnrTimingDocPath `
+    -Description 'PCIe S2-F post-PNR timing blocker report'
+if ($PciePostPnrTimingDocExists) {
+    $PciePostPnrTimingDocText = Get-Content -Raw -Encoding UTF8 `
+        -LiteralPath $PciePostPnrTimingDocPath
+    foreach ($Required in ([ordered]@{
+            'PCIe S2-F canonical timing netlist' = 'pcie_dma_test_sim\.v'
+            'PCIe S2-F canonical SDF' = 'pcie_dma_test_sta\.sdf'
+            'PCIe S2-F current run evidence' =
+                '7fc77a7ec8db479db7332e8037426d6c'
+            'PCIe S2-F SDF success evidence' =
+                'SDF Backannotation Successfully Completed'
+            'PCIe S2-F simulator error evidence' = 'Errors: 2'
+            'PCIe S2-F model limitation evidence' = 'vsim-3004'
+            'PCIe S2-F blocked status' = 'Status: blocked'
+            'PCIe S2-F non-board boundary' = 'RK3568'
+        }).GetEnumerator()) {
+        Require-Pattern -Text $PciePostPnrTimingDocText -Pattern $Required.Value `
             -Description $Required.Key | Out-Null
     }
 }
@@ -915,6 +951,8 @@ if (Test-Path -LiteralPath $PcieReadmePath -PathType Leaf) {
         -Description 'PCIe README S2-D post-synthesis smoke link' | Out-Null
     Require-Pattern -Text $PcieReadmeText -Pattern 'S2E_POST_PNR_FUNC_SMOKE\.md' `
         -Description 'PCIe README S2-E post-PNR functional smoke link' | Out-Null
+    Require-Pattern -Text $PcieReadmeText -Pattern 'S2F_POST_PNR_TIMING_SMOKE\.md' `
+        -Description 'PCIe README S2-F post-PNR timing blocker link' | Out-Null
 }
 $PcieEvidencePath = Join-Path $RepoRoot `
     'pcie_dma_test_100h\doc\PCIE_BOARD_EVIDENCE.md'

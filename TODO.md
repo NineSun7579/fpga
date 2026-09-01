@@ -278,7 +278,7 @@
 
 - [x] owner 已停止 OV7725 产品主线；`mem_a` 14/15 bit 冲突保留为 legacy 事实，不再重生成旧工程 DDR3 IP、修改旧 RTL/FDC 或执行实板签核。双 OV5640 的 DDR3 地址组织在 C2/C3 中依据实际板卡重新建立。
 
-### O2：OV7725 分时钟域复位
+### O2：OV7725 分时钟域复位（已取消，legacy 归档）
 
 - [x] O2-A：建立 `doc/SERIALIZER_RESET_CONTRACT.md`，交叉核对 SP6.4 `GTP_OSERDES_E2` 仿真模型、`V_OSERDES_E2` timing model、PG2L100H 官方示例、当前 RTL 与最终 STA；本批不修改 RTL/FDC。
 - [x] O2-A：确认 `RST` 高有效，且同一端口对 `OCLK/SERCLK=pixel_clk_5x` 与 `OCLKDIV=pixel_clk` 都存在 recovery/removal 要求；比较候选释放结构，禁止把“仅高速域同步”写成未经证明的结论。
@@ -457,8 +457,8 @@
 - [ ] S2-C-BAR1-INPUT：从同版本 PDS IP Compiler 完整 PCIe 实例工程取得配套 `index.xml`，再重新执行 staging；禁止跨版本、跨 IP 或未知模板复制。
 - [x] S2-D 综合后受限 smoke：项目内 `sim/questa/` 已归档 `post_syn.f`、DO 和自检 TB；Questa `2021.1` run `41135fd3fadd4c51a70508a6fa5af3e3` 使用当前 canonical 综合网表运行至 `491965 ns`，唯一 `INFO: POST_SYN_RESET_PATH_OK`、唯一 `TEST PASS`、`Errors: 0, Warnings: 1`、退出 0。只关闭综合网表展开、reset debounce/sync 和 reference-clock LED counter 路径，不关闭 S2-C、PNR、SDF、时序、H2-B1 或发布 gate。合同见 [`S2D_POST_SYN_SMOKE.md`](pcie_dma_test_100h/doc/S2D_POST_SYN_SMOKE.md)。
 - [x] S2-E PNR 后功能受限 smoke：项目内 `sim/questa/` 已归档 `.f/.do/TB`；PDS run `9952da4164f040d5924a558baa5cd8ca` 以双进程生成独立无 SDF 功能网表和 timing/SDF/bitstream，manifest=`complete/valid`、43 输入/9 证据，baseline/strict=`0/1`。Questa `2021.1` run `927abae8ed7d40aeb5d6f706b3723e0a` 运行至 `491965 ns`，唯一 `INFO: POST_PNR_FUNC_RESET_PATH_OK`、唯一 `TEST PASS`、`Errors: 0, Warnings: 1`、退出 0。只关闭无 SDF PNR 功能网表展开、reset debounce/sync 和 reference-clock LED counter 路径，不关闭链路、DMA、SDF 时序、H2-B1、实板或发布。合同见 [`S2E_POST_PNR_FUNC_SMOKE.md`](pcie_dma_test_100h/doc/S2E_POST_PNR_FUNC_SMOKE.md)。
-- [ ] 完成 PNR 后时序/SDF 仿真。
-- [ ] 每级成功只输出一个 `TEST PASS`，失败或超时返回非零。
+- [ ] S2-F PNR 后时序/SDF：项目内 `.f/.do/TB`、独立 PowerShell 启动器、静态合同和 SDF 层级已建立；Questa run `7fc77a7ec8db479db7332e8037426d6c` 成功标注 SDF，但自然复现两个 HSST `ext_rstn_debounce` 正 setup/hold error，终态 `Errors: 2`、PowerShell 退出 1。Pango `V_FFASYN` 四实参 timing model 另使 1590 个负限制退化为零。GLS 与全正裕量 STA 冲突，S2-F 保持未完成，详见 [`S2F_POST_PNR_TIMING_SMOKE.md`](pcie_dma_test_100h/doc/S2F_POST_PNR_TIMING_SMOKE.md)。
+- [ ] S2-F 关闭条件：取得厂商确认的兼容 timing model 或修复依据，以相同 canonical 网表/SDF 和无 force TB 重跑；要求 SDF 层级正确、0 errors、无未解决 timing-model 退化、唯一 marker/PASS 且 PowerShell 退出 0。
 
 ### S3：双 OV5640 集成仿真
 

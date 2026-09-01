@@ -42,6 +42,8 @@ PCIe S2-A 当前 PASS 只验证产品壳层受控行为 smoke；run `add7efa39f6
 
 三个项目的可复现仿真工程分别保留在各自工程内独立 `sim/questa/`，运行态只进入对应 `build/`。PCIe S2-E run `927abae8ed7d40aeb5d6f706b3723e0a` 已在 `491965 ns` 以唯一 marker/PASS、Errors 0、Warnings 1、Suppressed Warnings 80、PowerShell 退出 0 通过。覆盖只限无 SDF PNR 功能网表展开、reset debounce/sync 与 reference-clock LED counter，不关闭 link、DMA、SDF timing、H2-B1、实板或 release。
 
+PCIe S2-F 的 `.f/.do/TB` 与检查入口也已归档到项目内部。Questa 当前 run `7fc77a7ec8db479db7332e8037426d6c` 成功将 slow-corner SDF 标注到真实 DUT 层级，且没有 force/release 设计信号；HSST `ext_rstn_debounce` 自然产生 setup/hold 各 1 个 timing error，Errors 2，独立脚本汇总 5 类失败并退出 1。与此同时，Pango `V_FFASYN` 四实参模型使 1590 个负 timing limit 在 Questa 中退化，负 timing check 语义不完整，而同一 provenance 的 slow-corner STA setup/hold 均为正。因此状态是“GLS 与 STA 冲突且模型语义不完整”，既不是仿真通过，也不是已证明硅上失败。
+
 实物确认后，活动 `pcie_test.idf` 的 `Logos2/PG2L50H/FBG484/-6` metadata 被证明正确；错误项是顶层 build/PDS/gate 和现有主产物仍为 PG2L100H。M1 不为型号重复生成 PCIe IP，而是修正项目自有 build/gate、清空旧 build并建立 50H baseline，同时继续阻断 UART2APB、lane/refclk/PERST# 与 SCBV 缺口。
 
 DDR3 D2 已进一步固定该边界：厂商 `test_ddr`、持续运行 BIST 与旧 testbench 保持原样；后续有限自检由项目自有 `ddr3_bringup_top.sv` 和 `ddr3_finite_bist.sv` 承担。首版仅执行 16 个单 beat 写读比较 pair，地址 `0x0..0x78`、步长 8，并通过稳定公开的 `test_done`、`test_failed`、`failure_code`、`error_count`、`completed_pairs` 和首错信息完成签核。
