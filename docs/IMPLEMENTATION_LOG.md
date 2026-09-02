@@ -521,6 +521,20 @@
 - 新增 `check_constraint_exceptions.ps1`：精确比较入口引用、LF 规范化文件哈希、Git index blob 和命令 multiset；Tcl 续行、分号多命令或 `source` 直接失败。自测证明 CRLF-only checkout 仍通过，并覆盖新增未登记例外、修改既有命令和双 OV5640 过早出现 FDC 三项负向样本。
 - 门禁已接入根一致性检查。登记不表示 timing waiver、PDS 对象解析、CDC/RDC 结构正确、STA、板级或发布通过；本批未修改任何 FDC、RTL、IP，也未运行 PDS/Questa。
 
+## 2026-09-02：PCIe CI-10A 约束对象解析入口
+
+- 新增 `pcie_dma_test_100h/scripts/probe_constraint_objects.tcl`，在已加载并完成 compile 的 PDS 会话中读取 `pclk`、`pclk_div2`、`ref_clk`、三组异步时钟组并调用 `report_exceptions`。
+- probe 只输出对象数量、路径和报告文本，不修改 FDC、RTL、IP 或 timing waiver；输出路径可由 `PCIE_CONSTRAINT_PROBE_OUT` 提供，避免写入本机许可证或安装配置。
+- 新增 `docs/CONSTRAINT_EXCEPTION_RESOLUTION.md`，定义对象命中、命令不支持、空结果和报告可执行性的审核判据。
+- 当前尚未运行新的 PDS 动态 probe；静态仓库门禁不会把缺少工程数据库或许可证解释为通过。
+
+## 2026-09-02：开发板更正为紫光盘古100Pro与 PG2L100H 恢复边界
+
+- owner 更正开发板名称为“紫光盘古100Pro”，并要求目标按 `PG2L100H` 恢复；板名与 FPGA 型号在新增 [`docs/BOARD_IDENTITY.md`](BOARD_IDENTITY.md) 中分开记录。
+- DDR3 与 OV7725 的原生 PG2L100H 工程、IP、FDC/RCF 和历史产物登记为恢复候选；OV7725 仍是 legacy，不得冒充双 OV5640 产品。
+- PCIe 当前仍是 PG2L100H 历史工程叠加 PG2L50H 活动 IP 的混合状态，不能只改 `set_arch`；双 OV5640 参考工程也不能直接恢复，必须按产品合同建立 100H canonical 输入。
+- 本批只修正文档和 TODO，没有修改 RTL、活动 IP、FDC 或现有 50H 构建 gate；后续必须另开 100H 目标恢复批次并从空 `build/` 重建。
+
 ## 2026-09-02：CI-10 GitHub PR 静态门禁
 
 - 新增 `.github/workflows/repository-gates.yml`，在 pull request、`main` push 和手动触发时使用 Windows `pwsh` 执行 `scripts/check_repo_consistency.ps1`。

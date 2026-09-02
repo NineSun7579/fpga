@@ -65,8 +65,10 @@
 - ci_10_checkout: `actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1`（v7.0.1），`fetch-depth: 0`，`persist-credentials: false`。
 - ci_10_scope: 只执行根 `scripts/check_repo_consistency.ps1`，不读取 secrets。
 - ci_10_boundary: 当前仅记录工作流配置事实；实际远端 check 状态须由对应 PR 运行确认。该 job 不运行或证明 PDS、Questa、STA、SDF、位流或实板通过。
-- hardware_target_decision: 用户确认 DDR3、PCIe、双 OV5640 三个活动产品项目共用 `RK3568+PG2L50H100H` 开发板，实际 FPGA 为 `PG2L50H-6IFBG484`；统一 PDS 目标为 `Logos2 / PG2L50H / FBG484 / -6`。`41_ov7725_hdmi` 仅为 legacy，不属于活动 TODO。
-- legacy_100h_boundary: 全部 PG2L100H PDS/STA/网表/位流仅保留为历史证据，不得烧录或作为实板验收；DDR3、PCIe、双 OV5640 必须分别建立 PG2L50H 新 baseline。
+- hardware_target_decision: 用户于 2026-09-02 将三个活动产品项目的开发板名称修正为“紫光盘古100Pro”，目标 FPGA 修正为 `PG2L100H-6IFBG484`；统一 PDS 目标为 `Logos2 / PG2L100H / FBG484 / -6`。`41_ov7725_hdmi` 仅为 legacy，不属于活动 TODO。
+- hardware_identity_boundary: 开发板名称与 FPGA 器件型号是两个独立字段；板名不得替代完整器件料号，工程目录名和历史器件 metadata 也不得反推板名。
+- hardware_evidence_status: 当前目标来自 owner 声明，仍须归档当前板卡 FPGA 丝印照片、原理图和 BOM 并交叉核对；关闭前不得授权烧录或实板验收。
+- superseded_target_boundary: 此前的 `RK3568+PG2L50H100H / PG2L50H-6IFBG484` 与 PG2L50H staging/build 只保留为历史迁移证据；既有 PG2L100H 资产也必须确认版本、输入、约束和板级匹配后才能恢复为当前 baseline。
 - ci_0_boundary: 仅为仓库结构与文档静态一致性门禁，不启动或替代 PDS 构建、STA、项目严格 gate 或四级仿真。
 - simulation_readiness_status: Questa 2021.1 tools and Logos2 USIM/VSIM verified; PCIe S2-A controlled smoke, S2-B real RC/EP link and S2-D limited post-synthesis smoke PASS; DDR3 and OV5640 project suites remain pending
 - simulation_asset_boundary: `ipcore/`、`ip_core/`、`ip_backup/` 内的 DDR3、PLL、FIFO 和 PCIe RC/EP testbench/filelist/DO 均为厂商示例，只能作为模型与接口参考；不得改名或直接计入 `ov7725_hdmi`、`ddr3_bringup_top` 或 `pcie_dma_test` 的集成覆盖。
@@ -118,16 +120,16 @@
 - implementation_status: documented_project_skeleton_blocked_by_c1_h3
 - code_path: `59_top_dual_ov5640_hdmi/`（当前无 RTL/IP/FDC/TB）
 - evidence_path: `59_top_dual_ov5640_hdmi/README.md`, `59_top_dual_ov5640_hdmi/doc/BOARD_EVIDENCE.md`, `docs/OV5640_TARGET_SCOPE.md`, `docs/OV5640_C0_REFERENCE_AUDIT.md`, read-only `origin/parallel_driver@485f3bba71e4b57fb8bb49cec30e9d331b952be3`
-- product_boundary: 产品固定双 OV5640；`59_top_dual_ov5640_hdmi/` 已建立文档型项目骨架，目标板卡与器件为 `RK3568+PG2L50H100H` / `PG2L50H-6IFBG484`。`41_ov7725_hdmi` 及其 `sim/questa/` 只作 legacy。
+- product_boundary: 产品固定双 OV5640；`59_top_dual_ov5640_hdmi/` 已建立文档型项目骨架，目标板卡与器件分别为“紫光盘古100Pro”与 `PG2L100H-6IFBG484`。`41_ov7725_hdmi` 及其 `sim/questa/` 只作 legacy。
 - reference_top: `top_dual_ov5640_hdmi`；两路独立 SCCB/RESET/PWDN/DVP，每路 960x1080 半幅，双写 DDR3 后组成 1920x1080。
-- reference_device_boundary: 参考根 PDS 与 DDR3/PLL/读写 FIFO 为 PG2L100H；PCIe IP 虽为 PG2L50H，但 BAR1/BAR2 均禁用。混合工程、旧阶段产物和参考 README PASS 均不得作为 PG2L50H 产品证据。
+- reference_device_boundary: 参考根 PDS 与 DDR3/PLL/读写 FIFO 为 PG2L100H；PCIe IP 为 PG2L50H 且 BAR1/BAR2 均禁用。参考资产与当前器件系列相同不等于板级适配完成；混合工程、旧阶段产物和参考 README PASS 均不得直接作为紫光盘古100Pro 产品证据。
 - c0_boundary: 已完成只读审计；登记 17 个 HDMI 明文 RTL、83 个生成/受保护依赖、4 个 TB、4 个 PCIe video 参考文件、4 个 PG2L100H 生成 IP、FDC/PDS 冲突及 VSCS/CDC/RDC 风险。C0 批次 Import=none，当时未创建产品目录、未运行 PDS/Questa。
 - c1_boundary: blocked_by_h3；双 OV5640 数量与 960x1080×2 → 1920x1080 参考组合已知，但模组料号、MCLK、电压、DVP/字节序/帧率、DDR3、HDMI 和板级管脚证据仍需 owner 闭合。
 - c2_boundary: 只向 `59_top_dual_ov5640_hdmi/` 选择性导入所需 RTL/IP/约束，建立项目自有双摄 SCCB、复位、采集、DDR3 与 HDMI 边界。
-- c3_boundary: 所有 IP/约束按 `Logos2 / PG2L50H / FBG484 / -6` 重新审核或生成，完成七阶段 PDS 与严格 gate；旧 100H 产物不可继承。
+- c3_boundary: 所有 IP/约束按当前 `Logos2 / PG2L100H / FBG484 / -6` 重新审核或生成，完成七阶段 PDS 与严格 gate；旧 100H 产物只有在输入、版本、约束、provenance 与板级证据全部匹配后才能选择性恢复。
 - reference_tb_boundary: 参考仓库 4 个 TB 尚未选择性导入；`tb_dual_ov5640_dri.v` force `cam_init_done`，成功字符串不是 canonical `TEST PASS`，不能计为产品自检通过。
 - s3_boundary: 可复现仿真源只进入 `59_top_dual_ov5640_hdmi/sim/questa/`，运行态只进入其 `build/`。不导入 `sim_*`、`work`、`.mpf`、`modelsim.ini`、日志、波形、绝对路径生成物或许可证配置。
-- next_step: 先用项目内 BOARD_EVIDENCE 关闭 C1/H3 产品输入；随后另开 PR，从 C0 登记候选中选择性导入，并重建 PG2L50H PDS/IP/FDC 与项目内 Questa 入口。
+- next_step: 先用项目内 BOARD_EVIDENCE 关闭 C1/H3 产品输入；随后另开 PR，从 C0 登记候选中选择性导入，并建立 PG2L100H PDS/IP/FDC 与项目内 Questa 入口。
 - high_attention: 组合全局复位跨域释放、`ddr3_init_done` CDC/RDC、frame event CDC、FIFO 双侧复位、serializer reset 未使用、1080p/720p 模式冲突、camera init 未纳入系统完成条件，以及关键 FSM/UTF-8/VSCS 缺口。
 
 ## DDR3 外层工程
@@ -138,8 +140,8 @@
 - evidence_path: `ddr3_test/ddr3_test/scripts/regenerate_ip.ps1`, `ddr3_test/ddr3_test/scripts/build_staging_compile.tcl`, `ddr3_test/ddr3_test/scripts/run_staging_compile.ps1`, `ddr3_test/ddr3_test/scripts/check_staging_compile.ps1`, `ddr3_test/ddr3_test/scripts/check_d3a_staging_contract.ps1`, `ddr3_test/ddr3_test/doc/M2_IP_REGENERATION.md`, `ddr3_test/ddr3_test/doc/M2B1_PARAMETER_AND_DIFF_AUDIT.md`, `ddr3_test/ddr3_test/doc/M2B2_STAGING_COMPILE.md`, `ddr3_test/ddr3_test/doc/D3A_PG2L50H_STAGING_REVIEW.md`, `ddr3_test/ddr3_test/build/logs/pds-gen_bit_stream.log`, `ddr3_test/ddr3_test/build/pds/report_timing/test_ddr.rtr`, `ddr3_test/ddr3_test/scripts/check_build.ps1`
 - evidence_gap: M2-B2 已证明 PG2L50H staging 可独立 compile，D3-0-M 已证明 core 用户接口不变但物理 wrapper/refclk 变化；canonical IP/FDC/RCF 仍为旧 PG2L100H。仍需 H1 原理图/BOM确认差分 reference clock、`free_clk`、三个状态输出、28 项 FDC pin 差异，再完成 canonical 升格、50H 空目录七阶段、地址/完成语义审核和 D3-A/B/C。
 - responsibility: 当前以厂商 `test_ddr` 作为临时 DDR3 board bring-up 顶层；后续必须明确真正产品顶层和板级功能范围。
-- hardware_target: `RK3568+PG2L50H100H` / `PG2L50H-6IFBG484` / `Logos2 / PG2L50H / FBG484 / -6`
-- hardware_target_evidence_conflict: `2026-09-02` PR #21 商品截图标注 `RK3568+PG2L100H`，与项目输入的实际焊接 `PG2L50H-6IFBG484` 冲突；必须以当前实物丝印、原理图或 BOM 关闭，50H staging 在此之前只作候选验证。
+- hardware_target: 开发板“紫光盘古100Pro” / FPGA `PG2L100H-6IFBG484` / PDS `Logos2 / PG2L100H / FBG484 / -6`
+- hardware_target_evidence_conflict: owner 已于 `2026-09-02` 修正板名和目标器件；此前 PR #21 商品截图 `RK3568+PG2L100H` 与旧输入 `PG2L50H-6IFBG484` 保留为历史冲突。当前仍必须以板卡丝印、原理图或 BOM 归档关闭，50H staging 和旧 100H 产物在此之前都只作候选证据。
 - m2_active_input_audit: 活动 `ip_core/ddr3/ddr3.idf` 为 `PG2L100H`、生成器 `2022.2-SP6.4`；canonical FDC/RCF 为 `ip_core/ddr3/pnr/ddr_test.fdc` 与 `ip_core/ddr3/pnr/ddr3.rcf`；`ip_core/ddr_test.fdc` 是旧外层参考，不能直接升格。项目自有 `scripts/build.tcl` 与 `scripts/check_build.ps1` 也仍按 `PG2L100H`，待 50H 资产落地后再修正。
 - m2_legacy_50h_audit: `ip_backup/20250108100125/ddr3/ddr3.idf` 为 `PG2L50H`，但生成器是 `2022.2-SP6.1`；仅可作为参数/硬宏差异 oracle，禁止直接恢复或复制到活动输入。
 - m2_a_staging: `2026-08-30` 使用 `scripts/regenerate_ip.ps1` 在 `build/ipgen/pg2l50h` 调用 SP6.4 build 146967，目标 `Logos2/PG2L50H/FBG484/-6`，结果 `0 error(s), 0 warning(s)`；canonical IDF SHA-256 保持 `6CB70BF0954100B4797197A47F20496AD74945995E12B30FA040870EE3366C47`。

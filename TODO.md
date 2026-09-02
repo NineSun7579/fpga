@@ -2,15 +2,25 @@
 
 更新日期：2026-09-02
 
-状态：三项目器件迁移已获审核。活动项目仅指 DDR3、PCIe 和双 OV5640 摄像头 HDMI，最终均运行在同一块 `RK3568+PG2L50H100H` 开发板，实际 FPGA 为 `PG2L50H-6IFBG484`，PDS 目标统一为 `Logos2 / PG2L50H / FBG484 / -6`。摄像头产品目标固定为双 OV5640；`41_ov7725_hdmi/` 不属于三个活动项目，只保留为只读 legacy 历史证据。既有 PG2L100H 构建、STA、网表、SDF 和位流不得用于实际板卡验收或烧录。双 OV5640 范围见 [`docs/OV5640_TARGET_SCOPE.md`](docs/OV5640_TARGET_SCOPE.md)。
+> 目标修订说明：本文件中此前以 PG2L50H 为统一实物目标的结论已被 owner 在 2026-09-02 更正为 PG2L100H。旧 50H 迁移项全部降级为可审计历史记录；后续任务以本节“PG2L100H 恢复评估”为准。
+
+状态：owner 已于 2026-09-02 更正开发板为 `紫光盘古100Pro`，目标器件为 `PG2L100H`。PDS 目标暂按 `Logos2 / PG2L100H / FBG484 / -6` 恢复；完整丝印、原理图/BOM 仍需归档。三个活动方向仍为 DDR3、PCIe 和双 OV5640 HDMI；双 OV5640 范围见 [`docs/OV5640_TARGET_SCOPE.md`](docs/OV5640_TARGET_SCOPE.md)，板级身份见 [`docs/BOARD_IDENTITY.md`](docs/BOARD_IDENTITY.md)。
 
 ## 活动项目边界
 
-- DDR3：`ddr3_test/ddr3_test/`。
-- PCIe：`pcie_dma_test_100h/`；目录名保留历史命名，活动 PDS 目标必须为 PG2L50H。
+- DDR3：`ddr3_test/ddr3_test/`，优先恢复 PG2L100H canonical 基线。
+- PCIe：`pcie_dma_test_100h/`；目标恢复为 PG2L100H，但活动 IP metadata 仍需先核对。
 - 双 OV5640 HDMI：产品目录固定为 `59_top_dual_ov5640_hdmi/`；当前以 `origin/parallel_driver@485f3bb` 为只读参考，完成 C1/H3 后才选择性导入。
-- 排除项：`41_ov7725_hdmi/` 不再接受产品功能、IP、约束、Questa 或实板任务；其中事实只能作为双 OV5640 设计评审的反例或风险输入，不能作为复用授权和验收证据。
+- `41_ov7725_hdmi/` 原生就是 PG2L100H 工程，可恢复为紫光盘古100Pro 的 OV7725-100H 历史工程候选；但不得冒充双 OV5640 产品。
 - TODO 维护规则：摄像头新增待办只能归入双 OV5640 的 C1/C2/C3/S3；不得新增 OV7725 未完成项，OV7725 只能出现在已完成的 legacy 事实或风险引用中。
+
+## PG2L100H 恢复评估
+
+- [ ] 归档实际 PG2L100H 丝印、原理图或 BOM，并确认 `FBG484/-6` 封装速度级；证据未闭合前保持烧录阻断。
+- [x] DDR3：canonical 工程、DDR3 IP、FDC/RCF 和历史七阶段产物原本就是 PG2L100H，可作为 100H 恢复基线；恢复前仍需检查输入路径、产物一致性和板级 DDR 参数。
+- [x] OV7725 HDMI：四个活动 IP、PDS 工程和历史实现原本就是 SP4.2/PG2L100H，可恢复为独立 OV7725-100H 历史工程；不能改称双 OV5640，也不能把旧 PASS 当作当前产品验收。
+- [ ] PCIe：PDS 工程/历史 bitstream 含 PG2L100H，但活动 `pcie_test.idf` 曾为 PG2L50H，属于混合目标；必须取得并审核 PG2L100H 同版本 IP，或明确接受重新生成与完整回归后，才能恢复 100H。
+- [ ] 双 OV5640：参考分支含 PG2L100H 生成物但拓扑和 FDC 混杂，不能直接恢复；须按双 OV5640 产品合同重新建立 100H canonical IP/FDC/仿真入口。
 
 ## 1. 总体验收目标
 
@@ -39,7 +49,7 @@
 ## 3. 当前完成状态
 
 - [x] 建立 Git 基线、根目录指南、`.gitignore` 和 repo-local `.nexus-map`。
-- [x] 用户确认三个活动项目（DDR3、PCIe、双 OV5640 HDMI）共用实际焊接 `PG2L50H-6IFBG484` 的 `RK3568+PG2L50H100H` 开发板，并批准统一迁移方案。
+- [x] 历史记录：此前曾按 `PG2L50H-6IFBG484` / `RK3568+PG2L50H100H` 规划迁移；该口径已于 2026-09-02 被 owner 更正，当前以紫光盘古100Pro / `PG2L100H-6IFBG484` 为准。
 - [x] owner 将摄像头产品目标固定为双 OV5640；现有 OV7725 工程和完成证据冻结为 legacy，不再推进旧传感器产品任务，也不机械改名或继承为双 OV5640 验收。
 - [x] 完成存量工程 50H 只读审计：PCIe 活动 IP 已匹配 50H；DDR3 活动 IP 仍须迁移；OV7725 legacy 的四个 IP 保持 100H 冻结且不再处理。该审计不把 OV7725 计入活动项目；双 OV5640 由 C0/C1/C2/C3 独立推进。
 - [x] 明确 VSCS 只强制覆盖后续修改的手写 RTL/TB，排除厂商生成 IP。
@@ -70,28 +80,27 @@
 - [x] 编译并验证 Logos2 VSIM；PNR 原语 `V_BUF` 已从共享库成功加载并完成最小动态 smoke。
 - [x] S0-2-Q（2026-09-01 当前复验）：仓库外许可证恢复后，Questa `2021.1` 以新 run id `966942334060436dba8444ae9155557c` 完成 S2-A；编译/elaboration/运行均成功，`Errors: 0, Warnings: 0`、唯一 `TEST PASS`、PowerShell 退出 0。仓库仍不记录许可证配置。
 - [ ] 完成 DDR3、PCIe 与双 OV5640 三个活动项目的分级自检仿真。
+- [x] CI-10A：新增 PCIe 约束对象解析 probe 与审核判据；仅验证 `get_clocks`/异步时钟组/`report_exceptions` 的对象解析入口，不批准 waiver，尚未生成动态 PDS 结果。
 
-### 当前执行队列（2026-09-01）
+### 当前执行队列（2026-09-02，目标修订为 PG2L100H）
 
 按以下顺序推进；每项独立提交，未满足前置条件时保持阻塞，不以 baseline 放行代替验收：
 
-1. **M0：统一 PG2L50H 板级事实与防错门禁**
-   - 前置：用户已确认并批准实际器件与三个活动项目的共板边界。
-   - 交付：TODO、README、板级证据、实施记录和 `.nexus-map` 统一记录 50H；旧 100H 产物明确标记不可烧录。
-   - 验收：静态门禁禁止把 build、IDF、README、STA 或位流中的 100H/50H 混用解释为通过。
+1. **M0：统一紫光盘古100Pro / PG2L100H 板级事实**
+   - 前置：owner 已确认开发板名称为紫光盘古100Pro，目标器件按 PG2L100H 恢复。
+   - 交付：TODO、README、板级证据、实施记录和 `.nexus-map` 区分板名与 FPGA 型号；旧 50H 迁移结果降级为历史证据。
+   - 验收：静态门禁和动态构建不得把 50H/100H 混合输入解释为通过。
 
-2. **M1：PCIe PG2L50H 首批迁移（构建部分完成）**
-   - 前置：活动 PCIe IDF 已由 SP6.4 生成为 `PG2L50H/FBG484/-6`；不需要仅为型号重新生成 IP。
-   - 交付：build/gate 改为 50H，从空 `build/` 完成 compile 和七阶段重建，重新采集 STA、网表、SDF 和位流；HSSTLP 资源迁移到 PDS SP6.4 模板指定的 `HSSTLP_292_612`。
-   - 验收：日志、IDF、时序报告和 bitstream 数据库全部为 PG2L50H；strict gate 已验证仍因 UART、SCBV、lane/refclk/PERST# 板级缺口返回非零。
+2. **M1：PCIe PG2L100H 目标恢复**
+   - 前置：取得匹配 PG2L100H 的 PCIe IP，或批准新版本 IP 重生成；当前 50H IDF 与 100H PDS 工程不一致。
+   - 交付：恢复 build/gate 为 100H，从空 `build/` 完成 compile 和七阶段重建，重新采集 STA、网表、SDF 和位流；重新确认 HSSTLP 资源位置。
+   - 验收：日志、IDF、时序报告和 bitstream 数据库全部为 PG2L100H；UART、SCBV、lane/refclk/PERST# 板级阻断仍需严格 gate 管理。
 
-3. **M2：DDR3 PG2L50H IP 与约束重生成**
-   - 前置：使用本机 SP6.4 IP Compiler；SP6.1 的 50H backup 只作参数和差异证据。
-   - 交付：按现有 row15/col10/bank3/DQ16/DQS2 参数重生成 50H controller/PHY、示例、FDC/RCF 和 sim 资产，再完成 compile/dev_map 与七阶段重建。
-   - M2-A 已建立 `scripts/regenerate_ip.ps1` staging 入口和 [`M2_IP_REGENERATION.md`](ddr3_test/ddr3_test/doc/M2_IP_REGENERATION.md)。M2-B1 已从 SP6.4 `ui.tcl` 关闭 `DEVICE_100H_EN` 语义，并形成 [`参数与差异审计`](ddr3_test/ddr3_test/doc/M2B1_PARAMETER_AND_DIFF_AUDIT.md)。
-   - M2-B2 已完成 PG2L50H staging compile-only 闭包：run `1d4b8c264ba940f0bb0e2517b8c36c07` 精确使用 18 个 staging RTL 和一个 IDF，PDS 退出 0、`E:` 为 0、warning 为 272、26 端口与三个核心产物非零；canonical 哈希不变，错误目标/零长度产物/错误记录三项动态负向测试均退出 1。合同见 [`M2B2_STAGING_COMPILE.md`](ddr3_test/ddr3_test/doc/M2B2_STAGING_COMPILE.md)。
-   - 当前正确 staging 为 PG2L50H、SP6.4、`DEVICE_100H_EN=false`，DDR PHY 使用 `TRUE/CLKOUT4` 分支，canonical 哈希不变；顶层新增 5 个端口，FDC 有 28 项管脚差异，尚未升格。
-   - 验收：先用原理图/BOM 关闭新增 refclk、DDR byte lane、复位/UART/LED/状态输出和电压拓扑，再原子升格并重跑 CI-6、七阶段和 D3-0-R。D3-A 仍需另行审核。
+3. **M2：DDR3 PG2L100H 原生工程恢复**
+   - 前置：确认紫光盘古100Pro 的 DDR3 料号、拓扑、参考时钟和 bank 电压。
+   - 交付：保留现有 PG2L100H controller/PHY、示例、FDC/RCF 和仿真资产，清理 50H staging 依赖，再完成 compile/dev_map 与七阶段重建。
+   - 旧 M2-B1/M2-B2 50H staging 仅作为迁移差异证据，不得继续作为 canonical 输入。
+   - 验收：从空 `build/` 生成 PG2L100H 产物，重新执行 CI-6、D3-0-R；地址宽度、refclk、状态输出和握手语义经审核后才进入 D3-A。
 
 4. **C0/C1：双 OV5640 参考工程审计与产品范围冻结**
    - 前置：以可访问的 `origin/parallel_driver@485f3bb` 为只读参考源；双摄拓扑已由 owner 固定，不再保留单/双摄决策项。
@@ -100,7 +109,7 @@
    - C1 仍未完成：实际两路模组、MCLK、电压、DVP、左右拼接、分辨率、帧率、字节序、DDR3 和 HDMI 合同仍受 H3 阻断；输入冻结后再另开选择性导入批次。
    - 仿真归档：将参考分支 `sim/tb/*.v` 中可复用的 TB 审核后归档到 `59_top_dual_ov5640_hdmi/sim/questa/tb/`，补相对路径 `.f/.do` 与 README；运行态只写 `59_top_dual_ov5640_hdmi/build/`。
    - 排除项：不导入参考分支的 `sim_*` 编译库、`work`、`.mpf`、`modelsim.ini`、日志、波形和带本机绝对路径的生成文件。
-   - 验收：项目目录固定为 `59_top_dual_ov5640_hdmi/`，HDMI 顶层候选为 `top_dual_ov5640_hdmi`；根 PDS 工程与 DDR3 IP 的 100H 目标必须迁移，参考 FDC 管脚必须逐项对照实板。分支自述的双摄采集与 RGB565→AXI128/BAR2 PASS 必须由本仓库入口复验。旧 OV7725 的 SCCB 地址、8 位寄存器表、640x480 RGB565 和板级假设均不得默认继承。
+   - 验收：项目目录固定为 `59_top_dual_ov5640_hdmi/`，HDMI 顶层候选为 `top_dual_ov5640_hdmi`；根 PDS 工程与 DDR3 IP 的 100H 目标必须逐项审核，参考 FDC 管脚必须对照紫光盘古100Pro 实板。分支自述的双摄采集与 RGB565→AXI128/BAR2 PASS 必须由本仓库入口复验。旧 OV7725 的 SCCB 地址、8 位寄存器表、640x480 RGB565 和板级假设不得默认继承。
 
 5. **S0-1：关闭公共 Questa 仿真环境门禁（已完成）**
    - 已完成：Questa Sim-64 `2021.1` 三项可执行文件、外部许可证 checkout、最小 SystemVerilog smoke，以及 Logos2 USIM/VSIM 编译验证。
@@ -122,7 +131,7 @@
 8. **H2-B1：PCIe 板级闭环**
    - 前置：M1 完成，补齐 H2 板级资料和 UART 保留/删除决策。
    - H2-B0 已完成精确 baseline 指纹；它只保护失败状态不漂移，不解除任何板级阻断。
-   - 交付：PG2L50H 一致的工程/IDF/产物、lane/refclk/PERST#/SCBV 约束和精确 gate 指纹。
+   - 交付：PG2L100H 一致的工程/IDF/产物、lane/refclk/PERST#/SCBV 约束和精确 gate 指纹。
    - 验收：严格 gate 无 baseline 参数返回 0；UART 隐式网络、器件元数据和板级约束阻断全部关闭。
 
 9. **S1/S2/S3：DDR3、PCIe 与双 OV5640 四级 Questa 仿真**
@@ -131,17 +140,17 @@
    - 验收：每级只输出一次 `TEST PASS`；失败/超时 `$fatal`，退出码非零；SDF 无 annotation 或层级匹配错误。
 
 10. **C2/C3：双 OV5640 项目实现与最终闭环**
-   - 前置：C0/C1、H3 与 PG2L50H IP/FDC 决策完成；只从双 OV5640 参考分支逐项审核候选结构，legacy 摄像头工程仅提供风险记录，任何旧模块、IP、约束或时序结论均不直接继承。
+   - 前置：C0/C1、H3 与 PG2L100H IP/FDC 决策完成；只从双 OV5640 参考分支逐项审核候选结构，legacy 摄像头工程仅提供风险记录，任何旧模块、IP、约束或时序结论均不直接继承。
    - 交付：新的双 OV5640 独立 SCCB/双路读 ID/双路采集与左右半幅拼接路径、逐域复位与事件 CDC、FIFO reset、DDR3/HDMI 约束和最终 gate。
    - 验收：setup/hold/recovery/removal 全通过，SDF/位流/仿真齐全；不得用宽泛 `false_path`、multicycle 或 waiver 掩盖结构问题。
 
 ### 近期执行顺序
 
-1. **P0：M0 器件事实落盘。** 统一 DDR3、PCIe 与双 OV5640 三个活动项目的实际目标为 PG2L50H，并禁止误用所有 100H 产物。
-2. **P0：M1 PCIe 先行。** 活动 PCIe IP 已是 SP6.4 50H，先修 build/gate，再从空 `build/` 建立新的 50H 七阶段基线。
-3. **P1：M2 DDR3 迁移。** 以 SP6.1 50H backup 为参数/差异 oracle，用 SP6.4 正式重生成；当前 100H FDC 不得复用。
+1. **P0：M0 器件事实落盘。** 统一记录紫光盘古100Pro 与 `PG2L100H/FBG484/-6`，并将此前 50H 迁移结果标为历史证据。
+2. **P0：M2 DDR3 先行恢复。** 这是当前最接近原生 100H 的活动工程，先恢复 canonical build/gate，再从空 `build/` 建立 100H 七阶段基线。
+3. **P1：M1 PCIe 恢复。** 先解决 50H 活动 IP 与 100H 工程目标不一致，再重建全部 PDS 产物。
 4. **P1：C1 双 OV5640 产品输入。** C0 只读审计已完成；继续审核两路模组接口、共享/独立控制、输出格式、数据路径和板级约束，全部冻结后再选择性导入，不得整体合并生成物或编译库。
-5. **P1：C2/C3 双 OV5640 实现。** 在新项目中独立建立 PG2L50H IP/FDC、双路采集、DDR3/HDMI 和 CDC/RDC；legacy 摄像头工程只提供问题清单，旧 `+0.192 ns`、七组时序指纹和 IP 不得继承。
+5. **P1：C2/C3 双 OV5640 实现。** 在新项目中独立建立 PG2L100H IP/FDC、双路采集、DDR3/HDMI 和 CDC/RDC；legacy 摄像头工程只提供问题清单，旧 `+0.192 ns`、七组时序指纹和 IP 不得继承。
 6. **P2：恢复功能主线。** M2 后重审 D3-A；双 OV5640 在 C0/C1 审核完成后进入 C2/C3。
 7. **持续泳道：H0-H3、S0-S3。** 原理图/BOM/DDR3/PCIe/双 OV5640 证据或项目级 Questa 入口一旦到位，立即关闭对应阻断。
 
@@ -283,38 +292,38 @@ O0/O1/O2/M3-A 已从活动 TODO 移除，不再为 `41_ov7725_hdmi/` 安排 RTL�
 - [x] CI-8A PCIe：每次 build 以唯一 `run_id` 原子发布 `running/partial/failed/complete` manifest，partial 或失败运行立即使旧 complete 证据失效。
 - [x] CI-8A PCIe：固定 43 项 canonical 输入和 9 项最终证据的相对路径、长度与 SHA-256；新增独立 PNR 功能网表及其生成日志，日志必须含唯一且匹配的 run id，不使用时间窗口猜测。
 - [x] CI-8A PCIe：真实 full build、partial、PDS 启动失败、run-id/输入/产物漂移和 baseline/strict gate 已验证，详见 `pcie_dma_test_100h/doc/CI8A_BUILD_PROVENANCE.md`。
-- [ ] CI-8B DDR3：在 PG2L50H canonical IP/FDC 升格并可执行最终构建后，按项目真实源清单和产物布局实现 provenance manifest。
-- [ ] CI-8B 双 OV5640：在 `59_top_dual_ov5640_hdmi/` 完成 PG2L50H canonical IP/FDC 与最终构建入口后，按项目真实源清单和产物布局实现 provenance manifest。
+- [ ] CI-8B DDR3：在 PG2L100H canonical IP/FDC 升格并可执行最终构建后，按项目真实源清单和产物布局实现 provenance manifest。
+- [ ] CI-8B 双 OV5640：在 `59_top_dual_ov5640_hdmi/` 完成 PG2L100H canonical IP/FDC 与最终构建入口后，按项目真实源清单和产物布局实现 provenance manifest。
 - [ ] DDR3 与双 OV5640 两个迁移完成并通过负向测试后，再评估是否抽公共模块；当前保持三个产品项目 gate 独立。
 
 ## 5. 外部阻断泳道
 
 这些任务需要用户或实验环境提供事实，但不阻塞前述脚本、静态审计和内部实现基线。
 
-### H0：三个活动项目板级资料
+### H0：紫光盘古100Pro 板级资料
 
-- [x] 确认三个工程统一面向 `RK3568+PG2L50H100H` 开发板，实际 FPGA 为 `PG2L50H-6IFBG484`。
-- [x] 确认 PDS 目标统一为 `Logos2 / PG2L50H / FBG484 / -6`。
-- [ ] 关闭板卡型号证据冲突：2026-09-02 PR #21 的商品截图标注 `RK3568+PG2L100H`，它可能是另一硬件变体，不能证明当前实物；在 FPGA 丝印照片、原理图或 BOM 至少一项归档前，50H staging 只作为候选迁移证据，不得据此烧录。
+- [x] owner 确认开发板名称为紫光盘古100Pro，目标器件按 PG2L100H 恢复。
+- [ ] 归档完整 FPGA 丝印、原理图或 BOM，确认 `PG2L100H-6IFBG484` 与速度级。
+- [x] 将此前统一 PG2L50H 的结论降级为历史迁移记录，不再作为当前器件事实。
 - [ ] 提供原理图版本、BOM 和可归档的 FPGA 丝印照片或等价一手记录。
 - [ ] 提供配置 bank 电压、启动模式和 share pin 使用条件。
 
 验收：原理图、BOM、芯片丝印或等价的一手资料已归档；每个器件/IP/管脚/电气参数能追溯到具体版本，相关约束或 waiver 已记录审核状态。
 
-### H1：DDR3 板级参数
+### H1：DDR3 板级参数（100H 恢复）
 
 - [ ] 提供 DDR3 完整料号、数量、容量、rank、x16/x32 组织和目标速率。
 - [ ] 核对 A/BA/CK/DQ/DQS/DM byte-lane 映射及 bit/byte swap。
 - [ ] 确认 `free_clk` 频率、电气标准、精度和 `rst_board` 极性。
-- [ ] 确认 PG2L50H staging 新增的 DDR `ref_clk_p/ref_clk_n` 差分来源、频率、管脚、bank 电压和时钟能力，并决定 `pll_lock/ddrphy_cpd_lock/ddr_init_done` 是否作为物理输出。
+- [ ] 以 PG2L100H 原生 wrapper/FDC 为基线，确认 DDR `ref_clk` 来源、频率、管脚、bank 电压和时钟能力，并决定状态输出是否作为物理输出。
 - [ ] 提供 VCCIO/VREF、ODT、终端、拓扑和 PCB 走线时延依据。
 - [ ] 决定 UART/ADC 是否保留；若保留，提供管脚、电压和波特率。
 - [ ] 建立经审核的板级参数清单；清单不存在或与 IDF/FDC 不一致时，严格发布 gate 必须失败。
 
-### H2：PCIe 板级参数与严格 gate
+### H2：PCIe 板级参数与严格 gate（100H 恢复）
 
 - [x] H2-A：建立 lane/refclk/PERST#/share pin/UART/SCBV/IP 目标的板级证据矩阵和 SP6.4 IP 再生成契约；不修改 RTL/IDF/FDC，详见 `pcie_dma_test_100h/doc/PCIE_BOARD_EVIDENCE.md`。
-- [x] H2-A：确认新事实：实际器件和活动 `pcie_test.idf` 均为 PG2L50H，原 PDS 目标 PG2L100H 才是不一致项；FDC 固定 `F6/E6`、`M16`、`M15`、`M17/J16`，未提供 lane 极性、I/O delay 或 SCBV 板级证据；UART `rxd/txd` 为隐式网络且 `rxd` 被绑 0。
+- [x] H2-A：确认当前恢复事实：历史 PDS 工程/部分产物为 PG2L100H，但活动 `pcie_test.idf` 为 PG2L50H，属于混合目标；FDC 的 `F6/E6`、`M16`、`M15`、`M17/J16` 仍需按紫光盘古100Pro 原理图核对，UART `rxd/txd` 为隐式网络且 `rxd` 被绑 0。
 - [x] H2-B0：将 baseline gate 收紧为 16 个已知对象签名、42 次原始记录的精确多重集；任何新增、消失、重命名、位置或数量漂移默认失败，并继续输出不可发布标记。
 - [x] H2-B0：活动 IDF 的 family/device/package/speedgrade 漂移改为无条件硬失败，不再由 baseline 参数放行。
 - [ ] H2-B1：补齐板级资料并关闭 UART、SCBV、lane/refclk/PERST#、share pin 和 I/O timing 阻断，使严格 gate 返回 0。
@@ -322,7 +331,7 @@ O0/O1/O2/M3-A 已从活动 TODO 移除，不再为 `41_ov7725_hdmi/` 安排 RTL�
 - [ ] 决定 UART2APB 保留或删除；保留则提供 RX/TX 管脚、电气标准和波特率。
 - [ ] 提供 SCBV 所需配置 bank 电压。
 - [ ] 确认 LED 属于人眼状态灯且无外部同步时序要求，或提供正式时序要求。
-- [x] 将 PCIe build/gate 恢复为 PG2L50H，保留已匹配实物的 SP6.4 PCIe IDF，并从空 `build/` 重新生成全部 50H 产物；严格 gate 仍保留发布阻断。
+- [ ] 将 PCIe build/gate 恢复为 PG2L100H；在取得匹配 100H IP 或批准 IP 重生成前，不修改活动 IDF。
 - [ ] 按决策处理 UART，消除无驱动 `rxd` 和隐式网络。
 - [ ] 为 HSST/refclk/lane/share pin 建立有官方模板和原理图依据的精确约束或 waiver。
 - [x] 使用 baseline 放行完成全流程重建并保留产物、STA 和阻断证据。

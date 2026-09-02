@@ -2,7 +2,7 @@
   "schema_version": 1,
   "approved_target": {
     "family": "Logos2",
-    "device": "PG2L50H",
+    "device": "PG2L100H",
     "package": "FBG484",
     "speedgrade": "-6"
   },
@@ -36,12 +36,12 @@
     },
     {
       "path": "41_ov7725_hdmi/scripts/build.tcl",
-      "role": "migration_blocked_project_build",
+      "role": "canonical_project_build",
       "set_arch_count": 1,
       "devices": ["PG2L100H"],
       "contains_absolute_paths": false,
       "run_ps1_entry": true,
-      "note": "Reproducible OV7725 legacy baseline entry; product migration is cancelled and this PG2L100H entry must not produce release evidence."
+      "note": "Reproducible PG2L100H OV7725 legacy baseline entry; product migration to dual OV5640 is separate and this entry must not produce dual-camera release evidence."
     },
     {
       "path": "ddr3_test/ddr3_test/impl.tcl",
@@ -90,12 +90,12 @@
     },
     {
       "path": "ddr3_test/ddr3_test/scripts/build.tcl",
-      "role": "migration_blocked_project_build",
+      "role": "canonical_project_build",
       "set_arch_count": 1,
       "devices": ["PG2L100H"],
       "contains_absolute_paths": false,
       "run_ps1_entry": true,
-      "note": "Reproducible project build entry, blocked until M2 promotes reviewed PG2L50H IP and constraints."
+      "note": "Reproducible PG2L100H DDR3 bring-up entry; release remains blocked until board parameters and product-level validation are reviewed."
     },
     {
       "path": "pcie_dma_test_100h/compile/parse_design/screen.tcl",
@@ -117,12 +117,21 @@
     },
     {
       "path": "pcie_dma_test_100h/scripts/build.tcl",
-      "role": "canonical_project_build",
+      "role": "migration_blocked_project_build",
       "set_arch_count": 1,
-      "devices": ["PG2L50H"],
+      "devices": ["PG2L100H"],
       "contains_absolute_paths": false,
       "run_ps1_entry": true,
-      "note": "Current reproducible PCIe project build entry; release remains blocked by independent board and UART gates."
+      "note": "PG2L100H recovery build entry; activity PCIe IP metadata remains PG2L50H, so this entry is intentionally migration-blocked."
+    },
+    {
+      "path": "pcie_dma_test_100h/scripts/probe_constraint_objects.tcl",
+      "role": "canonical_support_tool",
+      "set_arch_count": 0,
+      "devices": [],
+      "contains_absolute_paths": false,
+      "run_ps1_entry": false,
+      "note": "PDS constraint-object resolution probe; reports clock and exception objects without changing design constraints or approving waivers."
     },
     {
       "path": "scripts/compile_simlib.tcl",

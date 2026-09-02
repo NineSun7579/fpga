@@ -4,6 +4,12 @@
 
 # Dependencies
 
+## 当前板级身份（2026-09-02）
+
+- 开发板名称：**紫光盘古100Pro**。
+- FPGA 器件：`PG2L100H-6IFBG484`；PDS 目标：`Logos2 / PG2L100H / FBG484 / -6`。
+- 板名与 FPGA 型号是独立依赖事实。丝印照片、原理图和 BOM 尚未归档，当前身份仍为 owner 声明；因此历史 PG2L50H staging、旧 PG2L100H 产物和商品截图都不能直接构成烧录或实板验收依据。
+
 ```mermaid
 flowchart TD
   Guide["README.md\nPDS/仿真指南"] --> Todo["TODO.md\n整改与验收门槛"]

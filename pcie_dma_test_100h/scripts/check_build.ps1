@@ -185,8 +185,8 @@ if (Select-String -LiteralPath $FunctionalNetlistLog -Pattern '^E:' -Quiet) {
 }
 
 $TimingText = Get-Content -Raw -LiteralPath $TimingReport
-if ($TimingText -notmatch '(?im)\bDevice\s*:\s*PG2L50H\b') {
-    throw 'Final timing report does not identify device PG2L50H.'
+if ($TimingText -notmatch '(?im)\bDevice\s*:\s*PG2L100H\b') {
+    throw 'Final timing report does not identify device PG2L100H.'
 }
 if ($TimingText -notmatch 'Design Summary\s*:\s*All Constraints Met\.') {
     throw 'Final timing report does not contain All Constraints Met.'
@@ -213,19 +213,13 @@ if ([regex]::Matches(
     ).Count -ne 1) {
     throw 'PDS functional-netlist log run-id does not match provenance manifest.'
 }
-if ($BuildText -notmatch '(?im)-device\s+PG2L50H') {
-    throw 'PDS build log does not record set_arch device PG2L50H.'
-}
-if ($BuildText -match '(?im)PG2L100H') {
-    throw 'PDS build log contains stale PG2L100H device metadata.'
+if ($BuildText -notmatch '(?im)-device\s+PG2L100H') {
+    throw 'PDS build log does not record set_arch device PG2L100H.'
 }
 
 $BitstreamText = Get-Content -Raw -LiteralPath $BitstreamDatabase
-if ($BitstreamText -notmatch '(?im)PG2L50H-6FBG484') {
-    throw 'Bitstream database does not identify PG2L50H-6FBG484.'
-}
-if ($BitstreamText -match '(?im)PG2L100H') {
-    throw 'Bitstream database contains stale PG2L100H device metadata.'
+if ($BitstreamText -notmatch '(?im)PG2L100H-6IFBG484') {
+    throw 'Bitstream database does not identify PG2L100H-6IFBG484.'
 }
 
 $TimingRows = foreach ($Line in Get-Content -LiteralPath $TimingReport) {

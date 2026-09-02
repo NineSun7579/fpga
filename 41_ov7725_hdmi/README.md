@@ -6,15 +6,15 @@
 
 现有 legacy 数据通路经两个异步 FIFO 和 DDR3 帧缓存后，以 1024×768 时序输出 HDMI/TMDS。
 
-实际器件与最终 PDS 目标为：
+开发板为紫光盘古100Pro；原生恢复器件与 PDS 目标为：
 
 ```text
-PG2L50H-6IFBG484
-Logos2 / PG2L50H / FBG484 / -6
+PG2L100H-6IFBG484
+Logos2 / PG2L100H / FBG484 / -6
 ```
 
 板级资料收集入口见 [OV7725 HDMI 板级证据清单](doc/BOARD_EVIDENCE.md)。
-四个活动 IP 的迁移方式、参数边界和升格条件见 [M3-A PG2L50H 四 IP 迁移前审计](doc/M3A_IP_MIGRATION_AUDIT.md)。
+四个活动 IP 的 legacy 版本与恢复边界见 [M3-A IP 迁移前审计](doc/M3A_IP_MIGRATION_AUDIT.md)。
 
 - PDS 版本：`2022.2-SP6.4`
 - 顶层模块：`ov7725_hdmi`
@@ -23,7 +23,7 @@ Logos2 / PG2L50H / FBG484 / -6
 
 ## 当前状态
 
-- 已在旧 PG2L100H 目标下从空 `build/` 完成七阶段实现；这些 STA、网表、SDF 和位流仅保留为历史证据，不适用于实际 PG2L50H 板卡。
+- 已在 PG2L100H 目标下从空 `build/` 完成七阶段实现；这些 STA、网表、SDF 和位流仍需按紫光盘古100Pro 的一手板级资料复核后才能讨论烧录。
 - 构建固定 16 个手写 RTL、4 个活动 IDF 和唯一 FDC，不依赖 `prj/impl.tcl`、`ip_backup/**` 或 IP 内部生成 RTL。
 - O1-B 已消除 38 条确定性手写 RTL 位宽告警；`ddr3_ip.mem_a` 的 15→14 bit 板级冲突作为 legacy 风险保留，不再进入产品整改。
 - O1-B 已显式声明 `rst_n`、删除无消费者 `sys_init_done`，并把四个 serializer 内八个 OSERDES 接入高有效复位。
@@ -33,13 +33,13 @@ Logos2 / PG2L50H / FBG484 / -6
 - O2-B 的 Slow Recovery 为：`pixel_clk_5x → pixel_clk_5x -0.349 ns / 8/8`、`pixel_clk → pixel_clk_5x +1.111 ns / 0/1`、`pixel_clk_5x → pixel_clk -2.173 ns / 8/8`；Fast Recovery 的反向组仍为 `-1.464 ns / 8/8`。baseline 和 gate 未因失败实验放宽。
 - O2-D1-R 已从空 `build/` 重建回退后的等价基线：baseline gate 精确匹配 7 组失败并返回 0，严格 gate 返回 1；Slow/Fast `ddrphy_sysclk → pixel_clk` Recovery 均为 `53/53`，确认 O2-B 的 `54` 未保留。
 - 新报告中的 53 个 endpoint 为 read FIFO 34、video driver 17、video display 1、原 DVI reset 同步器 1。O2-B 的计数增量来自 video-driver 物理 endpoint 由 17 变 18；新增 serializer 同步器属于另一 clock pair。
-- O2-D1-G 的状态机、复位分权、唯一 `/5` clock 和禁止 waiver/第二相位等设计纪律继续保留；但 `+0.192 ns` 裕量、七组时序指纹和 endpoint 数来自 100H 布局，必须在 50H 新基线后重新审核。
+- O2-D1-G 的状态机、复位分权、唯一 `/5` clock 和禁止 waiver/第二相位等设计纪律继续保留；`+0.192 ns` 裕量、七组时序指纹和 endpoint 数只能作为 PG2L100H legacy 证据，不能替代当前恢复构建。
 - 完整日志包含 81 条 critical 和 4067 条 warning；其中仅 1 条项目手写 RTL 位宽告警，另有 88 条 `STA-3011`、4 条 `SDC-2025`、3 条 `Route-2036` 和 72 条 share-pin critical。
 - 已生成非零综合网表、PNR 网表、slow-corner SDF、`.sbit` 和 `.bin`。
 - 严格 gate 会因已知发布阻断返回非零；显式 baseline 模式精确核对 7 组 `corner/check/clock pair/endpoints` 失败指纹，只证明当前失败基线可重复，并明确标记不可发布。
 - Questa Sim-64 `2021.1` 与 Logos2 USIM/VSIM 有公共历史验证；当前动态复验受仓库外许可证 checkout 阻断。本 legacy 工程仍没有项目级 TB/filelist/DO，因此四级自检仿真未运行。公共环境通过不等于 OV7725 或 OV5640 项目通过。
-- M3-A 已确认四个活动 SP4.2 IDF 与 SP6.4 安装版本不兼容：CLI 探针分别被 `IPCompiler 0037` 和 `IPCompiler 0057` 拒绝。该迁移路线现已冻结，不再为 OV7725 新建 PG2L50H IP；审计结论只用于阻止旧 IDF 被双 OV5640 误用。
-- DDR3 `DEVICE_100H_EN=false`、PLL `DEVICE_PG2L50H=true` 和 FIFO 的 85 个 DRM36K/170 个 DRM18K 上限属于 50H staging 必检项；原理图/BOM 未关闭 DDR3 组织和管脚前，禁止 canonical 升格及 50H 最终构建。
+- M3-A 已确认四个活动 SP4.2 IDF 与 SP6.4 安装版本不兼容：CLI 探针分别被 `IPCompiler 0037` 和 `IPCompiler 0057` 拒绝。当前不为 OV7725 新建产品 IP；恢复仅限原生 PG2L100H legacy 基线，并不得用于双 OV5640。
+- 50H staging 参数检查不属于当前 100H canonical 输入；原理图/BOM 未关闭 DDR3 组织和管脚前，仍禁止发布和烧录。
 
 ## 构建与检查
 

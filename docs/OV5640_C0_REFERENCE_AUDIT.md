@@ -6,8 +6,9 @@
 Status: C0 complete; C1 blocked
 Import: none
 Reference: origin/parallel_driver@485f3bba71e4b57fb8bb49cec30e9d331b952be3
-Product target: Logos2 / PG2L50H / FBG484 / -6
-Physical FPGA: PG2L50H-6IFBG484
+Product target: Logos2 / PG2L100H / FBG484 / -6
+Physical board: 紫光盘古100Pro
+Physical FPGA: PG2L100H-6IFBG484 (pending silkscreen/BOM)
 Future project: 59_top_dual_ov5640_hdmi/
 ```
 
@@ -136,7 +137,7 @@ rtl/hdmi_top/video_driver.v
 
 | 对象 | 参考事实 | C0 结论 |
 |---|---|---|
-| `prj/project.pds` | PDS SP6.4；PG2L100H；当前 top=`top_dual_ov5640_pcie`；混合 HDMI/PCIe/UART source set | 只作来源清单参考；新建干净 PG2L50H 工程 |
+| `prj/project.pds` | PDS SP6.4；PG2L100H；当前 top=`top_dual_ov5640_pcie`；混合 HDMI/PCIe/UART source set | 只作来源清单参考；新建干净 PG2L100H 工程 |
 | `ddr3_ip.idf` | v1.10；PG2L100H；DDR3 800 MT/s、x32 | 不导入；依据实际 DDR3 重新生成 |
 | `pll_clk.idf` | v1.5；PG2L100H；参考输出 75/375/50 MHz | 不导入；视频模式冻结后重新生成 |
 | `wr_fifo.idf` | v1.10；PG2L100H；16→256 异步 FIFO | 不导入；按 PG2L50H 资源/复位合同重新生成 |
@@ -174,7 +175,7 @@ ed41a435b00b27013bd0c4a8613a08bbee3132b9  constraints/top_dual_ov5640_hdmi_pin.f
 | camera `PAP_CLOCK_DEDICATED_ROUTE FALSE` | 2 |
 | camera `PAP_IO_UNUSED` | 4 |
 
-FDC 假设 `sys_clk=50 MHz`、两路 `cam_pclk=25 MHz`、camera LVCMOS33、DDR SSTL15。像素/5x 时钟约束被注释，camera 与 HDMI 没有 I/O delay。DDR generated-clock 和物理位置还硬编码旧实例层级。因此该文件只能作为逐管脚候选表，不能直接进入 PG2L50H canonical 工程。
+FDC 假设 `sys_clk=50 MHz`、两路 `cam_pclk=25 MHz`、camera LVCMOS33、DDR SSTL15。像素/5x 时钟约束被注释，camera 与 HDMI 没有 I/O delay。DDR generated-clock 和物理位置还硬编码旧实例层级。因此该文件只能作为逐管脚候选表，不能直接进入 PG2L100H canonical 工程。
 
 ## 结构与文档阻断
 
@@ -218,6 +219,6 @@ C1 输入冻结后，另开选择性导入 PR：
 
 1. 创建 `59_top_dual_ov5640_hdmi/` 的最小目录和独立 source manifest。
 2. 只导入经许可、严格 UTF-8、按 VSCS 补齐接口/复位/CDC/FSM 文档的明文 RTL。
-3. 在 `build/ipgen/**` 为 PG2L50H 重新生成 DDR3、PLL、读写 FIFO，并原子审核。
+3. 在 `build/ipgen/**` 为 PG2L100H 重新生成 DDR3、PLL、读写 FIFO，并原子审核。
 4. 从实板事实重建 FDC/RCF，不复制参考 FDC。
 5. 在项目内 `sim/questa/` 归档经审核的模型/TB 和相对 `.f/.do`；运行态只进入项目 `build/`。

@@ -234,7 +234,7 @@ if ($FinalStageIndex -ge [Array]::IndexOf($StageOrder, 'report_timing')) {
     if ($TimingText -notmatch '(?m)^\| Device\s+: PG2L100H\s*$' -or
         $TimingText -notmatch '(?m)^\| Speed Grade\s+: -6\s*$' -or
         $TimingText -notmatch '(?m)^\| Package\s+: FBG484\s*$') {
-        throw 'Final timing report does not match PG2L100H-6FBG484.'
+        throw 'Final timing report does not match PG2L100H-6IFBG484.'
     }
 
     $TimingSummaryLines = Get-Content -LiteralPath $TimingReport |

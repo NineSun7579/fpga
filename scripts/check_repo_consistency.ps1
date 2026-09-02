@@ -82,10 +82,10 @@ $PcieS2cBar1RegenPath = Join-Path $RepoRoot `
     'pcie_dma_test_100h\scripts\regenerate_bar1_staging.ps1'
 $SimArchiveGatePath = Join-Path $RepoRoot `
     'scripts\check_sim_archives.ps1'
-$ApprovedBoard = 'RK3568+PG2L50H100H'
-$ApprovedFpgaPart = 'PG2L50H-6IFBG484'
+$ApprovedBoard = '紫光盘古100Pro'
+$ApprovedFpgaPart = 'PG2L100H-6IFBG484'
 $ApprovedPdsFamily = 'Logos2'
-$ApprovedPdsDevice = 'PG2L50H'
+$ApprovedPdsDevice = 'PG2L100H'
 $ApprovedPdsPackage = 'FBG484'
 $ApprovedPdsSpeedgrade = '-6'
 $Ddr3RegeneratePath = Join-Path $RepoRoot `
@@ -266,7 +266,7 @@ if ($Ov5640ScopeExists) {
     foreach ($Required in ([ordered]@{
             'OV5640 product target' = 'OV5640'
             'OV7725 legacy boundary' = 'OV7725.*(?:legacy|\u5386\u53f2)'
-            'approved FPGA target' = 'PG2L50H-6IFBG484'
+            'approved FPGA target' = 'PG2L100H-6IFBG484'
             'reference import boundary' = '59_top_dual_ov5640_hdmi'
             'Questa validation requirement' = 'Questa.*2021\.1'
         }).GetEnumerator()) {
@@ -282,9 +282,9 @@ if ($Ov5640C0AuditExists) {
     foreach ($Required in ([ordered]@{
             'C0 reference commit' = '485f3bba71e4b57fb8bb49cec30e9d331b952be3'
             'C0 complete status' = 'Status: C0 complete; C1 blocked'
-            'C0 approved FPGA' = 'PG2L50H-6IFBG484'
+            'C0 approved FPGA' = 'PG2L100H-6IFBG484'
             'C0 future project' = '59_top_dual_ov5640_hdmi'
-            'C0 old device exclusion' = 'PG2L100H'
+            'C0 old device exclusion' = 'PG2L50H'
             'C0 BAR conflict' = 'BAR1_Enable=false'
             'C0 commenting standard' = 'VSCS'
             'C0 no-import boundary' = 'Import: none'
@@ -334,7 +334,7 @@ if ($Ov5640BoardEvidenceExists) {
         Require-Pattern -Text $Ov5640BoardEvidenceText -Pattern $Required.Value `
             -Description $Required.Key | Out-Null
     }
-    foreach ($Keyword in @('OV5640', 'MCLK', 'RESET', 'PWDN', 'DVP', 'DDR3', 'HDMI', 'PG2L50H')) {
+    foreach ($Keyword in @('OV5640', 'MCLK', 'RESET', 'PWDN', 'DVP', 'DDR3', 'HDMI', 'PG2L100H')) {
         Require-Pattern -Text $Ov5640BoardEvidenceText `
             -Pattern ([regex]::Escape($Keyword)) `
             -Description "dual OV5640 board evidence keyword '$Keyword'" | Out-Null
@@ -545,7 +545,7 @@ if ($Ddr3RegenerationDocExists) {
     $Ddr3RegenerationDocText = Get-Content -Raw -Encoding UTF8 `
         -LiteralPath $Ddr3RegenerationDocPath
     foreach ($Required in ([ordered]@{
-            'M2 approved FPGA part' = [regex]::Escape($ApprovedFpgaPart)
+            'M2 staging legacy FPGA part' = 'PG2L50H-6IFBG484'
             'M2 canonical promotion conditions' = '(?m)^##\s+\u5347\u683c\u6761\u4ef6\s*\r?$'
             'M2 rollback conditions' = '(?m)^##\s+\u56de\u9000\u6761\u4ef6\s*\r?$'
             'M2 wrapper clock drift' = 'ref_clk_p/ref_clk_n'
@@ -579,7 +579,7 @@ $OvM3AuditExists = Require-File -Path $OvM3AuditPath `
 if ($OvM3AuditExists) {
     $OvM3AuditText = Get-Content -Raw -Encoding UTF8 -LiteralPath $OvM3AuditPath
     foreach ($Required in ([ordered]@{
-            'M3-A approved FPGA part' = [regex]::Escape($ApprovedFpgaPart)
+            'M3-A legacy FPGA part' = 'PG2L50H-6IFBG484'
             'M3-A old-IP path rejection' = 'IPCompiler 0037'
             'M3-A version mismatch rejection' = 'IPCompiler 0057'
             'M3-A DDR3 version gap' = '1\.12.*1\.10'
@@ -795,15 +795,19 @@ foreach ($Project in $Projects) {
     }
 }
 
-# The active PCIe IP already matches the approved physical FPGA. Parse the IDF
-# structurally so future edits cannot silently restore the rejected 100H target.
+# Parse the active PCIe IP structurally. During the PG2L100H recovery batch a
+# PG2L50H IDF is an explicitly documented blocker, not an approved match.
 $PcieIdfPath = Join-Path $RepoRoot 'pcie_dma_test_100h\ipcore\pcie_test\pcie_test.idf'
 if (Require-File -Path $PcieIdfPath -Description 'active PCIe IP definition') {
     try {
         [xml]$PcieIdfXml = Get-Content -Raw -Encoding UTF8 -LiteralPath $PcieIdfPath
         $PcieIdfDevice = [string]$PcieIdfXml.ip_inst.header.device
         if ($PcieIdfDevice -ne $ApprovedPdsDevice) {
-            Add-Failure "PCIe IP targets '$PcieIdfDevice'; approved device is '$ApprovedPdsDevice'"
+            if ($PcieIdfDevice -eq 'PG2L50H') {
+                Write-Host "WARN: PCIe IP remains PG2L50H during PG2L100H recovery; migration is blocked"
+            } else {
+                Add-Failure "PCIe IP targets '$PcieIdfDevice'; approved device is '$ApprovedPdsDevice'"
+            }
         } else {
             Write-Host "INFO: PCIe IP matches approved device $ApprovedPdsDevice"
         }
@@ -851,9 +855,11 @@ if ($PcieBaselineFingerprintExists) {
             $PcieBaselineFingerprint.expected_raw_occurrences -ne 42) {
             Add-Failure 'PCIe H2-B0 fingerprint must contain 16 signatures and 42 occurrences'
         }
+        # H2-B0 is a frozen PG2L50H migration fingerprint. It remains
+        # auditable, but is not the current PG2L100H acceptance target.
         foreach ($Field in ([ordered]@{
                 family = $ApprovedPdsFamily
-                device = $ApprovedPdsDevice
+                device = 'PG2L50H'
                 package = $ApprovedPdsPackage
                 speedgrade = $ApprovedPdsSpeedgrade
             }).GetEnumerator()) {
