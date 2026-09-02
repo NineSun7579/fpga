@@ -24,6 +24,12 @@ if ([string]::IsNullOrWhiteSpace($PdsTclInventoryPath)) {
 $PdsTclGatePath = Join-Path $RepoRoot 'scripts\check_pds_tcl_entrypoints.ps1'
 $SensitiveDiffGatePath = Join-Path $RepoRoot 'scripts\check_sensitive_diff.ps1'
 $SensitiveDiffGateDocPath = Join-Path $RepoRoot 'docs\SENSITIVE_DIFF_GATE.md'
+$ConstraintExceptionGatePath = Join-Path $RepoRoot `
+    'scripts\check_constraint_exceptions.ps1'
+$ConstraintExceptionInventoryPath = Join-Path $RepoRoot `
+    'docs\CONSTRAINT_EXCEPTION_INVENTORY.json'
+$ConstraintExceptionInventoryDocPath = Join-Path $RepoRoot `
+    'docs\CONSTRAINT_EXCEPTION_INVENTORY.md'
 $GitAttributesPath = Join-Path $RepoRoot '.gitattributes'
 $Ov5640ScopePath = Join-Path $RepoRoot 'docs\OV5640_TARGET_SCOPE.md'
 $Ov5640C0AuditPath = Join-Path $RepoRoot `
@@ -1062,6 +1068,44 @@ if ($Ddr3D3aStagingCheckExists -and $Ddr3D3aStagingReviewExists) {
         & $Ddr3D3aStagingCheckPath -StaticOnly -SelfTest
     } catch {
         Add-Failure "D3-0-M static gate failed: $($_.Exception.Message)"
+    }
+}
+$ConstraintExceptionGateExists = Require-File `
+    -Path $ConstraintExceptionGatePath `
+    -Description 'constraint exception inventory gate'
+$ConstraintExceptionInventoryExists = Require-File `
+    -Path $ConstraintExceptionInventoryPath `
+    -Description 'constraint exception machine inventory'
+$ConstraintExceptionInventoryDocExists = Require-File `
+    -Path $ConstraintExceptionInventoryDocPath `
+    -Description 'constraint exception inventory guide'
+if ($ConstraintExceptionGateExists -and
+    $ConstraintExceptionInventoryExists -and
+    $ConstraintExceptionInventoryDocExists) {
+    try {
+        & $ConstraintExceptionGatePath -RepoRoot $RepoRoot `
+            -InventoryPath $ConstraintExceptionInventoryPath -SelfTest
+        if ($LASTEXITCODE -ne 0) {
+            Add-Failure "constraint exception gate exited with code $LASTEXITCODE"
+        }
+    } catch {
+        Add-Failure "constraint exception gate failed: $($_.Exception.Message)"
+    }
+
+    $ConstraintExceptionDocText = Get-Content -Raw -Encoding UTF8 `
+        -LiteralPath $ConstraintExceptionInventoryDocPath
+    foreach ($Required in ([ordered]@{
+            'constraint inventory machine link' =
+                'CONSTRAINT_EXCEPTION_INVENTORY\.json'
+            'constraint inventory gate link' =
+                'check_constraint_exceptions\.ps1'
+            'constraint inventory no-waiver boundary' =
+                '例外合理或已批准'
+            'constraint inventory dual OV5640 boundary' =
+                '双 OV5640.*H3 blocked|H3.*双 OV5640'
+        }).GetEnumerator()) {
+        Require-Pattern -Text $ConstraintExceptionDocText `
+            -Pattern $Required.Value -Description $Required.Key | Out-Null
     }
 }
 $PciePostPnrTimingSimCheckExists = Require-File `

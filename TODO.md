@@ -420,7 +420,7 @@ O0/O1/O2/M3-A 已从活动 TODO 移除，不再为 `41_ov7725_hdmi/` 安排 RTL�
 - [ ] 检查唯一 `TEST PASS` 和非零网表/SDF/位流。
 - [ ] 日志与报告作为 CI artifact 保存，不提交源码仓库。
 - [ ] 每个项目 README 记录器件、临时/产品顶层、时钟、接口、命令、IP 版本和已知阻断。
-- [ ] 每个时序例外记录对象、原因、IP/板级依据和审核状态。
+- [x] 建立[约束例外精确清单](docs/CONSTRAINT_EXCEPTION_INVENTORY.md)与漂移门禁：登记 DDR3 6 条、PCIe 3 条、OV7725 legacy 6 条 timing exception 和 1 条 dedicated-route override；双 OV5640 当前为 0、canonical FDC 尚未创建且 H3 blocked。登记只证明文本可追溯，不构成 waiver、对象解析、STA 或发布批准。
 - [ ] 仅在三个工程均验证后抽取公共 PowerShell/Tcl 小模块。
 
 ## 8. 可选增强

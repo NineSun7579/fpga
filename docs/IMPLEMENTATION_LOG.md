@@ -513,3 +513,10 @@
 - gate 只允许上述五端口和唯一 refclk 连接变化，并通过错误时钟连接、缺少差分端口、出现 `axi_rready` 三项负向自测；不修改或升格生成 IP。
 - D3-0-M 审计完成但 D3-A 继续 blocked：必须先确认实板差分参考时钟、`free_clk` 职责、状态输出、FDC/RCF、地址单位和写完成语义。本批没有 HDL/TB 修改，VSCS 代码注释检查不适用。
 - PR 前复核发现 PR #21 的 owner 商品截图明确标注 `RK3568+PG2L100H`，与此前“实际焊接 PG2L50H-6IFBG484”的项目输入冲突。已公开更正先前把 100H 解释为板名的不严谨回复，并要求以当前实物芯片丝印、原理图或 BOM 关闭冲突；本批不因此把 50H staging 升格为实板证据。
+
+## 2026-09-02：约束例外精确清单与漂移门禁
+
+- 新增 `CONSTRAINT_EXCEPTION_INVENTORY.json/.md`，按入口文件登记 DDR3 6 条、PCIe 3 条、OV7725 legacy 6 条 timing exception，以及 legacy `cam_pclk` 的一条 `PAP_CLOCK_DEDICATED_ROUTE FALSE`；双 OV5640 当前为 0、canonical FDC 未创建且 H3 blocked。
+- 每条记录包含文件 SHA-256/Git blob、命令、对象、原因、依据和审核状态。DDR3 条目标记为旧 PG2L100H vendor-generated/unreviewed，PCIe 为 vendor-derived/unreviewed，OV7725 为 frozen legacy/not approved。
+- 新增 `check_constraint_exceptions.ps1`：精确比较入口引用、LF 规范化文件哈希、Git index blob 和命令 multiset；Tcl 续行、分号多命令或 `source` 直接失败。自测证明 CRLF-only checkout 仍通过，并覆盖新增未登记例外、修改既有命令和双 OV5640 过早出现 FDC 三项负向样本。
+- 门禁已接入根一致性检查。登记不表示 timing waiver、PDS 对象解析、CDC/RDC 结构正确、STA、板级或发布通过；本批未修改任何 FDC、RTL、IP，也未运行 PDS/Questa。
