@@ -1,6 +1,6 @@
 {
   "$schema": "nexus-mapper/concept-model/v1",
-  "generated_at": "2026-09-01T00:00:00+08:00",
+  "generated_at": "2026-09-02T00:00:00+08:00",
   "repo_path": ".",
   "generator": "Codex manual bootstrap",
   "nodes": [
@@ -64,19 +64,23 @@
       },
       "ci_2_board_evidence_gate": {
         "date": "2026-08-30",
-        "status": "committed_as_677808d",
+        "status": "committed_as_677808d_expanded_2026_09_02",
+        "expanded_at": "2026-09-02",
         "script": "scripts/check_repo_consistency.ps1",
         "exit_code": 0,
+        "expanded_gate_verified_at": "2026-09-02",
+        "expanded_gate_message": "INFO: dual OV5640 C1-A product boundary checked; INFO: repository consistency gate passed",
         "projects": {
           "OV7725 HDMI legacy": {"checklist": "41_ov7725_hdmi/doc/BOARD_EVIDENCE.md", "readme": "41_ov7725_hdmi/README.md", "keywords": ["OV7725", "legacy", "HDMI"]},
           "DDR3 bring-up": {"checklist": "ddr3_test/ddr3_test/doc/BOARD_EVIDENCE.md", "readme": "ddr3_test/ddr3_test/README.md", "keywords": ["DDR3", "test_ddr"]},
-          "PCIe DMA": {"checklist": "pcie_dma_test_100h/doc/PCIE_BOARD_EVIDENCE.md", "readme": "pcie_dma_test_100h/README.md", "keywords": ["PCIe", "H2-A"]}
+          "PCIe DMA": {"checklist": "pcie_dma_test_100h/doc/PCIE_BOARD_EVIDENCE.md", "readme": "pcie_dma_test_100h/README.md", "keywords": ["PCIe", "H2-A"]},
+          "dual OV5640 HDMI": {"checklist": "59_top_dual_ov5640_hdmi/doc/BOARD_EVIDENCE.md", "readme": "59_top_dual_ov5640_hdmi/README.md", "keywords": ["OV5640", "PG2L50H", "C1", "H3"]}
         },
-        "pending_product_project": {"name": "dual OV5640 HDMI", "directory": "59_top_dual_ov5640_hdmi", "checklist": "59_top_dual_ov5640_hdmi/doc/BOARD_EVIDENCE.md", "status": "C1_pending"},
+        "dual_ov5640_project_boundary": {"directory": "59_top_dual_ov5640_hdmi", "status": "document_skeleton_present_c1_h3_blocked", "implementation_assets_present": false},
         "required_sections": ["当前工程事实", "必须提供的资料", "关闭条件"],
         "readme_link_required": true,
         "pcie_section_structure_unified": true,
-        "boundary": "three stored checklists only; dual OV5640 project checklist is still pending, and actual board evidence and closure remain external"
+        "boundary": "four checklist structures and README links only; dual OV5640 has no RTL/IP/FDC/TB, and actual board evidence and closure remain external"
       },
       "ci_3_readme_metadata_gate": {
         "date": "2026-08-30",
@@ -192,6 +196,7 @@
         "commit": "12d7a21",
         "evidence_update_commit": "11dfcc2",
         "date": "2026-08-30",
+        "expanded_at": "2026-09-02",
         "checklists": {
           "ov7725_hdmi": {
             "path": "41_ov7725_hdmi/doc/BOARD_EVIDENCE.md",
@@ -231,6 +236,14 @@
               "status": "blocked_h1",
               "decision_boundary": "parameter semantics, DDR3 part and PCB topology must be confirmed before changing IP or constraints"
             }
+          },
+          "dual_ov5640_hdmi": {
+            "path": "59_top_dual_ov5640_hdmi/doc/BOARD_EVIDENCE.md",
+            "readme_path": "59_top_dual_ov5640_hdmi/README.md",
+            "readme_linked": true,
+            "blocked_workstreams": ["C1", "H3"],
+            "project_boundary": "documentation skeleton only; no RTL, IP, FDC, PDS, testbench or simulation entrypoint",
+            "decision_boundary": "module, MCLK, electrical, DVP, DDR3, HDMI and pin facts must be owner-approved before selective import"
           }
         },
         "h0_status": "blocked_external",
@@ -260,10 +273,10 @@
       "type": "System",
       "label": "双 OV5640 摄像头 HDMI 产品目标",
       "responsibility": "选择性迁移双 OV5640 采集、双写 DDR3 与 1920x1080 HDMI 链，建立 PG2L50H 产品工程。",
-      "implementation_status": "planned",
-      "code_path": null,
-      "evidence_path": "docs/OV5640_C0_REFERENCE_AUDIT.md",
-      "evidence_gap": "C0 已完成且未导入文件；59_top_dual_ov5640_hdmi 尚未建立，C1 仍缺两路模组、电气、DVP、DDR3、HDMI 和板级管脚事实。",
+      "implementation_status": "documented_project_skeleton_blocked_by_c1_h3",
+      "code_path": "59_top_dual_ov5640_hdmi/",
+      "evidence_path": "59_top_dual_ov5640_hdmi/README.md; 59_top_dual_ov5640_hdmi/doc/BOARD_EVIDENCE.md; docs/OV5640_C0_REFERENCE_AUDIT.md",
+      "evidence_gap": "C0 已完成且未导入实现文件；59_top_dual_ov5640_hdmi 只有 README/BOARD_EVIDENCE 文档骨架，C1 仍缺两路模组、电气、DVP、DDR3、HDMI 和板级管脚事实。",
       "board": "RK3568+PG2L50H100H",
       "physical_fpga": "PG2L50H-6IFBG484",
       "product_camera_count": 2,
@@ -272,6 +285,7 @@
       "reference_video_contract": {"independent_interfaces": ["SCCB", "RESET", "PWDN", "DVP"], "per_camera_half_frame": "960x1080", "ddr_write_channels": 2, "composed_output": "1920x1080"},
       "reference_device_metadata": {"root_pds": "PG2L100H", "ddr3": "PG2L100H", "pll": "PG2L100H", "read_fifo": "PG2L100H", "write_fifo": "PG2L100H", "pcie_ip": "PG2L50H", "pcie_bar1_enabled": false, "pcie_bar2_enabled": false, "product_compatible_as_is": false},
       "c0_audit": {"status": "complete", "imported_files": 0, "plaintext_hdmi_rtl": 17, "generated_or_protected_hdmi_sources": 83, "reference_testbenches": 4, "pcie_video_reference_files": 4, "pg2l100h_generated_ip_wrappers": 4, "pds_or_questa_executed": false, "hardware_validated": false},
+      "project_skeleton": {"created_at": "2026-09-02", "readme": "59_top_dual_ov5640_hdmi/README.md", "board_evidence": "59_top_dual_ov5640_hdmi/doc/BOARD_EVIDENCE.md", "rtl_present": false, "ip_present": false, "fdc_present": false, "testbench_present": false, "closes_c1_h3": false},
       "selective_import_target": "59_top_dual_ov5640_hdmi/",
       "legacy_reference": "41_ov7725_hdmi",
       "legacy_boundary": "41_ov7725_hdmi and 41_ov7725_hdmi/sim/questa are legacy-only and do not count as dual-OV5640 implementation or simulation coverage",
@@ -284,7 +298,7 @@
         "C3": "review or regenerate all IP and constraints for Logos2/PG2L50H/FBG484/-6, then run seven PDS stages and the strict gate",
         "S3": "project-owned self-checking behavior, post-synthesis, post-PNR functional and SDF timing simulations"
       },
-      "current_blockers": ["C1/H3 board and product inputs are not frozen", "selective import target not created", "root PDS and four required generated IPs target PG2L100H in the reference", "reference PCIe BAR1 and BAR2 are disabled", "four reference testbenches not selectively imported", "tb_dual_ov5640_dri.v bypasses initialization and lacks canonical TEST PASS", "project-level simulation entrypoint not implemented"],
+      "current_blockers": ["C1/H3 board and product inputs are not frozen", "project skeleton has no RTL/IP/FDC/PDS/TB", "root PDS and four required generated IPs target PG2L100H in the reference", "reference PCIe BAR1 and BAR2 are disabled", "four reference testbenches not selectively imported", "tb_dual_ov5640_dri.v bypasses initialization and lacks canonical TEST PASS", "project-level simulation entrypoint not implemented"],
       "complexity": "high",
       "hotspot": true
     },
@@ -935,6 +949,7 @@
             "reference_source": "origin/parallel_driver@485f3bba71e4b57fb8bb49cec30e9d331b952be3",
             "c0_status": "complete_read_only_import_none",
             "c1_status": "blocked_by_h3",
+            "project_documentation": {"readme": "59_top_dual_ov5640_hdmi/README.md", "board_evidence": "59_top_dual_ov5640_hdmi/doc/BOARD_EVIDENCE.md", "implementation_assets_present": false},
             "reference_top": "top_dual_ov5640_hdmi",
             "reference_tb_count": 4,
             "reference_tb_imported_count": 0,
@@ -1166,7 +1181,7 @@
   ],
   "metadata": {
     "analysis_mode": "manual bootstrap",
-    "verified_at": "2026-09-01",
+    "verified_at": "2026-09-02",
     "git_commits_analyzed": 61,
     "raw_ast_available": false,
     "limitations": [
@@ -1174,7 +1189,7 @@
       "S0-1 is complete: the parameterized simulation-library entry compiled Logos2 USIM/VSIM and the minimal V_BUF post-primitive smoke passed.",
       "No HDL/raw source AST extraction was run; CI-0 PowerShell syntax parsing is recorded separately.",
       "Questa Sim-64 2021.1 tools, Logos2 USIM/VSIM and V_BUF are verified; PCIe S2-A current dynamic revalidation passed with exit code 0 and one TEST PASS.",
-      "The camera product is fixed to dual OV5640. C0 completed a read-only audit of origin/parallel_driver@485f3bba71e4b57fb8bb49cec30e9d331b952be3 with no imported files or PDS/Questa/hardware claim; C1 remains blocked by H3. The reference root PDS and four required generated IPs target PG2L100H, four testbenches are not imported, and 59_top_dual_ov5640_hdmi remains planned. OV7725 evidence is legacy-only."
+      "The camera product is fixed to dual OV5640. C0 completed a read-only audit of origin/parallel_driver@485f3bba71e4b57fb8bb49cec30e9d331b952be3 with no imported implementation files or PDS/Questa/hardware claim; C1 remains blocked by H3. The 59_top_dual_ov5640_hdmi README and BOARD_EVIDENCE documentation skeleton exists, but contains no RTL/IP/FDC/PDS/TB. The reference root PDS and four required generated IPs target PG2L100H, four testbenches are not imported, and OV7725 evidence is legacy-only."
     ]
   }
 }

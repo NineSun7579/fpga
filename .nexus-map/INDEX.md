@@ -1,5 +1,5 @@
 > generated_by: Codex manual bootstrap
-> verified_at: 2026-09-01
+> verified_at: 2026-09-02
 > provenance: current worktree, PDS project files, implementation reports, root audit notes, and manual inspection; no HDL/raw-source AST extraction or Git-history statistics; PowerShell AST syntax gate is recorded as CI-5
 
 # Embedded Completion Nexus Map
@@ -10,7 +10,7 @@
 - `ddr3_test/`：已用厂商 `test_ddr` 临时 bring-up 顶层完成 SP6.4 全流程实现、STA、网表/SDF、位流与构建 gate 验证；严格 gate 仍被板级和 RTL 已知问题阻断，它不是已验收的产品顶层。
 - `pcie_dma_test_100h/`：PCIe x2 DMA 集成顶层；已按 PG2L50H 修正构建脚本/gate，并从空 `build/` 完成七阶段重建，HSSTLP 资源固定为 `HSSTLP_292_612`；S2-A 项目级受控行为 smoke、S2-B 真实 RC/EP 链路、S2-D 综合后受限 smoke 与 S2-E PNR 后功能 smoke 均已由 Questa Sim-64 2021.1 当前复验通过。S2-F PNR 后时序工程也已归档到项目内 `sim/questa/`，但当前 run `7fc77a7ec8db479db7332e8037426d6c` 虽成功标注 SDF，仍自然产生 2 个 HSST reset timing error，且 `V_FFASYN` 负时序模型语义不完整，故保持 blocked。`o_trgt1_radm_pkt_halt[2:0]` 已从项目顶层贯通活动 `pcie_test` wrapper 至 hard-IP，UART2APB 仍有隐式 `rxd/txd`、`rxd` 被绑 0 的功能缺口。
 
-用户已将摄像头 HDMI 产品固定为双 OV5640。C0 已对 `origin/parallel_driver@485f3bba71e4b57fb8bb49cec30e9d331b952be3` 完成只读审计，逐文件结论见 [`OV5640_C0_REFERENCE_AUDIT.md`](../docs/OV5640_C0_REFERENCE_AUDIT.md)；本批未导入 RTL/IP/FDC/PDS/TB。参考 HDMI 顶层为 `top_dual_ov5640_hdmi`：两路独立 SCCB/RESET/PWDN/DVP，每路采集 960x1080 半幅，双写 DDR3 后组成 1920x1080 输出。参考根 PDS 与 DDR3/PLL/FIFO 为 PG2L100H，PCIe IP 虽为 PG2L50H，但 BAR1/BAR2 均禁用；这些资产不能作为实际 `PG2L50H-6IFBG484` 产品实现证据。C1 仍受 H3 板级资料阻断，后续只选择性导入到 `59_top_dual_ov5640_hdmi/`；现有 `41_ov7725_hdmi/` 及其 `sim/questa/` 均只作 legacy。
+用户已将摄像头 HDMI 产品固定为双 OV5640。C0 已对 `origin/parallel_driver@485f3bba71e4b57fb8bb49cec30e9d331b952be3` 完成只读审计，逐文件结论见 [`OV5640_C0_REFERENCE_AUDIT.md`](../docs/OV5640_C0_REFERENCE_AUDIT.md)；C0 批次未导入 RTL/IP/FDC/PDS/TB。参考 HDMI 顶层为 `top_dual_ov5640_hdmi`：两路独立 SCCB/RESET/PWDN/DVP，每路采集 960x1080 半幅，双写 DDR3 后组成 1920x1080 输出。参考根 PDS 与 DDR3/PLL/FIFO 为 PG2L100H，PCIe IP 虽为 PG2L50H，但 BAR1/BAR2 均禁用；这些资产不能作为实际 `PG2L50H-6IFBG484` 产品实现证据。2026-09-02 已建立 `59_top_dual_ov5640_hdmi/` 文档型项目骨架及板级证据清单，但未导入 RTL/IP/FDC/PDS/TB，也不关闭 C1/H3；现有 `41_ov7725_hdmi/` 及其 `sim/questa/` 均只作 legacy。
 
 参考仓库发现 4 个 TB，但尚未选择性导入；`tb_dual_ov5640_dri.v` 会 force `cam_init_done`，且成功字符串不是 canonical `TEST PASS`，不能计为产品自检通过。未来可复现仿真源只进入 `59_top_dual_ov5640_hdmi/sim/questa/`，运行态只进入该工程 `build/`；禁止导入 `sim_*`、`work`、`.mpf`、`modelsim.ini`、日志、波形、绝对路径生成物或许可证配置。
 
@@ -54,7 +54,7 @@
 - PCIe S2-C 归档诊断 run `d1d25d3f23384590918f26abbfd2e839` 由 RC 主动完成 EP BAR0 写入/读回，在 `710535 ns` 输出唯一 `INFO: S2C_DMA_WRITE_READBACK_OK` 与唯一 `TEST PASS`，Errors 0、厂商 Warnings 26、PowerShell 退出 0。该结果只证明诊断路径可运行，不是 Endpoint 主动 MRd/CplD/MWr DMA 闭环；BAR1 仍禁用，`index.xml` 输入阻断不变，S2-C 不得标记为通过。
 - 三项目 S1/S2/S3 仿真就绪度盘点见 [仿真就绪度矩阵](../docs/SIMULATION_READINESS_MATRIX.md)：PCIe S2-E PNR 后功能已动态通过；S2-F 已执行但因 GLS/STA 冲突和负时序模型语义不完整而 blocked。S2-C、DDR3/OV5640 四级仿真仍未完成。
 - CI-1 仿真矩阵引用门禁已扩展到当前产品范围：矩阵必须包含 DDR3、PCIe、OV5640/S3，并明确 OV7725 为 legacy；根 README 和 TODO 也必须链接该矩阵。该门禁只验证静态文档一致性，不替代动态仿真。
-- CI-2 板级证据清单完整性门禁已由提交 `677808d` 落地：`scripts/check_repo_consistency.ps1` 为 OV7725 legacy、DDR3、PCIe 三个存量目录分别登记清单路径与关键词，要求对应 README 直接链接清单，并强制三份清单包含“当前工程事实”“必须提供的资料”“关闭条件”结构；PCIe 清单已统一为同一章节规范。2026-08-30 复验退出码为 0。双 OV5640 的 `59_top_dual_ov5640_hdmi/doc/BOARD_EVIDENCE.md` 仍是 C1 待办；现有门禁通过不代表该产品清单存在，也不代表板级证据已经提供或关闭。
+- CI-2 板级证据清单完整性门禁最初由提交 `677808d` 落地，2026-09-02 已扩展到 OV7725 legacy、DDR3、PCIe、双 OV5640 四个目录：`scripts/check_repo_consistency.ps1` 要求对应 README 直接链接清单，并强制四份清单包含“当前工程事实”“必须提供的资料”“关闭条件”结构。双 OV5640 项目仍只是文档骨架；门禁通过不代表板级资料已经提供、审核或关闭 C1/H3。
 - CI-3 README 元数据完整性门禁已由提交 `5bfaae9` 落地：按项目特征检查三项目 README 是否记录器件目标、顶层、时钟、主要接口、构建入口、IP/IDF 来源和当前阻断；2026-08-30 复验退出码为 0。该门禁只检查静态可追溯表达，不代表硬件参数已审核或功能阻断已关闭。
 - CI-4 PDS 构建 gate 契约完整性门禁已由提交 `66356aa` 落地：三项目 `run.ps1` 均检查 PDS 退出码、`^E:` 错误记录和阶段完成标记；三项目 `check_build.ps1` 均检查阶段/最终构建入口、时序摘要、`throw` 失败路径、非零产物及显式 baseline 开关。2026-08-30 复验仓库门禁退出码为 0；该门禁只验证 gate 代码路径，不替代真实 PDS、STA 或位流执行。
 - CI-5 PowerShell AST 语法门禁已由提交 `5769d8f` 落地：仓库门禁自动解析全部非 `build/`、`.git/` 的 `.ps1` 文件，报告具体文件、行号和错误消息；当前 8 个脚本解析通过。该门禁只验证 PowerShell 语法，不执行 PDS、仿真器或项目构建。
@@ -81,7 +81,7 @@
 
 1. PCIe S2-E PNR 后功能已通过；下一步继续 S2-C DMA 与 SDF 时序仿真，不把该无 SDF smoke 外推为链路、DMA、时序、实板或发布证据。
 2. H0/H1/H3 补齐板卡、原理图/BOM、器件丝印、bank 电压、DDR3 料号/拓扑及 OV5640/HDMI 时序资料；资料缺失时不得猜测参数、I/O delay 或收紧 gate。
-3. 双 OV5640 C0 已完成：17 个 HDMI 明文 RTL、4 个 TB、4 个 PCIe video 参考文件、4 个 PG2L100H 生成 IP，以及 PDS/FDC/BAR、VSCS/CDC/RDC 风险已登记。C1 继续等待两路模组、MCLK、电压、DVP、DDR3、HDMI 和管脚事实；冻结后才允许选择性导入 `59_top_dual_ov5640_hdmi/`，4 个参考 TB 不能原样计入 S3。
+3. 双 OV5640 C0 已完成：17 个 HDMI 明文 RTL、4 个 TB、4 个 PCIe video 参考文件、4 个 PG2L100H 生成 IP，以及 PDS/FDC/BAR、VSCS/CDC/RDC 风险已登记。`59_top_dual_ov5640_hdmi/` 当前只有 README 与板级证据清单；C1 继续等待两路模组、MCLK、电压、DVP、DDR3、HDMI 和管脚事实，冻结后才允许向该目录选择性导入实现资产，4 个参考 TB 不能原样计入 S3。
 4. DDR3 M2-B2 已用 PG2L50H staging 完成独立 compile-only 闭包，但没有加载 FDC/RCF 或执行实现后级。下一步仍须依据原理图/BOM 审核 28 项 FDC pin 差异及 DDR3 颗粒/拓扑，再决定是否升格 canonical；升格后必须重跑 CI-6、空目录七阶段与 D3-0-R，审核通过后才可进入 D3-A → D3-B → D3-C。
 5. PCIe M1 已完成 build/PDS/gate 的 PG2L50H 迁移和空 `build/` 重建；活动 PCIe IP 无需因器件型号重生成。H2-B 仍等待 lane/refclk/PERST#/SCBV 与 UART 决策闭环。
 6. PCIe S2-A 受控行为 smoke、S2-B 真实厂商 RC/EP 链路和 S2-D 综合后受限 smoke 均已通过。S2-D 只关闭综合网表展开、reset debounce/sync 与 reference-clock LED counter 路径；S2-C Endpoint 主动 DMA、PNR、SDF、时序、H2-B1 和发布 gate 保持未完成。

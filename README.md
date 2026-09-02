@@ -530,7 +530,7 @@ Negative timing check
 powershell.exe -ExecutionPolicy Bypass -File .\scripts\check_repo_consistency.ps1
 ```
 
-该检查确认三个项目的 README、`build.tcl`、`run.ps1`、`check_build.ps1`、顶层声明、七阶段入口、版本记录和 `build/` 忽略状态；同时调用 [PDS Tcl 入口门禁](docs/PDS_TCL_ENTRYPOINT_INVENTORY.md)，要求全部 tracked Tcl 均被分类，防止 GUI 历史脚本或厂商内部脚本被误当作 canonical 构建入口。它还调用 [许可证敏感差异门禁](docs/SENSITIVE_DIFF_GATE.md)，全量检查当前树并拒绝在新增差异中写入许可证文件、绝对路径、服务器端点、环境变量实际值或 FlexNet 内容。它不能替代项目级 PDS gate、STA 或四级仿真。
+该检查确认三个存量工程的 README、`build.tcl`、`run.ps1`、`check_build.ps1`、顶层声明、七阶段入口、版本记录和 `build/` 忽略状态；同时单独检查新的 [双 OV5640 产品目录](59_top_dual_ov5640_hdmi/README.md) 与其 [板级证据清单](59_top_dual_ov5640_hdmi/doc/BOARD_EVIDENCE.md)，但不要求这个 C1 文档型骨架伪造构建入口。脚本还调用 [PDS Tcl 入口门禁](docs/PDS_TCL_ENTRYPOINT_INVENTORY.md)，要求全部 tracked Tcl 均被分类，并调用 [许可证敏感差异门禁](docs/SENSITIVE_DIFF_GATE.md)，拒绝新增许可证文件、绝对路径、服务器端点、环境变量实际值或 FlexNet 内容。它不能替代项目级 PDS gate、STA 或四级仿真。
 
 三项目当前的仿真入口、厂商示例边界和 S1/S2/S3 前置条件见 [`docs/SIMULATION_READINESS_MATRIX.md`](docs/SIMULATION_READINESS_MATRIX.md)；OV5640 产品目标与 legacy 边界见 [`docs/OV5640_TARGET_SCOPE.md`](docs/OV5640_TARGET_SCOPE.md)，C0 逐文件结论见 [`docs/OV5640_C0_REFERENCE_AUDIT.md`](docs/OV5640_C0_REFERENCE_AUDIT.md)；完整整改顺序和验收门槛见 [`TODO.md`](TODO.md)。
 

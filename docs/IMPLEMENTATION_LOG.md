@@ -497,3 +497,10 @@
 - 修正根 TODO 的 CI-2 表述：现有三份清单属于 DDR3、PCIe 和 OV7725 legacy 存量目录，不代表双 OV5640 已有项目级板级证据清单。
 - 新增明确待办：建立 `59_top_dual_ov5640_hdmi/` 时同步创建 `doc/BOARD_EVIDENCE.md`、README 链接和仓库门禁，覆盖双模组、DVP、MCLK、RESET/PWDN、DDR3、HDMI、bank 电压和管脚事实。
 - 仓库一致性门禁现拒绝 TODO 中新增未完成 OV7725 任务，并要求保留双 OV5640 项目级清单待办；本批未修改 RTL、IP、FDC 或仿真资产，也未把参考分支 PASS 升格为本仓库验证结果。
+
+## 2026-09-02：双 OV5640 C1-A 产品证据入口
+
+- 新建 `59_top_dual_ov5640_hdmi/README.md` 与 `doc/BOARD_EVIDENCE.md`，把该目录确立为双 OV5640 唯一活动产品边界；当前只含文档，不包含 RTL、IP、FDC、PDS、TB 或构建入口。
+- 清单区分已审核实物事实、参考分支事实和待提供输入，覆盖两只模组、供电/I/O 电压、MCLK、SCCB、RESET/PWDN、DVP、图像/双摄策略、DDR3、HDMI/TMDS、bank 与 share pin。
+- 参考分支的 960×1080 半幅、RGB565、25 MHz camera clock、LVCMOS33、PG2L100H DDR3/IP 和 README PASS 均保持待审核参考，不升级为产品合同。
+- C1/H3 继续受原理图、BOM、模组和时序资料阻断；后续 HDL/TB 选择性导入必须先符合 `VERILOG_SYSTEMVERILOG_COMMENTING_STANDARD.md`，建立清单本身不授权 C2、PDS、Questa 或实板流程。
