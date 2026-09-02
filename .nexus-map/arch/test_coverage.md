@@ -83,7 +83,7 @@
 - 已验证：每次 build 的 32 位 run_id 原子失效旧证据；`running`、`partial`、`failed` 均无效，只有完整 `gen_bit_stream` 的 `complete/valid` 可继续 gate。
 - 负向覆盖：真实 partial compile、PDS executable 缺失、run-id 漂移、产物字节漂移与 FDC 输入漂移均返回 1，证明旧 full-build 证据不能复用。
 - 正向覆盖：最新完整 PG2L50H run `9952da4164f040d5924a558baa5cd8ca` 的 manifest 为 `complete/valid=true`，绑定 43 inputs/9 artifacts；baseline 返回 0、strict 返回 1，不表示 release-ready。
-- 边界：本批未修改 RTL、活动 IDF、FDC 或厂商 IP；CI-8B 等待 DDR3/双 OV5640 各自 PG2L50H canonical 升格，并按产品项目独立实现，不抽公共模块。OV7725 不再升格。
+- 边界：本批未修改 RTL、活动 IDF、FDC 或厂商 IP；CI-8B 等待 DDR3/双 OV5640 各自 PG2L100H canonical 升格，并按产品项目独立实现，不抽公共模块。OV7725 不再升格。
 
 ## CI-9 许可证敏感差异门禁（2026-09-01）
 
@@ -110,7 +110,7 @@
 
 | 项目 | PDS 实现证据 | 时序证据 | 行为仿真 | 综合后仿真 | PNR 功能仿真 | PNR 时序仿真 |
 |---|---|---|---|---|---|---|
-| 双 OV5640 摄像头 HDMI | C0 已完成只读审计且 Import=none；已建立 README/BOARD_EVIDENCE 文档骨架，C1/H3 仍 blocked，尚无 RTL/IP/FDC/PDS/TB | 参考根 PDS 与 4 个必要 IP 为 PG2L100H；FDC 缺 I/O delay，PG2L50H 产品 STA 未建立 | C0 已审计 4 个参考 TB，但未导入；其中一项 force init 且无 canonical PASS | 新产品网表尚未生成 | 新产品 PNR 网表尚未生成 | 新产品 SDF 尚未生成/标注 |
+| 双 OV5640 摄像头 HDMI | C0 已完成只读审计且 Import=none；已建立 README/BOARD_EVIDENCE 文档骨架，C1/H3 仍 blocked，尚无 RTL/IP/FDC/PDS/TB | 参考根 PDS 与 4 个必要 IP 为 PG2L100H；FDC 缺 I/O delay，PG2L100H 产品 STA 未建立 | C0 已审计 4 个参考 TB，但未导入；其中一项 force init 且无 canonical PASS | 新产品网表尚未生成 | 新产品 PNR 网表尚未生成 | 新产品 SDF 尚未生成/标注 |
 | DDR3 外层 | 旧 PG2L100H 七阶段与五类产物已完成，但不可用于实际 PG2L50H；需重生成 50H IP/FDC/RCF | 旧 100H `All Constraints Met` 只保留历史；50H STA 未执行 | D2/D3-0 旧契约已定，PG2L50H 重生成后须重审；S1 项目级入口缺失 | 旧网表不可签核 | 旧 PNR 网表不可签核 | VSIM/SDF 未验证，旧 100H 结果不可签核 |
 | PCIe DMA | PDS run `9952da4164f040d5924a558baa5cd8ca` complete/valid，43 inputs/9 artifacts | timing/SDF 已生成；strict gate 仍失败 | S2-A/S2-B 动态 PASS | S2-D 受限 smoke PASS | S2-E run `927abae8ed7d40aeb5d6f706b3723e0a` 动态 PASS | S2-F 已执行；SDF 标注成功，但 2 errors、退出 1，GLS/STA 冲突且负时序模型语义不完整，blocked |
 
