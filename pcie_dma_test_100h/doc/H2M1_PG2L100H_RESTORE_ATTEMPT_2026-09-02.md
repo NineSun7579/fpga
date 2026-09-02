@@ -30,6 +30,32 @@ Z:/FPGA_Resource/RK3568_MES2L50H_100H开发板资料/05-开发资料/02-FPGA开�
 一致；外部 PCIe `pcie_test.idf` 同样是 `1.2c / PG2L50H / FBG484 / -6`，
 所以该资料不能直接升格为 100H IP。
 
+## `parallel_driver` 分支搜索
+
+远端分支：`origin/parallel_driver`，当前提交为
+`485f3bba71e4b57fb8bb49cec30e9d331b952be3`。
+
+该分支的 `ipcore/pcie_test/` 共 114 个文件，包含 IDF、PCIe wrapper、DMA
+RTL、厂商 RC/EP 仿真模型、ModelSim filelist/DO 和示例 testbench。逐文件映射
+到当前项目后，114 个文件均已存在；当前项目 `pcie_test.v` 的唯一差异是已审核
+加入 `trgt1_radm_pkt_halt[2:0]` 流控端口，不能用旧分支文件覆盖。
+
+分支 PCIe IP metadata 为：
+
+```text
+IP ID    : 042004
+Version  : 1.2c
+Device   : PG2L50H
+Package  : FBG484
+Speed    : -6
+```
+
+分支没有 `.iar`、`index.xml` 或可供 IP Compiler 重生成的完整实例包。外层
+`prj/project.pds` 虽设置 `PG2L100H`，但同一分支的编译证据仍报告 PCIe IDF
+器件不一致（`Flow-4058`）；因此不能把该分支的 PDS 工程、网表、SDF 或位流
+作为 PG2L100H PCIe 恢复输入。分支中的 PG2L100H `ddr3_ip.idf` 是独立 DDR3
+资产，与 PCIe IP 恢复无关。
+
 ## 100H IP 生成尝试
 
 入口：`scripts/regenerate_pg2l100h_staging.ps1`

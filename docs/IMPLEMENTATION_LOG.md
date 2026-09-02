@@ -552,3 +552,4 @@
 - 实际执行 `pcie_dma_test_100h/scripts/regenerate_pg2l100h_staging.ps1 -Execute`；PDS SP6.4 `iplist.xml` 虽登记 Logos2 PCI Express 1.4/1.5/1.6 支持 `PG2L100H/FBG484`，安装中没有对应 `index.xml` 或 `ips2l_pcie_gen2_v1_*.iar`，入口按预期失败闭合，canonical IDF 未修改。
 - 使用外部 Questa Sim-64 `2021.1` 重新运行 S2-A `d9d3892b8b2d4c8ca5d668072778fcc6`、S2-B `da83a4fe9a5840dd84b57c40272cdcf1`、S2-C `7c8bb5f4637543ae90e39823505f935f`；三者分别以唯一 `TEST PASS`、真实 RC/EP link marker、BAR0 写读回 marker 通过，退出码均为 0。结果仍绑定活动 PG2L50H IDF，不能作为 PG2L100H 或 RK3568 实板证据。
 - 运行日志中的本机 PDS 安装路径只保留在 ignored `build/`，未复制到仓库；许可证配置和路径均未写入跟踪文件。
+- 只读搜索 `origin/parallel_driver@485f3bba71e4b57fb8bb49cec30e9d331b952be3`：PCIe `ipcore/pcie_test/` 共 114 个文件，当前项目全部已有；唯一差异是当前项目已审核加入 `trgt1_radm_pkt_halt[2:0]` 流控端口。分支 PCIe IDF 仍为 `042004 / 1.2c / PG2L50H / FBG484 / -6`，没有 `.iar`/`index.xml`；外层 PG2L100H 工程的 `Flow-4058` 记录证明其不能作为 100H PCIe IP 输入。
