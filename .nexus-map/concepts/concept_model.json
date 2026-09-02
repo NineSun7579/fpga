@@ -5,6 +5,34 @@
   "generator": "Codex manual bootstrap",
   "nodes": [
     {
+      "id": "pangu-100pro-board-identity",
+      "type": "Hardware",
+      "label": "紫光盘古100Pro 板级身份",
+      "responsibility": "定义三个活动产品共用的开发板名称、FPGA 完整料号和 PDS 目标，防止板名与器件型号混淆。",
+      "implementation_status": "owner_declared_pending_primary_board_evidence",
+      "board_name": "紫光盘古100Pro",
+      "fpga_part": "PG2L100H-6IFBG484",
+      "pds_target": {
+        "family": "Logos2",
+        "device": "PG2L100H",
+        "package": "FBG484",
+        "speedgrade": "-6"
+      },
+      "board_and_fpga_are_distinct": true,
+      "evidence_status": "pending_silkscreen_schematic_bom",
+      "required_primary_evidence": [
+        "当前板卡 FPGA 丝印照片",
+        "紫光盘古100Pro 原理图",
+        "紫光盘古100Pro BOM/采购型号"
+      ],
+      "historical_aliases_not_current": [
+        "RK3568+PG2L50H100H",
+        "PG2L50H-6IFBG484",
+        "RK3568+PG2L100H 商品截图"
+      ],
+      "programming_policy": "未完成一手证据归档与交叉核对前，历史 PG2L50H/PG2L100H 位流、SDF、报告均不得作为当前板卡烧录或验收依据。"
+    },
+    {
       "id": "pds-workflow-guide",
       "type": "System",
       "label": "PDS 实现与外部仿真规范",
@@ -181,6 +209,8 @@
         "boundary": "root static repository gate only; does not run or prove PDS, Questa, STA, SDF, bitstream or hardware verification; remote status requires an actual PR check run"
       },
       "m0_m3_pg2l50h_migration": {
+        "status": "historical_superseded_by_current_pangu_100pro_pg2l100h_target",
+        "current_target_ref": "pangu-100pro-board-identity",
         "date": "2026-08-30",
         "board": "RK3568+PG2L50H100H",
         "physical_fpga": "PG2L50H-6IFBG484",
@@ -191,7 +221,7 @@
           "M1": "completed build migration: keep the existing PG2L50H PCIe IDF, fix PCIe build/PDS/gate, cross-check log/report/bgr device and rebuild from empty build; HSSTLP moved to PDS PG2L50H template site HSSTLP_292_612",
           "M2": "in progress: M2-A staged PG2L50H regeneration completed with SP6.4 build 146967 without modifying canonical inputs; parameter/board review, canonical promotion, CI-6, clean rebuild and D3-0-R remain before D3-A",
           "M3": "legacy only: OV7725 migration audit remains historical evidence and does not authorize the OV5640 product",
-          "C0/C1/C2/C3/S3": "OV5640 product path: reference audit, scope freeze, project boundary, PG2L50H implementation and four-level simulation"
+        "C0/C1/C2/C3/S3": "OV5640 product path: reference audit, scope freeze, project boundary, PG2L100H implementation and four-level simulation"
         }
       },
       "s0_0_r_simulator_recheck": {
@@ -292,13 +322,16 @@
       "id": "ov5640-camera-hdmi-target",
       "type": "System",
       "label": "双 OV5640 摄像头 HDMI 产品目标",
-      "responsibility": "选择性迁移双 OV5640 采集、双写 DDR3 与 1920x1080 HDMI 链，建立 PG2L50H 产品工程。",
+      "responsibility": "选择性迁移双 OV5640 采集、双写 DDR3 与 1920x1080 HDMI 链，建立 PG2L100H 产品工程。",
       "implementation_status": "documented_project_skeleton_blocked_by_c1_h3",
       "code_path": "59_top_dual_ov5640_hdmi/",
       "evidence_path": "59_top_dual_ov5640_hdmi/README.md; 59_top_dual_ov5640_hdmi/doc/BOARD_EVIDENCE.md; docs/OV5640_C0_REFERENCE_AUDIT.md",
       "evidence_gap": "C0 已完成且未导入实现文件；59_top_dual_ov5640_hdmi 只有 README/BOARD_EVIDENCE 文档骨架，C1 仍缺两路模组、电气、DVP、DDR3、HDMI 和板级管脚事实。",
-      "board": "RK3568+PG2L50H100H",
-      "physical_fpga": "PG2L50H-6IFBG484",
+      "board": "紫光盘古100Pro",
+      "physical_fpga": "PG2L100H-6IFBG484",
+      "board_name": "紫光盘古100Pro",
+      "fpga_part": "PG2L100H-6IFBG484",
+      "pds_target": "Logos2 / PG2L100H / FBG484 / -6",
       "product_camera_count": 2,
       "reference_source": "origin/parallel_driver@485f3bba71e4b57fb8bb49cec30e9d331b952be3",
       "reference_top": "top_dual_ov5640_hdmi",
@@ -315,7 +348,7 @@
         "C0": "complete: audited origin/parallel_driver@485f3bba71e4b57fb8bb49cec30e9d331b952be3 read-only; imported no RTL, IP, FDC, PDS or testbench",
         "C1": "blocked by H3: dual-camera count is fixed, but module, MCLK, DVP, electrical, DDR3, HDMI and pin facts still require owner evidence",
         "C2": "selectively import required sources into 59_top_dual_ov5640_hdmi and establish independent dual SCCB/reset/capture/DDR3/HDMI boundaries",
-        "C3": "review or regenerate all IP and constraints for Logos2/PG2L50H/FBG484/-6, then run seven PDS stages and the strict gate",
+        "C3": "review or regenerate all IP and constraints for Logos2/PG2L100H/FBG484/-6, then run seven PDS stages and the strict gate",
         "S3": "project-owned self-checking behavior, post-synthesis, post-PNR functional and SDF timing simulations"
       },
       "current_blockers": ["C1/H3 board and product inputs are not frozen", "project skeleton has no RTL/IP/FDC/PDS/TB", "root PDS and four required generated IPs target PG2L100H in the reference", "reference PCIe BAR1 and BAR2 are disabled", "four reference testbenches not selectively imported", "tb_dual_ov5640_dri.v bypasses initialization and lacks canonical TEST PASS", "project-level simulation entrypoint not implemented"],
@@ -535,11 +568,12 @@
       ],
       "evidence_gap": "M2-B2 已证明 PG2L50H staging 可独立 compile，D3-0-M 已证明 core 用户接口保持而物理 wrapper/refclk 变化；canonical IP/FDC/RCF 仍为 PG2L100H。H1 板级时钟/状态输出/28 项 FDC pin 差异、canonical 升格、50H 七阶段、有限 BIST 和四级仿真仍未验收。",
       "hardware_target": {
-        "board": "RK3568+PG2L50H100H",
-        "fpga": "PG2L50H-6IFBG484",
-        "pds_target": "Logos2 / PG2L50H / FBG484 / -6",
-        "evidence_status": "conflicting_pending_silkscreen_schematic_or_bom",
-        "conflicting_reference": "2026-09-02 PR #21 product screenshot labels RK3568+PG2L100H; it may be another board variant and is not current-hardware proof"
+        "board": "紫光盘古100Pro",
+        "fpga": "PG2L100H-6IFBG484",
+        "pds_target": "Logos2 / PG2L100H / FBG484 / -6",
+        "board_name_and_fpga_are_distinct": true,
+        "evidence_status": "owner_declared_pending_silkscreen_schematic_or_bom",
+        "historical_conflict": "2026-09-02 PR #21 product screenshot labels RK3568+PG2L100H while an older project input labeled PG2L50H-6IFBG484; both are retained as historical references and do not override the current owner declaration"
       },
       "m2_read_only_audit": {
         "date": "2026-08-30",
@@ -1134,6 +1168,24 @@
     }
   ],
   "edges": [
+    {
+      "source": "pangu-100pro-board-identity",
+      "target": "ddr3-outer-project",
+      "type": "board_target_for",
+      "description": "DDR3 当前目标板为紫光盘古100Pro，器件为 PG2L100H-6IFBG484；丝印、原理图和 BOM 仍待归档。"
+    },
+    {
+      "source": "pangu-100pro-board-identity",
+      "target": "pcie-dma-system",
+      "type": "board_target_for",
+      "description": "PCIe 当前目标板为紫光盘古100Pro，器件为 PG2L100H-6IFBG484；历史 PG2L50H 构建只作迁移审计。"
+    },
+    {
+      "source": "pangu-100pro-board-identity",
+      "target": "ov5640-camera-hdmi-target",
+      "type": "board_target_for",
+      "description": "双 OV5640 HDMI 当前目标板为紫光盘古100Pro，器件为 PG2L100H-6IFBG484；C1/H3 一手板级资料仍待补齐。"
+    },
     {
       "source": "ov5640-camera-hdmi-target",
       "target": "pds-workflow-guide",

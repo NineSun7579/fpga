@@ -528,6 +528,13 @@
 - 新增 `docs/CONSTRAINT_EXCEPTION_RESOLUTION.md`，定义对象命中、命令不支持、空结果和报告可执行性的审核判据。
 - 当前尚未运行新的 PDS 动态 probe；静态仓库门禁不会把缺少工程数据库或许可证解释为通过。
 
+## 2026-09-02：开发板更正为紫光盘古100Pro与 PG2L100H 恢复边界
+
+- owner 更正开发板名称为“紫光盘古100Pro”，并要求目标按 `PG2L100H` 恢复；板名与 FPGA 型号在新增 [`docs/BOARD_IDENTITY.md`](BOARD_IDENTITY.md) 中分开记录。
+- DDR3 与 OV7725 的原生 PG2L100H 工程、IP、FDC/RCF 和历史产物登记为恢复候选；OV7725 仍是 legacy，不得冒充双 OV5640 产品。
+- PCIe 当前仍是 PG2L100H 历史工程叠加 PG2L50H 活动 IP 的混合状态，不能只改 `set_arch`；双 OV5640 参考工程也不能直接恢复，必须按产品合同建立 100H canonical 输入。
+- 本批只修正文档和 TODO，没有修改 RTL、活动 IP、FDC 或现有 50H 构建 gate；后续必须另开 100H 目标恢复批次并从空 `build/` 重建。
+
 ## 2026-09-02：CI-10 GitHub PR 静态门禁
 
 - 新增 `.github/workflows/repository-gates.yml`，在 pull request、`main` push 和手动触发时使用 Windows `pwsh` 执行 `scripts/check_repo_consistency.ps1`。

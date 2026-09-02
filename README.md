@@ -13,6 +13,8 @@ ModelSim 或 QuestaSim
 
 PDS 负责从 HDL 到综合、布局布线和位流生成；仿真由外部 ModelSim/QuestaSim 执行。
 
+当前板级身份与器件恢复边界见 [`docs/BOARD_IDENTITY.md`](docs/BOARD_IDENTITY.md)：开发板为紫光盘古100Pro，当前恢复目标为 `Logos2 / PG2L100H / FBG484 / -6`。现有 50H 构建和迁移材料仅作历史证据，不能直接烧录。
+
 ## 1. 推荐工程结构
 
 ```text

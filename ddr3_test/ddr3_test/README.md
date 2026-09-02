@@ -7,7 +7,7 @@
 当前配置：
 
 - PDS 版本：`2022.2-SP6.4`
-- 实际器件：`PG2L50H-6IFBG484`；最终 PDS 目标：`Logos2 / PG2L50H / FBG484 / -6`
+- 开发板：紫光盘古100Pro；恢复器件与 PDS 目标：`PG2L100H-6IFBG484` / `Logos2 / PG2L100H / FBG484 / -6`
 - DDR3 IP：Controller + PHY，x16、2 个 DQS、目标 1066 MT/s，当前配置约 1050 MT/s
 - 示例顶层：`ip_core/ddr3/example_design/rtl/test_ddr.v`
 - 厂商 IP：只通过 `ip_core/ddr3/ddr3.idf` 展开
@@ -16,7 +16,7 @@
 
 板级资料收集入口见 [DDR3 Bring-up 板级证据清单](doc/BOARD_EVIDENCE.md)。
 
-当前活动 DDR3 IDF/FDC 仍为 PG2L100H，只能作为历史基线。外层旧 `ip_core/ddr_test.fdc` 包含 PG2L50H 硬宏位置，可作为迁移差异证据，但来自旧流程，不能直接升格为 canonical 输入；必须用 SP6.4 重生成 50H IP/FDC/RCF。
+当前活动 DDR3 IDF/FDC 原本就是 PG2L100H，可作为紫光盘古100Pro 的恢复候选。外层旧 `ip_core/ddr_test.fdc` 中的 50H 硬宏位置和 staging 资产仅作历史差异证据，不得混入 100H canonical 输入。
 
 ## M2-A staging 重生成
 

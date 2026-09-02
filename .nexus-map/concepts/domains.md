@@ -4,17 +4,23 @@
 
 # Domains
 
+## 当前板级身份（2026-09-02）
+
+- 开发板名称为“紫光盘古100Pro”；FPGA 完整料号为 `PG2L100H-6IFBG484`；PDS 目标为 `Logos2 / PG2L100H / FBG484 / -6`。
+- 板名与 FPGA 型号必须作为独立事实维护。当前身份来自 owner 声明，仍待归档丝印照片、原理图和 BOM；证据未闭合前不得将历史构建、位流或商品截图视为当前实板证明。
+- 旧 `RK3568+PG2L50H100H / PG2L50H` 记录以及旧 PG2L100H 生成物均保留为历史/候选证据，恢复前必须重新核对输入、约束、provenance 和板级适配。
+
 ## Pango PDS 实现流程
 
 HDL 经 compile、synthesize、dev_map、PNR、timing report、netlist 和 bitstream 阶段形成实现产物。阶段命令成功不等于时序或板级接口已经满足约束。
 
 2026-08-30 S0 环境复核的“未发现仿真器”结论已被后续实际执行证据取代。截至 2026-09-01，Questa Sim-64 2021.1 最小 SystemVerilog 已通过，参数化 `scripts/compile_simlib.tcl`/`.ps1` 已成功生成 Logos2 USIM/VSIM；VSIM 编译退出 0、日志无 `^E:` 且库目录非空。
 
-CI-7 入口分类现确认全部 14 个 tracked Tcl 已登记；新增 DDR3 `scripts/build_staging_compile.tcl` 为非发布 `canonical_support_tool`。只有三个项目 `scripts/build.tcl` 通过 `run.ps1` 进入 canonical 项目构建链；PCIe 为 PG2L50H canonical，OV7725/DDR3 正式 build 仍为 PG2L100H migration-blocked。`impl.tcl`、parse-design screen、厂商 IP PNR、单 IP 仿真和 compile-only 支持脚本中的旧器件、混合目标或绝对路径只保留为历史、内部或受限验证证据，不能用于当前 STA、网表、SDF、位流或集成仿真签核。
+CI-7 入口分类现确认全部 14 个 tracked Tcl 已登记；新增 DDR3 `scripts/build_staging_compile.tcl` 为非发布 `canonical_support_tool`。历史批次曾将 PCIe `scripts/build.tcl` 迁移为 PG2L50H，并保留 OV7725/DDR3 的 PG2L100H 输入；当前活动产品目标统一为紫光盘古100Pro 上的 `PG2L100H/FBG484/-6`，各入口必须重新核验后才能恢复为 canonical。`impl.tcl`、parse-design screen、厂商 IP PNR、单 IP 仿真和 compile-only 支持脚本中的旧器件、混合目标或绝对路径只保留为历史、内部或受限验证证据，不能用于当前 STA、网表、SDF、位流或集成仿真签核。
 
 2026-09-01 CI-9 同时覆盖当前树和 PR 差异：`-FullTree` 扫描 tracked/untracked 工作树，PR 模式依据 Git merge-base 扫描 changed paths 与 added lines。当前版本已将 68 个 tracked 日志中的 143 处许可证绝对路径替换为 `<license-path>`；全树和差异门禁均通过。门禁不读取实际配置，也不改写 Git 历史。
 
-摄像头产品固定双 OV5640。C0 已对 `origin/parallel_driver@485f3bba71e4b57fb8bb49cec30e9d331b952be3` 完成只读审计，登记 17 个 HDMI 明文 RTL、83 个生成/受保护依赖、4 个 TB、4 个 PCIe video 参考文件、4 个 PG2L100H 生成 IP 及 FDC/PDS 风险；本批没有导入实现文件。参考 `top_dual_ov5640_hdmi` 使用两路独立 SCCB/RESET/PWDN/DVP，每路采集 960x1080 半幅，通过双写 DDR3 组成 1920x1080。2026-09-02 已建立 `59_top_dual_ov5640_hdmi/README.md` 与项目级 `BOARD_EVIDENCE.md`，并将其纳入板级证据门禁；该目录仍无 RTL/IP/FDC/TB，C1/H3 保持阻断。输入冻结后才允许选择性导入并独立建立 PG2L50H 证据；`41_ov7725_hdmi` 仅 legacy。
+摄像头产品固定双 OV5640。C0 已对 `origin/parallel_driver@485f3bba71e4b57fb8bb49cec30e9d331b952be3` 完成只读审计，登记 17 个 HDMI 明文 RTL、83 个生成/受保护依赖、4 个 TB、4 个 PCIe video 参考文件、4 个 PG2L100H 生成 IP 及 FDC/PDS 风险；本批没有导入实现文件。参考 `top_dual_ov5640_hdmi` 使用两路独立 SCCB/RESET/PWDN/DVP，每路采集 960x1080 半幅，通过双写 DDR3 组成 1920x1080。2026-09-02 已建立 `59_top_dual_ov5640_hdmi/README.md` 与项目级 `BOARD_EVIDENCE.md`，并将其纳入板级证据门禁；该目录仍无 RTL/IP/FDC/TB，C1/H3 保持阻断。输入冻结后才允许选择性导入并独立建立 PG2L100H 证据；`41_ov7725_hdmi` 仅 legacy。
 
 ## 外部四级仿真
 

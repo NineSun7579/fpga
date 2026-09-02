@@ -1,25 +1,25 @@
 # PCIe H2-A 板级证据与 IP 目标契约
 
-状态：50H 器件目标与可重复实现已完成，待其余板级资料。更新日期：2026-08-30。
+状态：目标恢复为 PG2L100H；紫光盘古100Pro 的 lane、参考时钟和配置资料仍待复核。更新日期：2026-09-02。
 
-用户已确认：本工程与 DDR3、OV7725 HDMI 工程共用 `RK3568+PG2L50H100H` 开发板，实际焊接 FPGA 为 `PG2L50H-6IFBG484`。PDS 参数统一采用 `Logos2 / PG2L50H / FBG484 / -6`。
+用户已确认开发板为紫光盘古100Pro；当前 PCIe 恢复目标为 `Logos2 / PG2L100H / FBG484 / -6`。完整 FPGA 丝印、原理图/BOM 和 PCIe 连接资料仍需归档。
 
 ## 1. 当前工程事实
 
 | 项目 | 当前事实 | 证据 |
 |---|---|---|
-| 实际 FPGA | `PG2L50H-6IFBG484` | 用户于 2026-08-30 明确确认并批准三项目统一迁移 |
-| 当前 PDS 目标 | `Logos2 / PG2L50H / FBG484 / -6` | `scripts/build.tcl`、50H 构建日志 |
+| FPGA 目标 | `PG2L100H-6IFBG484`（待一手资料确认完整料号） | 用户目标修订、历史 PDS 工程/产物 |
+| 当前 PDS 目标 | 恢复为 `Logos2 / PG2L100H / FBG484 / -6` | 现有 `.pds`、历史 timing report；canonical build 尚待恢复 |
 | PCIe 顶层 | `pcie_dma_test`，x2 `rxn/rxp/txn/txp` | `hdl/pcie_dma_test.v` |
 | 参考时钟 | 差分 `ref_clk_p/n`，FDC 管脚 `F6/E6`，约束周期 `10 ns` | `fdc/pcie_dma_test.fdc` |
 | PERST# | `perst_n`，FDC 管脚 `M16`，LVCMOS18 | `fdc/pcie_dma_test.fdc` |
 | 板级复位 | `button_rst_n`，FDC 管脚 `M15`，LVCMOS18 | `fdc/pcie_dma_test.fdc` |
 | 状态灯 | `ref_led=M17`、`pclk_led=J16`，LVCMOS18 | `fdc/pcie_dma_test.fdc` |
-| 活动 IP metadata | `Logos2 / PG2L50H / FBG484 / -6` | `ipcore/pcie_test/pcie_test.idf:10-13` |
-| HSSTLP 资源位置 | `HSSTLP_292_612`，x2 lane 与 PLL0 | PDS SP6.4 HSSTLP PG2L50H 模板、50H PNR 日志 |
+| 活动 IP metadata | 当前文件曾为 `Logos2 / PG2L50H / FBG484 / -6` | `ipcore/pcie_test/pcie_test.idf:10-13`；与 100H 恢复目标不一致 |
+| HSSTLP 资源位置 | 50H staging 使用 `HSSTLP_292_612` | 仅作 50H 历史证据；100H 资源位置需按匹配 IP 重新确认 |
 | UART | `pgr_uart2apb_top` 使用隐式 `rxd/txd`；顶层没有对应端口，`rxd` 当前被工具绑为 0 | `hdl/pcie_dma_test.v`、SP6.4 compile 日志 |
 
-IDF、PDS 目标、STA 和新生成位流数据库均已统一为 `PG2L50H/FBG484/-6`。旧 100H 内部 STA、网表、SDF、`.sbit` 和 `.bin` 不能用于实际板卡验收或烧录。
+50H IDF、PDS 目标和新生成产物属于前一轮错误器件目标的历史证据；恢复 100H 前不得用于紫光盘古100Pro 验收或烧录。
 
 H2-B0 已新增 [`H2B_BASELINE_GATE.md`](H2B_BASELINE_GATE.md) 与机器指纹 [`H2B_BASELINE_FINGERPRINT.json`](H2B_BASELINE_FINGERPRINT.json)。当前五类阻断被归一化为 16 个对象签名、42 次原始记录；baseline 只允许精确复现，IP metadata 不再可被放行。该静态门禁不替代本文件要求的板级资料。
 
@@ -46,13 +46,13 @@ H2-B0 已新增 [`H2B_BASELINE_GATE.md`](H2B_BASELINE_GATE.md) 与机器指纹 [
 
 H2-A 只允许新增/更新证据文档，不修改 RTL、活动 IDF 或 FDC，也不得把历史 `impl.tcl` 当作重建入口。用户已经批准下一批将 build/gate 恢复为 PG2L50H。
 
-器件迁移批次无需重生成已匹配实物的 SP6.4 PCIe IP；已修正 build/gate，并依据 PDS SP6.4 PG2L50H 模板将 HSSTLP 资源从旧 100H 坐标迁移到 `HSSTLP_292_612`。H2-B0 已完成精确 baseline 指纹，但 lane/refclk/PERST#、UART 和 SCBV 仍由 H2-B1 闭合，在这些资料到位前不把 50H 构建成功描述为可发布。
+恢复批次必须取得匹配 PG2L100H 的 PCIe IP，或明确接受 IP 重生成及完整回归；不能只改 `set_arch`。旧 50H H2-B0 指纹和 `HSSTLP_292_612` 位置只作历史差异证据。lane/refclk/PERST#、UART 和 SCBV 仍由 H2-B1 闭合，在资料到位前不把任何构建描述为可发布。
 
 ## 5. 必须提供的资料
 
 | 证据项 | 用户需提供 | 验收条件 |
 |---|---|---|
-| 板卡与器件 | 板卡已确认；仍需原理图/BOM 和可归档丝印照片或等价记录 | 与 PG2L50H PDS 目标和 IP metadata 一致，版本可追溯 |
+| 板卡与器件 | 紫光盘古100Pro 已确认；仍需原理图/BOM 和可归档丝印照片或等价记录 | 与 PG2L100H PDS 目标和匹配 IP metadata 一致，版本可追溯 |
 | PCIe 连接 | lane 映射/极性、参考时钟、PERST#、AC 耦合和连接器拓扑 | x2 lane、100 MHz refclk、PERST# 约束可由一手资料确认 |
 | 电气与配置 | bank 电压、SCBV、启动模式、share pin 使用 | FDC、配置参数与板级电压/复用关系一致 |
 | UART/LED | UART2APB 保留或删除决策、RX/TX 管脚；LED 外部时序要求 | 不再存在未决隐式网络或未经约束的外部时序接口 |

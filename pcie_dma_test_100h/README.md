@@ -3,18 +3,17 @@
 ## 当前状态
 
 - PDS 版本：`2022.2-SP6.4`
-- 实际器件：`PG2L50H-6IFBG484`；PDS 目标：`Logos2 / PG2L50H / FBG484 / -6`
-- 开发板：`RK3568+PG2L50H100H`；三个项目均使用这块实际焊接 PG2L50H 的板卡。
+- 开发板：紫光盘古100Pro；恢复器件与 PDS 目标：`PG2L100H-6IFBG484` / `Logos2 / PG2L100H / FBG484 / -6`
 - 顶层：`pcie_dma_test`
 - 当前有效输入：37 个用户 RTL、`ipcore/pcie_test/pcie_test.idf`、`fdc/pcie_dma_test.fdc`
 - 历史实现内部时序通过，但该结果不能替代新脚本的重建验证。
 - UART2APB 当前连接隐式 `rxd/txd`，其中 `rxd` 被编译器绑为 0；硬件接口决策前不修改该功能。
-- PCIe IDF 已由 SP6.4 为 PG2L50H 生成，与实际器件一致；需要修正的是旧 PG2L100H 顶层构建目标和 gate，不需要仅为器件型号重生成 IP。
+- 当前活动 PCIe IDF 仍为 PG2L50H，而历史 PDS 工程和部分产物为 PG2L100H；这是恢复前必须关闭的混合目标问题，不能只修改 `set_arch`。
 - S2-A 已用 Questa Sim-64 `2021.1` 动态通过：真实 `pcie_dma_test` 顶层配合受控 PCIe 边界模型，覆盖复位链、LED 域、同一 run id 和唯一 `TEST PASS`；该结果不代表真实 LTSSM、DMA 或板级链路通过。
 - S2-B 已用厂商 `pango_pcie_top_sim` RC 对接项目真实 Endpoint 动态通过：首次速率重训练后，两端 link/LTSSM L0 连续稳定 32 个周期；该结果仍不覆盖 DMA 或板级链路。
 - S2-C 项目内归档诊断入口已用 Questa `2021.1` 完成 RC 主动访问 EP BAR0 的写入/读回；活动 BAR1 仍禁用，因此该结果不是 Endpoint 主动 DMA 闭环证据。
 - S2-D 综合后受限 smoke 已用 Questa `2021.1` 动态通过，覆盖综合网表展开、项目 reset debounce/sync 和 reference-clock LED counter 路径；不覆盖 PCIe 链路、DMA、PNR、SDF 或时序。
-- 已从空 `build/` 以 PG2L50H 完成 SP6.4 七阶段重建，生成新的网表、SDF 和位流；旧 PG2L100H 结果仍只作为历史证据。
+- 已从空 `build/` 以 PG2L50H 完成的七阶段重建仅作为迁移历史证据；恢复 100H 后必须重新生成网表、SDF 和位流。
 - 严格发布 gate 已验证仍会失败；UART 死通道、未约束端口、lane/refclk/PERST# 和 SCBV 继续阻断发布。
 - H2-A 已完成只读证据收口，详见 [PCIe 板级证据与 IP 目标契约](doc/PCIE_BOARD_EVIDENCE.md)。活动 IDF 保持只读；FDC 在原理图资料闭合前不修改。
 - H2-B0 已将 baseline 收紧为 [16 个对象签名、42 次原始记录](doc/H2B_BASELINE_GATE.md)；对象新增、消失、改名、换 pin、次数或 IP metadata 漂移均失败。H2-B1 板级闭环仍未完成。

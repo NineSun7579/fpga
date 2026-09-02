@@ -4,13 +4,21 @@
 
 # Embedded Completion Nexus Map
 
+## 当前板级身份（2026-09-02）
+
+- **开发板名称**：紫光盘古100Pro。该名称只标识板卡/产品，不等同于 FPGA 器件型号。
+- **FPGA 器件**：`PG2L100H-6IFBG484`；PDS 目标为 `Logos2 / PG2L100H / FBG484 / -6`。
+- **字段边界**：板名、FPGA 完整料号、PDS family/device/package/speedgrade 必须分开记录；不得用板名推导器件，也不得用历史工程目录名反推板名。
+- **证据状态**：上述目标是当前 owner 声明；丝印照片、原理图和 BOM 仍待归档并逐项核对。在这些一手资料归档前，不得授权实板烧录或把任何历史位流当作当前板卡证明。
+- **历史边界**：此前的 `RK3568+PG2L50H100H`、`PG2L50H-6IFBG484` 以及 PG2L50H staging/build 记录均保留为历史审计证据，不覆盖本条当前目标；此前商品截图中的 `RK3568+PG2L100H` 也只能作为待核对参考。
+
 本仓库的三个活动产品项目是 DDR3、PCIe 和双 OV5640，并以根目录文档约束后续整改方式。`41_ov7725_hdmi/` 仅为 legacy 证据工程，不是活动 TODO 项目：
 
 - `41_ov7725_hdmi/`：OV7725 采集、DDR3 帧缓存与 HDMI/TMDS 输出 legacy；已完成的 SP6.4 构建、STA、CDC/RDC 和 gate 结果只保留为历史证据，不得改名冒充 OV5640 产品实现。
 - `ddr3_test/`：已用厂商 `test_ddr` 临时 bring-up 顶层完成 SP6.4 全流程实现、STA、网表/SDF、位流与构建 gate 验证；严格 gate 仍被板级和 RTL 已知问题阻断，它不是已验收的产品顶层。
-- `pcie_dma_test_100h/`：PCIe x2 DMA 集成顶层；已按 PG2L50H 修正构建脚本/gate，并从空 `build/` 完成七阶段重建，HSSTLP 资源固定为 `HSSTLP_292_612`；S2-A 项目级受控行为 smoke、S2-B 真实 RC/EP 链路、S2-D 综合后受限 smoke 与 S2-E PNR 后功能 smoke 均已由 Questa Sim-64 2021.1 当前复验通过。S2-F PNR 后时序工程也已归档到项目内 `sim/questa/`，但当前 run `7fc77a7ec8db479db7332e8037426d6c` 虽成功标注 SDF，仍自然产生 2 个 HSST reset timing error，且 `V_FFASYN` 负时序模型语义不完整，故保持 blocked。`o_trgt1_radm_pkt_halt[2:0]` 已从项目顶层贯通活动 `pcie_test` wrapper 至 hard-IP，UART2APB 仍有隐式 `rxd/txd`、`rxd` 被绑 0 的功能缺口。
+- `pcie_dma_test_100h/`：PCIe x2 DMA 集成顶层；历史批次曾按 PG2L50H 修正构建脚本/gate，并从空 `build/` 完成七阶段重建，HSSTLP 资源固定为 `HSSTLP_292_612`。这些 50H 结果现作为迁移审计证据，不能直接作为当前 PG2L100H 板卡证据；重新建立 100H canonical baseline 前，S2-A/S2-B/S2-D/S2-E/S2-F 结果均须按当前目标重新绑定。`o_trgt1_radm_pkt_halt[2:0]` 的接口审计和 UART2APB 缺口仍保留。
 
-用户已将摄像头 HDMI 产品固定为双 OV5640。C0 已对 `origin/parallel_driver@485f3bba71e4b57fb8bb49cec30e9d331b952be3` 完成只读审计，逐文件结论见 [`OV5640_C0_REFERENCE_AUDIT.md`](../docs/OV5640_C0_REFERENCE_AUDIT.md)；C0 批次未导入 RTL/IP/FDC/PDS/TB。参考 HDMI 顶层为 `top_dual_ov5640_hdmi`：两路独立 SCCB/RESET/PWDN/DVP，每路采集 960x1080 半幅，双写 DDR3 后组成 1920x1080 输出。参考根 PDS 与 DDR3/PLL/FIFO 为 PG2L100H，PCIe IP 虽为 PG2L50H，但 BAR1/BAR2 均禁用；这些资产不能作为实际 `PG2L50H-6IFBG484` 产品实现证据。2026-09-02 已建立 `59_top_dual_ov5640_hdmi/` 文档型项目骨架及板级证据清单，但未导入 RTL/IP/FDC/PDS/TB，也不关闭 C1/H3；现有 `41_ov7725_hdmi/` 及其 `sim/questa/` 均只作 legacy。
+用户已将摄像头 HDMI 产品固定为双 OV5640。C0 已对 `origin/parallel_driver@485f3bba71e4b57fb8bb49cec30e9d331b952be3` 完成只读审计，逐文件结论见 [`OV5640_C0_REFERENCE_AUDIT.md`](../docs/OV5640_C0_REFERENCE_AUDIT.md)；C0 批次未导入 RTL/IP/FDC/PDS/TB。参考 HDMI 顶层为 `top_dual_ov5640_hdmi`：两路独立 SCCB/RESET/PWDN/DVP，每路采集 960x1080 半幅，双写 DDR3 后组成 1920x1080 输出。参考根 PDS 与 DDR3/PLL/FIFO 为 PG2L100H，PCIe IP 虽为 PG2L50H，但 BAR1/BAR2 均禁用；这些混合资产不能作为当前 `PG2L100H-6IFBG484` 产品实现证据。2026-09-02 已建立 `59_top_dual_ov5640_hdmi/` 文档型项目骨架及板级证据清单，但未导入 RTL/IP/FDC/PDS/TB，也不关闭 C1/H3；现有 `41_ov7725_hdmi/` 及其 `sim/questa/` 均只作 legacy。
 
 参考仓库发现 4 个 TB，但尚未选择性导入；`tb_dual_ov5640_dri.v` 会 force `cam_init_done`，且成功字符串不是 canonical `TEST PASS`，不能计为产品自检通过。未来可复现仿真源只进入 `59_top_dual_ov5640_hdmi/sim/questa/`，运行态只进入该工程 `build/`；禁止导入 `sim_*`、`work`、`.mpf`、`modelsim.ini`、日志、波形、绝对路径生成物或许可证配置。
 
@@ -24,7 +32,7 @@
 - DDR3 已生成非零综合网表、PNR 网表、SDF、`.sbit` 和 `.bin`；严格 gate 因 7 类已知阻断返回 1，显式 baseline 放行返回 0 但明确不可发布。日志没有 SCBV 命中，板级批准参数清单仍缺失，功能与四级仿真仍未验收。
 - DDR3 D2 只读决策已完成：厂商 `test_ddr`、持续运行 BIST 和失配 testbench 保持原样；后续项目自有顶层固定为 `rtl/ddr3_bringup_top.sv` 与 `rtl/ddr3_finite_bist.sv`。首版契约执行 16 个单 beat 写读比较 pair，控制器地址为 `0x0..0x78`、步长 8，单 pair timeout 为 4096 周期、整次 run timeout 为 131072 周期，并公开稳定的 `test_done`、`test_failed`、`failure_code`、`error_count`、`completed_pairs` 和首错信息。该设计尚未实现或仿真，D3 待审核。
 - DDR3 D3-0-R/M 契约评审（2026-09-02，已完成）：旧 canonical 与 SP6.4 PG2L50H staging 的 `ddr3.v` whole-file 相同，128-bit 数据、28-bit 地址、非标准 AXI-like AW/W/AR/R、无 `axi_rready` 及 `I_ips_ddr_top` 连接集合保持；物理 wrapper 由 21 增至 26 端口，新增差分 `ref_clk_p/n`、三个状态输出和 `GTP_INBUFDS`，core `ref_clk` 唯一变化为 `free_clk` 改接差分缓冲输出。合同见 [`D3A_PG2L50H_STAGING_REVIEW.md`](../ddr3_test/ddr3_test/doc/D3A_PG2L50H_STAGING_REVIEW.md)；D3-A 继续等待 H1 原理图/BOM确认，不改 RTL、IP、FDC 或 RCF。
-- H0 实物证据冲突（2026-09-02）：PR #21 的商品截图标注 `RK3568+PG2L100H`，与项目此前给出的实际焊接 `PG2L50H-6IFBG484` 冲突；商品图可能属于另一变体，不能代替当前板卡芯片丝印、原理图或 BOM。冲突关闭前，PG2L50H staging 不构成烧录授权。
+- H0 实物证据状态（2026-09-02）：owner 已将当前开发板名称修正为“紫光盘古100Pro”、目标器件修正为 `PG2L100H-6IFBG484`。此前商品截图 `RK3568+PG2L100H` 与输入的 `PG2L50H-6IFBG484` 冲突仍保留为历史记录；最终仍须归档当前板卡丝印、原理图或 BOM，板名与器件字段必须分别核对。证据关闭前，任何历史 PG2L50H/PG2L100H staging 或位流均不构成烧录授权。
 - DDR3 M2-B1 参数与差异审计（2026-08-30）：PDS SP6.4 `ui.tcl` 证明 `DEVICE_100H_EN` 是隐藏派生参数，`PG2L100H/HX=true`、`PG2L50H=false`。直接以 `-device PG2L50H` 覆盖 100H IDF 会错误保留 `true`，生成 PPLL `FALSE/CLKOUTF` 分支，现已禁止。活动 100H IDF 与 SP6.1 50H seed 的全部参数仅此 flag 不同；更新后的 `scripts/regenerate_ip.ps1` 先验证 seed 参数一致，再以 SP6.4 build 146967 重生成，得到 `DEVICE_100H_EN=false`、PPLL `TRUE/CLKOUT4`、`0 error(s), 0 warning(s)`，且 canonical 哈希保持不变。正确 staging 的 DDR PHY slice、wrapper、FDC、仿真 filelist 与 IDF 均有差异；wrapper 端口由 21 增至 26，新增 `ref_clk_p/n`、`pll_lock`、`ddrphy_cpd_lock`、`ddr_init_done`，FDC 有 28 项 pin 差异。证据见 [`M2B1_PARAMETER_AND_DIFF_AUDIT.md`](../ddr3_test/ddr3_test/doc/M2B1_PARAMETER_AND_DIFF_AUDIT.md)；未取得原理图/BOM 前不得升格 canonical，也未授权 D3-A。
 - DDR3 M2-B2 staging compile-only（2026-09-01）已完成：项目内 [`build_staging_compile.tcl`](../ddr3_test/ddr3_test/scripts/build_staging_compile.tcl)、`run_staging_compile.ps1` 与 `check_staging_compile.ps1` 固定验证 `Logos2/PG2L50H/FBG484/-6`、18 个 staging RTL、一个 IDF 和 26 端口 `test_ddr`。最终 run `1d4b8c264ba940f0bb0e2517b8c36c07` 的 PDS 退出 0、`E:` 为 0、warning 为 272，三个 compile 产物非零，四个 canonical 哈希不变；错误目标、零长度产物和错误记录三项动态负向测试均退出 1。完整合同见 [`M2B2_STAGING_COMPILE.md`](../ddr3_test/ddr3_test/doc/M2B2_STAGING_COMPILE.md)。该 Tcl 是 `canonical_support_tool` 而非 canonical project build；它不加载 FDC/RCF，不做 synthesize/dev_map/PNR/STA/netlist/SDF/bitstream，也不授权 canonical 升格、仿真、实板或烧录，M2 仍受 H1 板级资料阻断。
 - DDR3 D3-0-R 端口映射已由提交 `2fd7c51` 固化到 [`D3A_PORT_MAP.md`](../ddr3_test/ddr3_test/doc/D3A_PORT_MAP.md)，D3-0-M 再由可重复 gate 比较 canonical/staging；地址单位及 `axi_wready/axi_wusero_last` 的产品级完成语义仍须在 H1 与 canonical 升格后审核。
@@ -35,7 +43,7 @@
 - PCIe H2-B0 精确 baseline（2026-08-30）已将五类问题归一化为 16 个唯一签名、42 次原始记录；baseline 使用精确多重集，签名新增/消失/改名、share-pin 位置或次数漂移均失败，活动 IDF metadata 漂移永久硬失败。canonical fixture 正向退出 0、strict 退出 1，5 个变异（缺失/重复 UART、Timing 端口改名、share pin 改位、IDF 改为 PG2L100H）均退出 1。
 - H2-B1 仍等待 lane/refclk/PERST#/SCBV/UART/I/O timing 的板级资料和决策。H2-B0 发现的 partial run 复用旧 full-build 日志/产物风险已由 PCIe CI-8A 关闭；DDR3/双 OV5640 的 CI-8B 仍待各自 canonical 升格。
 - PCIe CI-8A provenance pilot（2026-08-31）已完成：`scripts/pds_sources.f` 成为 37 个 HDL 的单一有序清单，`build_provenance.ps1` 为每次 build 生成 32 位 `run_id`，并原子发布固定的 `build/provenance/pds-build.json`。manifest 状态为 `running/partial/failed/complete`，只有 `complete + valid=true` 可进入 gate；43 项 canonical 输入和 7 项最终证据均以相对 POSIX 路径、长度和 SHA-256 绑定。partial compile、PDS executable 缺失、run-id、产物与 FDC 漂移均使 gate 返回 1。
-- CI-8A 最新完整 PG2L50H 构建 run id 为 `9952da4164f040d5924a558baa5cd8ca`；manifest 为 `run_to=gen_bit_stream / status=complete / valid=true`，绑定 43 项输入和 9 项产物。baseline gate 返回 0、strict gate 返回 1；该结果不表示可发布。
+- CI-8A 历史完整 PG2L50H 构建 run id 为 `9952da4164f040d5924a558baa5cd8ca`；manifest 为 `run_to=gen_bit_stream / status=complete / valid=true`，绑定 43 项输入和 9 项产物。该 run 仅是 50H 迁移审计证据，不能作为当前 PG2L100H 发布证据；100H 目标需要重新绑定完整 provenance。baseline gate 返回 0、strict gate 返回 1。
 - 三个项目的可复现仿真工程分别保留在各自工程内独立的 `sim/questa/`，运行态只进入对应 `build/`。PCIe S2-E run `927abae8ed7d40aeb5d6f706b3723e0a` 已通过；S2-F 的 `.f/.do/TB` 与检查入口也已在 PCIe 工程内留档。S2-F 当前 run `7fc77a7ec8db479db7332e8037426d6c` 成功标注 SDF、未 force/release 设计信号，但产生 setup/hold 各 1 个 error，Questa 汇总 Errors 2、独立脚本汇总 5 类失败并退出 1；`V_DRM18K_E1` 产生 `vsim-3004=1590`，`V_FFASYN` 产生 `vsim-8756=1`，负 timing check 语义不完整。slow-corner STA setup/hold 均为正，当前结论是 GLS 与 STA 冲突，不能宣称仿真通过，也不能据此断言硅上时序失败。
 - S2-F 负时序求解器诊断最终 run `f79dc238c12949b7b67db2ef0d0ddd0b` 使用 Questa 2021.1 比较 level1/2/3：三档进程均为 0，SDF、功能和 `TEST PASS` marker 均唯一，`vsim-3004=3624/1590/1590`、`vsim-8756=1/1/1`、`vsim-3316/3616=0`，且三档均复现同一 setup/hold error、`Errors=2`。3004 归属 `V_DRM18K_E1`，8756 归属 `V_FFASYN`；level3 仅为非 canonical 诊断，canonical level2 验收未改，S2-F 仍 blocked。输入/模型 SHA-256 已归档，逐档 work/launcher 会清理，日志与汇总 JSON 只进入 `build/`。
 - OV7725 O0-A 已形成 [CDC/RDC 审计与整改契约](../41_ov7725_hdmi/doc/CDC_RDC_AUDIT.md)，覆盖七类时钟域、帧事件多点采样、两个异步 FIFO 的数据方向/分侧复位风险及三条旧 STA 失败路径；本批只建立事实和契约，未修改 RTL、IP 或 FDC。

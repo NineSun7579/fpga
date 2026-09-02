@@ -1,8 +1,8 @@
 # DDR3 Bring-up 板级证据清单
 
-状态：器件目标已审核，待 50H IP 重生成与 DDR3 板级资料。更新日期：2026-08-30。
+状态：目标恢复为 PG2L100H；待紫光盘古100Pro 的 DDR3 板级资料复核。更新日期：2026-09-02。
 
-用户已确认本工程最终运行在 `RK3568+PG2L50H100H` 开发板，实际 FPGA 为 `PG2L50H-6IFBG484`；PDS 参数统一为 `Logos2 / PG2L50H / FBG484 / -6`。
+用户已确认开发板为紫光盘古100Pro；当前恢复目标为 `Logos2 / PG2L100H / FBG484 / -6`。完整 FPGA 丝印、原理图/BOM 仍需归档。
 
 本文件服务于 `test_ddr` bring-up 和后续项目自有有限 BIST。`test_ddr` 是当前示例顶层，不等同于产品顶层；板级资料闭合前不得修改厂商 DDR3 IP、FDC、RCF 或物理端口。
 
@@ -10,10 +10,10 @@
 
 | 项目 | 当前建模值 | 证据 | 结论 |
 |---|---|---|---|
-| 实际 FPGA | `PG2L50H-6IFBG484` | 用户于 2026-08-30 明确确认 | 已审核，待归档一手照片/原理图 |
-| 当前 PDS 目标 | 仍为 `Logos2 / PG2L100H / FBG484 / -6` | `README.md`、`scripts/build.tcl` | 与实物不符，迁移批次改为 50H |
-| 活动 IP | `ddr3`，IDF 标识 `PG2L100H/FBG484/-6` | `ip_core/ddr3/ddr3.idf` | 必须用 SP6.4 重生为 50H，禁止手改 XML |
-| 历史 50H 证据 | SP6.1 backup 为 PG2L50H，参数/公开端口与活动版本高度一致，但 PHY slice 实现存在器件差异 | `ip_backup/20250108100125/ddr3/ddr3.idf`、对应生成 RTL/FDC | 只作参数和差异 oracle，不直接替换活动 IP |
+| FPGA 目标 | `PG2L100H-6IFBG484`（待一手资料确认完整料号） | 用户目标修订、现有 PDS 工程/IDF | 可作为 100H 恢复候选，烧录前仍需证据闭合 |
+| 当前 PDS 目标 | `Logos2 / PG2L100H / FBG484 / -6` | `README.md`、`scripts/build.tcl` | 与原生 DDR3 工程一致 |
+| 活动 IP | `ddr3`，IDF 标识 `PG2L100H/FBG484/-6` | `ip_core/ddr3/ddr3.idf` | 可恢复为 100H 输入，禁止混入 50H staging |
+| 50H staging 证据 | SP6.1/SP6.4 迁移 staging | `ip_backup/20250108100125/**`、`build/ipgen/**` | 仅作历史差异证据，不进入当前 100H canonical 输入 |
 | 当前示例顶层 | `test_ddr` | `ip_core/ddr3/example_design/rtl/test_ddr.v` | 仅用于 bring-up |
 | DDR3 配置 | wrapper 默认 `MEM_ROW_WIDTH=15`、`COLUMN=10`、`BANK=3`、`DQ=16`、`DQS=2`；IDF 同时出现 1066 与 1050 速率参数 | `ip_core/ddr3/example_design/rtl/test_ddr.v:12-23`、`ip_core/ddr3/ddr3.idf` | 需确认参数语义和真实颗粒 |
 | 参考时钟 | `free_clk`，FDC 周期 40 ns、管脚 `V4`、LVCMOS15 | `ip_core/ddr_test.fdc` | 需确认实际时钟源/容差 |
@@ -38,6 +38,6 @@
 
 1. 资料必须以原理图、BOM、芯片丝印、数据手册或受控测试记录为来源。
 2. `mem_a[14]` 不得依据当前 FDC 单独决定；必须由实际 DDR3 颗粒和布线确认。
-3. 先用 SP6.4 重生成 PG2L50H controller/PHY、FDC/RCF 和仿真资产；旧 50H backup 不能直接恢复，当前 100H FDC 不能复用。
+3. 以 SP6.4 的 PG2L100H 目标检查当前 controller/PHY、FDC/RCF 和仿真资产；50H staging 不能混入当前 100H canonical 输入。
 4. 重生成后必须重跑 CI-6；只有 `I_ips_ddr_top`、公开端口和握手契约保持不变并再次获审，才恢复 D3-A。
-5. 旧 100H 内部 STA `All Constraints Met`、网表、SDF 和位流不适用于实际板卡。
+5. 旧 100H 内部 STA、网表、SDF 和位流只能作为恢复基线，必须从空 `build/` 重新生成并通过器件字段、时序和板级 gate 后才可讨论烧录。

@@ -4,6 +4,12 @@
 
 # Test Coverage
 
+## 当前板级身份与证据边界（2026-09-02）
+
+- 开发板名称为“紫光盘古100Pro”，目标 FPGA 为 `PG2L100H-6IFBG484`，PDS 目标为 `Logos2 / PG2L100H / FBG484 / -6`。
+- 板名与器件型号分开核验；当前 owner 声明仍需丝印照片、原理图和 BOM 作为一手证据。证据归档前，测试结果只能说明仿真/实现输入状态，不能授权实板烧录。
+- 既有 PG2L50H build/staging 和历史 PG2L100H 产物均保留为可追溯证据，但必须按当前 100H 目标重新绑定 provenance、约束和板级适配后才能进入验收。
+
 ## 证据等级
 
 - 已验证：当前文件或报告直接证明。
@@ -60,7 +66,7 @@
 ## CI-7 PDS Tcl 入口分类门禁（2026-08-30）
 
 - 已验证：`docs/PDS_TCL_ENTRYPOINT_INVENTORY.json` 登记全部 14 个 tracked Tcl；新增 DDR3 `scripts/build_staging_compile.tcl` 为非发布 `canonical_support_tool`，清单继续记录六类角色、`set_arch` 次数、器件集合、绝对路径和 `run_ps1_entry`。
-- 已验证：只有三个项目 `scripts/build.tcl` 由 `run.ps1` 调用；PCIe 为 PG2L50H canonical，OV7725/DDR3 仍为 PG2L100H migration-blocked。
+- 已验证：只有三个项目 `scripts/build.tcl` 由 `run.ps1` 调用；历史批次曾将 PCIe 迁移为 PG2L50H canonical，OV7725/DDR3 保留 PG2L100H 输入；当前 100H 产品目标需要重新确认各项目入口与产物身份。
 - 已验证：正向门禁退出码为 0；删除任一清单条目的负向测试退出码为 1。历史 GUI、厂商内部和厂商仿真 Tcl 不得用于器件身份、STA、网表、SDF、位流或集成仿真通过证明。
 - 边界：CI-7 仅验证 tracked Tcl 分类和入口事实，不执行 PDS、IP Compiler、STA、位流或 ModelSim/QuestaSim。
 
@@ -216,5 +222,5 @@
 6. 最终位流文件存在且大小非零；关键未约束 I/O 必须修复或进入有依据的白名单。
 7. DDR3 有限自检必须完成恰好 16 个 pair；任一 pair 超过 4096 周期或整次运行超过 131072 周期均失败，成功与失败只能由公开结果接口和退出码判定。
 7. DDR3 D3-0-R/M 已冻结 AW/W/AR/R、无 `axi_rready`、`I_ips_ddr_top` 及 staging wrapper/refclk 差异；D3-A/B/C 仍受 H1 阻断，且该评审不构成 RTL/IP/约束变更或仿真通过证据。
-8. 三项目最终产物必须证明目标为 `PG2L50H/FBG484/-6`；任何 PG2L100H report、SDF 或位流均拒绝烧录和签核。
-9. PCIe H2-B 只有在 50H build/IDF/report/bitstream 一致、lane 极性/拓扑、I/O delay、SCBV 和 UART2APB 归属均有证据后才可发布。
+8. 三项目最终产物必须证明目标为当前 `PG2L100H/FBG484/-6`，并与紫光盘古100Pro 的板级一手资料一致；历史 PG2L50H 或未核验 PG2L100H report、SDF、位流均拒绝烧录和签核。
+9. PCIe H2-B 必须先完成 100H build/IDF/report/bitstream 一致性重建，再补齐 lane 极性/拓扑、I/O delay、SCBV 和 UART2APB 归属证据后才可发布；旧 50H 结果只作迁移审计。
