@@ -88,7 +88,8 @@
 3. 双 OV5640 C0 已完成：17 个 HDMI 明文 RTL、4 个 TB、4 个 PCIe video 参考文件、4 个 PG2L100H 生成 IP，以及 PDS/FDC/BAR、VSCS/CDC/RDC 风险已登记。`59_top_dual_ov5640_hdmi/` 当前只有 README 与板级证据清单；C1 继续等待两路模组、MCLK、电压、DVP、DDR3、HDMI 和管脚事实，冻结后才允许向该目录选择性导入实现资产，4 个参考 TB 不能原样计入 S3。
 4. DDR3 M2-B2 已用 PG2L50H staging 完成独立 compile-only，D3-0-M 也已锁定 core 不变而 wrapper/refclk 变化。下一步须依据原理图/BOM确认差分 DDR reference clock、`free_clk` 职责、三个状态输出和 28 项 FDC pin 差异，再决定 canonical 升格；升格后重跑 CI-6、空目录七阶段并审核地址/完成语义，之后才可进入 D3-A → D3-B → D3-C。
 5. PCIe M1 已完成 build/PDS/gate 的 PG2L50H 迁移和空 `build/` 重建；活动 PCIe IP 无需因器件型号重生成。H2-B 仍等待 lane/refclk/PERST#/SCBV 与 UART 决策闭环。
-6. PCIe S2-A 受控行为 smoke、S2-B 真实厂商 RC/EP 链路和 S2-D 综合后受限 smoke 均已通过。S2-D 只关闭综合网表展开、reset debounce/sync 与 reference-clock LED counter 路径；S2-C Endpoint 主动 DMA、PNR、SDF、时序、H2-B1 和发布 gate 保持未完成。
+6. PCIe CI-10A 已加入 `pcie_dma_test_100h/scripts/probe_constraint_objects.tcl` 与 `docs/CONSTRAINT_EXCEPTION_RESOLUTION.md`；当前只定义 PDS 对象解析证据入口，未运行动态 probe、未批准 waiver。
+7. PCIe S2-A 受控行为 smoke、S2-B 真实厂商 RC/EP 链路和 S2-D 综合后受限 smoke 均已通过。S2-D 只关闭综合网表展开、reset debounce/sync 与 reference-clock LED counter 路径；S2-C Endpoint 主动 DMA、PNR、SDF、时序、H2-B1 和发布 gate 保持未完成。
 7. 摄像头产品最终闭环属于双 OV5640 C2 → C3 → S3；`41_ov7725_hdmi/sim/questa/` 仅 legacy，新的可复现仿真源必须归档到 `59_top_dual_ov5640_hdmi/sim/questa/`，运行态只进其 `build/`。
 
 ## 更新规则

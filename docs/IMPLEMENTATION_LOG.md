@@ -521,6 +521,13 @@
 - 新增 `check_constraint_exceptions.ps1`：精确比较入口引用、LF 规范化文件哈希、Git index blob 和命令 multiset；Tcl 续行、分号多命令或 `source` 直接失败。自测证明 CRLF-only checkout 仍通过，并覆盖新增未登记例外、修改既有命令和双 OV5640 过早出现 FDC 三项负向样本。
 - 门禁已接入根一致性检查。登记不表示 timing waiver、PDS 对象解析、CDC/RDC 结构正确、STA、板级或发布通过；本批未修改任何 FDC、RTL、IP，也未运行 PDS/Questa。
 
+## 2026-09-02：PCIe CI-10A 约束对象解析入口
+
+- 新增 `pcie_dma_test_100h/scripts/probe_constraint_objects.tcl`，在已加载并完成 compile 的 PDS 会话中读取 `pclk`、`pclk_div2`、`ref_clk`、三组异步时钟组并调用 `report_exceptions`。
+- probe 只输出对象数量、路径和报告文本，不修改 FDC、RTL、IP 或 timing waiver；输出路径可由 `PCIE_CONSTRAINT_PROBE_OUT` 提供，避免写入本机许可证或安装配置。
+- 新增 `docs/CONSTRAINT_EXCEPTION_RESOLUTION.md`，定义对象命中、命令不支持、空结果和报告可执行性的审核判据。
+- 当前尚未运行新的 PDS 动态 probe；静态仓库门禁不会把缺少工程数据库或许可证解释为通过。
+
 ## 2026-09-02：CI-10 GitHub PR 静态门禁
 
 - 新增 `.github/workflows/repository-gates.yml`，在 pull request、`main` push 和手动触发时使用 Windows `pwsh` 执行 `scripts/check_repo_consistency.ps1`。

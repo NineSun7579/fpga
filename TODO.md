@@ -70,6 +70,7 @@
 - [x] 编译并验证 Logos2 VSIM；PNR 原语 `V_BUF` 已从共享库成功加载并完成最小动态 smoke。
 - [x] S0-2-Q（2026-09-01 当前复验）：仓库外许可证恢复后，Questa `2021.1` 以新 run id `966942334060436dba8444ae9155557c` 完成 S2-A；编译/elaboration/运行均成功，`Errors: 0, Warnings: 0`、唯一 `TEST PASS`、PowerShell 退出 0。仓库仍不记录许可证配置。
 - [ ] 完成 DDR3、PCIe 与双 OV5640 三个活动项目的分级自检仿真。
+- [x] CI-10A：新增 PCIe 约束对象解析 probe 与审核判据；仅验证 `get_clocks`/异步时钟组/`report_exceptions` 的对象解析入口，不批准 waiver，尚未生成动态 PDS 结果。
 
 ### 当前执行队列（2026-09-01）
 
