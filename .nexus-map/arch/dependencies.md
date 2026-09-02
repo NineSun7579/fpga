@@ -110,6 +110,7 @@ flowchart TD
 - 当前执行队列为：PCIe S2-E PNR 后功能已动态通过；S2-F 已执行但因 GLS/STA 冲突和负时序模型语义不完整而 blocked；继续解决 S2-C 与 S2-F 阻断，同时保持 link/DMA/H2-B1/实板/发布边界未关闭。
 - `docs/SIMULATION_READINESS_MATRIX.md` 已确认项目工程源保留在各自独立 `sim/questa/`、运行态只进入对应 `build/`。S2-F 的 `.f/.do/TB` 同样归档在 PCIe 工程内，依赖 provenance run `9952da4164f040d5924a558baa5cd8ca` 的 timing netlist/SDF、Logos2 USIM/VSIM 和 Questa 2021.1；本机工具与许可证配置不进入仓库证据。
 - PCIe 顶层依赖专用 HSST/IP 约束；`o_trgt1_radm_pkt_halt[2:0]` 接口分别对应 posted、non-posted 与 completion/CPLD halt，当前 bit0/bit1 有效、bit2 源端恒为 0，三位接口路径已由项目顶层贯通活动 `pcie_test` wrapper 至 hard-IP；UART2APB 是否保留是后续 RTL 与 FDC 的共同决策点。
+- H2-M1 依赖边界：PDS `iplist.xml` 虽登记 PCIe IP ID `042004` 的 1.4/1.5/1.6 并列出 PG2L100H/FBG484，但本机安装缺少 PCIe 包和 `index.xml`，生成入口失败；任何 PG2L100H staging 只能使用 build-scoped 输出，不能覆盖 canonical。
 - PCIe H2-A（2026-08-30）固定顶层 x2 `rxn/rxp/txn/txp`、差分 `ref_clk_p/n`、`perst_n`/`button_rst_n` 与两枚 LED；FDC 当前映射 refclk `F6/E6`、PERST# `M16`、button reset `M15`、LED `M17/J16`。
 - 活动 PCIe `pcie_test.idf` 已正确匹配 `Logos2/PG2L50H/FBG484/-6`，无需仅为器件型号重生成；必须修正的是 PG2L100H build/PDS/gate并清除旧 `build/` 后重建。lane 极性、板级拓扑、I/O delay 和 SCBV 仍是独立缺口。
 - UART2APB 在 `pcie_dma_test.v` 以隐式 `rxd/txd` 网络连接，当前 `rxd` 被绑 0；H2-A 只记录该功能缺口，H2-B 需先决定端口归属和板级连接。

@@ -18,6 +18,13 @@
 
 当前下一步仍有三项主阻断：PCIe 缺匹配 PG2L100H IP 及其完整重建证据；DDR3 缺紫光盘古100Pro 的丝印/原理图/BOM 与板级参数资料；双 OV5640 仍处于 C1，等待双模组、电气、时钟、DDR3、HDMI 和管脚事实冻结。
 
+## H2-M1 PDS PCIe IP 可用性边界（2026-09-02）
+
+- PDS SP6.4 安装目录的 `iplist.xml` 登记 Logos2 PCI Express（IP ID `042004`）版本 `1.4`、`1.5`、`1.6`，器件规则包含 `PG2L100H` 与 `FBG484`。
+- 本机实际安装缺少对应 PCIe IP 包及 `index.xml`，因此登记信息不能证明 IP Compiler 入口可生成；探针在入口处失败，H2-M1 保持 blocked。
+- 后续允许建立仅写入项目 `build/` 的 staging 生成脚本，用于验证入口/元数据/端口/资源差异；不得覆盖 canonical IDF、RTL、FDC 或既有生成物。
+- PDS 的登记、器件数据库和示例资料可支持恢复评估，但不能替代板级 lane、refclk、PERST#、SCBV、UART 与连接器证据。
+
 - `41_ov7725_hdmi/`：OV7725 采集、DDR3 帧缓存与 HDMI/TMDS 输出 legacy；已完成的 SP6.4 构建、STA、CDC/RDC 和 gate 结果只保留为历史证据，不得改名冒充 OV5640 产品实现。
 - `ddr3_test/`：已用厂商 `test_ddr` 临时 bring-up 顶层完成 SP6.4 全流程实现、STA、网表/SDF、位流与构建 gate 验证；严格 gate 仍被板级和 RTL 已知问题阻断，它不是已验收的产品顶层。
 - `pcie_dma_test_100h/`：PCIe x2 DMA 集成顶层；历史批次曾按 PG2L50H 修正构建脚本/gate，并从空 `build/` 完成七阶段重建，HSSTLP 资源固定为 `HSSTLP_292_612`。这些 50H 结果现作为迁移审计证据，不能直接作为当前 PG2L100H 板卡证据；重新建立 100H canonical baseline 前，S2-A/S2-B/S2-D/S2-E/S2-F 结果均须按当前目标重新绑定。`o_trgt1_radm_pkt_halt[2:0]` 的接口审计和 UART2APB 缺口仍保留。

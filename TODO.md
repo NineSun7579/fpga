@@ -84,6 +84,7 @@
 - [ ] 完成 DDR3、PCIe 与双 OV5640 三个活动项目的分级自检仿真。
 - [x] CI-10A：新增 PCIe 约束对象解析 probe 与审核判据；仅验证 `get_clocks`/异步时钟组/`report_exceptions` 的对象解析入口，不批准 waiver，尚未生成动态 PDS 结果。
 - [x] CI-10B：为双 OV5640 范围与 C0 审计加入旧 PG2L50H 活动目标负向检查，防止历史迁移措辞回归当前产品文档；不影响 PCIe/DDR3 历史 staging 证据。
+- [ ] H2-M1：使用 PDS 内置 Logos2 PCI Express 1.4/1.5/1.6 生成器，在 `build/ipgen/pcie_pg2l100h/` 尝试生成 PG2L100H/FBG484/-6 候选；只写 staging，不覆盖活动 50H IDF。当前生成被本机安装缺少 PCIe `index.xml` 阻断。
 
 ### 当前执行队列（2026-09-02，目标修订为 PG2L100H）
 

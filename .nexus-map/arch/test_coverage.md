@@ -185,6 +185,14 @@
 
 ## 已知功能与覆盖缺口
 
+## PCIe H2-M1 PDS IP Compiler 入口探针（2026-09-02）
+
+- PDS SP6.4 `iplist.xml` 登记 Logos2 PCI Express（IP ID `042004`）版本 `1.4/1.5/1.6`，规则显示支持 `PG2L100H` 与 `FBG484`。
+- 实际安装审计发现对应 PCIe IP 包和 `index.xml` 缺失；IP Compiler 在生成入口处失败，不能把目录登记当作可生成证据。
+- H2-M1 状态为 `blocked_missing_installed_pcie_ip_package`。在包补齐前，禁止替换 canonical `pcie_test.idf` 或宣称 PG2L100H PCIe 已完成恢复。
+- 允许的下一步仅是新增 build-scoped staging 探针/生成脚本，并将输出隔离在项目 `build/`；该工具不得写入 canonical 路径。
+- 边界：本批不修改 RTL、IP、FDC、PDS 工程或位流；PDS IP 登记也不关闭 lane/refclk/PERST#/SCBV/UART/板级证据缺口。
+
 - OV7725：`41_ov7725_hdmi/doc/CDC_RDC_AUDIT.md` 已记录七类时钟域、`wr_load`/`rd_load` 多点采样、两个异步 FIFO 数据方向和分侧复位风险，以及三条旧 STA 失败路径。
 - OV7725：O1-B 已完成 38 条确定性 RTL 卫生修复，手写 RTL 位宽告警只剩 `mem_a` 1 条；该单项因活动 IP 14 bit 与顶层/FDC 15 bit 冲突冻结为 legacy 风险，当前综合网表把 `mem_a[14]` 绑 0。
 - OV7725：O2-B 详细 STA 将反向八个 endpoint 唯一映射到 `serializer_b/g/r/clk × opit_2/opit_2_com` 的 OSERDES `OCLKDIV` 检查；慢角高速同域 `OCLK` 也仍为负。该覆盖证明候选失败，不构成 serializer reset 通过证据。

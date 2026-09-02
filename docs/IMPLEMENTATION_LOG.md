@@ -543,3 +543,5 @@
 - 本批没有修改 HDL/TB，因此 VSCS 代码注释检查不适用；没有运行 PDS/Questa，也没有提交构建或仿真运行态。
 - PR #26 的首次 hosted run 暴露可移植性问题：BAR1 dry-run 在未执行 IP 生成时仍解析默认 `E:\pango\...`，GitHub Windows runner 无该盘符而失败。已改为仅在 `-Execute` 时解析 `ip_generate.exe` 路径；dry-run 不读取或验证本机 PDS 路径。
 - 2026-09-02：完成 CI-10B。仓库一致性门禁新增 `Forbid-Pattern`，拒绝双 OV5640 范围文档和 C0 审计重新出现当前 PG2L50H 目标表述；验证通过，未修改 RTL、IP、FDC 或生成物。
+- 2026-09-02：本机 PDS `2022.2-SP6.4` 的 `iplist.xml` 确认 Logos2 PCI Express 版本 1.4/1.5/1.6 支持 PG2L100H 与 FBG484。新增只写 `build/ipgen/pcie_pg2l100h/` 的 staging 入口；活动 1.2c IDF 不因 CLI 覆盖直接升格，需以实际生成结果判断兼容性。
+- 2026-09-02：H2-M1 生成尝试在许可证校验后于 PDS IP Compiler 入口处停止，原因是 staging 目录缺少 PCIe `index.xml`；本机 `iplist.xml` 仍登记 1.4/1.5/1.6 支持 PG2L100H/FBG484，但实际 IP 包文件未安装。已将脚本改为生成前检查安装索引并失败闭合，不记录许可证路径或内容。

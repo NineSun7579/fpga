@@ -198,6 +198,12 @@
 
 ## PCIe DMA 顶层
 
+### H2-M1 PG2L100H IP 恢复边界
+
+- PDS SP6.4 元数据登记 PCIe 1.4/1.5/1.6 支持 `PG2L100H/FBG484`，但实际安装缺少 IP 包与 `index.xml`，故当前不能生成匹配的 100H IP。
+- 状态：`blocked_at_ipcompiler_entry`。登记信息仅为候选能力证据，不是可用 IP 或 canonical 恢复证明。
+- staging 生成脚本如新增，必须将全部输出隔离到 `build/`，并在门禁中禁止覆盖 canonical IDF/RTL/FDC。
+
 - implementation_status: implemented_with_known_functional_gap
 - code_path: `pcie_dma_test_100h/hdl/`
 - entry_path: `pcie_dma_test_100h/hdl/pcie_dma_test.v`
