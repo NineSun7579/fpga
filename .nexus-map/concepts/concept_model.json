@@ -507,15 +507,19 @@
       "code_path": "ddr3_test/ddr3_test/",
       "evidence_path": [
         "ddr3_test/ddr3_test/scripts/regenerate_ip.ps1",
+        "ddr3_test/ddr3_test/scripts/check_d3a_staging_contract.ps1",
         "ddr3_test/ddr3_test/doc/M2_IP_REGENERATION.md",
         "ddr3_test/ddr3_test/doc/M2B1_PARAMETER_AND_DIFF_AUDIT.md",
+        "ddr3_test/ddr3_test/doc/D3A_PG2L50H_STAGING_REVIEW.md",
         "ddr3_test/ddr3_test/build/logs/pds-gen_bit_stream.log"
       ],
-      "evidence_gap": "M2-B1 已纠正 PG2L50H staging 生成路径并完成参数/资产差异审计，但 canonical IP/FDC/RCF 仍为 PG2L100H。板级参数、28 项 FDC pin 差异、canonical 升格、CI-6、50H 空目录七阶段、D3-0-R、有限 BIST 和四级仿真仍未验收。",
+      "evidence_gap": "M2-B2 已证明 PG2L50H staging 可独立 compile，D3-0-M 已证明 core 用户接口保持而物理 wrapper/refclk 变化；canonical IP/FDC/RCF 仍为 PG2L100H。H1 板级时钟/状态输出/28 项 FDC pin 差异、canonical 升格、50H 七阶段、有限 BIST 和四级仿真仍未验收。",
       "hardware_target": {
         "board": "RK3568+PG2L50H100H",
         "fpga": "PG2L50H-6IFBG484",
-        "pds_target": "Logos2 / PG2L50H / FBG484 / -6"
+        "pds_target": "Logos2 / PG2L50H / FBG484 / -6",
+        "evidence_status": "conflicting_pending_silkscreen_schematic_or_bom",
+        "conflicting_reference": "2026-09-02 PR #21 product screenshot labels RK3568+PG2L100H; it may be another board variant and is not current-hardware proof"
       },
       "m2_read_only_audit": {
         "date": "2026-08-30",
@@ -638,7 +642,22 @@
         "read_address": "axi_arvalid && axi_arready accepts the read request",
         "read_data": "the core returns axi_rvalid and axi_rlast without an axi_rready input",
         "change_stop_condition": "stop and re-review if regenerated IP changes interface semantics, address units or I_ips_ddr_top hierarchy",
-        "status": "legacy_review_complete_pending_pg2l50h_regeneration_and_re_review"
+        "status": "core_contract_confirmed_against_pg2l50h_staging_pending_product_semantics_review"
+      },
+      "d3_0_m_staging_contract": {
+        "date": "2026-09-02",
+        "document": "ddr3_test/ddr3_test/doc/D3A_PG2L50H_STAGING_REVIEW.md",
+        "gate": "ddr3_test/ddr3_test/scripts/check_d3a_staging_contract.ps1",
+        "core_whole_file_equal": true,
+        "preserved_contract": ["128-bit data", "CTRL_ADDR_WIDTH=28", "axi_wready", "axi_wusero_last", "axi_rvalid", "axi_rlast", "no axi_rready", "I_ips_ddr_top connection set"],
+        "wrapper_ports_before": 21,
+        "wrapper_ports_after": 26,
+        "wrapper_added_ports": ["ref_clk_p", "ref_clk_n", "pll_lock", "ddrphy_cpd_lock", "ddr_init_done"],
+        "added_primitive": "GTP_INBUFDS",
+        "only_core_connection_change": ".ref_clk(free_clk) to .ref_clk(ref_clk)",
+        "negative_self_tests": ["wrong ref_clk connection", "deleted ref_clk_n", "core added axi_rready"],
+        "status": "verified_review_only_blocked_by_h1",
+        "boundary": "no canonical promotion, HDL/FDC/RCF change, D3-A, Questa, implementation, bitstream or hardware claim"
       },
       "tech_stack": ["PDS", "DDR3 IP"],
       "related_reqs": ["关闭严格 gate", "板级批准参数", "有限写读回自检"],
@@ -657,7 +676,7 @@
         "ddr3_test/ddr3_test/rtl/ddr3_finite_bist.sv"
       ],
       "evidence_path": "ddr3_test/ddr3_test/doc/FINITE_SELF_TEST_CONTRACT.md",
-      "evidence_gap": "D2 与旧 D3-0 只读决策已完成，M2-B1 正确 PG2L50H staging 与参数/差异审计已验证；canonical 升格、CI-6、D3-0-R 和 D3-A 仍未完成，两个项目自有 RTL 文件未创建。Questa 工具和公共库已验证，但 DDR3 项目动态入口尚未实现。",
+      "evidence_gap": "D2 与 D3-0-R/M 已完成，PG2L50H core 合同保持但物理 wrapper/refclk 变化已登记；H1、canonical 升格、地址/完成语义复核和 D3-A 仍未完成，两个项目自有 RTL 文件未创建。Questa 工具和公共库已验证，但 DDR3 项目动态入口尚未实现。",
       "transaction_contract": {
         "pair_count": 16,
         "burst": "single-beat write/read compare",
@@ -676,7 +695,7 @@
         "first_error_info"
       ],
       "tech_stack": ["SystemVerilog", "DDR3 AXI", "ModelSim/QuestaSim"],
-      "related_reqs": ["D2 complete", "D3-0 handshake and top-boundary review complete", "D3-A/D3-B/D3-C pending user review", "VSCS", "finite self-check"],
+      "related_reqs": ["D2 complete", "D3-0-R/M staging contract complete", "H1 and D3-A/D3-B/D3-C pending", "VSCS", "finite self-check"],
       "complexity": "medium",
       "hotspot": true
     },

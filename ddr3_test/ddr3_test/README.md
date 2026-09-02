@@ -115,6 +115,7 @@ baseline 放行不会把结果标记为发布候选。
 - 当前 testbench 仍连接旧版顶层已经删除的 5 个端口，无法直接 elaboration。
 - 当前 BIST 持续随机读写，没有天然有限 `done`；`bist_run_led` 是翻转指示而不是完成信号。
 - `test_ddr.v:855` 的 `err_data_pre`、`err_data_aft` 与 BIST 模块端口位宽不一致。
+- PG2L50H staging wrapper 新增差分 `ref_clk_p/ref_clk_n` 和三个状态输出，并把 DDR core `ref_clk` 从 `free_clk` 改接差分缓冲输出；实板时钟来源和物理端口尚未确认。
 - 行为级、综合后和两个 PNR 后仿真尚未建立可靠的 `$fatal`、超时、`TEST PASS` 和退出码。
 
 在这些信息确认前，不修改 DDR3 IP 参数、FDC、顶层接口或 LED 语义。
@@ -130,15 +131,16 @@ baseline 放行不会把结果标记为发布候选。
 - LED 只能显示公开状态，不能作为完成或 PASS/FAIL 的原始依据；
 - 新 TB 必须使用公开端口、相对路径、Questa WLF、`$fatal` 和唯一 `TEST PASS`，FSDB 仅作为显式可选功能。
 
-D2 是文档决策批次，没有修改 RTL、TB、IDF、FDC 或 RCF。D3 功能实现需先完成 D3-0 的 core/wrapper、非标准 Pango DDR UI 握手和 `I_ips_ddr_top` 层级评审；当前仓库的唯一功能主线仍为 OV7725 O2-D1 只读评审，D3-0 可作为独立只读泳道准备，但不得并行启动 D3-A 功能 RTL。
+D2 是文档决策批次，没有修改 RTL、TB、IDF、FDC 或 RCF。D3 功能实现需先完成 D3-0 的 core/wrapper、非标准 Pango DDR UI 握手和 `I_ips_ddr_top` 层级评审；D3-A 在 D3-0-M1 板级时钟拓扑关闭前不得启动。
 
 ## D3-0 只读评审结果
 
-2026-08-30 已从活动 IP、实例模板和示例 wrapper 唯一确认 D3-A 的接口边界：
+2026-08-30 已从旧 canonical IP 确认用户接口；2026-09-02 的 [PG2L50H staging 复核](doc/D3A_PG2L50H_STAGING_REVIEW.md) 补充了器件迁移差异：
 
 - 公开 core 是 `ip_core/ddr3/ddr3.v` 的 `ddr3` 模块，提供 `core_clk`、`ddr_init_done`、PLL/PHY 状态以及 128-bit 用户数据通路；生成文件保持不改。
-- 物理 board wrapper 是 `ip_core/ddr3/example_design/rtl/test_ddr.v`，保留现有 `free_clk`、`rst_board`、UART 和 DDR3 物理端口。它以实例名 `I_ips_ddr_top` 连接活动 `ddr3` core；FDC/RCF 与后续层级检查依赖该名字。
+- canonical 与 staging 的 `ddr3.v` whole-file 相同；用户参数、128-bit 数据通路、AXI-like 端口和 `I_ips_ddr_top` 名称没有变化。
+- 物理 wrapper 不同：staging 在旧 21 个端口上增加 `ref_clk_p/ref_clk_n`、`pll_lock`、`ddrphy_cpd_lock`、`ddr_init_done`，增加 `GTP_INBUFDS`，并把 core `ref_clk` 从 `free_clk` 改接差分缓冲后的 `ref_clk`。
 - 用户接口是 Pango 定制的 AXI-like 端口，而不是完整 AXI4：写地址用 `axi_awvalid & axi_awready`，写数据完成由 core 输出 `axi_wready` 表示；`axi_wusero_id`、`axi_wusero_last` 为返回标记。读地址用 `axi_arvalid & axi_arready`，读数据由 `axi_rvalid`/`axi_rlast` 返回，接口没有 `axi_rready`。
 - 当前示例控制器把写 outstanding 计数与 `axi_wready` 接受次数比较，把读请求计数与 `axi_rvalid` 返回次数比较；D3-A 必须将这些事实转换为有限 BIST 的明确握手/超时契约，不得假设标准 `AWREADY/WREADY/BVALID/ARREADY/RREADY` 语义。
 
-器件迁移优先于 D3-A。先用 SP6.4 重生成 PG2L50H DDR3 IP/FDC/RCF并重跑 CI-6；只有端口、地址、`axi_wready` 和 `I_ips_ddr_top` 契约保持成立且用户重新审核后，才允许新增 `ddr3_bringup_top.sv`、`ddr3_finite_bist.sv`。本次器件迁移批准不等同于 D3-A 编码授权。
+D3-0-M gate 已锁定上述 core/wrapper 差异及负向探针。由于 reference-clock 和物理输出合同已变化，D3-A 保持 blocked；必须先依据原理图/BOM 确认差分参考时钟、`free_clk` 职责、状态输出和 FDC/RCF，再重新审核 product wrapper、地址单位与 `axi_wready/axi_wusero_last` 语义。本次审计不等同于 D3-A 编码授权。

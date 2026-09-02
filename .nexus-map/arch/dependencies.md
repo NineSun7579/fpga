@@ -90,11 +90,11 @@ flowchart TD
 - M2-B1 正确差异边界：DDR PHY slice、wrapper、FDC、仿真 filelist 与 IDF 均有差异；wrapper 端口数从 21 增至 26，新增 `ref_clk_p/ref_clk_n`、`pll_lock`、`ddrphy_cpd_lock`、`ddr_init_done`；FDC 有 28 项 pin 差异。完整证据见 `doc/M2B1_PARAMETER_AND_DIFF_AUDIT.md`。
 - M2-B2 compile-only 依赖链为 `regenerate_ip.ps1 → build_staging_compile.tcl → pds_shell compile → check_staging_compile.ps1`。最终 run `1d4b8c264ba940f0bb0e2517b8c36c07` 只消费 18 个 staging RTL 与一个 staging IDF，目标为 `Logos2/PG2L50H/FBG484/-6`，`test_ddr` 为 26 端口；PDS/`E:` 为 `0/0`、warning 272，三个 compile 产物非零且四个 canonical 哈希不变。错误目标、零长度产物和错误记录三项动态负向测试均退出 1。
 - `build_staging_compile.tcl` 是 `canonical_support_tool`，不依赖 FDC/RCF，也不产生 synthesize/dev_map/PNR/STA/netlist/SDF/bitstream 证据；日志只保留脱敏许可证类别。M2-B2 不能被 canonical build、Questa、实板或烧录链消费。
-- M2 后续门禁固定为：取得原理图/BOM并锁定板级 DDR3 颗粒/组织/PCB 参数 → 审核 28 项 FDC pin 差异及 wrapper/PHY/filelist/IDF → 才可升格 canonical → 重跑 CI-6（端口、宽度、地址单位、`axi_wready` 与 `I_ips_ddr_top`）→ 清空 `build/` 完成七阶段 → 重新审核 D3-0-R，之后才可请求 D3-A。M2-B2 仅关闭 staging compile-only，H1 板级阻断不变。
+- M2 后续门禁固定为：取得原理图/BOM并锁定 DDR3 颗粒/组织/PCB、差分 reference clock、`free_clk` 与状态输出 → 审核 28 项 FDC pin 差异及 wrapper/PHY/filelist/IDF → 才可升格 canonical → 重跑 CI-6 与空目录七阶段 → 审核地址单位及 `axi_wready/axi_wusero_last` 完成语义，之后才可请求 D3-A。M2-B2/D3-0-M 不关闭 H1。
 - DDR3 严格 gate 因 BIST 位宽/dangling、`rst_board` share pin、BANKR4 VCCIO 3.3、UART I/O 以及输入/输出 timing 共 7 类阻断返回 1；显式 baseline 放行返回 0 但不可发布。日志无 SCBV 命中不等同于板级参数获批，批准清单仍是关闭 gate 的前置依赖。
 - DDR3 D2 只读决策不依赖修改厂商示例：`test_ddr`、持续运行 BIST 和旧 testbench 保持原样；D3 若获审核，只新增项目自有 `ddr3_bringup_top.sv` 与 `ddr3_finite_bist.sv`。
-- DDR3 D3-0（2026-08-30）已完成旧活动 `ddr3` 核、非标准 AXI-like AW/W/AR/R 握手和 `I_ips_ddr_top` 边界评审，CI-6 提交 `a5d1785` 已保护该静态契约；目标迁移后必须先重生成 PG2L50H DDR3 IP/FDC/RCF并重新审核 D3-A。
-- D3-0 旧接口结论只能作为 PG2L50H 重生成后的比对基准；若接口语义、地址单位、端口或 `I_ips_ddr_top` 层级变化，停止并重新更新 D3-0-R/CI-6，审核前不得新增 D3-A/B/C RTL。
+- DDR3 D3-0-M 已比较旧 canonical 与 SP6.4 PG2L50H staging：`ddr3.v` whole-file、128-bit 数据、28-bit 地址、AW/W/AR/R、无 `axi_rready` 和 `I_ips_ddr_top` 连接集合保持；物理 wrapper 新增五个端口与 `GTP_INBUFDS`，core `ref_clk` 从 `free_clk` 改接差分缓冲输出。
+- `check_d3a_staging_contract.ps1` 以静态/动态模式保护上述差异并包含三项负向探针。该结果只改变下一步板级审核问题，不授权 canonical 升格、D3-A/B/C、Questa、实现、位流或实板。
 - 有限自检契约固定 16 个单 beat 写读比较 pair，地址 `0x0..0x78`、步长 8，pair/run timeout 分别为 4096/131072 周期；签核依赖稳定的 `test_done`、`test_failed`、`failure_code`、`error_count`、`completed_pairs` 和首错信息，而不是厂商 LED 或内部层级。
 - 新项目自有 DDR3 RTL 依赖根目录 VSCS；厂商 `ip_core/ddr3/**` 仍作为外部生成依赖，不因 D2 决策被改写。
 - S2-C 依赖匹配 IP ID `042004`、PDS build `146967`、`PG2L50H/FBG484/-6` 的 PCIe 1.2c 完整实例 `index.xml`。17 个实时 origin 分支、完整历史/reflog、工作区和 SP6.4 安装均未找到该输入；新版本迁移必须另立批次。

@@ -504,3 +504,12 @@
 - 清单区分已审核实物事实、参考分支事实和待提供输入，覆盖两只模组、供电/I/O 电压、MCLK、SCCB、RESET/PWDN、DVP、图像/双摄策略、DDR3、HDMI/TMDS、bank 与 share pin。
 - 参考分支的 960×1080 半幅、RGB565、25 MHz camera clock、LVCMOS33、PG2L100H DDR3/IP 和 README PASS 均保持待审核参考，不升级为产品合同。
 - C1/H3 继续受原理图、BOM、模组和时序资料阻断；后续 HDL/TB 选择性导入必须先符合 `VERILOG_SYSTEMVERILOG_COMMENTING_STANDARD.md`，建立清单本身不授权 C2、PDS、Questa 或实板流程。
+
+## 2026-09-02：DDR3 D3-0-M PG2L50H staging 合同复核
+
+- 新增 `check_d3a_staging_contract.ps1`，对 canonical 与 SP6.4 PG2L50H staging 的 `ddr3.v`、`test_ddr.v` 和 IDF 做只读比较；静态模式可在无 `build/` 的 clone 中执行，动态模式读取被忽略的 staging。
+- whole-file SHA-256 证明两份 `ddr3.v` 完全相同，用户接口、参数、`I_ips_ddr_top`、`axi_wready` 与无 `axi_rready` 合同保持。
+- 物理 wrapper 从 21 增至 26 个端口：新增 `ref_clk_p/ref_clk_n`、`pll_lock`、`ddrphy_cpd_lock`、`ddr_init_done`，增加 `GTP_INBUFDS`，并把 core `ref_clk` 从 `free_clk` 改接差分缓冲输出。
+- gate 只允许上述五端口和唯一 refclk 连接变化，并通过错误时钟连接、缺少差分端口、出现 `axi_rready` 三项负向自测；不修改或升格生成 IP。
+- D3-0-M 审计完成但 D3-A 继续 blocked：必须先确认实板差分参考时钟、`free_clk` 职责、状态输出、FDC/RCF、地址单位和写完成语义。本批没有 HDL/TB 修改，VSCS 代码注释检查不适用。
+- PR 前复核发现 PR #21 的 owner 商品截图明确标注 `RK3568+PG2L100H`，与此前“实际焊接 PG2L50H-6IFBG484”的项目输入冲突。已公开更正先前把 100H 解释为板名的不严谨回复，并要求以当前实物芯片丝印、原理图或 BOM 关闭冲突；本批不因此把 50H staging 升格为实板证据。

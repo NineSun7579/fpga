@@ -1,8 +1,8 @@
 # DDR3 D3-A 端口与层级映射
 
-状态：只读核对，等待 D3-A 用户审核。更新日期：2026-08-30。
+状态：canonical 与 PG2L50H staging 已复核；D3-A blocked。更新日期：2026-09-02。
 
-本文件把活动 DDR3 core、现有 `test_ddr` wrapper 与 D2 有限自检契约对齐。它不实现 BIST，不修改厂商生成文件，也不改变任何物理端口。
+本文件把活动 DDR3 core、旧 canonical `test_ddr` wrapper、PG2L50H staging wrapper 与 D2 有限自检契约对齐。它不实现 BIST，不修改厂商生成文件，也不授权改变物理端口。50H 差异和停止结论见 [`D3A_PG2L50H_STAGING_REVIEW.md`](D3A_PG2L50H_STAGING_REVIEW.md)。
 
 ## 证据范围
 
@@ -11,6 +11,8 @@
 | 公开 core 模块为 `ddr3` | `ip_core/ddr3/ddr3.v:12` |
 | 现有物理 wrapper 为 `test_ddr` | `ip_core/ddr3/example_design/rtl/test_ddr.v:12` |
 | core 实例名固定为 `I_ips_ddr_top` | `test_ddr.v:746` |
+| PG2L50H staging core 与 canonical core whole-file 相同 | `D3A_PG2L50H_STAGING_REVIEW.md`、D3-0-M gate |
+| PG2L50H staging wrapper 新增 `ref_clk_p/ref_clk_n` 和三个状态输出 | `D3A_PG2L50H_STAGING_REVIEW.md`、D3-0-M gate |
 | D3-A 仅允许新增项目自有 top/BIST | `doc/FINITE_SELF_TEST_CONTRACT.md`、项目 README |
 
 ## 参数与宽度
@@ -75,13 +77,22 @@
 
 ## 时钟、复位与物理边界
 
-- `ref_clk` 连接现有 wrapper 的 `free_clk`；core 输出 `core_clk` 供 BIST 状态机使用。
+- 旧 canonical wrapper 把 core `ref_clk` 连接到单端 `free_clk`。
+- PG2L50H staging 新增 `GTP_INBUFDS`，由 `ref_clk_p/ref_clk_n` 生成 `ref_clk` 并连接 core；`free_clk` 继续存在，但不再是 DDR core 参考时钟。
+- core 输出 `core_clk` 供后续 BIST 状态机使用；该用户时钟接口在 staging 中未变化。
 - wrapper 形成 `resetn = dbg_ddr_rst_n & rst_board`，随后由 `core_clk_rst_n` 同步释放；D3-A 不应绕过该复位链。
 - `ddr_init_done` 是等待 DDR 初始化完成的公开状态；有限测试只能在其有效后启动。
+- staging 还把 `pll_lock`、`ddrphy_cpd_lock`、`ddr_init_done` 暴露为 wrapper 顶层输出；是否成为物理管脚尚未审核。
 - APB 端口在当前 wrapper 中全部绑 0 或悬空，不属于 D3-A BIST 接口，禁止借此新增物理端口。
-- DDR3 物理端口、FDC/RCF 和 `I_ips_ddr_top` 实例名必须保持不变。
+- `I_ips_ddr_top` 实例名必须保持不变；物理端口和 FDC/RCF 必须依据已确认的 PG2L50H 实板时钟拓扑重建，不能机械保持旧 100H wrapper。
 
-## D3-A 允许范围
+## PG2L50H staging 决策
+
+D3-0-M 已证明 core 用户接口没有变化，但物理 wrapper 的 reference-clock 合同发生变化。因此 D3-A 继续 blocked，直到用户审核 `ref_clk_p/ref_clk_n`、`free_clk`、新增状态输出和对应管脚/约束。M2-B2 compile 通过不能替代该板级决策。
+
+## D3-A 审核后允许范围
+
+只有 D3-0-M1 关闭并再次获得审核后，才允许：
 
 1. 新增项目自有 `rtl/ddr3_bringup_top.sv` 与 `rtl/ddr3_finite_bist.sv`。
 2. 将 BIST 连接到上述公开 `ddr3` 接口，并在 `ddr_init_done` 后启动一次有限测试。
@@ -90,6 +101,8 @@
 
 ## 待审核问题
 
+- 实板 DDR reference clock 是差分 `ref_clk_p/ref_clk_n` 还是其他拓扑；其频率、管脚、bank 电压和时钟能力必须有一手依据。
+- `free_clk` 的产品职责，以及三个新增状态输出是否映射到实际 FPGA 管脚。
 - `axi_awaddr`/`axi_araddr` 的 byte/word 地址单位仍需 IP 文档或用户确认。
 - `axi_wready` 是否表示单 beat 数据已写入、以及 `axi_wusero_last` 的必要性，需要在 D3-A 首轮 compile/elaboration 后结合实现日志确认。
 - `ddr_init_done` 的复位后稳定时序和 core_clk 频率属于 IP 事实；不得由 BIST 逻辑猜测。
