@@ -33,7 +33,8 @@ H2-B0 已新增 [`H2B_BASELINE_GATE.md`](H2B_BASELINE_GATE.md) 与机器指纹 [
 
 | 证据项 | 当前状态 | H2-A 关闭条件 |
 |---|---|---|
-| FPGA 完整型号与封装 | 已确认 `PG2L50H-6IFBG484`；活动 IP 为 PG2L50H | build、IDF、STA 和 bitstream 全部重建并交叉确认 PG2L50H |
+| 历史迁移器件 | 早期记录为 `PG2L50H-6IFBG484`；活动 IP 为 PG2L50H | 仅作迁移审计证据，不是当前目标 |
+| 当前恢复目标 | `PG2L100H-6IFBG484`；PDS `Logos2 / PG2L100H / FBG484 / -6` | 取得匹配 100H IP 后才可重建与验收 |
 | PCIe lane 数、映射与极性 | 顶层只有 x2 端口，FDC 未给出板级 lane 映射 | 原理图/PCB 明确 lane 0/1、P/N 极性、连接器方向和 AC 耦合位置 |
 | 100 MHz refclk | RTL/FDC 使用 10 ns 差分时钟 | 确认来源、频率容差、共模/终端和 F6/E6 连接 |
 | PERST# | `perst_n=M16`，有同步/去抖逻辑 | 确认电平、来源、上电时序和 M16 share pin 使用 |
@@ -44,7 +45,7 @@ H2-B0 已新增 [`H2B_BASELINE_GATE.md`](H2B_BASELINE_GATE.md) 与机器指纹 [
 
 ## 4. 允许范围与停止条件
 
-H2-A 只允许新增/更新证据文档，不修改 RTL、活动 IDF 或 FDC，也不得把历史 `impl.tcl` 当作重建入口。用户已经批准下一批将 build/gate 恢复为 PG2L50H。
+H2-A 只允许新增/更新证据文档，不修改 RTL、活动 IDF 或 FDC，也不得把历史 `impl.tcl` 当作重建入口。当前批准方向是将 build/gate 恢复为 PG2L100H；在取得匹配 100H IP 前保持阻断。
 
 恢复批次必须取得匹配 PG2L100H 的 PCIe IP，或明确接受 IP 重生成及完整回归；不能只改 `set_arch`。旧 50H H2-B0 指纹和 `HSSTLP_292_612` 位置只作历史差异证据。lane/refclk/PERST#、UART 和 SCBV 仍由 H2-B1 闭合，在资料到位前不把任何构建描述为可发布。
 
