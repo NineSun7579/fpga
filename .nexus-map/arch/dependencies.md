@@ -75,6 +75,9 @@ flowchart TD
 
 - `main_ov5640_pcie/` 位于 `codex/main-ov5640-pcie`，M1-A 只依赖项目自有采集 RTL/TB 与公开合同；`parallel_driver` 仅只读参考，未导入 RTL、IP、约束、PDS 产物或验收证据。
 - M1-A 的 VSYNC/HREF/字节序/坐标事件均属于 `cam_pclk` 域合同。SCCB、板级时序、CDC/FIFO、DDR3 和 PCIe 是后续独立依赖，不能由当前唯一 `TEST PASS` 推导为通过。
+- M2-A 在同一 `cam_pclk` 域把 M1-A 采集输出送入 `rgb565_grayscale`；处理职责止于 RGB565 灰度化和一拍事件/坐标对齐，不延伸为 SCCB、板级时钟/电气时序、CDC/FIFO、DDR3、PCIe 或主机协议实现。
+- M2-A 的算法依赖 RGB565 分量扩展与固定整数系数 `77/150/29`；TB 参考值、系数、分量扩展或寄存器级数变化必须同步更新，当前证据只覆盖四个颜色样本、两行坐标、边界事件和奇数字节错误。
+- `run_m2a.ps1` 依赖外部提供的 Questa 可执行文件，通过参数注入模拟器目录；脚本在独立 `build/m2a/<run-id>/` 中编译并要求日志出现恰好一次 `TEST PASS`。Nexus 不记录模拟器安装路径、许可证或凭证。
 - 用户确认三个产品方向共用 `RK3568+PG2L50H100H` 开发板，实际 FPGA 为 `PG2L50H-6IFBG484`；摄像头产品目标已校正为 OV5640，`41_ov7725_hdmi` 仅作 OV7725 legacy。统一有效 PDS 目标为 `Logos2 / PG2L50H / FBG484 / -6`，旧 PG2L100H 产物不得用于实板。
 - 厂商 `.idf`、生成 RTL 和 PDS 仿真库属于外部生成依赖，不应被误当作独立手写逻辑。
 - PCIe S2-A 的 `sim/behav.f` 依赖 37 个实现侧 canonical HDL、仿真专用补充源、DMA RAM init include、reset helper、项目 TB 与受控边界模型。历史动态 smoke 已通过同一 run-id 和唯一 `TEST PASS`；当前 S2-A/S2-B 静态门禁通过，但动态复验因仓库外许可证 checkout 失败返回 4，未产生新 PASS。

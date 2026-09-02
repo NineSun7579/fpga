@@ -55,7 +55,7 @@
 - CI-6 DDR3 D3-0-R 契约一致性门禁已由提交 `a5d1785` 落地：静态交叉核对活动 DDR3 core、`test_ddr` wrapper 与 `D3A_PORT_MAP.md` 的模块/参数、128-bit 数据、28-bit 地址、`I_ips_ddr_top`、AXI-like 握手及 core 不含 `axi_rready`；该门禁不替代 PG2L50H IP 重生成后的重新审核或动态验证。
 - CI-7 PDS Tcl 入口分类门禁（2026-08-30）已稳定：机器清单覆盖全部 13 个 tracked Tcl，角色为 `canonical_project_build`、`migration_blocked_project_build`、`canonical_support_tool`、`historical_gui`、`vendor_generated_internal`、`vendor_sim_internal`；只有三个 `scripts/build.tcl` 是 `run.ps1` 入口。PCIe build 已为 PG2L50H canonical，OV7725/DDR3 build 仍为 PG2L100H migration-blocked；历史/厂商脚本中的混合器件或绝对路径不得作为器件、STA、网表、SDF 或位流证明。正向门禁退出 0，删除任一清单项的负向测试退出 1。
 - CI-9 许可证敏感门禁（2026-09-01）由 `scripts/check_sensitive_diff.ps1` 与 [`SENSITIVE_DIFF_GATE.md`](../docs/SENSITIVE_DIFF_GATE.md) 定义：`-FullTree` 全量扫描当前 tracked/untracked 工作树，PR 模式按 merge-base 扫描变更路径与新增行。当前版本已将 68 个 tracked 日志中的 143 处本机许可证引用替换为 `<license-path>`，全树与差异门禁均通过。门禁使用严格占位符白名单，并拒绝许可证文件名、机器本地许可证引用、真实许可证环境赋值、裸端点、FlexNet 内容、签名和 host id；它只保护当前树和后续新增差异，不改写或清理 Git 历史。
-- CI-0、S0-1 入口与强制预检、仿真就绪度矩阵、README 导航、CI-1 至 CI-9、H2-B0、CI-8A、PCIe S2-A、S0-0-R、PCIe H2-B 静态元数据 gate、H0/H1/H3 证据清单、M0/M1、M2-A、M2-B1 与 M3-A 均按小批次记录；样本仍不足以计算可信的历史热点，CI-8B 等待 DDR3/OV7725 canonical 升格。
+- CI-0、S0-1 入口与强制预检、仿真就绪度矩阵、README 导航、CI-1 至 CI-9、H2-B0、CI-8A、PCIe S2-A、S0-0-R、PCIe H2-B 静态元数据 gate、H0/H1/H3 证据清单、M0/M1、M2-A（main OV5640 灰度处理）、M2-B1 与 M3-A 均按小批次记录；样本仍不足以计算可信的历史热点，CI-8B 等待 DDR3/OV7725 canonical 升格。
 - 根目录 [README](../README.md) 是 PDS 外部实现与仿真指南，现已直接链接仿真就绪度矩阵。
 - 根目录 [TODO](../TODO.md) 是当前整改顺序和验收门槛。
 - 新增或修改 Verilog/SystemVerilog 时必须遵循 [VSCS](../VERILOG_SYSTEMVERILOG_COMMENTING_STANDARD.md)。

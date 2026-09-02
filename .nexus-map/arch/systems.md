@@ -96,6 +96,22 @@
 - uncovered_boundaries: SCCB/寄存器与 sensor ID、板级 DVP 电气/相位/管脚、CDC/FIFO/逐域复位、DDR3、128-bit PCIe DMA、主机协议、PDS/STA、综合后/PNR/SDF 均未覆盖。
 - reference_boundary: `parallel_driver` 仅只读参考；未导入其 RTL、IP、FDC/RCF、PDS 产物或验收证据。
 
+## main 独立 OV5640→PCIe M2-A
+
+- implementation_status: m2a_rgb565_grayscale_behavior_verified
+- project_path: `main_ov5640_pcie/`
+- branch: `codex/main-ov5640-pcie`
+- code_path: `main_ov5640_pcie/rtl/rgb565_grayscale.sv`, `main_ov5640_pcie/rtl/ov5640_dvp_rgb565_pipeline.sv`
+- test_path: `main_ov5640_pcie/tb/tb_ov5640_dvp_rgb565_pipeline.sv`
+- evidence_path: `main_ov5640_pcie/README.md`, `docs/MAIN_OV5640_PCIE_PROCESS_CONTRACT.md`, `TODO.md`, `docs/IMPLEMENTATION_LOG.md`, `main_ov5640_pcie/scripts/run_m2a.ps1`
+- responsibility: `rgb565_grayscale` 只负责 RGB565 到灰度 RGB565 的处理；wrapper 只连接 M1-A 采集与该处理模块；两者均运行在 `cam_pclk` 域，不负责 SCCB、MCLK、RESET/PWDN、CDC/FIFO、DDR3、PCIe 或主机协议。
+- grayscale_contract: RGB565 的 R/G/B 分量分别按 `R[15:11]`、`G[10:5]`、`B[4:0]` 扩展到 8 bit，计算 `Y=(77*R+150*G+29*B)>>8`，并把同一 `Y` 复制回 RGB565 三个字段。
+- latency_contract: `pixel_valid`、灰度像素、坐标、帧/行事件和 `protocol_error` 均相对输入延迟一拍 `cam_pclk`；无背压；输出无效周期 `pixel_data=16'h0000`。
+- behavior_tb_coverage: 公开 DVP 输入驱动两行四像素（黑、红、绿、蓝），检查灰度数据、零基坐标、帧/行事件保持和奇数字节协议错误；watchdog 与失败 `$fatal`，成功日志要求唯一 `TEST PASS`。
+- questa_evidence: `docs/IMPLEMENTATION_LOG.md` 记录 Questa Sim-64 2021.1 的 4 个 RTL/TB 模块编译 `0 error/0 warning`、管线行为仿真返回 0；`run_m2a.ps1` 对日志中的 `TEST PASS` 做恰好一次校验。Nexus 不记录模拟器安装路径、许可证或凭证。
+- uncovered_boundaries: SCCB/寄存器与 sensor ID、板级时钟/电气时序/管脚、CDC/FIFO/逐域复位、DDR3、PCIe/主机协议、PDS/STA、综合后/PNR/SDF 均未覆盖。
+- reference_boundary: `parallel_driver` 仍仅只读参考；未导入其 RTL、IP、FDC/RCF、PDS 产物或验收证据。
+
 ## OV7725 HDMI Legacy 顶层
 
 - implementation_status: legacy_evidence_with_timing_failures
