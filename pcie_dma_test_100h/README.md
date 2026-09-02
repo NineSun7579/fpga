@@ -176,6 +176,6 @@ Compiler 实例导出的 `index.xml`，取得前不覆盖 canonical IP。当前 
 
 ## H2-A/H2-B0 边界
 
-当前顶层为 `pcie_dma_test`，使用 x2 PCIe lane、差分 `ref_clk_p/n`、`perst_n` 和两枚状态 LED。FDC 已固定 `ref_clk_p/n=F6/E6`、`perst_n=M16`、`button_rst_n=M15`、LED 为 `M17/J16`；PG2L50H HSSTLP 资源已依据 PDS SP6.4 模板固定为 `HSSTLP_292_612`。仍未给出 lane 极性/PCB 拓扑、I/O delay 或 SCBV 的板级依据。活动 `pcie_test.idf`、PDS 目标和新产物均为 `PG2L50H`。UART2APB 的 `rxd/txd` 仍为隐式网络，`rxd` 被绑为 0。
+当前顶层为 `pcie_dma_test`，使用 x2 PCIe lane、差分 `ref_clk_p/n`、`perst_n` 和两枚状态 LED。FDC 已固定 `ref_clk_p/n=F6/E6`、`perst_n=M16`、`button_rst_n=M15`、LED 为 `M17/J16`；`HSSTLP_292_612` 仅为 PG2L50H 历史 staging 资源证据。仍未给出 lane 极性/PCB 拓扑、I/O delay 或 SCBV 的板级依据。当前 PDS 恢复目标为 `PG2L100H`，但活动 `pcie_test.idf` 与旧产物仍为 `PG2L50H`，因此不能视为一致或可发布。UART2APB 的 `rxd/txd` 仍为隐式网络，`rxd` 被绑为 0。
 
 H2-A 只做证据矩阵，不修改 RTL、IDF 或厂商 IP。器件迁移批次已将 build/gate 改为 PG2L50H，并依据 PDS SP6.4 模板更新 HSSTLP 资源坐标后从空 `build/` 重建；活动 SP6.4 PCIe IDF 不因型号再次重生成。H2-B0 只锁定当前失败基线，任何 lane、refclk、PERST#、UART 或 SCBV 不确定仍触发发布停止。

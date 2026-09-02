@@ -89,7 +89,7 @@ DDR3 当前仍没有面向项目集成顶层的仿真入口。摄像头产品目
 - Questa `2021.1` 与 Logos2 USIM 已验证；S2-A 仅在仿真专用 `sim/questa/behav.f` 中补入 `ipcore/pcie_test/rtl/ips2l_pcie_apb_cross_v1_0.v`，未修改由 IDF 管理的 canonical PDS 源清单。动态 smoke 的 RTL 编译为 0 errors/0 warnings，elaboration 成功并运行到 `1476105 ns`，同一 run marker、唯一 `TEST PASS` 和 PowerShell 退出码 0 均通过。
 - 当前复验确认 Questa 版本、S2-A/S2-B 静态 gate 和现有 USIM/VSIM 目录；S2-A 以新 `SIM_RUN_ID` 动态通过，不复用历史 transcript。
 - S2-A RTL hygiene 已贯通 DMA `o_trgt1_radm_pkt_halt` 到 hard-IP RX halt 输入。Questa 为 `0 warnings`；PDS 原两条未连接端口 warning 消失，只保留 bit2 恒 0 的两条优化/清理 warning。受控 link indication 仍不证明真实 LTSSM、TLP、DMA 或板级链路。
-- 活动 PCIe IP、PDS 目标和新构建产物均与实际 PG2L50H 一致；lane/refclk/PERST#/SCBV 和 UART 决策继续由 H2-B1 阻断。
+- 活动 PCIe IP 仍为 PG2L50H，而当前 PDS 恢复目标为 PG2L100H；该混合目标继续由 H2-B1/匹配 IP 阻断。lane/refclk/PERST#/SCBV 和 UART 决策同样未关闭。
 - S2-D 已用当前 canonical 综合网表完成受限动态 smoke，只证明综合网表展开、项目 reset debounce/sync 与 reference-clock LED counter 路径；强制 link 观察网络不构成 LTSSM、DMA、PNR、SDF 或时序证据。
 - S2-E 已生成并绑定不含 `$sdf_annotate` 的独立 PNR 功能网表；Questa run `927abae8ed7d40aeb5d6f706b3723e0a` 动态通过，只证明网表展开、reset debounce/sync 和 reference-clock LED counter 路径，不构成链路、DMA、SDF/时序、H2-B1 或发布证据。
 - S2-F run `7fc77a7ec8db479db7332e8037426d6c` 由独立启动器复验，成功标注 SDF，但无 force 仍在 HSST `ext_rstn_debounce` 自然复现两个正 setup/hold error；另有 1590 个 `V_DRM18K_E1` 负限制无法求解和 1 个 `V_FFASYN` delayed-copy 告警。solver 矩阵 run `f79dc238c12949b7b67db2ef0d0ddd0b` 中，`level1/2/3` 仍各有同一个 setup/hold error，`vsim-3004` 分别为 `3624/1590/1590`。GLS 与 slow-corner STA 全正裕量冲突，既不能标记通过，也不能据此断言硅上失败。
