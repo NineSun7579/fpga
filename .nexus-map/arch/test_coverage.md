@@ -101,6 +101,13 @@
 - 未验证：本条只证明当前工作流文本配置；对应 PR 的 GitHub check 是否实际启动并通过，须以远端运行结果为准。
 - 边界：CI-10 只托管根静态门禁，不运行或证明 PDS、Questa、STA、SDF、位流生成或实板验证通过。
 
+### CI-10B 活动目标文档回归门禁（2026-09-02）
+
+- 已验证：`scripts/check_repo_consistency.ps1` 新增 `Forbid-Pattern` 检查，阻止双 OV5640 活动范围文档和 OV5640 C0 审计文档重新出现 `PG2L50H` canonical/活动目标表述。
+- 已验证：该负向门禁与历史证据边界相容，不扫描或否定 PCIe/DDR3 的 PG2L50H staging、迁移基线和冻结 legacy 证据。
+- 当前目标：活动产品器件为 `PG2L100H-6IFBG484`，PDS 目标为 `Logos2 / PG2L100H / FBG484 / -6`。
+- 验证结果：仓库一致性门禁、`git diff --check` 均通过；该门禁只保护文档口径，不证明 RTL、IP、FDC、PDS、Questa 或实板验证完成。
+
 ## S0-0-R 仿真器环境复核（2026-08-30）
 
 - 已验证：提交 `ef5cc9a` 再次探测 PATH、常见安装目录和 `vsim.exe` 文件名，`vsim.exe`、`vlog.exe`、`vlib.exe` 均未发现。

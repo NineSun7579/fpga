@@ -4,6 +4,10 @@
 
 # Domains
 
+## CI-10B 文档目标回归保护（2026-09-02）
+
+`scripts/check_repo_consistency.ps1` 的 `Forbid-Pattern` 负向检查保护双 OV5640 活动文档与 `docs/OV5640_C0_REFERENCE_AUDIT.md` 的当前目标口径，禁止回归为 PG2L50H canonical/活动目标。PG2L50H 的 PCIe/DDR3 staging、迁移基线和 OV7725 legacy 证据仍按历史边界保留；当前活动器件是 `PG2L100H-6IFBG484`。该门禁已通过，但不替代实现、仿真、STA 或板级验收。
+
 ## 当前板级身份（2026-09-02）
 
 - 开发板名称为“紫光盘古100Pro”；FPGA 完整料号为 `PG2L100H-6IFBG484`；PDS 目标为 `Logos2 / PG2L100H / FBG484 / -6`。
