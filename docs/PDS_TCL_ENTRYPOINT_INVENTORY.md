@@ -21,7 +21,7 @@ powershell.exe -ExecutionPolicy Bypass `
 |---|---|---|
 | `canonical_project_build` | 当前项目自有、相对路径、目标器件正确的构建入口 | 是 |
 | `migration_blocked_project_build` | 项目自有可重复入口，但器件迁移尚未完成，只能复现历史基线 | 是，但不得声明发布 |
-| `canonical_support_tool` | 仓库公共支持工具，不是项目实现入口 | 否 |
+| `canonical_support_tool` | 仓库或项目支持工具，不是 canonical 项目实现入口 | 否 |
 | `historical_gui` | PDS GUI 操作记录或 compile screen，仅作历史证据 | 否 |
 | `vendor_generated_internal` | 厂商 IP 内部生成/PNR 记录，不代表外层工程 | 否 |
 | `vendor_sim_internal` | 厂商单 IP 仿真辅助脚本，不代表集成仿真 | 否 |
@@ -37,6 +37,8 @@ powershell.exe -ExecutionPolicy Bypass `
 | PCIe DMA | `pcie_dma_test_100h/scripts/build.tcl` | `canonical_project_build` | 已为 PG2L50H |
 
 三个 `run.ps1` 均只调用同目录 `scripts/build.tcl`。仓库没有 canonical 调用链引用任何历史 `impl.tcl`、parse-design screen 或 IP 内部脚本。
+
+DDR3 的 `scripts/build_staging_compile.tcl` 是 M2-B2 compile-only 支持工具：只验证 PG2L50H staging 的 18 个示例 RTL 与一个 IDF 能完成 `compile`，不加载 FDC/RCF，不执行实现后级，也不改变 DDR3 canonical 项目入口仍受 M2 升格阻断的事实。
 
 ## 历史与厂商脚本
 

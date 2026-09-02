@@ -1,6 +1,6 @@
 # DDR3、PCIe 与双 OV5640 项目整改 TODO
 
-更新日期：2026-09-01
+更新日期：2026-09-02
 
 状态：三项目器件迁移已获审核。活动项目仅指 DDR3、PCIe 和双 OV5640 摄像头 HDMI，最终均运行在同一块 `RK3568+PG2L50H100H` 开发板，实际 FPGA 为 `PG2L50H-6IFBG484`，PDS 目标统一为 `Logos2 / PG2L50H / FBG484 / -6`。摄像头产品目标固定为双 OV5640；`41_ov7725_hdmi/` 不属于三个活动项目，只保留为只读 legacy 历史证据。既有 PG2L100H 构建、STA、网表、SDF 和位流不得用于实际板卡验收或烧录。双 OV5640 范围见 [`docs/OV5640_TARGET_SCOPE.md`](docs/OV5640_TARGET_SCOPE.md)。
 
@@ -89,6 +89,7 @@
    - 前置：使用本机 SP6.4 IP Compiler；SP6.1 的 50H backup 只作参数和差异证据。
    - 交付：按现有 row15/col10/bank3/DQ16/DQS2 参数重生成 50H controller/PHY、示例、FDC/RCF 和 sim 资产，再完成 compile/dev_map 与七阶段重建。
    - M2-A 已建立 `scripts/regenerate_ip.ps1` staging 入口和 [`M2_IP_REGENERATION.md`](ddr3_test/ddr3_test/doc/M2_IP_REGENERATION.md)。M2-B1 已从 SP6.4 `ui.tcl` 关闭 `DEVICE_100H_EN` 语义，并形成 [`参数与差异审计`](ddr3_test/ddr3_test/doc/M2B1_PARAMETER_AND_DIFF_AUDIT.md)。
+   - M2-B2 已完成 PG2L50H staging compile-only 闭包：run `1d4b8c264ba940f0bb0e2517b8c36c07` 精确使用 18 个 staging RTL 和一个 IDF，PDS 退出 0、`E:` 为 0、warning 为 272、26 端口与三个核心产物非零；canonical 哈希不变，错误目标/零长度产物/错误记录三项动态负向测试均退出 1。合同见 [`M2B2_STAGING_COMPILE.md`](ddr3_test/ddr3_test/doc/M2B2_STAGING_COMPILE.md)。
    - 当前正确 staging 为 PG2L50H、SP6.4、`DEVICE_100H_EN=false`，DDR PHY 使用 `TRUE/CLKOUT4` 分支，canonical 哈希不变；顶层新增 5 个端口，FDC 有 28 项管脚差异，尚未升格。
    - 验收：先用原理图/BOM 关闭新增 refclk、DDR byte lane、复位/UART/LED/状态输出和电压拓扑，再原子升格并重跑 CI-6、七阶段和 D3-0-R。D3-A 仍需另行审核。
 
@@ -235,11 +236,12 @@ O0/O1/O2/M3-A 已从活动 TODO 移除，不再为 `41_ov7725_hdmi/` 安排 RTL�
 
 双 OV5640 必须在 `59_top_dual_ov5640_hdmi/` 重新建立接口、IP、约束、仿真和签核证据；legacy 记录不构成设计通过或复用授权。
 
-### CI-2：板级证据清单完整性门禁（已完成）
+### CI-2：板级证据清单完整性门禁（存量工程部分已完成）
 
-- [x] 三项目均存在板级证据清单，并统一包含当前工程事实、必须提供的资料和关闭条件章节。
-- [x] 三项目 README 均链接对应证据清单；仓库级门禁检查项目关键词与入口可追溯性。
-- [x] 门禁仅验证文档结构，不把待提供资料或模板字段判定为硬件事实。
+- [x] 已纳管 DDR3、PCIe 与 OV7725 legacy 三份存量板级证据清单，并统一包含当前工程事实、必须提供的资料和关闭条件章节；OV7725 清单只用于历史风险追溯，不计入活动项目完成度。
+- [x] 三个存量目录的 README 均链接对应证据清单；仓库级门禁检查项目关键词与入口可追溯性。
+- [ ] 双 OV5640 C1：在建立 `59_top_dual_ov5640_hdmi/` 时新增项目级 `doc/BOARD_EVIDENCE.md`，由项目 README 直接链接，并把双模组、DVP、MCLK、RESET/PWDN、DDR3、HDMI、bank 电压和管脚事实纳入仓库级门禁。
+- [x] 现有门禁仅验证存量文档结构，不把待提供资料或模板字段判定为硬件事实，也不表示双 OV5640 的 C1/H3 已关闭。
 
 ### CI-3：项目 README 元数据完整性门禁（已完成）
 
@@ -267,7 +269,7 @@ O0/O1/O2/M3-A 已从活动 TODO 移除，不再为 `41_ov7725_hdmi/` 安排 RTL�
 
 ### CI-7：PDS Tcl 入口分类门禁（已完成）
 
-- [x] 枚举并分类全部 13 个 tracked Tcl；确认只有三个项目 `scripts/build.tcl` 可由 `run.ps1` 调用。
+- [x] 枚举并分类全部 14 个 tracked Tcl；确认只有三个项目 `scripts/build.tcl` 可由 `run.ps1` 调用；M2-B2 staging compile Tcl 归类为非发布 `canonical_support_tool`。
 - [x] 机器清单记录角色、`set_arch` 次数、器件集合、绝对路径事实和 `run.ps1` 入口身份。
 - [x] 仓库门禁通过正向检查和缺失清单项负向测试；文档、Nexus 与验证证据已同步，纳入独立 CI-7 提交。
 

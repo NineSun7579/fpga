@@ -30,6 +30,16 @@ powershell -ExecutionPolicy Bypass -File .\scripts\regenerate_ip.ps1
 
 当前 staging probe 已成功生成 PG2L50H header、`DEVICE_100H_EN=false` 和 50H PPLL 分支。wrapper 新增 `ref_clk_p/ref_clk_n` 及三个状态输出，FDC 有 28 项管脚差异并使用 `DDRPHY_CPD_297_4`。因此 M2-B1 只证明“参数语义已关闭且可正确重生成”，不代表 canonical IP、板级参数或位流已获批准。
 
+## M2-B2 staging compile-only
+
+[`M2B2_STAGING_COMPILE.md`](doc/M2B2_STAGING_COMPILE.md) 已建立独立 PG2L50H compile 入口。runner 每次先重生成 staging，只加入 18 个示例 RTL 与 staging `ddr3.idf`，不加载 FDC/RCF，也不执行 synthesize、dev_map 或 PNR：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\run_staging_compile.ps1
+```
+
+最终 run `1d4b8c264ba940f0bb0e2517b8c36c07` 以 19 项 staging 输入完成 PDS compile，退出码 0、`E:` 为 0、warning 为 272、26 个顶层端口与三个核心产物均通过 gate；四个 canonical 关键输入哈希未变化。许可证 checkout 详情只保留脱敏状态文本。该结果只关闭生成资产的 compile 闭包，不授权 canonical 升格、板级约束、实现、仿真或烧录。
+
 ## 构建
 
 快速验证源码、IDF、FDC 和 RCF：

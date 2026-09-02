@@ -10,7 +10,7 @@ HDL 经 compile、synthesize、dev_map、PNR、timing report、netlist 和 bitst
 
 2026-08-30 S0 环境复核的“未发现仿真器”结论已被后续实际执行证据取代。截至 2026-09-01，Questa Sim-64 2021.1 最小 SystemVerilog 已通过，参数化 `scripts/compile_simlib.tcl`/`.ps1` 已成功生成 Logos2 USIM/VSIM；VSIM 编译退出 0、日志无 `^E:` 且库目录非空。
 
-2026-08-30 CI-7 入口分类确认全部 13 个 tracked Tcl 已登记。只有三个项目 `scripts/build.tcl` 通过 `run.ps1` 进入 `pds_shell`；PCIe 为 PG2L50H canonical，OV7725/DDR3 仍为 PG2L100H migration-blocked。`impl.tcl`、parse-design screen、厂商 IP PNR 和单 IP 仿真脚本中的旧器件、混合目标或绝对路径只保留为历史/内部证据，不能用于当前器件、STA、网表、SDF、位流或集成仿真签核。
+CI-7 入口分类现确认全部 14 个 tracked Tcl 已登记；新增 DDR3 `scripts/build_staging_compile.tcl` 为非发布 `canonical_support_tool`。只有三个项目 `scripts/build.tcl` 通过 `run.ps1` 进入 canonical 项目构建链；PCIe 为 PG2L50H canonical，OV7725/DDR3 正式 build 仍为 PG2L100H migration-blocked。`impl.tcl`、parse-design screen、厂商 IP PNR、单 IP 仿真和 compile-only 支持脚本中的旧器件、混合目标或绝对路径只保留为历史、内部或受限验证证据，不能用于当前 STA、网表、SDF、位流或集成仿真签核。
 
 2026-09-01 CI-9 同时覆盖当前树和 PR 差异：`-FullTree` 扫描 tracked/untracked 工作树，PR 模式依据 Git merge-base 扫描 changed paths 与 added lines。当前版本已将 68 个 tracked 日志中的 143 处许可证绝对路径替换为 `<license-path>`；全树和差异门禁均通过。门禁不读取实际配置，也不改写 Git 历史。
 

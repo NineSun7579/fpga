@@ -87,6 +87,18 @@ function Get-IdfParameterEntries {
     }
 }
 
+function Protect-LicenseCheckoutLine {
+    param([Parameter(ValueFromPipeline)][AllowNull()]$Line)
+
+    process {
+        if ([string]$Line -match '(?i)^License checkout:') {
+            'INFO: tool license checkout succeeded; details redacted'
+        } else {
+            $Line
+        }
+    }
+}
+
 Assert-Directory -Path $CanonicalIpRoot -Description 'canonical DDR3 IP directory'
 Assert-File -Path $CanonicalIdf -Description 'canonical DDR3 IDF'
 Assert-Directory -Path $SeedIpRoot -Description 'legacy PG2L50H seed directory'
@@ -207,7 +219,8 @@ try {
         -pack FBG484 `
         -speed -6 `
         -log generate.log `
-        2>&1 | Tee-Object -FilePath $ConsoleLog
+        2>&1 | Protect-LicenseCheckoutLine |
+        Tee-Object -FilePath $ConsoleLog
     $ExitCode = $LASTEXITCODE
 } finally {
     Pop-Location
