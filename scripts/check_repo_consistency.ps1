@@ -80,6 +80,14 @@ $Ddr3RegenerationDocPath = Join-Path $RepoRoot `
     'ddr3_test\ddr3_test\doc\M2_IP_REGENERATION.md'
 $Ddr3M2B1AuditPath = Join-Path $RepoRoot `
     'ddr3_test\ddr3_test\doc\M2B1_PARAMETER_AND_DIFF_AUDIT.md'
+$Ddr3M2B2BuildPath = Join-Path $RepoRoot `
+    'ddr3_test\ddr3_test\scripts\build_staging_compile.tcl'
+$Ddr3M2B2RunPath = Join-Path $RepoRoot `
+    'ddr3_test\ddr3_test\scripts\run_staging_compile.ps1'
+$Ddr3M2B2CheckPath = Join-Path $RepoRoot `
+    'ddr3_test\ddr3_test\scripts\check_staging_compile.ps1'
+$Ddr3M2B2DocPath = Join-Path $RepoRoot `
+    'ddr3_test\ddr3_test\doc\M2B2_STAGING_COMPILE.md'
 $OvM3AuditPath = Join-Path $RepoRoot `
     '41_ov7725_hdmi\doc\M3A_IP_MIGRATION_AUDIT.md'
 $OvM3CanonicalIpHashes = [ordered]@{
@@ -367,6 +375,14 @@ $Ddr3RegenerationDocExists = Require-File -Path $Ddr3RegenerationDocPath `
     -Description 'DDR3 M2 IP regeneration audit'
 $Ddr3M2B1AuditExists = Require-File -Path $Ddr3M2B1AuditPath `
     -Description 'DDR3 M2-B1 parameter and diff audit'
+$Ddr3M2B2BuildExists = Require-File -Path $Ddr3M2B2BuildPath `
+    -Description 'DDR3 M2-B2 staging compile Tcl'
+$Ddr3M2B2RunExists = Require-File -Path $Ddr3M2B2RunPath `
+    -Description 'DDR3 M2-B2 staging compile runner'
+$Ddr3M2B2CheckExists = Require-File -Path $Ddr3M2B2CheckPath `
+    -Description 'DDR3 M2-B2 staging compile gate'
+$Ddr3M2B2DocExists = Require-File -Path $Ddr3M2B2DocPath `
+    -Description 'DDR3 M2-B2 staging compile contract'
 if ($Ddr3RegenerateExists) {
     $Ddr3RegenerateText = Get-Content -Raw -Encoding UTF8 `
         -LiteralPath $Ddr3RegeneratePath
@@ -493,6 +509,21 @@ if (Test-Path -LiteralPath $TodoPath -PathType Leaf) {
         -Description 'approved shared board in TODO' | Out-Null
     Require-Pattern -Text $TodoText -Pattern ([regex]::Escape($ApprovedFpgaPart)) `
         -Description 'approved FPGA part in TODO' | Out-Null
+    Require-Pattern -Text $TodoText `
+        -Pattern 'DDR3.{1,12}PCIe.{1,24}OV5640' `
+        -Description 'TODO dual OV5640 active-project boundary' | Out-Null
+    Require-Pattern -Text $TodoText `
+        -Pattern '59_top_dual_ov5640_hdmi/.*doc/BOARD_EVIDENCE\.md' `
+        -Description 'TODO dual OV5640 board-evidence task' | Out-Null
+
+    $ActiveOv7725Tasks = @($TodoText -split "`r?`n" | Where-Object {
+            $_ -match '^\s*-\s*\[\s\]\s+.*OV7725'
+        })
+    if ($ActiveOv7725Tasks.Count -gt 0) {
+        Add-Failure "TODO contains active OV7725 tasks: $($ActiveOv7725Tasks -join ' | ')"
+    } else {
+        Write-Host 'INFO: TODO contains no active OV7725 tasks'
+    }
 }
 
 $IgnoreText = Get-Content -Raw -LiteralPath (Join-Path $RepoRoot '.gitignore')
@@ -851,6 +882,64 @@ if ($PciePostPnrFuncSimCheckExists) {
         & $PciePostPnrFuncSimCheckPath
     } catch {
         Add-Failure "PCIe post-PNR functional static simulation gate failed: $($_.Exception.Message)"
+    }
+}
+if ($Ddr3M2B2BuildExists -and $Ddr3M2B2RunExists -and
+    $Ddr3M2B2CheckExists -and $Ddr3M2B2DocExists) {
+    $Ddr3M2B2BuildText = Get-Content -Raw -Encoding UTF8 `
+        -LiteralPath $Ddr3M2B2BuildPath
+    $Ddr3M2B2RunText = Get-Content -Raw -Encoding UTF8 `
+        -LiteralPath $Ddr3M2B2RunPath
+    $Ddr3M2B2DocText = Get-Content -Raw -Encoding UTF8 `
+        -LiteralPath $Ddr3M2B2DocPath
+
+    foreach ($Required in ([ordered]@{
+            'M2-B2 PG2L50H target' = '-device\s+PG2L50H'
+            'M2-B2 compile-only command' = 'compile\s+-top_module\s+test_ddr'
+            'M2-B2 staging IDF' = '\$staging_root/ddr3\.idf'
+            'M2-B2 18-source contract' = 'M2B2_SOURCE_COUNT='
+            'M2-B2 success marker' = 'M2B2_COMPILE_OK'
+        }).GetEnumerator()) {
+        Require-Pattern -Text $Ddr3M2B2BuildText -Pattern $Required.Value `
+            -Description $Required.Key | Out-Null
+    }
+    foreach ($ForbiddenPattern in @(
+            'add_constraint',
+            '\bsynthesize\b',
+            '\bdev_map\b',
+            '(?m)^\s*pnr\b'
+        )) {
+        if ($Ddr3M2B2BuildText -match $ForbiddenPattern) {
+            Add-Failure "M2-B2 compile Tcl contains forbidden pattern: $ForbiddenPattern"
+        }
+    }
+    foreach ($Required in ([ordered]@{
+            'M2-B2 fresh regeneration' = 'regenerate_ip\.ps1'
+            'M2-B2 canonical hash gate' = 'Get-CanonicalHashes'
+            'M2-B2 license redaction' = 'details redacted'
+            'M2-B2 dynamic gate' = 'check_staging_compile\.ps1'
+        }).GetEnumerator()) {
+        Require-Pattern -Text $Ddr3M2B2RunText -Pattern $Required.Value `
+            -Description $Required.Key | Out-Null
+    }
+    foreach ($Required in @(
+            '1d4b8c264ba940f0bb0e2517b8c36c07',
+            '18 \u4e2a staging RTL',
+            '0 / 272',
+            'canonical',
+            'VCCIO.*VREF.*ODT'
+        )) {
+        Require-Pattern -Text $Ddr3M2B2DocText -Pattern $Required `
+            -Description "M2-B2 evidence '$Required'" | Out-Null
+    }
+
+    try {
+        & $Ddr3M2B2CheckPath -StaticOnly -SelfTest
+        if ($LASTEXITCODE -ne 0) {
+            Add-Failure "M2-B2 static gate exited with code $LASTEXITCODE"
+        }
+    } catch {
+        Add-Failure "M2-B2 static gate failed: $($_.Exception.Message)"
     }
 }
 $PciePostPnrTimingSimCheckExists = Require-File `

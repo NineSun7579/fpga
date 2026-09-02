@@ -28,10 +28,10 @@
 
 ## CI-2 板级证据清单完整性门禁（2026-08-30）
 
-- 已验证：提交 `677808d` 将三项目板级证据清单路径和项目关键词加入 `scripts/check_repo_consistency.ps1`，并要求各项目 README 直接链接对应清单。
+- 已验证：提交 `677808d` 将 OV7725 legacy、DDR3、PCIe 三个存量目录的板级证据清单路径和项目关键词加入 `scripts/check_repo_consistency.ps1`，并要求对应 README 直接链接清单。
 - 已验证：OV7725、DDR3、PCIe 清单均包含“当前工程事实”“必须提供的资料”“关闭条件”；PCIe 清单已统一章节名称和结构。
 - 已验证：HEAD `677808d` 上仓库一致性门禁退出码为 0，并输出 `INFO: repository consistency gate passed`。
-- 边界：CI-2 只证明清单结构、关键词和 README 链接完整，不证明清单中的板级资料已提交、审核或与实物一致。
+- 边界：CI-2 当前只证明三份存量清单的结构、关键词和 README 链接完整；双 OV5640 的 `59_top_dual_ov5640_hdmi/doc/BOARD_EVIDENCE.md` 尚待 C1 建立，也不证明任何清单中的板级资料已提交、审核或与实物一致。
 
 ## CI-3 项目 README 元数据完整性门禁（2026-08-30）
 
@@ -59,7 +59,7 @@
 
 ## CI-7 PDS Tcl 入口分类门禁（2026-08-30）
 
-- 已验证：`docs/PDS_TCL_ENTRYPOINT_INVENTORY.json` 登记全部 13 个 tracked Tcl，并记录六类角色、`set_arch` 次数、器件集合、绝对路径和 `run_ps1_entry`。
+- 已验证：`docs/PDS_TCL_ENTRYPOINT_INVENTORY.json` 登记全部 14 个 tracked Tcl；新增 DDR3 `scripts/build_staging_compile.tcl` 为非发布 `canonical_support_tool`，清单继续记录六类角色、`set_arch` 次数、器件集合、绝对路径和 `run_ps1_entry`。
 - 已验证：只有三个项目 `scripts/build.tcl` 由 `run.ps1` 调用；PCIe 为 PG2L50H canonical，OV7725/DDR3 仍为 PG2L100H migration-blocked。
 - 已验证：正向门禁退出码为 0；删除任一清单条目的负向测试退出码为 1。历史 GUI、厂商内部和厂商仿真 Tcl 不得用于器件身份、STA、网表、SDF、位流或集成仿真通过证明。
 - 边界：CI-7 仅验证 tracked Tcl 分类和入口事实，不执行 PDS、IP Compiler、STA、位流或 ModelSim/QuestaSim。

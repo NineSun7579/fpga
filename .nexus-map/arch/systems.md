@@ -21,9 +21,9 @@
 - ci_0_scope: 检查根指南/TODO/VSCS、三个项目 README、`build.tcl`、`run.ps1`、`check_build.ps1`、顶层声明、七阶段入口、可配置 PDS 路径、进程退出码、显式 baseline 开关、产物/时序检查接口、`build/` 忽略与未跟踪生成物状态；拒绝活动 Tcl 的 `simulate` 命令和反斜杠绝对路径。
 - ci_0_result: `scripts/check_repo_consistency.ps1` 退出码 0，并输出 `INFO: repository consistency gate passed`；三个项目 README 缺口已修正，全部 7 个 PowerShell 脚本 AST 解析错误数为 0。
 - ci_2_status: committed_as_677808d
-- ci_2_scope: 为 OV7725、DDR3、PCIe 配置板级证据清单路径和项目关键词；要求三个项目 README 链接对应清单；要求清单包含“当前工程事实”“必须提供的资料”“关闭条件”三个统一章节，PCIe H2-A 清单已按此结构统一。
+- ci_2_scope: 为 OV7725 legacy、DDR3、PCIe 三个存量目录配置板级证据清单路径和项目关键词；要求对应 README 链接清单，并要求清单包含“当前工程事实”“必须提供的资料”“关闭条件”三个统一章节，PCIe H2-A 清单已按此结构统一。
 - ci_2_result: 2026-08-30 在 HEAD `677808d` 复验 `scripts/check_repo_consistency.ps1` 退出码 0，并输出 `INFO: repository consistency gate passed`。
-- ci_2_boundary: 只验证清单文件、章节结构、关键词与 README 导航存在；不验证原理图/BOM/板卡实物，不解除 H0/H1/H2/H3 外部阻断，也不替代 PDS、STA、SCBV 或仿真。
+- ci_2_boundary: 只验证三份存量清单文件、章节结构、关键词与 README 导航存在；双 OV5640 的 `59_top_dual_ov5640_hdmi/doc/BOARD_EVIDENCE.md` 仍待 C1 建立。不验证原理图/BOM/板卡实物，不解除 H0/H1/H2/H3 外部阻断，也不替代 PDS、STA、SCBV 或仿真。
 - ci_3_status: committed_as_5bfaae9
 - ci_3_scope: 三项目 README 元数据完整性门禁；除既有 PDS 版本和顶层检查外，按项目特征要求 README 明确记录器件目标、时钟、主要接口、构建入口、IP/IDF 来源和当前阻断。
 - ci_3_result: 2026-08-30 在 HEAD `5bfaae9` 复验 `scripts/check_repo_consistency.ps1` 退出码 0，并输出 `INFO: repository consistency gate passed`。
@@ -40,7 +40,7 @@
 - ci_6_scope: 静态交叉核对 `ddr3.v`、`test_ddr.v` 与 `D3A_PORT_MAP.md` 的模块、参数宽度、128-bit 数据、28-bit 地址、`I_ips_ddr_top` 层级、AXI-like 握手字段及 core 不含 `axi_rready`。
 - ci_6_result: 2026-08-30 在 HEAD `a5d1785`（52 个 Git 提交）复验仓库一致性门禁、8 个 PowerShell AST 与 `git diff --check` 均通过。
 - ci_6_boundary: 仅保护当前 D3-0-R 静态契约不漂移；PG2L50H DDR3 IP/FDC/RCF 重生成后必须重新核对并审核，不能把当前通过解释为新器件实现或动态验证通过。
-- ci_7_scope: `docs/PDS_TCL_ENTRYPOINT_INVENTORY.json` 覆盖全部 13 个 tracked Tcl；逐项记录角色、`set_arch` 次数、器件集合、绝对路径事实和 `run_ps1_entry`。
+- ci_7_scope: `docs/PDS_TCL_ENTRYPOINT_INVENTORY.json` 覆盖全部 14 个 tracked Tcl；新增 DDR3 `scripts/build_staging_compile.tcl` 归为非发布 `canonical_support_tool`，逐项记录角色、`set_arch` 次数、器件集合、绝对路径事实和 `run_ps1_entry`。
 - ci_7_roles: 角色集合固定为 `canonical_project_build`、`migration_blocked_project_build`、`canonical_support_tool`、`historical_gui`、`vendor_generated_internal`、`vendor_sim_internal`；只有三个项目 `scripts/build.tcl` 可由对应 `run.ps1` 调用。
 - ci_7_target_boundary: PCIe `scripts/build.tcl` 已是 `Logos2 / PG2L50H / FBG484 / -6` canonical；OV7725 与 DDR3 `scripts/build.tcl` 仍是 PG2L100H migration-blocked。历史 GUI、厂商内部和厂商仿真脚本的混合器件/绝对路径不构成当前器件或实现证据。
 - ci_7_result: 正向 `check_pds_tcl_entrypoints.ps1` 退出 0；删除任一清单项的负向测试退出 1。M2/M3 升格时必须同步清单角色与器件集合。
@@ -130,8 +130,8 @@
 - implementation_status: bringup_full_implementation_baseline
 - code_path: `ddr3_test/ddr3_test/`
 - project_path: `ddr3_test/ddr3_test/ddr3_test.pds`
-- evidence_path: `ddr3_test/ddr3_test/scripts/regenerate_ip.ps1`, `ddr3_test/ddr3_test/doc/M2_IP_REGENERATION.md`, `ddr3_test/ddr3_test/doc/M2B1_PARAMETER_AND_DIFF_AUDIT.md`, `ddr3_test/ddr3_test/build/logs/pds-gen_bit_stream.log`, `ddr3_test/ddr3_test/build/pds/report_timing/test_ddr.rtr`, `ddr3_test/ddr3_test/scripts/check_build.ps1`
-- evidence_gap: M2-B1 已纠正 PG2L50H staging 生成路径并完成参数/资产差异审计，但 canonical IP/FDC/RCF 仍是旧 PG2L100H 输入，旧全流程、STA、网表、SDF 和位流不可烧录实际板卡。板级 DDR3 参数、28 项 FDC pin 差异、canonical 升格、CI-6、50H 空目录七阶段、D3-0-R 与 D3-A/B/C 均未验收。
+- evidence_path: `ddr3_test/ddr3_test/scripts/regenerate_ip.ps1`, `ddr3_test/ddr3_test/scripts/build_staging_compile.tcl`, `ddr3_test/ddr3_test/scripts/run_staging_compile.ps1`, `ddr3_test/ddr3_test/scripts/check_staging_compile.ps1`, `ddr3_test/ddr3_test/doc/M2_IP_REGENERATION.md`, `ddr3_test/ddr3_test/doc/M2B1_PARAMETER_AND_DIFF_AUDIT.md`, `ddr3_test/ddr3_test/doc/M2B2_STAGING_COMPILE.md`, `ddr3_test/ddr3_test/build/logs/pds-gen_bit_stream.log`, `ddr3_test/ddr3_test/build/pds/report_timing/test_ddr.rtr`, `ddr3_test/ddr3_test/scripts/check_build.ps1`
+- evidence_gap: M2-B2 已证明 PG2L50H staging 可用 18 RTL + 1 IDF 完成独立 compile，但未加载 FDC/RCF，也未执行综合及其后级；canonical IP/FDC/RCF 仍是旧 PG2L100H 输入，旧全流程、STA、网表、SDF 和位流不可烧录实际板卡。板级 DDR3 参数、28 项 FDC pin 差异、canonical 升格、CI-6、50H 空目录七阶段、D3-0-R 与 D3-A/B/C 均未验收。
 - responsibility: 当前以厂商 `test_ddr` 作为临时 DDR3 board bring-up 顶层；后续必须明确真正产品顶层和板级功能范围。
 - hardware_target: `RK3568+PG2L50H100H` / `PG2L50H-6IFBG484` / `Logos2 / PG2L50H / FBG484 / -6`
 - m2_active_input_audit: 活动 `ip_core/ddr3/ddr3.idf` 为 `PG2L100H`、生成器 `2022.2-SP6.4`；canonical FDC/RCF 为 `ip_core/ddr3/pnr/ddr_test.fdc` 与 `ip_core/ddr3/pnr/ddr3.rcf`；`ip_core/ddr_test.fdc` 是旧外层参考，不能直接升格。项目自有 `scripts/build.tcl` 与 `scripts/check_build.ps1` 也仍按 `PG2L100H`，待 50H 资产落地后再修正。
@@ -140,8 +140,12 @@
 - m2_b1_derived_parameter: PDS SP6.4 `ui.tcl` 定义 `DEVICE_100H_EN` 为隐藏派生参数，`PG2L100H/HX=true`、`PG2L50H=false`；直接 `-device` 覆盖旧 100H IDF 会错误保留 `true` 并生成 PPLL `FALSE/CLKOUTF` 分支，已明确禁止。
 - m2_b1_seed_regeneration: 活动 100H IDF 与 SP6.1 50H seed 的参数仅 `DEVICE_100H_EN` 不同；更新后的 `scripts/regenerate_ip.ps1` 先验证 seed 参数一致，再由 SP6.4 build 146967 重生成，结果 `DEVICE_100H_EN=false`、PPLL `TRUE/CLKOUT4`、`0 error(s), 0 warning(s)`，canonical 哈希保持不变。
 - m2_b1_diff: 正确 PG2L50H staging 的 DDR PHY slice、wrapper、FDC、仿真 filelist 与 IDF 均不同；wrapper 端口 `21 → 26`，新增 `ref_clk_p/n`、`pll_lock`、`ddrphy_cpd_lock`、`ddr_init_done`；FDC 有 28 项 pin 差异。
-- m2_status: seed_parameter_validation_and_sp6_4_staging_verified_pending_board_evidence_and_canonical_promotion
-- m2_gate: 取得原理图/BOM并锁定板级 DDR3 颗粒/组织/PCB 参数 → 审核 28 项 FDC pin 差异及 wrapper/PHY/filelist/IDF → 升格 canonical → 重跑 CI-6 → 清空 `build/` 完成七阶段与器件交叉检查 → 重审 D3-0-R，获审后才可进入 D3-A。M2-B1 未授权 canonical 替换、D3-A 或烧录。
+- m2_b2_entry: `scripts/build_staging_compile.tcl`、`run_staging_compile.ps1` 与 `check_staging_compile.ps1` 是项目内 compile-only 归档；Tcl 角色为 `canonical_support_tool`，不是 canonical project build。
+- m2_b2_result: run `1d4b8c264ba940f0bb0e2517b8c36c07` 固定 `Logos2/PG2L50H/FBG484/-6`、18 RTL + 1 IDF、26 端口 `test_ddr`；PDS 退出 0、`E:` 为 0、warning 272，三个 compile 产物非零，四个 canonical 哈希不变。
+- m2_b2_negative_gates: 错误目标、零长度核心产物和日志错误记录三项动态负向测试均退出 1；运行证据只保留脱敏许可证类别，不记录本机配置。
+- m2_b2_boundary: 不加载 FDC/RCF，不做 synthesize/dev_map/PNR/STA/netlist/SDF/bitstream；不授权 canonical 升格、D3-A、Questa、实板或烧录。
+- m2_status: pg2l50h_staging_compile_only_verified_pending_h1_board_evidence_and_canonical_promotion
+- m2_gate: 取得原理图/BOM并锁定板级 DDR3 颗粒/组织/PCB 参数 → 审核 28 项 FDC pin 差异及 wrapper/PHY/filelist/IDF → 升格 canonical → 重跑 CI-6 → 清空 `build/` 完成七阶段与器件交叉检查 → 重审 D3-0-R，获审后才可进入 D3-A。M2-B2 仅关闭 compile-only，不授权 canonical 替换、D3-A、仿真或烧录。
 - d3_0_read_only_review: `2026-08-30` 已确认活动 IP 为 `ddr3_test/ddr3_test/ip_core/ddr3/ddr3.v` 的 `module ddr3`；公开端口包含 `ddr_init_done`、`core_clk` 和自定义 AXI-like AW/W/AR/R 接口。`test_ddr.v` 的物理 board wrapper 实例名 `I_ips_ddr_top` 必须保持不变。
 - d3_0_status: legacy_contract_review_complete; PG2L50H IP/FDC/RCF regeneration and D3-A re-review required
 - d3_0_handshake_contract: 写地址以 `axi_awvalid && axi_awready` 接受，写数据接受由 `axi_wready` 指示，核心返回 `axi_wusero_id`/`axi_wusero_last`；读请求以 `axi_arvalid && axi_arready` 接受，核心用 `axi_rvalid`/`axi_rlast` 返回且没有 `axi_rready`。D3-A 按该非标准 AXI-like 契约实现；若 IP 重生成后语义、地址单位或层级变化则停止并重新审核。
@@ -167,7 +171,7 @@
 - transaction_contract: 16 个单 beat 写读比较 pair；控制器地址 `0x0..0x78`、步长 8；每 pair timeout 4096 周期；整次 run timeout 131072 周期。
 - result_contract: 稳定公开 `test_done`、`test_failed`、`failure_code`、`error_count`、`completed_pairs`，并提供首错地址/期望值/实际值等首错信息。
 - ownership_boundary: 厂商 `ip_core/ddr3/**` 保持原样；新增项目自有 RTL 必须遵循根目录 VSCS。
-- next_step: M2-B1 已确认隐藏派生参数语义并生成正确 50H staging；先依据原理图/BOM审核 28 项 FDC pin 差异和新增 wrapper 状态端口，再决定 canonical 升格。升格后重新核对握手、地址单位、端口和 `I_ips_ddr_top` 层级；重新审核 D3-A 后才可按 D3-A → D3-B → D3-C 实现项目自有 RTL
+- next_step: M2-B2 已确认正确 50H staging 可独立 compile；仍须先依据原理图/BOM审核 28 项 FDC pin 差异和新增 wrapper 状态端口，再决定 canonical 升格。升格后重新核对握手、地址单位、端口和 `I_ips_ddr_top` 层级；重新审核 D3-A 后才可按 D3-A → D3-B → D3-C 实现项目自有 RTL
 
 ## DDR3 IP 示例
 

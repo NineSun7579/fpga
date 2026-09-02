@@ -490,3 +490,10 @@
 - `level1/level2/level3` 的 `vsim-3004` 分别为 `3624/1590/1590`，`vsim-8756` 均为 1；`vsim-3316/3616` 均为 0。`level1` 只暴露更强的 solver 敏感性，`level3` 与 canonical `level2` 无统计差异。
 - 三档均自然复现同一 `CLMA_267_624/FF0/FF` setup error 和 `CLMA_267_612/FF0/FF` hold error，终态均为 `Errors: 2`。进程退出 0 不能覆盖 simulator summary，诊断完成也不能升格为 S2-F PASS。
 - `level3` 不关闭 timing checks，但本设计没有 conditional solver 的 `COND/&&&` 依据，只保留为非 canonical 诊断。S2-F 继续等待厂商确认的修订模型或解释，并必须回到相同输入、无 force TB 和 `level2` 重新验收。
+
+## 2026-09-02：双 OV5640 TODO 与板级清单边界复核
+
+- owner 再次确认摄像头产品不使用 OV7725，唯一活动目标为双 OV5640；只读复核 `origin/parallel_driver@485f3bba71e4b57fb8bb49cec30e9d331b952be3` 后，参考顶层、双路接口和既有 TB 事实保持不变。
+- 修正根 TODO 的 CI-2 表述：现有三份清单属于 DDR3、PCIe 和 OV7725 legacy 存量目录，不代表双 OV5640 已有项目级板级证据清单。
+- 新增明确待办：建立 `59_top_dual_ov5640_hdmi/` 时同步创建 `doc/BOARD_EVIDENCE.md`、README 链接和仓库门禁，覆盖双模组、DVP、MCLK、RESET/PWDN、DDR3、HDMI、bank 电压和管脚事实。
+- 仓库一致性门禁现拒绝 TODO 中新增未完成 OV7725 任务，并要求保留双 OV5640 项目级清单待办；本批未修改 RTL、IP、FDC 或仿真资产，也未把参考分支 PASS 升格为本仓库验证结果。

@@ -88,7 +88,9 @@ flowchart TD
 - DDR3 M2-B1（2026-08-30）从 PDS SP6.4 `ui.tcl` 证实 `DEVICE_100H_EN` 是隐藏派生参数：`PG2L100H/HX=true`，`PG2L50H=false`。直接对 100H IDF 使用 `-device PG2L50H` 会保留错误的 `true`，进而生成 PPLL `FALSE/CLKOUTF` 分支；此覆盖路径已禁止。
 - 活动 100H IDF 与 SP6.1 50H seed 的所有参数仅 `DEVICE_100H_EN` 不同。更新后的 `scripts/regenerate_ip.ps1` 先验证 seed 参数一致性，再用 SP6.4 build 146967 重生成；输出为 `DEVICE_100H_EN=false`、PPLL `TRUE/CLKOUT4`、`0 error(s), 0 warning(s)`，且 canonical IDF 哈希未变。
 - M2-B1 正确差异边界：DDR PHY slice、wrapper、FDC、仿真 filelist 与 IDF 均有差异；wrapper 端口数从 21 增至 26，新增 `ref_clk_p/ref_clk_n`、`pll_lock`、`ddrphy_cpd_lock`、`ddr_init_done`；FDC 有 28 项 pin 差异。完整证据见 `doc/M2B1_PARAMETER_AND_DIFF_AUDIT.md`。
-- M2 后续门禁固定为：取得原理图/BOM并锁定板级 DDR3 颗粒/组织/PCB 参数 → 审核 28 项 FDC pin 差异及 wrapper/PHY/filelist/IDF → 才可升格 canonical → 重跑 CI-6（端口、宽度、地址单位、`axi_wready` 与 `I_ips_ddr_top`）→ 清空 `build/` 完成七阶段 → 重新审核 D3-0-R，之后才可请求 D3-A。M2-B1 本身不授权 canonical 替换、产品 RTL 或烧录。
+- M2-B2 compile-only 依赖链为 `regenerate_ip.ps1 → build_staging_compile.tcl → pds_shell compile → check_staging_compile.ps1`。最终 run `1d4b8c264ba940f0bb0e2517b8c36c07` 只消费 18 个 staging RTL 与一个 staging IDF，目标为 `Logos2/PG2L50H/FBG484/-6`，`test_ddr` 为 26 端口；PDS/`E:` 为 `0/0`、warning 272，三个 compile 产物非零且四个 canonical 哈希不变。错误目标、零长度产物和错误记录三项动态负向测试均退出 1。
+- `build_staging_compile.tcl` 是 `canonical_support_tool`，不依赖 FDC/RCF，也不产生 synthesize/dev_map/PNR/STA/netlist/SDF/bitstream 证据；日志只保留脱敏许可证类别。M2-B2 不能被 canonical build、Questa、实板或烧录链消费。
+- M2 后续门禁固定为：取得原理图/BOM并锁定板级 DDR3 颗粒/组织/PCB 参数 → 审核 28 项 FDC pin 差异及 wrapper/PHY/filelist/IDF → 才可升格 canonical → 重跑 CI-6（端口、宽度、地址单位、`axi_wready` 与 `I_ips_ddr_top`）→ 清空 `build/` 完成七阶段 → 重新审核 D3-0-R，之后才可请求 D3-A。M2-B2 仅关闭 staging compile-only，H1 板级阻断不变。
 - DDR3 严格 gate 因 BIST 位宽/dangling、`rst_board` share pin、BANKR4 VCCIO 3.3、UART I/O 以及输入/输出 timing 共 7 类阻断返回 1；显式 baseline 放行返回 0 但不可发布。日志无 SCBV 命中不等同于板级参数获批，批准清单仍是关闭 gate 的前置依赖。
 - DDR3 D2 只读决策不依赖修改厂商示例：`test_ddr`、持续运行 BIST 和旧 testbench 保持原样；D3 若获审核，只新增项目自有 `ddr3_bringup_top.sv` 与 `ddr3_finite_bist.sv`。
 - DDR3 D3-0（2026-08-30）已完成旧活动 `ddr3` 核、非标准 AXI-like AW/W/AR/R 握手和 `I_ips_ddr_top` 边界评审，CI-6 提交 `a5d1785` 已保护该静态契约；目标迁移后必须先重生成 PG2L50H DDR3 IP/FDC/RCF并重新审核 D3-A。
@@ -112,6 +114,6 @@ flowchart TD
 - PCIe S2-A、S2-B、S2-D 与 S2-E 均有动态通过证据。S2-F 当前 run `7fc77a7ec8db479db7332e8037426d6c` 已成功标注 SDF且未 force 设计信号，但两个 HSST reset timing error 使独立脚本汇总 5 类失败并退出 1；`V_FFASYN` 负时序模型语义不完整，而 slow-corner STA setup/hold 为正。该依赖冲突未解决前，S2-F 不得标记通过；S2-C、DDR3/OV5640 项目级仿真仍未完成。
 - PCIe `sim/questa/behav.f` 单独包含仿真所需 `ips2l_pcie_apb_cross_v1_0.v`；不得为此修改 `scripts/pds_sources.f`，因为实现侧由 IDF 管理该源。
 - CI-0 仓库级静态一致性门禁依赖根指南/TODO/VSCS、三个项目 README 与各自 `build.tcl`/`run.ps1`/`check_build.ps1`；当前工作区门禁退出码为 0，7 个 PowerShell 脚本 AST 解析错误数为 0。它只验证结构、入口与文档关系，不解除任何 PDS、STA、板级或仿真阻断。
-- CI-7 依赖 `docs/PDS_TCL_ENTRYPOINT_INVENTORY.json` 与 `scripts/check_pds_tcl_entrypoints.ps1`：13 个 tracked Tcl 必须逐项分类；只有三个 `scripts/build.tcl` 可由 `run.ps1` 调用。PCIe build 目标为 PG2L50H，OV7725/DDR3 build 仍为 PG2L100H migration-blocked；历史 GUI、厂商内部和厂商仿真 Tcl 不得进入当前器件/STA/位流证据链。正向门禁为 0，缺失清单项负向测试为 1。
-- CI-2 在 CI-0 上增加三项目板级证据清单路径、项目关键词、README 链接和统一章节门禁；清单结构通过只允许继续收集证据，不会自动解锁 H0/H1/H2/H3、PCIe H2-B、DDR3 或双 OV5640 板级整改。OV7725 清单仅保留 legacy 事实。
+- CI-7 依赖 `docs/PDS_TCL_ENTRYPOINT_INVENTORY.json` 与 `scripts/check_pds_tcl_entrypoints.ps1`：14 个 tracked Tcl 必须逐项分类；DDR3 `build_staging_compile.tcl` 是非发布 `canonical_support_tool`，只有三个项目 `scripts/build.tcl` 可由 `run.ps1` 调用。PCIe build 目标为 PG2L50H，OV7725/DDR3 build 仍为 PG2L100H migration-blocked；历史 GUI、厂商内部、厂商仿真和 compile-only 支持 Tcl 不得进入当前 STA/位流发布证据链。正向门禁为 0，缺失清单项负向测试为 1。
+- CI-2 在 CI-0 上增加 OV7725 legacy、DDR3、PCIe 三份存量板级证据清单路径、项目关键词、README 链接和统一章节门禁；双 OV5640 仍须在 `59_top_dual_ov5640_hdmi/` 建立项目级清单并扩展门禁。现有结构通过只允许继续收集证据，不会自动解锁 H0/H1/H2/H3、PCIe H2-B、DDR3 或双 OV5640 板级整改。
 - CI-9 依赖 `scripts/check_sensitive_diff.ps1` 与 `docs/SENSITIVE_DIFF_GATE.md`：`-FullTree` 扫描当前 tracked/untracked 工作树，PR 模式扫描 merge-base 后的路径和新增行。68 个 tracked 日志中的 143 处许可证绝对路径已替换为 `<license-path>`；全树通过证明当前版本已清理，差异通过阻止后续重引入，但两者都不改写 Git 历史。
