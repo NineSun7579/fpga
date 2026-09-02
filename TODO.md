@@ -2,15 +2,25 @@
 
 更新日期：2026-09-02
 
-状态：三项目器件迁移已获审核。活动项目仅指 DDR3、PCIe 和双 OV5640 摄像头 HDMI，最终均运行在同一块 `RK3568+PG2L50H100H` 开发板，实际 FPGA 为 `PG2L50H-6IFBG484`，PDS 目标统一为 `Logos2 / PG2L50H / FBG484 / -6`。摄像头产品目标固定为双 OV5640；`41_ov7725_hdmi/` 不属于三个活动项目，只保留为只读 legacy 历史证据。既有 PG2L100H 构建、STA、网表、SDF 和位流不得用于实际板卡验收或烧录。双 OV5640 范围见 [`docs/OV5640_TARGET_SCOPE.md`](docs/OV5640_TARGET_SCOPE.md)。
+> 目标修订说明：本文件中此前以 PG2L50H 为统一实物目标的结论已被 owner 在 2026-09-02 更正为 PG2L100H。旧 50H 迁移项全部降级为可审计历史记录；后续任务以本节“PG2L100H 恢复评估”为准。
+
+状态：owner 已于 2026-09-02 更正目标器件为 `PG2L100H`。开发板名称仍为 `RK3568+PG2L50H100H`，但必须以实际 FPGA 丝印、原理图或 BOM 作为最终依据；在证据归档前，不得把 100H 或 50H 产物直接用于烧录。三个活动方向仍为 DDR3、PCIe 和双 OV5640 HDMI；双 OV5640 范围见 [`docs/OV5640_TARGET_SCOPE.md`](docs/OV5640_TARGET_SCOPE.md)。
 
 ## 活动项目边界
 
 - DDR3：`ddr3_test/ddr3_test/`。
-- PCIe：`pcie_dma_test_100h/`；目录名保留历史命名，活动 PDS 目标必须为 PG2L50H。
+- PCIe：`pcie_dma_test_100h/`；目录名与历史 PDS 工程均偏向 PG2L100H，但活动 IP metadata 仍需重新核对，不能直接恢复发布。
 - 双 OV5640 HDMI：产品目录固定为 `59_top_dual_ov5640_hdmi/`；当前以 `origin/parallel_driver@485f3bb` 为只读参考，完成 C1/H3 后才选择性导入。
-- 排除项：`41_ov7725_hdmi/` 不再接受产品功能、IP、约束、Questa 或实板任务；其中事实只能作为双 OV5640 设计评审的反例或风险输入，不能作为复用授权和验收证据。
+- `41_ov7725_hdmi/` 原生就是 PG2L100H 工程，可恢复为 100H 历史工程候选；但其产品目标仍是 OV7725，不得冒充双 OV5640 产品。
 - TODO 维护规则：摄像头新增待办只能归入双 OV5640 的 C1/C2/C3/S3；不得新增 OV7725 未完成项，OV7725 只能出现在已完成的 legacy 事实或风险引用中。
+
+## PG2L100H 恢复评估
+
+- [ ] 归档实际 PG2L100H 丝印、原理图或 BOM，并确认 `FBG484/-6` 封装速度级；证据未闭合前保持烧录阻断。
+- [x] DDR3：canonical 工程、DDR3 IP、FDC/RCF 和历史七阶段产物原本就是 PG2L100H，可作为 100H 恢复基线；恢复前仍需检查输入路径、产物一致性和板级 DDR 参数。
+- [x] OV7725 HDMI：四个活动 IP、PDS 工程和历史实现原本就是 SP4.2/PG2L100H，可恢复为独立 OV7725-100H 历史工程；不能改称双 OV5640，也不能把旧 PASS 当作当前产品验收。
+- [ ] PCIe：PDS 工程/历史 bitstream 含 PG2L100H，但活动 `pcie_test.idf` 曾为 PG2L50H，属于混合目标；必须取得并审核 PG2L100H 同版本 IP，或明确接受重新生成与完整回归后，才能恢复 100H。
+- [ ] 双 OV5640：参考分支含 PG2L100H 生成物但拓扑和 FDC 混杂，不能直接恢复；须按双 OV5640 产品合同重新建立 100H canonical IP/FDC/仿真入口。
 
 ## 1. 总体验收目标
 
