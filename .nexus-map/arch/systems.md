@@ -60,6 +60,11 @@
 - ci_9_self_test: 2 个允许新增行、5 个拒绝新增行、1 个允许文件名、1 个拒绝文件名均按预期判定。
 - ci_9_result: 68 个 tracked 日志中的 143 处许可证绝对路径已替换为 `<license-path>`；当前树 `-FullTree` 扫描和 PR 差异扫描均通过。
 - ci_9_boundary: 保护当前版本并阻止后续重新引入，不读取或输出实际许可证配置；本批不改写 Git 历史，历史清理和任何历史重写必须独立审核。
+- ci_10_entry: `.github/workflows/repository-gates.yml`；触发条件为所有 `pull_request`、`main` push 和手动 `workflow_dispatch`。
+- ci_10_runner: Windows `pwsh`，job/check 名为 `Static repository gates`；工作流权限仅为 `contents: read`。
+- ci_10_checkout: `actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1`（v7.0.1），`fetch-depth: 0`，`persist-credentials: false`。
+- ci_10_scope: 只执行根 `scripts/check_repo_consistency.ps1`，不读取 secrets。
+- ci_10_boundary: 当前仅记录工作流配置事实；实际远端 check 状态须由对应 PR 运行确认。该 job 不运行或证明 PDS、Questa、STA、SDF、位流或实板通过。
 - hardware_target_decision: 用户确认 DDR3、PCIe、双 OV5640 三个活动产品项目共用 `RK3568+PG2L50H100H` 开发板，实际 FPGA 为 `PG2L50H-6IFBG484`；统一 PDS 目标为 `Logos2 / PG2L50H / FBG484 / -6`。`41_ov7725_hdmi` 仅为 legacy，不属于活动 TODO。
 - legacy_100h_boundary: 全部 PG2L100H PDS/STA/网表/位流仅保留为历史证据，不得烧录或作为实板验收；DDR3、PCIe、双 OV5640 必须分别建立 PG2L50H 新 baseline。
 - ci_0_boundary: 仅为仓库结构与文档静态一致性门禁，不启动或替代 PDS 构建、STA、项目严格 gate 或四级仿真。

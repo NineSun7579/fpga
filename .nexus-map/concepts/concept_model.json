@@ -160,6 +160,26 @@
         "pr_diff_scan_passed": true,
         "boundary": "FullTree protects the current version and merge-base diff scanning prevents reintroduction; neither mode reads or prints actual license configuration or rewrites Git history"
       },
+      "ci_10_github_pr_static_gate": {
+        "date": "2026-09-02",
+        "status": "configured_in_current_worktree_remote_run_not_yet_proven",
+        "workflow": ".github/workflows/repository-gates.yml",
+        "triggers": ["pull_request", "push to main", "workflow_dispatch"],
+        "runner": "windows-latest",
+        "shell": "pwsh",
+        "job_check_name": "Static repository gates",
+        "permissions": {"contents": "read"},
+        "checkout": {
+          "action": "actions/checkout",
+          "sha": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "release": "v7.0.1",
+          "fetch_depth": 0,
+          "persist_credentials": false
+        },
+        "command": "./scripts/check_repo_consistency.ps1",
+        "reads_secrets": false,
+        "boundary": "root static repository gate only; does not run or prove PDS, Questa, STA, SDF, bitstream or hardware verification; remote status requires an actual PR check run"
+      },
       "m0_m3_pg2l50h_migration": {
         "date": "2026-08-30",
         "board": "RK3568+PG2L50H100H",

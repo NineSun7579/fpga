@@ -530,7 +530,7 @@ Negative timing check
 powershell.exe -ExecutionPolicy Bypass -File .\scripts\check_repo_consistency.ps1
 ```
 
-该检查确认三个存量工程的 README、`build.tcl`、`run.ps1`、`check_build.ps1`、顶层声明、七阶段入口、版本记录和 `build/` 忽略状态；同时单独检查新的 [双 OV5640 产品目录](59_top_dual_ov5640_hdmi/README.md) 与其 [板级证据清单](59_top_dual_ov5640_hdmi/doc/BOARD_EVIDENCE.md)，但不要求这个 C1 文档型骨架伪造构建入口。脚本还调用 [PDS Tcl 入口门禁](docs/PDS_TCL_ENTRYPOINT_INVENTORY.md)、[约束例外精确清单门禁](docs/CONSTRAINT_EXCEPTION_INVENTORY.md) 和 [许可证敏感差异门禁](docs/SENSITIVE_DIFF_GATE.md)。约束门禁只证明 FDC 文本、来源和审核状态没有漂移，不表示例外合理、对象解析成功或 STA/发布通过。仓库门禁不能替代项目级 PDS gate、STA 或四级仿真。
+GitHub pull request 会通过 [`Repository gates`](docs/GITHUB_PR_GATE.md) workflow 自动执行同一入口。该检查确认三个存量工程的 README、`build.tcl`、`run.ps1`、`check_build.ps1`、顶层声明、七阶段入口、版本记录和 `build/` 忽略状态；同时单独检查新的 [双 OV5640 产品目录](59_top_dual_ov5640_hdmi/README.md) 与其 [板级证据清单](59_top_dual_ov5640_hdmi/doc/BOARD_EVIDENCE.md)，但不要求这个 C1 文档型骨架伪造构建入口。脚本还调用 [PDS Tcl 入口门禁](docs/PDS_TCL_ENTRYPOINT_INVENTORY.md)、[约束例外精确清单门禁](docs/CONSTRAINT_EXCEPTION_INVENTORY.md) 和 [许可证敏感差异门禁](docs/SENSITIVE_DIFF_GATE.md)。约束门禁只证明 FDC 文本、来源和审核状态没有漂移，不表示例外合理、对象解析成功或 STA/发布通过。仓库门禁不能替代项目级 PDS gate、STA 或四级仿真。
 
 三项目当前的仿真入口、厂商示例边界和 S1/S2/S3 前置条件见 [`docs/SIMULATION_READINESS_MATRIX.md`](docs/SIMULATION_READINESS_MATRIX.md)；OV5640 产品目标与 legacy 边界见 [`docs/OV5640_TARGET_SCOPE.md`](docs/OV5640_TARGET_SCOPE.md)，C0 逐文件结论见 [`docs/OV5640_C0_REFERENCE_AUDIT.md`](docs/OV5640_C0_REFERENCE_AUDIT.md)；完整整改顺序和验收门槛见 [`TODO.md`](TODO.md)。
 

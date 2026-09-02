@@ -15,6 +15,10 @@ $RepoRoot = (Resolve-Path -LiteralPath $RepoRoot).Path
 
 $Failures = [System.Collections.Generic.List[string]]::new()
 $MatrixPath = Join-Path $RepoRoot 'docs\SIMULATION_READINESS_MATRIX.md'
+$GithubWorkflowPath = Join-Path $RepoRoot `
+    '.github\workflows\repository-gates.yml'
+$GithubGateDocPath = Join-Path $RepoRoot 'docs\GITHUB_PR_GATE.md'
+$GithubCheckoutSha = '3d3c42e5aac5ba805825da76410c181273ba90b1'
 $PdsTclInventoryDocPath = Join-Path $RepoRoot `
     'docs\PDS_TCL_ENTRYPOINT_INVENTORY.md'
 if ([string]::IsNullOrWhiteSpace($PdsTclInventoryPath)) {
@@ -203,6 +207,51 @@ Require-File -Path (Join-Path $RepoRoot 'README.md') -Description 'root guide' |
 Require-File -Path (Join-Path $RepoRoot 'TODO.md') -Description 'root TODO' | Out-Null
 Require-File -Path (Join-Path $RepoRoot 'VERILOG_SYSTEMVERILOG_COMMENTING_STANDARD.md') `
     -Description 'Verilog/SystemVerilog commenting standard' | Out-Null
+$GithubWorkflowExists = Require-File -Path $GithubWorkflowPath `
+    -Description 'GitHub PR static gate workflow'
+$GithubGateDocExists = Require-File -Path $GithubGateDocPath `
+    -Description 'GitHub PR static gate guide'
+if ($GithubWorkflowExists) {
+    $GithubWorkflowText = Get-Content -Raw -Encoding UTF8 `
+        -LiteralPath $GithubWorkflowPath
+    foreach ($Required in ([ordered]@{
+            'GitHub workflow name' = '(?m)^name:\s*Repository gates\s*$'
+            'GitHub pull-request trigger' = '(?m)^\s{2}pull_request:\s*$'
+            'GitHub main push trigger' = '(?ms)^\s{2}push:\s*.*?^\s{6}- main\s*$'
+            'GitHub manual trigger' = '(?m)^\s{2}workflow_dispatch:\s*$'
+            'GitHub read-only permission' = '(?ms)^permissions:\s*.*?^\s{2}contents:\s*read\s*$'
+            'GitHub Windows runner' = '(?m)^\s{4}runs-on:\s*windows-latest\s*$'
+            'GitHub pwsh shell' = '(?m)^\s{8}shell:\s*pwsh\s*$'
+            'GitHub checkout commit pin' = [regex]::Escape(
+                "actions/checkout@$GithubCheckoutSha")
+            'GitHub full-history checkout' = '(?m)^\s{10}fetch-depth:\s*0\s*$'
+            'GitHub credential persistence disabled' =
+                '(?m)^\s{10}persist-credentials:\s*false\s*$'
+            'GitHub root gate entry' = 'check_repo_consistency\.ps1'
+        }).GetEnumerator()) {
+        Require-Pattern -Text $GithubWorkflowText -Pattern $Required.Value `
+            -Description $Required.Key | Out-Null
+    }
+    if ($GithubWorkflowText -match '(?m)^\s*pull_request_target\s*:') {
+        Add-Failure 'GitHub workflow must not use pull_request_target'
+    }
+    if ($GithubWorkflowText -match '\$\{\{\s*secrets\.') {
+        Add-Failure 'GitHub static gate must not read repository secrets'
+    }
+}
+if ($GithubGateDocExists) {
+    $GithubGateDocText = Get-Content -Raw -Encoding UTF8 `
+        -LiteralPath $GithubGateDocPath
+    foreach ($Required in ([ordered]@{
+            'GitHub gate workflow link' = 'repository-gates\.yml'
+            'GitHub gate check name' = 'Static repository gates'
+            'GitHub gate no-license boundary' = '不读取 GitHub secrets.*不配置或打印 PDS/Questa 许可证'
+            'GitHub gate no-dynamic-claim boundary' = '不表示三个活动项目已经完成实现或四级仿真'
+        }).GetEnumerator()) {
+        Require-Pattern -Text $GithubGateDocText -Pattern $Required.Value `
+            -Description $Required.Key | Out-Null
+    }
+}
 $GitAttributesExists = Require-File -Path $GitAttributesPath `
     -Description 'Git attributes'
 if ($GitAttributesExists) {

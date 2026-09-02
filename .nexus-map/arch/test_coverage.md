@@ -1,6 +1,6 @@
 > generated_by: Codex manual bootstrap
 > verified_at: 2026-09-02
-> provenance: existing PDS logs/reports, simulation runs, artifact gates, CI-9 self-tests and real-branch sensitive-diff scan
+> provenance: existing PDS logs/reports, simulation runs, artifact gates, CI-9 self-tests, real-branch sensitive-diff scan, and CI-10 workflow inspection
 
 # Test Coverage
 
@@ -86,6 +86,14 @@
 - 自检覆盖：2 个允许新增行、5 个拒绝新增行、1 个允许文件名和 1 个拒绝文件名均按预期判定。
 - 当前树覆盖：68 个 tracked 日志中的 143 处许可证绝对路径已替换为 `<license-path>`；`-FullTree` 扫描通过，PR 差异扫描也通过。
 - 边界：全树门禁保证当前版本不再包含规则覆盖的敏感路径或内容，差异门禁阻止后续重新引入；两者均不读取或打印实际许可证配置，也不改写 Git 历史。
+
+## CI-10 GitHub PR 静态门禁（2026-09-02）
+
+- 当前工作树配置：`.github/workflows/repository-gates.yml` 在所有 `pull_request`、`main` push 和手动 `workflow_dispatch` 上运行。
+- 执行边界：Windows runner 使用 `pwsh`，job/check 名为 `Static repository gates`，只执行根 `scripts/check_repo_consistency.ps1`。
+- 最小权限：工作流仅授予 `contents: read`；`actions/checkout` 固定 SHA `3d3c42e5aac5ba805825da76410c181273ba90b1`（v7.0.1），使用 `fetch-depth: 0` 与 `persist-credentials: false`，且不读取 secrets。
+- 未验证：本条只证明当前工作流文本配置；对应 PR 的 GitHub check 是否实际启动并通过，须以远端运行结果为准。
+- 边界：CI-10 只托管根静态门禁，不运行或证明 PDS、Questa、STA、SDF、位流生成或实板验证通过。
 
 ## S0-0-R 仿真器环境复核（2026-08-30）
 

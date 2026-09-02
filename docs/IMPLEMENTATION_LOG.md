@@ -520,3 +520,10 @@
 - 每条记录包含文件 SHA-256/Git blob、命令、对象、原因、依据和审核状态。DDR3 条目标记为旧 PG2L100H vendor-generated/unreviewed，PCIe 为 vendor-derived/unreviewed，OV7725 为 frozen legacy/not approved。
 - 新增 `check_constraint_exceptions.ps1`：精确比较入口引用、LF 规范化文件哈希、Git index blob 和命令 multiset；Tcl 续行、分号多命令或 `source` 直接失败。自测证明 CRLF-only checkout 仍通过，并覆盖新增未登记例外、修改既有命令和双 OV5640 过早出现 FDC 三项负向样本。
 - 门禁已接入根一致性检查。登记不表示 timing waiver、PDS 对象解析、CDC/RDC 结构正确、STA、板级或发布通过；本批未修改任何 FDC、RTL、IP，也未运行 PDS/Questa。
+
+## 2026-09-02：CI-10 GitHub PR 静态门禁
+
+- 新增 `.github/workflows/repository-gates.yml`，在 pull request、`main` push 和手动触发时使用 Windows `pwsh` 执行 `scripts/check_repo_consistency.ps1`。
+- workflow 仅授予 `contents: read`，checkout 固定到 `v7.0.1` 的完整提交 SHA，使用完整历史支持 merge-base 检查，并关闭凭据持久化；不引用 GitHub secrets 或任何许可证值。
+- 新增 `docs/GITHUB_PR_GATE.md` 记录 check 名称、建议的 required-check 设置和边界。`Static repository gates` 通过只代表仓库静态合同通过，不代表 PDS、Questa、STA、SDF、位流或实板通过。
+- 本批没有修改 HDL/TB，因此 VSCS 代码注释检查不适用；没有运行 PDS/Questa，也没有提交构建或仿真运行态。
