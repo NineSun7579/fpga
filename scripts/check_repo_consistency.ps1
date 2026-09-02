@@ -406,7 +406,8 @@ if (Test-Path -LiteralPath $TodoPath -PathType Leaf) {
 }
 
 $IgnoreText = Get-Content -Raw -LiteralPath (Join-Path $RepoRoot '.gitignore')
-Require-Pattern -Text $IgnoreText -Pattern '(?m)^build/$' `
+# Accept both LF and CRLF checkouts for the required generated-output rule.
+Require-Pattern -Text $IgnoreText -Pattern '(?m)^build/\r?$' `
     -Description 'build/ ignore rule' | Out-Null
 
 $TrackedBuild = @(git -C $RepoRoot ls-files -- '*build*' | Where-Object {
