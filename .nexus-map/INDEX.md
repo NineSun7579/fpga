@@ -13,6 +13,7 @@
 - **历史边界**：此前的 `RK3568+PG2L50H100H`、`PG2L50H-6IFBG484` 以及 PG2L50H staging/build 记录均保留为历史审计证据，不覆盖本条当前目标；此前商品截图中的 `RK3568+PG2L100H` 也只能作为待核对参考。
 - **PR 状态（2026-09-02）**：PR #27 已合并；其中 PCIe 约束对象 probe、PG2L100H 恢复边界及文档一致性修正已进入基线。后续修改应从新的堆叠分支和 PR 提交，不回写已合并 PR。
 - **统一外部输入清单**：[`docs/BOARD_INPUT_REQUEST.md`](../docs/BOARD_INPUT_REQUEST.md) 登记紫光盘古100Pro 的丝印/原理图/BOM、bank/启动/share-pin、电源与时钟，以及 DDR3、PCIe、双 OV5640 和 HDMI 的板级参数。每项必须带来源、版本或照片编号并映射到项目证据表；资料冻结前不得烧录或把历史产物当作验收证据。
+- **25 MHz 时钟审计（2026-09-02）**：板载晶振频率已由 owner 确认为 25 MHz。DDR3 `free_clk` 40 ns 约束与其相符；OV7725 legacy/双 OV5640 参考 `sys_clk` 与 PLL 输入仍为 50 MHz；PCIe `ref_clk_p/n` 要求独立差分 100 MHz。当前只完成频率事实核对，未确认板级网络、管脚、电平或外部倍频链；详见 [`docs/CLOCK_AUDIT_25MHZ.md`](../docs/CLOCK_AUDIT_25MHZ.md)。
 
 本仓库的三个活动产品项目是 DDR3、PCIe 和双 OV5640，并以根目录文档约束后续整改方式。`41_ov7725_hdmi/` 仅为 legacy 证据工程，不是活动 TODO 项目：
 
