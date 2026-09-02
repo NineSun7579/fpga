@@ -1,5 +1,5 @@
 > generated_by: Codex manual bootstrap
-> verified_at: 2026-09-01
+> verified_at: 2026-09-03
 > provenance: current source tree, PDS project files, reports, and root audit notes
 
 # Systems
@@ -76,6 +76,25 @@
 - evidence_path: `VERILOG_SYSTEMVERILOG_COMMENTING_STANDARD.md`
 - evidence_gap: 现有厂商代码和历史 RTL 尚未进行全量合规检查。
 - responsibility: 约束后续手写 RTL 的意图、接口、FSM、复位、CDC/RDC 和风险注释。
+
+## main 独立 OV5640→PCIe M1-A
+
+- implementation_status: m1a_capture_behavior_verified
+- project_path: `main_ov5640_pcie/`
+- branch: `codex/main-ov5640-pcie`
+- code_path: `main_ov5640_pcie/rtl/ov5640_dvp_rgb565_capture.sv`
+- test_path: `main_ov5640_pcie/tb/tb_ov5640_dvp_rgb565_capture.sv`
+- evidence_path: `main_ov5640_pcie/README.md`, `docs/MAIN_OV5640_PCIE_CAPTURE_CONTRACT.md`, `TODO.md`
+- responsibility: 只在 `cam_pclk` 域采样源同步 DVP，在有效 HREF 窗口内配对两个 8-bit 字节，输出 RGB565 像素、零基坐标和帧/行事件；不负责 SCCB、MCLK、RESET/PWDN、CDC/FIFO、图像处理、DDR3 或 PCIe。
+- vscs_contract: 手写 RTL/TB 记录文件/接口、时钟复位、假设、意图、不变量和 hazard；不代表历史或厂商 RTL 已完成全量 VSCS 审核。
+- timing_contract: `cam_vsync`、`cam_href`、`cam_data` 必须在模块输入处满足 `cam_pclk` 源同步时序；`rst_n` 异步断言，释放约束由集成设计负责。
+- vsync_contract: VSYNC 进入配置的有效电平时关闭已观察帧并武装下一帧；首个标记不产生 `frame_end`，标记后的首个完整像素产生一次 `frame_start`。
+- href_contract: HREF 有效时接收字节；每行首个完整像素产生 `line_start`，窗口关闭后在该行已有完整像素时产生 `line_end`；未配对尾字节被丢弃并产生 `protocol_error`。
+- byte_order_contract: 默认首字节是 RGB565 高字节，`FIRST_BYTE_IS_HIGH` 可选择反向拼接。
+- behavior_tb_coverage: 两个 HREF 行、每行三个像素；检查 6 个像素及坐标、帧/行起止事件、下一 VSYNC 的 `frame_end`、奇数字节错误和 watchdog。
+- questa_evidence: 主代理提供的 Questa Sim-64 2021.1 证据为编译 0 error/0 warning、运行成功且日志唯一 `TEST PASS`；仓库不记录本机工具路径或许可证信息。
+- uncovered_boundaries: SCCB/寄存器与 sensor ID、板级 DVP 电气/相位/管脚、CDC/FIFO/逐域复位、DDR3、128-bit PCIe DMA、主机协议、PDS/STA、综合后/PNR/SDF 均未覆盖。
+- reference_boundary: `parallel_driver` 仅只读参考；未导入其 RTL、IP、FDC/RCF、PDS 产物或验收证据。
 
 ## OV7725 HDMI Legacy 顶层
 

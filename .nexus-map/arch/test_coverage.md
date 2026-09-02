@@ -1,5 +1,5 @@
 > generated_by: Codex manual bootstrap
-> verified_at: 2026-09-01
+> verified_at: 2026-09-03
 > provenance: existing PDS logs/reports, simulation runs, artifact gates, CI-9 self-tests and real-branch sensitive-diff scan
 
 # Test Coverage
@@ -96,9 +96,17 @@
 
 | 项目 | PDS 实现证据 | 时序证据 | 行为仿真 | 综合后仿真 | PNR 功能仿真 | PNR 时序仿真 |
 |---|---|---|---|---|---|---|
+| main OV5640→PCIe | M1-A 仅有板级无关采集 RTL/TB，无 PDS/IP/FDC/RCF/实现产物 | 仅固定 `cam_pclk` 源同步输入合同，无板级或 CDC STA | Questa 2021.1：编译 0 error/0 warning、唯一 `TEST PASS`；覆盖 6 像素/2 行、坐标、帧行事件和奇数字节错误 | 未生成 | 未生成 | 未生成/未标注 |
 | OV5640 摄像头 HDMI | 产品目标已冻结为 OV5640；C0 参考审计和 C1 产品范围仍待完成 | C3 前无产品 STA；OV7725 旧时序只作 legacy 参考 | S3 项目级入口缺失 | 新产品网表尚未生成 | 新产品 PNR 网表尚未生成 | 新产品 SDF 尚未生成/标注 |
 | DDR3 外层 | 旧 PG2L100H 七阶段与五类产物已完成，但不可用于实际 PG2L50H；需重生成 50H IP/FDC/RCF | 旧 100H `All Constraints Met` 只保留历史；50H STA 未执行 | D2/D3-0 旧契约已定，PG2L50H 重生成后须重审；S1 项目级入口缺失 | 旧网表不可签核 | 旧 PNR 网表不可签核 | VSIM/SDF 未验证，旧 100H 结果不可签核 |
 | PCIe DMA | 活动 IDF、build/PDS/gate 与新产物均为 PG2L50H；已从空 `build/` 完成七阶段重建 | 50H STA 已生成，最差解析 slack `0.100 ns`；严格 gate 仍受板级/功能缺口阻断 | S2-A 受控 smoke 动态 PASS；不覆盖真实链路/DMA/板级 | 顶层未闭环 | 新 50H 网表待集成仿真 | 公共 VSIM 已验证，项目 SDF 待标注 |
+
+## main OV5640→PCIe M1-A 行为覆盖
+
+- 正向：默认 RGB565 高字节优先，两行各三像素；检查像素数据、零基坐标、首像素 `frame_start`、每行 `line_start/line_end` 和下一 VSYNC 的 `frame_end`。
+- 负向：HREF 窗口内只有一个字节时丢弃半像素并产生一次 `protocol_error`；超时或检查失败使用 `$fatal`。
+- 结果：主代理提供的 Questa Sim-64 2021.1 证据为编译 0 error/0 warning、运行成功、唯一 `TEST PASS`。
+- 边界：未覆盖反字节序/反极性参数、坐标溢出、复位释放时序、SCCB、板级、CDC、DDR3、PCIe 和后级网表/SDF；该 PASS 只关闭板级无关采集切片行为。
 
 ## S1/S2/S3 仿真就绪度矩阵（2026-08-30）
 

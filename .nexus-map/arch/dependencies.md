@@ -1,5 +1,5 @@
 > generated_by: Codex manual bootstrap
-> verified_at: 2026-09-01
+> verified_at: 2026-09-03
 > provenance: manual inspection of current source tree and PDS artifacts
 
 # Dependencies
@@ -8,6 +8,11 @@
 flowchart TD
   Guide["README.md\nPDS/仿真指南"] --> Todo["TODO.md\n整改与验收门槛"]
   Standard["VERILOG_SYSTEMVERILOG_COMMENTING_STANDARD.md"] --> HandRTL["后续手写 RTL/TB"]
+
+  MainOV["main_ov5640_pcie\nM1-A"] --> MainCapture["DVP 8-bit→RGB565\ncam_pclk 单域"]
+  MainTB["M1-A 自检 TB"] --> MainCapture
+  Standard --> MainCapture
+  Parallel["parallel_driver\n只读参考"] -. "不得导入资产/证据" .-> MainOV
 
   OV5640Target["OV5640 摄像头 HDMI\n产品目标 C0-C3/S3"] -. "C2 审核后选择性迁移" .-> OVLegacy["41_ov7725_hdmi\nOV7725 legacy"]
   OVLegacy --> Camera["OV7725 legacy 采集"]
@@ -68,6 +73,8 @@ flowchart TD
 
 ## 关键依赖约束
 
+- `main_ov5640_pcie/` 位于 `codex/main-ov5640-pcie`，M1-A 只依赖项目自有采集 RTL/TB 与公开合同；`parallel_driver` 仅只读参考，未导入 RTL、IP、约束、PDS 产物或验收证据。
+- M1-A 的 VSYNC/HREF/字节序/坐标事件均属于 `cam_pclk` 域合同。SCCB、板级时序、CDC/FIFO、DDR3 和 PCIe 是后续独立依赖，不能由当前唯一 `TEST PASS` 推导为通过。
 - 用户确认三个产品方向共用 `RK3568+PG2L50H100H` 开发板，实际 FPGA 为 `PG2L50H-6IFBG484`；摄像头产品目标已校正为 OV5640，`41_ov7725_hdmi` 仅作 OV7725 legacy。统一有效 PDS 目标为 `Logos2 / PG2L50H / FBG484 / -6`，旧 PG2L100H 产物不得用于实板。
 - 厂商 `.idf`、生成 RTL 和 PDS 仿真库属于外部生成依赖，不应被误当作独立手写逻辑。
 - PCIe S2-A 的 `sim/behav.f` 依赖 37 个实现侧 canonical HDL、仿真专用补充源、DMA RAM init include、reset helper、项目 TB 与受控边界模型。历史动态 smoke 已通过同一 run-id 和唯一 `TEST PASS`；当前 S2-A/S2-B 静态门禁通过，但动态复验因仓库外许可证 checkout 失败返回 4，未产生新 PASS。
