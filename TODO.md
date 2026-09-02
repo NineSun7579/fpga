@@ -49,7 +49,7 @@
 ## 3. 当前完成状态
 
 - [x] 建立 Git 基线、根目录指南、`.gitignore` 和 repo-local `.nexus-map`。
-- [x] 用户确认三个活动项目（DDR3、PCIe、双 OV5640 HDMI）共用实际焊接 `PG2L50H-6IFBG484` 的 `RK3568+PG2L50H100H` 开发板，并批准统一迁移方案。
+- [x] 历史记录：此前曾按 `PG2L50H-6IFBG484` / `RK3568+PG2L50H100H` 规划迁移；该口径已于 2026-09-02 被 owner 更正，当前以紫光盘古100Pro / `PG2L100H-6IFBG484` 为准。
 - [x] owner 将摄像头产品目标固定为双 OV5640；现有 OV7725 工程和完成证据冻结为 legacy，不再推进旧传感器产品任务，也不机械改名或继承为双 OV5640 验收。
 - [x] 完成存量工程 50H 只读审计：PCIe 活动 IP 已匹配 50H；DDR3 活动 IP 仍须迁移；OV7725 legacy 的四个 IP 保持 100H 冻结且不再处理。该审计不把 OV7725 计入活动项目；双 OV5640 由 C0/C1/C2/C3 独立推进。
 - [x] 明确 VSCS 只强制覆盖后续修改的手写 RTL/TB，排除厂商生成 IP。
@@ -292,8 +292,8 @@ O0/O1/O2/M3-A 已从活动 TODO 移除，不再为 `41_ov7725_hdmi/` 安排 RTL�
 - [x] CI-8A PCIe：每次 build 以唯一 `run_id` 原子发布 `running/partial/failed/complete` manifest，partial 或失败运行立即使旧 complete 证据失效。
 - [x] CI-8A PCIe：固定 43 项 canonical 输入和 9 项最终证据的相对路径、长度与 SHA-256；新增独立 PNR 功能网表及其生成日志，日志必须含唯一且匹配的 run id，不使用时间窗口猜测。
 - [x] CI-8A PCIe：真实 full build、partial、PDS 启动失败、run-id/输入/产物漂移和 baseline/strict gate 已验证，详见 `pcie_dma_test_100h/doc/CI8A_BUILD_PROVENANCE.md`。
-- [ ] CI-8B DDR3：在 PG2L50H canonical IP/FDC 升格并可执行最终构建后，按项目真实源清单和产物布局实现 provenance manifest。
-- [ ] CI-8B 双 OV5640：在 `59_top_dual_ov5640_hdmi/` 完成 PG2L50H canonical IP/FDC 与最终构建入口后，按项目真实源清单和产物布局实现 provenance manifest。
+- [ ] CI-8B DDR3：在 PG2L100H canonical IP/FDC 升格并可执行最终构建后，按项目真实源清单和产物布局实现 provenance manifest。
+- [ ] CI-8B 双 OV5640：在 `59_top_dual_ov5640_hdmi/` 完成 PG2L100H canonical IP/FDC 与最终构建入口后，按项目真实源清单和产物布局实现 provenance manifest。
 - [ ] DDR3 与双 OV5640 两个迁移完成并通过负向测试后，再评估是否抽公共模块；当前保持三个产品项目 gate 独立。
 
 ## 5. 外部阻断泳道

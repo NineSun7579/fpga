@@ -36,7 +36,7 @@
 | DVP | 两路 D[7:0]、PCLK、VSYNC、HREF 管脚与极性、采样边沿 | 形成输入接口、时钟约束和 input delay 的一手依据 |
 | 图像格式 | RGB565 字节序、有效位、分辨率、帧率、blanking、裁剪/缩放方式 | 冻结采集模型、帧长度、FIFO 深度和 DDR 布局 |
 | 双摄产品策略 | 左右路定义、960×1080 半幅是否保留、帧同步容差、单路失效、不同步帧和丢帧策略 | 冻结拼接、帧切换、错误状态和 testbench 验收条件 |
-| DDR3 | 完整料号、颗数、容量、rank、x16/x32、速率、row/column/bank、DQ/DQS/DM 映射与 swap | 为 PG2L50H 重生成 DDR3 IP/FDC/RCF，并决定帧地址布局 |
+| DDR3 | 完整料号、颗数、容量、rank、x16/x32、速率、row/column/bank、DQ/DQS/DM 映射与 swap | 为 PG2L100H 重生成 DDR3 IP/FDC/RCF，并决定帧地址布局 |
 | DDR3 电气/PCB | VCCIO/VREF、ODT、终端、拓扑和可用走线时延 | 决定 PHY 参数、时序约束和板级签核边界 |
 | HDMI/TMDS | 输出模式、分辨率、刷新率、像素时钟、连接器、差分极性、终端和 sink 要求 | 冻结 video timing、PLL、serializer、TMDS 管脚和 output delay |
 | Share pin/配置 | 配置 bank 电压、启动模式、SCBV 和 camera/DDR/HDMI share-pin 使用 | 确保 FDC、配置参数和启动流程与实板一致 |

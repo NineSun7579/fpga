@@ -20,7 +20,7 @@
 
 ## M2-A staging 重生成
 
-使用项目自有入口把活动 DDR3 IP 复制到忽略目录并为 PG2L50H 重生成：
+使用项目自有入口把活动 DDR3 IP 复制到忽略目录并为 PG2L100H 重生成：
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\regenerate_ip.ps1
