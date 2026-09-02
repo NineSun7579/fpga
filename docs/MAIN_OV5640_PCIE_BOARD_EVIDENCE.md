@@ -6,7 +6,7 @@
 
 | 类别 | 当前事实 | 来源 | 状态 |
 |---|---|---|---|
-| FPGA 目标 | 新项目按 `Logos2 / PG2L100H / FBG484 / -6` 规划 | 项目恢复决策 | 待一手资料闭合 |
+| FPGA 目标 | 新项目按 `Logos2 / PG2L50H / FBG484 / -6` 规划 | 当前仓库器件决策 | 待当前板卡一手资料闭合 |
 | PCIe 结构 | `main` 有 PCIe x2 Endpoint/DMA 基础 | `pcie_dma_test_100h/hdl/pcie_dma_test.v` | 已确认 |
 | OV5640 | `main` 尚无产品级 OV5640 RTL/顶层 | `main` 文件树 | 已确认 |
 | PCIe refclk | 设计要求独立差分参考时钟 | `pcie_dma_test_100h/fdc/pcie_dma_test.fdc` | 频率/管脚待确认 |

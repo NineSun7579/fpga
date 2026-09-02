@@ -1,8 +1,26 @@
 # 三项目整改 TODO
 
-更新日期：2026-09-01
+更新日期：2026-09-02
 
 状态：三项目器件迁移已获审核。DDR3、PCIe 和摄像头 HDMI 最终均运行在同一块 `RK3568+PG2L50H100H` 开发板，实际 FPGA 为 `PG2L50H-6IFBG484`，PDS 目标统一为 `Logos2 / PG2L50H / FBG484 / -6`。摄像头产品目标已由 owner 校正为 OV5640；现有 `41_ov7725_hdmi` 仅保留为 OV7725 legacy 历史基线与可复用基础设施来源。既有 PG2L100H 构建、STA、网表、SDF 和位流不得用于实际板卡验收或烧录。OV5640 范围见 [`docs/OV5640_TARGET_SCOPE.md`](docs/OV5640_TARGET_SCOPE.md)。
+
+## `main` 独立 OV5640→PCIe 工程（2026-09-02）
+
+状态：工作分支为 `codex/main-ov5640-pcie`，已从远端最新 `origin/main` 重放建立。`parallel_driver` 只读参考，不能提供本工程的 RTL、IP、FDC/RCF、PDS 产物或验收证据。
+
+首版数据流：
+
+```text
+单路 OV5640 DVP RGB565
+  → FPGA 图像处理
+  → DDR3 单帧缓存
+  → 128-bit PCIe DMA Memory Write
+  → 主机/RK3568 内存
+```
+
+当前批次：M1-A 只实现板级无关的 DVP 8-bit→RGB565 采集与自检 TB；VSYNC/HREF/字节序/坐标语义先固定在模块合同中。SCCB 配置、板级 PLL/FDC、DDR3 IP、图像算法和 PCIe 集成必须分别完成前置事实审核。
+
+停止条件：缺少模组、时钟、I/O 电压、管脚、DDR3 拓扑或主机协议资料时，不修改 canonical IP、PLL、FDC/RCF，不把历史 PG2L100H 或 `parallel_driver` 产物解释为本工程通过。
 
 ## 1. 总体验收目标
 

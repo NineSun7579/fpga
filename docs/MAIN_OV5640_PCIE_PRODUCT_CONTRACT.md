@@ -4,7 +4,7 @@
 
 ## 项目边界
 
-本项目在 `codex/main-ov5640-pcie` 分支独立建设，基线来自 `main`。`parallel_driver` 仅作为只读技术参考，不是本项目的 RTL、IP、约束、构建产物或验收证据来源。
+本项目在 `codex/main-ov5640-pcie` 分支独立建设，当前基线已重放到 `origin/main`。`parallel_driver` 仅作为只读技术参考，不是本项目的 RTL、IP、约束、构建产物或验收证据来源。
 
 ## 首版目标
 
@@ -35,11 +35,11 @@
 3. DDR3 单帧写入/读出数据一致。
 4. PCIe DMA 产生正确的 Memory Write，主机收到的数据与参考帧一致。
 5. 行为级、综合后、PNR 后功能和 PNR 后时序仿真均具备独立退出契约。
-6. PG2L100H 目标下完成可重复 PDS 构建、STA 和实板验证。
+6. `Logos2 / PG2L50H / FBG484 / -6` 目标下完成可重复 PDS 构建、STA 和实板验证。
 
 ## 当前事实与阻断
 
 - `main` 当前 PCIe 顶层为 `pcie_dma_test`，只有 PCIe、复位和 LED 端口，没有 OV5640 或 DDR3 产品端口。
 - `main` 已有 PCIe DMA 和 128-bit AXIS 内部接口，可作为 PCIe 输出基础，但当前没有本地视频生产者。
-- `main` 的历史工程目标仍包含 PG2L50H 迁移口径；新项目目标按 `Logos2 / PG2L100H / FBG484 / -6` 重新建立，禁止混合使用。
+- 当前统一器件目标为 `Logos2 / PG2L50H / FBG484 / -6`；历史 PG2L100H 产物只能作为不可烧录的迁移证据。
 - OV5640 模组、DDR3 料号/拓扑、25 MHz 时钟树、PCIe 100 MHz refclk 和主机帧协议仍需一手资料确认。

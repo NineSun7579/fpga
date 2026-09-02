@@ -375,3 +375,18 @@
 - 本机复核确认 Questa Sim-64 `2021.1` 的 `vsim`、`vlog` 和 `vlib` 可执行文件位于安装根的 `win64` 子目录；tracked 文档不记录本机安装或许可证实际路径。
 - PCIe S2-A/S2-B 静态门禁和环境检查通过；当前 S2-A 动态启动因外部许可证 checkout 失败返回 4，没有生成新的 `TEST PASS`。历史 run id 的通过证据继续保留，但不作为本次复验结果。
 - 发现历史 PDS 日志中存在许可证绝对路径；当前版本统一替换为 `<license-path>`，并将 CI-9 扩展为当前树全量扫描和 PR 新增差异扫描。历史 `.log` 标记为 `-diff`，避免 PR 页面展开旧路径；该修复不改写 Git 历史。
+
+## 2026-09-02：main OV5640 M1-A DVP RGB565 采集
+
+- 新增独立 `main_ov5640_pcie/` 目录；本批只实现板级无关的 `cam_pclk` 域 DVP 8-bit
+  字节拼接、RGB565 像素坐标和帧/行边界事件，不导入 `parallel_driver` 的 RTL、IP、FDC、
+  PDS 或运行态。
+- `ov5640_dvp_rgb565_capture` 默认按首字节高位优先拼接 RGB565，并将 VSYNC 有效沿作为
+  帧边界、HREF 作为行窗口；HREF 关闭时的未配对字节和 16-bit 坐标溢出报告
+  `protocol_error`。
+- 自检 TB 覆盖两行三像素、像素顺序、零基坐标、首帧/行首、行尾、下一帧帧尾以及奇数字节
+  负向场景；失败使用 `$fatal`，成功只输出一次 `TEST PASS`。
+- 项目脚本 `main_ov5640_pcie/scripts/run_m1a.ps1` 将 Questa 编译库、日志和 transcript
+  全部写入 `main_ov5640_pcie/build/`，模拟器目录通过参数传入，不写入仓库。
+- Questa Sim-64 2021.1 项目脚本实测编译 `0 error/0 warning`，行为仿真返回 0，日志唯一
+  `TEST PASS`；该证据不覆盖 SCCB、板级电气时序、CDC/FIFO、DDR3、图像处理或 PCIe 集成。
