@@ -10,7 +10,7 @@ $SourceIdf = Join-Path $ProjectRoot 'ipcore\pcie_test\pcie_test.idf'
 $SourceIndex = Join-Path $ProjectRoot 'ipcore\pcie_test\index.xml'
 $StageRoot = Join-Path $ProjectRoot 'build\ipgen\pcie_bar1'
 $StageIdf = Join-Path $StageRoot 'pcie_test.idf'
-$Generator = Join-Path $PdsBin 'ip_generate.exe'
+$Generator = $null
 
 function Replace-UniqueText {
     param(
@@ -82,6 +82,7 @@ if (-not $Execute) {
     Write-Host 'INFO: dry run only; pass -Execute to invoke ip_generate.exe'
     return
 }
+$Generator = Join-Path $PdsBin 'ip_generate.exe'
 if (-not (Test-Path -LiteralPath $Generator -PathType Leaf)) {
     throw "PDS IP generator not found: $Generator"
 }
