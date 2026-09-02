@@ -2,8 +2,8 @@
   "schema_version": 1,
   "verified_at": "2026-09-02",
   "summary": {
-    "timing_exception_count": 15,
-    "dedicated_route_override_count": 1,
+    "timing_exception_count": 9,
+    "dedicated_route_override_count": 0,
     "policy": "Inventory membership proves text traceability only; it is not a timing waiver, STA semantic proof, board approval, or release approval."
   },
   "artifacts": [
@@ -121,87 +121,6 @@
           "reason": "PCIe vendor-derived asynchronous clock grouping.",
           "basis": "Copied from the active PCIe example constraint; product object resolution and CDC justification remain unreviewed.",
           "review_status": "unreviewed_vendor_derived"
-        }
-      ]
-    },
-    {
-      "project": "ov7725_legacy",
-      "artifact_role": "legacy",
-      "ownership": "project_owned_vendor_derived",
-      "path": "41_ov7725_hdmi/prj/source/ov7725_hdmi.fdc",
-      "normalized_sha256": "f8a9f83c55d065965e44f9ba18686e7bcc75df4b4c15c95f05d5dec41b639189",
-      "blob_oid": "42db69bc9535f4ddd14a8d949d31f4e26edb734c",
-      "target_validity": "frozen_legacy_pg2l100h",
-      "review_status": "frozen_legacy_not_approved",
-      "entrypoints": [
-        {
-          "path": "41_ov7725_hdmi/scripts/build.tcl",
-          "required_text": "prj/source/ov7725_hdmi.fdc"
-        }
-      ],
-      "commands": [
-        {
-          "line": 26,
-          "kind": "set_multicycle_path",
-          "normalized_command": "set_multicycle_path 2 -from [get_clocks ddrphy_sysclk] -to [get_clocks phy_dq_sysclk_0]",
-          "object": "ddrphy_sysclk -> phy_dq_sysclk_0",
-          "reason": "Legacy vendor DDR PHY launch/capture relationship.",
-          "basis": "Frozen PG2L100H camera integration constraint; reference only.",
-          "review_status": "frozen_legacy_not_approved"
-        },
-        {
-          "line": 29,
-          "kind": "set_multicycle_path",
-          "normalized_command": "set_multicycle_path 2 -from [get_clocks ddrphy_sysclk] -to [get_clocks phy_dq_sysclk_1]",
-          "object": "ddrphy_sysclk -> phy_dq_sysclk_1",
-          "reason": "Legacy vendor DDR PHY launch/capture relationship.",
-          "basis": "Frozen PG2L100H camera integration constraint; reference only.",
-          "review_status": "frozen_legacy_not_approved"
-        },
-        {
-          "line": 35,
-          "kind": "set_clock_groups",
-          "normalized_command": "set_clock_groups -name ref_clk -asynchronous -group [get_clocks {ref_clk}]",
-          "object": "ref_clk",
-          "reason": "Legacy vendor DDR PHY asynchronous clock grouping.",
-          "basis": "Frozen PG2L100H camera integration constraint; reference only.",
-          "review_status": "frozen_legacy_not_approved"
-        },
-        {
-          "line": 36,
-          "kind": "set_clock_groups",
-          "normalized_command": "set_clock_groups -name rst_clk -asynchronous -group [get_clocks {rst_clk}]",
-          "object": "rst_clk",
-          "reason": "Legacy vendor DDR PHY asynchronous clock grouping.",
-          "basis": "Frozen PG2L100H camera integration constraint; reference only.",
-          "review_status": "frozen_legacy_not_approved"
-        },
-        {
-          "line": 37,
-          "kind": "set_clock_groups",
-          "normalized_command": "set_clock_groups -name phy_dq_clk_0 -asynchronous -group [get_clocks {phy_dq_clk_0}]",
-          "object": "phy_dq_clk_0",
-          "reason": "Legacy vendor DDR PHY asynchronous clock grouping.",
-          "basis": "Frozen PG2L100H camera integration constraint; reference only.",
-          "review_status": "frozen_legacy_not_approved"
-        },
-        {
-          "line": 38,
-          "kind": "set_clock_groups",
-          "normalized_command": "set_clock_groups -name phy_dq_clk_1 -asynchronous -group [get_clocks {phy_dq_clk_1}]",
-          "object": "phy_dq_clk_1",
-          "reason": "Legacy vendor DDR PHY asynchronous clock grouping.",
-          "basis": "Frozen PG2L100H camera integration constraint; reference only.",
-          "review_status": "frozen_legacy_not_approved"
-        },
-        {
-          "line": 48,
-          "kind": "pap_clock_dedicated_route",
-          "normalized_command": "define_attribute {n:cam_pclk} {PAP_CLOCK_DEDICATED_ROUTE} {FALSE}",
-          "object": "cam_pclk",
-          "reason": "Legacy camera clock uses a non-dedicated route override.",
-          "basis": "Frozen legacy constraint; no current board or timing approval.",
-          "review_status": "frozen_legacy_not_approved"
         }
       ]
     },

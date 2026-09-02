@@ -10,7 +10,6 @@
 
 强制纳入后续改动审查的范围：
 
-- `41_ov7725_hdmi/rtl/**`
 - `pcie_dma_test_100h/hdl/**`
 - 后续新增的顶层 testbench、公共 RTL 和手写仿真模型
 

@@ -32,11 +32,10 @@ powershell.exe -ExecutionPolicy Bypass `
 
 | 项目 | `run.ps1` 实际入口 | 当前角色 | 器件事实 |
 |---|---|---|---|
-| OV7725 HDMI legacy | `41_ov7725_hdmi/scripts/build.tcl` | `canonical_project_build` | 原生 PG2L100H；仅复现 OV7725 legacy 基线 |
 | DDR3 bring-up | `ddr3_test/ddr3_test/scripts/build.tcl` | `canonical_project_build` | 原生 PG2L100H；等待板级参数复核 |
 | PCIe DMA | `pcie_dma_test_100h/scripts/build.tcl` | `migration_blocked_project_build` | 已恢复 100H 目标，但活动 IP 仍为 PG2L50H |
 
-三个 `run.ps1` 均只调用同目录 `scripts/build.tcl`。仓库没有 canonical 调用链引用任何历史 `impl.tcl`、parse-design screen 或 IP 内部脚本。
+两个现有项目 `run.ps1` 均只调用同目录 `scripts/build.tcl`。仓库没有 canonical 调用链引用任何历史 `impl.tcl`、parse-design screen 或 IP 内部脚本。
 
 DDR3 的 `scripts/build_staging_compile.tcl` 是 M2-B2 compile-only 支持工具：只验证 PG2L50H staging 的 18 个示例 RTL 与一个 IDF 能完成 `compile`，不加载 FDC/RCF，不执行实现后级，也不改变 DDR3 canonical 项目入口仍受 M2 升格阻断的事实。
 
@@ -44,7 +43,6 @@ DDR3 的 `scripts/build_staging_compile.tcl` 是 M2-B2 compile-only 支持工具
 
 以下事实必须保留，而不是文本替换：
 
-- OV7725 `prj/impl.tcl` 同时记录 PGL25G 与 PG2L100H，并含旧机器绝对路径。
 - PCIe 根 `impl.tcl` 同时记录 PG2L50H 与 PG2L100H，并含旧机器绝对路径。
 - DDR3 IP 内部 `pnr/impl.tcl` 同时记录 PG2L50H 与 PG2L100H；它只能证明厂商 IP 历史，不能证明外层工程目标。
 - DDR3 根 `impl.tcl`、三份 parse-design screen 和两份 `ctrl_phy_sim.tcl` 虽无 `set_arch`，仍包含旧绝对路径，因此同样必须分类。
@@ -63,10 +61,8 @@ DDR3 的 `scripts/build_staging_compile.tcl` 是 M2-B2 compile-only 支持工具
 
 1. Git 当前 tracked Tcl 与 JSON 清单必须完全相等；新增或漏登记文件均失败。
 2. 每个文件的角色、`set_arch` 次数、器件集合和绝对路径事实必须与清单一致。
-3. 只有三份项目 `scripts/build.tcl` 可标记 `run_ps1_entry=true`。
+3. 只有 DDR3 与 PCIe 两份项目 `scripts/build.tcl` 可标记 `run_ps1_entry=true`。
 4. `canonical_project_build` 必须只使用 `PG2L100H`，且不得包含盘符或 UNC 绝对路径。
 5. `migration_blocked_project_build` 必须仍明确包含 PG2L100H，并不得被误写成发布入口。
 6. 历史 GUI 与厂商内部脚本不得标记为 `run_ps1` 入口。
 7. 公共 `compile_simlib.tcl` 必须继续通过环境变量提供外部仿真器路径覆盖。
-
-M2 升格或未来新增双 OV5640 canonical 构建入口时，必须同步更新 JSON 清单中的角色和器件集合；OV7725 不再执行 M3 升格。如果只修改 Tcl 而未更新清单，CI-7 会失败并要求重新审核。

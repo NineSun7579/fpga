@@ -9,9 +9,8 @@ owner 已确认开发板板载晶振为 `25 MHz`。目前只能确认“板上�
 当前结论：
 
 1. DDR3 原生 `test_ddr` 的 `free_clk` 约束为 40 ns（25 MHz），频率与板载晶振相符；其管脚、电压、`PAP_IO_UNUSED` 和 DDR PHY 参考时钟拓扑仍需原理图/BOM确认。
-2. 旧 OV7725 和双 OV5640 参考设计的 `sys_clk` 都按 20 ns（50 MHz）约束；参考 PLL 的 `CLKIN_FREQ` 也是 50 MHz。若 `sys_clk` 直接来自板载 25 MHz，则这两套设计均存在输入频率不匹配，不能直接实现或仿真外推。
-3. PCIe 活动工程的 `ref_clk_p/n` 是差分 100 MHz 参考时钟（10 ns），并非板载单端 25 MHz。当前 F6/E6 只是历史候选管脚，必须用紫光盘古100Pro 原理图确认是否接到独立 PCIe 参考时钟。
-4. 双 OV5640 参考 FDC 中的两路 `cam_pclk` 25 MHz 是摄像头源同步像素时钟假设，不等于 FPGA 板载晶振，也不应拿来替代 `sys_clk` 或 PCIe refclk。
+2. PCIe 活动工程的 `ref_clk_p/n` 是差分 100 MHz 参考时钟（10 ns），并非板载单端 25 MHz。当前 F6/E6 只是历史候选管脚，必须用紫光盘古100Pro 原理图确认是否接到独立 PCIe 参考时钟。
+3. 双 OV5640 参考 FDC 中的两路 `cam_pclk` 25 MHz 是摄像头源同步像素时钟假设，不等于 FPGA 板载晶振，也不应拿来替代 `sys_clk` 或 PCIe refclk。
 
 在板级时钟树、管脚和电气资料闭合前，不修改 canonical PLL/IP、FDC 周期、PCIe refclk 管脚或 generated-clock 声明。
 
@@ -28,19 +27,6 @@ create_clock -name {ref_clk} [get_ports {free_clk}] -period {40.000}
 这表示 `free_clk=25 MHz`，与板载晶振频率一致。`test_ddr` 的顶层端口为 `free_clk`，但 FDC 同时标记其候选管脚为 `V4`、`LVCMOS15`、`PAP_IO_UNUSED=TRUE`。因此目前只能说“频率匹配”，不能说“已完成板级连接验证”。
 
 DDR generated clocks 以 `free_clk` 为源，并由 DDR PHY IP 的倍频/分频参数生成；不能用改写输入周期的方式代替重新审核 DDR3 IP、RCF、VREF、bank 电压和走线拓扑。
-
-### OV7725 legacy
-
-文件：`41_ov7725_hdmi/prj/source/ov7725_hdmi.fdc`、`41_ov7725_hdmi/prj/ipcore/pll_clk/pll_clk.v`
-
-```text
-create_clock -name {sys_clk}  ... -period {20.000}
-create_clock -name {cam_pclk} ... -period {40.000}
-create_clock -name {ref_clk}  ... -period {20.000}
-```
-
-PLL wrapper 的 `CLKIN_FREQ=50.0`。因此该历史工程假设 `sys_clk=50 MHz`，PLL 输出的 `ref_clk=50 MHz`，摄像头 `cam_pclk=25 MHz`。它不是双 OV5640 产品入口；这里只保留为“25 MHz 板载事实与旧 50 MHz 系统时钟假设冲突”的历史证据。
-
 ### 双 OV5640 HDMI 参考
 
 参考分支 `origin/parallel_driver@485f3bba71e4b57fb8bb49cec30e9d331b952be3` 的顶层 `rtl/pcie_video/top_dual_ov5640_pcie.v` 使用 `sys_clk` 驱动 `pll_clk`，并由 `clk_50m` 驱动两路 `ov5640_dri`。其 FDC `constraints/top_dual_ov5640_hdmi_pin.fdc` 为：
@@ -82,7 +68,6 @@ PCIe 必须单独确认：
 
 ## 审核后允许的修改
 
-- 若确认 `sys_clk` 直接为 25 MHz：重新生成双 OV5640/OV7725（仅 legacy）所需 PLL，并将 FDC `sys_clk` 改为 40 ns；同步重算所有 generated clock、视频像素时钟、HDMI serializer 和复位时序。
 - 若确认存在 25→50 MHz 外部时钟链：保留 50 MHz `sys_clk` 约束，但必须把器件、输出频率、管脚和容差写入板级证据，不能只依赖 RTL 命名。
 - 若确认 PCIe 100 MHz 独立差分源：保留 10 ns `ref_clk`，在 PG2L100H IP 重新生成后重新审核 F6/E6 或实际管脚；不得把 25 MHz 约束改到 PCIe refclk。
 - 若 DDR3 `free_clk` 确认直接来自 25 MHz 晶振：保留 40 ns 输入约束，并继续审核 DDR3 IP/RCF/电气参数，不因频率匹配而跳过板级验收。

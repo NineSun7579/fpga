@@ -68,4 +68,4 @@ PDS 前后会重新计算输入记录；构建期间任一路径、长度或 SHA
 
 ## 后续迁移
 
-CI-8B 分别为 DDR3 和 OV7725 HDMI 实现同一事实模型：启动即失效旧证据、完整运行身份、canonical 输入哈希、最终证据哈希、partial/failed 硬拒绝。两个项目的源清单和产物布局必须各自审计；PCIe 试点未证明可以直接抽公共模块。
+CI-8B 将在 DDR3 与双 OV5640 各自完成 PG2L100H canonical 输入和最终构建入口后独立建立 provenance manifest；本文件的 PCIe 试点记录不替代这两个项目的构建证据。

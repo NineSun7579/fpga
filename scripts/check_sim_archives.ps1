@@ -26,10 +26,6 @@ $Archives = @(
     [pscustomobject]@{
         Name = 'PCIe DMA'
         Path = 'pcie_dma_test_100h/sim/questa'
-    },
-    [pscustomobject]@{
-        Name = 'camera HDMI'
-        Path = '41_ov7725_hdmi/sim/questa'
     }
 )
 

@@ -1,56 +1,9 @@
-> generated_by: Codex manual bootstrap
-> verified_at: 2026-09-01
-> provenance: `git status`, `git log`, current worktree, and static project audit
+# Git 热点与风险
 
-# Git Forensics
+generated_by: nexus-mapper
+verified_at: 2026-09-02
+provenance: manual refresh; no new history analysis in cleanup batch
 
-## 当前基线
-
-- 分支为 `main`。
-- 根提交为 `1a2d493`，保存三个原始工程、已有 PDS 产物和整改文档。
-- CI-1 至 CI-7、H2-B0、CI-8A、PCIe S2-A、板级证据门禁、仿真器复核、M0/M1、M2-A 与 M2-B1 均按小批次记录；S2-A 后累计 61 个提交。样本仍不足以计算可信的 churn、共同变更或历史热点。
-
-## 人工高关注区
-
-以下仅来自当前缺陷证据，不是 Git 统计热点：
-
-- `origin/parallel_driver@485f3bb`：双 OV5640 只读参考；`top_dual_ov5640_hdmi` 定义两路独立摄像头控制/采集、960x1080×2、双写 DDR3 与 1920x1080 输出。根 PDS/DDR3 为 PG2L100H、PCIe IP 为 PG2L50H，必须防止混合器件证据被误用。
-- `59_top_dual_ov5640_hdmi/`：已建立 README/BOARD_EVIDENCE 文档骨架，当前无 RTL/IP/FDC/PDS/TB；未来实现资产只可选择性导入到该目录。可复现仿真源只能位于其 `sim/questa/`，运行态只能位于其 `build/`。参考 4 TB 尚未导入，`tb_dual_ov5640_dri.v` 的 force 初始化和非 canonical PASS 是首要审计点。
-- `41_ov7725_hdmi/sim/questa/`：仅 OV7725 legacy，不得用作双 OV5640 产品仿真归档目录。
-- `41_ov7725_hdmi/rtl/ov7725_hdmi.v`：OV7725 legacy 视频链路顶层、跨域控制和复位组合点，只能作为 OV5640 C2 的候选结构参考。
-- `41_ov7725_hdmi/doc/CDC_RDC_AUDIT.md`：O0-A CDC/RDC 事实、旧/新 STA 映射和后续整改契约的首要证据；O1-B 不得顺带修改该结构。
-- `41_ov7725_hdmi/doc/RTL_HYGIENE_AUDIT.md`：O1-A 的 39 条告警归属、38 条确定修复、`mem_a` legacy 风险、隐式网络和 serializer reset 契约的首要历史证据。
-- `41_ov7725_hdmi/doc/SERIALIZER_RESET_CONTRACT.md`：记录旧 PG2L100H O2-A/O2-B/O2-D1 证据、`/5` generated-clock、状态机和 reset 分权。状态机与验证纪律可复用，但 `+0.192 ns` 裕量、七组时序指纹和 endpoint 数必须在 PG2L50H 新 baseline 后重新审核。
-- `41_ov7725_hdmi/doc/M3A_IP_MIGRATION_AUDIT.md`：记录四 IP 活动/安装版本断层、`IPCompiler 0037/0057` 探针、GUI new-instance/staging-only 规则、DDR3/PLL 隐藏派生参数、FIFO 资源上限、RCF 对象命中缺口和 canonical 升格条件。
-- `41_ov7725_hdmi/rtl/ov7725_dri/ov7725_dri.v`、`rtl/ddr3_ctrl_top/ddr3_ctrl_top.v`、`rtl/ov7725_hdmi.v`、`rtl/hdmi_top/serializer_10_to_1.v`、`rtl/hdmi_top/dvi_transmitter_top.v`：O1-B 的 38 条确定修复和 O2 失败实验保留为 legacy；产品主线冻结后不得继续修改旧 serializer RTL。
-- `41_ov7725_hdmi/scripts/build.tcl`：仍固定 16 RTL、4 个 PG2L100H 活动 IDF、1 FDC 和 PG2L100H 工程目标；该入口仅复现 legacy，不再迁移或生成产品位流，禁止手改 IDF。
-- `41_ov7725_hdmi/scripts/check_build.ps1`：严格模式因负时序返回非零；baseline 模式只证明产物与流程可重复，并明确标记不可发布。
-- `41_ov7725_hdmi/rtl/ddr3_ctrl_top/ctrl_fifo.v`：`wr_load`/`rd_load` 多点采样、两个异步 FIFO 数据方向和跨两侧复位分发点。
-- `41_ov7725_hdmi/prj/source/ov7725_hdmi.fdc`：时钟、CDC 例外和板级 I/O 约束入口。
-- `ddr3_test/ddr3_test/scripts/build.tcl`：当前临时 bring-up 定义仍指向 PG2L100H 活动 IP/FDC/RCF；活动 `ip_core/ddr3/ddr3.idf` 为 SP6.4/PG2L100H，canonical `ip_core/ddr3/pnr/ddr_test.fdc` + `ddr3.rcf`，外层 `ip_core/ddr_test.fdc` 仅作旧参考。M2 必须用 SP6.4 重生成 PG2L50H 输入，旧 SP6.1 50H backup 仅作参数和差异证据。
-- `ddr3_test/ddr3_test/scripts/regenerate_ip.ps1`、`doc/M2_IP_REGENERATION.md` 与 `doc/M2B1_PARAMETER_AND_DIFF_AUDIT.md`：M2-B1 已证明 `DEVICE_100H_EN` 是器件派生参数，禁止直接 `-device` 覆盖 100H IDF；脚本现以 SP6.1 50H seed 做参数一致性验证后交由 SP6.4 重生成，输出 flag=false、PPLL `TRUE/CLKOUT4` 且不改 canonical。审查重点已转为 wrapper `21 → 26` 端口、DDR PHY/filelist/IDF 差异与 FDC 28 项 pin 差异；原理图/BOM 缺失时禁止升格。
-- `ddr3_test/ddr3_test/scripts/check_build.ps1`：严格模式拦截 7 类已知阻断；baseline 放行只证明历史设计可重复实现，不表示可发布。
-- `ddr3_test/ddr3_test/ip_core/ddr3/example_design/rtl/test_ddr.v`：存在 BIST error-data 位宽不匹配及后续 dangling cleanup，是当前严格 gate 阻断项。
-- `ddr3_test/ddr3_test/ip_core/ddr3/ddr3.v` 与 `.../example_design/rtl/test_ddr.v`：CI-6 已保护旧活动 IP 的非标准 AXI-like 握手和 `I_ips_ddr_top` 边界；PG2L50H 重生成后必须重跑门禁并重新审核 D3-A。
-- `ddr3_test/ddr3_test/ip_core/ddr3/example_design/rtl/test_main_ctrl_v1_0.v`、`axi_bist_top_v1_0.v` 与旧 `ddr3_test_top_tb.v`：D2 已确认其持续运行、无稳定 done 契约、端口失配及外部仿真依赖；均保持厂商原样，只作为静态证据。
-- `ddr3_test/ddr3_test/rtl/ddr3_bringup_top.sv`、`ddr3_test/ddr3_test/rtl/ddr3_finite_bist.sv`：D2 规划的项目自有实现热点，当前文件尚不存在，D3 未审核前不得标记为已实现。
-- `pcie_dma_test_100h/hdl/pcie_dma_test.v`：UART2APB 隐式 `rxd/txd` 连接与 PCIe DMA 集成入口。
-- `pcie_dma_test_100h/fdc/pcie_dma_test.fdc`：PCIe 专用资源、复位和普通 I/O 约束入口。
-- `pcie_dma_test_100h/hdl/pcie_dma_test.v`、`pcie_dma_test_100h/ipcore/pcie_test/pcie_test.idf`：活动 PCIe IDF、build/PDS/gate 和新主产物已统一匹配 PG2L50H；M1 还依据 PDS 模板将 HSSTLP 资源迁移到 `HSSTLP_292_612`，RTL/FDC 其余内容继续受板级审核约束。
-- `scripts/check_repo_consistency.ps1`：CI-0 至 CI-9、M0 与 M3-A 静态门禁入口；现强制三项目 README/板级证据包含已批准的器件事实，以 XML 解析确认活动 PCIe IDF 为 PG2L50H，并保护 OV7725 四个 canonical IDF 哈希及 M3-A 迁移契约。当前退出码为 0，但不能替代 PDS、STA、板级审核或仿真。
-- `scripts/check_sensitive_diff.ps1`、`docs/SENSITIVE_DIFF_GATE.md`：CI-9 当前树与 PR 差异门禁。68 个 tracked 日志中的 143 处本机许可证引用已替换为 `<license-path>`；评审重点是 `-FullTree`、merge-base diff、严格占位符白名单和“不改写历史”的边界。
-- `scripts/compile_simlib.tcl`、`scripts/compile_simlib.ps1`：S0-1 参数化 Pango USIM/VSIM 编译入口；支持模拟器、库类型、family、语言、PDS/仿真器路径与输出目录覆盖，并校验工具、退出码、`E:` 记录和库目录。Questa Sim-64 2021.1 下 Logos2 USIM/VSIM 均已完成实际编译验证。
-- `docs/PDS_TCL_ENTRYPOINT_INVENTORY.json`、`scripts/check_pds_tcl_entrypoints.ps1`：CI-7 的 14 项 tracked Tcl 分类与入口事实；新增 DDR3 `build_staging_compile.tcl` 为非发布 `canonical_support_tool`，仅三个 `scripts/build.tcl` 属于项目 `run.ps1` 链，其余为公共支持、compile-only、历史 GUI、厂商内部或厂商仿真脚本。canonical 只接受 PG2L50H/FBG484/-6 且无绝对路径，受限支持、历史或厂商脚本不得作为器件、STA、网表、SDF 或位流发布证明。
-- `pcie_dma_test_100h/doc/H2B_BASELINE_GATE.md`、`H2B_BASELINE_FINGERPRINT.json`：H2-B0 的 16 签名/42 原始记录精确多重集和五个变异 fixture；metadata 漂移永久硬失败。partial run 复用旧 full-build 证据的风险已由 PCIe CI-8A 关闭。
-- `pcie_dma_test_100h/scripts/pds_sources.f`、`run.ps1`、`build_provenance.ps1`、`doc/CI8A_BUILD_PROVENANCE.md`：最新 PDS run `9952da4164f040d5924a558baa5cd8ca` 为 `complete/valid=true`，manifest 绑定 43 inputs/9 artifacts；baseline/strict=`0/1`，不可解释为发布通过。
-- `pcie_dma_test_100h/sim/questa/tb/tb_pcie_dma_test.sv`、`sim/questa/tb/pcie_test_smoke_model.sv`、`sim/questa/behav.f`：S2-A 项目级行为 smoke 的真实顶层、自检 TB、受控 PCIe 边界、DMA RAM init include 与 37 HDL 嵌套 filelist。`behav.f` 另补仿真所需 `ips2l_pcie_apb_cross_v1_0.v`，不得为此修改由 IDF 管理实现侧源的 `scripts/pds_sources.f`；TB 全局复位实例保持 `GRS_INST`。评审时禁止把受控 link 当作 LTSSM/TLP/DMA 或板级链路证据。
-- 三个项目的可复现仿真工程分别保留在各自工程内独立 `sim/questa/`，运行态只进入对应 `build/`。PCIe S2-E run `927abae8ed7d40aeb5d6f706b3723e0a` 使用无 SDF PNR 功能网表动态通过；S2-F 的 `.f/.do/TB` 也已归档，但当前 run `7fc77a7ec8db479db7332e8037426d6c` 在 SDF 标注成功、无设计信号 force 的前提下产生 2 个 HSST reset timing error，脚本汇总 5 类失败并退出 1。slow-corner STA setup/hold 为正，且 `V_FFASYN` 负时序语义不完整，故保持 blocked。
-- `pcie_dma_test_100h/doc/S2F_POST_PNR_TIMING_SMOKE.md`、`sim/questa/run_post_pnr_timing.do`、`scripts/run_post_pnr_timing_sim.ps1`、`scripts/check_post_pnr_timing_sim.ps1`：S2-F 审计首要入口。S2-F 使用独立仿真启动器，不修改 canonical PDS `scripts/run.ps1`；后者原始字节/SHA 已恢复，baseline provenance gate 返回 0，故仿真入口变更不使 run `9952da4164f040d5924a558baa5cd8ca` 失效，也无需重跑 PDS。评审仍必须同时检查 SDF annotation、DUT 层级、仿真器 Errors/退出码、`vsim-8756`/`vsim-3004` 计数与 STA；TB 的 `TEST PASS` 不得覆盖仿真器 error。
-- `pcie_dma_test_100h/doc/S2C_BAR1_REGENERATION.md` 与 BAR1 staging：同版本 PDS `2022.2-SP6.4`、PCIe `1.2c` 的 staging 当前只有 IDF，因缺少完整实例 `index.xml` 而阻断；canonical 未覆盖，活动 BAR1 仍禁用。2026-09-02 的 H2-M1 恢复尝试与 S2-A/S2-B/S2-C 复验见 `pcie_dma_test_100h/doc/H2M1_PG2L100H_RESTORE_ATTEMPT_2026-09-02.md`。
-- `pcie_dma_test_100h/sim/questa/tb/tb_pcie_dma_s2c.sv` 与归档诊断 run `d1d25d3f23384590918f26abbfd2e839`：RC 主动 EP BAR0 写入/读回在 `710535 ns` 以 0 errors、26 vendor warnings、唯一 marker/PASS、退出 0 完成。该入口只作前置诊断，不是 Endpoint 主动 DMA 闭环；BAR1 禁用和 `index.xml` 输入缺口仍是 S2-C 阻断。
-- `docs/SIMULATION_READINESS_MATRIX.md`：三项目 S1/S2/S3 项目级资产缺口、厂商示例边界、四级共同门槛和 PG2L50H 迁移依赖的首要证据。
-- `scripts/compile_simlib.ps1`、`scripts/compile_simlib.tcl`：Questa Sim-64 2021.1 下 Logos2 USIM/VSIM 均已验证；S2-E 通过仍只属于无 SDF PNR 功能 smoke，S2-F 的 blocked 结果也不能扩展为硅上失败或发布证据。
-
-## 后续更新
-
-只有积累足够多、内容独立的提交后，才适合增加真实 churn 与共同变更分析。后续按 PCIe 当前动态复验、DDR3 M2、OV5640 C0/C1/C2/C3/S3 推进；OV7725 保持 legacy。缺少一手资料或仓库外许可证不可用时，不修改对应功能 RTL/物理约束，也不把历史仿真日志冒充当前结果。
+- 高频变更区域：`TODO.md`、`docs/`、`scripts/` 及 PCIe `sim/questa/`。
+- 厂商生成 IP、PDS 数据库和仿真运行态属于高风险输入，必须保持边界和来源清单。
+- 结构删除仅影响当前树；Git 历史不改写，旧提交仍可通过历史审计查询。

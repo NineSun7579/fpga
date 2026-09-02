@@ -106,18 +106,6 @@ $Ddr3D3aStagingCheckPath = Join-Path $RepoRoot `
     'ddr3_test\ddr3_test\scripts\check_d3a_staging_contract.ps1'
 $Ddr3D3aStagingReviewPath = Join-Path $RepoRoot `
     'ddr3_test\ddr3_test\doc\D3A_PG2L50H_STAGING_REVIEW.md'
-$OvM3AuditPath = Join-Path $RepoRoot `
-    '41_ov7725_hdmi\doc\M3A_IP_MIGRATION_AUDIT.md'
-$OvM3CanonicalIpHashes = [ordered]@{
-    '41_ov7725_hdmi\prj\ipcore\ddr3_ip\ddr3_ip.idf' = `
-        '4C103420EDF48C5E361A8B7CA132E00EFA268E71B7ABE2BA3826B46A8712E3A1'
-    '41_ov7725_hdmi\prj\ipcore\pll_clk\pll_clk.idf' = `
-        'B93FDCB80209C0DA3F0BE9BA08E8D1D9E90D37002473C3BA98E5B3C0AB6EF2A1'
-    '41_ov7725_hdmi\prj\ipcore\rd_fifo\rd_fifo.idf' = `
-        '734DAE3B41599127C648E7012C8E7F5D50945A324981AB52ADBD61195BFB049A'
-    '41_ov7725_hdmi\prj\ipcore\wr_fifo\wr_fifo.idf' = `
-        'C1C55F4D5C578172B7BA8FBF057163D7E980C9B59C67D99252404A9BDF8E6F70'
-}
 
 function Add-Failure {
     param([Parameter(Mandatory)][string]$Message)
@@ -155,21 +143,6 @@ function Require-Pattern {
 }
 
 $Projects = @(
-    [pscustomobject]@{
-        Name = 'OV7725 HDMI'
-        Root = '41_ov7725_hdmi'
-        Top = 'ov7725_hdmi'
-        Readme = 'README.md'
-        BoardEvidence = 'doc/BOARD_EVIDENCE.md'
-        BoardKeywords = @('OV7725', 'HDMI')
-        ReadmePatterns = @{
-            Clock = '(?i)cam_pclk|pixel_clk|\u65f6\u949f'
-            Interface = '(?i)HDMI|TMDS|DDR3|RGB565'
-            Build = 'scripts/(?:build|run)\.ps1|scripts/(?:build|run)\.tcl'
-            IpSource = '(?i)IP|IDF|ipcore'
-            Blocker = '\u963b\u65ad|\u5c1a\u672a|\u4e0d\u4e00\u81f4|\u5f85\u5ba1\u6838'
-        }
-    },
     [pscustomobject]@{
         Name = 'DDR3 bring-up'
         Root = 'ddr3_test/ddr3_test'
@@ -280,7 +253,6 @@ if ($Ov5640ScopeExists) {
     $Ov5640ScopeText = Get-Content -Raw -Encoding UTF8 -LiteralPath $Ov5640ScopePath
     foreach ($Required in ([ordered]@{
             'OV5640 product target' = 'OV5640'
-            'OV7725 legacy boundary' = 'OV7725.*(?:legacy|\u5386\u53f2)'
             'approved FPGA target' = 'PG2L100H-6IFBG484'
             'reference import boundary' = '59_top_dual_ov5640_hdmi'
             'Questa validation requirement' = 'Questa.*2021\.1'
@@ -479,15 +451,15 @@ if ($SimlibPsExists) {
 }
 
 $SimArchiveGateExists = Require-File -Path $SimArchiveGatePath `
-    -Description 'three-project simulation archive gate'
+    -Description 'project simulation archive gate'
 if ($SimArchiveGateExists) {
     try {
         & $SimArchiveGatePath -RepoRoot $RepoRoot
         if ($LASTEXITCODE -ne 0) {
-            Add-Failure 'Three-project simulation archive gate failed'
+            Add-Failure 'Project simulation archive gate failed'
         }
     } catch {
-        Add-Failure ("Three-project simulation archive gate failed: {0}" -f `
+        Add-Failure ("Project simulation archive gate failed: {0}" -f `
                 $_.Exception.Message)
     }
 }
@@ -591,51 +563,11 @@ if ($Ddr3M2B1AuditExists) {
     }
 }
 
-# M3-A is now a frozen-legacy gate. Protect the four active IDFs from drift;
-# OV7725 will not be promoted to PG2L50H, and dual OV5640 uses a new project.
-$OvM3AuditExists = Require-File -Path $OvM3AuditPath `
-    -Description 'OV7725 M3-A four-IP migration audit'
-if ($OvM3AuditExists) {
-    $OvM3AuditText = Get-Content -Raw -Encoding UTF8 -LiteralPath $OvM3AuditPath
-    foreach ($Required in ([ordered]@{
-            'M3-A legacy FPGA part' = 'PG2L50H-6IFBG484'
-            'M3-A old-IP path rejection' = 'IPCompiler 0037'
-            'M3-A version mismatch rejection' = 'IPCompiler 0057'
-            'M3-A DDR3 version gap' = '1\.12.*1\.10'
-            'M3-A PLL version gap' = '1\.3.*1\.5'
-            'M3-A FIFO version gap' = '1\.8.*1\.10'
-            'M3-A GUI new-instance rule' = 'SP6\.4 IP Compiler GUI'
-            'M3-A staging-only output' = 'build/ipgen/pg2l50h'
-            'M3-A canonical promotion block' = '\u7981\u6b62 canonical \u5347\u683c'
-            'M3-A DDR3 derived parameter' = 'DEVICE_100H_EN=false'
-            'M3-A PLL derived parameter' = 'DEVICE_PG2L50H=true'
-            'M3-A FIFO PG2L50H resource limits' = '85 \u4e2a DRM36K/170 \u4e2a DRM18K'
-            'M3-A RCF object-hit review' = 'RCF.*\u5bf9\u8c61.*\u547d\u4e2d'
-        }).GetEnumerator()) {
-        Require-Pattern -Text $OvM3AuditText -Pattern $Required.Value `
-            -Description $Required.Key | Out-Null
-    }
-}
-
-foreach ($Entry in $OvM3CanonicalIpHashes.GetEnumerator()) {
-    $IdfPath = Join-Path $RepoRoot $Entry.Key
-    if (Require-File -Path $IdfPath -Description "OV7725 canonical IP $($Entry.Key)") {
-        $ActualHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $IdfPath).Hash
-        if ($ActualHash -ne $Entry.Value) {
-            Add-Failure "OV7725 frozen legacy IP changed: $($Entry.Key)"
-        } else {
-            Write-Host "INFO: OV7725 canonical IP hash preserved: $($Entry.Key)"
-        }
-    }
-}
-
 $RootReadmePath = Join-Path $RepoRoot 'README.md'
 $TodoPath = Join-Path $RepoRoot 'TODO.md'
 $MatrixExists = Require-File -Path $MatrixPath -Description 'simulation readiness matrix'
 if ($MatrixExists) {
     $MatrixText = Get-Content -Raw -Encoding UTF8 -LiteralPath $MatrixPath
-    Require-Pattern -Text $MatrixText -Pattern 'OV7725 legacy' `
-        -Description 'simulation matrix OV7725 legacy boundary' | Out-Null
     Require-Pattern -Text $MatrixText -Pattern 'OV5640' `
         -Description 'simulation matrix OV5640 target coverage' | Out-Null
     Require-Pattern -Text $MatrixText -Pattern 'DDR3' `
@@ -672,14 +604,6 @@ if (Test-Path -LiteralPath $TodoPath -PathType Leaf) {
         -Pattern '59_top_dual_ov5640_hdmi/.*doc/BOARD_EVIDENCE\.md' `
         -Description 'TODO dual OV5640 board-evidence task' | Out-Null
 
-    $ActiveOv7725Tasks = @($TodoText -split "`r?`n" | Where-Object {
-            $_ -match '^\s*-\s*\[\s\]\s+.*OV7725'
-        })
-    if ($ActiveOv7725Tasks.Count -gt 0) {
-        Add-Failure "TODO contains active OV7725 tasks: $($ActiveOv7725Tasks -join ' | ')"
-    } else {
-        Write-Host 'INFO: TODO contains no active OV7725 tasks'
-    }
 }
 
 $IgnoreText = Get-Content -Raw -LiteralPath (Join-Path $RepoRoot '.gitignore')

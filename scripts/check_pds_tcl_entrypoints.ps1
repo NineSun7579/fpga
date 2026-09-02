@@ -175,8 +175,8 @@ foreach ($Entry in $Entries) {
 }
 
 $RunEntries = @($Entries | Where-Object { [bool]$_.run_ps1_entry })
-if ($RunEntries.Count -ne 3) {
-    Add-Failure "Expected exactly three project run.ps1 Tcl entries, found $($RunEntries.Count)"
+if ($RunEntries.Count -ne 2) {
+    Add-Failure "Expected exactly two project run.ps1 Tcl entries, found $($RunEntries.Count)"
 }
 
 if ($Failures.Count -gt 0) {
