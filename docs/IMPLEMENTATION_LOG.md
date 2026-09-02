@@ -542,3 +542,4 @@
 - 新增 `docs/GITHUB_PR_GATE.md` 记录 check 名称、建议的 required-check 设置和边界。`Static repository gates` 通过只代表仓库静态合同通过，不代表 PDS、Questa、STA、SDF、位流或实板通过。
 - 本批没有修改 HDL/TB，因此 VSCS 代码注释检查不适用；没有运行 PDS/Questa，也没有提交构建或仿真运行态。
 - PR #26 的首次 hosted run 暴露可移植性问题：BAR1 dry-run 在未执行 IP 生成时仍解析默认 `E:\pango\...`，GitHub Windows runner 无该盘符而失败。已改为仅在 `-Execute` 时解析 `ip_generate.exe` 路径；dry-run 不读取或验证本机 PDS 路径。
+- 2026-09-02：完成 CI-10B。仓库一致性门禁新增 `Forbid-Pattern`，拒绝双 OV5640 范围文档和 C0 审计重新出现当前 PG2L50H 目标表述；验证通过，未修改 RTL、IP、FDC 或生成物。

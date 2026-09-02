@@ -81,6 +81,7 @@
 - [x] S0-2-Q（2026-09-01 当前复验）：仓库外许可证恢复后，Questa `2021.1` 以新 run id `966942334060436dba8444ae9155557c` 完成 S2-A；编译/elaboration/运行均成功，`Errors: 0, Warnings: 0`、唯一 `TEST PASS`、PowerShell 退出 0。仓库仍不记录许可证配置。
 - [ ] 完成 DDR3、PCIe 与双 OV5640 三个活动项目的分级自检仿真。
 - [x] CI-10A：新增 PCIe 约束对象解析 probe 与审核判据；仅验证 `get_clocks`/异步时钟组/`report_exceptions` 的对象解析入口，不批准 waiver，尚未生成动态 PDS 结果。
+- [x] CI-10B：为双 OV5640 范围与 C0 审计加入旧 PG2L50H 活动目标负向检查，防止历史迁移措辞回归当前产品文档；不影响 PCIe/DDR3 历史 staging 证据。
 
 ### 当前执行队列（2026-09-02，目标修订为 PG2L100H）
 
