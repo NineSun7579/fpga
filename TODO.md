@@ -24,6 +24,13 @@
 - [ ] PCIe：PDS 工程/历史 bitstream 含 PG2L100H，但活动 `pcie_test.idf` 曾为 PG2L50H，属于混合目标；必须取得并审核 PG2L100H 同版本 IP，或明确接受重新生成与完整回归后，才能恢复 100H。
 - [ ] 双 OV5640：参考分支含 PG2L100H 生成物但拓扑和 FDC 混杂，不能直接恢复；须按双 OV5640 产品合同重新建立 100H canonical IP/FDC/仿真入口。
 
+## 25 MHz 板载时钟审计（2026-09-02）
+
+- [x] 已核对三个工程的时钟入口：DDR3 `free_clk` 约束为 25 MHz；OV7725 legacy 与双 OV5640 参考 `sys_clk`/PLL 输入为 50 MHz；PCIe `ref_clk_p/n` 为独立差分 100 MHz 要求。详细证据见 [`docs/CLOCK_AUDIT_25MHZ.md`](docs/CLOCK_AUDIT_25MHZ.md)。
+- [ ] 从紫光盘古100Pro 原理图/BOM闭合 25 MHz 晶振到 `sys_clk`/`free_clk` 的真实网络、管脚、电平和是否存在外部倍频链。
+- [ ] 闭合 PCIe 100 MHz 差分 refclk 来源、F6/E6（或实际管脚）、P/N 极性、AC耦合和 RK3568 连接；禁止将板载 25 MHz 直接用于 PCIe refclk。
+- [ ] 若 `sys_clk` 直接为 25 MHz，按冻结的视频模式重新生成双 OV5640 PLL，并重算 FDC/generated-clock/复位/HDMI 时序；不得手工编辑厂商生成 IP。
+
 ## 1. 总体验收目标
 
 三个工程最终都必须满足：

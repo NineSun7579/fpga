@@ -553,3 +553,8 @@
 - 使用外部 Questa Sim-64 `2021.1` 重新运行 S2-A `d9d3892b8b2d4c8ca5d668072778fcc6`、S2-B `da83a4fe9a5840dd84b57c40272cdcf1`、S2-C `7c8bb5f4637543ae90e39823505f935f`；三者分别以唯一 `TEST PASS`、真实 RC/EP link marker、BAR0 写读回 marker 通过，退出码均为 0。结果仍绑定活动 PG2L50H IDF，不能作为 PG2L100H 或 RK3568 实板证据。
 - 运行日志中的本机 PDS 安装路径只保留在 ignored `build/`，未复制到仓库；许可证配置和路径均未写入跟踪文件。
 - 只读搜索 `origin/parallel_driver@485f3bba71e4b57fb8bb49cec30e9d331b952be3`：PCIe `ipcore/pcie_test/` 共 114 个文件，当前项目全部已有；唯一差异是当前项目已审核加入 `trgt1_radm_pkt_halt[2:0]` 流控端口。分支 PCIe IDF 仍为 `042004 / 1.2c / PG2L50H / FBG484 / -6`，没有 `.iar`/`index.xml`；外层 PG2L100H 工程的 `Flow-4058` 记录证明其不能作为 100H PCIe IP 输入。
+
+## 2026-09-02：25 MHz 板载时钟审计
+
+- owner 确认紫光盘古100Pro 板载晶振为 25 MHz。逐项目核对后确认：DDR3 `free_clk` 的 40 ns 约束与 25 MHz 相符；OV7725 legacy 与双 OV5640 参考的 `sys_clk`/PLL 输入仍按 50 MHz；PCIe `ref_clk_p/n` 按独立差分 100 MHz（10 ns）约束，不能由板载单端 25 MHz 直接替代。
+- 新增 [`docs/CLOCK_AUDIT_25MHZ.md`](CLOCK_AUDIT_25MHZ.md)，记录输入频率、PLL、generated clock、候选管脚和停止条件。板载时钟网络、PCIe refclk、camera MCLK/PCLK 与 DDR3 电气资料未闭合前，不修改 canonical IP、FDC 或 RTL。
