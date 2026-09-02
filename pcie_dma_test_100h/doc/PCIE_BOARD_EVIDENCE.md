@@ -61,6 +61,8 @@ H2-A 只允许新增/更新证据文档，不修改 RTL、活动 IDF 或 FDC，�
 ## 6. 关闭条件
 
 1. 资料来源、版本和审核状态已记录，且覆盖证据矩阵全部条目。
-2. build、活动 PCIe IP、时序报告和 bitstream 数据库均为 `PG2L50H/FBG484/-6`，且不存在 `Flow-4058` 器件不一致；该条件已由 M1 重建验证。
+2. 恢复后的 build、活动 PCIe IP、时序报告和 bitstream 数据库必须全部为
+   `PG2L100H/FBG484/-6`，且不存在 `Flow-4058` 器件不一致。此前 M1 的
+   `PG2L50H` 重建只作为历史迁移基线，不能满足本关闭条件。
 3. UART、SCBV、lane/refclk/PERST# 和 share pin 的处理均有明确决策与可追溯约束依据。
 4. H2-B1 严格 gate 在不带 baseline 放行参数时返回 0；否则继续保持发布阻断。

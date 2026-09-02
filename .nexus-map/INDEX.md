@@ -24,6 +24,8 @@
 - 本机实际安装缺少对应 PCIe IP 包及 `index.xml`，因此登记信息不能证明 IP Compiler 入口可生成；探针在入口处失败，H2-M1 保持 blocked。
 - 后续允许建立仅写入项目 `build/` 的 staging 生成脚本，用于验证入口/元数据/端口/资源差异；不得覆盖 canonical IDF、RTL、FDC 或既有生成物。
 - PDS 的登记、器件数据库和示例资料可支持恢复评估，但不能替代板级 lane、refclk、PERST#、SCBV、UART 与连接器证据。
+- 2026-09-02 恢复尝试已完成：外部 `fpga_demo_100h/pcie_dma_test_100h` 与仓库 PCIe RTL/厂商仿真资产一致，但其 IDF 仍为 `1.2c / PG2L50H / FBG484 / -6`；本机 `regenerate_pg2l100h_staging.ps1 -Execute` 因缺少 PCIe `index.xml` 在 IP Compiler 入口前失败闭合。Questa `2021.1` 重新通过 S2-A/S2-B/S2-C，但结果继续按 50H 活动 IDF 的结构/入口证据处理，不关闭 100H IP 或实板验收。详见 [`H2M1_PG2L100H_RESTORE_ATTEMPT_2026-09-02.md`](../pcie_dma_test_100h/doc/H2M1_PG2L100H_RESTORE_ATTEMPT_2026-09-02.md)。
+- `origin/parallel_driver@485f3bba71e4b57fb8bb49cec30e9d331b952be3` 的 PCIe `ipcore/pcie_test/` 共 114 个文件，当前项目全部已有；分支 IDF 仍为 `042004 / 1.2c / PG2L50H / FBG484 / -6`，且无 `.iar`/`index.xml`。外层 PG2L100H PDS 与 PCIe IDF 的 `Flow-4058` 不一致记录使该分支不能作为 100H PCIe 恢复输入。
 
 - `41_ov7725_hdmi/`：OV7725 采集、DDR3 帧缓存与 HDMI/TMDS 输出 legacy；已完成的 SP6.4 构建、STA、CDC/RDC 和 gate 结果只保留为历史证据，不得改名冒充 OV5640 产品实现。
 - `ddr3_test/`：已用厂商 `test_ddr` 临时 bring-up 顶层完成 SP6.4 全流程实现、STA、网表/SDF、位流与构建 gate 验证；严格 gate 仍被板级和 RTL 已知问题阻断，它不是已验收的产品顶层。
