@@ -907,6 +907,37 @@
         "test_pass_override_forbidden": true,
         "coverage_boundary": ["no PCIe link proof", "no DMA proof", "no H2-B1 closure", "no hardware proof", "no release proof"]
       },
+      "constraint_exception_inventory": {
+        "date": "2026-09-02",
+        "status": "static_inventory_and_negative_self_tests_passed",
+        "machine_inventory": "docs/CONSTRAINT_EXCEPTION_INVENTORY.json",
+        "document": "docs/CONSTRAINT_EXCEPTION_INVENTORY.md",
+        "script": "scripts/check_constraint_exceptions.ps1",
+        "counts": {
+          "artifacts": 4,
+          "timing_exceptions": 15,
+          "pap_clock_dedicated_route_overrides": 1
+        },
+        "artifact_roles": {
+          "ddr3": "canonical_vendor_generated_unreviewed_old_pg2l100h_target_mismatch_6_timing",
+          "pcie": "canonical_vendor_derived_unreviewed_3_timing",
+          "ov7725": "legacy_frozen_unapproved_6_timing_plus_1_pap_override",
+          "dual_ov5640": "canonical_fdc_not_created_h3_blocked_0"
+        },
+        "positive_self_tests": [
+          "canonical inventory accepted",
+          "CRLF-only checkout accepted after line-ending normalization"
+        ],
+        "negative_self_tests": [
+          "unregistered timing exception addition rejected",
+          "registered timing exception modification rejected",
+          "dual OV5640 premature FDC creation rejected",
+          "source command rejected fail-closed",
+          "Tcl continuation rejected fail-closed",
+          "semicolon multi-command line rejected fail-closed"
+        ],
+        "boundary": "Registration is not a waiver or approval and does not prove Tcl object resolution, CDC correctness, STA, implementation, bitstream, release, or hardware acceptance."
+      },
       "tech_stack": ["Verilog", "Pango Logos2", "PCIe x2", "DMA"],
       "related_reqs": ["H2-A read-only evidence", "H2-B board evidence", "IP regeneration", "UART 决策", "集成自检", "保持时序通过"],
       "complexity": "high",

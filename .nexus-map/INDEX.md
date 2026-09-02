@@ -80,6 +80,8 @@
 
 ## 当前优先级
 
+约束例外现由主清单 `docs/CONSTRAINT_EXCEPTION_INVENTORY.json`、说明 `docs/CONSTRAINT_EXCEPTION_INVENTORY.md` 与门禁 `scripts/check_constraint_exceptions.ps1` 单一维护。当前精确登记 DDR3 canonical 6 条 vendor-generated/unreviewed timing exception（旧 PG2L100H target mismatch）、PCIe canonical 3 条 vendor-derived/unreviewed timing exception、OV7725 legacy 6 条 timing exception 与 1 条冻结且非批准的 `PAP_CLOCK_DEDICATED_ROUTE FALSE`；双 OV5640 为 0 条，canonical FDC 仍是 not-created/H3-blocked。正向清单检查、CRLF-only checkout 可移植性，以及新增/改写例外、双 OV5640 过早创建 FDC、`source`/续行/分号多命令 fail-closed 自测均已通过。该登记只保护文本和边界不漂移，不是 waiver，不证明 Tcl 对象解析、STA、实现、发布或实板通过。
+
 1. PCIe S2-E PNR 后功能已通过；下一步继续 S2-C DMA 与 SDF 时序仿真，不把该无 SDF smoke 外推为链路、DMA、时序、实板或发布证据。
 2. H0/H1/H3 补齐板卡、原理图/BOM、器件丝印、bank 电压、DDR3 料号/拓扑及 OV5640/HDMI 时序资料；资料缺失时不得猜测参数、I/O delay 或收紧 gate。
 3. 双 OV5640 C0 已完成：17 个 HDMI 明文 RTL、4 个 TB、4 个 PCIe video 参考文件、4 个 PG2L100H 生成 IP，以及 PDS/FDC/BAR、VSCS/CDC/RDC 风险已登记。`59_top_dual_ov5640_hdmi/` 当前只有 README 与板级证据清单；C1 继续等待两路模组、MCLK、电压、DVP、DDR3、HDMI 和管脚事实，冻结后才允许向该目录选择性导入实现资产，4 个参考 TB 不能原样计入 S3。

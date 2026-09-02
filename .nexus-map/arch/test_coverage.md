@@ -192,6 +192,12 @@
 - PDS 可能在日志含 `E:` 时仍返回退出码 0；新 PowerShell 入口必须同时检查退出码和错误日志。
 - PCIe 位流阶段报告 SCBV 未配置，这是当前发布阻断项。
 
+## 约束例外清单与漂移门禁
+
+- 已验证：`docs/CONSTRAINT_EXCEPTION_INVENTORY.json` 精确登记 4 个 artifact、15 条 timing exception 与 1 条 dedicated-route override。DDR3 为 6 条 vendor-generated/unreviewed 且仍有旧 PG2L100H target mismatch；PCIe 为 3 条 vendor-derived/unreviewed；OV7725 legacy 为冻结且非批准的 6 条 timing exception 与 1 条 `PAP_CLOCK_DEDICATED_ROUTE FALSE`；双 OV5640 为 0 条且 canonical FDC not-created/H3-blocked。
+- 已验证：`scripts/check_constraint_exceptions.ps1` 正向检查和 CRLF-only checkout 可移植性 fixture 退出 0；增加未登记 exception、改写已登记 exception、在双 OV5640 目录过早创建 FDC，以及包含 `source`、Tcl 续行或分号多命令的输入均被负向 fixture 拒绝。根一致性门禁调用该自测。
+- 边界：清单成员资格只证明文本可追溯和漂移受控，不构成 waiver 或技术批准；静态 gate 不执行 Tcl，不证明 `get_clocks`/`get_pins` 对象能唯一解析，不证明 CDC、STA、实现、位流、发布或实板通过。
+
 ## 统一验收门槛
 
 1. 行为级 testbench 自检通过，失败使用 `$fatal`，成功只输出一个 `TEST PASS`。

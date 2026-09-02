@@ -84,6 +84,8 @@ O2-D2 已取消。其 generated-clock 唯一性、waveform/取点、OSERDES reco
 
 ## 时序闭环
 
+约束例外采用“精确登记而非默认批准”模型：主 JSON 清单记录 canonical、legacy 与 not-created 三种角色，PowerShell gate 对敏感命令和双 OV5640 FDC 缺席合同做漂移检查。DDR3 6 条例外仍属于旧 PG2L100H 厂商生成输入且未经审核；PCIe 3 条为 vendor-derived/unreviewed；OV7725 的 6 条 timing exception 与 dedicated-route override 只作为冻结 legacy 证据；双 OV5640 在 H3 关闭前保持 0 条和 canonical FDC not-created。清单通过不能替代对象解析、约束理由审核、STA 或发布签核。
+
 `All Constraints Met` 只覆盖已建模路径。验收还需检查未约束时钟、未约束关键 I/O、CDC 报告、setup/hold/recovery/removal、SDF 标注与板级接口假设。
 
 ## PDS 生成物与可重复构建

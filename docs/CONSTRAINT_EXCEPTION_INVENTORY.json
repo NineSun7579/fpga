@@ -1,0 +1,225 @@
+{
+  "schema_version": 1,
+  "verified_at": "2026-09-02",
+  "summary": {
+    "timing_exception_count": 15,
+    "dedicated_route_override_count": 1,
+    "policy": "Inventory membership proves text traceability only; it is not a timing waiver, STA semantic proof, board approval, or release approval."
+  },
+  "artifacts": [
+    {
+      "project": "ddr3",
+      "artifact_role": "canonical",
+      "ownership": "vendor_generated",
+      "path": "ddr3_test/ddr3_test/ip_core/ddr3/pnr/ddr_test.fdc",
+      "normalized_sha256": "801ea076c36441a7e3ee698071ececa2c43e95003fe71cd08fcc5de10d53b9da",
+      "blob_oid": "fa3a9da54f3aec456433ae1ca4eb412d983f9ee0",
+      "target_validity": "historical_pg2l100h_target_mismatch",
+      "review_status": "unreviewed_vendor_generated",
+      "entrypoints": [
+        {
+          "path": "ddr3_test/ddr3_test/scripts/build.tcl",
+          "required_text": "ip_core/ddr3/pnr/ddr_test.fdc"
+        }
+      ],
+      "commands": [
+        {
+          "line": 10,
+          "kind": "set_multicycle_path",
+          "normalized_command": "set_multicycle_path 2 -from [get_clocks ddrphy_sysclk] -to [get_clocks phy_dq_sysclk_0]",
+          "object": "ddrphy_sysclk -> phy_dq_sysclk_0",
+          "reason": "Vendor DDR PHY launch/capture relationship.",
+          "basis": "PDS-generated DDR3 IP constraint; PG2L50H board applicability is not approved.",
+          "review_status": "unreviewed_vendor_generated"
+        },
+        {
+          "line": 13,
+          "kind": "set_multicycle_path",
+          "normalized_command": "set_multicycle_path 2 -from [get_clocks ddrphy_sysclk] -to [get_clocks phy_dq_sysclk_1]",
+          "object": "ddrphy_sysclk -> phy_dq_sysclk_1",
+          "reason": "Vendor DDR PHY launch/capture relationship.",
+          "basis": "PDS-generated DDR3 IP constraint; PG2L50H board applicability is not approved.",
+          "review_status": "unreviewed_vendor_generated"
+        },
+        {
+          "line": 19,
+          "kind": "set_clock_groups",
+          "normalized_command": "set_clock_groups -name ref_clk -asynchronous -group [get_clocks {ref_clk}]",
+          "object": "ref_clk",
+          "reason": "Vendor DDR PHY asynchronous clock grouping.",
+          "basis": "PDS-generated DDR3 IP constraint; object resolution has not been revalidated after PG2L50H promotion.",
+          "review_status": "unreviewed_vendor_generated"
+        },
+        {
+          "line": 20,
+          "kind": "set_clock_groups",
+          "normalized_command": "set_clock_groups -name rst_clk -asynchronous -group [get_clocks {rst_clk}]",
+          "object": "rst_clk",
+          "reason": "Vendor DDR PHY asynchronous clock grouping.",
+          "basis": "PDS-generated DDR3 IP constraint; object resolution has not been revalidated after PG2L50H promotion.",
+          "review_status": "unreviewed_vendor_generated"
+        },
+        {
+          "line": 21,
+          "kind": "set_clock_groups",
+          "normalized_command": "set_clock_groups -name phy_dq_clk_0 -asynchronous -group [get_clocks {phy_dq_clk_0}]",
+          "object": "phy_dq_clk_0",
+          "reason": "Vendor DDR PHY asynchronous clock grouping.",
+          "basis": "PDS-generated DDR3 IP constraint; object resolution has not been revalidated after PG2L50H promotion.",
+          "review_status": "unreviewed_vendor_generated"
+        },
+        {
+          "line": 22,
+          "kind": "set_clock_groups",
+          "normalized_command": "set_clock_groups -name phy_dq_clk_1 -asynchronous -group [get_clocks {phy_dq_clk_1}]",
+          "object": "phy_dq_clk_1",
+          "reason": "Vendor DDR PHY asynchronous clock grouping.",
+          "basis": "PDS-generated DDR3 IP constraint; object resolution has not been revalidated after PG2L50H promotion.",
+          "review_status": "unreviewed_vendor_generated"
+        }
+      ]
+    },
+    {
+      "project": "pcie",
+      "artifact_role": "canonical",
+      "ownership": "project_owned_vendor_derived",
+      "path": "pcie_dma_test_100h/fdc/pcie_dma_test.fdc",
+      "normalized_sha256": "1defe61caf54d54c9bcdbf3673363109a805afb6824c3e2720bbb61f82c7656d",
+      "blob_oid": "25ad26e4ac771b2da06aeec3d6b379fe94497b95",
+      "target_validity": "current_pg2l50h_canonical",
+      "review_status": "unreviewed_vendor_derived",
+      "entrypoints": [
+        {
+          "path": "pcie_dma_test_100h/scripts/build.tcl",
+          "required_text": "fdc/pcie_dma_test.fdc"
+        }
+      ],
+      "commands": [
+        {
+          "line": 13,
+          "kind": "set_clock_groups",
+          "normalized_command": "set_clock_groups -name group_1 -asynchronous -group [get_clocks {pclk}]",
+          "object": "pclk",
+          "reason": "PCIe vendor-derived asynchronous clock grouping.",
+          "basis": "Copied from the active PCIe example constraint; product object resolution and CDC justification remain unreviewed.",
+          "review_status": "unreviewed_vendor_derived"
+        },
+        {
+          "line": 14,
+          "kind": "set_clock_groups",
+          "normalized_command": "set_clock_groups -name group_2 -asynchronous -group [get_clocks {pclk_div2}]",
+          "object": "pclk_div2",
+          "reason": "PCIe vendor-derived asynchronous clock grouping.",
+          "basis": "Copied from the active PCIe example constraint; product object resolution and CDC justification remain unreviewed.",
+          "review_status": "unreviewed_vendor_derived"
+        },
+        {
+          "line": 15,
+          "kind": "set_clock_groups",
+          "normalized_command": "set_clock_groups -name group_3 -asynchronous -group [get_clocks {ref_clk}]",
+          "object": "ref_clk",
+          "reason": "PCIe vendor-derived asynchronous clock grouping.",
+          "basis": "Copied from the active PCIe example constraint; product object resolution and CDC justification remain unreviewed.",
+          "review_status": "unreviewed_vendor_derived"
+        }
+      ]
+    },
+    {
+      "project": "ov7725_legacy",
+      "artifact_role": "legacy",
+      "ownership": "project_owned_vendor_derived",
+      "path": "41_ov7725_hdmi/prj/source/ov7725_hdmi.fdc",
+      "normalized_sha256": "f8a9f83c55d065965e44f9ba18686e7bcc75df4b4c15c95f05d5dec41b639189",
+      "blob_oid": "42db69bc9535f4ddd14a8d949d31f4e26edb734c",
+      "target_validity": "frozen_legacy_pg2l100h",
+      "review_status": "frozen_legacy_not_approved",
+      "entrypoints": [
+        {
+          "path": "41_ov7725_hdmi/scripts/build.tcl",
+          "required_text": "prj/source/ov7725_hdmi.fdc"
+        }
+      ],
+      "commands": [
+        {
+          "line": 26,
+          "kind": "set_multicycle_path",
+          "normalized_command": "set_multicycle_path 2 -from [get_clocks ddrphy_sysclk] -to [get_clocks phy_dq_sysclk_0]",
+          "object": "ddrphy_sysclk -> phy_dq_sysclk_0",
+          "reason": "Legacy vendor DDR PHY launch/capture relationship.",
+          "basis": "Frozen PG2L100H camera integration constraint; reference only.",
+          "review_status": "frozen_legacy_not_approved"
+        },
+        {
+          "line": 29,
+          "kind": "set_multicycle_path",
+          "normalized_command": "set_multicycle_path 2 -from [get_clocks ddrphy_sysclk] -to [get_clocks phy_dq_sysclk_1]",
+          "object": "ddrphy_sysclk -> phy_dq_sysclk_1",
+          "reason": "Legacy vendor DDR PHY launch/capture relationship.",
+          "basis": "Frozen PG2L100H camera integration constraint; reference only.",
+          "review_status": "frozen_legacy_not_approved"
+        },
+        {
+          "line": 35,
+          "kind": "set_clock_groups",
+          "normalized_command": "set_clock_groups -name ref_clk -asynchronous -group [get_clocks {ref_clk}]",
+          "object": "ref_clk",
+          "reason": "Legacy vendor DDR PHY asynchronous clock grouping.",
+          "basis": "Frozen PG2L100H camera integration constraint; reference only.",
+          "review_status": "frozen_legacy_not_approved"
+        },
+        {
+          "line": 36,
+          "kind": "set_clock_groups",
+          "normalized_command": "set_clock_groups -name rst_clk -asynchronous -group [get_clocks {rst_clk}]",
+          "object": "rst_clk",
+          "reason": "Legacy vendor DDR PHY asynchronous clock grouping.",
+          "basis": "Frozen PG2L100H camera integration constraint; reference only.",
+          "review_status": "frozen_legacy_not_approved"
+        },
+        {
+          "line": 37,
+          "kind": "set_clock_groups",
+          "normalized_command": "set_clock_groups -name phy_dq_clk_0 -asynchronous -group [get_clocks {phy_dq_clk_0}]",
+          "object": "phy_dq_clk_0",
+          "reason": "Legacy vendor DDR PHY asynchronous clock grouping.",
+          "basis": "Frozen PG2L100H camera integration constraint; reference only.",
+          "review_status": "frozen_legacy_not_approved"
+        },
+        {
+          "line": 38,
+          "kind": "set_clock_groups",
+          "normalized_command": "set_clock_groups -name phy_dq_clk_1 -asynchronous -group [get_clocks {phy_dq_clk_1}]",
+          "object": "phy_dq_clk_1",
+          "reason": "Legacy vendor DDR PHY asynchronous clock grouping.",
+          "basis": "Frozen PG2L100H camera integration constraint; reference only.",
+          "review_status": "frozen_legacy_not_approved"
+        },
+        {
+          "line": 48,
+          "kind": "pap_clock_dedicated_route",
+          "normalized_command": "define_attribute {n:cam_pclk} {PAP_CLOCK_DEDICATED_ROUTE} {FALSE}",
+          "object": "cam_pclk",
+          "reason": "Legacy camera clock uses a non-dedicated route override.",
+          "basis": "Frozen legacy constraint; no current board or timing approval.",
+          "review_status": "frozen_legacy_not_approved"
+        }
+      ]
+    },
+    {
+      "project": "dual_ov5640",
+      "artifact_role": "not_created",
+      "ownership": "none",
+      "path": null,
+      "normalized_sha256": null,
+      "blob_oid": null,
+      "target_validity": "blocked_not_created",
+      "review_status": "h3_blocked",
+      "project_root": "59_top_dual_ov5640_hdmi",
+      "required_absent_paths": [
+        "59_top_dual_ov5640_hdmi/scripts/build.tcl",
+        "59_top_dual_ov5640_hdmi/scripts/run.ps1"
+      ],
+      "commands": []
+    }
+  ]
+}
