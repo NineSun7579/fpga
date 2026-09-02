@@ -1,8 +1,10 @@
-# M2-A：DDR3 PG2L50H IP 重生成
+# M2-A：DDR3 PG2L50H IP 重生成（历史批次）
+
+> 历史批次说明（2026-09-02）：本文记录旧 PG2L50H staging 重生成方案，不是当前 canonical 目标。当前统一目标为紫光盘古100Pro、`PG2L100H-6IFBG484`，本文件仅保留迁移差异和回滚证据。
 
 ## 目的
 
-本批只建立可审核、可回滚的重生成入口，不直接覆盖 `ip_core/ddr3`。最终硬件目标为 `RK3568+PG2L50H100H` 开发板上的 `PG2L50H-6IFBG484`，PDS 目标为 `Logos2 / PG2L50H / FBG484 / -6`。
+本批只建立可审核、可回滚的重生成入口，不直接覆盖 `ip_core/ddr3`。历史 staging 目标为 `RK3568+PG2L50H100H` 开发板上的 `PG2L50H-6IFBG484`，PDS 目标为 `Logos2 / PG2L50H / FBG484 / -6`。
 
 ## 工具与命令
 

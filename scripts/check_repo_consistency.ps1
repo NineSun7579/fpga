@@ -239,6 +239,21 @@ if ($GithubWorkflowExists) {
         Add-Failure 'GitHub static gate must not read repository secrets'
     }
 }
+
+function Forbid-Pattern {
+    param(
+        [Parameter(Mandatory)][string]$Text,
+        [Parameter(Mandatory)][string]$Pattern,
+        [Parameter(Mandatory)][string]$Description
+    )
+
+    if ([regex]::IsMatch($Text, $Pattern)) {
+        Add-Failure "Forbidden $Description"
+        return $false
+    }
+
+    return $true
+}
 if ($GithubGateDocExists) {
     $GithubGateDocText = Get-Content -Raw -Encoding UTF8 `
         -LiteralPath $GithubGateDocPath
@@ -273,6 +288,8 @@ if ($Ov5640ScopeExists) {
         Require-Pattern -Text $Ov5640ScopeText -Pattern $Required.Value `
             -Description $Required.Key | Out-Null
     }
+    Forbid-Pattern -Text $Ov5640ScopeText -Pattern 'PDS目标按 .*PG2L50H|PG2L50H canonical' `
+        -Description 'stale dual OV5640 50H active-target wording' | Out-Null
 }
 $Ov5640C0AuditExists = Require-File -Path $Ov5640C0AuditPath `
     -Description 'OV5640 C0 reference audit'
@@ -292,6 +309,8 @@ if ($Ov5640C0AuditExists) {
         Require-Pattern -Text $Ov5640C0AuditText -Pattern $Required.Value `
             -Description $Required.Key | Out-Null
     }
+    Forbid-Pattern -Text $Ov5640C0AuditText -Pattern '不能直接进入 PG2L50H canonical' `
+        -Description 'stale C0 50H canonical wording' | Out-Null
 }
 
 $Ov5640ProductReadmeExists = Require-File -Path $Ov5640ProductReadmePath `

@@ -8,6 +8,8 @@
 
 - 开发板名称：**紫光盘古100Pro**。
 - FPGA 器件：`PG2L100H-6IFBG484`；PDS 目标：`Logos2 / PG2L100H / FBG484 / -6`。
+- 外部输入合同见 `docs/BOARD_INPUT_REQUEST.md`：板级身份、电气/启动条件、DDR3 拓扑与时钟、PCIe x2 物理链路、双 OV5640 接口及 HDMI 输出参数必须由带来源/版本的资料冻结，并逐项映射到项目证据表。
+- 验收边界：冻结后须按 PG2L100H 重新生成 IP/FDC/RCF，完成 PDS 七阶段、STA、Questa 四级仿真及产物器件交叉检查；冻结前不得授权烧录。
 - 板名与 FPGA 型号是独立依赖事实。丝印照片、原理图和 BOM 尚未归档，当前身份仍为 owner 声明；因此历史 PG2L50H staging、旧 PG2L100H 产物和商品截图都不能直接构成烧录或实板验收依据。
 
 ```mermaid
@@ -70,7 +72,7 @@ flowchart TD
 ## 关键依赖约束
 
 - 摄像头产品固定双 OV5640，参考为只读 `origin/parallel_driver@485f3bb`。参考顶层 `top_dual_ov5640_hdmi` 依赖两路独立 SCCB/RESET/PWDN/DVP、每路 960x1080 半幅、双写 DDR3 和 1920x1080 组合输出。
-- 参考根 PDS/DDR3 依赖 PG2L100H，仅 PCIe IP 为 PG2L50H；实际产品必须在 `59_top_dual_ov5640_hdmi/` 独立建立 PG2L50H PDS/DDR3 证据，不能继承参考工程器件结论。
+- 参考根 PDS/DDR3 依赖 PG2L100H，仅 PCIe IP 为 PG2L50H；实际产品必须在 `59_top_dual_ov5640_hdmi/` 独立建立 PG2L100H PDS/DDR3 证据，不能继承参考工程器件结论。
 - 参考仓库 4 个 TB 尚未导入；`tb_dual_ov5640_dri.v` 通过 force `cam_init_done` 绕过初始化，且成功字符串不是 canonical `TEST PASS`，必须选择性审核和改造。
 - 双 OV5640 可复现仿真源只依赖 `59_top_dual_ov5640_hdmi/sim/questa/`，运行态只依赖该工程 `build/`；禁止导入 `sim_*`、`work`、`.mpf`、`modelsim.ini`、日志、波形、绝对路径生成物或许可证配置。`41_ov7725_hdmi/sim/questa/` 仅 legacy。
 - 厂商 `.idf`、生成 RTL 和 PDS 仿真库属于外部生成依赖，不应被误当作独立手写逻辑。
@@ -114,7 +116,7 @@ flowchart TD
 - H2-A 器件审核已解除项目自有 build/gate 的只读限制；活动 IDF 保持 50H，RTL/FDC 仍等待 UART 与板级证据。H2-B 在 lane/refclk/PERST#/SCBV 和 UART 均闭合前不得宣称发布通过。
 - H2-B0 已将 PCIe 五类失败归一化为 16 个唯一签名、42 次原始记录；完整多重集对新增、消失、改名、share-pin 位置和次数漂移均失败，IDF metadata 漂移永久硬失败。canonical fixture 正向 0、strict 1，五个变异均 1。H2-B1 仍阻断于 lane/refclk/PERST#/SCBV/UART/I/O timing；partial run 复用旧 full-build 证据的风险已由 CI-8A 关闭。
 - PCIe CI-8A 已关闭上述复用风险：最新完整 run `9952da4164f040d5924a558baa5cd8ca` 为 `complete/valid=true`，绑定 43 inputs/9 artifacts；baseline/strict 为 `0/1`，不表示 release-ready。
-- CI-8B 依赖 DDR3 M2 与未来双 OV5640 C3 各自完成 PG2L50H canonical 升格及最终构建入口闭合；`origin/parallel_driver@485f3bb` 和 OV7725 legacy 只能提供选择性参考，不能代替产品 provenance。
+- CI-8B 依赖 DDR3 M2 与未来双 OV5640 C1/C3 各自完成 PG2L100H canonical 升格及最终构建入口闭合；`origin/parallel_driver@485f3bb` 和 OV7725 legacy 只能提供选择性参考，不能代替产品 provenance。
 - S0 环境复核（2026-08-30）的未发现仿真器结论已被 2026-09-01 实际执行证据取代：Questa Sim-64 2021.1 最小 SystemVerilog 通过，PDS SP6.4 Logos2 USIM 编译成功。
 - S0-1 已准备 `scripts/compile_simlib.ps1` → 环境变量 → `scripts/compile_simlib.tcl` → PDS `compile_simlib` 的参数化链路，可选择 ModelSim/QuestaSim、USIM/VSIM/BOTH、family、语言、工具路径与输出目录；入口准备不等于库已生成。
 - PCIe S2-A、S2-B、S2-D 与 S2-E 均有动态通过证据。S2-F 当前 run `7fc77a7ec8db479db7332e8037426d6c` 已成功标注 SDF且未 force 设计信号，但两个 HSST reset timing error 使独立脚本汇总 5 类失败并退出 1；`V_FFASYN` 负时序模型语义不完整，而 slow-corner STA setup/hold 为正。该依赖冲突未解决前，S2-F 不得标记通过；S2-C、DDR3/OV5640 项目级仿真仍未完成。

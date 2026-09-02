@@ -4,6 +4,8 @@
 
 # Systems
 
+- repository_delivery: PR #27 已于 2026-09-02 合并；活动目标保持 `PG2L100H-6IFBG484` / 紫光盘古100Pro。下一工作批次以新堆叠 PR 推进，不把合并 PR 的历史 50H 证据当作当前发布证据。
+
 ## PDS 实现与外部仿真规范
 
 - implementation_status: documented
@@ -47,7 +49,7 @@
 - h2_b0_scope: PCIe 当前 PG2L50H baseline 将五类问题归一化为 16 个唯一签名、42 次原始记录；baseline 比较完整多重集，新增、消失、改名、share-pin 位置或次数漂移均失败，活动 IDF family/device/package/speedgrade 漂移永久硬失败。
 - h2_b0_result: canonical fixture 正向退出 0、strict 退出 1；缺失 UART、重复 UART、Timing 端口改名、share pin 改位和 IDF 改为 PG2L100H 五个变异均退出 1。本批无 RTL、活动 IDF、FDC、厂商 IP 或生成物修改。
 - h2_b1_boundary: lane/refclk/PERST#/SCBV/UART/I/O timing 仍需板级资料与决策；H2-B0 不解除发布阻断。
-- ci_8_status: PCIe 的 partial/stale evidence 风险已由 CI-8A manifest 关闭；CI-8B 等待 DDR3/双 OV5640 各自 PG2L50H canonical 升格后迁移，不使用时间戳容差或隐式假设。
+- ci_8_status: PCIe 的 partial/stale evidence 风险已由 CI-8A manifest 关闭；CI-8B 等待 DDR3/双 OV5640 各自 PG2L100H canonical 升格后迁移，不使用时间戳容差或隐式假设。
 - ci_8a_status: PCIe provenance pilot completed on 2026-08-31。
 - ci_8a_inputs: `scripts/pds_sources.f` 是 37 个 HDL 的单一有序清单；与 `run.ps1`、`build.tcl`、`build_provenance.ps1`、活动 IDF/FDC 等合计形成 43 项 canonical 输入。`run.ps1` 中 build-scoped Questa launcher 属于该输入集合，launcher 逻辑变更必须重新绑定完整构建证据。
 - ci_8a_manifest: 每次 build 以 32 位小写十六进制 `run_id` 原子替换固定 `build/provenance/pds-build.json`；状态为 `running/partial/failed/complete`，只有 `complete` 且 `valid=true` 可进入最终 gate。
@@ -142,6 +144,7 @@
 - responsibility: 当前以厂商 `test_ddr` 作为临时 DDR3 board bring-up 顶层；后续必须明确真正产品顶层和板级功能范围。
 - hardware_target: 开发板“紫光盘古100Pro” / FPGA `PG2L100H-6IFBG484` / PDS `Logos2 / PG2L100H / FBG484 / -6`
 - hardware_target_evidence_conflict: owner 已于 `2026-09-02` 修正板名和目标器件；此前 PR #21 商品截图 `RK3568+PG2L100H` 与旧输入 `PG2L50H-6IFBG484` 保留为历史冲突。当前仍必须以板卡丝印、原理图或 BOM 归档关闭，50H staging 和旧 100H 产物在此之前都只作候选证据。
+- board_input_contract: `docs/BOARD_INPUT_REQUEST.md` 统一登记 M0/H1/C1/H3 所需的一手输入及验收方式；资料须附来源、版本或照片编号并映射项目证据表，冻结后才允许 PG2L100H IP/FDC/RCF、PDS 七阶段、STA、Questa 四级仿真和产物器件交叉检查。
 - m2_active_input_audit: 活动 `ip_core/ddr3/ddr3.idf` 为 `PG2L100H`、生成器 `2022.2-SP6.4`；canonical FDC/RCF 为 `ip_core/ddr3/pnr/ddr_test.fdc` 与 `ip_core/ddr3/pnr/ddr3.rcf`；`ip_core/ddr_test.fdc` 是旧外层参考，不能直接升格。项目自有 `scripts/build.tcl` 与 `scripts/check_build.ps1` 也仍按 `PG2L100H`，待 50H 资产落地后再修正。
 - m2_legacy_50h_audit: `ip_backup/20250108100125/ddr3/ddr3.idf` 为 `PG2L50H`，但生成器是 `2022.2-SP6.1`；仅可作为参数/硬宏差异 oracle，禁止直接恢复或复制到活动输入。
 - m2_a_staging: `2026-08-30` 使用 `scripts/regenerate_ip.ps1` 在 `build/ipgen/pg2l50h` 调用 SP6.4 build 146967，目标 `Logos2/PG2L50H/FBG484/-6`，结果 `0 error(s), 0 warning(s)`；canonical IDF SHA-256 保持 `6CB70BF0954100B4797197A47F20496AD74945995E12B30FA040870EE3366C47`。
