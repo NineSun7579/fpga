@@ -92,6 +92,10 @@ $Ddr3M2B2CheckPath = Join-Path $RepoRoot `
     'ddr3_test\ddr3_test\scripts\check_staging_compile.ps1'
 $Ddr3M2B2DocPath = Join-Path $RepoRoot `
     'ddr3_test\ddr3_test\doc\M2B2_STAGING_COMPILE.md'
+$Ddr3D3aStagingCheckPath = Join-Path $RepoRoot `
+    'ddr3_test\ddr3_test\scripts\check_d3a_staging_contract.ps1'
+$Ddr3D3aStagingReviewPath = Join-Path $RepoRoot `
+    'ddr3_test\ddr3_test\doc\D3A_PG2L50H_STAGING_REVIEW.md'
 $OvM3AuditPath = Join-Path $RepoRoot `
     '41_ov7725_hdmi\doc\M3A_IP_MIGRATION_AUDIT.md'
 $OvM3CanonicalIpHashes = [ordered]@{
@@ -1018,6 +1022,46 @@ if ($Ddr3M2B2BuildExists -and $Ddr3M2B2RunExists -and
         }
     } catch {
         Add-Failure "M2-B2 static gate failed: $($_.Exception.Message)"
+    }
+}
+$Ddr3D3aStagingCheckExists = Require-File `
+    -Path $Ddr3D3aStagingCheckPath `
+    -Description 'DDR3 D3-0-M staging contract gate'
+$Ddr3D3aStagingReviewExists = Require-File `
+    -Path $Ddr3D3aStagingReviewPath `
+    -Description 'DDR3 D3-0-M staging contract review'
+if ($Ddr3D3aStagingCheckExists -and $Ddr3D3aStagingReviewExists) {
+    $Ddr3D3aStagingCheckText = Get-Content -Raw -Encoding UTF8 `
+        -LiteralPath $Ddr3D3aStagingCheckPath
+    $Ddr3D3aStagingReviewText = Get-Content -Raw -Encoding UTF8 `
+        -LiteralPath $Ddr3D3aStagingReviewPath
+
+    foreach ($Required in ([ordered]@{
+            'D3-0-M five-port delta' = 'ExpectedAddedWrapperPorts'
+            'D3-0-M differential input buffer' = 'GTP_INBUFDS'
+            'D3-0-M refclk connection comparison' = 'I_ips_ddr_top.*ref_clk'
+            'D3-0-M negative self-test' = 'Invoke-NegativeSelfTest'
+            'D3-0-M static mode' = 'StaticOnly'
+        }).GetEnumerator()) {
+        Require-Pattern -Text $Ddr3D3aStagingCheckText `
+            -Pattern $Required.Value -Description $Required.Key | Out-Null
+    }
+    foreach ($Required in @(
+            'ref_clk_p/ref_clk_n',
+            'GTP_INBUFDS',
+            'D3-A.*blocked',
+            'PG2L50H-6IFBG484',
+            'axi_wready.*axi_wusero_last'
+        )) {
+        Require-Pattern -Text $Ddr3D3aStagingReviewText `
+            -Pattern $Required -Description "D3-0-M evidence '$Required'" |
+            Out-Null
+    }
+
+    try {
+        & $Ddr3D3aStagingCheckPath -StaticOnly -SelfTest
+    } catch {
+        Add-Failure "D3-0-M static gate failed: $($_.Exception.Message)"
     }
 }
 $PciePostPnrTimingSimCheckExists = Require-File `

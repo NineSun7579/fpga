@@ -51,7 +51,7 @@
 - 已验证：当前 HEAD `5769d8f` 共扫描 8 个 PowerShell 脚本，AST 解析错误数为 0，仓库一致性门禁通过。
 - 边界：CI-5 只证明 PowerShell 语法可解析，不执行或替代 PDS、STA、位流生成、ModelSim/QuestaSim 或项目动态仿真。
 
-## CI-6 DDR3 D3-0-R 契约一致性门禁（2026-08-30）
+## CI-6 DDR3 D3-0-R/M 契约一致性门禁（2026-09-02）
 
 - 已验证：提交 `a5d1785` 扩展 `scripts/check_repo_consistency.ps1`，交叉读取 `ddr3.v`、`test_ddr.v` 与 `D3A_PORT_MAP.md`。
 - 已验证：门禁检查模块/参数声明、128-bit 数据和 28-bit 地址证据、`I_ips_ddr_top` 层级、AXI-like 握手字段，并在 core 出现 `axi_rready` 时失败；HEAD `a5d1785`、52 个 Git 提交上门禁和 8 个 PowerShell AST 均通过。
@@ -183,6 +183,7 @@
 - DDR3 D3-0（只读静态评审）：活动 IP 为 `ddr3_test/ddr3_test/ip_core/ddr3/ddr3.v` 的 `module ddr3`，公开端口包含 `ddr_init_done`、`core_clk` 与 AW/W/AR/R 自定义 AXI-like 接口；`test_ddr.v` 的物理 board wrapper 实例名为 `I_ips_ddr_top`，必须保留。
 - DDR3 D3-0 已完成非标准 AXI-like 握手评审：AW/AR 分别以 valid/ready 接受，写数据接受由 `axi_wready` 指示，核心返回 `axi_wusero_id`/`axi_wusero_last`；读返回依赖 `axi_rvalid`/`axi_rlast` 且无 `axi_rready`。D3-A 等待用户审核后按该契约实现，接口语义、地址单位或层级变化即停止并重新审核。
 - DDR3 D3-0-R 端口映射见 `ddr3_test/ddr3_test/doc/D3A_PORT_MAP.md`：当前默认 `CTRL_ADDR_WIDTH=28`、`axi_wdata/axi_rdata=128` bit、`axi_wstrb=16` bit；文档明确 APB/debug tie-off 与物理端口不属于 D3-A BIST 接口。
+- DDR3 D3-0-M：`check_d3a_staging_contract.ps1` 动态确认 canonical/staging core whole-file 相同，wrapper 只新增五个登记端口与 `GTP_INBUFDS`，唯一连接变化为 `.ref_clk(free_clk)`→`.ref_clk(ref_clk)`；错误 refclk、删除 `ref_clk_n`、新增 `axi_rready` 的负向探针均失败。该 gate 不加载 FDC/RCF、不执行 Questa/PDS 后级，也不关闭 H1 或 D3-A。
 - PCIe：S2-A 已动态通过覆盖 `pcie_dma_test` 集成顶层的受控行为 smoke；厂商 ModelSim 资产仍只覆盖 PCIe IP 示例，真实 RC/EP、LTSSM/TLP/DMA 与 UART2APB 无驱动输入仍未验证。
 - PCIe H2-A（只读证据矩阵）：顶层使用 x2 `rxn/rxp/txn/txp`、差分 `ref_clk_p/n`、`perst_n`、`button_rst_n` 与 `ref_led/pclk_led`；FDC 固定 refclk `F6/E6`、PERST# `M16`、button reset `M15`、LED `M17/J16`。当前没有 lane 极性/板级拓扑、I/O delay 或 SCBV 证据。
 - PCIe H2-A/M1 器件边界：活动 `pcie_test.idf`、build/PDS/gate、timing report 与 `bgr.db` 已统一匹配 `Logos2/PG2L50H/FBG484/-6`；UART2APB `rxd/txd`、SCBV、lane/refclk/PERST# 与 share pin 仍是独立功能/发布阻断。
@@ -200,6 +201,6 @@
 5. 时序仿真确认 SDF 实例层级匹配，日志无标注错误和未批准的 timing violation。
 6. 最终位流文件存在且大小非零；关键未约束 I/O 必须修复或进入有依据的白名单。
 7. DDR3 有限自检必须完成恰好 16 个 pair；任一 pair 超过 4096 周期或整次运行超过 131072 周期均失败，成功与失败只能由公开结果接口和退出码判定。
-7. DDR3 D3-0 已冻结 AW/W/AR/R 握手语义与 `I_ips_ddr_top` 实例边界；D3-A/B/C 仍待用户审核和实现，且 D3-0 评审不构成 RTL/IP/约束变更或仿真通过证据。
+7. DDR3 D3-0-R/M 已冻结 AW/W/AR/R、无 `axi_rready`、`I_ips_ddr_top` 及 staging wrapper/refclk 差异；D3-A/B/C 仍受 H1 阻断，且该评审不构成 RTL/IP/约束变更或仿真通过证据。
 8. 三项目最终产物必须证明目标为 `PG2L50H/FBG484/-6`；任何 PG2L100H report、SDF 或位流均拒绝烧录和签核。
 9. PCIe H2-B 只有在 50H build/IDF/report/bitstream 一致、lane 极性/拓扑、I/O delay、SCBV 和 UART2APB 归属均有证据后才可发布。
