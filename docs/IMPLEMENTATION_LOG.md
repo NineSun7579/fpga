@@ -390,3 +390,14 @@
   全部写入 `main_ov5640_pcie/build/`，模拟器目录通过参数传入，不写入仓库。
 - Questa Sim-64 2021.1 项目脚本实测编译 `0 error/0 warning`，行为仿真返回 0，日志唯一
   `TEST PASS`；该证据不覆盖 SCCB、板级电气时序、CDC/FIFO、DDR3、图像处理或 PCIe 集成。
+
+## 2026-09-02：main OV5640 M2-A RGB565 图像处理
+
+- 新增 `rgb565_grayscale` 和 `ov5640_dvp_rgb565_pipeline`，将 M1-A 采集输出接入固定一拍
+  延迟的 RGB565 灰度处理；算法为 `Y=(77R+150G+29B)>>8`，输出保持 RGB565。
+- 新增管线自检 TB，覆盖黑/红/绿/蓝四个像素、两行坐标、帧/行事件保持、奇数字节协议错误
+  和唯一 `TEST PASS`。
+- 新增 `run_m2a.ps1`，运行态只写入 `main_ov5640_pcie/build/`；模拟器目录由参数提供，
+  不写入仓库。
+- Questa Sim-64 2021.1 实测 4 个 RTL/TB 模块编译 `0 error/0 warning`，管线行为仿真返回 0；
+  当前证据仍不覆盖 SCCB、板级时钟/电气时序、CDC/FIFO、DDR3、PCIe 或 PDS 实现。

@@ -18,7 +18,9 @@
   → 主机/RK3568 内存
 ```
 
-当前批次：M1-A 只实现板级无关的 DVP 8-bit→RGB565 采集与自检 TB；VSYNC/HREF/字节序/坐标语义先固定在模块合同中。SCCB 配置、板级 PLL/FDC、DDR3 IP、图像算法和 PCIe 集成必须分别完成前置事实审核。
+当前完成：M1-A 已实现板级无关的 DVP 8-bit→RGB565 采集；M2-A 已实现采集到 RGB565 灰度处理的单域流水线与自检 TB。SCCB 配置、板级 PLL/FDC、CDC/FIFO、DDR3 IP 和 PCIe 集成必须分别完成前置事实审核。
+
+下一批：M1-B/M2-B 先根据 OV5640 模组和板级一手资料冻结 SCCB、MCLK、RESET/PWDN、DVP 极性/时序与处理模式，再进入配置控制器和跨域帧缓存设计。
 
 停止条件：缺少模组、时钟、I/O 电压、管脚、DDR3 拓扑或主机协议资料时，不修改 canonical IP、PLL、FDC/RCF，不把历史 PG2L100H 或 `parallel_driver` 产物解释为本工程通过。
 
