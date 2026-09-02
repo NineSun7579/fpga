@@ -6,6 +6,8 @@
 
 状态：owner 已于 2026-09-02 更正开发板为 `紫光盘古100Pro`，目标器件为 `PG2L100H`。PDS 目标暂按 `Logos2 / PG2L100H / FBG484 / -6` 恢复；完整丝印、原理图/BOM 仍需归档。三个活动方向仍为 DDR3、PCIe 和双 OV5640 HDMI；双 OV5640 范围见 [`docs/OV5640_TARGET_SCOPE.md`](docs/OV5640_TARGET_SCOPE.md)，板级身份见 [`docs/BOARD_IDENTITY.md`](docs/BOARD_IDENTITY.md)。
 
+统一外部输入清单见 [`docs/BOARD_INPUT_REQUEST.md`](docs/BOARD_INPUT_REQUEST.md)。
+
 ## 活动项目边界
 
 - DDR3：`ddr3_test/ddr3_test/`，优先恢复 PG2L100H canonical 基线。

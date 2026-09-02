@@ -1301,6 +1301,21 @@
       "description": "后续手写 PCIe 顶层和 TB 需遵循 VSCS。"
     }
   ],
+  "board_input_contract": {
+    "document": "docs/BOARD_INPUT_REQUEST.md",
+    "board": "紫光盘古100Pro",
+    "fpga": "PG2L100H-6IFBG484",
+    "required_evidence": [
+      "FPGA 丝印、原理图版本、BOM",
+      "bank 电压、启动模式、share pin",
+      "DDR3 料号/拓扑/参考时钟/电气参数",
+      "PCIe x2 lane/refclk/PERST#/SCBV/UART/连接器拓扑",
+      "双 OV5640 模组与 MCLK/RESET/PWDN/SCCB/DVP 参数",
+      "HDMI 模式/像素时钟/TMDS 管脚和电气标准"
+    ],
+    "acceptance": "每项资料带来源、版本或照片编号并映射项目证据表；冻结后按 PG2L100H 重生成 IP/FDC/RCF，完成 PDS 七阶段、STA、Questa 四级仿真和产物器件交叉检查",
+    "programming_gate": "未完成一手资料归档和交叉核对前，不得烧录或将历史 PG2L50H/PG2L100H 产物作为当前验收证据"
+  },
   "metadata": {
     "analysis_mode": "manual bootstrap",
     "verified_at": "2026-09-02",

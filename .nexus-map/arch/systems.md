@@ -144,6 +144,7 @@
 - responsibility: 当前以厂商 `test_ddr` 作为临时 DDR3 board bring-up 顶层；后续必须明确真正产品顶层和板级功能范围。
 - hardware_target: 开发板“紫光盘古100Pro” / FPGA `PG2L100H-6IFBG484` / PDS `Logos2 / PG2L100H / FBG484 / -6`
 - hardware_target_evidence_conflict: owner 已于 `2026-09-02` 修正板名和目标器件；此前 PR #21 商品截图 `RK3568+PG2L100H` 与旧输入 `PG2L50H-6IFBG484` 保留为历史冲突。当前仍必须以板卡丝印、原理图或 BOM 归档关闭，50H staging 和旧 100H 产物在此之前都只作候选证据。
+- board_input_contract: `docs/BOARD_INPUT_REQUEST.md` 统一登记 M0/H1/C1/H3 所需的一手输入及验收方式；资料须附来源、版本或照片编号并映射项目证据表，冻结后才允许 PG2L100H IP/FDC/RCF、PDS 七阶段、STA、Questa 四级仿真和产物器件交叉检查。
 - m2_active_input_audit: 活动 `ip_core/ddr3/ddr3.idf` 为 `PG2L100H`、生成器 `2022.2-SP6.4`；canonical FDC/RCF 为 `ip_core/ddr3/pnr/ddr_test.fdc` 与 `ip_core/ddr3/pnr/ddr3.rcf`；`ip_core/ddr_test.fdc` 是旧外层参考，不能直接升格。项目自有 `scripts/build.tcl` 与 `scripts/check_build.ps1` 也仍按 `PG2L100H`，待 50H 资产落地后再修正。
 - m2_legacy_50h_audit: `ip_backup/20250108100125/ddr3/ddr3.idf` 为 `PG2L50H`，但生成器是 `2022.2-SP6.1`；仅可作为参数/硬宏差异 oracle，禁止直接恢复或复制到活动输入。
 - m2_a_staging: `2026-08-30` 使用 `scripts/regenerate_ip.ps1` 在 `build/ipgen/pg2l50h` 调用 SP6.4 build 146967，目标 `Logos2/PG2L50H/FBG484/-6`，结果 `0 error(s), 0 warning(s)`；canonical IDF SHA-256 保持 `6CB70BF0954100B4797197A47F20496AD74945995E12B30FA040870EE3366C47`。

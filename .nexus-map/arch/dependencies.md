@@ -8,6 +8,8 @@
 
 - 开发板名称：**紫光盘古100Pro**。
 - FPGA 器件：`PG2L100H-6IFBG484`；PDS 目标：`Logos2 / PG2L100H / FBG484 / -6`。
+- 外部输入合同见 `docs/BOARD_INPUT_REQUEST.md`：板级身份、电气/启动条件、DDR3 拓扑与时钟、PCIe x2 物理链路、双 OV5640 接口及 HDMI 输出参数必须由带来源/版本的资料冻结，并逐项映射到项目证据表。
+- 验收边界：冻结后须按 PG2L100H 重新生成 IP/FDC/RCF，完成 PDS 七阶段、STA、Questa 四级仿真及产物器件交叉检查；冻结前不得授权烧录。
 - 板名与 FPGA 型号是独立依赖事实。丝印照片、原理图和 BOM 尚未归档，当前身份仍为 owner 声明；因此历史 PG2L50H staging、旧 PG2L100H 产物和商品截图都不能直接构成烧录或实板验收依据。
 
 ```mermaid
