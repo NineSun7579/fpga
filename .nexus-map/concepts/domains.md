@@ -1,5 +1,5 @@
 > generated_by: Codex manual bootstrap
-> verified_at: 2026-09-01
+> verified_at: 2026-09-02
 > provenance: root guide, TODO, source tree, PDS reports, and manual inspection
 
 # Domains
@@ -14,7 +14,7 @@ CI-7 入口分类现确认全部 14 个 tracked Tcl 已登记；新增 DDR3 `scr
 
 2026-09-01 CI-9 同时覆盖当前树和 PR 差异：`-FullTree` 扫描 tracked/untracked 工作树，PR 模式依据 Git merge-base 扫描 changed paths 与 added lines。当前版本已将 68 个 tracked 日志中的 143 处许可证绝对路径替换为 `<license-path>`；全树和差异门禁均通过。门禁不读取实际配置，也不改写 Git 历史。
 
-摄像头产品固定双 OV5640。C0 已对 `origin/parallel_driver@485f3bba71e4b57fb8bb49cec30e9d331b952be3` 完成只读审计，登记 17 个 HDMI 明文 RTL、83 个生成/受保护依赖、4 个 TB、4 个 PCIe video 参考文件、4 个 PG2L100H 生成 IP 及 FDC/PDS 风险；本批没有导入文件。参考 `top_dual_ov5640_hdmi` 使用两路独立 SCCB/RESET/PWDN/DVP，每路采集 960x1080 半幅，通过双写 DDR3 组成 1920x1080。C1 仍受 H3 阻断，新产品必须在输入冻结后选择性导入到 `59_top_dual_ov5640_hdmi/` 并独立建立 PG2L50H 证据；`41_ov7725_hdmi` 仅 legacy。
+摄像头产品固定双 OV5640。C0 已对 `origin/parallel_driver@485f3bba71e4b57fb8bb49cec30e9d331b952be3` 完成只读审计，登记 17 个 HDMI 明文 RTL、83 个生成/受保护依赖、4 个 TB、4 个 PCIe video 参考文件、4 个 PG2L100H 生成 IP 及 FDC/PDS 风险；本批没有导入实现文件。参考 `top_dual_ov5640_hdmi` 使用两路独立 SCCB/RESET/PWDN/DVP，每路采集 960x1080 半幅，通过双写 DDR3 组成 1920x1080。2026-09-02 已建立 `59_top_dual_ov5640_hdmi/README.md` 与项目级 `BOARD_EVIDENCE.md`，并将其纳入板级证据门禁；该目录仍无 RTL/IP/FDC/TB，C1/H3 保持阻断。输入冻结后才允许选择性导入并独立建立 PG2L50H 证据；`41_ov7725_hdmi` 仅 legacy。
 
 ## 外部四级仿真
 

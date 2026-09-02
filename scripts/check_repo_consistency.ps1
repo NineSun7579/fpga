@@ -28,6 +28,10 @@ $GitAttributesPath = Join-Path $RepoRoot '.gitattributes'
 $Ov5640ScopePath = Join-Path $RepoRoot 'docs\OV5640_TARGET_SCOPE.md'
 $Ov5640C0AuditPath = Join-Path $RepoRoot `
     'docs\OV5640_C0_REFERENCE_AUDIT.md'
+$Ov5640ProductRoot = Join-Path $RepoRoot '59_top_dual_ov5640_hdmi'
+$Ov5640ProductReadmePath = Join-Path $Ov5640ProductRoot 'README.md'
+$Ov5640BoardEvidencePath = Join-Path $Ov5640ProductRoot `
+    'doc\BOARD_EVIDENCE.md'
 $PcieBaselineDocPath = Join-Path $RepoRoot `
     'pcie_dma_test_100h\doc\H2B_BASELINE_GATE.md'
 $PcieBaselineFingerprintPath = Join-Path $RepoRoot `
@@ -229,6 +233,80 @@ if ($Ov5640C0AuditExists) {
         Require-Pattern -Text $Ov5640C0AuditText -Pattern $Required.Value `
             -Description $Required.Key | Out-Null
     }
+}
+
+$Ov5640ProductReadmeExists = Require-File -Path $Ov5640ProductReadmePath `
+    -Description 'dual OV5640 product README'
+$Ov5640BoardEvidenceExists = Require-File -Path $Ov5640BoardEvidencePath `
+    -Description 'dual OV5640 board evidence checklist'
+
+if ($Ov5640ProductReadmeExists) {
+    $Ov5640ProductReadmeText = Get-Content -Raw -Encoding UTF8 `
+        -LiteralPath $Ov5640ProductReadmePath
+    foreach ($Required in ([ordered]@{
+            'dual OV5640 product identity' = 'OV5640'
+            'dual OV5640 approved board' = [regex]::Escape($ApprovedBoard)
+            'dual OV5640 approved FPGA' = [regex]::Escape($ApprovedFpgaPart)
+            'dual OV5640 target top' = 'top_dual_ov5640_hdmi'
+            'dual OV5640 PDS version' = '2022\.2-SP6\.4'
+            'dual OV5640 Questa version' = 'Questa.*2021\.1'
+            'dual OV5640 board evidence link' = 'doc/BOARD_EVIDENCE\.md'
+            'dual OV5640 commenting standard link' = 'VERILOG_SYSTEMVERILOG_COMMENTING_STANDARD\.md'
+            'dual OV5640 no-build boundary' = 'scripts/build\.tcl.*run\.ps1.*check_build\.ps1'
+        }).GetEnumerator()) {
+        Require-Pattern -Text $Ov5640ProductReadmeText -Pattern $Required.Value `
+            -Description $Required.Key | Out-Null
+    }
+}
+
+if ($Ov5640BoardEvidenceExists) {
+    $Ov5640BoardEvidenceText = Get-Content -Raw -Encoding UTF8 `
+        -LiteralPath $Ov5640BoardEvidencePath
+    foreach ($Required in ([ordered]@{
+            'dual OV5640 current-facts section' = '(?m)^##\s+\u5f53\u524d\u5de5\u7a0b\u4e8b\u5b9e\s*$'
+            'dual OV5640 required-materials section' = '(?m)^##\s+\u5fc5\u987b\u63d0\u4f9b\u7684\u8d44\u6599\s*$'
+            'dual OV5640 closure section' = '(?m)^##\s+\u5173\u95ed\u6761\u4ef6\s*$'
+            'dual OV5640 approved board evidence' = [regex]::Escape($ApprovedBoard)
+            'dual OV5640 approved FPGA evidence' = [regex]::Escape($ApprovedFpgaPart)
+            'dual OV5640 reference commit' = '485f3bba71e4b57fb8bb49cec30e9d331b952be3'
+            'dual OV5640 C1 blocker' = 'C1/H3'
+            'dual OV5640 VSCS boundary' = 'VERILOG_SYSTEMVERILOG_COMMENTING_STANDARD\.md'
+        }).GetEnumerator()) {
+        Require-Pattern -Text $Ov5640BoardEvidenceText -Pattern $Required.Value `
+            -Description $Required.Key | Out-Null
+    }
+    foreach ($Keyword in @('OV5640', 'MCLK', 'RESET', 'PWDN', 'DVP', 'DDR3', 'HDMI', 'PG2L50H')) {
+        Require-Pattern -Text $Ov5640BoardEvidenceText `
+            -Pattern ([regex]::Escape($Keyword)) `
+            -Description "dual OV5640 board evidence keyword '$Keyword'" | Out-Null
+    }
+}
+
+if (Test-Path -LiteralPath $Ov5640ProductRoot -PathType Container) {
+    $AllowedOv5640C1Files = @(
+        $Ov5640ProductReadmePath,
+        $Ov5640BoardEvidencePath
+    )
+    $UnexpectedOv5640C1Files = @(Get-ChildItem -LiteralPath $Ov5640ProductRoot `
+            -Recurse -File | Where-Object {
+                $_.FullName -notin $AllowedOv5640C1Files
+            })
+    foreach ($UnexpectedFile in $UnexpectedOv5640C1Files) {
+        Add-Failure "Dual OV5640 C1-A contains unreviewed design file: $($UnexpectedFile.FullName)"
+    }
+
+    foreach ($ForbiddenEntry in @(
+            'scripts\build.tcl',
+            'scripts\run.ps1',
+            'scripts\check_build.ps1',
+            'sim\questa'
+        )) {
+        $ForbiddenPath = Join-Path $Ov5640ProductRoot $ForbiddenEntry
+        if (Test-Path -LiteralPath $ForbiddenPath) {
+            Add-Failure "Dual OV5640 C1-A contains premature entry: $ForbiddenPath"
+        }
+    }
+    Write-Host 'INFO: dual OV5640 C1-A product boundary checked'
 }
 
 $PdsTclInventoryDocExists = Require-File -Path $PdsTclInventoryDocPath `

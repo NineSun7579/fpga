@@ -60,7 +60,7 @@
 - [x] PCIe 完成 H2-A lane/refclk/PERST#/UART/SCBV/IP 目标证据矩阵；新器件事实证明活动 `pcie_test.idf` 的 PG2L50H 元数据正确，原“重生为 100H”结论作废。
 - [x] 识别 PCIe 静态 gate 的错误目标：已改为 PG2L50H，并增加日志、STA、bitstream 器件交叉检查。
 - [x] PCIe 完成 H2-B0 精确 baseline 指纹：16 个对象签名、42 次记录；任何对象/数量/位置或 IP metadata 漂移均失败，严格 gate 仍保持发布阻断。
-- [x] H0/H1/H3 资料准备：现有 OV7725 HDMI 与 DDR3 板级证据清单保留历史事实；双 OV5640 另行收集两路模组、接口、时钟、电压、拓扑和 I/O 时序依据，资料未提供前不修改硬件参数。
+- [x] H0/H1/H3 资料准备：现有 OV7725 HDMI 与 DDR3 板级证据清单保留历史事实；C1-A 已在 [`59_top_dual_ov5640_hdmi/doc/BOARD_EVIDENCE.md`](59_top_dual_ov5640_hdmi/doc/BOARD_EVIDENCE.md) 建立双 OV5640 产品级证据入口，资料未提供前不修改硬件参数。
 - [x] S0-0 完成公共仿真器可执行文件复核；2026-08-30 的历史复核未发现 `vsim.exe`、`vlog.exe`、`vlib.exe`。
 - [x] S0-0-Q（2026-09-01）：确认 Questa Sim-64 `2021.1` 的 `vsim.exe`、`vlog.exe`、`vlib.exe` 可执行；许可证由本机外部环境提供，仓库不得记录许可证路径、服务器、feature 或许可证文件。
 - [x] S0-0-Q：最小 SystemVerilog 编译、elaboration 和运行成功，退出码为 0，日志包含唯一 `TEST PASS`。
@@ -96,7 +96,8 @@
 4. **C0/C1：双 OV5640 参考工程审计与产品范围冻结**
    - 前置：以可访问的 `origin/parallel_driver@485f3bb` 为只读参考源；双摄拓扑已由 owner 固定，不再保留单/双摄决策项。
    - C0 已完成：[`OV5640_C0_REFERENCE_AUDIT.md`](docs/OV5640_C0_REFERENCE_AUDIT.md) 已登记参考 commit、17 个 HDMI 明文 RTL、4 个 TB、4 个 PCIe video 参考文件、4 个 100H 生成 IP、FDC、PDS 混合 top、绝对路径与 VSCS/CDC/RDC 缺口；本批未导入任何产品文件。
-   - C1 未完成：实际两路模组、MCLK、电压、DVP、左右拼接、分辨率、帧率、字节序、DDR3 和 HDMI 合同仍受 H3 阻断；输入冻结后再另开选择性导入批次。
+   - C1-A 已完成：`59_top_dual_ov5640_hdmi/` 已建立 README 和板级证据清单，明确已确认事实、参考假设、所需输入、VSCS 和禁止导入边界；没有导入 HDL/IP/FDC/TB。
+   - C1 仍未完成：实际两路模组、MCLK、电压、DVP、左右拼接、分辨率、帧率、字节序、DDR3 和 HDMI 合同仍受 H3 阻断；输入冻结后再另开选择性导入批次。
    - 仿真归档：将参考分支 `sim/tb/*.v` 中可复用的 TB 审核后归档到 `59_top_dual_ov5640_hdmi/sim/questa/tb/`，补相对路径 `.f/.do` 与 README；运行态只写 `59_top_dual_ov5640_hdmi/build/`。
    - 排除项：不导入参考分支的 `sim_*` 编译库、`work`、`.mpf`、`modelsim.ini`、日志、波形和带本机绝对路径的生成文件。
    - 验收：项目目录固定为 `59_top_dual_ov5640_hdmi/`，HDMI 顶层候选为 `top_dual_ov5640_hdmi`；根 PDS 工程与 DDR3 IP 的 100H 目标必须迁移，参考 FDC 管脚必须逐项对照实板。分支自述的双摄采集与 RGB565→AXI128/BAR2 PASS 必须由本仓库入口复验。旧 OV7725 的 SCCB 地址、8 位寄存器表、640x480 RGB565 和板级假设均不得默认继承。
@@ -236,17 +237,18 @@ O0/O1/O2/M3-A 已从活动 TODO 移除，不再为 `41_ov7725_hdmi/` 安排 RTL�
 
 双 OV5640 必须在 `59_top_dual_ov5640_hdmi/` 重新建立接口、IP、约束、仿真和签核证据；legacy 记录不构成设计通过或复用授权。
 
-### CI-2：板级证据清单完整性门禁（存量工程部分已完成）
+### CI-2：板级证据清单完整性门禁（产品入口已补齐）
 
 - [x] 已纳管 DDR3、PCIe 与 OV7725 legacy 三份存量板级证据清单，并统一包含当前工程事实、必须提供的资料和关闭条件章节；OV7725 清单只用于历史风险追溯，不计入活动项目完成度。
 - [x] 三个存量目录的 README 均链接对应证据清单；仓库级门禁检查项目关键词与入口可追溯性。
-- [ ] 双 OV5640 C1：在建立 `59_top_dual_ov5640_hdmi/` 时新增项目级 `doc/BOARD_EVIDENCE.md`，由项目 README 直接链接，并把双模组、DVP、MCLK、RESET/PWDN、DDR3、HDMI、bank 电压和管脚事实纳入仓库级门禁。
-- [x] 现有门禁仅验证存量文档结构，不把待提供资料或模板字段判定为硬件事实，也不表示双 OV5640 的 C1/H3 已关闭。
+- [x] 双 OV5640 C1-A：已建立项目级 `README.md` 与 `doc/BOARD_EVIDENCE.md`，覆盖双模组、DVP、MCLK、RESET/PWDN、DDR3、HDMI、bank 电压和管脚事实，并纳入仓库级门禁。
+- [x] 门禁只验证文档结构、产品/legacy 边界和 C1-A 未导入设计文件，不把待提供资料或参考分支值判定为硬件事实，也不表示双 OV5640 的 C1/H3 已关闭。
 
 ### CI-3：项目 README 元数据完整性门禁（已完成）
 
 - [x] 三项目 README 均记录 PDS/器件目标、顶层、时钟、主要接口、构建入口、IP/IDF 来源和当前阻断。
 - [x] 仓库级门禁按项目特征检查上述字段，避免 README 与构建脚本、证据清单和当前状态脱节。
+- [x] 双 OV5640 文档型 README 明确记录“尚无 build/IP/FDC/TB”，仓库门禁单独验证该状态，不要求伪造 `build.tcl`、`run.ps1` 或 `check_build.ps1`。
 - [x] 门禁只检查已有事实的可追溯表达，不要求补写未经板级资料确认的参数。
 
 ### CI-4：PDS 构建 gate 契约完整性门禁（已完成）
@@ -324,6 +326,7 @@ O0/O1/O2/M3-A 已从活动 TODO 移除，不再为 `41_ov7725_hdmi/` 安排 RTL�
 ### H3：OV5640/HDMI 板级参数
 
 - [x] owner 已确认产品采用双 OV5640。
+- [x] C1-A 已建立 [`双 OV5640 板级证据清单`](59_top_dual_ov5640_hdmi/doc/BOARD_EVIDENCE.md)；建立清单不等于以下资料已经提供或审核。
 - [ ] 确认两只 OV5640 模组的完整料号，以及每路 MCLK、RESET/PWDN、供电和 I/O 电压。
 - [ ] 参考设计使用两路独立 SCCB、RESET 和 PWDN；依据实板原理图逐项确认该拓扑与管脚，禁止直接继承 100H FDC。
 - [ ] 确认 DVP 位宽、行场/像素时钟极性、输出格式、字节序、分辨率和帧率。

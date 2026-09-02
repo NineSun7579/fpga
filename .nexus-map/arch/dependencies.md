@@ -1,5 +1,5 @@
 > generated_by: Codex manual bootstrap
-> verified_at: 2026-09-01
+> verified_at: 2026-09-02
 > provenance: manual inspection of current source tree and PDS artifacts
 
 # Dependencies
@@ -115,5 +115,5 @@ flowchart TD
 - PCIe `sim/questa/behav.f` 单独包含仿真所需 `ips2l_pcie_apb_cross_v1_0.v`；不得为此修改 `scripts/pds_sources.f`，因为实现侧由 IDF 管理该源。
 - CI-0 仓库级静态一致性门禁依赖根指南/TODO/VSCS、三个项目 README 与各自 `build.tcl`/`run.ps1`/`check_build.ps1`；当前工作区门禁退出码为 0，7 个 PowerShell 脚本 AST 解析错误数为 0。它只验证结构、入口与文档关系，不解除任何 PDS、STA、板级或仿真阻断。
 - CI-7 依赖 `docs/PDS_TCL_ENTRYPOINT_INVENTORY.json` 与 `scripts/check_pds_tcl_entrypoints.ps1`：14 个 tracked Tcl 必须逐项分类；DDR3 `build_staging_compile.tcl` 是非发布 `canonical_support_tool`，只有三个项目 `scripts/build.tcl` 可由 `run.ps1` 调用。PCIe build 目标为 PG2L50H，OV7725/DDR3 build 仍为 PG2L100H migration-blocked；历史 GUI、厂商内部、厂商仿真和 compile-only 支持 Tcl 不得进入当前 STA/位流发布证据链。正向门禁为 0，缺失清单项负向测试为 1。
-- CI-2 在 CI-0 上增加 OV7725 legacy、DDR3、PCIe 三份存量板级证据清单路径、项目关键词、README 链接和统一章节门禁；双 OV5640 仍须在 `59_top_dual_ov5640_hdmi/` 建立项目级清单并扩展门禁。现有结构通过只允许继续收集证据，不会自动解锁 H0/H1/H2/H3、PCIe H2-B、DDR3 或双 OV5640 板级整改。
+- CI-2 在 CI-0 上为 OV7725 legacy、DDR3、PCIe、双 OV5640 四个目录登记板级证据清单路径、项目关键词、README 链接和统一章节门禁。双 OV5640 清单位于 `59_top_dual_ov5640_hdmi/doc/BOARD_EVIDENCE.md`，只建立 C1 资料收集入口；现有结构通过不会自动解锁 H0/H1/H2/H3、PCIe H2-B、DDR3 或双 OV5640 板级整改。
 - CI-9 依赖 `scripts/check_sensitive_diff.ps1` 与 `docs/SENSITIVE_DIFF_GATE.md`：`-FullTree` 扫描当前 tracked/untracked 工作树，PR 模式扫描 merge-base 后的路径和新增行。68 个 tracked 日志中的 143 处许可证绝对路径已替换为 `<license-path>`；全树通过证明当前版本已清理，差异通过阻止后续重引入，但两者都不改写 Git 历史。

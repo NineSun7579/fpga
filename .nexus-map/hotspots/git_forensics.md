@@ -15,7 +15,7 @@
 以下仅来自当前缺陷证据，不是 Git 统计热点：
 
 - `origin/parallel_driver@485f3bb`：双 OV5640 只读参考；`top_dual_ov5640_hdmi` 定义两路独立摄像头控制/采集、960x1080×2、双写 DDR3 与 1920x1080 输出。根 PDS/DDR3 为 PG2L100H、PCIe IP 为 PG2L50H，必须防止混合器件证据被误用。
-- `59_top_dual_ov5640_hdmi/`：未来选择性导入目标；可复现仿真源只能位于其 `sim/questa/`，运行态只能位于其 `build/`。参考 4 TB 尚未导入，`tb_dual_ov5640_dri.v` 的 force 初始化和非 canonical PASS 是首要审计点。
+- `59_top_dual_ov5640_hdmi/`：已建立 README/BOARD_EVIDENCE 文档骨架，当前无 RTL/IP/FDC/PDS/TB；未来实现资产只可选择性导入到该目录。可复现仿真源只能位于其 `sim/questa/`，运行态只能位于其 `build/`。参考 4 TB 尚未导入，`tb_dual_ov5640_dri.v` 的 force 初始化和非 canonical PASS 是首要审计点。
 - `41_ov7725_hdmi/sim/questa/`：仅 OV7725 legacy，不得用作双 OV5640 产品仿真归档目录。
 - `41_ov7725_hdmi/rtl/ov7725_hdmi.v`：OV7725 legacy 视频链路顶层、跨域控制和复位组合点，只能作为 OV5640 C2 的候选结构参考。
 - `41_ov7725_hdmi/doc/CDC_RDC_AUDIT.md`：O0-A CDC/RDC 事实、旧/新 STA 映射和后续整改契约的首要证据；O1-B 不得顺带修改该结构。

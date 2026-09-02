@@ -1,5 +1,5 @@
 > generated_by: Codex manual bootstrap
-> verified_at: 2026-09-01
+> verified_at: 2026-09-02
 > provenance: current source tree, PDS project files, reports, and root audit notes
 
 # Systems
@@ -20,10 +20,10 @@
 - ci_0_status: committed_as_85d9b64
 - ci_0_scope: 检查根指南/TODO/VSCS、三个项目 README、`build.tcl`、`run.ps1`、`check_build.ps1`、顶层声明、七阶段入口、可配置 PDS 路径、进程退出码、显式 baseline 开关、产物/时序检查接口、`build/` 忽略与未跟踪生成物状态；拒绝活动 Tcl 的 `simulate` 命令和反斜杠绝对路径。
 - ci_0_result: `scripts/check_repo_consistency.ps1` 退出码 0，并输出 `INFO: repository consistency gate passed`；三个项目 README 缺口已修正，全部 7 个 PowerShell 脚本 AST 解析错误数为 0。
-- ci_2_status: committed_as_677808d
-- ci_2_scope: 为 OV7725 legacy、DDR3、PCIe 三个存量目录配置板级证据清单路径和项目关键词；要求对应 README 链接清单，并要求清单包含“当前工程事实”“必须提供的资料”“关闭条件”三个统一章节，PCIe H2-A 清单已按此结构统一。
-- ci_2_result: 2026-08-30 在 HEAD `677808d` 复验 `scripts/check_repo_consistency.ps1` 退出码 0，并输出 `INFO: repository consistency gate passed`。
-- ci_2_boundary: 只验证三份存量清单文件、章节结构、关键词与 README 导航存在；双 OV5640 的 `59_top_dual_ov5640_hdmi/doc/BOARD_EVIDENCE.md` 仍待 C1 建立。不验证原理图/BOM/板卡实物，不解除 H0/H1/H2/H3 外部阻断，也不替代 PDS、STA、SCBV 或仿真。
+- ci_2_status: committed_as_677808d; expanded_2026-09-02_for_dual_ov5640_document_skeleton
+- ci_2_scope: 为 OV7725 legacy、DDR3、PCIe、双 OV5640 四个目录配置板级证据清单路径和项目关键词；要求对应 README 链接清单，并要求清单包含“当前工程事实”“必须提供的资料”“关闭条件”三个统一章节。
+- ci_2_result: 2026-08-30 在 HEAD `677808d` 完成原始三目录门禁；2026-09-02 在当前工作树复验双 OV5640 扩展，退出码 0，并输出 `INFO: dual OV5640 C1-A product boundary checked` 与 `INFO: repository consistency gate passed`。
+- ci_2_boundary: 只验证四份清单文件、章节结构、关键词与 README 导航存在；双 OV5640 目录仍只有文档骨架，不含 RTL/IP/FDC/TB。不验证原理图/BOM/板卡实物，不解除 H0/H1/H2/H3 外部阻断，也不替代 PDS、STA、SCBV 或仿真。
 - ci_3_status: committed_as_5bfaae9
 - ci_3_scope: 三项目 README 元数据完整性门禁；除既有 PDS 版本和顶层检查外，按项目特征要求 README 明确记录器件目标、时钟、主要接口、构建入口、IP/IDF 来源和当前阻断。
 - ci_3_result: 2026-08-30 在 HEAD `5bfaae9` 复验 `scripts/check_repo_consistency.ps1` 退出码 0，并输出 `INFO: repository consistency gate passed`。
@@ -110,19 +110,19 @@
 
 ## 双 OV5640 摄像头 HDMI 产品目标
 
-- implementation_status: c0_complete_c1_blocked_selective_import_pending
-- code_path: null
-- evidence_path: `docs/OV5640_TARGET_SCOPE.md`, `docs/OV5640_C0_REFERENCE_AUDIT.md`, read-only `origin/parallel_driver@485f3bba71e4b57fb8bb49cec30e9d331b952be3`
-- product_boundary: 产品固定双 OV5640；未来项目目录为 `59_top_dual_ov5640_hdmi/`，目标板卡与器件为 `RK3568+PG2L50H100H` / `PG2L50H-6IFBG484`。`41_ov7725_hdmi` 及其 `sim/questa/` 只作 legacy。
+- implementation_status: documented_project_skeleton_blocked_by_c1_h3
+- code_path: `59_top_dual_ov5640_hdmi/`（当前无 RTL/IP/FDC/TB）
+- evidence_path: `59_top_dual_ov5640_hdmi/README.md`, `59_top_dual_ov5640_hdmi/doc/BOARD_EVIDENCE.md`, `docs/OV5640_TARGET_SCOPE.md`, `docs/OV5640_C0_REFERENCE_AUDIT.md`, read-only `origin/parallel_driver@485f3bba71e4b57fb8bb49cec30e9d331b952be3`
+- product_boundary: 产品固定双 OV5640；`59_top_dual_ov5640_hdmi/` 已建立文档型项目骨架，目标板卡与器件为 `RK3568+PG2L50H100H` / `PG2L50H-6IFBG484`。`41_ov7725_hdmi` 及其 `sim/questa/` 只作 legacy。
 - reference_top: `top_dual_ov5640_hdmi`；两路独立 SCCB/RESET/PWDN/DVP，每路 960x1080 半幅，双写 DDR3 后组成 1920x1080。
 - reference_device_boundary: 参考根 PDS 与 DDR3/PLL/读写 FIFO 为 PG2L100H；PCIe IP 虽为 PG2L50H，但 BAR1/BAR2 均禁用。混合工程、旧阶段产物和参考 README PASS 均不得作为 PG2L50H 产品证据。
-- c0_boundary: 已完成只读审计；登记 17 个 HDMI 明文 RTL、83 个生成/受保护依赖、4 个 TB、4 个 PCIe video 参考文件、4 个 PG2L100H 生成 IP、FDC/PDS 冲突及 VSCS/CDC/RDC 风险。本批 Import=none，未创建产品目录、未运行 PDS/Questa。
+- c0_boundary: 已完成只读审计；登记 17 个 HDMI 明文 RTL、83 个生成/受保护依赖、4 个 TB、4 个 PCIe video 参考文件、4 个 PG2L100H 生成 IP、FDC/PDS 冲突及 VSCS/CDC/RDC 风险。C0 批次 Import=none，当时未创建产品目录、未运行 PDS/Questa。
 - c1_boundary: blocked_by_h3；双 OV5640 数量与 960x1080×2 → 1920x1080 参考组合已知，但模组料号、MCLK、电压、DVP/字节序/帧率、DDR3、HDMI 和板级管脚证据仍需 owner 闭合。
 - c2_boundary: 只向 `59_top_dual_ov5640_hdmi/` 选择性导入所需 RTL/IP/约束，建立项目自有双摄 SCCB、复位、采集、DDR3 与 HDMI 边界。
 - c3_boundary: 所有 IP/约束按 `Logos2 / PG2L50H / FBG484 / -6` 重新审核或生成，完成七阶段 PDS 与严格 gate；旧 100H 产物不可继承。
 - reference_tb_boundary: 参考仓库 4 个 TB 尚未选择性导入；`tb_dual_ov5640_dri.v` force `cam_init_done`，成功字符串不是 canonical `TEST PASS`，不能计为产品自检通过。
 - s3_boundary: 可复现仿真源只进入 `59_top_dual_ov5640_hdmi/sim/questa/`，运行态只进入其 `build/`。不导入 `sim_*`、`work`、`.mpf`、`modelsim.ini`、日志、波形、绝对路径生成物或许可证配置。
-- next_step: 先关闭 C1/H3 产品输入；随后另开 PR，从 C0 登记候选中选择性导入，并重建 PG2L50H PDS/IP/FDC 与项目内 Questa 入口。
+- next_step: 先用项目内 BOARD_EVIDENCE 关闭 C1/H3 产品输入；随后另开 PR，从 C0 登记候选中选择性导入，并重建 PG2L50H PDS/IP/FDC 与项目内 Questa 入口。
 - high_attention: 组合全局复位跨域释放、`ddr3_init_done` CDC/RDC、frame event CDC、FIFO 双侧复位、serializer reset 未使用、1080p/720p 模式冲突、camera init 未纳入系统完成条件，以及关键 FSM/UTF-8/VSCS 缺口。
 
 ## DDR3 外层工程
