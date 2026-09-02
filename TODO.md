@@ -411,6 +411,7 @@ O0/O1/O2/M3-A 已从活动 TODO 移除，不再为 `41_ov7725_hdmi/` 安排 RTL�
 - [x] S0-1 收紧入口为强制仿真器预检，移除绕过检查的参数，避免产生误导性库编译结果。
 - [x] CI-1 将仿真就绪度矩阵纳入仓库门禁，并检查根指南/TODO 对矩阵的引用；门禁仍只做静态检查，不替代 PDS/仿真器执行。
 - [x] CI-9 增加[许可证敏感差异门禁](docs/SENSITIVE_DIFF_GATE.md)：拒绝新增许可证绝对路径、服务器、feature、环境变量实际值、许可证内容或许可证文件；仿真日志仅作为仓库外 CI artifact。
+- [x] CI-10 增加 [GitHub PR 静态门禁](docs/GITHUB_PR_GATE.md)：pull request、`main` push 和手动触发均在 Windows `pwsh` 运行根一致性检查；workflow 只读、固定 action SHA、不持久化凭据且不读取许可证。该 check 不替代 PDS、Questa、STA、SDF、位流或实板验证。
 - [ ] 单独审计并清理已跟踪的历史工具日志中的旧许可证路径。普通删除不能清除 Git 历史；若需历史重写和强推，必须单独提案、人工审核并协调所有克隆。
 - [ ] 行为级仿真失败立即停止后续流程。
 - [ ] 同时检查 PDS 退出码、日志 `^E:` 和阶段完成标志。
