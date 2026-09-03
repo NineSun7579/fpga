@@ -74,7 +74,7 @@ opaque token，推进量由 `ADDR_STEP` 参数显式提供；`write_awlen=0` 只
 ## PCIe 请求描述边界补充
 
 对活动 PCIe DMA 控制器的手写 RTL 只读核对得到以下事实：`req_addr` 由高、低地址
-寄存器拼接；`req_length` 在控制器内部按 DWORD 计数编码，并转换为字节长度参与
+寄存器拼接；`req_length` 是实际 DWORD 数，在控制器内部转换为字节长度参与
 4 KB 边界判断；`req_data` 是 32-bit 请求数据。当前控制器以独立的 `i_mwr32_req` /
 `i_mwr64_req` 及对应 ack 驱动内部状态机，不能把这组端口直接宣称为标准
 `valid/ready` 请求接口。
@@ -92,7 +92,9 @@ opaque token，推进量由 `ADDR_STEP` 参数显式提供；`write_awlen=0` 只
 bridge 内锁存；否则 descriptor 在 bridge 忙时预取下一记录会使当前请求与下一记录事件
 错配。该模块不实例化厂商 PCIe IP；`req_keep` 仅作为旁路信息保留，因为
 活动控制器的请求端口没有独立 byte-enable 输入。该 byte-enable 映射、请求启动和
-ack 关系仍是临时合同，必须在真实 PCIe TLP/DMA TB 中重新审核后才能用于产品路径。
+ack 关系已由直接实例化 canonical MWR TX controller 的 TB 审核。该 TX 控制器固定 full-DWORD
+byte enable，因此当前只有 `req_keep=4'hf` 可无损映射；`req_keep=0` 由 descriptor 本地完成，
+其余 partial keep 仍不得直接进入该 vendor TX 路径。
 
 ## 规范化 MWR 组合路径
 
@@ -101,7 +103,20 @@ ack 关系仍是临时合同，必须在真实 PCIe TLP/DMA TB 中重新审核�
 边界时不标记 crossing；首请求等待 ack 时 descriptor 预取下一条带帧尾/错误的记录，
 首请求的地址、数据、keep、last、帧尾和协议错误仍保持不变，ack 后下一请求地址为
 `0x1000`。Questa Sim-64 2021.1 编译 `0 error/0 warning`、唯一 `TEST PASS`，仿真至
-`115 ns`；bridge 独立字段保持回归为 `76 ns`。
+`125 ns`；bridge 独立字段保持回归为 `76 ns`。
+
+## PG2L50H canonical MWR32 TX 动态证据
+
+`tb_rgb565_pg2l50h_mwr32_tx_integration` 将项目自有 bridge 直接连接到未修改的
+`ips2l_pcie_dma_mwr_tx_ctrl`，并固定 `i_user_define_data_flag=1`。2026-09-03 的 Questa
+回归在 `136 ns` 唯一 `TEST PASS`，编译和仿真均为 `0 error/0 warning`。测试证明请求字段保持到
+PG2L50H TX 的保持型 ACK、单 DWORD header length 为 1、First/Last DWBE 为 `8'h0f`、32-bit 地址字段为
+对齐后的 `0x1000`，输入 `0x11223344` 的数据 beat 低 DWORD 为 `0x44332211`，且 bridge/vendor busy
+最终释放。
+
+该证据只适用于单 DWORD、`keep=4'hf`、4 字节对齐请求。ACK 只表示 TX 控制器接受请求；它不证明
+TLP 已离开 FPGA。完整 `ips2l_pcie_dma` 内部仍有原命令控制器，项目请求源的仲裁/替换入口尚未实现，
+也未证明 PCIe 链路训练、RK3568 DMA 缓冲或主机内存写入。
 
 该组合路径仍不实例化厂商 PCIe IP，不证明真实 TLP、DMA、byte-enable、链路、主机
 地址或 PCIe 控制器启动/忙状态；真实接入必须继续使用活动控制器的链路模型和实现级证据。
@@ -213,7 +228,8 @@ DDR 读响应已被本地 PCIe 请求路径锁存，允许复用 DDR 槽；它�
 slot0 token `0..2` 和 slot1 token `64..65`，随后按提交顺序回送 PCIe；slot0 完成后由第三帧
 重新写入 token `0..1`。64 像素压力错误帧形成 21 条记录，只产生一次 slot0 drop、零读命令和
 零 MWR；恢复帧使用 slot1 token `64/65`。Questa Sim-64 2021.1 为 `0 error/0 warning`、唯一
-`TEST PASS`、`4264 ns`。
+`TEST PASS`、`4194 ns`。其中 payload 请求使用实际 DWORD 长度 1，空控制响应不生成 MWR，
+但仍完成 scheduler 计数和带槽回收。
 
 该闭环仍以数组索引解释 DDR token，以规范化 `mwr32_req/ack` 表示 PCIe 请求。它不实例化
 PG2L50H DDR3/PCIe IP，不证明真实地址单位、初始化/校准、读口时序、TLP、DMA、链路训练、

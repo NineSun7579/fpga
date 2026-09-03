@@ -161,20 +161,21 @@ M3-B 审计结论见 [`docs/MAIN_OV5640_PCIE_M3B_ADAPTER_CONTRACT.md`](docs/MAIN
    - 交付：新的 OV5640 SCCB/读 ID/采集路径、逐域复位与事件 CDC、FIFO reset、DDR3/HDMI 约束和最终 gate。
    - 验收：setup/hold/recovery/removal 全通过，SDF/位流/仿真齐全；不得用宽泛 `false_path`、multicycle 或 waiver 掩盖结构问题。
 
-13. **M3-B：main OV5640 DDR3/PCIe 适配层合同与实现（当前审计完成）**
+13. **M3-B：main OV5640 DDR3/PCIe 适配层合同与实现（canonical PCIe TX 已动态验证）**
    - 已完成：只读核对 M3-A 128-bit/16-byte 内部字、PCIe 128-bit/4-bit `tkeep`、10-bit 请求长度/64-bit 目标地址/4 KB 状态，以及 DDR3 128-bit/16-bit `wstrb` 的接口边界。
    - 已完成：新增板级无关 `rgb565_word_to_axis4_adapter` staging 实现和自检入口；每个 128-bit 字最多拆为 4 个 32-bit beat，保留低 lane 顺序、4-bit keep、末 beat 和首/末事件标记；新增帧统计描述符模块；Questa 编译/行为均为 0 error/0 warning、唯一 `TEST PASS`。
    - 已完成：新增 OV5640 DVP→staging→帧描述符板级无关 wrapper 和联合 TB；修正 accounting ready 握手、纯控制帧尾 `word_valid` 丢失，并验证 3 像素帧得到 2 个 staging beat、6 字节描述符，Questa `0 error/0 warning`、唯一 `TEST PASS`。
    - 已完成：新增规范化 Memory Write 请求描述符和临时请求桥接层；bridge 统一锁存地址、长度、数据、keep、4 KB 状态及 last/frame_end/protocol_error，避免等待 ack 时 descriptor 预取下一记录造成事件元数据错配。桥接层不修改厂商 IP，byte-enable 映射仍未获真实 TLP/DMA 证据。
    - 已完成：新增规范化 DDR3 单 beat 写记录层，验证 128-bit 数据、16-bit `wstrb`、字段保持和释放；新增 `ADDR_STEP` 参数，28-bit 地址仍是 opaque token，不代表 DDR3 地址单位或 AXI4 burst。2026-09-03 增强回归覆盖空 `keep` 控制记录、背压字段稳定、连续记录地址步进和复位恢复 `BASE_ADDR`；Questa `0 error/0 warning`、唯一 `TEST PASS`、`126 ns`。
    - 已完成：新增板级无关 `rgb565_axis4_async_fifo` 与 `rgb565_axis4_cdc_bridge`，携带 staging `data/keep/last/user` 跨独立写入/读出时钟域；FIFO 6 beat 回归为 `287 ns`，CDC bridge 5 beat 事件回归为 `155 ns`，均 Questa `0 error/0 warning`、唯一 `TEST PASS`。联合测试还捕获并修正了 42-bit FIFO entry 被误声明为 41 bit 的事件截断缺陷。
-   - 已完成：新增 `rgb565_axis4_pcie_mwr_path`，串接 staging、规范化 MWR descriptor 和临时 `mwr32_req/ack` bridge；`BASE_ADDR=0x0ffc` 专项回归验证 4-byte 请求恰到 4 KB 边界、等待 ack 时预取下一记录仍保持当前请求全部字段、ack 后地址 `0x1000`，Questa `0 error/0 warning`、唯一 `TEST PASS`、`115 ns`。
+   - 已完成：新增 `rgb565_axis4_pcie_mwr_path`，串接 staging、规范化 MWR descriptor 和临时 `mwr32_req/ack` bridge；`BASE_ADDR=0x0ffc` 专项回归验证 4-byte 请求恰到 4 KB 边界、等待 ack 时预取下一记录仍保持当前请求全部字段、ack 后地址 `0x1000`，Questa `0 error/0 warning`、唯一 `TEST PASS`、`125 ns`。
+   - 已完成：修正 canonical MWR 请求长度为实际 DWORD 数，单 DWORD输出 `req_length=1`；`keep=0` 控制记录本地完成且不产生 MWR、不推进 PCIe 地址。直接实例化未修改的 PG2L50H `ips2l_pcie_dma_mwr_tx_ctrl`，动态验证保持型 ACK、header length/DWBE、对齐地址和数据字节序；Questa `0 error/0 warning`、唯一 `TEST PASS`、`136 ns`。当前仅关闭 `keep=4'hf`、4 字节对齐、单 DWORD user-defined data 路径，partial keep 与完整 DMA 顶层仲裁仍未关闭。
    - 已完成：`rgb565_word_skid_buffer` 在满队列溢出后保留已排队前缀、丢弃当前帧余下 word，并注入唯一 `keep=0/frame_end=1/protocol_error=1` 中止记录；看到原帧尾且中止记录已排队后，只从后续 `frame_start` 恢复。专项 TB 覆盖过早新帧整帧跳过、满队列同拍出入队、丢弃侧帧尾与 abort 同拍、连续损坏帧及 drop 状态复位，仿真至 `526 ns`；DVP→CDC 联合回归覆盖 3 个正常 beat、64 像素压力帧的 20 个输出（含末尾唯一中止记录）及下一帧 2 beat 恢复，仿真至 `2863 ns`，均 Questa `0 error/0 warning`、唯一 `TEST PASS`。
-   - 已完成：`tb_ov5640_ddr3_pcie_loopback.sv` 将 OV5640 DVP、双时钟 staging、按帧装载槽基的 DDR3 单 beat 写记录、受控 DDR3 存储模型和 PCIe MWR 请求路径串成行为级往返。正常帧、21 记录压力 abort 和下一帧恢复保持通过；Questa `0 error/0 warning`、唯一 `TEST PASS`、`3900 ns`。
-   - 已完成：`rgb565_axis4_committed_pcie_mwr_path` 已实例化双槽表；frame commit 描述符先进入深度 2 committed FIFO，队首再原子交给 scheduler/gate。错误帧只由槽表产生带槽 drop，scheduler 正常/fault 完成携带 slot ID 回收正确 READING 槽。frame commit/read scheduler/readout gate/组合 path 专项分别为 `240/346/211/696 ns`。
+   - 已完成：`tb_ov5640_ddr3_pcie_loopback.sv` 将 OV5640 DVP、双时钟 staging、按帧装载槽基的 DDR3 单 beat 写记录、受控 DDR3 存储模型和 PCIe MWR 请求路径串成行为级往返。正常帧、21 记录压力 abort 和下一帧恢复保持通过；payload 请求使用实际 DWORD 长度 1，空控制记录本地完成且不推进 PCIe 地址。Questa `0 error/0 warning`、唯一 `TEST PASS`、`3858 ns`。
+   - 已完成：`rgb565_axis4_committed_pcie_mwr_path` 已实例化双槽表；frame commit 描述符先进入深度 2 committed FIFO，队首再原子交给 scheduler/gate。错误帧只由槽表产生带槽 drop，scheduler 正常/fault 完成携带 slot ID 回收正确 READING 槽。frame commit/read scheduler/readout gate/组合 path 专项分别为 `240/346/211/656 ns`。
    - 已完成：DDR writer 改为先接受带槽号、槽基 token 和单一容量的 allocation 描述符；帧内全程携带 slot ID，地址只在槽容量内推进，越界后停在本槽末 token 并强制错误直到帧尾。增强专项覆盖多条越界记录和写背压，Questa `251 ns`。
    - 已完成：新增 `ov5640_dvp_rgb565_ddr3_pcie_pipeline` vendor-independent 顶层。每条记录先被外部 DDR 写口接受，下一阶段才进入 frame commit，避免先提交后持久化；该顶层连接 OV5640 DVP、双时钟 staging、双槽 writer/commit/read 和 PCIe MWR 请求边界。
-   - 已完成：完整 `tb_ov5640_ddr3_committed_pcie_loopback.sv` 验证两个正常帧分别写入 slot0 token `0..2`、slot1 token `64..65`，读侧阻塞时排队并按序发送；slot0 完成后被第三帧复用。压力错误帧 21 记录只产生 slot0 drop、零读/零 MWR，恢复帧使用 slot1 token `64/65`。Questa `0 error/0 warning`、唯一 `TEST PASS`、`4264 ns`。
+   - 已完成：完整 `tb_ov5640_ddr3_committed_pcie_loopback.sv` 验证两个正常帧分别写入 slot0 token `0..2`、slot1 token `64..65`，读侧阻塞时排队并按序发送；slot0 完成后被第三帧复用。压力错误帧 21 记录只产生 slot0 drop、零读/零 MWR，恢复帧使用 slot1 token `64/65`；空帧尾控制响应不生成 MWR但正常释放对应槽。Questa `0 error/0 warning`、唯一 `TEST PASS`、`4194 ns`。
    - 下一步工程：补 `TOKEN_ADDR_STEP=0` elaboration 拒绝、无命令伪响应、槽区间不重叠机械检查和三时钟复位/CDC 静态签核；收到板级资料后，用真实 PG2L50H DDR3 用户口和 PCIe DMA 应用口替换规范化边界，并与 RK3568 驱动完成主机帧协议闭环。当前行为顶层不证明真实 DDR3/PCIe/RK3568 板级闭环。
    - 仍需外部资料：见 [`docs/MAIN_OV5640_PCIE_BOARD_INPUT_CHECKLIST.md`](docs/MAIN_OV5640_PCIE_BOARD_INPUT_CHECKLIST.md)。最高优先级是板卡原理图/管脚时钟复位、OV5640 模组与初始化表、PG2L50H DDR3 IP 用户口和 PCIe DMA 应用口、RK3568 主机内存与缓存/驱动协议、最终视频模式和丢帧策略。
    - 禁止：未完成资料审核前修改 canonical IP、DDR3/PCIe RTL、FDC/RCF，或把 M3-A 行为通过解释为端到端输出通过。

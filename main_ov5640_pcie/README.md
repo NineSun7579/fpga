@@ -56,12 +56,16 @@
 - `scripts/run_m3b_ov5640_ddr3_pcie_loopback.ps1`：上述往返自检的可重复 Questa 入口。
 - `tb/tb_ov5640_ddr3_committed_pcie_loopback.sv`：将帧提交、读命令调度、错误帧作废和 PCIe MWR 接入同一行为闭环。
 - `scripts/run_m3b_ov5640_ddr3_committed_pcie_loopback.ps1`：上述已提交帧行为闭环的可重复 Questa 入口。
+- `tb/tb_rgb565_pg2l50h_mwr32_tx_integration.sv`：项目 bridge 到原始 PG2L50H MWR TX 控制器的单 DWORD动态集成自检。
+- `scripts/run_m3b_pg2l50h_mwr32_tx_integration.ps1`：上述 canonical vendor TX 自检的可重复 Questa 入口。
 - staging、帧统计和规范化请求描述符已完成同域行为验证；DDR3 写记录层已完成边界回归，
   staging 异步 FIFO 已完成双时钟行为验证；行为级 DDR3 模型已将正常帧、overflow
   中止记录和恢复帧送入 PCIe MWR 请求路径。提交描述符现在携带首个 opaque token，调度器
   按记录数发出有界读命令，并统一处理零延迟响应、提前/缺失帧尾和零记录 fault。双槽表现已
   接入 writer、frame commit、scheduler 和 committed wrapper；完整行为回归覆盖两个正常帧排队、
   带槽完成、错误帧 drop 和槽复用。该顶层仍只暴露规范化 DDR3/PCIe 边界，不包含真实 vendor IP。
+  独立 PG2L50H MWR32 TX 专项已验证 full-DWORD 请求的 ACK、header、地址和数据输出，但尚未接入
+  完整 DMA 顶层，也不覆盖 partial keep、链路训练或主机内存。
 
 ## 运行
 
@@ -80,6 +84,7 @@
 .\scripts\run_m3b_mwr_descriptor.ps1 -SimulatorExecPath '<questa-bin-dir>'
 .\scripts\run_m3b_pcie_mwr_bridge.ps1 -SimulatorExecPath '<questa-bin-dir>'
 .\scripts\run_m3b_pcie_mwr_path.ps1 -SimulatorExecPath '<questa-bin-dir>'
+.\scripts\run_m3b_pg2l50h_mwr32_tx_integration.ps1 -SimulatorExecPath '<questa-bin-dir>'
 .\scripts\run_m3b_ddr3_write_descriptor.ps1 -SimulatorExecPath '<questa-bin-dir>'
 .\scripts\run_m3b_async_fifo.ps1 -SimulatorExecPath '<questa-bin-dir>'
 .\scripts\run_m3b_cdc_bridge.ps1 -SimulatorExecPath '<questa-bin-dir>'
@@ -93,8 +98,9 @@
 环境提供，不写入仓库。两槽 word 缓冲只能吸收短突发；`source_overflow=1` 表示
 当前帧在进入帧缓存前发生了无法接收的 word。该帧会以空载错误帧尾结束，余帧被
 丢弃，并只从后续 `frame_start` 恢复；这保证损坏帧可识别，不代表持续背压无丢帧。当前切片不生成
-PDS/IP/位流，也不证明 SCCB、板级电气时序、CDC/FIFO、DDR3 或 PCIe 集成。M3-A 的
+PDS/IP/位流，也不证明 SCCB、板级电气时序、真实 DDR3 或完整 PCIe 系统集成。M3-A 的
 128-bit 布局不等同于厂商 PCIe AXIS `tkeep` 或主机内存字节序，M3-B 适配层必须按
 独立合同冻结转换规则后再实现。往返 TB 中的 DDR3 地址是模型槽位，PCIe 地址使用
 `0x0ffc` 起始并按 `keep` 有效字节推进；这只证明行为级字段贯通，不证明真实地址单位、
-DDR3 初始化、PCIe TLP/DMA、链路或主机内存写入。
+DDR3 初始化、完整 PCIe DMA 仲裁、链路或主机内存写入。canonical MWR32 TX 专项只证明一个
+full-DWORD TLP 在 vendor 控制器仿真边界内生成。

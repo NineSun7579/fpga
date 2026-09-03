@@ -276,9 +276,12 @@ module tb_ov5640_ddr3_committed_pcie_loopback;
         logic held_frame_end;
         logic held_error;
         begin
+            if (ddr_model_keep[model_index] == 4'h0)
+                $fatal(1, "MWR task received an empty control record at model index %0d",
+                       model_index);
             wait (mwr32_req);
             #1ns;
-            if (!pcie_busy || req_length !== 10'd0 || req_addr !== expected_addr ||
+            if (!pcie_busy || req_length !== 10'd1 || req_addr !== expected_addr ||
                 req_data !== ddr_model_data[model_index] ||
                 req_keep !== ddr_model_keep[model_index] ||
                 req_last !== ddr_model_last[model_index] ||
@@ -312,6 +315,27 @@ module tb_ov5640_ddr3_committed_pcie_loopback;
         end
     endtask
 
+    // Intent: Observe scheduler completion for an empty frame-control response.
+    // Invariant: The response consumes one DDR read command but emits no MWR.
+    task automatic consume_control_record(input integer model_index,
+                                          input integer command_index,
+                                          input integer expected_done_count,
+                                          input logic expected_done_slot);
+        begin
+            if (ddr_model_keep[model_index] != 4'h0)
+                $fatal(1, "control task received payload bytes at model index %0d",
+                       model_index);
+            wait (frame_done_count == expected_done_count);
+            #1ns;
+            if (read_cmd_count < command_index + 1 ||
+                observed_read_cmd_addr[command_index] !== model_index ||
+                observed_done_slot[expected_done_count - 1] !== expected_done_slot ||
+                mwr32_req || pcie_busy)
+                $fatal(1, "empty control record did not complete locally at model index %0d",
+                       model_index);
+        end
+    endtask
+
     initial begin
         integer pressure_record_count;
 
@@ -334,9 +358,9 @@ module tb_ov5640_ddr3_committed_pcie_loopback;
         ddr_read_enable = 1'b1;
         accept_mwr(0, 64'h0000_0000_0000_2000, 2);
         accept_mwr(1, 64'h0000_0000_0000_2004, 0);
-        accept_mwr(2, 64'h0000_0000_0000_2006, 0);
+        consume_control_record(2, 2, 1, 1'b0);
         accept_mwr(64, 64'h0000_0000_0000_2006, 1);
-        accept_mwr(65, 64'h0000_0000_0000_200a, 0);
+        consume_control_record(65, 4, 2, 1'b1);
         repeat (3) @(posedge ddr_clk);
         #1ns;
         if (read_cmd_count != 5 || drop_count != 0 || frame_done_count != 2 ||
@@ -352,7 +376,7 @@ module tb_ov5640_ddr3_committed_pcie_loopback;
         drive_frame(1, 16'h3000);
         wait (frame_write_count == 3);
         accept_mwr(0, 64'h0000_0000_0000_200a, 1);
-        accept_mwr(1, 64'h0000_0000_0000_200c, 0);
+        consume_control_record(1, 6, 3, 1'b0);
         repeat (3) @(posedge ddr_clk);
         #1ns;
         if (ddr_write_count != 7 || observed_write_slot[5] !== 1'b0 ||
@@ -388,7 +412,7 @@ module tb_ov5640_ddr3_committed_pcie_loopback;
         drive_frame(2, 16'hf800);
         wait (frame_write_count == 2);
         accept_mwr(64, 64'h0000_0000_0000_2000, 2);
-        accept_mwr(65, 64'h0000_0000_0000_2004, 0);
+        consume_control_record(65, 1, 1, 1'b1);
         repeat (3) @(posedge ddr_clk);
         #1ns;
         if (read_cmd_count != 2 ||

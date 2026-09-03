@@ -213,9 +213,11 @@ module tb_ov5640_ddr3_pcie_loopback;
         end
     endtask
 
-    task automatic send_pcie_record(input integer index,
-                                    input logic [63:0] expected_addr);
+    task automatic send_payload_pcie_record(input integer index,
+                                            input logic [63:0] expected_addr);
         begin
+            if (ddr_model_keep[index] == 4'h0)
+                $fatal(1, "payload task received an empty control record at index %0d", index);
             while (!pcie_in_ready)
                 @(posedge ddr_clk);
             @(negedge ddr_clk);
@@ -231,7 +233,7 @@ module tb_ov5640_ddr3_pcie_loopback;
             // Descriptor and bridge are two sequential holding stages.
             @(posedge ddr_clk);
             #1ns;
-            if (!mwr32_req || !pcie_busy || req_length !== 10'd0 ||
+            if (!mwr32_req || !pcie_busy || req_length !== 10'd1 ||
                 req_addr !== expected_addr ||
                 req_data !== ddr_model_data[index] || req_keep !== ddr_model_keep[index] ||
                 req_last !== ddr_model_last[index] ||
@@ -256,12 +258,40 @@ module tb_ov5640_ddr3_pcie_loopback;
         end
     endtask
 
+    // Intent: Verify that a zero-keep record completes at the normalized input
+    //         boundary without creating a vendor-facing MWR transaction.
+    task automatic consume_control_record(input integer index);
+        begin
+            if (ddr_model_keep[index] != 4'h0)
+                $fatal(1, "control task received payload bytes at index %0d", index);
+            while (!pcie_in_ready)
+                @(posedge ddr_clk);
+            @(negedge ddr_clk);
+            pcie_in_data = ddr_model_data[index];
+            pcie_in_keep = ddr_model_keep[index];
+            pcie_in_last = ddr_model_last[index];
+            pcie_in_frame_end = ddr_model_frame_end[index];
+            pcie_in_protocol_error = ddr_model_protocol_error[index];
+            pcie_in_valid = 1'b1;
+            @(posedge ddr_clk);
+            #1ns;
+            pcie_in_valid = 1'b0;
+            if (mwr32_req || pcie_busy)
+                $fatal(1, "empty control record generated an MWR at index %0d", index);
+            @(posedge ddr_clk);
+            #1ns;
+            if (mwr32_req || pcie_busy)
+                $fatal(1, "empty control record left a pending MWR at index %0d", index);
+        end
+    endtask
+
     initial begin
         logic [63:0] expected_pcie_addr;
         integer pressure_record_count;
         integer recovery_start_index;
         integer abort_record_count;
         integer abort_record_index;
+        logic [63:0] abort_control_addr;
 
         repeat (2) @(posedge cam_pclk);
         in_rst_n = 1'b1;
@@ -296,12 +326,16 @@ module tb_ov5640_ddr3_pcie_loopback;
 
         expected_pcie_addr = 64'h0000_0000_0000_0ffc;
         for (integer index = 0; index < NORMAL_FRAME_RECORDS; index = index + 1) begin
-            send_pcie_record(index, expected_pcie_addr);
+            if (ddr_model_keep[index] == 4'h0)
+                consume_control_record(index);
+            else
+                send_payload_pcie_record(index, expected_pcie_addr);
             expected_pcie_addr = expected_pcie_addr + popcount4(ddr_model_keep[index]);
         end
 
         $display("INFO: OV5640 DVP frame wrote %0d normalized DDR3 records", ddr_write_count);
-        $display("INFO: DDR3 model readback reached PCIe MWR at 0x0ffc, 0x1000, 0x1002");
+        $display("INFO: payload readback reached PCIe MWR at 0x0ffc and 0x1000");
+        $display("INFO: frame-end control record completed locally at next address 0x1002");
 
         // 阻塞 DDR 写端制造 camera-side overflow，再验证中止记录和下一帧恢复。
         reset_pipeline();
@@ -347,18 +381,24 @@ module tb_ov5640_ddr3_pcie_loopback;
             $fatal(1, "DDR3 model next-frame recovery records mismatch");
 
         expected_pcie_addr = 64'h0000_0000_0000_0ffc;
+        abort_control_addr = 64'd0;
         for (integer index = 0; index < ddr_write_count; index = index + 1) begin
-            send_pcie_record(index, expected_pcie_addr);
+            if (ddr_model_keep[index] == 4'h0) begin
+                if (index == abort_record_index)
+                    abort_control_addr = expected_pcie_addr;
+                consume_control_record(index);
+            end else begin
+                send_payload_pcie_record(index, expected_pcie_addr);
+            end
             expected_pcie_addr = expected_pcie_addr + popcount4(ddr_model_keep[index]);
         end
-        if (pcie_observed_addr[abort_record_index] !==
-            pcie_observed_addr[recovery_start_index])
+        if (pcie_observed_addr[recovery_start_index] !== abort_control_addr)
             $fatal(1, "empty abort record unexpectedly advanced PCIe address");
 
         $display("INFO: pressure frame wrote %0d records with one abort at index %0d",
                  pressure_record_count, abort_record_index);
         $display("INFO: abort and recovered payload reused PCIe address %h",
-                 pcie_observed_addr[abort_record_index]);
+                 abort_control_addr);
         $display("TEST PASS");
         $finish;
     end

@@ -64,13 +64,19 @@ M3-B 的两槽 word skid 位于无背压 packer 与 4-byte adapter 之间。满�
 
 恢复需要两个先决条件同时成立：已经观察到被丢弃原帧的帧尾，且唯一中止记录已经排队。随后只接受带 `frame_start` 的新输入；在条件成立前到达的新帧整帧跳过，避免帧中段或过早新帧泄漏。Questa 2021.1 专项回归扩展为 526 ns，新增覆盖满队列同拍 pop/push、原 `frame_end` 与 abort 入队同拍、连续两个损坏帧各自产生唯一 abort 且顺序正确，以及 drop/abort 状态异步复位；联合 DVP→CDC 回归保持 2863 ns。两项均为 0 error/0 warning、日志唯一 `TEST PASS`，联合压力仍为 20 个 beat（含 1 个中止）并验证下一帧恢复 2 个 beat。该证据仍不覆盖中止记录经真实 DDR3/PCIe/主机协议保存、DDR3 无效帧回收、静态 CDC/RDC、复位释放或板级时序。
 
+## main OV5640 M3-B canonical MWR32 TX 单 DWORD 边界
+
+normalized MWR length 字段已从 DWORD-1 改为实际 DWORD 数，payload request 固定为 `1`。`keep=0` 控制记录在 descriptor 本地接受，不产生 MWR，不推进 PCIe 字节地址；partial keep 仍未有可验证的 canonical byte-enable 映射。
+
+`tb_rgb565_pg2l50h_mwr32_tx_integration` 直接把项目 bridge 连到未修改 `ips2l_pcie_dma_mwr_tx_ctrl`。Questa Sim-64 2021.1 仿真至 136 ns，0 error/0 warning、日志唯一 `TEST PASS`；动态检查覆盖 req 保持至 ACK、header length=`1`、DWBE=`0x0f`、地址 `0x1000`、数据低 DWORD=`0x44332211` 和 busy 释放。该证据仅限单 DWORD、`keep=4'hf`、4 字节对齐的 vendor TX 隔离仿真；不包含 partial keep、完整 DMA 顶层仲裁、PCIe link training 或 RK3568/主机内存写入。canonical DDR3 非标准用户口适配仍未实现。
+
 ## main OV5640 M3-B 帧提交、作废与已提交帧回送
 
 `rgb565_axis4_frame_commit` 把帧级协议结果收敛为 committed 或不可提交描述符，并保留首条记录的 opaque token、首 slot id、记录数、有效字节数与错误状态；同帧 slot id 改变会并入协议错误。该扩展先在旧 RTL 上于 47 ns 红灯，最终专项 Questa Sim-64 2021.1 为 0 error/0 warning、唯一 `TEST PASS`、240 ns。`rgb565_axis4_frame_read_scheduler` 从首 token 起按记录数生成单 outstanding 顺序命令，并统一响应接收与完成语义：命令和零延迟响应可同拍；提前帧尾或最终响应缺失帧尾均归一化为帧尾并 fault-complete；committed 零记录也直接 fault-complete。scheduler 专项为 346 ns，readout gate 以 `read_accept_enable` 配对响应并以 `frame_done_pulse` 关闭窗口，专项为 211 ns，均 0 error/0 warning、唯一 `TEST PASS`。opaque token 只是数组索引，不是 DDR3 物理地址。
 
 `rgb565_axis4_frame_slot_table` 管理双槽生命周期。正常槽状态只沿 `FREE→WRITING→QUEUED→READING→FREE` 前进，错误帧沿 `WRITING→FREE` 回收；写分配采用保持型 valid/ready 并携带 slot id、槽基 opaque token 与 record capacity，正常描述符进入深度 2 committed FIFO。内部 `reader_active` 限制任一时刻仅一个槽处于活动读取，`read_done` 必须匹配 active slot；错槽、重复或迟到完成只报告 fault，不释放任何槽。专项 TDD 经历目标 RTL 缺失和连续 ready 场景 126 ns 两次红灯，最终为 0 error/0 warning、唯一 `TEST PASS`、436 ns。
 
-`rgb565_axis4_committed_pcie_mwr_path` 已实例化槽表并把带槽 committed 描述符交给 scheduler/readout gate；scheduler 完成时携 slot id 回收匹配 READING 槽。专项结果为 0 error/0 warning、唯一 `TEST PASS`、696 ns。新顶层 `ov5640_dvp_rgb565_ddr3_pcie_pipeline` 在 writer 外保证 DDR write 接受先于 frame commit；完整 `tb_ov5640_ddr3_committed_pcie_loopback` 为 4264 ns，覆盖 slot0 token `0..2`、slot1 token `64..65` 的两帧排队、slot0 复用、错误帧 1 drop/0 read/0 MWR 和 slot1 恢复。该证据仍只使用 TB 数组 token 与规范化 PCIe MWR，不生成真实 DDR3 地址，不实例化 vendor IP，也不证明 DDR3 持久化、PCIe ACK/TLP/DMA/链路、RK3568 主机接收或板级时序。
+`rgb565_axis4_committed_pcie_mwr_path` 已实例化槽表并把带槽 committed 描述符交给 scheduler/readout gate；scheduler 完成时携 slot id 回收匹配 READING 槽。专项结果为 0 error/0 warning、唯一 `TEST PASS`、656 ns，并验证空控制响应零 MWR但正常回收槽。新顶层 `ov5640_dvp_rgb565_ddr3_pcie_pipeline` 在 writer 外保证 DDR write 接受先于 frame commit；完整 `tb_ov5640_ddr3_committed_pcie_loopback` 为 4194 ns，覆盖 slot0 token `0..2`、slot1 token `64..65` 的两帧排队、slot0 复用、错误帧 1 drop/0 read/0 MWR 和 slot1 恢复。该证据仍只使用 TB 数组 token 与规范化 PCIe MWR，不生成真实 DDR3 地址；canonical vendor TX 只在独立单 DWORD/full keep TB 中验证，不证明 DDR3 持久化、完整 PCIe DMA/链路、RK3568 主机接收或板级时序。
 
 厂商异步 FIFO 可以承担多比特数据跨域，但 reset/flush 仍属于 RDC。write FIFO 的 camera/UI 两侧和 read FIFO 的 UI/pixel 两侧必须分别在本地时钟域释放复位；只有确认 SP6.4 对厂商指针同步结构的识别后，才允许添加最窄范围例外。
 

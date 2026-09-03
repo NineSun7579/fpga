@@ -32,7 +32,7 @@ module tb_rgb565_axis4_pcie_mwr_path;
         repeat(2) @(posedge clk); rst_n=1;
         send_beat(32'hdeadbeef, 4'hf, 0, 0, 0);
         @(posedge clk); #1ns;
-        if (!busy || !mwr32_req || req_addr !== 64'h0ffc || req_length !== 0 ||
+        if (!busy || !mwr32_req || req_addr !== 64'h0ffc || req_length !== 1 ||
             req_data !== 32'hdeadbeef || req_keep !== 4'hf || cross_4kb_boundary ||
             req_last || req_frame_end || req_protocol_error)
             $fatal(1, "PCIe MWR path first request mismatch");
@@ -47,13 +47,16 @@ module tb_rgb565_axis4_pcie_mwr_path;
         end
         mwr32_req_ack=1; @(posedge clk); #1ns; mwr32_req_ack=0;
         @(posedge clk); #1ns;
-        if (!busy || req_addr !== 64'h1000 || req_length !== 0 || req_keep !== 4'h3 ||
+        if (!busy || req_addr !== 64'h1000 || req_length !== 1 || req_keep !== 4'h3 ||
             !req_last || !req_frame_end || !req_protocol_error || cross_4kb_boundary)
             $fatal(1, "PCIe MWR path second request mismatch: busy=%b addr=%h len=%0d data=%h keep=%h last=%b frame=%b err=%b cross=%b",
                    busy, req_addr, req_length, req_data, req_keep, req_last,
                    req_frame_end, req_protocol_error, cross_4kb_boundary);
         mwr32_req_ack=1; @(posedge clk); #1ns; mwr32_req_ack=0;
+        send_beat(32'h00000000, 4'h0, 1, 1, 0);
         repeat(2) @(posedge clk);
+        if (busy || mwr32_req)
+            $fatal(1, "Zero-keep control record must complete without PCIe request");
         $display("INFO: normalized staging to PCIe MWR request path verified");
         $display("TEST PASS"); $finish;
     end

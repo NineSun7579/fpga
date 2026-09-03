@@ -122,16 +122,18 @@ module tb_rgb565_axis4_committed_pcie_mwr_path;
         end
     endtask
 
-    task automatic send_read_record(input logic [27:0] expected_read_addr,
-                                    input logic [31:0] data,
-                                    input logic [3:0] keep,
-                                    input logic last,
-                                    input logic frame_end,
-                                    input logic protocol_error,
-                                    input logic [63:0] expected_addr,
-                                    input logic expected_frame_end,
-                                    input logic expected_protocol_error);
+    task automatic send_payload_read_record(input logic [27:0] expected_read_addr,
+                                            input logic [31:0] data,
+                                            input logic [3:0] keep,
+                                            input logic last,
+                                            input logic frame_end,
+                                            input logic protocol_error,
+                                            input logic [63:0] expected_addr,
+                                            input logic expected_frame_end,
+                                            input logic expected_protocol_error);
         begin
+            if (keep == 4'h0)
+                $fatal(1, "payload task received an empty control record");
             wait (read_cmd_valid);
             #1ns;
             if (read_cmd_addr !== expected_read_addr)
@@ -161,7 +163,7 @@ module tb_rgb565_axis4_committed_pcie_mwr_path;
 
             wait (mwr32_req);
             #1ns;
-            if (!busy || req_length !== 10'd0 || req_addr !== expected_addr ||
+            if (!busy || req_length !== 10'd1 || req_addr !== expected_addr ||
                 req_data !== data || req_keep !== keep || req_last !== last ||
                 req_frame_end !== expected_frame_end ||
                 req_protocol_error !== expected_protocol_error ||
@@ -173,6 +175,58 @@ module tb_rgb565_axis4_committed_pcie_mwr_path;
             @(posedge clk);
             #1ns;
             mwr32_req_ack = 1'b0;
+        end
+    endtask
+
+    // Intent: Drive a zero-keep read response through scheduler completion.
+    // Invariant: The record releases its slot without emitting or ACKing an MWR.
+    task automatic send_control_read_record(input logic [27:0] expected_read_addr,
+                                            input logic [31:0] data,
+                                            input logic last,
+                                            input logic frame_end,
+                                            input logic protocol_error,
+                                            input integer expected_done_count,
+                                            input logic expected_done_slot,
+                                            input integer expected_fault_count);
+        begin
+            wait (read_cmd_valid);
+            #1ns;
+            if (read_cmd_addr !== expected_read_addr)
+                $fatal(1, "DDR3 control read command mismatch: got=%0d expected=%0d",
+                       read_cmd_addr, expected_read_addr);
+            read_cmd_ready = 1'b1;
+            @(posedge clk);
+            #1ns;
+            read_cmd_ready = 1'b0;
+            while (!read_ready)
+                @(posedge clk);
+            @(negedge clk);
+            read_data = data;
+            read_keep = 4'h0;
+            read_last = last;
+            read_frame_end = frame_end;
+            read_protocol_error = protocol_error;
+            read_valid = 1'b1;
+            @(posedge clk);
+            #1ns;
+            read_valid = 1'b0;
+            read_data = 32'h0;
+            read_keep = 4'h0;
+            read_last = 1'b0;
+            read_frame_end = 1'b0;
+            read_protocol_error = 1'b0;
+            if (mwr32_req || busy)
+                $fatal(1, "empty control response generated an MWR");
+
+            while (frame_done_count != expected_done_count) begin
+                @(posedge clk);
+                #1ns;
+                if (mwr32_req || busy)
+                    $fatal(1, "empty control response left a pending MWR");
+            end
+            if (frame_done_slot_id !== expected_done_slot ||
+                frame_fault_count != expected_fault_count || read_ready)
+                $fatal(1, "empty control response did not release the expected slot");
         end
     endtask
 
@@ -206,10 +260,10 @@ module tb_rgb565_axis4_committed_pcie_mwr_path;
         accept_allocation(1'b1, 28'd30);
         send_commit_record(1'b1, 28'd30, 4'hf, 1'b0, 1'b0);
         send_commit_record(1'b1, 28'd31, 4'h0, 1'b1, 1'b0);
-        send_read_record(28'd30, 32'h44332211, 4'hf, 1'b1, 1'b0, 1'b0,
-                         64'h0000_0000_0000_2000, 1'b0, 1'b0);
-        send_read_record(28'd31, 32'h00000000, 4'h0, 1'b1, 1'b1, 1'b0,
-                         64'h0000_0000_0000_2004, 1'b1, 1'b0);
+        send_payload_read_record(28'd30, 32'h44332211, 4'hf, 1'b1, 1'b0, 1'b0,
+                                 64'h0000_0000_0000_2000, 1'b0, 1'b0);
+        send_control_read_record(28'd31, 32'h00000000, 1'b1, 1'b1, 1'b0,
+                                 1, 1'b1, 0);
 
         repeat (2) @(posedge clk);
         #1ns;
@@ -240,7 +294,8 @@ module tb_rgb565_axis4_committed_pcie_mwr_path;
         read_last = 1'b0;
         wait (mwr32_req);
         #1ns;
-        if (!busy || req_addr !== 64'h0000_0000_0000_2004)
+        if (!busy || req_length !== 10'd1 ||
+            req_addr !== 64'h0000_0000_0000_2004)
             $fatal(1, "runtime-reset precondition request mismatch");
         @(negedge clk);
         rst_n = 1'b0;
@@ -254,16 +309,16 @@ module tb_rgb565_axis4_committed_pcie_mwr_path;
         accept_allocation(1'b0, 28'd10);
         send_commit_record(1'b0, 28'd10, 4'hf, 1'b0, 1'b0);
         send_commit_record(1'b0, 28'd11, 4'h0, 1'b1, 1'b0);
-        send_read_record(28'd10, 32'h04030201, 4'hf, 1'b1, 1'b0, 1'b0,
-                         64'h0000_0000_0000_2000, 1'b0, 1'b0);
-        send_read_record(28'd11, 32'h00000000, 4'h0, 1'b1, 1'b1, 1'b0,
-                         64'h0000_0000_0000_2004, 1'b1, 1'b0);
+        send_payload_read_record(28'd10, 32'h04030201, 4'hf, 1'b1, 1'b0, 1'b0,
+                                 64'h0000_0000_0000_2000, 1'b0, 1'b0);
+        send_control_read_record(28'd11, 32'h00000000, 1'b1, 1'b1, 1'b0,
+                                 2, 1'b0, 0);
 
         accept_allocation(1'b1, 28'd30);
         send_commit_record(1'b1, 28'd30, 4'hf, 1'b0, 1'b0);
         send_commit_record(1'b1, 28'd31, 4'h0, 1'b1, 1'b0);
-        send_read_record(28'd30, 32'h88776655, 4'hf, 1'b1, 1'b1, 1'b0,
-                         64'h0000_0000_0000_2004, 1'b1, 1'b1);
+        send_payload_read_record(28'd30, 32'h88776655, 4'hf, 1'b1, 1'b1, 1'b0,
+                                 64'h0000_0000_0000_2004, 1'b1, 1'b1);
         repeat (2) @(posedge clk);
         #1ns;
         if (read_cmd_valid || read_ready || frame_fault_count != 1)
@@ -292,7 +347,8 @@ module tb_rgb565_axis4_committed_pcie_mwr_path;
         read_last = 1'b0;
         wait (mwr32_req);
         #1ns;
-        if (req_addr !== 64'h0000_0000_0000_2008 ||
+        if (req_length !== 10'd1 ||
+            req_addr !== 64'h0000_0000_0000_2008 ||
             req_data !== 32'hccbbaa99 || req_keep !== 4'hf ||
             !req_frame_end || !req_protocol_error)
             $fatal(1, "missing final frame end was not repaired on zero-latency response");

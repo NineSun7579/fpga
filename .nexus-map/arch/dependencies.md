@@ -16,7 +16,10 @@ flowchart TD
   MainSkid --> MainStaging["M3-B CDC staging\n4-byte beat + 下一帧恢复"]
   MainStaging --> MainDDRRecord["规范化 DDR3 写记录\nopaque 地址 token"]
   MainDDRRecord --> MainDDRModel["TB 内 DDR3 模型\n按记录保存/回读"]
-  MainDDRModel --> MainMWR["规范化 PCIe MWR\n0x0ffc/0x1000/0x1002"]
+  MainDDRModel --> MainMWR["规范化 PCIe MWR\npayload length=1\nkeep=0 本地消费"]
+  MainMWR --> MainMWRBridge["保持型 mwr32 bridge\nreq/ack"]
+  MainVendorTXTB["隔离 vendor TX 集成 TB\n136 ns PASS"] --> MainMWRBridge
+  MainVendorTXTB --> CanonicalMWRTX["未修改 canonical MWR TX\n1 DWORD / keep=F / aligned"]
   MainDDRRecord --> MainFrameCommit["M3-B frame commit\nDDR 接受后统计"]
   MainFrameCommit --> MainSlotTable["M3-B 双槽帧控制面\n2-slot FIFO + 单 reader"]
   MainSlotTable --> MainDDRRecord
@@ -26,12 +29,12 @@ flowchart TD
   MainLoopbackTB["tb_ov5640_ddr3_pcie_loopback\n行为级闭环"] --> MainStaging
   MainLoopbackTB --> MainDDRModel
   MainLoopbackTB --> MainMWR
-  MainCommitTB["frame_commit/scheduler/gate/committed MWR TB\n240/346/211/696 ns"] --> MainFrameCommit
+  MainCommitTB["frame_commit/scheduler/gate/committed MWR TB\n240/346/211/656 ns"] --> MainFrameCommit
   MainCommitTB --> MainReadScheduler
   MainCommitTB --> MainReadoutGate
   MainCommitTB --> MainCommittedMWR
   MainSlotTB["tb_rgb565_axis4_frame_slot_table\n436 ns"] --> MainSlotTable
-  MainCommittedLoopbackTB["tb_ov5640_ddr3_committed_pcie_loopback\n4264 ns"] --> MainDDRModel
+  MainCommittedLoopbackTB["tb_ov5640_ddr3_committed_pcie_loopback\n4194 ns"] --> MainDDRModel
   MainCommittedLoopbackTB --> MainFrameCommit
   MainCommittedLoopbackTB --> MainReadScheduler
   MainCommittedLoopbackTB --> MainCommittedMWR
@@ -82,6 +85,7 @@ flowchart TD
 
   PCIeTop["pcie_dma_test\n顶层"] --> PCIeIP["PCIe x2 IP"]
   PCIeTop --> DMA["DMA + RAM/FIFO"]
+  DMA --> CanonicalMWRTX
   PCIeTop --> UART["UART2APB"]
   PCIeTop --> PCIeFdc["pcie_dma_test.fdc"]
   PCIeSmoke["S2-A 项目级行为 smoke\n真实顶层 + 受控 PCIe 边界"] --> PCIeTop
@@ -110,10 +114,13 @@ flowchart TD
 - M3-A 的 `ov5640_dvp_rgb565_word_pipeline` 承接 M2-A 同域灰度输出；`rgb565_word_packer` 按接收顺序将 8 个 RGB565 像素打成 128-bit 字，部分行尾只置 `word_keep` 低 `2N` 位并补零。该关系不改变 M2-A 的图像处理职责。
 - M3-A 的两个 TB 已按新协议区分 payload（`word_valid && word_keep!=0`）与纯控制事件（`word_valid=1`、`word_keep=0`）；帧/行起止和协议错误可按该规则传播。内部 keep 只表达 16 个 byte lane，不等同于厂商 PCIe AXIS `tkeep` 或主机字节序。
 - `run_m3a.ps1` 编译 5 个 RTL 与 1 个集成 TB，并要求 Questa 日志唯一 `TEST PASS`；2026-09-03 的 6 模块 `0 error/0 warning` 结果只证明板级无关行为，仍受 VSCS 与统一 PDS/四级仿真边界约束。
+- `rgb565_axis4_mwr_descriptor` 只对 payload 生成请求：`req_length_dw` 表示实际 DWORD 数且固定为 `1`；`keep=0` 控制记录在 descriptor 本地接受，不依赖 bridge/vendor ACK，不产生 MWR，不推进 PCIe 字节地址。
+- `tb_rgb565_pg2l50h_mwr32_tx_integration.sv` 同时依赖项目 bridge 与未修改 `pcie_dma_test_100h/hdl/pcie_dma_ctrl/ips2l_pcie_dma_mwr_tx_ctrl.v`；该依赖只在隔离仿真中验证保持型 req/ack 和单 DWORD TLP 输出，没有经过完整 DMA 顶层仲裁、PCIe link training 或主机内存。
+- canonical MWR TX 固定 full-DWORD byte enable；当前只有 `keep=4'hf`、4 字节对齐请求可无损进入该隔离边界，partial keep 仍是未关闭依赖。
 - `tb_ov5640_ddr3_pcie_loopback.sv` 依赖现有 DVP/灰度/打包/短缓冲/CDC staging、规范化 DDR3 写记录和规范化 PCIe MWR 路径；TB 自带的 DDR3 数组模型只把 opaque 28-bit 写地址当作索引，不解释真实控制器地址单位或读写握手。
 - `run_m3b_ov5640_ddr3_pcie_loopback.ps1` 依赖外部 Questa Sim-64 2021.1，可执行文件目录由参数或 `QUESTA_BIN` 提供；每次运行使用独立 `build/m3b-ov5640-ddr3-pcie-loopback/<run-id>/`，要求仿真退出成功、Errors 为 0 且 `TEST PASS` 恰好一次。
-- 该行为链的 PCIe 地址推进依赖每条记录的有效字节数：正常帧从 `0x0ffc` 到 `0x1000/0x1002`；压力 epoch 的空载 abort 与恢复 payload 均为 `0x104c`。这只验证规范化描述符和行为模型合同，不连接真实 DDR3 controller 或厂商 PCIe IP。
-- `ov5640_dvp_rgb565_ddr3_pcie_pipeline` 把 slot table 的 `slot/base/capacity` 分配接入 writer，并在 DDR write 接受后才向 frame commit 交付同一记录；committed 描述符携 slot id 进入 scheduler，带槽 done 释放匹配 READING 槽。完整 4264 ns 回归仍只依赖 TB 数组 token 与规范化 MWR，不能外推为真实 DDR3/PCIe/RK3568 闭环。
+- 规范化 PCIe 地址只在 payload request 接受后按有效字节数推进；空载 abort/帧尾记录不产生 MWR，不占用 vendor TX 地址。这不改变 TB DDR3 模型仍是 opaque token 的边界。
+- `ov5640_dvp_rgb565_ddr3_pcie_pipeline` 把 slot table 的 `slot/base/capacity` 分配接入 writer，并在 DDR write 接受后才向 frame commit 交付同一记录；committed 描述符携 slot id 进入 scheduler，带槽 done 释放匹配 READING 槽。完整 4194 ns 回归还验证空控制响应不生成 MWR但正常回收槽；它仍只依赖 TB 数组 token 与规范化 MWR，不能外推为真实 DDR3/PCIe/RK3568 闭环。
 - 用户确认三个产品方向共用 `RK3568+PG2L50H100H` 开发板，实际 FPGA 为 `PG2L50H-6IFBG484`；摄像头产品目标已校正为 OV5640，`41_ov7725_hdmi` 仅作 OV7725 legacy。统一有效 PDS 目标为 `Logos2 / PG2L50H / FBG484 / -6`，旧 PG2L100H 产物不得用于实板。
 - 厂商 `.idf`、生成 RTL 和 PDS 仿真库属于外部生成依赖，不应被误当作独立手写逻辑。
 - PCIe S2-A 的 `sim/behav.f` 依赖 37 个实现侧 canonical HDL、仿真专用补充源、DMA RAM init include、reset helper、项目 TB 与受控边界模型。历史动态 smoke 已通过同一 run-id 和唯一 `TEST PASS`；当前 S2-A/S2-B 静态门禁通过，但动态复验因仓库外许可证 checkout 失败返回 4，未产生新 PASS。
@@ -135,7 +142,7 @@ flowchart TD
 - DDR3 M2-B1（2026-08-30）从 PDS SP6.4 `ui.tcl` 证实 `DEVICE_100H_EN` 是隐藏派生参数：`PG2L100H/HX=true`，`PG2L50H=false`。直接对 100H IDF 使用 `-device PG2L50H` 会保留错误的 `true`，进而生成 PPLL `FALSE/CLKOUTF` 分支；此覆盖路径已禁止。
 - 活动 100H IDF 与 SP6.1 50H seed 的所有参数仅 `DEVICE_100H_EN` 不同。更新后的 `scripts/regenerate_ip.ps1` 先验证 seed 参数一致性，再用 SP6.4 build 146967 重生成；输出为 `DEVICE_100H_EN=false`、PPLL `TRUE/CLKOUT4`、`0 error(s), 0 warning(s)`，且 canonical IDF 哈希未变。
 - M2-B1 正确差异边界：DDR PHY slice、wrapper、FDC、仿真 filelist 与 IDF 均有差异；wrapper 端口数从 21 增至 26，新增 `ref_clk_p/ref_clk_n`、`pll_lock`、`ddrphy_cpd_lock`、`ddr_init_done`；FDC 有 28 项 pin 差异。完整证据见 `doc/M2B1_PARAMETER_AND_DIFF_AUDIT.md`。
-- M2 后续门禁固定为：取得原理图/BOM并锁定板级 DDR3 颗粒/组织/PCB 参数 → 审核 28 项 FDC pin 差异及 wrapper/PHY/filelist/IDF → 才可升格 canonical → 重跑 CI-6（端口、宽度、地址单位、`axi_wready` 与 `I_ips_ddr_top`）→ 清空 `build/` 完成七阶段 → 重新审核 D3-0-R，之后才可请求 D3-A。M2-B1 本身不授权 canonical 替换、产品 RTL 或烧录。
+- M2 后续门禁固定为：取得原理图/BOM并锁定板级 DDR3 颗粒/组织/PCB 参数 → 审核 28 项 FDC pin 差异及 wrapper/PHY/filelist/IDF → 才可升格 canonical → 重跑 CI-6（端口、宽度、地址单位、`axi_wready` 与 `I_ips_ddr_top`）→ 清空 `build/` 完成七阶段 → 重新审核 D3-0-R，之后才可请求 D3-A。当前尚未实现 main normalized DDR3 record 到 canonical 非标准用户口的适配器；M2-B1 本身不授权 canonical 替换、产品 RTL 或烧录。
 - DDR3 严格 gate 因 BIST 位宽/dangling、`rst_board` share pin、BANKR4 VCCIO 3.3、UART I/O 以及输入/输出 timing 共 7 类阻断返回 1；显式 baseline 放行返回 0 但不可发布。日志无 SCBV 命中不等同于板级参数获批，批准清单仍是关闭 gate 的前置依赖。
 - DDR3 D2 只读决策不依赖修改厂商示例：`test_ddr`、持续运行 BIST 和旧 testbench 保持原样；D3 若获审核，只新增项目自有 `ddr3_bringup_top.sv` 与 `ddr3_finite_bist.sv`。
 - DDR3 D3-0（2026-08-30）已完成旧活动 `ddr3` 核、非标准 AXI-like AW/W/AR/R 握手和 `I_ips_ddr_top` 边界评审，CI-6 提交 `a5d1785` 已保护该静态契约；目标迁移后必须先重生成 PG2L50H DDR3 IP/FDC/RCF并重新审核 D3-A。

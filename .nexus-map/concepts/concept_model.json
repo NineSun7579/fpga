@@ -454,14 +454,14 @@
       "id": "main-ov5640-pcie-m3b-mwr-path",
       "type": "System",
       "label": "main OV5640→PCIe normalized PCIe MWR combinational path",
-      "responsibility": "串接 staging、MWR descriptor 与临时 mwr32_req/ack bridge，承接 32-bit beat 请求与事件传播。",
+      "responsibility": "串接 staging、MWR descriptor 与保持型 mwr32_req/ack bridge，承接 32-bit payload 请求与事件传播。",
       "implementation_status": "behavior_verified_combinational_path_only",
       "project_path": "main_ov5640_pcie/",
       "code_path": "main_ov5640_pcie/rtl/rgb565_axis4_pcie_mwr_path.sv",
       "test_path": "main_ov5640_pcie/tb/tb_rgb565_axis4_pcie_mwr_path.sv",
-      "contracts": {"controller_length": "req_length 按 DWORD；控制器边界 req_length=0 表示 0x1000 字节；当前每个 32-bit beat 发 req_length=0", "boundary": "BASE_ADDR=0x0ffc 的 4-byte 请求不报 crossing，ack 后地址为 0x1000", "stability": "首请求等待 ack 时预取下一记录，当前地址、数据、keep 与事件元数据保持一致"},
-      "questa_evidence": "2026-09-03：0 error/0 warning，唯一 TEST PASS，115 ns",
-      "uncovered_boundaries": ["真实 TLP", "DMA", "byte-enable", "PCIe 链路", "主机输出", "厂商 PCIe IP"],
+      "contracts": {"controller_length": "req_length 是实际 DWORD 数；payload 固定为 1", "boundary": "BASE_ADDR=0x0ffc 的 4-byte 请求不报 crossing；keep=0 本地完成且不推进地址", "stability": "首请求等待 ack 时预取下一记录，当前地址、数据、keep 与事件元数据保持一致", "canonical_tx": "隔离 vendor TX 动态证据只覆盖单 DWORD、keep=F、4 字节对齐"},
+      "questa_evidence": "2026-09-03：descriptor/path 为 95/125 ns；canonical MWR32 TX 集成为 136 ns；均 0 error/0 warning、唯一 TEST PASS",
+      "uncovered_boundaries": ["partial keep byte-enable", "完整 DMA 顶层仲裁", "PCIe 链路", "RK3568 主机输出", "DDR3 canonical 用户口"],
       "complexity": "low",
       "hotspot": true
     },
@@ -583,7 +583,7 @@
       "evidence_path": "main_ov5640_pcie/scripts/run_m3b_committed_pcie_mwr_path.ps1",
       "contracts": {"slot_table": "allocation 携 slot/base/capacity，committed FIFO 按序交付，scheduler done 携 slot id 回收", "scheduler": "依据 slot id、首 opaque token、记录数和 TOKEN_ADDR_STEP 生成单 outstanding 顺序读命令", "zero_latency": "命令与零延迟响应可同拍", "fault_normalization": "提前/缺失 frame_end 和 committed 零记录均 fault-complete", "status": "对外暴露带槽 frame_done_pulse/frame_fault_pulse", "error_frame": "1 次 drop_frame_pulse；0 读命令且不产生 MWR", "recovery_frame": "正常帧可恢复并进入 MWR"},
       "parameters": {"BASE_ADDR": "vendor-independent MWR 起始地址", "TOKEN_ADDR_STEP": "opaque token 递增步长", "SLOT0_BASE_ADDR/SLOT1_BASE_ADDR": "行为模型槽基 token", "SLOT_RECORD_CAPACITY": "由槽表分发的单槽记录容量"},
-      "questa_evidence": "2026-09-03 Questa Sim-64 2021.1：0 error/0 warning，唯一 TEST PASS，696 ns",
+      "questa_evidence": "2026-09-03 Questa Sim-64 2021.1：0 error/0 warning，唯一 TEST PASS，656 ns；空控制响应零 MWR且完成带槽回收",
       "uncovered_boundaries": ["真实 DDR3 地址与物理槽映射", "DDR3 持久化", "vendor DDR3/PCIe IP", "PCIe ACK/TLP/byte-enable/DMA/链路", "RK3568 主机接收", "板级时序"],
       "complexity": "medium",
       "hotspot": true
@@ -598,7 +598,7 @@
       "test_path": "main_ov5640_pcie/tb/tb_ov5640_ddr3_committed_pcie_loopback.sv",
       "evidence_path": "main_ov5640_pcie/scripts/run_m3b_ov5640_ddr3_committed_pcie_loopback.ps1",
       "contracts": {"normal": "slot0 token 0..2 与 slot1 token 64..65 两帧排队并按提交顺序回送", "reuse": "slot0 完成后由第三帧复用 token 0..1", "pressure": "21 条越界错误帧记录 -> slot0 1 drop、0 read command、0 MWR", "recovery": "错误帧后 slot1 token 64/65 正常回送"},
-      "questa_evidence": "2026-09-03 Questa Sim-64 2021.1：0 error/0 warning，唯一 TEST PASS，4264 ns",
+      "questa_evidence": "2026-09-03 Questa Sim-64 2021.1：0 error/0 warning，唯一 TEST PASS，4194 ns；空控制响应不生成 MWR",
       "uncovered_boundaries": ["真实 DDR3 地址/物理槽/IP/持久化", "真实 PCIe ACK/TLP/DMA/链路", "RK3568 主机接收", "板级时序"],
       "complexity": "medium",
       "hotspot": true
@@ -614,7 +614,7 @@
       "test_path": "main_ov5640_pcie/tb/tb_ov5640_ddr3_committed_pcie_loopback.sv",
       "evidence_path": "main_ov5640_pcie/scripts/run_m3b_ov5640_ddr3_committed_pcie_loopback.ps1",
       "contracts": {"ordering": "每条 DDR write 先被外部 ready/valid 接受，下一阶段才向 frame commit 提交；等待 commit 时不重复 DDR write", "allocation": "slot table 是 slot/base/capacity 单一事实源", "completion": "scheduler done 携 slot id 回收匹配 READING 槽", "pcie_boundary": "输出仅为规范化 MWR 请求"},
-      "questa_evidence": "2026-09-03 Questa Sim-64 2021.1：0 error/0 warning，唯一 TEST PASS，4264 ns",
+      "questa_evidence": "2026-09-03 Questa Sim-64 2021.1：0 error/0 warning，唯一 TEST PASS，4194 ns",
       "uncovered_boundaries": ["PG2L50H DDR3 IP", "PG2L50H PCIe/DMA IP", "真实地址与 burst/byte-enable", "PCIe ACK 与 RK3568 主机收帧", "管脚/FDC/RCF/STA", "板级闭环"],
       "complexity": "medium",
       "hotspot": true
@@ -1376,7 +1376,7 @@
       "source": "main-ov5640-pcie-m3b-mwr-bridge",
       "target": "pds-workflow-guide",
       "type": "staged_under",
-      "description": "byte-enable 映射仍为临时合同；该 bridge 不代表真实 PCIe TLP/DMA 通过。"
+      "description": "canonical TX 隔离仿真已验证单 DWORD、keep=F、4 字节对齐；partial keep、完整 DMA 顶层仲裁和链路仍未关闭。"
     },
     {
       "source": "main-ov5640-pcie-m3b-ddr3-write-record",
@@ -1418,7 +1418,7 @@
       "source": "main-ov5640-pcie-m3b-frame-slot-table",
       "target": "main-ov5640-pcie-m3b-committed-pcie-mwr-path",
       "type": "integrated_in",
-      "description": "committed wrapper 已实例化槽表、传递描述符 slot id，并以 scheduler 的带槽完成释放匹配槽；专项证据为 696 ns。"
+      "description": "committed wrapper 已实例化槽表、传递描述符 slot id，并以 scheduler 的带槽完成释放匹配槽；空控制响应零 MWR，专项证据为 656 ns。"
     },
     {
       "source": "main-ov5640-pcie-m3b-frame-readout-gate",

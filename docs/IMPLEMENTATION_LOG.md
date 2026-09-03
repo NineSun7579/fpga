@@ -715,3 +715,17 @@
 - 当前 done 只表示 DDR 响应已离开槽并被本地 PCIe 请求寄存器接受，不表示 PCIe ACK、TLP
   完成或 RK3568 主机已接收。真实板级闭环仍等待原理图、OV5640 初始化、DDR3/PCIe IP 用户口
   和 RK3568 驱动/缓存/帧协议资料。
+
+## 2026-09-03：main PG2L50H canonical MWR32 TX 语义修复
+
+- canonical 源码审计确认 `i_req_length` 是实际 DWORD 数；旧 normalized path 的单 DWORD值 0
+  会被解释为错误长度。descriptor/bridge/path 已统一改为 `length_dw=1`。
+- `keep=0` 是项目内部无 payload 帧控制记录，现由 descriptor 本地接受，不产生 vendor MWR，
+  也不推进 PCIe 字节地址。vendor 固定 full-DWORD byte enable，partial keep 继续保持未关闭边界。
+- 新增 bridge→未修改 `ips2l_pcie_dma_mwr_tx_ctrl` 动态集成 TB。Questa Sim-64 2021.1 于
+  `136 ns` 唯一 `TEST PASS`，编译/仿真 0 error/0 warning；验证保持型 ACK、header length=1、
+  DWBE=`8'h0f`、地址 `0x1000`、数据低 DWORD=`0x44332211` 和 busy 释放。
+- descriptor、bridge、normalized path 同步复跑为 `95/76/125 ns`；committed path、旧 loopback、
+  双槽 committed loopback 适配后为 `656/3858/4194 ns`，并验证空控制响应零 MWR、地址不推进和
+  scheduler/槽释放。该证据不证明完整 DMA 顶层
+  请求仲裁、PCIe 链路训练、RK3568 缓冲映射、主机内存写入或真实 DDR3 接入。

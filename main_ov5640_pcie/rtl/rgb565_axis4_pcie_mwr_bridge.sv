@@ -7,9 +7,10 @@
  * @details
  * This bridge is intentionally outside the vendor PCIe hierarchy. The
  * request level remains asserted until the controller acknowledges it, while
- * address, length, data, byte enables, and frame-event metadata remain stable.
- * The byte-enable mapping is provisional because the audited controller exposes
- * no request keep port; a later approved bridge may replace this module.
+ * address, actual DWORD count, data, byte enables, and frame-event metadata
+ * remain stable. The byte-enable mapping is provisional because the audited
+ * controller exposes no request keep port; only `in_keep==4'hf` can currently
+ * map losslessly to its fixed full-DWORD byte enable.
  */
 module rgb565_axis4_pcie_mwr_bridge (
     input  wire logic        rst_n,
@@ -17,7 +18,7 @@ module rgb565_axis4_pcie_mwr_bridge (
     input  wire logic        in_valid,
     output logic             in_ready,
     input  wire logic [63:0] in_addr,
-    input  wire logic [9:0]  in_length_dw_minus1,
+    input  wire logic [9:0]  in_length_dw,
     input  wire logic [31:0] in_data,
     input  wire logic [3:0]  in_keep,
     input  wire logic        in_cross_4kb_boundary,
@@ -71,7 +72,7 @@ module rgb565_axis4_pcie_mwr_bridge (
             protocol_error_reg <= 1'b0;
         end else if (!busy && in_valid) begin
             busy <= 1'b1;
-            length_reg <= in_length_dw_minus1;
+            length_reg <= in_length_dw;
             addr_reg <= in_addr;
             data_reg <= in_data;
             keep_reg <= in_keep;
