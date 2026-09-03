@@ -1,7 +1,7 @@
 # main OV5640→PCIe
 
-本目录承载 `codex/main-ov5640-pcie` 的独立产品实现。当前完成 M1-A 采集、M2-A
-灰度处理和 M3-A 128-bit 图像字打包三个板级无关切片，不依赖 `parallel_driver`。
+本目录承载 `codex/main-ov5640-pcie` 的独立产品实现。当前已完成从 M1-A 采集、M2-A
+灰度处理到 M3-B 双槽/canonical DDR3/vendor MWR TX 应用边界，不依赖 `parallel_driver`。
 
 ## 当前文件
 
@@ -44,6 +44,10 @@
 - `tb/tb_rgb565_axis4_pcie_mwr_path.sv`：请求地址、4 KB 边界及等待 ack 时预取下一记录的字段保持自检。
 - `rtl/rgb565_axis4_ddr3_write_descriptor.sv`：按帧接受 slot/base/capacity 分配并生成槽内规范化 DDR3 写记录。
 - `tb/tb_rgb565_axis4_ddr3_write_descriptor.sv`：分配前背压、槽基装载、地址步进、容量夹断、多条越界记录和复位自检。
+- `rtl/rgb565_pg2l50h_ddr3_write_adapter.sv`：规范化记录到 PG2L50H canonical AW/W 用户写口的单 outstanding 适配。
+- `rtl/rgb565_pg2l50h_ddr3_read_adapter.sv`：PG2L50H canonical AR/R 用户读口到带背压规范化记录的单 outstanding 适配。
+- `rtl/ov5640_dvp_rgb565_pg2l50h_pcie_pipeline.sv`：把 OV5640 双槽主链与 canonical DDR3 读写口、MWR32 请求边界串接的可综合应用层。
+- `tb/tb_ov5640_pg2l50h_ddr3_pcie_loopback.sv`：canonical DDR3 AW/W、AR/R 模型到未修改 vendor MWR TX 的闭环自检。
 - `rtl/rgb565_axis4_async_fifo.sv`：携带 `data/keep/last/user` 的板级无关双时钟 staging FIFO。
 - `tb/tb_rgb565_axis4_async_fifo.sv`：异步时钟、满/空、顺序和握手自检。
 - `rtl/rgb565_axis4_cdc_bridge.sv`：异步 FIFO 的 staging 上游/下游 CDC 封装边界。
@@ -63,7 +67,8 @@
   中止记录和恢复帧送入 PCIe MWR 请求路径。提交描述符现在携带首个 opaque token，调度器
   按记录数发出有界读命令，并统一处理零延迟响应、提前/缺失帧尾和零记录 fault。双槽表现已
   接入 writer、frame commit、scheduler 和 committed wrapper；完整行为回归覆盖两个正常帧排队、
-  带槽完成、错误帧 drop 和槽复用。该顶层仍只暴露规范化 DDR3/PCIe 边界，不包含真实 vendor IP。
+  带槽完成、错误帧 drop 和槽复用。PG2L50H 应用层现已接到 canonical DDR3 AW/W 与 AR/R 端口；
+  每条记录的 keep/last/frame-end/error 写入第 5 byte，读适配器用必要的单条弹性寄存器恢复 sideband。
   独立 PG2L50H MWR32 TX 专项已验证 full-DWORD 请求的 ACK、header、地址和数据输出，但尚未接入
   完整 DMA 顶层，也不覆盖 partial keep、链路训练或主机内存。
 
@@ -86,6 +91,10 @@
 .\scripts\run_m3b_pcie_mwr_path.ps1 -SimulatorExecPath '<questa-bin-dir>'
 .\scripts\run_m3b_pg2l50h_mwr32_tx_integration.ps1 -SimulatorExecPath '<questa-bin-dir>'
 .\scripts\run_m3b_ddr3_write_descriptor.ps1 -SimulatorExecPath '<questa-bin-dir>'
+.\scripts\run_m3b_pg2l50h_ddr3_write_adapter.ps1 -SimulatorExecPath '<questa-bin-dir>'
+.\scripts\run_m3b_pg2l50h_ddr3_write_path.ps1 -SimulatorExecPath '<questa-bin-dir>'
+.\scripts\run_m3b_pg2l50h_ddr3_read_adapter.ps1 -SimulatorExecPath '<questa-bin-dir>'
+.\scripts\run_m3b_ov5640_pg2l50h_ddr3_pcie_loopback.ps1 -SimulatorExecPath '<questa-bin-dir>'
 .\scripts\run_m3b_async_fifo.ps1 -SimulatorExecPath '<questa-bin-dir>'
 .\scripts\run_m3b_cdc_bridge.ps1 -SimulatorExecPath '<questa-bin-dir>'
 .\scripts\run_m3b_word_skid_buffer.ps1 -SimulatorExecPath '<questa-bin-dir>'
@@ -102,5 +111,6 @@ PDS/IP/位流，也不证明 SCCB、板级电气时序、真实 DDR3 或完整 P
 128-bit 布局不等同于厂商 PCIe AXIS `tkeep` 或主机内存字节序，M3-B 适配层必须按
 独立合同冻结转换规则后再实现。往返 TB 中的 DDR3 地址是模型槽位，PCIe 地址使用
 `0x0ffc` 起始并按 `keep` 有效字节推进；这只证明行为级字段贯通，不证明真实地址单位、
-DDR3 初始化、完整 PCIe DMA 仲裁、链路或主机内存写入。canonical MWR32 TX 专项只证明一个
-full-DWORD TLP 在 vendor 控制器仿真边界内生成。
+DDR3 初始化、完整 PCIe DMA 仲裁、链路或主机内存写入。新增 canonical 应用层回归证明记录跨过
+AW/W 和无 RREADY 的 AR/R 边界并恢复元数据；它仍使用明文用户口模型，不等价于加密 DDR3 core
+仿真或实板存储。canonical MWR32 TX 专项只证明一个 full-DWORD TLP 在 vendor 控制器仿真边界内生成。

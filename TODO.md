@@ -1,6 +1,6 @@
 # 三项目整改 TODO
 
-更新日期：2026-09-03（最终回归已完成）
+更新日期：2026-09-03（canonical DDR3 应用边界回归已完成）
 
 状态：三项目器件迁移已获审核。DDR3、PCIe 和摄像头 HDMI 最终均运行在同一块 `RK3568+PG2L50H100H` 开发板，实际 FPGA 为 `PG2L50H-6IFBG484`，PDS 目标统一为 `Logos2 / PG2L50H / FBG484 / -6`。摄像头产品目标已由 owner 校正为 OV5640；现有 `41_ov7725_hdmi` 仅保留为 OV7725 legacy 历史基线与可复用基础设施来源。既有 PG2L100H 构建、STA、网表、SDF 和位流不得用于实际板卡验收或烧录。OV5640 范围见 [`docs/OV5640_TARGET_SCOPE.md`](docs/OV5640_TARGET_SCOPE.md)。
 
@@ -18,11 +18,11 @@
   → 主机/RK3568 内存
 ```
 
-当前完成：M1-A 已实现板级无关的 DVP 8-bit→RGB565 采集；M2-A 已实现采集到 RGB565 灰度处理的单域流水线；M3-A 已实现 RGB565→128-bit 内部字打包及 DVP 集成自检。SCCB 配置、板级 PLL/FDC、CDC/FIFO、DDR3 IP 和 PCIe 集成必须分别完成前置事实审核。
+当前完成：M1-A 已实现板级无关的 DVP 8-bit→RGB565 采集；M2-A 已实现 RGB565 灰度处理；M3-A/M3-B 已完成打包、CDC、双槽提交/回收、PG2L50H canonical DDR3 AW/W 与 AR/R 单 outstanding 适配，以及 canonical MWR32 TX 边界。新增应用边界在 806 ns 行为回归中完成 OV5640→canonical DDR3 写入→读回→vendor MWR TX header/data，0 error/0 warning、唯一 `TEST PASS`。该结论尚不包含加密 DDR3 core、完整 PCIe DMA 顶层、链路和 RK3568 主机。
 
-下一批：M1-B/M2-B 先根据 OV5640 模组和板级一手资料冻结 SCCB、MCLK、RESET/PWDN、DVP 极性/时序与处理模式；M3-B 已完成第一轮 PCIe/DDR3 接口事实审计、源端短突发缓冲及 overflow 整帧中止/下一帧恢复，下一步冻结 FIFO 深度和三时钟复位合同，再进入跨域帧缓存设计。
+下一批：把应用边界接入生成的 PG2L50H DDR3 core 和 PCIe DMA/TX 顶层，再与 RK3568 驱动做单帧 golden image。开始前必须取得板卡原理图/BOM、匹配当前 IP 版本的 DDR3 用户手册与地址单位、PCIe 请求源接入/byte-enable 合同、RK3568 DMA 缓冲协议，以及 OV5640 模组和冻结视频模式资料。
 
-M3-B 审计结论见 [`docs/MAIN_OV5640_PCIE_M3B_ADAPTER_CONTRACT.md`](docs/MAIN_OV5640_PCIE_M3B_ADAPTER_CONTRACT.md)：M3-A 的 16-bit `word_keep` 不得直连 PCIe 4-bit `tkeep`；PCIe 请求长度/目标地址与数据流分离；DDR3 地址单位、burst 和非标准写握手仍待一手资料确认。
+M3-B 审计结论见 [`docs/MAIN_OV5640_PCIE_M3B_ADAPTER_CONTRACT.md`](docs/MAIN_OV5640_PCIE_M3B_ADAPTER_CONTRACT.md)：M3-A 的 16-bit `word_keep` 不得直连 PCIe 4-bit `tkeep`；逐记录 sideband 已编码到 DDR3 第 5 byte 并可读回；DDR3 地址单位、`RLAST` 正式语义、完整 PCIe DMA 请求仲裁与 partial keep 仍待一手资料确认。
 
 停止条件：缺少模组、时钟、I/O 电压、管脚、DDR3 拓扑或主机协议资料时，不修改 canonical IP、PLL、FDC/RCF，不把历史 PG2L100H 或 `parallel_driver` 产物解释为本工程通过。
 
@@ -176,7 +176,11 @@ M3-B 审计结论见 [`docs/MAIN_OV5640_PCIE_M3B_ADAPTER_CONTRACT.md`](docs/MAIN
    - 已完成：DDR writer 改为先接受带槽号、槽基 token 和单一容量的 allocation 描述符；帧内全程携带 slot ID，地址只在槽容量内推进，越界后停在本槽末 token 并强制错误直到帧尾。增强专项覆盖多条越界记录和写背压，Questa `251 ns`。
    - 已完成：新增 `ov5640_dvp_rgb565_ddr3_pcie_pipeline` vendor-independent 顶层。每条记录先被外部 DDR 写口接受，下一阶段才进入 frame commit，避免先提交后持久化；该顶层连接 OV5640 DVP、双时钟 staging、双槽 writer/commit/read 和 PCIe MWR 请求边界。
    - 已完成：完整 `tb_ov5640_ddr3_committed_pcie_loopback.sv` 验证两个正常帧分别写入 slot0 token `0..2`、slot1 token `64..65`，读侧阻塞时排队并按序发送；slot0 完成后被第三帧复用。压力错误帧 21 记录只产生 slot0 drop、零读/零 MWR，恢复帧使用 slot1 token `64/65`；空帧尾控制响应不生成 MWR但正常释放对应槽。Questa `0 error/0 warning`、唯一 `TEST PASS`、`4194 ns`。
-   - 下一步工程：补 `TOKEN_ADDR_STEP=0` elaboration 拒绝、无命令伪响应、槽区间不重叠机械检查和三时钟复位/CDC 静态签核；收到板级资料后，用真实 PG2L50H DDR3 用户口和 PCIe DMA 应用口替换规范化边界，并与 RK3568 驱动完成主机帧协议闭环。当前行为顶层不证明真实 DDR3/PCIe/RK3568 板级闭环。
+   - 已完成：新增 PG2L50H canonical DDR3 单 outstanding 写适配器；init 两拍同步，AW 保持到握手，数据保持到 `axi_wready`，专项/联合路径为 `221/196 ns`。
+   - 已完成：新增无 RREADY 的 canonical AR/R 读适配器，以本地寄存器吸收返回拍；覆盖 AR 背压、同拍 AR/R、RID/RLAST 错误、无命令响应和复位，专项 `191 ns`。
+   - 已完成：把 keep/last/frame_end/error 编码进 DDR3 第 5 byte 并令 `WSTRB[4]=1`，从而无歧义读回任意逐记录 sideband 和零 payload 帧尾。
+   - 已完成：新增 `ov5640_dvp_rgb565_pg2l50h_pcie_pipeline`。4 像素回归经 canonical AW/W 写 3 条记录、AR/R 读回，并通过未修改 vendor MWR TX 输出两组 TLP header/data，`806 ns`、0 error/0 warning、唯一 `TEST PASS`。
+   - 下一步工程：把已验证应用边界实例化到实际 PG2L50H DDR3 core 和完整 PCIe DMA/TX 顶层，完成三时钟复位/CDC 静态签核，再与 RK3568 驱动完成主机帧协议闭环。当前行为顶层不证明真实 DDR3/PCIe/RK3568 板级闭环。
    - 仍需外部资料：见 [`docs/MAIN_OV5640_PCIE_BOARD_INPUT_CHECKLIST.md`](docs/MAIN_OV5640_PCIE_BOARD_INPUT_CHECKLIST.md)。最高优先级是板卡原理图/管脚时钟复位、OV5640 模组与初始化表、PG2L50H DDR3 IP 用户口和 PCIe DMA 应用口、RK3568 主机内存与缓存/驱动协议、最终视频模式和丢帧策略。
    - 禁止：未完成资料审核前修改 canonical IP、DDR3/PCIe RTL、FDC/RCF，或把 M3-A 行为通过解释为端到端输出通过。
 

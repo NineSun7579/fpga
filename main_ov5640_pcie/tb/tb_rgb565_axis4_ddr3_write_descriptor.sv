@@ -101,8 +101,9 @@ module tb_rgb565_axis4_ddr3_write_descriptor;
             #1ns;
             if (!write_valid || write_slot_id !== expected_slot ||
                 write_addr !== expected_addr || write_awlen !== 4'd0 ||
-                write_data !== {96'd0, expected_data} ||
-                write_strb !== expected_strb ||
+                write_data !== {89'd0, expected_error, expected_frame_end,
+                                expected_last, expected_strb[3:0], expected_data} ||
+                write_strb !== {11'd0, 1'b1, expected_strb[3:0]} ||
                 write_last !== expected_last ||
                 write_frame_end !== expected_frame_end ||
                 write_protocol_error !== expected_error || in_ready)
@@ -112,8 +113,9 @@ module tb_rgb565_axis4_ddr3_write_descriptor;
                 #1ns;
                 if (!write_valid || write_slot_id !== expected_slot ||
                     write_addr !== expected_addr ||
-                    write_data !== {96'd0, expected_data} ||
-                    write_strb !== expected_strb ||
+                    write_data !== {89'd0, expected_error, expected_frame_end,
+                                    expected_last, expected_strb[3:0], expected_data} ||
+                    write_strb !== {11'd0, 1'b1, expected_strb[3:0]} ||
                     write_last !== expected_last ||
                     write_frame_end !== expected_frame_end ||
                     write_protocol_error !== expected_error)

@@ -161,16 +161,40 @@
 
 ## main 独立 OV5640→PCIe normalized DDR3 write record
 
-- implementation_status: behavior_verified_vendor_independent_ddr_record_only
+- implementation_status: behavior_verified_record_layout_and_canonical_adapter_input
 - code_path: `main_ov5640_pcie/rtl/rgb565_axis4_ddr3_write_descriptor.sv`
 - test_path: `main_ov5640_pcie/tb/tb_rgb565_axis4_ddr3_write_descriptor.sv`
 - script_path: `main_ov5640_pcie/scripts/run_m3b_ddr3_write_descriptor.ps1`
-- responsibility: 按帧接收 slot table 分配的 `slot/base/capacity`，生成单 beat 128-bit 数据、16-bit strobe 的 vendor-independent normalized DDR3 write record。
+- responsibility: 按帧接收 slot table 分配的 `slot/base/capacity`，生成单 beat 128-bit 数据、16-bit strobe 的 normalized DDR3 write record；低 4 byte 保存 payload，第 5 byte 保存 `keep/last/frame_end/protocol_error`。
 - allocation_contract: allocation 的 slot id、槽基 opaque token 与记录容量在握手时装载；slot table 是容量单一事实源，writer 只执行所分配容量的地址约束。
 - integration_contract: writer 在背压期间保持记录稳定；新流水顶层在 writer 外执行“DDR write 接受后再向 frame commit 提交”的两阶段交付。
 - address_contract: `write_addr` 从本帧 allocation base 起步，按 opaque `ADDR_STEP` 推进；该步长不解释为任何物理地址单位。
+- storage_contract: `write_data[31:0]` 保存 payload，`write_data[35:32]/[36]/[37]/[38]` 保存 `keep/last/frame_end/protocol_error`；`write_strb[3:0]=keep`、`write_strb[4]=1`，零 payload 控制记录也写入元数据 byte。
 - regression_2026_09_03: Questa Sim-64 2021.1 为 0 error/0 warning、日志唯一 `TEST PASS`，仿真至 251 ns；覆盖 allocation 的 slot/base/capacity、背压字段保持、容量边界与恢复。
-- boundary: 不假定地址单位、初始化行为或 AXI4 burst 语义；尚未实现到 canonical DDR3 非标准 AW/由 `axi_wready` 消费写数据用户口的适配器。
+- boundary: 不假定正式地址单位、物理槽范围、初始化行为或 AXI4 burst 语义；记录已接入项目自有 canonical adapter，但尚未通过加密 DDR core、PDS/STA 或实板验证。
+
+## main PG2L50H canonical DDR3 write adapter
+
+- implementation_status: behavior_verified_canonical_aw_w_adapter_only
+- code_path: `main_ov5640_pcie/rtl/rgb565_pg2l50h_ddr3_write_adapter.sv`
+- test_path: `main_ov5640_pcie/tb/tb_rgb565_pg2l50h_ddr3_write_adapter.sv`
+- script_path: `main_ov5640_pcie/scripts/run_m3b_pg2l50h_ddr3_write_adapter.ps1`
+- responsibility: 把一条 normalized 128-bit 写记录映射到 PG2L50H canonical 非标准 AW/W 用户口，并在真实写数据拍被 `axi_wready` 消费前保持地址、数据和 strobe。
+- contract: `ddr_init_done` 在 `io_clk` 域两拍同步后才准入；单 outstanding、`axi_awlen=0`、固定 request id、`axi_awuser_ap=0`；支持 AW 与 W 同拍完成，上游 `in_ready` 只在 W consume 时拉高。
+- evidence: 2026-09-03 Questa Sim-64 2021.1：专项 write adapter 221 ns，writer→adapter path 196 ns；均 0 error/0 warning、日志唯一 `TEST PASS`。
+- boundary: canonical 接口没有 B channel，`in_ready` 只证明用户写数据拍已被 core 端口消费，不证明物理 DDR 持久化；正式地址单位/槽范围、加密 core、PDS/STA/板级均未关闭。
+
+## main PG2L50H canonical DDR3 read adapter
+
+- implementation_status: behavior_verified_canonical_ar_r_adapter_only
+- code_path: `main_ov5640_pcie/rtl/rgb565_pg2l50h_ddr3_read_adapter.sv`
+- test_path: `main_ov5640_pcie/tb/tb_rgb565_pg2l50h_ddr3_read_adapter.sv`
+- script_path: `main_ov5640_pcie/scripts/run_m3b_pg2l50h_ddr3_read_adapter.ps1`
+- responsibility: 把单条 frame scheduler 读命令映射到 canonical AR/R 用户口，并把 128-bit 返回拍还原为 32-bit payload 与第 5 byte 元数据。
+- contract: `ddr_init_done` 两拍同步后准入；单 outstanding、`axi_arlen=0`、固定 request id、`axi_aruser_ap=0`；由于 core 无 `axi_rready`，R 拍必须先进入本地缓冲再等待下游，AR/R 同拍返回也必须正确捕获。
+- fault_contract: RID 不匹配或 RLAST 缺失并入 `out_protocol_error`；无命令、AR 尚未握手或本地响应缓冲已占用时出现 RVALID，产生 `port_fault_pulse`。
+- evidence: 2026-09-03 Questa Sim-64 2021.1：专项 read adapter 191 ns，0 error/0 warning、日志唯一 `TEST PASS`。
+- boundary: 不解释 28-bit 地址单位、物理槽布局、刷新/仲裁或加密 core 行为；端口 fault 是接口违规诊断，不等价于 ECC 或物理内存错误。
 
 ## main 独立 OV5640→PCIe MWR bridge
 
@@ -458,3 +482,15 @@
 - recovery_scenario: slot1 在错误帧后恢复正常读出与 MWR。
 - evidence: 2026-09-03 Questa Sim-64 2021.1 为 0 error/0 warning、日志唯一 TEST PASS、仿真至 4194 ns。
 - boundary: TB 数组仅以 opaque token 建模双槽，PCIe 输出仅为规范化 MWR；不证明 vendor DDR3/PCIe IP、PCIe ACK/主机接收、RK3568 DMA、真实链路或板级时序。
+
+## main OV5640→PG2L50H canonical DDR3→PCIe 流水顶层
+
+- implementation_status: behavior_verified_canonical_ddr_port_pipeline_only
+- code_path: `main_ov5640_pcie/rtl/ov5640_dvp_rgb565_pg2l50h_pcie_pipeline.sv`
+- test_path: `main_ov5640_pcie/tb/tb_ov5640_pg2l50h_ddr3_pcie_loopback.sv`
+- script_path: `main_ov5640_pcie/scripts/run_m3b_ov5640_pg2l50h_ddr3_pcie_loopback.ps1`
+- behavior_path: OV5640 DVP→CDC staging→双槽 allocation/write record→canonical AW/W adapter→公开端口 DDR 模型→canonical AR/R adapter→frame scheduler/readout gate→未修改 vendor MWR TX。
+- metadata_contract: DDR record 第 5 byte 保存 `keep/last/frame_end/protocol_error`，且 `WSTRB[4]=1`；读适配器从相同 bit 位置恢复 sideband，使控制记录和 partial payload 语义跨 DDR 存储边界保留。
+- evidence: 2026-09-03 Questa Sim-64 2021.1 为 0 error/0 warning、日志唯一 `TEST PASS`、仿真至 806 ns；覆盖 canonical AW/W→AR/R→vendor MWR TX 的两组 TLP header/data，以及 `ddr_read_port_fault_pulse=0` 的正常链路。
+- retained_regressions: 旧双槽数组模型回归 4194 ns、canonical MWR32 TX 隔离回归 136 ns 均继续通过。
+- boundary: 未实例化或解密 DDR core；正式 DDR 地址单位/物理槽范围、完整 PCIe DMA 请求仲裁与 partial keep、PCIe 链路、RK3568 软件、FDC/RCF/STA 和板级闭环均未关闭。

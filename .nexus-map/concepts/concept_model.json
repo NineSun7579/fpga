@@ -461,7 +461,7 @@
       "test_path": "main_ov5640_pcie/tb/tb_rgb565_axis4_pcie_mwr_path.sv",
       "contracts": {"controller_length": "req_length 是实际 DWORD 数；payload 固定为 1", "boundary": "BASE_ADDR=0x0ffc 的 4-byte 请求不报 crossing；keep=0 本地完成且不推进地址", "stability": "首请求等待 ack 时预取下一记录，当前地址、数据、keep 与事件元数据保持一致", "canonical_tx": "隔离 vendor TX 动态证据只覆盖单 DWORD、keep=F、4 字节对齐"},
       "questa_evidence": "2026-09-03：descriptor/path 为 95/125 ns；canonical MWR32 TX 集成为 136 ns；均 0 error/0 warning、唯一 TEST PASS",
-      "uncovered_boundaries": ["partial keep byte-enable", "完整 DMA 顶层仲裁", "PCIe 链路", "RK3568 主机输出", "DDR3 canonical 用户口"],
+      "uncovered_boundaries": ["partial keep byte-enable", "完整 DMA 顶层仲裁", "PCIe 链路", "RK3568 主机输出", "正式 DDR 地址单位与物理存储"],
       "complexity": "low",
       "hotspot": true
     },
@@ -475,11 +475,59 @@
       "code_path": "main_ov5640_pcie/rtl/rgb565_axis4_ddr3_write_descriptor.sv",
       "test_path": "main_ov5640_pcie/tb/tb_rgb565_axis4_ddr3_write_descriptor.sv",
       "evidence_path": "main_ov5640_pcie/scripts/run_m3b_ddr3_write_descriptor.ps1",
-      "contracts": {"data": "single beat, 128-bit write_data, 16-bit write_strobe", "allocation": "无 allocation 时不接受帧；握手后全帧保持 slot id、槽基 token 与 capacity", "address": "opaque 28-bit token; next address = current + ADDR_STEP within the allocated slot", "capacity": "越界记录夹在本槽最后 token 并强制 protocol_error，不跨入另一槽", "burst": "write_awlen=0; no AXI4 burst assumption"},
+      "contracts": {"data": "single beat, 128-bit write_data, 16-bit write_strobe", "metadata": "payload 在低 DWORD；keep/last/frame_end/protocol_error 位于第 5 byte，write_strb[4]=1", "allocation": "无 allocation 时不接受帧；握手后全帧保持 slot id、槽基 token 与 capacity", "address": "opaque 28-bit token; next address = current + ADDR_STEP within the allocated slot", "capacity": "越界记录夹在本槽最后 token 并强制 protocol_error，不跨入另一槽", "burst": "write_awlen=0; no AXI4 burst assumption"},
       "behavior_tb": "覆盖 allocation 的 slot/base/capacity、无槽背压、全帧 slot 保持、写记录背压、容量末 token 夹断、越界错误与帧尾后重新分配",
       "questa_evidence": "2026-09-03 Questa Sim-64 2021.1：0 error/0 warning，日志唯一 TEST PASS，仿真至 251 ns",
       "uncovered_boundaries": ["vendor DDR3 IP", "地址初始化语义", "AXI4 burst", "DDR3 控制器/内存时序", "CDC/FIFO", "PDS/STA/SDF"],
       "complexity": "low",
+      "hotspot": true
+    },
+    {
+      "id": "main-ov5640-pcie-m3b-pg2l50h-ddr3-write-adapter",
+      "type": "System",
+      "label": "main PG2L50H canonical DDR3 write adapter",
+      "responsibility": "将一条规范化 128-bit DDR 记录映射为 PG2L50H 非标准 AW/W 单拍事务，并把上游完成延迟到 axi_wready 数据消费边沿。",
+      "implementation_status": "behavior_verified_canonical_user_port_adapter",
+      "project_path": "main_ov5640_pcie/",
+      "code_path": "main_ov5640_pcie/rtl/rgb565_pg2l50h_ddr3_write_adapter.sv",
+      "test_path": ["main_ov5640_pcie/tb/tb_rgb565_pg2l50h_ddr3_write_adapter.sv", "main_ov5640_pcie/tb/tb_rgb565_axis4_pg2l50h_ddr3_write_path.sv"],
+      "evidence_path": ["main_ov5640_pcie/scripts/run_m3b_pg2l50h_ddr3_write_adapter.ps1", "main_ov5640_pcie/scripts/run_m3b_pg2l50h_ddr3_write_path.ps1"],
+      "contracts": {"init": "ddr_init_done 在 core-clock 域两拍同步后准入", "command": "单 outstanding，AWLEN=0，AW 字段保持到 AWREADY", "data": "WDATA/WSTRB 保持到一次合格 axi_wready；支持 AW/W 同拍", "completion": "仅证明 DDR 用户口消费，不证明物理 DRAM 持久化"},
+      "questa_evidence": "2026-09-03 Questa Sim-64 2021.1：write adapter 221 ns、writer path 196 ns，均 0 error/0 warning、唯一 TEST PASS",
+      "uncovered_boundaries": ["正式地址单位与槽范围", "加密 DDR core", "物理持久化", "板级时序"],
+      "complexity": "low",
+      "hotspot": true
+    },
+    {
+      "id": "main-ov5640-pcie-m3b-pg2l50h-ddr3-read-adapter",
+      "type": "System",
+      "label": "main PG2L50H canonical DDR3 read adapter",
+      "responsibility": "将 PG2L50H 非标准 AR/R 单拍事务转换为可背压的规范化 32-bit 记录，并从 DDR 第 5 byte 恢复逐记录元数据。",
+      "implementation_status": "behavior_verified_canonical_user_port_adapter",
+      "project_path": "main_ov5640_pcie/",
+      "code_path": "main_ov5640_pcie/rtl/rgb565_pg2l50h_ddr3_read_adapter.sv",
+      "test_path": "main_ov5640_pcie/tb/tb_rgb565_pg2l50h_ddr3_read_adapter.sv",
+      "evidence_path": "main_ov5640_pcie/scripts/run_m3b_pg2l50h_ddr3_read_adapter.ps1",
+      "contracts": {"init": "ddr_init_done 两拍同步后准入", "command": "单 outstanding，ARLEN=0，AR 字段保持到 ARREADY", "response": "canonical 读口没有 RREADY，必须无条件采样到本地输出寄存器", "metadata": "从 RDATA[38:32] 恢复 keep/last/frame_end/protocol_error", "fault": "RID/RLAST 错误随记录传播；非预期或重复 RVALID 产生 port fault"},
+      "questa_evidence": "2026-09-03 Questa Sim-64 2021.1：0 error/0 warning、唯一 TEST PASS、191 ns",
+      "uncovered_boundaries": ["RLAST 正式厂商语义", "最大读延迟", "加密 DDR core", "正式地址单位", "板级时序"],
+      "complexity": "low",
+      "hotspot": true
+    },
+    {
+      "id": "main-ov5640-pcie-m3b-pg2l50h-canonical-pipeline",
+      "type": "System",
+      "label": "main OV5640→PG2L50H canonical DDR3→MWR TX 应用边界",
+      "responsibility": "串接 OV5640 双槽主链、canonical DDR3 AW/W 与 AR/R adapters，并在端到端 TB 中把读回 payload 送入未修改 PG2L50H MWR TX controller。",
+      "implementation_status": "behavior_verified_application_boundary_not_board_closed",
+      "project_path": "main_ov5640_pcie/",
+      "code_path": "main_ov5640_pcie/rtl/ov5640_dvp_rgb565_pg2l50h_pcie_pipeline.sv",
+      "test_path": "main_ov5640_pcie/tb/tb_ov5640_pg2l50h_ddr3_pcie_loopback.sv",
+      "evidence_path": "main_ov5640_pcie/scripts/run_m3b_ov5640_pg2l50h_ddr3_pcie_loopback.ps1",
+      "contracts": {"address": "DDR_ADDR_STEP 必须由集成层显式给出，默认 0 由 elaboration 拒绝", "record_format": "低 DWORD payload + 第 5 byte 元数据", "read_buffer": "无 RREADY 的返回先本地缓冲", "pcie": "只覆盖 full-DWORD、4 字节对齐的 MWR TX user-defined data 路径"},
+      "questa_evidence": "2026-09-03 Questa Sim-64 2021.1：3 条 DDR 记录、2 条 MWR、两组 TLP header/data，0 error/0 warning、唯一 TEST PASS、806 ns",
+      "uncovered_boundaries": ["加密 DDR core", "正式 DDR 地址单位和物理槽", "完整 PCIe DMA请求仲裁", "partial keep", "PCIe 链路", "RK3568 驱动与主机内存", "FDC/RCF/STA"],
+      "complexity": "high",
       "hotspot": true
     },
     {
@@ -499,7 +547,7 @@
         "abort": "唯一 keep=0/frame_end=1/protocol_error=1 记录经 DDR3 模型回送 PCIe，且不推进有效字节地址",
         "request_release": "每个 MWR 请求在 ack 前字段稳定，ack 后 busy/request 释放"
       },
-      "questa_evidence": "最终 Questa Sim-64 2021.1：0 error/0 warning，日志唯一 TEST PASS，仿真至 3844 ns；DDR3 模型按 posedge valid/ready 握手边沿采集写事务",
+      "questa_evidence": "最终 Questa Sim-64 2021.1：0 error/0 warning，日志唯一 TEST PASS，仿真至 3858 ns；DDR3 模型按 posedge valid/ready 握手边沿采集写事务",
       "uncovered_boundaries": ["真实 DDR3 地址单位与初始化", "真实 DDR3 AW/W/读口握手和内存时序", "厂商 PCIe IP/TLP/byte-enable", "PCIe 链路与 DMA/主机写入", "板级管脚、电气与时序", "实现级 CDC/RDC、PDS/STA/SDF"],
       "complexity": "medium",
       "hotspot": true
@@ -1391,6 +1439,42 @@
       "description": "该记录不接 vendor DDR3 IP，不假定地址单位、初始化或 AXI4 burst，不能作为 DDR3 控制器或内存时序通过证据。"
     },
     {
+      "source": "main-ov5640-pcie-m3b-pg2l50h-ddr3-write-adapter",
+      "target": "main-ov5640-pcie-m3b-ddr3-write-record",
+      "type": "consumes",
+      "description": "canonical 写适配器消费包含第 5 byte 元数据的单拍记录，并把完成延迟到 axi_wready。"
+    },
+    {
+      "source": "main-ov5640-pcie-m3b-pg2l50h-ddr3-read-adapter",
+      "target": "main-ov5640-pcie-m3b-pg2l50h-ddr3-write-adapter",
+      "type": "shares_record_format",
+      "description": "读写适配器版本锁定同一低 DWORD payload 与第 5 byte 元数据布局。"
+    },
+    {
+      "source": "main-ov5640-pcie-m3b-pg2l50h-canonical-pipeline",
+      "target": "main-ov5640-pcie-m3b-double-slot-pipeline",
+      "type": "extends",
+      "description": "canonical 应用边界在双槽行为主链外接入真实命名的 DDR3 AW/W、AR/R 用户口适配。"
+    },
+    {
+      "source": "main-ov5640-pcie-m3b-pg2l50h-canonical-pipeline",
+      "target": "main-ov5640-pcie-m3b-pg2l50h-ddr3-write-adapter",
+      "type": "composes",
+      "description": "写侧通过 canonical AW/W 单拍事务保存 payload 和元数据。"
+    },
+    {
+      "source": "main-ov5640-pcie-m3b-pg2l50h-canonical-pipeline",
+      "target": "main-ov5640-pcie-m3b-pg2l50h-ddr3-read-adapter",
+      "type": "composes",
+      "description": "读侧通过无 RREADY 的 canonical AR/R 适配恢复可背压规范化记录。"
+    },
+    {
+      "source": "main-ov5640-pcie-m3b-pg2l50h-canonical-pipeline",
+      "target": "pds-workflow-guide",
+      "type": "staged_under",
+      "description": "806 ns 回归到达 vendor MWR TX AXIS 边界；加密 DDR core、完整 DMA、链路、RK3568 和板级签核仍未完成。"
+    },
+    {
       "source": "main-ov5640-pcie-m3b-frame-read-scheduler",
       "target": "main-ov5640-pcie-m3b-frame-commit",
       "type": "consumes",
@@ -1443,6 +1527,12 @@
       "target": "pds-workflow-guide",
       "type": "staged_under",
       "description": "该行为切片不生成真实 DDR3 读地址、不实例化 vendor IP，不能作为 DDR3 持久化、PCIe TLP/DMA/链路、主机内存或板级验收证据。"
+    },
+    {
+      "source": "main-ov5640-pcie-m3b-ddr3-pcie-loopback",
+      "target": "main-ov5640-pcie-m3b-mwr-path",
+      "type": "tests",
+      "description": "行为 loopback 以 TB DDR3 模型回读规范化记录并覆盖 MWR 请求保持、abort 零地址推进和恢复帧；不替代 canonical DDR3 或板级 PCIe 证据。"
     },
     {
       "source": "main-ov5640-pcie-m3b-ddr3-committed-pcie-loopback",

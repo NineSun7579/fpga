@@ -4,13 +4,27 @@
 
 ## 目的
 
-当前 RTL 已完成从 OV5640 DVP 激励、灰度处理、双槽 DDR3 记录数组模型、帧提交/作废、顺序读调度
-到 PCIe MWR 请求的行为闭环，并提供 vendor-independent 可综合连接顶层。以下资料用于把 opaque token 和临时请求合同替换为
+当前 RTL 已完成从 OV5640 DVP 激励、灰度处理、双槽帧管理到 PG2L50H canonical DDR3 AW/W、AR/R
+用户口及 PCIe MWR 请求的应用边界闭环。以下资料用于把明文 canonical 用户口模型和 opaque 地址替换为
 `PG2L50H-6IFBG484` 板上的真实 DDR3、PCIe 和 RK3568 主机接口；资料未关闭前，不得把模型回归
 解释为上板闭环。
 
 本地 canonical PCIe TX 源码已足以验证单 DWORD、full-byte-enable 的 MWR32 生成，但不能替代
 完整 DMA 顶层注入/仲裁说明、板级链路资料和 RK3568 主机内存协议。以下清单仍以一手资料为准。
+
+## 当前最小资料包
+
+若希望下一批直接进入真实 IP/上板闭环，请优先提供以下五组资料：
+
+1. 开发板准确型号/版本、原理图和 BOM，至少覆盖 FPGA、DDR3、PCIe、OV5640、时钟与复位页。
+2. 当前 PG2L50H DDR3 IP 的 IDF/生成报告和匹配版本用户手册，尤其是 28-bit 地址单位、对齐、
+   `RLAST/RVALID`、`AWREADY/WREADY`、初始化与 `core_clk` 合同。
+3. PCIe DMA/TX 完整连接图或手册：如何把第二个 MWR 请求源接入现有 controller，partial DWORD
+   byte enable 如何表达，以及 ACK、发送完成、错误与中断的区别。
+4. RK3568 侧内核/设备树/驱动源码或冻结 API，包括 DMA 缓冲分配、IOMMU、缓存一致性、目标地址、
+   槽所有权、完成通知和 golden frame 校验程序。
+5. OV5640 模组资料与首版模式：SCCB 初始化表、MCLK、RESET/PWDN、DVP 极性、RGB565 字节序、
+   宽高、帧率及是否保证整帧 DWORD 对齐。
 
 ## P0：开始真实顶层和 IP 连接前必须提供
 
@@ -63,7 +77,7 @@
 ## 收到资料后的工程顺序
 
 1. 冻结板级管脚、时钟、复位和 OV5640 SCCB/DVP 合同。
-2. 用真实 DDR3 用户口替换记录数组模型，先完成单帧 BIST，再实现带槽号双槽帧表和回收。
-3. 用真实 PCIe 应用口替换临时 MWR bridge，完成 4 KB/最大 payload/byte-enable 专项回归。
+2. 将已验证的 canonical 适配层接入实际 PG2L50H DDR3 core，先跑元数据记录单拍写读 BIST，再跑双槽帧。
+3. 将 MWR32 请求边界接入完整 PCIe DMA/TX 顶层，完成仲裁、4 KB、最大 payload 和 byte-enable 回归。
 4. 与 RK3568 驱动冻结目标缓冲和槽所有权协议，完成单帧 golden image 闭环。
 5. 依次完成行为级、综合后、PNR 后功能、PNR 后时序和实板验收；每层保持独立失败退出契约。

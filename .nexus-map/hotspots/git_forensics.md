@@ -6,8 +6,8 @@
 
 ## 当前基线
 
-- 分支为 `main`。
-- 根提交为 `1a2d493`，保存三个原始工程、已有 PDS 产物和整改文档。
+- 分支为 `codex/main-ov5640-pcie`。
+- 当前 HEAD 为 `1daa97d`；其后工作树正在集成 PG2L50H canonical DDR3 用户口适配。
 - CI-1 至 CI-7、H2-B0、CI-8A、PCIe S2-A、板级证据门禁、仿真器复核、M0/M1、main OV5640 M2-A/M3-A 与 DDR3 M2-B1 均按小批次记录；样本仍不足以计算可信的 churn、共同变更或历史热点。
 
 ## 人工高关注区
@@ -17,10 +17,11 @@
 - `docs/OV5640_TARGET_SCOPE.md`：摄像头产品目标、OV7725 legacy 边界与 C0/C1/C2/C3/S3 关闭条件的首要入口；参考工程未审计前不得先改名或迁移 RTL。
 - `main_ov5640_pcie/rtl/rgb565_word_packer.sv`、`ov5640_dvp_rgb565_word_pipeline.sv`：M3-A 内部 128-bit 图像字布局与控制事件边界；后续 DDR3/PCIe 适配不得直接把 `word_keep` 当作厂商 AXIS `tkeep` 或主机字节序。
 - `main_ov5640_pcie/rtl/rgb565_word_skid_buffer.sv`、`main_ov5640_pcie/rtl/ov5640_dvp_rgb565_cdc_staging_pipeline.sv` 及对应 TB：M3-B overflow 合同的首要入口。评审必须保持“保留前缀、丢弃当前帧余量、唯一空载错误中止、原帧尾与中止排队后从后续 frame_start 恢复、此前新帧整帧跳过”五项语义。word skid 专项 Questa 证据已扩展为 526 ns，并覆盖满队列同拍 pop/push、原 `frame_end` 与 abort 入队同拍、连续两个损坏帧各唯一 abort 且顺序正确、drop/abort 状态异步复位；联合 DVP→CDC 证据保持 2863 ns，压力输出 20 个 beat（含 1 个中止）并恢复 2 个 beat。不得将其升格为真实 DDR3/PCIe/主机或板级时序证明。
-- `main_ov5640_pcie/rtl/rgb565_axis4_mwr_descriptor.sv`、`rgb565_axis4_pcie_mwr_bridge.sv`、`tb/tb_rgb565_pg2l50h_mwr32_tx_integration.sv` 及对应脚本：M3-B 规范化请求与 canonical vendor TX 隔离集成的首要评审入口。必须保持“length 是实际 DWORD 数且 payload=`1`；`keep=0` 本地接受、零 MWR、零地址推进；req 保持至 vendor ACK”三项语义。新增 canonical TX 动态集成为 136 ns、0 error/0 warning、唯一 `TEST PASS`，检查 length=1、DWBE=`0x0f`、地址 `0x1000`、数据低 DWORD=`0x44332211` 与 busy 释放。评审不得将该证据外推到 partial keep、完整 DMA 顶层仲裁、PCIe link training、RK3568/主机内存或 canonical DDR3 适配。
+- `main_ov5640_pcie/rtl/rgb565_axis4_mwr_descriptor.sv`、`rgb565_axis4_pcie_mwr_bridge.sv`、`tb/tb_rgb565_pg2l50h_mwr32_tx_integration.sv` 及对应脚本：M3-B 规范化请求与 canonical vendor TX 隔离集成的首要评审入口。必须保持“length 是实际 DWORD 数且 payload=`1`；`keep=0` 本地接受、零 MWR、零地址推进；req 保持至 vendor ACK”三项语义。canonical TX 动态集成为 136 ns、0 error/0 warning、唯一 `TEST PASS`。评审不得将该证据外推到 partial keep、完整 DMA 顶层仲裁、PCIe link training 或 RK3568/主机内存。
 - `main_ov5640_pcie/rtl/rgb565_axis4_frame_commit.sv`、`rgb565_axis4_frame_read_scheduler.sv`、`rgb565_axis4_frame_readout_gate.sv`、`rgb565_axis4_committed_pcie_mwr_path.sv` 及对应 TB/脚本：M3-B 已提交帧回送切片的首要入口。评审必须保持“首 opaque token 与首 slot id；同帧 slot mismatch 拒绝提交；单 outstanding；命令/零延迟响应同拍；提前/缺失帧尾归一化 fault-complete；committed 零记录 fault-complete；带槽 done 回收匹配 READING 槽；空控制响应零 MWR但正常完成”的语义。专项 Questa 证据分别为 frame commit 240 ns、scheduler 346 ns、gate 211 ns、committed path 656 ns，均 0 error/0 warning、唯一 `TEST PASS`。
-- `main_ov5640_pcie/rtl/rgb565_axis4_frame_slot_table.sv`、`rgb565_axis4_ddr3_write_descriptor.sv`、`ov5640_dvp_rgb565_ddr3_pcie_pipeline.sv` 及对应 TB/脚本：行为级双槽主链的首要入口。评审必须保持正常 `FREE→WRITING→QUEUED→READING→FREE`、错误 `WRITING→FREE`、allocation 携 `slot/base/capacity`、深度 2 committed FIFO、单 active reader、带槽 read-done 严格匹配、越界地址不跨槽并 fault-drop，以及 DDR 接受先于 commit。槽表/writer/完整 loopback 最终为 436/251/4194 ns。该链仍以 opaque token 和规范化 MWR 建模，不得升格为真实 DDR3/PCIe/RK3568 板级闭环。
-- `main_ov5640_pcie/tb/tb_ov5640_ddr3_committed_pcie_loopback.sv` 及对应脚本：完整行为级单一回归入口。正常 token `0..2` 对应 MWR `0x2000/0x2004/0x2006`；压力错误帧 21 记录、1 drop、0 read command/0 MWR；恢复 token `21/22` 对应 `0x2000/0x2004`；Questa 为 3158 ns、0 error/0 warning、唯一 `TEST PASS`。必须明确该模型无物理双槽复用，不能升格为真实 DDR3 地址/IP/持久化或真实 PCIe TLP/DMA/链路/主机证明。
+- `main_ov5640_pcie/rtl/rgb565_axis4_frame_slot_table.sv`、`rgb565_axis4_ddr3_write_descriptor.sv`、`ov5640_dvp_rgb565_ddr3_pcie_pipeline.sv` 及对应 TB/脚本：行为级双槽控制面的首要入口。评审必须保持正常 `FREE→WRITING→QUEUED→READING→FREE`、错误 `WRITING→FREE`、allocation 携 `slot/base/capacity`、深度 2 committed FIFO、单 active reader、带槽 read-done 严格匹配、越界地址不跨槽并 fault-drop，以及 DDR 接受先于 commit。record 第 5 byte 必须保存 `keep/last/frame_end/protocol_error`，且 `WSTRB[4]=1`。槽表/writer/完整 loopback 为 436/251/4194 ns。
+- `main_ov5640_pcie/rtl/rgb565_pg2l50h_ddr3_write_adapter.sv`、`rgb565_pg2l50h_ddr3_read_adapter.sv`、`ov5640_dvp_rgb565_pg2l50h_pcie_pipeline.sv` 及对应 TB/脚本：canonical DDR3 用户口主链的首要评审入口。写侧必须保持 init 两拍同步、AW/W 单 outstanding、完成只在 `axi_wready`；读侧必须保持 init 两拍同步、AR/R 单 outstanding、无 RREADY 时的本地缓冲、RID/RLAST 错误归一化及 port fault。专项 write/write path/read 为 221/196/191 ns，完整 AW/W→AR/R→vendor MWR TX 为 806 ns，均 0 error/0 warning、唯一 `TEST PASS`。
+- `main_ov5640_pcie/tb/tb_ov5640_ddr3_committed_pcie_loopback.sv` 与 `tb_ov5640_pg2l50h_ddr3_pcie_loopback.sv`：前者保留 4194 ns 双槽复用/错误恢复控制面证据，后者保留 806 ns canonical 端口到两组 TLP header/data 的组合证据。两者都不能升格为正式 DDR 地址单位/物理槽、加密 DDR core、完整 PCIe DMA/partial keep/链路、RK3568 软件或板级证明。
 - `41_ov7725_hdmi/rtl/ov7725_hdmi.v`：OV7725 legacy 视频链路顶层、跨域控制和复位组合点，只能作为 OV5640 C2 的候选结构参考。
 - `41_ov7725_hdmi/doc/CDC_RDC_AUDIT.md`：O0-A CDC/RDC 事实、旧/新 STA 映射和后续整改契约的首要证据；O1-B 不得顺带修改该结构。
 - `41_ov7725_hdmi/doc/RTL_HYGIENE_AUDIT.md`：O1-A 的 39 条告警归属、38 条确定修复、`mem_a` H3/O1-C 阻断、隐式网络和 serializer reset 契约的首要证据。

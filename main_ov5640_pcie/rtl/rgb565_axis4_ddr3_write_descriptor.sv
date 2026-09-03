@@ -6,10 +6,12 @@
  *
  * @details
  * 模块先接受一个槽号和 opaque 槽基 token，再接受该帧的 staging 记录。
- * 每条记录保持到下游写接口接受，地址在槽内按 `ADDR_STEP` 推进。若帧记录数
- * 超过分配描述符携带的容量，地址停在本槽最后一个 token，越界记录强制标记
- * 协议错误并继续消费到帧尾，避免写入另一槽。模块不解释厂商 DDR3 地址单位、
- * 初始化、burst 或持久化语义。
+ * 每条记录保持到下游写接口接受，地址在槽内按 `ADDR_STEP` 推进。低 32 bit
+ * 保存 payload，第 5 个 byte 保存 `keep/last/frame_end/protocol_error`，使真实
+ * DDR3 读回能够恢复规范化记录，而不依赖帧总长度推断。若帧记录数超过分配
+ * 描述符携带的容量，地址停在本槽最后一个 token，越界记录强制标记协议错误
+ * 并继续消费到帧尾，避免写入另一槽。模块不解释厂商 DDR3 地址单位、初始化、
+ * burst 或持久化语义。
  *
  * @par Interface contract
  * - `frame_alloc_valid && frame_alloc_ready` 接受一帧的 slot ID 与槽基 token。
@@ -19,6 +21,10 @@
  *   前保持所有字段稳定。
  * - 帧内所有写记录携带同一 `write_slot_id`，首记录地址等于分配槽基 token。
  * - 容量内记录按 `ADDR_STEP` 推进；越界记录复用本槽末 token 并强制错误。
+ * - `write_data[31:0]` 是 payload；`write_data[35:32]`、`[36]`、`[37]`、`[38]`
+ *   依次保存 keep、last、frame_end、protocol_error。
+ * - `write_strb[3:0]` 保持 payload byte enable，`write_strb[4]` 始终为 1，
+ *   因而零 payload 控制记录仍会把元数据 byte 写入 DDR3。
  * - 帧尾写记录被接受后清除当前槽，随后才允许接受下一帧分配。
  *
  * @par Clock and reset
@@ -31,7 +37,9 @@
  * - 两个槽的地址范围不重叠由集成层参数合同保证。
  *
  * @warning
- * 越界后的重复尾 token 仅用于把错误帧安全收敛到 drop；该帧数据不可提交。
+ * 修改元数据 bit 布局会同时改变真实 DDR3 读适配合同，必须同步更新读适配器
+ * 和端到端测试。越界后的重复尾 token 仅用于把错误帧安全收敛到 drop；该帧
+ * 数据不可提交。
  */
 module rgb565_axis4_ddr3_write_descriptor #(
     parameter logic [27:0] ADDR_STEP = 28'd1
@@ -89,8 +97,9 @@ module rgb565_axis4_ddr3_write_descriptor #(
         write_slot_id = record_slot_id_reg;
         write_addr = record_addr_reg;
         write_awlen = 4'd0;
-        write_data = {96'd0, data_reg};
-        write_strb = {12'd0, keep_reg};
+        write_data = {89'd0, protocol_error_reg, frame_end_reg, last_reg,
+                      keep_reg, data_reg};
+        write_strb = {11'd0, 1'b1, keep_reg};
         write_last = last_reg;
         write_frame_end = frame_end_reg;
         write_protocol_error = protocol_error_reg;

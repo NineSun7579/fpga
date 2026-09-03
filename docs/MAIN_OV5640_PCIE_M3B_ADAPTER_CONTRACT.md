@@ -234,3 +234,29 @@ slot0 token `0..2` 和 slot1 token `64..65`，随后按提交顺序回送 PCIe�
 该闭环仍以数组索引解释 DDR token，以规范化 `mwr32_req/ack` 表示 PCIe 请求。它不实例化
 PG2L50H DDR3/PCIe IP，不证明真实地址单位、初始化/校准、读口时序、TLP、DMA、链路训练、
 RK3568 主机内存写入或板级时序。
+
+## PG2L50H canonical DDR3 读写应用边界
+
+`rgb565_pg2l50h_ddr3_write_adapter` 已按生成 example 的非标准写协议实现单 outstanding：init 同步
+完成后预锁存一条记录，保持 AW 到 `axi_awready`，再保持 data/strobe 到 `axi_wready`；上游只在
+数据拍被用户口消费时完成。单拍固定 `AWLEN=0`，无 B channel，因此完成不表示物理 DRAM 持久化。
+
+`rgb565_pg2l50h_ddr3_read_adapter` 已按 canonical AR/R 端口实现四状态单 outstanding。读口不存在
+RREADY，因此返回拍必须无条件进入本地寄存器，再以 ready/valid 送给帧读出链。单拍固定
+`ARLEN=0`；RID 不匹配、RLAST 缺失随记录标记错误，无 outstanding 或输出占用时的额外 RVALID
+产生独立 port fault。AR 与 R 同拍返回也已覆盖。
+
+仅凭 committed descriptor 的 `bytes/records` 不能唯一恢复任意逐记录 keep，也不能恢复 staging
+`last`。当前格式因此把 payload 保存在 `WDATA[31:0]`，把 keep、last、frame_end、protocol_error
+依次保存在 `WDATA[35:32]`、`[36]`、`[37]`、`[38]`；`WSTRB[4]` 始终为 1，低四位仍对应 payload。
+这样零 payload 帧尾记录也会真实写入元数据，不依赖分辨率、行宽或总字节数推断。
+
+新增 `ov5640_dvp_rgb565_pg2l50h_pcie_pipeline` 串接现有双槽主链、canonical DDR3 写/读适配器和
+MWR32 request/ack 边界。端到端 TB 再实例化未修改的 PG2L50H MWR TX controller。4 像素回归
+形成两条 full-DWORD payload 和一条零 payload 帧尾记录，通过地址 `0/8/16` 的 canonical 端口
+模型写入/读回，再输出地址 `0x4000/0x4004` 的两组 TLP header/data；Questa Sim-64 2021.1 于
+`806 ns` 为 0 error/0 warning、唯一 `TEST PASS`。
+
+`DDR_ADDR_STEP` 在该应用层默认 0 并由 elaboration 拒绝，防止把 example 中每 beat 加 8 的观察值
+静默冒充官方地址单位。真实集成仍需匹配当前 IP 版本的用户手册、加密 core 动态验证和板级地址
+范围；PCIe 侧仍需完整 DMA 顶层请求仲裁、partial keep 策略、链路和 RK3568 主机证据。

@@ -729,3 +729,20 @@
   双槽 committed loopback 适配后为 `656/3858/4194 ns`，并验证空控制响应零 MWR、地址不推进和
   scheduler/槽释放。该证据不证明完整 DMA 顶层
   请求仲裁、PCIe 链路训练、RK3568 缓冲映射、主机内存写入或真实 DDR3 接入。
+
+## 2026-09-03：main PG2L50H canonical DDR3 读写应用边界
+
+- 新增单 outstanding canonical DDR3 写适配器：两拍同步 `ddr_init_done`，AW 保持到握手，数据保持
+  到 `axi_wready`，完成型 ready 保证 frame commit 不早于用户口消费。专项 221 ns、联合写路径
+  196 ns，均 0 error/0 warning、唯一 `TEST PASS`。
+- 审计确认读口没有 RREADY。新增四状态 AR/R 适配器，以本地寄存器吸收不可反压的返回拍；覆盖
+  AR 背压、同拍 AR/R、下游背压、RID/RLAST 错误、无命令响应和复位，专项 191 ns 通过。
+- 为避免 `bytes/records` 无法唯一重建任意 keep/last，将逐记录 keep、last、frame_end、error 编码
+  到 DDR3 第 5 byte，`WSTRB[4]` 恒为 1；零 payload 控制记录因此也有可读回的物理元数据。
+- 新增 `ov5640_dvp_rgb565_pg2l50h_pcie_pipeline`，串接 OV5640 双槽主链、canonical DDR3 读写口和
+  MWR32 request/ack；端到端 TB 再实例化未修改 vendor MWR TX。4 像素自检完成 3 条 DDR 记录、
+  2 条 MWR 及两组 TLP header/data，806 ns 通过。
+- 受影响回归：写描述符 251 ns、canonical 写路径 196 ns、双槽 committed loopback 4194 ns、
+  canonical MWR TX 136 ns，均 0 error/0 warning、唯一 `TEST PASS`。
+- 应用边界尚未实例化加密 DDR3 core 或完整 PCIe DMA 顶层；地址单位、板级槽范围、partial DWORD、
+  RK3568 DMA 缓冲/缓存一致性、OV5640 SCCB/管脚和 golden frame 仍是外部关闭条件。
