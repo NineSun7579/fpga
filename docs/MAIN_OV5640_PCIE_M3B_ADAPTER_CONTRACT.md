@@ -55,3 +55,6 @@ beat 的 `out_keep` 表示该片段的有效 byte 数。`out_user[0:4]` 分别�
 `rgb565_axis4_frame_accounting` 在 staging beat 流上累计有效字节、有效 beat
 和协议错误，并在 `in_user[3]` 帧尾被接受后产生固定描述符。该描述符只提供后续
 DDR3/PCIe 请求层所需的帧统计输入，不包含地址分配、TLP 长度或 DDR3 burst 语义。
+
+当前描述符模块与 staging adapter 仍是独立的同域组件；后续 wrapper 需要显式连接
+两者，并在进入 `cam_pclk` 到 DDR3/PCIe 用户时钟的 CDC 之前完成联合行为验证。

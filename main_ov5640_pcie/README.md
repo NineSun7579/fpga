@@ -22,6 +22,7 @@
 - `tb/tb_rgb565_word_to_axis4_adapter.sv`：M3-B 字节顺序、keep、事件和背压自检。
 - `rtl/rgb565_axis4_frame_accounting.sv`：M3-B 帧有效字节/beat/错误统计描述符。
 - `tb/tb_rgb565_axis4_frame_accounting.sv`：帧统计描述符自检。
+- 当前 staging 与帧统计模块尚未接入 OV5640 wrapper；进入 CDC/DDR3/PCIe 前需先完成联合行为验证。
 
 ## 运行
 
