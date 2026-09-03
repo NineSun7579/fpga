@@ -163,7 +163,7 @@ M3-B 审计结论见 [`docs/MAIN_OV5640_PCIE_M3B_ADAPTER_CONTRACT.md`](docs/MAIN
 
 13. **M3-B：main OV5640 DDR3/PCIe 适配层合同与实现（当前审计完成）**
    - 已完成：只读核对 M3-A 128-bit/16-byte 内部字、PCIe 128-bit/4-bit `tkeep`、10-bit 请求长度/64-bit 目标地址/4 KB 状态，以及 DDR3 128-bit/16-bit `wstrb` 的接口边界。
-   - 已完成：新增板级无关 `rgb565_word_to_axis4_adapter` staging 实现和自检入口；每个 128-bit 字最多拆为 4 个 32-bit beat，保留低 lane 顺序、4-bit keep、末 beat 和首/末事件标记；Questa 编译 0 error/0 warning，行为唯一 `TEST PASS`。
+   - 已完成：新增板级无关 `rgb565_word_to_axis4_adapter` staging 实现和自检入口；每个 128-bit 字最多拆为 4 个 32-bit beat，保留低 lane 顺序、4-bit keep、末 beat 和首/末事件标记；新增帧统计描述符模块；Questa 编译/行为均为 0 error/0 warning、唯一 `TEST PASS`。
    - 下一步：获取 PCIe AXIS/TLP、DDR3 地址与 burst、帧描述符和三时钟域资料，冻结字节转换、地址单位、边界拆分、FIFO 和完成/错误合同；当前 staging `tuser` 不等同于厂商编码。
    - 禁止：未完成资料审核前修改 canonical IP、DDR3/PCIe RTL、FDC/RCF，或把 M3-A 行为通过解释为端到端输出通过。
 

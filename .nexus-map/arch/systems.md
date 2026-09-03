@@ -140,6 +140,16 @@
 - verification: Questa Sim-64 2021.1 编译 2 个 RTL/TB 模块为 0 error/0 warning，行为返回 0，唯一 TEST PASS；覆盖完整字、部分字、控制事件和背压。
 - uncovered_boundaries: staging `out_user` 不是厂商 PCIe `tuser` 编码；PCIe TLP/最大 payload/4 KB、DDR3 地址与 burst、CDC/FIFO、主机协议和 PDS/STA 均未覆盖。
 
+## main 独立 OV5640→PCIe M3-B frame accounting
+
+- implementation_status: behavior_verified_staging_only
+- code_path: `main_ov5640_pcie/rtl/rgb565_axis4_frame_accounting.sv`
+- test_path: `main_ov5640_pcie/tb/tb_rgb565_axis4_frame_accounting.sv`
+- evidence_path: `main_ov5640_pcie/scripts/run_m3b_accounting.ps1`, `docs/IMPLEMENTATION_LOG.md`
+- responsibility: 累计 staging beat 的有效字节、有效 beat 和协议错误，在帧尾输出固定统计描述符；不分配 DDR3/主机地址。
+- verification: Questa Sim-64 2021.1 编译 2 个 RTL/TB 模块为 0 error/0 warning，行为返回 0，唯一 TEST PASS；覆盖 5-byte/2-beat、空载帧尾、错误传播和描述符背压。
+- uncovered_boundaries: 描述符未定义 DDR3 地址单位、burst、PCIe TLP/最大 payload、CDC/FIFO 或主机协议。
+
 ## OV7725 HDMI Legacy 顶层
 
 - implementation_status: legacy_evidence_with_timing_failures

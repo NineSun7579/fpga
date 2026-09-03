@@ -440,3 +440,10 @@
 - 复核发现多 beat 字的末事件曾在中间 beat 保持；现改为首事件仅出现在首 beat、
   行尾/帧尾/协议错误仅出现在末 beat，并由 TB 显式检查中间 beat 的 `out_user=0`。
   修正后再次得到 `0 error/0 warning` 和唯一 `TEST PASS`。
+
+## 2026-09-03：main OV5640 M3-B 帧统计描述符
+
+- 新增 `rgb565_axis4_frame_accounting`，从 staging beat 的 4-bit keep 和事件位统计
+  有效字节、有效 beat 与协议错误，在帧尾生成固定描述符；不承载 DDR3 地址或 PCIe TLP 语义。
+- 新增独立 Questa 入口 `run_m3b_accounting.ps1` 和 TB，覆盖 5-byte/2-beat 累计、
+  空载帧尾、错误传播和描述符背压；编译 `0 error/0 warning`，行为返回 0，唯一 `TEST PASS`。

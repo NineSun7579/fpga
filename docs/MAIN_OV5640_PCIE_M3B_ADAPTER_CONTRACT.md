@@ -51,3 +51,7 @@
 beat 的 `out_keep` 表示该片段的有效 byte 数。`out_user[0:4]` 分别承载首帧、首行、
 行尾、帧尾和协议错误事件，空载控制事件使用 `out_keep=0`。该 `out_user` 只是
 项目 staging 编码，不等同于厂商 PCIe `tuser` 编码。
+
+`rgb565_axis4_frame_accounting` 在 staging beat 流上累计有效字节、有效 beat
+和协议错误，并在 `in_user[3]` 帧尾被接受后产生固定描述符。该描述符只提供后续
+DDR3/PCIe 请求层所需的帧统计输入，不包含地址分配、TLP 长度或 DDR3 burst 语义。
