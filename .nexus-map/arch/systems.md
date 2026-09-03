@@ -128,6 +128,18 @@
 - questa_evidence: `docs/IMPLEMENTATION_LOG.md` 记录 2026-09-03 使用 Questa Sim-64 2021.1 编译 6 个 RTL/TB 模块为 `0 error/0 warning`、集成行为仿真返回 0；`run_m3a.ps1` 校验日志中的 `TEST PASS` 恰好一次。
 - uncovered_boundaries: 内部布局不等同于 DDR3 地址单位、PCIe AXIS `tkeep`、PCIe TLP payload 或主机字节序；SCCB、板级、CDC/FIFO、DDR3/PCIe 集成、PDS/STA 和后级仿真均未覆盖。
 
+## main 独立 OV5640→PCIe M3-B staging adapter
+
+- implementation_status: behavior_verified_staging_only
+- project_path: `main_ov5640_pcie/`
+- code_path: `main_ov5640_pcie/rtl/rgb565_word_to_axis4_adapter.sv`
+- test_path: `main_ov5640_pcie/tb/tb_rgb565_word_to_axis4_adapter.sv`
+- evidence_path: `docs/MAIN_OV5640_PCIE_M3B_ADAPTER_CONTRACT.md`, `docs/IMPLEMENTATION_LOG.md`, `main_ov5640_pcie/scripts/run_m3b.ps1`
+- responsibility: 将 M3-A 128-bit/16-byte 内部字按低 byte lane 顺序拆为最多四个 32-bit staging beat，并按当前片段产生 4-bit keep；不接入 PCIe/DDR3 IP。
+- event_contract: 首帧/首行事件附着首 beat，行尾/帧尾/协议错误附着末 beat；无 payload 控制事件使用 keep=0、last=1。
+- verification: Questa Sim-64 2021.1 编译 2 个 RTL/TB 模块为 0 error/0 warning，行为返回 0，唯一 TEST PASS；覆盖完整字、部分字、控制事件和背压。
+- uncovered_boundaries: staging `out_user` 不是厂商 PCIe `tuser` 编码；PCIe TLP/最大 payload/4 KB、DDR3 地址与 burst、CDC/FIFO、主机协议和 PDS/STA 均未覆盖。
+
 ## OV7725 HDMI Legacy 顶层
 
 - implementation_status: legacy_evidence_with_timing_failures

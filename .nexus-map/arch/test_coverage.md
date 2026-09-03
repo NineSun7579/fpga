@@ -124,6 +124,13 @@
 - 结果：`docs/IMPLEMENTATION_LOG.md` 记录 2026-09-03 使用 Questa Sim-64 2021.1 编译 6 个 RTL/TB 模块为 `0 error/0 warning`，集成行为仿真返回 0、唯一 `TEST PASS`。
 - 边界：该证据只验证内部 `word_data[127:0]`/`word_keep[15:0]` 布局及控制事件；不覆盖 SCCB、板级、CDC/FIFO、DDR3 地址/事务、PCIe AXIS/TLP、主机协议、PDS/STA、综合后/PNR/SDF。
 
+## main OV5640→PCIe M3-B staging 覆盖
+
+- 正向：完整 16-byte 字拆成四个 32-bit beat，低 lane 顺序保持，前三个及末 beat 的 4-bit keep/last 正确。
+- 边界：2-byte 部分字只输出 `keep=4'h3`；空载帧尾输出 `keep=0`、`last=1`；首/尾事件位置和 downstream backpressure 均受检。
+- 结果：`run_m3b.ps1` 使用 Questa Sim-64 2021.1 编译 2 个 RTL/TB 模块为 `0 error/0 warning`，行为返回 0、唯一 `TEST PASS`。
+- 边界：该测试只证明 staging 行为，不证明厂商 PCIe `tkeep/tuser`、TLP、DDR3、CDC/FIFO、主机协议或 PDS/STA。
+
 ## S1/S2/S3 仿真就绪度矩阵（2026-08-30）
 
 - 已验证盘点：`docs/SIMULATION_READINESS_MATRIX.md` 已逐项目记录项目级 testbench、filelist、DO、厂商示例和四级仿真前置条件；PCIe S2-A 已实际执行 Questa 动态 smoke。

@@ -18,6 +18,8 @@
 - `docs/MAIN_OV5640_PCIE_PROCESS_CONTRACT.md`：图像处理算法和延迟合同。
 - `docs/MAIN_OV5640_PCIE_WORD_PACKER_CONTRACT.md`：128-bit 内部数据布局合同。
 - `docs/MAIN_OV5640_PCIE_M3B_ADAPTER_CONTRACT.md`：DDR3/PCIe 适配层职责、转换边界和关闭条件。
+- `rtl/rgb565_word_to_axis4_adapter.sv`：M3-B 板级无关 128-bit 到 4-byte staging beat 适配。
+- `tb/tb_rgb565_word_to_axis4_adapter.sv`：M3-B 字节顺序、keep、事件和背压自检。
 
 ## 运行
 
@@ -25,6 +27,7 @@
 .\scripts\run_m1a.ps1 -SimulatorExecPath '<questa-bin-dir>'
 .\scripts\run_m2a.ps1 -SimulatorExecPath '<questa-bin-dir>'
 .\scripts\run_m3a.ps1 -SimulatorExecPath '<questa-bin-dir>'
+.\scripts\run_m3b.ps1 -SimulatorExecPath '<questa-bin-dir>'
 ```
 
 运行态只写入 `main_ov5640_pcie/build/`。`vsim.exe`、`vlog.exe` 和许可证配置由本机

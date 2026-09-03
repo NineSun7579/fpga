@@ -426,3 +426,14 @@
   burst 长度和 `axi_wready` 完成语义尚未获得足够一手依据，暂不实现帧缓存地址发生器。
 - 新增 [`MAIN_OV5640_PCIE_M3B_ADAPTER_CONTRACT.md`](MAIN_OV5640_PCIE_M3B_ADAPTER_CONTRACT.md)，
   固化转换职责、禁止事项和 M3-B 关闭条件。本批未修改 RTL、TB、厂商 IP、FDC/RCF 或生成物。
+
+## 2026-09-03：main OV5640 M3-B staging adapter
+
+- 新增 `rgb565_word_to_axis4_adapter`，将 M3-A 的 128-bit/16-byte 内部字按低 lane
+  顺序拆为最多四个 32-bit staging beat；每个 beat 独立产生 4-bit `out_keep`。
+- 输入字在 downstream backpressure 期间保持；首帧/首行事件附着首 beat，行尾/帧尾/
+  协议错误附着末 beat；无 payload 控制事件使用 `out_keep=0` 和 `out_last=1`。
+- 新增 `tb_rgb565_word_to_axis4_adapter.sv` 与 `run_m3b.ps1`，覆盖完整字、部分字、
+  空载控制事件及背压。该 staging `out_user` 仍不是厂商 PCIe `tuser` 合同。
+- Questa Sim-64 2021.1 实测编译 2 个 RTL/TB 模块为 `0 error/0 warning`，行为仿真
+  返回 0，日志唯一 `TEST PASS`；中途修复 beat 最后索引 2-bit 回绕和 TB 部分字激励/调度问题。

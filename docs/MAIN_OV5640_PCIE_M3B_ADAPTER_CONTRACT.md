@@ -42,4 +42,12 @@
 
 ## 当前结论
 
-当前工程可以继续推进板级无关的协议建模和适配层 TB，但不能声称已经具备“OV5640 输入、DDR3 缓存、PCIe 处理后图像输出”的可综合或可上板闭环。M3-A 只证明内部图像字布局；M3-B 先完成资料驱动的转换合同，再实现 RTL。
+当前 staging adapter 已完成板级无关的行为实现和自检，但不能声称已经具备“OV5640 输入、DDR3 缓存、PCIe 处理后图像输出”的可综合或可上板闭环。M3-A 只证明内部图像字布局；M3-B 的厂商接口接入仍需资料驱动的转换合同。
+
+## Staging adapter 方案
+
+`rgb565_word_to_axis4_adapter` 作为本合同的板级无关行为实现：每个 128-bit
+输入字最多拆成四个 32-bit beat，按低 byte lane 到高 byte lane 输出；最后一个
+beat 的 `out_keep` 表示该片段的有效 byte 数。`out_user[0:4]` 分别承载首帧、首行、
+行尾、帧尾和协议错误事件，空载控制事件使用 `out_keep=0`。该 `out_user` 只是
+项目 staging 编码，不等同于厂商 PCIe `tuser` 编码。
