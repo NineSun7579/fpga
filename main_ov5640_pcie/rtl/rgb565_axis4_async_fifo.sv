@@ -35,7 +35,7 @@ module rgb565_axis4_async_fifo #(
 );
     localparam integer DEPTH = 1 << ADDR_WIDTH;
     localparam integer PTR_WIDTH = ADDR_WIDTH + 1;
-    logic [40:0] storage [0:DEPTH-1];
+    logic [41:0] storage [0:DEPTH-1];
     logic [PTR_WIDTH-1:0] wr_ptr_bin, wr_ptr_gray;
     logic [PTR_WIDTH-1:0] rd_ptr_bin, rd_ptr_gray;
     logic [PTR_WIDTH-1:0] rd_gray_wr1, rd_gray_wr2;
@@ -62,7 +62,7 @@ module rgb565_axis4_async_fifo #(
         rd_data = storage[rd_ptr_bin[ADDR_WIDTH-1:0]][31:0];
         rd_keep = storage[rd_ptr_bin[ADDR_WIDTH-1:0]][35:32];
         rd_last = storage[rd_ptr_bin[ADDR_WIDTH-1:0]][36];
-        rd_user = storage[rd_ptr_bin[ADDR_WIDTH-1:0]][40:37];
+        rd_user = storage[rd_ptr_bin[ADDR_WIDTH-1:0]][41:37];
     end
 
     always_ff @(posedge wr_clk or negedge wr_rst_n) begin

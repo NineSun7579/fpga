@@ -513,6 +513,17 @@
 - 该切片仅是板级无关 CDC/FIFO 行为合同；尚未完成静态 CDC/RDC 分类、RAM 推断审计、
   三时钟域复位合同、DDR3/PCIe 用户时钟约束或真实 IP 接入。
 
+## 2026-09-03：main OV5640 M3-B staging CDC bridge
+
+- 新增 `rgb565_axis4_cdc_bridge`，将异步 FIFO 封装为明确的上游/下游 staging 接口，
+  事件标志与数据保持同一 FIFO entry，供后续连接采集、DDR3 或 PCIe 用户时钟域。
+- 联合 TB 使用独立 `3 ns` 与 `5 ns` 时钟，验证 5 个 beat 的顺序、首/末事件、keep、
+  last、下游 ready 和最终 drain；Questa `0 error/0 warning`，唯一 `TEST PASS`，`155 ns`。
+- 调试期间发现 FIFO entry 原先按 41 bit 声明，但字段实际为 `5+1+4+32=42 bit`，
+  会截断 `user[4]`；已修正为 42 bit，并由末 beat 事件断言复验。
+- 本批仍不声称 OV5640 源端具备背压、完成静态 CDC/RDC、RAM 推断、复位释放和真实
+  DDR3/PCIe 集成；这些边界继续等待最终帧缓存与板级时钟合同。
+
 ## 2026-09-03：main OV5640 M1-M3B 回归与工具环境诊断
 
 - 全回归首先发现 M3-A 旧 TB 将 `word_valid` 等同于 payload；随着纯控制事件修正为
