@@ -367,6 +367,23 @@
       "hotspot": true
     },
     {
+      "id": "main-ov5640-pcie-m3b-cdc-staging-pipeline",
+      "type": "System",
+      "label": "main OV5640 M3-B 双时钟 CDC staging pipeline",
+      "responsibility": "串接 DVP、灰度、128-bit pack、4-byte adapter 与双时钟 CDC bridge，将 staging beat 的 keep、last、首/末事件跨域传递。",
+      "implementation_status": "behavior_verified_dual_clock_staging_only",
+      "project_path": "main_ov5640_pcie/",
+      "branch": "codex/main-ov5640-pcie",
+      "code_path": "main_ov5640_pcie/rtl/ov5640_dvp_rgb565_cdc_staging_pipeline.sv",
+      "test_path": "main_ov5640_pcie/tb/tb_ov5640_dvp_rgb565_cdc_staging_pipeline.sv",
+      "evidence_path": [".nexus-map/INDEX.md", ".nexus-map/arch/systems.md", ".nexus-map/arch/test_coverage.md"],
+      "contracts": {"scenario": "小帧双时钟 TB 验证 2 staging beat、keep、首/末事件跨域到达", "source_overflow": "camera-side packer 无输入背压且 adapter/FIFO 接收不足时置位并保持；表示当前帧缓存前阻断，不是无损保证"},
+      "questa_evidence": "2026-09-03 Questa Sim-64 2021.1，0 error/0 warning，唯一 TEST PASS，413 ns",
+      "uncovered_boundaries": ["静态 CDC/RDC", "复位释放", "RAM 推断", "真实 DDR3/PCIe IP", "主机协议", "PDS/STA/SDF"],
+      "complexity": "medium",
+      "hotspot": true
+    },
+    {
       "id": "main-ov5640-pcie-m3b-mwr-descriptor",
       "type": "System",
       "label": "main OV5640→PCIe vendor-independent normalized MWR descriptor",

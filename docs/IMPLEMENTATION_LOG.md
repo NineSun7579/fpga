@@ -534,6 +534,17 @@
 - 该路径仍是 vendor-independent 合同，不实例化 PCIe IP；不证明 TLP、DMA、byte-enable、
   链路、主机地址或真实控制器启动/忙状态已经闭合。
 
+## 2026-09-03：main OV5640 M3-B DVP 到 CDC staging 联合切片
+
+- 新增 `ov5640_dvp_rgb565_cdc_staging_pipeline`，串接 DVP 采集、灰度处理、128-bit
+  打包、4-byte staging adapter 和双时钟 CDC bridge；输出域接收数据与事件标志。
+- 新增 `source_overflow` 粘滞状态，显式报告 camera-side packer 无输入背压时 adapter/FIFO
+  无法接收的情况；它不声称自动恢复或无损。
+- 小帧双时钟 TB 验证 2 个 staging beat、有效 keep、首/末事件跨域到达；Questa `0 error/0 warning`，
+  唯一 `TEST PASS`，仿真至 `413 ns`，并确认压力场景置位 `source_overflow`。
+- 本批仍未接入真实 DDR3/PCIe IP，未完成三时钟复位、静态 CDC/RDC、RAM 推断和帧缓存
+  丢帧/恢复策略；`source_overflow` 是当前进入帧缓存前的明确阻断信号。
+
 ## 2026-09-03：main OV5640 M1-M3B 回归与工具环境诊断
 
 - 全回归首先发现 M3-A 旧 TB 将 `word_valid` 等同于 payload；随着纯控制事件修正为

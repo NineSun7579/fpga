@@ -242,3 +242,10 @@
 - 结果：Questa Sim-64 2021.1，0 error/0 warning，唯一 TEST PASS，155 ns。
 - 缺陷修正：FIFO entry 从错误的 41 bit 修正为实际 42 bit，避免 `user[4]` 截断。
 - 边界：未覆盖静态 CDC/RDC、RAM 推断、复位释放、三时钟约束、真实 DDR3/PCIe IP 集成或实现级时序。
+
+## main OV5640 M3-B 双时钟 CDC staging pipeline 覆盖
+
+- 链路：`ov5640_dvp_rgb565_cdc_staging_pipeline` 串接 DVP、灰度、128-bit pack、4-byte adapter 与双时钟 CDC bridge。
+- 正向：小帧双时钟 TB 验证 2 staging beat、`keep` 以及首/末事件跨域到达；Questa Sim-64 2021.1 为 0 error/0 warning，日志唯一 `TEST PASS`，仿真至 413 ns。
+- 溢出语义：camera-side packer 无输入背压且 adapter/FIFO 接收不足时，`source_overflow` 置位并保持；该状态表示当前帧缓存前的阻断，不承诺无损。
+- 边界：未覆盖静态 CDC/RDC、复位释放、RAM 推断、真实 DDR3/PCIe IP、主机协议、PDS/STA 或 SDF。

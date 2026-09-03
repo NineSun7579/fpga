@@ -329,6 +329,16 @@
 - defect_fix: FIFO entry 41 bit/实际 42 bit导致 `user[4]` 截断，已修正为完整 42-bit entry。
 - boundary: 尚未完成静态 CDC/RDC、RAM 推断、复位释放、三时钟约束、真实 DDR3/PCIe IP 集成。
 
+## main OV5640 M3-B 双时钟 CDC staging pipeline
+
+- implementation_status: behavior_verified_dual_clock_staging_only
+- code_path: `main_ov5640_pcie/rtl/ov5640_dvp_rgb565_cdc_staging_pipeline.sv`
+- test_path: `main_ov5640_pcie/tb/tb_ov5640_dvp_rgb565_cdc_staging_pipeline.sv`
+- contract: 串接 DVP→灰度→128-bit pack→4-byte adapter→双时钟 CDC bridge；staging beat 跨域携带 data、keep、last 与首/末事件。
+- evidence: 2026-09-03 小帧双时钟 TB 验证 2 staging beat、keep、首/末事件跨域到达；Questa Sim-64 2021.1 为 0 error/0 warning、日志唯一 TEST PASS、413 ns。
+- source_overflow: camera-side packer 无输入背压且 adapter/FIFO 接收不足时置位并保持；这是当前帧缓存前的阻断状态，不是无损保证。
+- boundary: 仅覆盖该 staging/CDC 行为切片；未证明静态 CDC/RDC、复位释放、RAM 推断、真实 DDR3/PCIe IP、主机协议、PDS/STA 或 SDF。
+
 ## main OV5640→PCIe M3-B 规范化 PCIe MWR 组合路径
 
 - implementation_status: behavior_verified_combinational_path_only

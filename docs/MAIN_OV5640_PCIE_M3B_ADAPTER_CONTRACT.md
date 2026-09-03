@@ -102,3 +102,14 @@ ack 关系仍是临时合同，必须在真实 PCIe TLP/DMA TB 中重新审核�
 
 该组合路径仍不实例化厂商 PCIe IP，不证明真实 TLP、DMA、byte-enable、链路、主机
 地址或 PCIe 控制器启动/忙状态；真实接入必须继续使用活动控制器的链路模型和实现级证据。
+
+## OV5640 到 CDC staging 联合切片
+
+`ov5640_dvp_rgb565_cdc_staging_pipeline` 已串接 OV5640 DVP 采集、图像处理、128-bit
+打包、4-byte adapter 和双时钟 CDC bridge。2026-09-03 的小帧 TB 使用 `cam_pclk`
+与独立输出时钟，验证 2 个 staging beat 的有效字节、帧/行事件和跨域到达；Questa
+Sim-64 2021.1 编译 `0 error/0 warning`，唯一 `TEST PASS`，仿真至 `413 ns`。
+
+该测试同时观察到 camera-side packer 无输入背压：在 adapter/FIFO 接收能力不足时，
+`source_overflow` 被置位。它是显式错误报告，不是无损保证；后续帧缓存必须增加源端
+流控、足够 FIFO 或丢帧/恢复策略后，才能进入真实 DDR3 写入。
