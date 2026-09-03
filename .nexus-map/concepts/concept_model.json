@@ -461,8 +461,32 @@
       "test_path": "main_ov5640_pcie/tb/tb_rgb565_axis4_pcie_mwr_path.sv",
       "contracts": {"controller_length": "req_length 是实际 DWORD 数；payload 固定为 1", "boundary": "BASE_ADDR=0x0ffc 的 4-byte 请求不报 crossing；keep=0 本地完成且不推进地址", "stability": "首请求等待 ack 时预取下一记录，当前地址、数据、keep 与事件元数据保持一致", "canonical_tx": "隔离 vendor TX 动态证据只覆盖单 DWORD、keep=F、4 字节对齐"},
       "questa_evidence": "2026-09-03：descriptor/path 为 95/125 ns；canonical MWR32 TX 集成为 136 ns；均 0 error/0 warning、唯一 TEST PASS",
-      "uncovered_boundaries": ["partial keep byte-enable", "完整 DMA 顶层仲裁", "PCIe 链路", "RK3568 主机输出", "正式 DDR 地址单位与物理存储"],
+      "uncovered_boundaries": ["partial keep byte-enable", "DDR core_clk→PCIe pclk_div2 CDC", "完整 ips2l_pcie_dma_tx_top 实例化", "PCIe 链路", "RK3568 主机输出", "正式 DDR 地址单位与物理存储"],
       "complexity": "low",
+      "hotspot": true
+    },
+    {
+      "id": "rgb565_pg2l50h_pcie_tx_request_arbiter",
+      "type": "System",
+      "label": "main PG2L50H PCIe TX native/camera request arbiter",
+      "responsibility": "在同一 TX 时钟域内原子仲裁完整 native MWR32/MWR64/MRD32/MRD64 请求 bundle 与 camera MWR32，并隔离返回 ACK。",
+      "implementation_status": "behavior_verified_same_clock_request_arbiter_not_tx_top_integrated",
+      "project_path": "main_ov5640_pcie/",
+      "branch": "codex/main-ov5640-pcie",
+      "code_path": "main_ov5640_pcie/rtl/rgb565_pg2l50h_pcie_tx_request_arbiter.sv",
+      "test_path": ["main_ov5640_pcie/tb/tb_rgb565_pg2l50h_pcie_tx_request_arbiter.sv", "main_ov5640_pcie/tb/tb_rgb565_pg2l50h_pcie_tx_arbiter_integration.sv"],
+      "evidence_path": ["main_ov5640_pcie/scripts/run_m3b_pg2l50h_pcie_tx_request_arbiter.ps1", "main_ov5640_pcie/scripts/run_m3b_pg2l50h_pcie_tx_arbiter_integration.ps1", ".nexus-map/arch/systems.md", ".nexus-map/arch/test_coverage.md"],
+      "contracts": {
+        "native_bundle": "MWR32/MWR64/MRD32/MRD64、MWR user-defined mode、length/address/data 作为完整原子 bundle 选择",
+        "camera_bundle": "camera 只注入 MWR32、length/address/data，并由仲裁器强制使用 user-defined data 模式",
+        "arbitration": "空闲同时请求按上次完成 owner 轮转，复位后 native 先行",
+        "ownership": "owner 与所选字段保持到匹配 ACK；未授权源 ACK 恒为 0",
+        "mwr_mode": "MWR user-defined 模式在 native/camera MWR ACK 时锁存；MRD 不改写，并保持到下一次 MWR",
+        "completion": "ACK 仅表示 TX controller 接受请求，不表示 TLP、链路或主机内存完成"
+      },
+      "questa_evidence": "2026-09-03 Questa Sim-64 2021.1：专项 arbiter 245 ns；native RAM-data + camera user-defined 经未修改 vendor MWR TX 集成 205 ns；均 0 error/0 warning、唯一 TEST PASS",
+      "uncovered_boundaries": ["DDR core_clk→PCIe pclk_div2 CDC", "完整 ips2l_pcie_dma_tx_top/产品顶层实例化", "partial keep byte-enable", "PCIe 链路", "RK3568 主机接收"],
+      "complexity": "medium",
       "hotspot": true
     },
     {
@@ -524,9 +548,9 @@
       "code_path": "main_ov5640_pcie/rtl/ov5640_dvp_rgb565_pg2l50h_pcie_pipeline.sv",
       "test_path": "main_ov5640_pcie/tb/tb_ov5640_pg2l50h_ddr3_pcie_loopback.sv",
       "evidence_path": "main_ov5640_pcie/scripts/run_m3b_ov5640_pg2l50h_ddr3_pcie_loopback.ps1",
-      "contracts": {"address": "DDR_ADDR_STEP 必须由集成层显式给出，默认 0 由 elaboration 拒绝", "record_format": "低 DWORD payload + 第 5 byte 元数据", "read_buffer": "无 RREADY 的返回先本地缓冲", "pcie": "只覆盖 full-DWORD、4 字节对齐的 MWR TX user-defined data 路径"},
-      "questa_evidence": "2026-09-03 Questa Sim-64 2021.1：3 条 DDR 记录、2 条 MWR、两组 TLP header/data，0 error/0 warning、唯一 TEST PASS、806 ns",
-      "uncovered_boundaries": ["加密 DDR core", "正式 DDR 地址单位和物理槽", "完整 PCIe DMA请求仲裁", "partial keep", "PCIe 链路", "RK3568 驱动与主机内存", "FDC/RCF/STA"],
+      "contracts": {"address": "DDR_ADDR_STEP 必须由集成层显式给出，默认 0 由 elaboration 拒绝", "record_format": "低 DWORD payload + 第 5 byte 元数据", "read_buffer": "无 RREADY 的返回先本地缓冲", "pcie": "只覆盖 full-DWORD、4 字节对齐的 MWR TX user-defined data 路径；同域请求仲裁已有独立证据但尚未接入本顶层"},
+      "questa_evidence": "2026-09-03 Questa Sim-64 2021.1：3 条 DDR 记录、2 条 MWR、两组 TLP header/data，0 error/0 warning、唯一 TEST PASS、806 ns；保留同域仲裁专项/集成 245/205 ns",
+      "uncovered_boundaries": ["加密 DDR core", "正式 DDR 地址单位和物理槽", "DDR core_clk→PCIe pclk_div2 CDC", "完整 ips2l_pcie_dma_tx_top 实例化", "partial keep", "PCIe 链路", "RK3568 驱动与主机内存", "FDC/RCF/STA"],
       "complexity": "high",
       "hotspot": true
     },
@@ -1424,7 +1448,31 @@
       "source": "main-ov5640-pcie-m3b-mwr-bridge",
       "target": "pds-workflow-guide",
       "type": "staged_under",
-      "description": "canonical TX 隔离仿真已验证单 DWORD、keep=F、4 字节对齐；partial keep、完整 DMA 顶层仲裁和链路仍未关闭。"
+      "description": "canonical TX 隔离仿真已验证单 DWORD、keep=F、4 字节对齐；同域第二请求源仲裁另有独立证据，但 partial keep、跨域、完整 TX 顶层实例化和链路仍未关闭。"
+    },
+    {
+      "source": "rgb565_pg2l50h_pcie_tx_request_arbiter",
+      "target": "main-ov5640-pcie-m3b-mwr-bridge",
+      "type": "consumes_camera_request",
+      "description": "仲裁器消费 camera bridge 的 MWR32 请求，同时原子选择完整 native 四类 TX 请求 bundle；owner/字段保持到 ACK，ACK 只返回当前 owner。"
+    },
+    {
+      "source": "rgb565_pg2l50h_pcie_tx_request_arbiter",
+      "target": "pcie-dma-system",
+      "type": "staged_for_integration",
+      "description": "245 ns 专项和 205 ns 未修改 vendor MWR TX 集成已关闭同域仲裁合同；尚未实例化完整 tx_top，也未实现 DDR core_clk 到 PCIe pclk_div2 CDC。"
+    },
+    {
+      "source": "rgb565_pg2l50h_pcie_tx_request_arbiter",
+      "target": "pds-workflow-guide",
+      "type": "staged_under",
+      "description": "当前证据不覆盖 partial keep、PCIe 链路、RK3568 或板级签核；ACK 只表示 TX 请求接受。"
+    },
+    {
+      "source": "vscs-commenting-standard",
+      "target": "rgb565_pg2l50h_pcie_tx_request_arbiter",
+      "type": "governs_future_changes",
+      "description": "仲裁器、集成 wrapper 与 TB 的后续手写修改遵循 VSCS 注释和状态机说明规范。"
     },
     {
       "source": "main-ov5640-pcie-m3b-ddr3-write-record",
@@ -1472,7 +1520,7 @@
       "source": "main-ov5640-pcie-m3b-pg2l50h-canonical-pipeline",
       "target": "pds-workflow-guide",
       "type": "staged_under",
-      "description": "806 ns 回归到达 vendor MWR TX AXIS 边界；加密 DDR core、完整 DMA、链路、RK3568 和板级签核仍未完成。"
+      "description": "806 ns 回归到达 vendor MWR TX AXIS 边界；同域仲裁有独立 245/205 ns 证据但未接入该顶层。加密 DDR core、DDR→PCIe CDC、完整 tx_top、partial keep、链路、RK3568 和板级签核仍未完成。"
     },
     {
       "source": "main-ov5640-pcie-m3b-frame-read-scheduler",

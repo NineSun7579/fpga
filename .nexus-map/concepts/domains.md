@@ -68,7 +68,13 @@ M3-B 的两槽 word skid 位于无背压 packer 与 4-byte adapter 之间。满�
 
 normalized MWR length 字段已从 DWORD-1 改为实际 DWORD 数，payload request 固定为 `1`。`keep=0` 控制记录在 descriptor 本地接受，不产生 MWR，不推进 PCIe 字节地址；partial keep 仍未有可验证的 canonical byte-enable 映射。
 
-`tb_rgb565_pg2l50h_mwr32_tx_integration` 直接把项目 bridge 连到未修改 `ips2l_pcie_dma_mwr_tx_ctrl`。Questa Sim-64 2021.1 仿真至 136 ns，0 error/0 warning、日志唯一 `TEST PASS`；动态检查覆盖 req 保持至 ACK、header length=`1`、DWBE=`0x0f`、地址 `0x1000`、数据低 DWORD=`0x44332211` 和 busy 释放。该证据仅限单 DWORD、`keep=4'hf`、4 字节对齐的 vendor TX 隔离仿真；不包含 partial keep、完整 DMA 顶层仲裁、PCIe link training 或 RK3568/主机内存写入。
+`tb_rgb565_pg2l50h_mwr32_tx_integration` 直接把项目 bridge 连到未修改 `ips2l_pcie_dma_mwr_tx_ctrl`。Questa Sim-64 2021.1 仿真至 136 ns，0 error/0 warning、日志唯一 `TEST PASS`；动态检查覆盖 req 保持至 ACK、header length=`1`、DWBE=`0x0f`、地址 `0x1000`、数据低 DWORD=`0x44332211` 和 busy 释放。该旧证据仅限单 DWORD、`keep=4'hf`、4 字节对齐的 vendor TX 隔离仿真，本身不实例化新增仲裁器，也不包含 partial keep、跨域、完整 TX 顶层、PCIe link training 或 RK3568/主机内存写入。
+
+## main OV5640 M3-B PG2L50H PCIe TX 请求仲裁边界
+
+`rgb565_pg2l50h_pcie_tx_request_arbiter` 在同一 TX 时钟域内仲裁完整 native `MWR32/MWR64/MRD32/MRD64` bundle 与 camera MWR32。native 的 request type、MWR user-defined 模式、length/address/data 原子选择；owner 与字段保持到匹配 ACK，ACK 只返回当前 owner。空闲同拍竞争按上次完成 owner 轮转，复位后 native 先行。MWR 模式在 MWR ACK 时锁存，native MRD 不改变该模式，并保持到下一次 MWR。
+
+专项 TB 为 245 ns；native RAM-data 与 camera user-defined 通过未修改 vendor MWR TX 的集成 TB 为 205 ns。两者均为 0 error/0 warning、日志唯一 `TEST PASS`。这关闭的是同域项目仲裁合同，不是完整 PCIe 顶层：DDR `core_clk`→PCIe `pclk_div2` CDC、`ips2l_pcie_dma_tx_top`/产品顶层实例化、partial keep/byte enable、PCIe 链路和 RK3568 仍未关闭。
 
 ## main OV5640 M3-B canonical DDR3 用户口
 
@@ -76,7 +82,7 @@ normalized MWR length 字段已从 DWORD-1 改为实际 DWORD 数，payload requ
 
 `rgb565_pg2l50h_ddr3_write_adapter` 将记录映射到非标准 AW/W 口：`ddr_init_done` 两拍同步后准入，单 outstanding、`AWLEN=0`，上游只在 `axi_wready` 消费数据时完成；专项 write 221 ns、writer→adapter path 196 ns。`rgb565_pg2l50h_ddr3_read_adapter` 将 scheduler 命令映射到 AR/R 口；由于 core 没有 `axi_rready`，返回拍必须先本地缓冲。RID/RLAST 错误并入记录协议错误，非预期或重复 RVALID 产生 port fault；专项 read 191 ns。三项均为 0 error/0 warning、唯一 `TEST PASS`。
 
-`ov5640_dvp_rgb565_pg2l50h_pcie_pipeline` 串接双槽主链和 canonical AW/W→AR/R adapters；端到端 TB 再接入未修改 vendor MWR TX。2026-09-03 的行为回归为 806 ns，验证第 5 byte 元数据跨 DDR 存储边界恢复及两组 TLP header/data；旧双槽回归 4194 ns、canonical MWR TX 隔离测试 136 ns 继续保留。这里的 DDR 是公开端口模型，不是加密 core；正式地址单位/槽范围、完整 PCIe DMA请求仲裁/partial keep、链路、RK3568 软件及板级约束仍未关闭。
+`ov5640_dvp_rgb565_pg2l50h_pcie_pipeline` 串接双槽主链和 canonical AW/W→AR/R adapters；端到端 TB 再接入未修改 vendor MWR TX。2026-09-03 的行为回归为 806 ns，验证第 5 byte 元数据跨 DDR 存储边界恢复及两组 TLP header/data；旧双槽回归 4194 ns、canonical MWR TX 隔离测试 136 ns、同域请求仲裁专项/集成 245/205 ns 继续保留。这里的 DDR 是公开端口模型，不是加密 core；仲裁器尚未接入该流水顶层，正式地址单位/槽范围、DDR `core_clk`→PCIe `pclk_div2` CDC、完整 `tx_top` 实例化、partial keep、链路、RK3568 软件及板级约束仍未关闭。
 
 ## main OV5640 M3-B 帧提交、作废与已提交帧回送
 

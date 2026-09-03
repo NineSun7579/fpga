@@ -180,7 +180,8 @@ M3-B 审计结论见 [`docs/MAIN_OV5640_PCIE_M3B_ADAPTER_CONTRACT.md`](docs/MAIN
    - 已完成：新增无 RREADY 的 canonical AR/R 读适配器，以本地寄存器吸收返回拍；覆盖 AR 背压、同拍 AR/R、RID/RLAST 错误、无命令响应和复位，专项 `191 ns`。
    - 已完成：把 keep/last/frame_end/error 编码进 DDR3 第 5 byte 并令 `WSTRB[4]=1`，从而无歧义读回任意逐记录 sideband 和零 payload 帧尾。
    - 已完成：新增 `ov5640_dvp_rgb565_pg2l50h_pcie_pipeline`。4 像素回归经 canonical AW/W 写 3 条记录、AR/R 读回，并通过未修改 vendor MWR TX 输出两组 TLP header/data，`806 ns`、0 error/0 warning、唯一 `TEST PASS`。
-   - 下一步工程：把已验证应用边界实例化到实际 PG2L50H DDR3 core 和完整 PCIe DMA/TX 顶层，完成三时钟复位/CDC 静态签核，再与 RK3568 驱动完成主机帧协议闭环。当前行为顶层不证明真实 DDR3/PCIe/RK3568 板级闭环。
+   - 已完成：新增项目自有 `rgb565_pg2l50h_pcie_tx_request_arbiter`，对 native MWR32/MWR64/MRD32/MRD64 共用的 length/address/data bundle 与 camera full-DWORD MWR32 做同域轮转仲裁。owner 保持到对应 ACK，ACK 只返回当前源；MWR user-defined 模式在 ACK 时锁存并保持到下一 MWR。专项 `245 ns`，native RAM-data 与 camera user-defined 经未修改 vendor MWR TX 输出两组 header/data 的集成回归 `205 ns`，均 0 error/0 warning、唯一 `TEST PASS`。
+   - 下一步工程：增加 DDR `core_clk` 到 PCIe `pclk_div2` 的异步事务 mailbox，把 camera 请求安全送入本批同域仲裁器；随后实例化实际 PG2L50H DDR3 core 和完整 PCIe DMA/TX 顶层，完成三时钟复位/CDC 静态签核，再与 RK3568 驱动完成主机帧协议闭环。当前行为顶层不证明真实 DDR3/PCIe/RK3568 板级闭环。
    - 仍需外部资料：见 [`docs/MAIN_OV5640_PCIE_BOARD_INPUT_CHECKLIST.md`](docs/MAIN_OV5640_PCIE_BOARD_INPUT_CHECKLIST.md)。最高优先级是板卡原理图/管脚时钟复位、OV5640 模组与初始化表、PG2L50H DDR3 IP 用户口和 PCIe DMA 应用口、RK3568 主机内存与缓存/驱动协议、最终视频模式和丢帧策略。
    - 禁止：未完成资料审核前修改 canonical IP、DDR3/PCIe RTL、FDC/RCF，或把 M3-A 行为通过解释为端到端输出通过。
 

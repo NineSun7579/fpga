@@ -746,3 +746,18 @@
   canonical MWR TX 136 ns，均 0 error/0 warning、唯一 `TEST PASS`。
 - 应用边界尚未实例化加密 DDR3 core 或完整 PCIe DMA 顶层；地址单位、板级槽范围、partial DWORD、
   RK3568 DMA 缓冲/缓存一致性、OV5640 SCCB/管脚和 golden frame 仍是外部关闭条件。
+
+## 2026-09-03：main PG2L50H PCIe TX 双请求源仲裁
+
+- 审计确认 canonical DMA controller 的 MWR32/MWR64/MRD32/MRD64 共用同一组 length/address/data，
+  因此只 mux MWR32 会在其他 native 请求活动时破坏 bundle 原子性。
+- 新增项目自有 `rgb565_pg2l50h_pcie_tx_request_arbiter`，不修改 vendor RTL。native 完整 bundle 与
+  camera full-DWORD MWR32 使用轮转仲裁，owner 保持到 ACK，ACK 只返回当前源，并保留请求清除空拍。
+- 首版专项 145 ns 通过，但 vendor 集成超时，暴露 `i_user_define_data_flag` 在 ACK 后仍被 MWR FSM
+  实时读取。仲裁器改为 MWR ACK 时锁存模式并保持到下一 MWR；MRD 不改变模式。
+- 最终专项覆盖四类 native 请求、camera 请求、字段稳定、ACK 隔离、轮转、模式保持和复位，
+  `245 ns` 通过。动态集成让 native RAM-data 与 camera user-defined 请求共享未修改 vendor MWR TX，
+  输出地址 `0x1000/0x2000` 的两组 TLP header/data，`205 ns` 通过。两项均 0 error/0 warning、
+  唯一 `TEST PASS`。
+- 当前切片只关闭同一 PCIe 时钟域的请求 bundle 仲裁。DDR `core_clk`→PCIe `pclk_div2` 异步 mailbox、
+  完整 TX top 接线、partial keep、链路和 RK3568 主机完成仍未关闭。

@@ -260,3 +260,28 @@ MWR32 request/ack 边界。端到端 TB 再实例化未修改的 PG2L50H MWR TX 
 `DDR_ADDR_STEP` 在该应用层默认 0 并由 elaboration 拒绝，防止把 example 中每 beat 加 8 的观察值
 静默冒充官方地址单位。真实集成仍需匹配当前 IP 版本的用户手册、加密 core 动态验证和板级地址
 范围；PCIe 侧仍需完整 DMA 顶层请求仲裁、partial keep 策略、链路和 RK3568 主机证据。
+
+## PG2L50H PCIe TX 双请求源仲裁边界
+
+canonical DMA controller 以同一组 `req_length/req_addr/req_data` 配合 MWR32、MWR64、MRD32、
+MRD64 四类请求驱动 TX top，因此 camera MWR32 不能只与 native MWR32 做组合 OR 或单信号 mux。
+`rgb565_pg2l50h_pcie_tx_request_arbiter` 将完整 native request bundle 作为一个原子源，并把 camera
+full-DWORD MWR32 作为第二源；vendor 生成 RTL 保持未修改。
+
+owner 从空闲仲裁后保持到对应 TX ACK，未选源不会收到 ACK。每次完成后经过 `OWNER_IDLE`，使保持型
+下游 ACK 在下一源请求暴露前有一个清除采样边沿。两源同拍到达使用基于上一完成 owner 的轮转，
+复位后的首次竞争优先 native；该策略避免持续同拍竞争时固定饿死 camera，但不声明 PCIe 链路级公平性。
+
+该 MWR TX 不只在 ACK 边沿读取 `i_user_define_data_flag`，其启动、RAM 读使能和 DATA_TX 结束条件
+也读取实时电平。因此仲裁器在 MWR ACK 时锁存选中源的数据模式，并持续输出到下一条 MWR ACK 替换；
+MRD ACK 不改变该模式。专项覆盖四类 native 请求、camera 请求、字段保持、ACK 隔离、连续竞争、
+运行中复位和模式保持，Questa Sim-64 2021.1 为 0 error/0 warning、唯一 `TEST PASS`、`245 ns`。
+
+动态集成 TB 让 native 先以 RAM-data 模式发送一条 MWR32，同时保持 camera user-defined MWR32 等待。
+前一事务完成前 camera 不改变实时数据模式；随后 camera 获得 ACK。未修改的
+`ips2l_pcie_dma_mwr_tx_ctrl` 最终输出两组独立 header/data，地址为 `0x1000/0x2000`，仿真
+`205 ns`，0 error/0 warning、唯一 `TEST PASS`。
+
+该模块和两项回归均工作在单一 PCIe 时钟域。真实应用仍需在 DDR `core_clk` 与 PCIe `pclk_div2`
+之间加入可审计的异步事务 mailbox/FIFO，并验证两域独立复位、无重复/幽灵请求和源端 backpressure。
+本节不证明完整 `ips2l_pcie_dma_tx_top` 实例化、partial DWORD、链路训练、RK3568 内存写入或中断完成。

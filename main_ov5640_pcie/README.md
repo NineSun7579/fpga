@@ -62,6 +62,9 @@
 - `scripts/run_m3b_ov5640_ddr3_committed_pcie_loopback.ps1`：上述已提交帧行为闭环的可重复 Questa 入口。
 - `tb/tb_rgb565_pg2l50h_mwr32_tx_integration.sv`：项目 bridge 到原始 PG2L50H MWR TX 控制器的单 DWORD动态集成自检。
 - `scripts/run_m3b_pg2l50h_mwr32_tx_integration.ps1`：上述 canonical vendor TX 自检的可重复 Questa 入口。
+- `rtl/rgb565_pg2l50h_pcie_tx_request_arbiter.sv`：完整 native TX 请求 bundle 与 camera MWR32 的同域轮转仲裁边界。
+- `tb/tb_rgb565_pg2l50h_pcie_tx_request_arbiter.sv`：四类 native 请求透明通过、owner 保持、ACK 隔离、轮转与模式保持自检。
+- `tb/tb_rgb565_pg2l50h_pcie_tx_arbiter_integration.sv`：native RAM-data 和 camera user-defined MWR32 共享未修改 vendor TX 的动态自检。
 - staging、帧统计和规范化请求描述符已完成同域行为验证；DDR3 写记录层已完成边界回归，
   staging 异步 FIFO 已完成双时钟行为验证；行为级 DDR3 模型已将正常帧、overflow
   中止记录和恢复帧送入 PCIe MWR 请求路径。提交描述符现在携带首个 opaque token，调度器
@@ -69,8 +72,9 @@
   接入 writer、frame commit、scheduler 和 committed wrapper；完整行为回归覆盖两个正常帧排队、
   带槽完成、错误帧 drop 和槽复用。PG2L50H 应用层现已接到 canonical DDR3 AW/W 与 AR/R 端口；
   每条记录的 keep/last/frame-end/error 写入第 5 byte，读适配器用必要的单条弹性寄存器恢复 sideband。
-  独立 PG2L50H MWR32 TX 专项已验证 full-DWORD 请求的 ACK、header、地址和数据输出，但尚未接入
-  完整 DMA 顶层，也不覆盖 partial keep、链路训练或主机内存。
+  独立 PG2L50H MWR32 TX 专项已验证 full-DWORD 请求的 ACK、header、地址和数据输出；项目自有
+  仲裁器进一步验证完整 native request bundle 与 camera MWR32 同域共享 vendor TX。DDR `core_clk`
+  到 PCIe `pclk_div2` 的事务 CDC、完整 DMA 顶层实例化、partial keep、链路和主机内存仍未关闭。
 
 ## 运行
 
@@ -90,6 +94,8 @@
 .\scripts\run_m3b_pcie_mwr_bridge.ps1 -SimulatorExecPath '<questa-bin-dir>'
 .\scripts\run_m3b_pcie_mwr_path.ps1 -SimulatorExecPath '<questa-bin-dir>'
 .\scripts\run_m3b_pg2l50h_mwr32_tx_integration.ps1 -SimulatorExecPath '<questa-bin-dir>'
+.\scripts\run_m3b_pg2l50h_pcie_tx_request_arbiter.ps1 -SimulatorExecPath '<questa-bin-dir>'
+.\scripts\run_m3b_pg2l50h_pcie_tx_arbiter_integration.ps1 -SimulatorExecPath '<questa-bin-dir>'
 .\scripts\run_m3b_ddr3_write_descriptor.ps1 -SimulatorExecPath '<questa-bin-dir>'
 .\scripts\run_m3b_pg2l50h_ddr3_write_adapter.ps1 -SimulatorExecPath '<questa-bin-dir>'
 .\scripts\run_m3b_pg2l50h_ddr3_write_path.ps1 -SimulatorExecPath '<questa-bin-dir>'
@@ -113,4 +119,5 @@ PDS/IP/位流，也不证明 SCCB、板级电气时序、真实 DDR3 或完整 P
 `0x0ffc` 起始并按 `keep` 有效字节推进；这只证明行为级字段贯通，不证明真实地址单位、
 DDR3 初始化、完整 PCIe DMA 仲裁、链路或主机内存写入。新增 canonical 应用层回归证明记录跨过
 AW/W 和无 RREADY 的 AR/R 边界并恢复元数据；它仍使用明文用户口模型，不等价于加密 DDR3 core
-仿真或实板存储。canonical MWR32 TX 专项只证明一个 full-DWORD TLP 在 vendor 控制器仿真边界内生成。
+仿真或实板存储。canonical MWR32 TX 与双源仲裁专项只证明 full-DWORD 请求在同一 PCIe 时钟域的
+该厂商控制器仿真边界内生成；它们不等价于跨域 mailbox、完整 TX top、链路或主机完成。

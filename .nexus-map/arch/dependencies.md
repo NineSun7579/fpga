@@ -122,8 +122,10 @@ flowchart TD
 - M3-A 的两个 TB 已按新协议区分 payload（`word_valid && word_keep!=0`）与纯控制事件（`word_valid=1`、`word_keep=0`）；帧/行起止和协议错误可按该规则传播。内部 keep 只表达 16 个 byte lane，不等同于厂商 PCIe AXIS `tkeep` 或主机字节序。
 - `run_m3a.ps1` 编译 5 个 RTL 与 1 个集成 TB，并要求 Questa 日志唯一 `TEST PASS`；2026-09-03 的 6 模块 `0 error/0 warning` 结果只证明板级无关行为，仍受 VSCS 与统一 PDS/四级仿真边界约束。
 - `rgb565_axis4_mwr_descriptor` 只对 payload 生成请求：`req_length_dw` 表示实际 DWORD 数且固定为 `1`；`keep=0` 控制记录在 descriptor 本地接受，不依赖 bridge/vendor ACK，不产生 MWR，不推进 PCIe 字节地址。
-- `tb_rgb565_pg2l50h_mwr32_tx_integration.sv` 同时依赖项目 bridge 与未修改 `pcie_dma_test_100h/hdl/pcie_dma_ctrl/ips2l_pcie_dma_mwr_tx_ctrl.v`；该依赖只在隔离仿真中验证保持型 req/ack 和单 DWORD TLP 输出，没有经过完整 DMA 顶层仲裁、PCIe link training 或主机内存。
+- `tb_rgb565_pg2l50h_mwr32_tx_integration.sv` 同时依赖项目 bridge 与未修改 `pcie_dma_test_100h/hdl/pcie_dma_ctrl/ips2l_pcie_dma_mwr_tx_ctrl.v`；该旧隔离测试只验证保持型 req/ack 和单 DWORD TLP 输出，本身不实例化新增仲裁器，也不覆盖跨域、完整 TX 顶层、PCIe link training 或主机内存。
 - canonical MWR TX 固定 full-DWORD byte enable；当前只有 `keep=4'hf`、4 字节对齐请求可无损进入该隔离边界，partial keep 仍是未关闭依赖。
+- `rgb565_pg2l50h_pcie_tx_request_arbiter` 依赖 canonical DMA controller 的完整共享请求合同：native `MWR32/MWR64/MRD32/MRD64` 必须连同 `user_define_data_flag/length/address/data` 作为一个原子 bundle；camera 只注入 MWR32。两源同域轮转，owner/字段保持到匹配 ACK，ACK 只返回 owner。MWR user-defined 模式在 MWR ACK 时锁存，native MRD 不改写，并保持到下一次 MWR。
+- `tb_rgb565_pg2l50h_pcie_tx_request_arbiter.sv` 的 245 ns 专项验证四类 native request、轮转、字段保持、ACK 隔离、复位和 MWR 模式保持；`tb_rgb565_pg2l50h_pcie_tx_arbiter_integration.sv` 的 205 ns 集成验证 native RAM-data 与 camera user-defined 依次经过未修改 vendor MWR TX。两项均未实例化完整 `ips2l_pcie_dma_tx_top`，也不提供 DDR `core_clk`→PCIe `pclk_div2` CDC、partial keep、链路或 RK3568 证据。
 - `rgb565_axis4_ddr3_write_descriptor` 把 payload 放入 byte 0..3，把 `keep/last/frame_end/protocol_error` 放入第 5 byte，并固定 `write_strb[4]=1`；因此 `keep=0` 控制记录仍依赖 canonical AW/W 事务保存元数据，而不会在 DDR 写侧被本地吞掉。
 - `rgb565_pg2l50h_ddr3_write_adapter` 依赖公开 canonical AW/W 合同：`ddr_init_done` 经两拍 `io_clk` 同步后准入，单 outstanding、`AWLEN=0`，上游完成只发生在 `axi_wready` 消费数据时。221 ns 专项与 196 ns writer→adapter 路径已通过，但该完成不证明物理 DDR 持久化。
 - `rgb565_pg2l50h_ddr3_read_adapter` 依赖公开 canonical AR/R 合同：单 outstanding、`ARLEN=0`；由于 core 没有 `axi_rready`，适配器必须本地缓冲返回拍。RID/RLAST 异常并入记录协议错误，非预期或重复 RVALID 形成 `port_fault_pulse`；191 ns 专项已通过。
@@ -131,7 +133,7 @@ flowchart TD
 - `run_m3b_ov5640_ddr3_pcie_loopback.ps1` 依赖外部 Questa Sim-64 2021.1，可执行文件目录由参数或 `QUESTA_BIN` 提供；每次运行使用独立 `build/m3b-ov5640-ddr3-pcie-loopback/<run-id>/`，要求仿真退出成功、Errors 为 0 且 `TEST PASS` 恰好一次。
 - 规范化 PCIe 地址只在 payload request 接受后按有效字节数推进；空载 abort/帧尾记录不产生 MWR，不占用 vendor TX 地址。这不改变 TB DDR3 模型仍是 opaque token 的边界。
 - `ov5640_dvp_rgb565_ddr3_pcie_pipeline` 把 slot table 的 `slot/base/capacity` 分配接入 writer，并在 DDR write 接受后才向 frame commit 交付同一记录；committed 描述符携 slot id 进入 scheduler，带槽 done 释放匹配 READING 槽。完整 4194 ns 回归还验证空控制响应不生成 MWR但正常回收槽；它仍只依赖 TB 数组 token 与规范化 MWR，不能外推为真实 DDR3/PCIe/RK3568 闭环。
-- `ov5640_dvp_rgb565_pg2l50h_pcie_pipeline` 在上述双槽控制面外接入 canonical write/read adapters；806 ns 行为回归覆盖 AW/W 写记录、第 5 byte 元数据存储、AR/R 读回和未修改 vendor MWR TX 的两组 TLP header/data。该 TB 的可见 DDR 存储仍是公开端口模型，未实例化加密 DDR core，不能外推为地址单位、物理槽范围、完整 PCIe DMA/链路、RK3568 软件或板级闭环。
+- `ov5640_dvp_rgb565_pg2l50h_pcie_pipeline` 在上述双槽控制面外接入 canonical write/read adapters；806 ns 行为回归覆盖 AW/W 写记录、第 5 byte 元数据存储、AR/R 读回和未修改 vendor MWR TX 的两组 TLP header/data。同域 TX 请求仲裁已有独立 245/205 ns 证据但尚未组成该流水顶层；该 TB 的可见 DDR 存储仍是公开端口模型，未实例化加密 DDR core，不能外推为地址单位、物理槽范围、跨域/full tx_top、PCIe 链路、RK3568 软件或板级闭环。
 - 用户确认三个产品方向共用 `RK3568+PG2L50H100H` 开发板，实际 FPGA 为 `PG2L50H-6IFBG484`；摄像头产品目标已校正为 OV5640，`41_ov7725_hdmi` 仅作 OV7725 legacy。统一有效 PDS 目标为 `Logos2 / PG2L50H / FBG484 / -6`，旧 PG2L100H 产物不得用于实板。
 - 厂商 `.idf`、生成 RTL 和 PDS 仿真库属于外部生成依赖，不应被误当作独立手写逻辑。
 - PCIe S2-A 的 `sim/behav.f` 依赖 37 个实现侧 canonical HDL、仿真专用补充源、DMA RAM init include、reset helper、项目 TB 与受控边界模型。历史动态 smoke 已通过同一 run-id 和唯一 `TEST PASS`；当前 S2-A/S2-B 静态门禁通过，但动态复验因仓库外许可证 checkout 失败返回 4，未产生新 PASS。
