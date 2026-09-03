@@ -91,3 +91,14 @@ opaque token，推进量由 `ADDR_STEP` 参数显式提供；`write_awlen=0` 只
 4 KB 状态稳定。该模块不实例化厂商 PCIe IP；`req_keep` 仅作为旁路信息保留，因为
 活动控制器的请求端口没有独立 byte-enable 输入。该 byte-enable 映射、请求启动和
 ack 关系仍是临时合同，必须在真实 PCIe TLP/DMA TB 中重新审核后才能用于产品路径。
+
+## 规范化 MWR 组合路径
+
+`rgb565_axis4_pcie_mwr_path` 已将 staging beat、规范化 MWR descriptor 和临时请求桥
+串接。2026-09-03 的专项 TB 使用 `BASE_ADDR=0x0ffc`：4-byte 请求恰好到达 4 KB
+边界时不标记 crossing，ack 后下一请求地址为 `0x1000`；请求字段、`keep`、`last`、
+帧尾和协议错误均在等待 ack 期间保持。Questa Sim-64 2021.1 编译 `0 error/0 warning`，
+唯一 `TEST PASS`，仿真至 `125 ns`。
+
+该组合路径仍不实例化厂商 PCIe IP，不证明真实 TLP、DMA、byte-enable、链路、主机
+地址或 PCIe 控制器启动/忙状态；真实接入必须继续使用活动控制器的链路模型和实现级证据。

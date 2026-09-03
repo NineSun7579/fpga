@@ -151,6 +151,14 @@
 - 正向：检查规范化请求映射到已审计 `mwr32_req` 接口，`req_length/addr/data/keep/cross_4kb_boundary` 字段正确。
 - 握手：字段在 `mwr32_req_ack` 到达前保持稳定，ack 后释放 busy/request。
 - 结果：`tb_rgb565_axis4_pcie_mwr_bridge.sv` 使用 watchdog、`$fatal` 和唯一 `TEST PASS` 验证上述行为。
+
+## main OV5640→PCIe M3-B 规范化 MWR 组合路径覆盖
+
+- 组合：`rgb565_axis4_pcie_mwr_path` 串接 staging、MWR descriptor 与临时 `mwr32_req/ack` bridge。
+- 控制器事实：`req_length` 单位为 DWORD；在控制器边界 `req_length=0` 表示 `0x1000` 字节；当前每个 32-bit beat 仍发 `req_length=0`。
+- 边界回归：`BASE_ADDR=0x0ffc` 的 4-byte 请求恰到 4KB 边界，不报 crossing；ack 后地址为 `0x1000`，并检查请求字段保持和事件传播。
+- 结果：Questa Sim-64 2021.1，0 error/0 warning，唯一 `TEST PASS`，125 ns。
+- 未覆盖：真实 TLP、DMA、byte-enable、PCIe 链路、主机输出及厂商 PCIe IP 集成。
 - 边界：byte-enable 映射仍是临时合同；不证明真实 PCIe TLP、DMA、厂商 IP、DDR3、CDC/FIFO 或后级实现。
 
 ## main OV5640→PCIe normalized DDR3 write record 覆盖

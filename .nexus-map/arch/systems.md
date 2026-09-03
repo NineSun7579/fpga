@@ -328,3 +328,11 @@
 - evidence: 2026-09-03 Questa Sim-64 2021.1，独立 3 ns/5 ns 时钟，5 beat 顺序、首末事件、keep/last、ready、最终 drain；0 error/0 warning，唯一 TEST PASS，155 ns。
 - defect_fix: FIFO entry 41 bit/实际 42 bit导致 `user[4]` 截断，已修正为完整 42-bit entry。
 - boundary: 尚未完成静态 CDC/RDC、RAM 推断、复位释放、三时钟约束、真实 DDR3/PCIe IP 集成。
+
+## main OV5640→PCIe M3-B 规范化 PCIe MWR 组合路径
+
+- implementation_status: behavior_verified_combinational_path_only
+- code_path: `main_ov5640_pcie/rtl/rgb565_axis4_pcie_mwr_path.sv`
+- contract: 串接 staging beat、`rgb565_axis4_mwr_descriptor` 与临时 `mwr32_req/ack` bridge；活动控制器事实为 `req_length` 按 DWORD，控制器边界将 `req_length=0` 判断为 `0x1000` 字节；当前组合路径每个 32-bit beat 仍发 `req_length=0`。
+- evidence: 2026-09-03 专项 TB 使用 `BASE_ADDR=0x0ffc`，验证 4-byte 请求恰到 4KB 边界不误报 crossing、ack 后地址为 `0x1000`、请求字段保持及事件传播；Questa Sim-64 2021.1 为 0 error/0 warning、唯一 TEST PASS、125 ns。
+- boundary: 不实例化厂商 PCIe IP；不证明真实 TLP、DMA、byte-enable、链路或主机输出。
