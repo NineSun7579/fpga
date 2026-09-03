@@ -88,7 +88,12 @@ module rgb565_word_to_axis4_adapter (
             out_data[31:0] = current_data;
             out_keep = control_only ? 4'h0 : current_keep;
             out_last = control_only || (beat_index == beat_count);
-            out_user = user_reg;
+            if (beat_index == 2'd0) begin
+                out_user[1:0] = user_reg[1:0];
+            end
+            if (control_only || (beat_index == beat_count)) begin
+                out_user[4:2] = user_reg[4:2];
+            end
         end
     end
 
@@ -125,7 +130,6 @@ module rgb565_word_to_axis4_adapter (
                 active <= 1'b0;
             end else begin
                 beat_index <= beat_index + 2'd1;
-                user_reg[1:0] <= 2'b0;
             end
         end
     end

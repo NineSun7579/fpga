@@ -437,3 +437,6 @@
   空载控制事件及背压。该 staging `out_user` 仍不是厂商 PCIe `tuser` 合同。
 - Questa Sim-64 2021.1 实测编译 2 个 RTL/TB 模块为 `0 error/0 warning`，行为仿真
   返回 0，日志唯一 `TEST PASS`；中途修复 beat 最后索引 2-bit 回绕和 TB 部分字激励/调度问题。
+- 复核发现多 beat 字的末事件曾在中间 beat 保持；现改为首事件仅出现在首 beat、
+  行尾/帧尾/协议错误仅出现在末 beat，并由 TB 显式检查中间 beat 的 `out_user=0`。
+  修正后再次得到 `0 error/0 warning` 和唯一 `TEST PASS`。

@@ -38,8 +38,8 @@ module tb_rgb565_word_to_axis4_adapter;
         if (out_valid && out_ready) begin
             case (beat_count)
                 0: if (out_data[31:0] !== 32'h04030201 || out_keep !== 4'hf || out_last || out_user[1:0] !== 2'b11) $fatal(1, "Full beat 0 mismatch");
-                1: if (out_data[31:0] !== 32'h08070605 || out_keep !== 4'hf || out_last || out_user[1:0] !== 2'b00) $fatal(1, "Full beat 1 mismatch");
-                2: if (out_data[31:0] !== 32'h0c0b0a09 || out_keep !== 4'hf || out_last || out_user[1:0] !== 2'b00) $fatal(1, "Full beat 2 mismatch");
+                1: if (out_data[31:0] !== 32'h08070605 || out_keep !== 4'hf || out_last || out_user !== 8'h00) $fatal(1, "Full beat 1 mismatch");
+                2: if (out_data[31:0] !== 32'h0c0b0a09 || out_keep !== 4'hf || out_last || out_user !== 8'h00) $fatal(1, "Full beat 2 mismatch");
                 3: if (out_data[31:0] !== 32'h100f0e0d || out_keep !== 4'hf || !out_last || out_user[2] !== 1'b1 || out_user[3] !== 1'b1) $fatal(1, "Full beat 3 mismatch");
                 4: if (out_data[31:0] !== 32'h0000bbaa || out_keep !== 4'h3 || !out_last || out_user[2] !== 1'b1 || out_user[4] !== 1'b1) $fatal(1, "Partial beat mismatch");
                 default: begin
