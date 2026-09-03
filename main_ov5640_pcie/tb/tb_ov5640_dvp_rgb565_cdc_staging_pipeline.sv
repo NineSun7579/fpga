@@ -13,6 +13,8 @@ module tb_ov5640_dvp_rgb565_cdc_staging_pipeline;
     integer beat_count=0;
     integer normal_beat_count=0;
     integer pressure_beat_count=0;
+    integer abort_beat_count=0;
+    integer recovery_beat_count=0;
     integer phase=0;
 
     ov5640_dvp_rgb565_cdc_staging_pipeline #(.FIFO_ADDR_WIDTH(3)) dut (.*);
@@ -31,7 +33,28 @@ module tb_ov5640_dvp_rgb565_cdc_staging_pipeline;
                     $fatal(1, "CDC staging frame-end event mismatch");
                 beat_count = beat_count + 1;
             end else begin
-                pressure_beat_count = pressure_beat_count + 1;
+                if (phase == 1) begin
+                    pressure_beat_count = pressure_beat_count + 1;
+                    if ((out_keep == 4'h0) && out_last && out_user[3] && out_user[4]) begin
+                        if (abort_beat_count != 0)
+                            $fatal(1, "CDC staging emitted more than one abort record");
+                        abort_beat_count = abort_beat_count + 1;
+                    end else begin
+                        if (abort_beat_count != 0)
+                            $fatal(1, "CDC staging emitted payload after the abort record");
+                    end
+                end else begin
+                    if (recovery_beat_count == 0 &&
+                        (out_keep !== 4'h3 || !out_last ||
+                         out_user[1:0] !== 2'b11 || !out_user[2] ||
+                         out_user[4:3] !== 2'b00))
+                        $fatal(1, "CDC staging recovery payload mismatch");
+                    if (recovery_beat_count == 1 &&
+                        (out_keep !== 4'h0 || !out_last ||
+                         !out_user[3] || out_user[4]))
+                        $fatal(1, "CDC staging recovery frame-end mismatch");
+                    recovery_beat_count = recovery_beat_count + 1;
+                end
             end
         end
     end
@@ -75,8 +98,23 @@ module tb_ov5640_dvp_rgb565_cdc_staging_pipeline;
             $fatal(1, "CDC staging pressure was not reported");
         out_ready=1'b1;
         repeat(40) @(posedge out_clk);
+        if (pressure_beat_count != 20 || abort_beat_count != 1 || out_valid)
+            $fatal(1, "CDC staging abort contract mismatch: beats=%0d aborts=%0d valid=%b",
+                   pressure_beat_count, abort_beat_count, out_valid);
+
+        // 压力帧结束并排出中止记录后，下一帧必须从 frame_start 完整恢复。
+        phase=2;
+        @(posedge cam_pclk); cam_vsync=1'b1; @(posedge cam_pclk); cam_vsync=1'b0;
+        @(posedge cam_pclk); cam_href=1'b1;
+        drive_pixel(16'hf800);
+        cam_href=1'b0; @(posedge cam_pclk); cam_vsync=1'b1; @(posedge cam_pclk); cam_vsync=1'b0;
+        repeat(20) @(posedge out_clk);
+        if (recovery_beat_count != 2)
+            $fatal(1, "CDC staging next-frame recovery count mismatch: %0d",
+                   recovery_beat_count);
         $display("INFO: normal staging path delivered %0d beats without overflow", normal_beat_count);
-        $display("INFO: sustained downstream pressure reported overflow and drained %0d beats", pressure_beat_count);
+        $display("INFO: pressure frame drained %0d beats with one synthetic abort", pressure_beat_count);
+        $display("INFO: next frame recovered with %0d beats", recovery_beat_count);
         $display("TEST PASS"); $finish;
     end
 endmodule

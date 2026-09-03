@@ -111,8 +111,9 @@ ack 关系仍是临时合同，必须在真实 PCIe TLP/DMA TB 中重新审核�
 Sim-64 2021.1 编译 `0 error/0 warning`，唯一 `TEST PASS`，仿真至 `413 ns`。
 
 该测试同时观察到 camera-side packer 无输入背压：在 adapter/FIFO 接收能力不足时，
-`source_overflow` 被置位。它是显式错误报告，不是无损保证；后续帧缓存必须增加源端
-流控、足够 FIFO 或丢帧/恢复策略后，才能进入真实 DDR3 写入。
+`source_overflow` 被置位。当前实现会保留已排队前缀、注入空载错误帧尾并丢弃余帧，
+随后只从后续 `frame_start` 恢复。该策略保证损坏帧可识别，不是无损保证；真实帧缓存
+仍需按吞吐预算确定 FIFO 深度，并在 DDR3 侧回收带协议错误的帧。
 
 ## 源端短突发缓冲
 
@@ -123,13 +124,18 @@ Sim-64 2021.1 编译 `0 error/0 warning`，唯一 `TEST PASS`，仿真至 `413 n
 word 的所有字段保持，满队列同拍出队/入队时允许直接替换尾槽。
 
 当 `in_valid` 到达且两个槽位都不能接收时，模块丢弃该新 word 并将 `overflow` 粘滞
-置 1。该状态只报告当前帧在帧缓存前发生压力，未定义自动丢帧、重新同步、帧重启或
-错误恢复；产品集成必须在获得帧尺寸、吞吐、FIFO 深度和主机错误协议资料后另行冻结。
+置 1。已排队前缀继续按 FIFO 顺序输出，随后插入唯一的
+`keep=0/frame_end=1/protocol_error=1` 中止记录；当前帧剩余 word 全部丢弃。只有已看到
+原帧尾、中止记录已经排队且后续输入带 `frame_start` 时才恢复接收。若持续背压使紧邻
+的新帧首无法保存，则继续丢弃该整帧，避免从帧中段恢复。恢复依赖 packer 最终产生
+`frame_end`；若源端边界永久缺失，只能通过复位退出丢帧状态，不使用超时猜测边界。
 
-专项 TB 覆盖两个 word 在下游暂停期间按顺序排出、第三个 word 的丢弃和 overflow，
-Questa Sim-64 2021.1 编译 `0 error/0 warning`、唯一 `TEST PASS`、仿真至 `85 ns`。
-联合 TB 覆盖 3 个正常 staging beat（含空载帧尾事件）和 64 像素下游暂停压力，
-Questa 编译 `0 error/0 warning`、唯一 `TEST PASS`，压力恢复后排出 19 个未丢失 beat。
+专项 TB 覆盖两个 word 在下游暂停期间按顺序排出、第三个 word 触发 overflow、余帧
+丢弃、中止记录排队前提前到达的新帧整帧跳过、唯一中止记录、后续帧恢复、满队列
+同拍出入队、丢弃侧帧尾与 abort 同拍、连续损坏帧及 drop 状态复位；
+Questa Sim-64 2021.1 编译 `0 error/0 warning`、唯一 `TEST PASS`、仿真至 `526 ns`。联合 TB 覆盖 3 个正常 staging beat、64 像素
+下游暂停压力帧的 20 个输出（含末尾唯一中止记录），以及下一帧 2 个正常恢复 beat；
+Questa 编译 `0 error/0 warning`、唯一 `TEST PASS`，仿真至 `2863 ns`。
 
 ## 行为级 DDR3 到 PCIe 往返证据
 

@@ -132,14 +132,17 @@
 - 结果：`run_m3b.ps1` 使用 Questa Sim-64 2021.1 编译 2 个 RTL/TB 模块为 `0 error/0 warning`，行为返回 0、唯一 `TEST PASS`。
 - 边界：该测试只证明 staging 行为，不证明厂商 PCIe `tkeep/tuser`、TLP、DDR3、CDC/FIFO、主机协议或 PDS/STA。
 
-## main OV5640→PCIe M3-B 两槽 word 短突发缓冲覆盖
+## main OV5640→PCIe M3-B 两槽 word skid 中止恢复覆盖
 
 - code：`main_ov5640_pcie/rtl/rgb565_word_skid_buffer.sv`
 - test：`main_ov5640_pcie/tb/tb_rgb565_word_skid_buffer.sv`
 - script：`main_ov5640_pcie/scripts/run_m3b_word_skid_buffer.ps1`
-- 正向：两槽 FIFO 按先入先出保存两个 128-bit word；下游暂停期间检查队首字段保持、第三个 word 在满队列且无同拍出队时被丢弃，并置位 sticky `overflow`；恢复 ready 后按序 drain。
-- 结果：Questa Sim-64 2021.1 编译 2 个 RTL/TB 为 0 error/0 warning，行为返回 0，日志唯一 `TEST PASS`，仿真至 85 ns。
-- 边界：`in_ready` 仅作诊断，不能反向节流无背压 packer；该短缓冲只吸收短突发，不保证持续满载无损，不定义帧丢弃/重启/恢复，也不替代真实帧缓存、DDR3、PCIe 或最终 CDC/RDC 复位审核。
+- 正向：两槽 FIFO 按先入先出保留溢出前的两个 128-bit word；下游暂停时检查队首字段保持，第三个 word 在满队列且无同拍出队时触发 sticky `overflow`，不得覆盖前缀。
+- 中止与恢复：原帧余量被丢弃，前缀后恰好输出一个 `keep=0/frame_end=1/protocol_error=1` 空载中止记录；中止记录尚未排队时到达的新帧整帧跳过。只有观察到原帧尾且中止记录已排队，后续 `frame_start` 才恢复，恢复帧不得带协议错误。
+- 并发边界：覆盖满队列同拍 pop/push，确认出队前缀与新入队 word 的 FIFO 顺序和字段不被破坏；覆盖原 `frame_end` 到达与 synthetic abort 入队同拍，确认帧尾观察和中止排队两个条件不会丢失。
+- 连续故障与复位：连续制造两个损坏帧，分别检查每帧恰好一个 abort 且两个 abort 与保留前缀的输出顺序正确；在 drop/abort 状态中施加异步复位，检查队列、sticky overflow 和恢复控制状态回到复位合同。
+- 结果：Questa Sim-64 2021.1 编译 2 个 RTL/TB 为 0 error/0 warning，行为返回 0，日志唯一 `TEST PASS`，仿真至 526 ns。
+- 边界：`in_ready` 仅作诊断，不能反向节流无背压 packer；已验证帧中止/恢复，但两槽缓存不保证持续满载无损，持续背压可跳过多个完整帧。未覆盖 DDR3 无效帧回收、真实帧缓存、PCIe、静态 CDC/RDC、复位释放或实现级时序。
 
 ## main OV5640→PCIe M3-B 联合 staging 覆盖
 
@@ -151,9 +154,10 @@
 ## main OV5640→PCIe M3-B 双时钟 CDC staging 覆盖
 
 - 联合：`ov5640_dvp_rgb565_cdc_staging_pipeline` 串接采集、灰度、128-bit 打包、两槽 word 短突发缓冲、4-byte staging 与双时钟 CDC bridge；正常期 3 像素输入输出 2 个 payload beat 加 1 个 `keep=0` 空载帧尾事件，且 `source_overflow=0`。
-- 压力：复位后保持 `out_ready=0`，输入 64 像素使两槽缓冲耗尽并置位 `source_overflow`；恢复 ready 后排出 19 个保留 beat，新增输入丢弃语义由 sticky overflow 保留。
-- 结果：`run_m3b_ov5640_cdc_staging.ps1` 使用独立 5 ns/7 ns 时钟编译 11 个 RTL/TB，Questa Sim-64 2021.1 为 0 error/0 warning，行为返回 0，日志唯一 `TEST PASS`，仿真至 2527 ns。
-- 边界：仅证明该 staging/CDC 联合切片及短缓冲压力报告；不覆盖静态 CDC/RDC、复位释放、RAM 推断、真实 DDR3/PCIe IP、主机协议、PDS/STA 或 SDF，也不等同真实 DDR3/PCIe 闭环通过。
+- 压力：复位后保持 `out_ready=0`，输入 64 像素使两槽缓冲耗尽并置位 sticky `source_overflow`；恢复 ready 后输出 20 个 beat，其中前缀保持、当前帧余量丢弃，并且恰好 1 个 beat 为 `keep=0/frame_end=1/protocol_error=1` 中止记录。
+- 恢复：只有原帧尾已观察且中止记录已排队，后续 `frame_start` 才解除丢帧状态；测试中的下一帧完整输出 2 个 beat。中止条件满足前到达的新帧不得泄漏到输出。
+- 结果：`run_m3b_ov5640_cdc_staging.ps1` 使用独立 5 ns/7 ns 时钟编译 11 个 RTL/TB，Questa Sim-64 2021.1 为 0 error/0 warning，行为返回 0，日志唯一 `TEST PASS`，仿真至 2863 ns。
+- 边界：仅证明该 staging/CDC 联合切片的中止记录和下一帧恢复；不覆盖中止记录经真实 DDR3/PCIe/主机协议保存或无效帧回收，也不覆盖静态 CDC/RDC、复位释放、RAM 推断、PDS/STA 或 SDF，不等同真实 DDR3/PCIe 闭环通过。
 
 ## main OV5640→PCIe normalized MWR descriptor 覆盖
 
@@ -192,7 +196,7 @@
 - 正向：3 个像素产生 2 条 payload 与 1 条空载帧尾记录；检查 DDR3 模型的 keep 分别为 `4'hf`、`4'h3`、`4'h0`，末记录携带 frame_end，回读请求的数据、keep、last、frame_end、protocol_error 与模型一致。
 - 地址：PCIe MWR 地址依次为 `0x0ffc`、`0x1000`、`0x1002`，三次请求均不得误报跨 4 KB，ack 后 busy/request 必须释放。
 - 结果：Questa Sim-64 2021.1 为 0 error/0 warning、日志唯一 `TEST PASS`，仿真至 442 ns。
-- 边界：只证明 vendor-independent 行为记录的端到端保存与回送；不证明真实 DDR3 地址/握手/初始化/读时序，不证明 PCIe TLP、byte-enable、链路、DMA/主机，也不证明板级时序或实现级 CDC/RDC。
+- 边界：只证明正常帧 vendor-independent 行为记录的端到端保存与回送，尚未覆盖 overflow 中止记录；不证明真实 DDR3 地址/握手/初始化/读时序，不证明 PCIe TLP、byte-enable、链路、DMA/主机，也不证明板级时序或实现级 CDC/RDC。
 
 ## S1/S2/S3 仿真就绪度矩阵（2026-08-30）
 
@@ -272,7 +276,7 @@
 ## main OV5640 M3-B 双时钟 CDC staging pipeline 覆盖
 
 - 链路：`ov5640_dvp_rgb565_cdc_staging_pipeline` 串接 DVP、灰度、128-bit pack、两槽 word 短突发缓冲、4-byte adapter 与双时钟 CDC bridge。
-- 正向：小帧双时钟 TB 验证 2 个 payload beat、1 个空载帧尾事件、`keep` 以及首/末事件跨域到达，且无 overflow；压力期验证 64 像素输入、下游暂停、sticky overflow 与 ready 恢复后 19 个保留 beat drain。
-- 溢出语义：`source_overflow` 直接来自两槽 word buffer；缓冲满且无同拍出队时丢弃新输入并保持 overflow，表示当前帧缓存前的阻断，不承诺无损。
-- 结果：Questa Sim-64 2021.1 编译 11 个 RTL/TB 为 0 error/0 warning，日志唯一 `TEST PASS`，仿真至 2527 ns。
-- 边界：未覆盖静态 CDC/RDC、复位释放、RAM 推断、真实 DDR3/PCIe IP、主机协议、PDS/STA 或 SDF；短缓冲不等同帧缓存或真实 DDR3/PCIe 闭环。
+- 正向：小帧双时钟 TB 验证 2 个 payload beat、1 个空载帧尾事件、`keep` 以及首/末事件跨域到达，且无 overflow；压力期验证 64 像素输入、下游暂停、sticky overflow、20 个输出 beat（含唯一中止记录）及下一帧 2 个 beat 恢复。
+- 溢出语义：`source_overflow` 直接来自两槽 word skid；满队列溢出后保留前缀、丢弃当前帧余量，并注入唯一 `keep=0/frame_end=1/protocol_error=1` 中止记录。只有原帧尾已观察且中止记录已排队，后续 `frame_start` 才恢复；此前到达的新帧整帧跳过。
+- 结果：Questa Sim-64 2021.1 编译 11 个 RTL/TB 为 0 error/0 warning，日志唯一 `TEST PASS`，仿真至 2863 ns。
+- 边界：未覆盖中止记录经真实 DDR3/PCIe/主机协议保存或无效帧回收，也未覆盖静态 CDC/RDC、复位释放、RAM 推断、PDS/STA 或 SDF；两槽 skid 不等同帧缓存或真实 DDR3/PCIe 闭环。

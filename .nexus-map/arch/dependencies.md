@@ -12,7 +12,8 @@ flowchart TD
   MainOV["main_ov5640_pcie\nM1-A→M3-A"] --> MainCapture["DVP 8-bit→RGB565\ncam_pclk 单域"]
   MainCapture --> MainProcess["M2-A RGB565 灰度\n固定一拍"]
   MainProcess --> MainPack["M3-A 8×RGB565\n128-bit 内部字"]
-  MainPack --> MainStaging["M3-B CDC staging\n4-byte beat"]
+  MainPack --> MainSkid["M3-B 两槽 word skid\n前缀保留 + 唯一中止"]
+  MainSkid --> MainStaging["M3-B CDC staging\n4-byte beat + 下一帧恢复"]
   MainStaging --> MainDDRRecord["规范化 DDR3 写记录\nopaque 地址 token"]
   MainDDRRecord --> MainDDRModel["TB 内 DDR3 模型\n按记录保存/回读"]
   MainDDRModel --> MainMWR["规范化 PCIe MWR\n0x0ffc/0x1000/0x1002"]
@@ -23,6 +24,7 @@ flowchart TD
   Standard --> MainCapture
   Standard --> MainPack
   MainPack -. "行为切片，未进入实现" .-> PDS
+  MainSkid -. "持续背压仍可整帧丢弃" .-> PDS
   Parallel["parallel_driver\n只读参考"] -. "不得导入资产/证据" .-> MainOV
 
   OV5640Target["OV5640 摄像头 HDMI\n产品目标 C0-C3/S3"] -. "C2 审核后选择性迁移" .-> OVLegacy["41_ov7725_hdmi\nOV7725 legacy"]

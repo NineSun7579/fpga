@@ -37,8 +37,8 @@
 - `tb/tb_rgb565_axis4_async_fifo.sv`：异步时钟、满/空、顺序和握手自检。
 - `rtl/rgb565_axis4_cdc_bridge.sv`：异步 FIFO 的 staging 上游/下游 CDC 封装边界。
 - `tb/tb_rgb565_axis4_cdc_bridge.sv`：双时钟数据顺序与首/末事件完整性自检。
-- `rtl/rgb565_word_skid_buffer.sv`：packer 与 4-byte adapter 之间的两槽短突发缓冲。
-- `tb/tb_rgb565_word_skid_buffer.sv`：顺序、背压保持、满队列丢弃和 sticky overflow 自检。
+- `rtl/rgb565_word_skid_buffer.sv`：两槽短突发缓冲及 overflow 整帧中止/下一帧恢复。
+- `tb/tb_rgb565_word_skid_buffer.sv`：顺序、中止记录、余帧丢弃、恢复和 sticky overflow 自检。
 - `rtl/ov5640_dvp_rgb565_cdc_staging_pipeline.sv`：OV5640 DVP 到双时钟 staging 输出，带源端压力报告。
 - `tb/tb_ov5640_dvp_rgb565_cdc_staging_pipeline.sv`：小帧正常路径与长帧压力、事件和 `source_overflow` 自检。
 - `tb/tb_ov5640_ddr3_pcie_loopback.sv`：OV5640→DDR3 记录模型→PCIe MWR 的行为级往返自检。
@@ -69,7 +69,8 @@
 
 运行态只写入 `main_ov5640_pcie/build/`。`vsim.exe`、`vlog.exe` 和许可证配置由本机
 环境提供，不写入仓库。两槽 word 缓冲只能吸收短突发；`source_overflow=1` 表示
-当前帧在进入帧缓存前发生了无法接收的 word，不代表自动恢复或无损。当前切片不生成
+当前帧在进入帧缓存前发生了无法接收的 word。该帧会以空载错误帧尾结束，余帧被
+丢弃，并只从后续 `frame_start` 恢复；这保证损坏帧可识别，不代表持续背压无丢帧。当前切片不生成
 PDS/IP/位流，也不证明 SCCB、板级电气时序、CDC/FIFO、DDR3 或 PCIe 集成。M3-A 的
 128-bit 布局不等同于厂商 PCIe AXIS `tkeep` 或主机内存字节序，M3-B 适配层必须按
 独立合同冻结转换规则后再实现。往返 TB 中的 DDR3 地址是模型槽位，PCIe 地址使用

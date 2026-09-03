@@ -58,6 +58,12 @@ M2-A 将 `cam_pclk` 域的 M1-A RGB565 采集流连接到 `rgb565_grayscale`。�
 
 M3-A 在同一 `cam_pclk` 域承接 M2-A 灰度 RGB565 流。`rgb565_word_packer` 将像素 0..7 按接收顺序放入 `word_data` 从低到高的八个 16-bit 槽位；完整字含 8 像素且 `word_keep=16'hffff`，N 像素部分行尾字补零并只置 keep 低 `2N` 位。两个 M3-A TB 按新协议区分 payload（`word_valid && word_keep!=0`）与纯控制事件（`word_valid=1`、`word_keep=0`）。Questa Sim-64 2021.1 的 6 模块集成行为仿真为 0 error/0 warning、返回 0、唯一 `TEST PASS`。该内部布局不定义 DDR3 地址、PCIe AXIS `tkeep`、TLP payload 或主机内存字节序。
 
+## main OV5640 M3-B 溢出帧中止与恢复
+
+M3-B 的两槽 word skid 位于无背压 packer 与 4-byte adapter 之间。满队列且无同拍出队时，溢出前已经排队的 word 构成可保留前缀；触发 word 和当前帧余量被丢弃，前缀后恰好注入一个 `keep=0/frame_end=1/protocol_error=1` 空载中止记录，使下游可以识别并作废不完整帧。`source_overflow` 是复位周期内 sticky 的输入损失事实，不等同于无损或自动回收。
+
+恢复需要两个先决条件同时成立：已经观察到被丢弃原帧的帧尾，且唯一中止记录已经排队。随后只接受带 `frame_start` 的新输入；在条件成立前到达的新帧整帧跳过，避免帧中段或过早新帧泄漏。Questa 2021.1 专项回归扩展为 526 ns，新增覆盖满队列同拍 pop/push、原 `frame_end` 与 abort 入队同拍、连续两个损坏帧各自产生唯一 abort 且顺序正确，以及 drop/abort 状态异步复位；联合 DVP→CDC 回归保持 2863 ns。两项均为 0 error/0 warning、日志唯一 `TEST PASS`，联合压力仍为 20 个 beat（含 1 个中止）并验证下一帧恢复 2 个 beat。该证据仍不覆盖中止记录经真实 DDR3/PCIe/主机协议保存、DDR3 无效帧回收、静态 CDC/RDC、复位释放或板级时序。
+
 厂商异步 FIFO 可以承担多比特数据跨域，但 reset/flush 仍属于 RDC。write FIFO 的 camera/UI 两侧和 read FIFO 的 UI/pixel 两侧必须分别在本地时钟域释放复位；只有确认 SP6.4 对厂商指针同步结构的识别后，才允许添加最窄范围例外。
 
 ## 复位域交叉

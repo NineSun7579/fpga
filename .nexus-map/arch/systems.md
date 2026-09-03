@@ -318,17 +318,17 @@
 - evidence: 2026-09-03 Questa 2021.1 编译 9 个 RTL/TB，0 error/0 warning，唯一 TEST PASS
 - boundary: 不包含 DDR3/PCIe IP、CDC/FIFO、SCCB、板级时钟/管脚或主机协议；frame_end_pending 仅为同域 staging 验证策略
 
-## main OV5640→PCIe M3-B 两槽 word 短突发缓冲
+## main OV5640→PCIe M3-B 两槽 word skid 与帧中止恢复
 
-- implementation_status: behavior_verified_two_slot_word_skid_buffer
+- implementation_status: behavior_verified_two_slot_word_skid_abort_recovery
 - project_path: `main_ov5640_pcie/`
 - branch: `codex/main-ov5640-pcie`
 - code_path: `main_ov5640_pcie/rtl/rgb565_word_skid_buffer.sv`
 - test_path: `main_ov5640_pcie/tb/tb_rgb565_word_skid_buffer.sv`
 - script_path: `main_ov5640_pcie/scripts/run_m3b_word_skid_buffer.ps1`
-- contract: 位于无背压 RGB565 word packer 与 4-byte adapter 之间；两槽 FIFO 按先入先出保存 128-bit word 及 5 个事件位。满队列且下游未接收时丢弃新 word 并置位 sticky `overflow`；同拍出队/入队时允许替换尾槽；输出未接收期间字段保持。`in_ready` 仅用于诊断，不向无背压 packer 提供反向流控。
-- evidence: 2026-09-03 Questa Sim-64 2021.1 编译 2 个 RTL/TB，0 error/0 warning，日志唯一 TEST PASS，仿真至 85 ns。
-- boundary: 只吸收短突发并报告压力，不定义 overflow 后的帧丢弃、重启或恢复协议，不保证持续满载无损，也不替代 DDR3 帧缓存或最终 CDC/RDC 复位审核。
+- contract: 位于无背压 RGB565 word packer 与 4-byte adapter 之间；两槽 FIFO 按先入先出保存 128-bit word 及 5 个事件位。满队列且无同拍出队时，拒收触发 word 并置位 sticky `overflow`，保留溢出前已经排队的完整前缀，随后丢弃当前帧余量，并在此前缀后恰好排入一个 `keep=0/frame_end=1/protocol_error=1` 的空载中止记录。只有已经观察到原帧尾且中止记录已经排队，才允许后续携带 `frame_start` 的输入恢复；在两个条件同时满足前到达的新帧整帧跳过。正常状态仍允许满队列同拍出队/入队替换尾槽，输出未接收期间字段保持；`in_ready` 仅作诊断，不能向无背压 packer 提供反向流控。
+- evidence: 2026-09-03 Questa Sim-64 2021.1 编译 2 个 RTL/TB，0 error/0 warning，日志唯一 TEST PASS，仿真至 526 ns；扩展 TB 验证两条前缀 word 顺序保持、满队列同拍 pop/push、第三条触发溢出、原帧余量丢弃、原 `frame_end` 与 abort 入队同拍、过早新帧整帧跳过、连续两个损坏帧各自产生唯一 abort 且顺序正确、下一 `frame_start` 恢复，以及 drop/abort 状态异步复位。
+- boundary: 已关闭该行为切片中的 overflow 帧中止和恢复合同，但两槽缓存仍不保证持续满载无损；持续背压可以丢弃多个完整帧。该证据不定义下游 DDR3 无效帧回收，不替代真实帧缓存、最终 CDC/RDC 复位审核、PDS/STA 或真实 DDR3/PCIe 集成。
 
 ## main OV5640→PCIe M3-B rgb565_axis4 CDC bridge
 
@@ -341,15 +341,15 @@
 - defect_fix: FIFO entry 41 bit/实际 42 bit导致 `user[4]` 截断，已修正为完整 42-bit entry。
 - boundary: 尚未完成静态 CDC/RDC、RAM 推断、复位释放、三时钟约束、真实 DDR3/PCIe IP 集成。
 
-## main OV5640 M3-B 双时钟 CDC staging pipeline
+## main OV5640 M3-B 双时钟 CDC staging 与溢出帧中止
 
-- implementation_status: behavior_verified_dual_clock_staging_only
+- implementation_status: behavior_verified_dual_clock_staging_abort_recovery_only
 - code_path: `main_ov5640_pcie/rtl/ov5640_dvp_rgb565_cdc_staging_pipeline.sv`
 - test_path: `main_ov5640_pcie/tb/tb_ov5640_dvp_rgb565_cdc_staging_pipeline.sv`
-- contract: 串接 DVP→灰度→128-bit pack→两槽 word 短突发缓冲→4-byte adapter→双时钟 CDC bridge；staging beat 跨域携带 data、keep、last 与首/末事件。正常期输出 2 个 payload beat 加 1 个 `keep=0` 空载帧尾事件且无 overflow；压力期输入 64 像素并暂停下游，缓冲耗尽后置位 overflow，恢复 ready 后排出 19 个保留 beat。
-- evidence: 2026-09-03 联合 TB 使用 5 ns `cam_pclk` 与 7 ns `out_clk`，Questa Sim-64 2021.1 编译 11 个 RTL/TB，0 error/0 warning，日志唯一 TEST PASS，仿真至 2527 ns。
-- source_overflow: `source_overflow` 直接绑定两槽 word buffer 的 sticky `overflow`；当缓冲已满且无同拍出队时，新输入 word 被丢弃并保持报告。这是当前帧缓存前的阻断状态，不是无损保证。
-- boundary: 仅覆盖该 staging/CDC 行为切片与短缓冲丢弃语义；未证明静态 CDC/RDC、复位释放、RAM 推断、真实 DDR3/PCIe IP、主机协议、PDS/STA 或 SDF，也不等同真实 DDR3/PCIe 闭环通过。
+- contract: 串接 DVP→灰度→128-bit pack→两槽 word skid→4-byte adapter→双时钟 CDC bridge；staging beat 跨域携带 data、keep、last 与首/末事件。正常期输出 2 个 payload beat 加 1 个 `keep=0` 空载帧尾事件且无 overflow。压力期输入 64 像素并暂停下游，满队列溢出后保留已排队前缀、丢弃当前帧余量，并输出唯一 `keep=0/frame_end=1/protocol_error=1` 中止记录；只有观察原帧尾且中止记录排队后，后续 `frame_start` 才恢复，在此之前到达的新帧整帧跳过。
+- evidence: 2026-09-03 联合 TB 使用 5 ns `cam_pclk` 与 7 ns `out_clk`，Questa Sim-64 2021.1 编译 11 个 RTL/TB，0 error/0 warning，日志唯一 TEST PASS，仿真至 2863 ns；压力输出 20 个 beat（含恰好 1 个中止记录），下一帧恢复输出 2 个 beat。
+- source_overflow: `source_overflow` 直接绑定两槽 word skid 的 sticky `overflow`，记录本次复位周期曾发生输入损失；它与唯一中止记录共同让损坏帧可识别，但不表示无损，也不自动清除。
+- boundary: 仅覆盖该 staging/CDC 行为切片、溢出帧中止和下一帧恢复；未证明中止记录经真实 DDR3/PCIe/主机协议保存或触发无效帧回收，也未证明静态 CDC/RDC、复位释放、RAM 推断、PDS/STA 或 SDF，不等同真实 DDR3/PCIe 闭环通过。
 
 ## main OV5640→PCIe M3-B 规范化 PCIe MWR 组合路径
 
@@ -368,4 +368,4 @@
 - scenario: 3 个 RGB565 像素经采集、灰度、打包和 CDC staging 形成 2 个 payload 记录与 1 个 `keep=0` 帧尾控制记录；DDR3 模型按 opaque 写地址 token 保存 `data/keep/last/frame_end/protocol_error`，随后按记录顺序送入 PCIe MWR 路径。
 - pcie_addresses: 三次 MWR 请求地址依次为 `0x0ffc`、`0x1000`、`0x1002`，请求数据、keep 与事件必须与 DDR3 模型记录一致，ack 后请求释放。
 - evidence: 2026-09-03 Questa Sim-64 2021.1 编译为 0 error/0 warning，日志唯一 TEST PASS，仿真至 442 ns。
-- boundary: 这是 vendor-independent 行为模型闭环；不证明真实 DDR3 地址单位、初始化、AW/W 握手或读口时序，不证明厂商 PCIe IP、TLP、byte-enable、链路、DMA/主机写入，也不证明管脚、电气或板级时序。
+- boundary: 这是正常帧的 vendor-independent 行为模型闭环，尚未覆盖 overflow 中止记录经 DDR3 模型和 PCIe MWR 的端到端保存；不证明真实 DDR3 地址单位、初始化、AW/W 握手或读口时序，不证明厂商 PCIe IP、TLP、byte-enable、链路、DMA/主机写入，也不证明管脚、电气或板级时序。

@@ -571,6 +571,8 @@
 - 测试诊断修正了一个过时假设：无 payload 帧尾是合法输出事件，不能从 staging beat
   统计中删除。该缓冲只吸收短突发，未定义 overflow 后的帧丢弃/恢复，也不解除静态
   CDC/RDC、三时钟复位、RAM 推断、真实 DDR3/PCIe IP 和板级协议阻断。
+- 以上为提交 `16ce24e` 的初版短缓冲证据；其中 `85 ns`、`2527 ns`、19 个保留 beat
+  和“恢复未定义”由本日志后续的 overflow 整帧中止与恢复批次取代。
 
 ## 2026-09-03：main OV5640 行为级 DDR3→PCIe 往返切片
 
@@ -585,3 +587,20 @@
   `0 error/0 warning`，日志唯一 `TEST PASS`，仿真至 `442 ns`。
 - 该证据只证明行为级接口字段和控制事件贯通；尚未证明厂商 DDR3 初始化/读写时序、真实
   PCIe TLP/DMA/byte-enable、链路训练、主机目标地址或板级 OV5640 电气时序。
+
+## 2026-09-03：main OV5640 overflow 整帧中止与恢复
+
+- 扩展 `rgb565_word_skid_buffer`：满队列且无同拍出队时，首个无法保存的 word 置位
+  sticky `overflow` 并进入丢帧状态；已排队前缀保持 FIFO 顺序，当前帧余下输入被丢弃。
+- 缓冲在有空间时注入唯一的 `keep=0/frame_end=1/protocol_error=1` 中止记录。只有已观察到
+  原帧尾、中止记录已经排队且后续输入带 `frame_start` 时，才恢复保存新帧；中止记录
+  排队前提前到达的新帧会被整帧跳过，避免从帧中段恢复。
+- `tb_rgb565_word_skid_buffer.sv` 覆盖已保存前缀、中间 word 丢失、原帧尾、提前新帧跳过、
+  唯一中止记录、后续帧恢复和 sticky overflow。2026-09-04 又补入满队列同拍出入队、
+  丢弃侧帧尾与 abort 入队同拍、连续两个损坏帧及 drop 状态异步复位；Questa Sim-64
+  2021.1 为 `0 error/0 warning`、唯一 `TEST PASS`、`526 ns`。
+- DVP→CDC 联合 TB 的压力帧排出 20 个 beat，其中恰好一个位于末尾的空载错误帧尾；随后 1 像素新帧
+  以 2 个正常 beat 恢复且无协议错误。Questa 为 `0 error/0 warning`、唯一 `TEST PASS`、
+  `2863 ns`。M3-A 正常路径和 OV5640→DDR3 模型→PCIe MWR 往返仍分别通过。
+- 该策略只保证损坏帧可识别并从后续帧首重同步，不保证持续背压无丢帧；DDR3 侧仍需
+  作废带协议错误的帧，FIFO 深度、三时钟复位和真实控制器接入仍未闭合。

@@ -7,11 +7,13 @@
  * @details
  * 数据路径为 DVP 采集、灰度处理、128-bit 打包、两槽 word 短突发缓冲、
  * 4-byte staging adapter，再进入双时钟 CDC bridge。`source_overflow` 用于
- * 暴露 camera-side 短缓冲耗尽的情况。
+ * 暴露 camera-side 短缓冲耗尽的情况；溢出帧以空载、带协议错误的帧尾结束，
+ * 当前帧余下内容被丢弃，并从后续 `frame_start` 恢复。
  *
  * @warning
- * 本模块不实例化 DDR3/PCIe IP，也不保证持续满载时无丢帧；overflow 后的帧
- * 丢弃、恢复策略、FIFO 深度、三域复位和最终帧缓存仍由产品集成层负责。
+ * 本模块不实例化 DDR3/PCIe IP，也不保证持续满载时无丢帧。持续背压可能
+ * 丢弃多个完整帧；FIFO 深度、三域复位、DDR3 回收无效帧和最终帧缓存仍由
+ * 产品集成层负责。
  */
 module ov5640_dvp_rgb565_cdc_staging_pipeline #(
     parameter logic VSYNC_ACTIVE_LEVEL = 1'b1,
