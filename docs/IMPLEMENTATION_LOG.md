@@ -504,6 +504,15 @@
 - 本批仍只证明规范化单 beat 记录层的握手合同；不改变“28-bit 地址为 opaque token”的
   结论，也不解除真实 DDR3 用户口、地址单位、burst、初始化和 CDC 阻断。
 
+## 2026-09-03：main OV5640 M3-B staging 异步 FIFO
+
+- 新增 `rgb565_axis4_async_fifo`，在独立写入/读出时钟域之间传输 32-bit staging beat，
+  携带 4-bit `keep`、`last` 和 5-bit 事件标志；Gray 指针用于跨域传递读写进度。
+- 新增独立双时钟 Questa TB，覆盖满/空握手、下游节奏变化、6 个 beat 的顺序和最终 empty。
+- Questa Sim-64 `2021.1` 编译 `0 error/0 warning`，仿真至 `287 ns`，日志唯一 `TEST PASS`。
+- 该切片仅是板级无关 CDC/FIFO 行为合同；尚未完成静态 CDC/RDC 分类、RAM 推断审计、
+  三时钟域复位合同、DDR3/PCIe 用户时钟约束或真实 IP 接入。
+
 ## 2026-09-03：main OV5640 M1-M3B 回归与工具环境诊断
 
 - 全回归首先发现 M3-A 旧 TB 将 `word_valid` 等同于 payload；随着纯控制事件修正为

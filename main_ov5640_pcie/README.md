@@ -31,8 +31,10 @@
 - `rtl/rgb565_axis4_ddr3_write_descriptor.sv`：staging beat 到规范化 128-bit DDR3 写记录，地址步长参数化。
 - `tb/tb_rgb565_axis4_ddr3_write_descriptor.sv`：写数据、写掩码、控制记录、背压保持、
   地址步进和复位恢复自检。
+- `rtl/rgb565_axis4_async_fifo.sv`：携带 `data/keep/last/user` 的板级无关双时钟 staging FIFO。
+- `tb/tb_rgb565_axis4_async_fifo.sv`：异步时钟、满/空、顺序和握手自检。
 - staging、帧统计和规范化请求描述符已完成同域行为验证；DDR3 写记录层已完成边界回归，
-  尚未接入 CDC、DDR3 或 PCIe IP。
+  staging 异步 FIFO 已完成双时钟行为验证；尚未接入真实 DDR3 或 PCIe IP。
 
 ## 运行
 
@@ -46,6 +48,7 @@
 .\scripts\run_m3b_mwr_descriptor.ps1 -SimulatorExecPath '<questa-bin-dir>'
 .\scripts\run_m3b_pcie_mwr_bridge.ps1 -SimulatorExecPath '<questa-bin-dir>'
 .\scripts\run_m3b_ddr3_write_descriptor.ps1 -SimulatorExecPath '<questa-bin-dir>'
+.\scripts\run_m3b_async_fifo.ps1 -SimulatorExecPath '<questa-bin-dir>'
 ```
 
 运行态只写入 `main_ov5640_pcie/build/`。`vsim.exe`、`vlog.exe` 和许可证配置由本机
