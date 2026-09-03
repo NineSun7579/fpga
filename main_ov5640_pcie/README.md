@@ -17,6 +17,7 @@
 - `docs/MAIN_OV5640_PCIE_CAPTURE_CONTRACT.md`：模块接口和验证合同。
 - `docs/MAIN_OV5640_PCIE_PROCESS_CONTRACT.md`：图像处理算法和延迟合同。
 - `docs/MAIN_OV5640_PCIE_WORD_PACKER_CONTRACT.md`：128-bit 内部数据布局合同。
+- `docs/MAIN_OV5640_PCIE_M3B_ADAPTER_CONTRACT.md`：DDR3/PCIe 适配层职责、转换边界和关闭条件。
 
 ## 运行
 
@@ -29,4 +30,4 @@
 运行态只写入 `main_ov5640_pcie/build/`。`vsim.exe`、`vlog.exe` 和许可证配置由本机
 环境提供，不写入仓库。当前切片不生成 PDS/IP/位流，也不证明 SCCB、板级电气时序、
 CDC/FIFO、DDR3 或 PCIe 集成。M3-A 的 128-bit 布局不等同于厂商 PCIe AXIS
-`tkeep` 或主机内存字节序，后续适配层必须单独冻结转换规则。
+`tkeep` 或主机内存字节序，M3-B 适配层必须按独立合同冻结转换规则后再实现。
