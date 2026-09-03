@@ -7,14 +7,12 @@
 
 ## 1. 结论边界
 
-当前三个入口 FDC 共有 15 条 timing exception，另有一条 OV7725 legacy
-`PAP_CLOCK_DEDICATED_ROUTE FALSE`：
+当前清单只包含 DDR3 与 PCIe 的 timing exception；双 OV5640 尚未创建 canonical FDC：
 
 | 工程 | 入口角色 | Timing exception | Dedicated-route override | 审核状态 |
 |---|---|---:|---:|---|
 | DDR3 | canonical，但仍是旧 PG2L100H 输入 | 6 | 0 | vendor-generated / unreviewed |
 | PCIe | 当前目标 PG2L100H，但活动 IP 为 PG2L50H，迁移阻断 | 3 | 0 | vendor-derived / unreviewed |
-| OV7725 | frozen legacy | 6 | 1 | legacy / not approved |
 | 双 OV5640 | 尚未创建 canonical FDC | 0 | 0 | H3 blocked |
 
 “已登记”只证明文件、命令、对象、来源与状态可追溯，不表示：
@@ -38,7 +36,6 @@
 
 - 注释行和空章节；
 - 普通 `PAP_IO_UNUSED`；
-- DDR3 外层旧副本、PCIe IP example FDC 和 OV7725 constraint backup；
 - `origin/parallel_driver@485f3bb` 的双 OV5640 参考 FDC。它只用于 C0 审计，
   不能计入当前产品清单。
 
@@ -63,6 +60,4 @@ fail-closed 样本。JSON 行号只用于诊断；稳定比较主键是命令类
 - DDR3 PG2L100H canonical 恢复后，必须重新生成清单并以 PDS 报告确认对象命中；
   不能复制旧 50H staging 或历史 100H 例外。
 - PCIe 三条 async group 需要结合产品 CDC 与 PDS `report_exceptions` 等证据审核。
-- OV7725 条目保持冻结，只作为双 OV5640 的反例和风险输入。
 - 双 OV5640 必须在 H3 输入、PG2L100H IP/FDC 与时钟域冻结后独立建立清单；
-  不继承 OV7725 或参考分支的 dedicated-route override。

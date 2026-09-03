@@ -2,13 +2,11 @@
 
 状态：C1-A 证据入口已建立；C1/H3 仍受原理图、BOM、模组和时序资料阻断。更新日期：2026-09-02。
 
-本清单只区分“已审核实物事实”“参考设计事实”和“待提供输入”。参考分支、旧 OV7725 工程、历史 FDC 或生成 IP 中的值不能自动升级为实际板卡事实。
 
 ## 当前工程事实
 
 | 证据项 | 当前事实 | 证据来源 | 审核状态 |
 |---|---|---|---|
-| 产品传感器 | 产品固定使用两只 OV5640，不再使用 OV7725 | owner 决策、根 TODO | 已确认传感器数量与型号族；模组完整料号待提供 |
 | 开发板 | 紫光盘古100Pro | owner 于 2026-09-02 确认 | 原理图版本和 BOM 待归档 |
 | FPGA 目标 | `PG2L100H-6IFBG484`（待丝印/原理图/BOM归档） | owner 目标修订、参考工程 metadata | 后续所有 canonical IP、FDC、网表、SDF 和位流必须一致 |
 | PDS 产品目标 | `Logos2 / PG2L100H / FBG484 / -6`，PDS `2022.2-SP6.4` | 当前恢复边界 | 不得混入 50H staging 或旧混合工程产物 |
@@ -21,7 +19,6 @@
 | 参考 DDR3 | PG2L100H IP，DDR3 800 MT/s、x32 | C0 审计 | 可作为 100H 候选参考；颗粒、拓扑和参数仍待实板证据确认 |
 | 参考 Camera FDC | 假设两路 `cam_pclk=25 MHz`、camera LVCMOS33，无 camera input delay | C0 审计 | 只作管脚候选表；不得直接进入 canonical 工程 |
 | 仿真环境 | 公共 Questa Sim-64 `2021.1`、Logos2 USIM/VSIM 已验证 | S0 公共环境证据 | 不等于本项目行为级或后级仿真通过 |
-| OV7725 目录 | `41_ov7725_hdmi/` 只保留 legacy 风险和历史证据 | 根 TODO、legacy README | 禁止改名、复制寄存器表或作为产品验收入口 |
 
 ## 必须提供的资料
 
@@ -48,11 +45,10 @@
 C1-A 只允许维护本目录的产品范围、证据清单和静态门禁。以下条件未关闭前必须停止 HDL/IP/约束实施：
 
 1. 不从 `origin/parallel_driver` 导入 RTL、生成 IP、FDC、PDS、TB 或运行产物。
-2. 不从 `41_ov7725_hdmi/` 继承 `7'h21` SCCB 地址、8 位寄存器地址、640×480 RGB565、管脚或时序假设。
-3. 不把参考 FDC 的 LVCMOS33、25 MHz camera clock、dedicated-route override 或 `PAP_IO_UNUSED` 当作批准值。
-4. 不为缺失的板级时序虚构 input/output delay、`false_path`、multicycle 或 waiver。
-5. 不直接使用参考 PG2L100H DDR3/PLL/FIFO IP、STA、网表、SDF 或位流；须按产品合同逐项审核后纳入 100H canonical 工程。
-6. 后续选择性导入的每个手写 RTL/TB 必须先符合 `VERILOG_SYSTEMVERILOG_COMMENTING_STANDARD.md`，否则不得进入 canonical source manifest。
+2. 不把参考 FDC 的 LVCMOS33、25 MHz camera clock、dedicated-route override 或 `PAP_IO_UNUSED` 当作批准值。
+3. 不为缺失的板级时序虚构 input/output delay、`false_path`、multicycle 或 waiver。
+4. 不直接使用参考 PG2L100H DDR3/PLL/FIFO IP、STA、网表、SDF 或位流；须按产品合同逐项审核后纳入 100H canonical 工程。
+5. 后续选择性导入的每个手写 RTL/TB 必须先符合 `VERILOG_SYSTEMVERILOG_COMMENTING_STANDARD.md`，否则不得进入 canonical source manifest。
 
 ## 关闭条件
 

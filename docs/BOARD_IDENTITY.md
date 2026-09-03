@@ -9,7 +9,6 @@
 | 开发板 | 紫光盘古100Pro | 板卡产品名称，不等同于 FPGA 器件型号 |
 | PDS 器件目标 | `Logos2 / PG2L100H / FBG484 / -6` | 当前恢复工作的目标组合 |
 | PDS 版本 | `2022.2-SP6.4` | 仍需通过本机工具执行动态构建 |
-| 三个工作方向 | DDR3、PCIe、双 OV5640 HDMI | 双 OV5640 是产品目标；OV7725 仅保留 legacy |
 
 ## 证据状态
 
@@ -18,7 +17,6 @@
 ## 恢复边界
 
 - DDR3：已有 PG2L100H canonical IP、FDC/RCF、PDS 工程和历史实现产物，可作为恢复候选。
-- OV7725 HDMI：已有 PG2L100H legacy 工程，可恢复为独立历史基线，但不属于双 OV5640 产品。
 - PCIe：PDS 工程和部分历史产物含 PG2L100H，活动 IP 曾为 PG2L50H；必须先解决 IP metadata 混合，不能只改 `set_arch`。
 - 双 OV5640：参考工程含 PG2L100H 生成资产，但顶层、FDC、PCIe/视频路径混杂；必须按产品合同建立新的 100H canonical 工程。
 
