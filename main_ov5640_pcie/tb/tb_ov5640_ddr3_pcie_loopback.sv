@@ -33,8 +33,15 @@ module tb_ov5640_ddr3_pcie_loopback;
     logic [4:0] staging_user;
     logic source_overflow;
 
+    logic frame_alloc_valid = 1'b0;
+    logic frame_alloc_ready;
+    logic frame_alloc_slot_id = 1'b0;
+    logic [27:0] frame_alloc_base_addr = 28'd0;
+    logic [31:0] frame_alloc_record_capacity = 32'd256;
+
     logic ddr_write_valid;
     logic ddr_write_ready = 1'b1;
+    logic ddr_write_slot_id;
     logic [27:0] ddr_write_addr;
     logic [3:0] ddr_write_awlen;
     logic [127:0] ddr_write_data;
@@ -79,11 +86,18 @@ module tb_ov5640_ddr3_pcie_loopback;
         .out_user(staging_user), .source_overflow(source_overflow)
     );
 
-    rgb565_axis4_ddr3_write_descriptor #(.BASE_ADDR(28'd0), .ADDR_STEP(28'd1)) u_ddr_writer (
-        .rst_n(out_rst_n), .clk(ddr_clk), .in_valid(staging_valid), .in_ready(staging_ready),
+    rgb565_axis4_ddr3_write_descriptor #(.ADDR_STEP(28'd1)) u_ddr_writer (
+        .rst_n(out_rst_n), .clk(ddr_clk),
+        .frame_alloc_valid(frame_alloc_valid),
+        .frame_alloc_ready(frame_alloc_ready),
+        .frame_alloc_slot_id(frame_alloc_slot_id),
+        .frame_alloc_base_addr(frame_alloc_base_addr),
+        .frame_alloc_record_capacity(frame_alloc_record_capacity),
+        .in_valid(staging_valid), .in_ready(staging_ready),
         .in_data(staging_data), .in_keep(staging_keep), .in_last(staging_last),
         .in_frame_end(staging_user[3]), .in_protocol_error(staging_user[4]),
         .write_valid(ddr_write_valid), .write_ready(ddr_write_ready),
+        .write_slot_id(ddr_write_slot_id),
         .write_addr(ddr_write_addr), .write_awlen(ddr_write_awlen),
         .write_data(ddr_write_data), .write_strb(ddr_write_strb),
         .write_last(ddr_write_last), .write_frame_end(ddr_write_frame_end),
@@ -110,7 +124,7 @@ module tb_ov5640_ddr3_pcie_loopback;
 
     // Intent: capture every accepted normalized DDR3 write into the model.
     // Invariant: the model keeps the descriptor fields needed for exact readback.
-    // Assumption: this test uses BASE_ADDR=0 and ADDR_STEP=1 as model indices only.
+    // Assumption: allocation base tokens and ADDR_STEP=1 are model indices only.
     always @(posedge ddr_clk) begin
         if (out_rst_n && ddr_write_valid && ddr_write_ready) begin
             if (ddr_write_addr > 28'd255)
@@ -166,6 +180,20 @@ module tb_ov5640_ddr3_pcie_loopback;
         end
     endtask
 
+    task automatic allocate_frame(input logic [27:0] base_addr);
+        begin
+            wait (frame_alloc_ready);
+            @(negedge ddr_clk);
+            frame_alloc_slot_id = 1'b0;
+            frame_alloc_base_addr = base_addr;
+            frame_alloc_record_capacity = 32'd256;
+            frame_alloc_valid = 1'b1;
+            @(posedge ddr_clk);
+            #1ns;
+            frame_alloc_valid = 1'b0;
+        end
+    endtask
+
     task automatic reset_pipeline;
         begin
             in_rst_n = 1'b0;
@@ -173,6 +201,8 @@ module tb_ov5640_ddr3_pcie_loopback;
             cam_vsync = 1'b0;
             cam_href = 1'b0;
             pcie_in_valid = 1'b0;
+            frame_alloc_valid = 1'b0;
+            frame_alloc_base_addr = 28'd0;
             mwr32_req_ack = 1'b0;
             repeat (2) @(posedge cam_pclk);
             repeat (2) @(posedge ddr_clk);
@@ -237,6 +267,7 @@ module tb_ov5640_ddr3_pcie_loopback;
         in_rst_n = 1'b1;
         repeat (2) @(posedge ddr_clk);
         out_rst_n = 1'b1;
+        allocate_frame(28'd0);
 
         // Three pixels produce two payload records and one frame-end control record.
         @(posedge cam_pclk);
@@ -274,6 +305,7 @@ module tb_ov5640_ddr3_pcie_loopback;
 
         // 阻塞 DDR 写端制造 camera-side overflow，再验证中止记录和下一帧恢复。
         reset_pipeline();
+        allocate_frame(28'd0);
         ddr_write_ready = 1'b0;
         drive_frame(64, 16'h4000);
         repeat (20) @(posedge cam_pclk);
@@ -303,6 +335,7 @@ module tb_ov5640_ddr3_pcie_loopback;
 
         recovery_start_index = ddr_write_count;
         frame_written = 1'b0;
+        allocate_frame(recovery_start_index);
         drive_frame(1, 16'hf800);
         wait (ddr_write_count >= recovery_start_index + 2);
         repeat (4) @(posedge ddr_clk);

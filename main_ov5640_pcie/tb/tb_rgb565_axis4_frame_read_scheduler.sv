@@ -14,6 +14,7 @@ module tb_rgb565_axis4_frame_read_scheduler;
     logic        clk = 1'b0;
     logic        desc_valid = 1'b0;
     logic        desc_ready;
+    logic        desc_slot_id = 1'b0;
     logic [27:0] desc_start_addr = 28'd0;
     logic [31:0] desc_records = 32'd0;
     logic        desc_committed = 1'b0;
@@ -26,6 +27,7 @@ module tb_rgb565_axis4_frame_read_scheduler;
     logic        read_response_frame_end_normalized;
     logic        read_response_protocol_error;
     logic        frame_done_pulse;
+    logic        frame_done_slot_id;
     logic        frame_fault_pulse;
     logic        active;
 
@@ -40,13 +42,15 @@ module tb_rgb565_axis4_frame_read_scheduler;
         $fatal(1, "frame read scheduler timeout");
     end
 
-    task automatic submit_descriptor(input logic [27:0] start_addr,
+    task automatic submit_descriptor(input logic slot_id,
+                                     input logic [27:0] start_addr,
                                      input logic [31:0] records,
                                      input logic committed);
         begin
             while (!desc_ready)
                 @(posedge clk);
             @(negedge clk);
+            desc_slot_id = slot_id;
             desc_start_addr = start_addr;
             desc_records = records;
             desc_committed = committed;
@@ -54,13 +58,15 @@ module tb_rgb565_axis4_frame_read_scheduler;
             @(posedge clk);
             #1ns;
             desc_valid = 1'b0;
+            desc_slot_id = 1'b0;
             desc_start_addr = 28'd0;
             desc_records = 32'd0;
             desc_committed = 1'b0;
         end
     endtask
 
-    task automatic accept_command(input logic [27:0] expected_addr,
+    task automatic accept_command(input logic expected_slot,
+                                  input logic [27:0] expected_addr,
                                   input logic final_response);
         begin
             wait (read_cmd_valid);
@@ -90,6 +96,8 @@ module tb_rgb565_axis4_frame_read_scheduler;
             read_response_frame_end = 1'b0;
             if (frame_done_pulse !== final_response)
                 $fatal(1, "frame completion pulse mismatch at address %0d", expected_addr);
+            if (final_response && frame_done_slot_id !== expected_slot)
+                $fatal(1, "frame completion slot mismatch at address %0d", expected_addr);
             if (frame_fault_pulse)
                 $fatal(1, "normal response produced frame fault at address %0d", expected_addr);
         end
@@ -99,13 +107,13 @@ module tb_rgb565_axis4_frame_read_scheduler;
         repeat (2) @(posedge clk);
         rst_n = 1'b1;
 
-        submit_descriptor(28'd4, 32'd2, 1'b0);
+        submit_descriptor(1'b0, 28'd4, 32'd2, 1'b0);
         repeat (2) @(posedge clk);
         #1ns;
         if (read_cmd_valid || active || frame_done_pulse)
             $fatal(1, "uncommitted descriptor produced scheduler activity");
 
-        submit_descriptor(28'd10, 32'd3, 1'b1);
+        submit_descriptor(1'b1, 28'd10, 32'd3, 1'b1);
         #1ns;
         if (!read_cmd_valid || read_cmd_addr !== 28'd10 || !active)
             $fatal(1, "committed descriptor did not open scheduler");
@@ -115,15 +123,15 @@ module tb_rgb565_axis4_frame_read_scheduler;
         if (!read_cmd_valid || read_cmd_addr !== 28'd10)
             $fatal(1, "read command was not held under backpressure");
 
-        accept_command(28'd10, 1'b0);
-        accept_command(28'd14, 1'b0);
-        accept_command(28'd18, 1'b1);
+        accept_command(1'b1, 28'd10, 1'b0);
+        accept_command(1'b1, 28'd14, 1'b0);
+        accept_command(1'b1, 28'd18, 1'b1);
         @(posedge clk);
         #1ns;
         if (active || read_cmd_valid || frame_done_pulse || !desc_ready)
             $fatal(1, "scheduler did not return idle after final response");
 
-        submit_descriptor(28'd20, 32'd2, 1'b1);
+        submit_descriptor(1'b0, 28'd20, 32'd2, 1'b1);
         wait (read_cmd_valid);
         read_cmd_ready = 1'b1;
         @(posedge clk);
@@ -140,16 +148,17 @@ module tb_rgb565_axis4_frame_read_scheduler;
         @(negedge clk);
         rst_n = 1'b1;
 
-        submit_descriptor(28'd30, 32'd1, 1'b1);
-        accept_command(28'd30, 1'b1);
+        submit_descriptor(1'b1, 28'd30, 32'd1, 1'b1);
+        accept_command(1'b1, 28'd30, 1'b1);
 
-        submit_descriptor(28'd40, 32'd0, 1'b1);
+        submit_descriptor(1'b0, 28'd40, 32'd0, 1'b1);
         #1ns;
-        if (active || read_cmd_valid || !frame_done_pulse || !frame_fault_pulse)
+        if (active || read_cmd_valid || !frame_done_pulse || !frame_fault_pulse ||
+            frame_done_slot_id !== 1'b0)
             $fatal(1, "zero-record committed descriptor did not fault-complete");
         @(posedge clk);
 
-        submit_descriptor(28'd50, 32'd3, 1'b1);
+        submit_descriptor(1'b1, 28'd50, 32'd3, 1'b1);
         wait (read_cmd_valid);
         read_cmd_ready = 1'b1;
         @(posedge clk);
@@ -166,11 +175,12 @@ module tb_rgb565_axis4_frame_read_scheduler;
         #1ns;
         read_response_accepted = 1'b0;
         read_response_frame_end = 1'b0;
-        if (active || !frame_done_pulse || !frame_fault_pulse)
+        if (active || !frame_done_pulse || !frame_fault_pulse ||
+            frame_done_slot_id !== 1'b1)
             $fatal(1, "early frame end did not terminate the scheduler");
         @(posedge clk);
 
-        submit_descriptor(28'd60, 32'd1, 1'b1);
+        submit_descriptor(1'b0, 28'd60, 32'd1, 1'b1);
         wait (read_cmd_valid);
         read_cmd_ready = 1'b1;
         @(posedge clk);
@@ -184,11 +194,12 @@ module tb_rgb565_axis4_frame_read_scheduler;
         @(posedge clk);
         #1ns;
         read_response_accepted = 1'b0;
-        if (active || !frame_done_pulse || !frame_fault_pulse)
+        if (active || !frame_done_pulse || !frame_fault_pulse ||
+            frame_done_slot_id !== 1'b0)
             $fatal(1, "missing final frame end did not terminate the scheduler");
         @(posedge clk);
 
-        submit_descriptor(28'd70, 32'd1, 1'b1);
+        submit_descriptor(1'b1, 28'd70, 32'd1, 1'b1);
         wait (read_cmd_valid);
         @(negedge clk);
         read_cmd_ready = 1'b1;
@@ -202,7 +213,8 @@ module tb_rgb565_axis4_frame_read_scheduler;
         read_cmd_ready = 1'b0;
         read_response_accepted = 1'b0;
         read_response_frame_end = 1'b0;
-        if (active || read_cmd_valid || !frame_done_pulse || frame_fault_pulse)
+        if (active || read_cmd_valid || !frame_done_pulse || frame_fault_pulse ||
+            frame_done_slot_id !== 1'b1)
             $fatal(1, "zero-latency final response did not complete cleanly");
 
         $display("INFO: scheduler pairing, frame-end recovery, zero-record, and reset verified");

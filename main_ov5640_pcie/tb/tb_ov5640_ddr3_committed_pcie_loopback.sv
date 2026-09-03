@@ -15,7 +15,9 @@
  * DDR3 地址、初始化、持久化、PCIe TLP/DMA、链路、主机内存或板级时序。
  */
 module tb_ov5640_ddr3_committed_pcie_loopback;
-    localparam integer NORMAL_FRAME_RECORDS = 3;
+    localparam logic [27:0] SLOT0_BASE_ADDR = 28'd0;
+    localparam logic [27:0] SLOT1_BASE_ADDR = 28'd64;
+    localparam logic [31:0] SLOT_RECORD_CAPACITY = 32'd32;
 
     logic        in_rst_n = 1'b0;
     logic        out_rst_n = 1'b0;
@@ -25,16 +27,11 @@ module tb_ov5640_ddr3_committed_pcie_loopback;
     logic        cam_href = 1'b0;
     logic [7:0]  cam_data = 8'd0;
 
-    logic        staging_valid;
-    logic        staging_ready;
-    logic [31:0] staging_data;
-    logic [3:0]  staging_keep;
-    logic        staging_last;
-    logic [4:0]  staging_user;
     logic        source_overflow;
 
     logic        ddr_write_valid;
     logic        ddr_write_ready;
+    logic        ddr_write_slot_id;
     logic [27:0] ddr_write_addr;
     logic [3:0]  ddr_write_awlen;
     logic [127:0] ddr_write_data;
@@ -43,8 +40,8 @@ module tb_ov5640_ddr3_committed_pcie_loopback;
     logic        ddr_write_frame_end;
     logic        ddr_write_protocol_error;
     logic        ddr_model_enable = 1'b1;
+    logic        ddr_read_enable = 1'b1;
 
-    logic        commit_ready;
     logic        read_cmd_valid;
     logic        read_cmd_ready;
     logic [27:0] read_cmd_addr;
@@ -56,7 +53,9 @@ module tb_ov5640_ddr3_committed_pcie_loopback;
     logic        model_read_frame_end;
     logic        model_read_protocol_error;
     logic        drop_frame_pulse;
+    logic        drop_slot_id;
     logic        frame_done_pulse;
+    logic        frame_done_slot_id;
     logic        frame_fault_pulse;
 
     logic        mwr32_req;
@@ -77,6 +76,9 @@ module tb_ov5640_ddr3_committed_pcie_loopback;
     logic        ddr_model_frame_end [0:255];
     logic        ddr_model_protocol_error [0:255];
     logic [27:0] observed_read_cmd_addr [0:255];
+    logic [27:0] observed_write_addr [0:255];
+    logic        observed_write_slot [0:255];
+    logic        observed_done_slot [0:15];
     integer      ddr_write_count = 0;
     integer      frame_write_count = 0;
     integer      read_cmd_count = 0;
@@ -84,58 +86,47 @@ module tb_ov5640_ddr3_committed_pcie_loopback;
     integer      frame_done_count = 0;
     integer      frame_fault_count = 0;
 
-    ov5640_dvp_rgb565_cdc_staging_pipeline #(.FIFO_ADDR_WIDTH(3)) u_capture (
+    ov5640_dvp_rgb565_ddr3_pcie_pipeline #(
+        .FIFO_ADDR_WIDTH(3),
+        .TOKEN_ADDR_STEP(28'd1),
+        .SLOT0_BASE_ADDR(SLOT0_BASE_ADDR),
+        .SLOT1_BASE_ADDR(SLOT1_BASE_ADDR),
+        .SLOT_RECORD_CAPACITY(SLOT_RECORD_CAPACITY),
+        .PCIE_BASE_ADDR(64'h0000_0000_0000_2000)
+    ) dut (
         .in_rst_n(in_rst_n), .cam_pclk(cam_pclk), .cam_vsync(cam_vsync),
-        .cam_href(cam_href), .cam_data(cam_data), .out_rst_n(out_rst_n),
-        .out_clk(ddr_clk), .out_valid(staging_valid), .out_ready(staging_ready),
-        .out_data(staging_data), .out_keep(staging_keep), .out_last(staging_last),
-        .out_user(staging_user), .source_overflow(source_overflow)
-    );
-
-    rgb565_axis4_ddr3_write_descriptor #(
-        .BASE_ADDR(28'd0),
-        .ADDR_STEP(28'd1)
-    ) u_ddr_writer (
-        .rst_n(out_rst_n), .clk(ddr_clk), .in_valid(staging_valid),
-        .in_ready(staging_ready), .in_data(staging_data), .in_keep(staging_keep),
-        .in_last(staging_last), .in_frame_end(staging_user[3]),
-        .in_protocol_error(staging_user[4]), .write_valid(ddr_write_valid),
-        .write_ready(ddr_write_ready), .write_addr(ddr_write_addr),
-        .write_awlen(ddr_write_awlen), .write_data(ddr_write_data),
-        .write_strb(ddr_write_strb), .write_last(ddr_write_last),
-        .write_frame_end(ddr_write_frame_end),
-        .write_protocol_error(ddr_write_protocol_error)
-    );
-
-    rgb565_axis4_committed_pcie_mwr_path #(
-        .BASE_ADDR(64'h0000_0000_0000_2000),
-        .TOKEN_ADDR_STEP(28'd1)
-    ) u_committed_path (
-        .rst_n(out_rst_n), .clk(ddr_clk),
-        .commit_valid(ddr_write_valid && ddr_model_enable),
-        .commit_ready(commit_ready), .commit_addr(ddr_write_addr),
-        .commit_keep(ddr_write_strb[3:0]),
-        .commit_frame_end(ddr_write_frame_end),
-        .commit_protocol_error(ddr_write_protocol_error),
-        .read_cmd_valid(read_cmd_valid), .read_cmd_ready(read_cmd_ready),
-        .read_cmd_addr(read_cmd_addr), .read_valid(model_read_valid),
-        .read_ready(model_read_ready), .read_data(model_read_data),
-        .read_keep(model_read_keep), .read_last(model_read_last),
-        .read_frame_end(model_read_frame_end),
-        .read_protocol_error(model_read_protocol_error),
+        .cam_href(cam_href), .cam_data(cam_data), .io_rst_n(out_rst_n),
+        .io_clk(ddr_clk), .source_overflow(source_overflow),
+        .ddr_write_valid(ddr_write_valid),
+        .ddr_write_ready(ddr_write_ready),
+        .ddr_write_slot_id(ddr_write_slot_id),
+        .ddr_write_addr(ddr_write_addr), .ddr_write_awlen(ddr_write_awlen),
+        .ddr_write_data(ddr_write_data), .ddr_write_strb(ddr_write_strb),
+        .ddr_write_last(ddr_write_last),
+        .ddr_write_frame_end(ddr_write_frame_end),
+        .ddr_write_protocol_error(ddr_write_protocol_error),
+        .ddr_read_cmd_valid(read_cmd_valid),
+        .ddr_read_cmd_ready(read_cmd_ready),
+        .ddr_read_cmd_addr(read_cmd_addr), .ddr_read_valid(model_read_valid),
+        .ddr_read_ready(model_read_ready), .ddr_read_data(model_read_data),
+        .ddr_read_keep(model_read_keep), .ddr_read_last(model_read_last),
+        .ddr_read_frame_end(model_read_frame_end),
+        .ddr_read_protocol_error(model_read_protocol_error),
         .drop_frame_pulse(drop_frame_pulse),
+        .drop_slot_id(drop_slot_id),
         .frame_done_pulse(frame_done_pulse),
+        .frame_done_slot_id(frame_done_slot_id),
         .frame_fault_pulse(frame_fault_pulse), .mwr32_req(mwr32_req),
         .mwr32_req_ack(mwr32_req_ack), .req_length(req_length),
         .req_addr(req_addr), .req_data(req_data), .req_keep(req_keep),
         .cross_4kb_boundary(cross_4kb_boundary), .req_last(req_last),
         .req_frame_end(req_frame_end),
-        .req_protocol_error(req_protocol_error), .busy(pcie_busy)
+        .req_protocol_error(req_protocol_error), .pcie_busy(pcie_busy)
     );
 
     always_comb begin
-        ddr_write_ready = ddr_model_enable && commit_ready;
-        read_cmd_ready = !model_read_valid;
+        ddr_write_ready = ddr_model_enable;
+        read_cmd_ready = ddr_read_enable && !model_read_valid;
     end
 
     always #5ns cam_pclk = ~cam_pclk;
@@ -163,6 +154,8 @@ module tb_ov5640_ddr3_committed_pcie_loopback;
             ddr_model_last[ddr_write_addr] <= ddr_write_last;
             ddr_model_frame_end[ddr_write_addr] <= ddr_write_frame_end;
             ddr_model_protocol_error[ddr_write_addr] <= ddr_write_protocol_error;
+            observed_write_addr[ddr_write_count] <= ddr_write_addr;
+            observed_write_slot[ddr_write_count] <= ddr_write_slot_id;
             ddr_write_count <= ddr_write_count + 1;
             if (ddr_write_frame_end)
                 frame_write_count <= frame_write_count + 1;
@@ -210,8 +203,10 @@ module tb_ov5640_ddr3_committed_pcie_loopback;
         end else begin
             if (drop_frame_pulse)
                 drop_count <= drop_count + 1;
-            if (frame_done_pulse)
+            if (frame_done_pulse) begin
+                observed_done_slot[frame_done_count] <= frame_done_slot_id;
                 frame_done_count <= frame_done_count + 1;
+            end
             if (frame_fault_pulse)
                 frame_fault_count <= frame_fault_count + 1;
         end
@@ -259,6 +254,7 @@ module tb_ov5640_ddr3_committed_pcie_loopback;
             cam_vsync = 1'b0;
             cam_href = 1'b0;
             ddr_model_enable = 1'b1;
+            ddr_read_enable = 1'b1;
             mwr32_req_ack = 1'b0;
             repeat (3) @(posedge cam_pclk);
             repeat (3) @(posedge ddr_clk);
@@ -318,24 +314,56 @@ module tb_ov5640_ddr3_committed_pcie_loopback;
 
     initial begin
         integer pressure_record_count;
-        integer recovery_start_index;
 
         reset_pipeline();
+        ddr_read_enable = 1'b0;
         drive_frame(3, 16'h1000);
         wait (frame_write_count == 1);
+        drive_frame(2, 16'h2000);
+        wait (frame_write_count == 2);
+        wait (!ddr_write_valid);
+        repeat (3) @(posedge ddr_clk);
+        #1ns;
+        if (ddr_write_count != 5 || read_cmd_count != 0 || drop_count != 0 ||
+            observed_write_slot[0] !== 1'b0 || observed_write_addr[0] !== 28'd0 ||
+            observed_write_addr[1] !== 28'd1 || observed_write_addr[2] !== 28'd2 ||
+            observed_write_slot[3] !== 1'b1 || observed_write_addr[3] !== 28'd64 ||
+            observed_write_addr[4] !== 28'd65)
+            $fatal(1, "two frames were not written into distinct queued slots");
+
+        ddr_read_enable = 1'b1;
         accept_mwr(0, 64'h0000_0000_0000_2000, 2);
         accept_mwr(1, 64'h0000_0000_0000_2004, 0);
         accept_mwr(2, 64'h0000_0000_0000_2006, 0);
+        accept_mwr(64, 64'h0000_0000_0000_2006, 1);
+        accept_mwr(65, 64'h0000_0000_0000_200a, 0);
         repeat (3) @(posedge ddr_clk);
         #1ns;
-        if (ddr_write_count != NORMAL_FRAME_RECORDS || read_cmd_count != 3 ||
-            drop_count != 0 || frame_done_count != 1 || frame_fault_count != 0 ||
+        if (read_cmd_count != 5 || drop_count != 0 || frame_done_count != 2 ||
+            frame_fault_count != 0 || observed_done_slot[0] !== 1'b0 ||
+            observed_done_slot[1] !== 1'b1 ||
             observed_read_cmd_addr[0] !== 28'd0 ||
             observed_read_cmd_addr[1] !== 28'd1 ||
-            observed_read_cmd_addr[2] !== 28'd2)
-            $fatal(1, "normal committed loopback accounting mismatch");
+            observed_read_cmd_addr[2] !== 28'd2 ||
+            observed_read_cmd_addr[3] !== 28'd64 ||
+            observed_read_cmd_addr[4] !== 28'd65)
+            $fatal(1, "queued double-slot readout accounting mismatch");
 
-        $display("INFO: normal OV5640 frame committed and read tokens 0..2 reached PCIe");
+        drive_frame(1, 16'h3000);
+        wait (frame_write_count == 3);
+        accept_mwr(0, 64'h0000_0000_0000_200a, 1);
+        accept_mwr(1, 64'h0000_0000_0000_200c, 0);
+        repeat (3) @(posedge ddr_clk);
+        #1ns;
+        if (ddr_write_count != 7 || observed_write_slot[5] !== 1'b0 ||
+            observed_write_addr[5] !== 28'd0 || observed_write_addr[6] !== 28'd1 ||
+            read_cmd_count != 7 || observed_read_cmd_addr[5] !== 28'd0 ||
+            observed_read_cmd_addr[6] !== 28'd1 || frame_done_count != 3 ||
+            observed_done_slot[2] !== 1'b0 || frame_fault_count != 0)
+            $fatal(1, "released slot was not reused by the third frame");
+
+        $display("INFO: two OV5640 frames queued in slots 0/1 and read in order");
+        $display("INFO: slot 0 was reused after its first frame left DDR storage");
 
         reset_pipeline();
         ddr_model_enable = 1'b0;
@@ -346,7 +374,7 @@ module tb_ov5640_ddr3_committed_pcie_loopback;
 
         ddr_model_enable = 1'b1;
         wait (frame_write_count == 1);
-        wait (!staging_valid && !ddr_write_valid);
+        wait (!ddr_write_valid);
         wait (drop_count == 1);
         repeat (3) @(posedge ddr_clk);
         pressure_record_count = ddr_write_count;
@@ -354,27 +382,26 @@ module tb_ov5640_ddr3_committed_pcie_loopback;
             !ddr_model_protocol_error[pressure_record_count - 1] ||
             ddr_model_keep[pressure_record_count - 1] !== 4'h0 ||
             !ddr_model_frame_end[pressure_record_count - 1] ||
-            read_cmd_count != 0 || mwr32_req || pcie_busy)
+            drop_slot_id !== 1'b0 || read_cmd_count != 0 || mwr32_req || pcie_busy)
             $fatal(1, "invalid pressure frame was not dropped before DDR readout");
 
-        recovery_start_index = ddr_write_count;
         drive_frame(2, 16'hf800);
         wait (frame_write_count == 2);
-        accept_mwr(recovery_start_index, 64'h0000_0000_0000_2000, 2);
-        accept_mwr(recovery_start_index + 1, 64'h0000_0000_0000_2004, 0);
+        accept_mwr(64, 64'h0000_0000_0000_2000, 2);
+        accept_mwr(65, 64'h0000_0000_0000_2004, 0);
         repeat (3) @(posedge ddr_clk);
         #1ns;
         if (read_cmd_count != 2 ||
-            observed_read_cmd_addr[0] !== recovery_start_index ||
-            observed_read_cmd_addr[1] !== recovery_start_index + 1 ||
+            observed_read_cmd_addr[0] !== 28'd64 ||
+            observed_read_cmd_addr[1] !== 28'd65 ||
             drop_count != 1 || frame_done_count != 1 ||
-            frame_fault_count != 0 || req_protocol_error)
+            observed_done_slot[0] !== 1'b1 || frame_fault_count != 0 ||
+            req_protocol_error)
             $fatal(1, "post-drop recovery frame scheduling mismatch");
 
         $display("INFO: pressure frame wrote %0d records, produced one drop and zero reads",
                  pressure_record_count);
-        $display("INFO: recovery frame read tokens %0d/%0d reached PCIe at 0x2000/0x2004",
-                 recovery_start_index, recovery_start_index + 1);
+        $display("INFO: recovery frame used slot 1 tokens 64/65 and reached PCIe");
         $display("TEST PASS");
         $finish;
     end

@@ -13,8 +13,14 @@
 module tb_rgb565_axis4_committed_pcie_mwr_path;
     logic        rst_n = 1'b0;
     logic        clk = 1'b0;
+    logic        write_alloc_valid;
+    logic        write_alloc_ready = 1'b0;
+    logic        write_alloc_slot_id;
+    logic [27:0] write_alloc_base_addr;
+    logic [31:0] write_alloc_record_capacity;
     logic        commit_valid = 1'b0;
     logic        commit_ready;
+    logic        commit_slot_id = 1'b0;
     logic [27:0] commit_addr = 28'd0;
     logic [3:0]  commit_keep = 4'h0;
     logic        commit_frame_end = 1'b0;
@@ -30,7 +36,9 @@ module tb_rgb565_axis4_committed_pcie_mwr_path;
     logic        read_frame_end = 1'b0;
     logic        read_protocol_error = 1'b0;
     logic        drop_frame_pulse;
+    logic        drop_slot_id;
     logic        frame_done_pulse;
+    logic        frame_done_slot_id;
     logic        frame_fault_pulse;
     logic        mwr32_req;
     logic        mwr32_req_ack = 1'b0;
@@ -48,7 +56,10 @@ module tb_rgb565_axis4_committed_pcie_mwr_path;
     integer      frame_fault_count = 0;
 
     rgb565_axis4_committed_pcie_mwr_path #(
-        .BASE_ADDR(64'h0000_0000_0000_2000)
+        .BASE_ADDR(64'h0000_0000_0000_2000),
+        .SLOT0_BASE_ADDR(28'd10),
+        .SLOT1_BASE_ADDR(28'd30),
+        .SLOT_RECORD_CAPACITY(32'd16)
     ) dut (.*);
 
     always #5ns clk = ~clk;
@@ -68,7 +79,25 @@ module tb_rgb565_axis4_committed_pcie_mwr_path;
         $fatal(1, "committed PCIe MWR path timeout");
     end
 
-    task automatic send_commit_record(input logic [27:0] addr,
+    task automatic accept_allocation(input logic expected_slot,
+                                     input logic [27:0] expected_base);
+        begin
+            wait (write_alloc_valid);
+            #1ns;
+            if (write_alloc_slot_id !== expected_slot ||
+                write_alloc_base_addr !== expected_base ||
+                write_alloc_record_capacity !== 32'd16)
+                $fatal(1, "frame allocation mismatch");
+            @(negedge clk);
+            write_alloc_ready = 1'b1;
+            @(posedge clk);
+            #1ns;
+            write_alloc_ready = 1'b0;
+        end
+    endtask
+
+    task automatic send_commit_record(input logic slot_id,
+                                      input logic [27:0] addr,
                                       input logic [3:0] keep,
                                       input logic frame_end,
                                       input logic protocol_error);
@@ -76,6 +105,7 @@ module tb_rgb565_axis4_committed_pcie_mwr_path;
             while (!commit_ready)
                 @(posedge clk);
             @(negedge clk);
+            commit_slot_id = slot_id;
             commit_addr = addr;
             commit_keep = keep;
             commit_frame_end = frame_end;
@@ -84,6 +114,7 @@ module tb_rgb565_axis4_committed_pcie_mwr_path;
             @(posedge clk);
             #1ns;
             commit_valid = 1'b0;
+            commit_slot_id = 1'b0;
             commit_addr = 28'd0;
             commit_keep = 4'h0;
             commit_frame_end = 1'b0;
@@ -149,6 +180,7 @@ module tb_rgb565_axis4_committed_pcie_mwr_path;
         repeat (2) @(posedge clk);
         rst_n = 1'b1;
 
+        accept_allocation(1'b0, 28'd10);
         @(negedge clk);
         read_data = 32'hdeadbeef;
         read_keep = 4'hf;
@@ -156,11 +188,11 @@ module tb_rgb565_axis4_committed_pcie_mwr_path;
         read_frame_end = 1'b1;
         read_protocol_error = 1'b1;
         read_valid = 1'b1;
-        send_commit_record(28'd0, 4'hf, 1'b0, 1'b0);
-        send_commit_record(28'd1, 4'h0, 1'b1, 1'b1);
+        send_commit_record(1'b0, 28'd10, 4'hf, 1'b0, 1'b0);
+        send_commit_record(1'b0, 28'd11, 4'h0, 1'b1, 1'b1);
         repeat (3) @(posedge clk);
         #1ns;
-        if (drop_count != 1 || mwr32_req || read_ready)
+        if (drop_count != 1 || drop_slot_id !== 1'b0 || mwr32_req || read_ready)
             $fatal(1, "invalid frame was not isolated: drops=%0d req=%b read_ready=%b",
                    drop_count, mwr32_req, read_ready);
         @(negedge clk);
@@ -171,11 +203,12 @@ module tb_rgb565_axis4_committed_pcie_mwr_path;
         read_frame_end = 1'b0;
         read_protocol_error = 1'b0;
 
-        send_commit_record(28'd10, 4'hf, 1'b0, 1'b0);
-        send_commit_record(28'd11, 4'h0, 1'b1, 1'b0);
-        send_read_record(28'd10, 32'h44332211, 4'hf, 1'b1, 1'b0, 1'b0,
+        accept_allocation(1'b1, 28'd30);
+        send_commit_record(1'b1, 28'd30, 4'hf, 1'b0, 1'b0);
+        send_commit_record(1'b1, 28'd31, 4'h0, 1'b1, 1'b0);
+        send_read_record(28'd30, 32'h44332211, 4'hf, 1'b1, 1'b0, 1'b0,
                          64'h0000_0000_0000_2000, 1'b0, 1'b0);
-        send_read_record(28'd11, 32'h00000000, 4'h0, 1'b1, 1'b1, 1'b0,
+        send_read_record(28'd31, 32'h00000000, 4'h0, 1'b1, 1'b1, 1'b0,
                          64'h0000_0000_0000_2004, 1'b1, 1'b0);
 
         repeat (2) @(posedge clk);
@@ -183,11 +216,12 @@ module tb_rgb565_axis4_committed_pcie_mwr_path;
         if (read_ready || busy || mwr32_req || drop_count != 1)
             $fatal(1, "committed path did not close cleanly");
 
-        send_commit_record(28'd20, 4'hf, 1'b0, 1'b0);
-        send_commit_record(28'd21, 4'h0, 1'b1, 1'b0);
+        accept_allocation(1'b0, 28'd10);
+        send_commit_record(1'b0, 28'd10, 4'hf, 1'b0, 1'b0);
+        send_commit_record(1'b0, 28'd11, 4'h0, 1'b1, 1'b0);
         wait (read_cmd_valid);
         #1ns;
-        if (read_cmd_addr !== 28'd20)
+        if (read_cmd_addr !== 28'd10)
             $fatal(1, "runtime-reset read command address mismatch");
         read_cmd_ready = 1'b1;
         @(posedge clk);
@@ -217,23 +251,26 @@ module tb_rgb565_axis4_committed_pcie_mwr_path;
         @(negedge clk);
         rst_n = 1'b1;
 
-        send_commit_record(28'd30, 4'hf, 1'b0, 1'b0);
-        send_commit_record(28'd31, 4'h0, 1'b1, 1'b0);
-        send_read_record(28'd30, 32'h04030201, 4'hf, 1'b1, 1'b0, 1'b0,
+        accept_allocation(1'b0, 28'd10);
+        send_commit_record(1'b0, 28'd10, 4'hf, 1'b0, 1'b0);
+        send_commit_record(1'b0, 28'd11, 4'h0, 1'b1, 1'b0);
+        send_read_record(28'd10, 32'h04030201, 4'hf, 1'b1, 1'b0, 1'b0,
                          64'h0000_0000_0000_2000, 1'b0, 1'b0);
-        send_read_record(28'd31, 32'h00000000, 4'h0, 1'b1, 1'b1, 1'b0,
+        send_read_record(28'd11, 32'h00000000, 4'h0, 1'b1, 1'b1, 1'b0,
                          64'h0000_0000_0000_2004, 1'b1, 1'b0);
 
-        send_commit_record(28'd40, 4'hf, 1'b0, 1'b0);
-        send_commit_record(28'd41, 4'h0, 1'b1, 1'b0);
-        send_read_record(28'd40, 32'h88776655, 4'hf, 1'b1, 1'b1, 1'b0,
+        accept_allocation(1'b1, 28'd30);
+        send_commit_record(1'b1, 28'd30, 4'hf, 1'b0, 1'b0);
+        send_commit_record(1'b1, 28'd31, 4'h0, 1'b1, 1'b0);
+        send_read_record(28'd30, 32'h88776655, 4'hf, 1'b1, 1'b1, 1'b0,
                          64'h0000_0000_0000_2004, 1'b1, 1'b1);
         repeat (2) @(posedge clk);
         #1ns;
         if (read_cmd_valid || read_ready || frame_fault_count != 1)
             $fatal(1, "early frame end did not fault-complete the current frame");
 
-        send_commit_record(28'd60, 4'hf, 1'b1, 1'b0);
+        accept_allocation(1'b0, 28'd10);
+        send_commit_record(1'b0, 28'd10, 4'hf, 1'b1, 1'b0);
         wait (read_cmd_valid);
         @(negedge clk);
         read_cmd_ready = 1'b1;
@@ -266,7 +303,7 @@ module tb_rgb565_axis4_committed_pcie_mwr_path;
         repeat (2) @(posedge clk);
         #1ns;
         if (read_cmd_valid || read_ready || frame_fault_count != 2 ||
-            frame_done_count != 4)
+            frame_done_count != 4 || frame_done_slot_id !== 1'b0)
             $fatal(1, "response fault accounting mismatch: done=%0d fault=%0d",
                    frame_done_count, frame_fault_count);
 

@@ -165,9 +165,11 @@
 - code_path: `main_ov5640_pcie/rtl/rgb565_axis4_ddr3_write_descriptor.sv`
 - test_path: `main_ov5640_pcie/tb/tb_rgb565_axis4_ddr3_write_descriptor.sv`
 - script_path: `main_ov5640_pcie/scripts/run_m3b_ddr3_write_descriptor.ps1`
-- responsibility: 生成单 beat 128-bit 数据、16-bit strobe 的 vendor-independent normalized DDR3 write record；地址是 opaque 28-bit token，支持 `ADDR_STEP` 参数推进。
-- address_contract: `write_addr` 首次取 `BASE_ADDR`，每次记录释放后按 opaque `ADDR_STEP` 推进；该步长不解释为任何物理地址单位。
-- regression_2026_09_03: TB 新增 `write_valid=1` 且 `write_strobe=0` 的空 keep 控制记录；`write_ready=0` 背压期间检查 `write_addr/write_data/write_strobe/write_last/frame_end/protocol_error` 全字段保持；连续释放多个记录验证地址按 `ADDR_STEP` 连续推进；复位后验证地址重新由 `BASE_ADDR` 覆盖。Questa Sim-64 2021.1 为 0 error/0 warning、日志唯一 `TEST PASS`，仿真至 126 ns。
+- responsibility: 按帧接收 slot table 分配的 `slot/base/capacity`，生成单 beat 128-bit 数据、16-bit strobe 的 vendor-independent normalized DDR3 write record。
+- allocation_contract: allocation 的 slot id、槽基 opaque token 与记录容量在握手时装载；slot table 是容量单一事实源，writer 只执行所分配容量的地址约束。
+- integration_contract: writer 在背压期间保持记录稳定；新流水顶层在 writer 外执行“DDR write 接受后再向 frame commit 提交”的两阶段交付。
+- address_contract: `write_addr` 从本帧 allocation base 起步，按 opaque `ADDR_STEP` 推进；该步长不解释为任何物理地址单位。
+- regression_2026_09_03: Questa Sim-64 2021.1 为 0 error/0 warning、日志唯一 `TEST PASS`，仿真至 251 ns；覆盖 allocation 的 slot/base/capacity、背压字段保持、容量边界与恢复。
 - boundary: 不假定地址单位、初始化行为或 AXI4 burst 语义；不接 vendor DDR3 IP。
 
 ## main 独立 OV5640→PCIe MWR bridge
@@ -368,7 +370,7 @@
 - behavior_path: OV5640 DVP→`ov5640_dvp_rgb565_cdc_staging_pipeline`→`rgb565_axis4_ddr3_write_descriptor`→TB 内 DDR3 数组模型→`rgb565_axis4_pcie_mwr_path`。
 - scenario: 正常 3 像素帧形成 2 个 payload 记录和 1 个空载帧尾记录；复位后阻塞 DDR writer，64 像素压力帧形成 21 条记录，唯一 `keep=0/frame_end=1/protocol_error=1` abort 位于索引 20；随后 1 像素恢复帧形成 2 条正常记录。DDR3 模型保存并按序回读全部字段到 PCIe MWR。
 - pcie_addresses: 正常帧地址仍为 `0x0ffc/0x1000/0x1002`；压力 epoch 中 abort 和恢复 payload 均从 `0x104c` 发起，证明空载控制记录不推进按有效字节计数的 PCIe 地址。
-- evidence: 最终 Questa Sim-64 2021.1 编译为 0 error/0 warning，日志唯一 TEST PASS，仿真至 3844 ns；DDR3 模型在 posedge valid/ready 握手边沿采集写事务。
+- evidence: 最新 Questa Sim-64 2021.1 编译为 0 error/0 warning，日志唯一 TEST PASS，仿真至 3900 ns；DDR3 模型在 posedge valid/ready 握手边沿采集写事务。
 - boundary: 已覆盖 overflow 中止记录和恢复帧在 vendor-independent DDR3 模型与 PCIe MWR 路径中的保存、顺序和地址语义；不证明真实 DDR3 地址单位、初始化、AW/W 握手或读口时序，不证明厂商 PCIe IP、TLP、byte-enable、链路、DMA/主机写入，也不证明管脚、电气或板级时序。
 
 ## main OV5640→PCIe M3-B vendor-independent 帧提交决策
@@ -380,22 +382,22 @@
 - contract: 正常帧输出 committed 描述符；累计协议错误帧输出不可提交描述符。描述符保留该帧第一条记录的 opaque token 与 slot id，并携带 bytes、records 和错误状态；同帧后续记录切换 slot id 会并入协议错误并拒绝提交。模块不产生 drop pulse，后续正常帧仍可恢复。
 - tdd_red: 槽号场景先在旧 RTL 上于 47 ns 失败，证明首 slot id 保存与同帧 slot mismatch 检查并非测试既有行为。
 - evidence: Questa Sim-64 2021.1 为 0 error/0 warning、日志唯一 TEST PASS、仿真至 240 ns；覆盖单记录/多记录首槽号、同帧槽不一致拒绝、半帧统计和待消费描述符的运行中复位。
-- boundary: 首 token 仅为 vendor-independent opaque 索引；slot id 尚未连接物理槽地址生成、读调度或回收。不生成真实 DDR3 读地址，不实例化 vendor IP，不证明 DDR3 数据持久化或物理双槽复用。
+- boundary: 首 token 仅为 vendor-independent opaque 索引；slot id 已由新顶层连接到分配、读调度和回收，但仍不生成真实 DDR3 物理地址，不实例化 vendor IP，也不证明 DDR3 数据持久化。
 
 ## main OV5640→PCIe M3-B 双槽帧控制面
 
-- implementation_status: behavior_verified_standalone_double_slot_control_plane_only
+- implementation_status: behavior_verified_double_slot_control_plane_and_pipeline_integration
 - code_path: `main_ov5640_pcie/rtl/rgb565_axis4_frame_slot_table.sv`
 - test_path: `main_ov5640_pcie/tb/tb_rgb565_axis4_frame_slot_table.sv`
 - script_path: `main_ov5640_pcie/scripts/run_m3b_frame_slot_table.ps1`
 - lifecycle_contract: 正常槽只允许 `FREE→WRITING→QUEUED→READING→FREE`；错误帧从 `WRITING→FREE`，不进入 committed FIFO。
-- allocation_contract: `write_alloc_valid` 在 `write_alloc_ready` 前保持 slot id 与槽基 opaque token 稳定；只有 FREE 槽可被分配为 WRITING。
+- allocation_contract: `write_alloc_valid` 在 `write_alloc_ready` 前保持 slot id、槽基 opaque token 与记录容量稳定；只有 FREE 槽可被分配为 WRITING。slot table 是容量单一事实源。
 - queue_contract: committed 描述符按提交顺序进入深度 2 FIFO；内部 `reader_active` 阻止第二个描述符在首帧 READING 期间出队，任一时刻最多一个槽为活动读者。
 - release_contract: `read_done_pulse` 只有在 slot id 匹配 active reader 且目标槽处于 READING 时才释放；错槽、重复或迟到完成只置 `fault_pulse`，不改变槽所有权。
 - capacity_contract: `SLOT_RECORD_CAPACITY` 非零且作为单槽记录上限；`records==0`、记录超限或提交策略字段不一致均 fault-drop，不能进入另一槽空间。
 - tdd_red: 专项测试先因目标 RTL 不存在而编译失败；加入 reader 独占场景后，旧控制逻辑在连续 `read_desc_ready` 下于 126 ns 错误开放第二描述符。
-- evidence: 最终 Questa Sim-64 2021.1 为 0 error/0 warning、日志唯一 TEST PASS、仿真至 406 ns；覆盖分配背压保持、两槽占用、深度 2 FIFO 顺序、单 reader、错槽/迟到完成、错误帧回收、容量超限 fault-drop、复用与运行中复位。
-- integration_gap: 当前槽表未被 `rgb565_axis4_ddr3_write_descriptor`、`rgb565_axis4_frame_read_scheduler` 或 `rgb565_axis4_committed_pcie_mwr_path` 实例化；writer 仍是全局地址序列，scheduler/done 仍无槽号，因此不是完整双槽闭环。
+- evidence: 最终 Questa Sim-64 2021.1 为 0 error/0 warning、日志唯一 TEST PASS、仿真至 436 ns；覆盖 allocation 的 slot/base/capacity、两槽排队、单 reader、带槽完成、错误帧回收、容量超限 fault-drop 与复用。
+- integration_path: 新顶层 `ov5640_dvp_rgb565_ddr3_pcie_pipeline` 已把 slot table 接入 writer、frame commit、带槽 scheduler/done 与 committed MWR 路径。
 - boundary: 槽基值仍是 opaque token；不证明真实 DDR3 容量、地址单位、持久化、仲裁/刷新、vendor DDR3 IP、PCIe TLP/DMA/链路、主机内存或板级时序。
 
 ## main OV5640→PCIe M3-B frame read scheduler
@@ -404,8 +406,8 @@
 - code_path: `main_ov5640_pcie/rtl/rgb565_axis4_frame_read_scheduler.sv`
 - test_path: `main_ov5640_pcie/tb/tb_rgb565_axis4_frame_read_scheduler.sv`
 - script_path: `main_ov5640_pcie/scripts/run_m3b_frame_read_scheduler.ps1`
-- contract: 消费 frame commit 描述符，以首 opaque token 为起点、按 records 顺序生成读命令；统一 `read_response_ready/read_response_accepted` 配对和帧完成语义，任一时刻最多一个 response outstanding。命令握手与零延迟响应允许同拍；提前 `frame_end` 或最终计数响应缺失 `frame_end` 时均把该响应归一化为帧尾、置 protocol fault 并完成；`committed && records=0` 不发命令，直接产生 fault-complete。
-- completion_outputs: 正常和恢复性协议 fault 均产生单周期 `frame_done_pulse`；协议归一化或零记录 committed 描述符同时产生 `frame_fault_pulse`。
+- contract: 消费带 slot id 的 committed 描述符，以首 opaque token 为起点、按 records 顺序生成读命令；统一 `read_response_ready/read_response_accepted` 配对和帧完成语义，任一时刻最多一个 response outstanding。命令握手与零延迟响应允许同拍；提前 `frame_end` 或最终计数响应缺失 `frame_end` 时均把该响应归一化为帧尾、置 protocol fault 并完成；`committed && records=0` 不发命令，直接产生 fault-complete。
+- completion_outputs: 正常和恢复性协议 fault 均产生单周期 `frame_done_pulse` 与对应 `frame_done_slot_id`；协议归一化或零记录 committed 描述符同时产生 `frame_fault_pulse`。
 - evidence: 2026-09-03 Questa Sim-64 2021.1 为 0 error/0 warning、日志唯一 TEST PASS、仿真至 346 ns。
 - boundary: 命令地址仍是 opaque token，不是 DDR3 物理地址；不实现控制器读事务、仲裁、物理双槽切换或 vendor IP。
 
@@ -428,17 +430,30 @@
 - parameters: `BASE_ADDR` 定义 vendor-independent MWR 起始地址；`TOKEN_ADDR_STEP` 显式传入 frame read scheduler，仅控制 opaque token 递增。
 - contract: 串接 frame commit、单 outstanding frame read scheduler、readout gate 与 MWR path；支持命令/零延迟响应同拍，scheduler 归一化提前或缺失帧尾；错误帧只产生 1 次 `drop_frame_pulse`，不发读命令且不产生 PCIe MWR。
 - status_outputs: wrapper 向集成层显式暴露单周期 `frame_done_pulse` 与 `frame_fault_pulse`，正常完成只置 done，恢复性协议 fault 与 committed 零记录同时置 done/fault。
-- evidence: 2026-09-03 Questa Sim-64 2021.1 为 0 error/0 warning、日志唯一 TEST PASS、仿真至 576 ns。
-- boundary: wrapper 当前向 frame commit 固定输入 slot 0，并丢弃 `desc_slot_id`；未实例化双槽帧控制面，scheduler 和 frame done 也未携带槽号。无物理双槽复用；不生成真实 DDR3 地址，不实例化 DDR3/PCIe vendor IP，不证明 DDR3 持久化、PCIe TLP/byte-enable/DMA/链路、主机内存写入或板级时序。
+- evidence: 2026-09-03 Questa Sim-64 2021.1 为 0 error/0 warning、日志唯一 TEST PASS、仿真至 696 ns。
+- boundary: wrapper 已传递 slot id 并以带槽 frame done 驱动释放；地址仍为数组模型 opaque token，输出仍为规范化 MWR。不实例化 DDR3/PCIe vendor IP，不证明 DDR3 持久化、PCIe ACK/主机接收、TLP/byte-enable/DMA/链路、RK3568 DMA 或板级时序。
+
+## main OV5640→DDR3模型→PCIe 双槽流水顶层
+
+- implementation_status: behavior_verified_double_slot_model_pipeline_only
+- code_path: `main_ov5640_pcie/rtl/ov5640_dvp_rgb565_ddr3_pcie_pipeline.sv`
+- test_path: `main_ov5640_pcie/tb/tb_ov5640_ddr3_committed_pcie_loopback.sv`
+- script_path: `main_ov5640_pcie/scripts/run_m3b_ov5640_ddr3_committed_pcie_loopback.ps1`
+- behavior_path: OV5640 DVP→CDC staging→slot table allocation(`slot/base/capacity`)→DDR writer→TB 数组模型→写接受后的 frame commit→双槽提交 FIFO→带槽 scheduler/read done→规范化 PCIe MWR。
+- ordering_contract: DDR write 先被下游接受，下一阶段才提交记录；slot table 是每槽容量单一事实源。
+- queue_and_reuse: slot0 token `0..2` 与 slot1 token `64..65` 两帧可同时排队；slot0 读完后可重新分配并复用。
+- error_recovery: 错误帧在 slot0 产生一次 drop，0 read command、0 MWR；slot1 后续正常恢复并输出。
+- evidence: 2026-09-03 Questa Sim-64 2021.1 为 0 error/0 warning、日志唯一 TEST PASS、仿真至 4264 ns。
+- boundary: DDR3 仅为 TB 数组 token，PCIe 仅为规范化 MWR；不证明 vendor DDR3/PCIe IP、PCIe ACK 或主机接收、RK3568 DMA、链路、电气、时序或板级闭环。
 
 ## main OV5640→DDR3模型→已提交 PCIe 单一回归
 
 - implementation_status: behavior_verified_committed_model_loopback_only
 - test_path: `main_ov5640_pcie/tb/tb_ov5640_ddr3_committed_pcie_loopback.sv`
 - script_path: `main_ov5640_pcie/scripts/run_m3b_ov5640_ddr3_committed_pcie_loopback.ps1`
-- behavior_path: OV5640 DVP→CDC staging→规范化 DDR3 写记录→TB 数组模型→frame commit→单 outstanding 读调度→readout gate→PCIe MWR。
-- normal_scenario: 正常帧写 token `0/1/2`，读调度按同序发出命令，MWR 地址为 `0x2000/0x2004/0x2006`。
-- pressure_scenario: 压力错误帧形成 21 条记录，但只产生 1 次 drop、0 条 read command 和 0 条 MWR。
-- recovery_scenario: 恢复帧从模型 token `21/22` 顺序读取，MWR 地址为 `0x2000/0x2004`。
-- evidence: 2026-09-03 Questa Sim-64 2021.1 为 0 error/0 warning、日志唯一 TEST PASS、仿真至 3158 ns。
-- boundary: TB 数组仅以 opaque token 建模记录，没有物理双槽复用；不证明真实 DDR3 地址/IP/持久化，也不证明真实 PCIe TLP/DMA/链路/主机内存或板级时序。
+- behavior_path: 通过 `ov5640_dvp_rgb565_ddr3_pcie_pipeline` 串接 OV5640 DVP、CDC staging、双槽分配/写入/提交、TB 数组模型、带槽单 outstanding 读调度与规范化 PCIe MWR。
+- normal_scenario: slot0 写/读 token `0..2`，slot1 写/读 token `64..65`；两帧按提交顺序排队，slot0 完成后可复用。
+- pressure_scenario: 错误帧占用 slot0 后只产生 1 次 drop、0 条 read command 和 0 条 MWR。
+- recovery_scenario: slot1 在错误帧后恢复正常读出与 MWR。
+- evidence: 2026-09-03 Questa Sim-64 2021.1 为 0 error/0 warning、日志唯一 TEST PASS、仿真至 4264 ns。
+- boundary: TB 数组仅以 opaque token 建模双槽，PCIe 输出仅为规范化 MWR；不证明 vendor DDR3/PCIe IP、PCIe ACK/主机接收、RK3568 DMA、真实链路或板级时序。

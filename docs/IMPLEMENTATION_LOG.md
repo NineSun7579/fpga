@@ -693,5 +693,25 @@
   2021.1 为 `0 error/0 warning`、唯一 `TEST PASS`、`406 ns`。
 - `frame_commit` 同步增加首 slot ID 保存和同帧槽号一致性检查，专项更新为 `240 ns`；既有
   committed path `576 ns` 和完整行为 loopback `3158 ns` 保持通过。
-- 当前槽表尚未接入 DDR writer、read scheduler 和 committed wrapper，不能解释为物理双槽、
-  真实 DDR3 控制器或 PCIe 主机闭环。
+- 该批结束时槽表尚未接入 DDR writer、read scheduler 和 committed wrapper；后续接入结果见
+  下一节。该独立控制面证据本身不能解释为真实 DDR3 控制器或 PCIe 主机闭环。
+
+## 2026-09-03：main 双槽行为主链接入
+
+- `rgb565_axis4_ddr3_write_descriptor` 改为每帧先接受 slot ID、槽基 token 和容量分配；无槽时
+  背压 staging。容量内按 `ADDR_STEP` 推进，越界后停在本槽末 token 并强制错误直到帧尾，
+  避免污染另一槽。专项 TDD 先因参数缺失红灯，最终 `251 ns`。
+- `rgb565_axis4_frame_slot_table` 将容量随 allocation 输出，成为 writer/槽表单一事实源；正确
+  WRITING 槽若提交错误首 token，现会 fault-drop 并释放，避免槽泄漏。专项更新为 `436 ns`。
+- `rgb565_axis4_frame_read_scheduler` 锁存描述符 slot ID，正常、零记录和帧尾不一致完成均携带
+  `frame_done_slot_id`；专项保持 `346 ns`。
+- `rgb565_axis4_committed_pcie_mwr_path` 已实例化槽表，frame commit 描述符先排队，队首再原子
+  分发给 scheduler/gate；drop 只由槽表产生，scheduler done 带槽回收。专项为 `696 ns`。
+- 新增 `ov5640_dvp_rgb565_ddr3_pcie_pipeline`。每条 writer 记录先完成外部 DDR 写握手，下一阶段
+  才进入 frame commit，避免已提交帧读到尚未写入的数据；等待 commit 时不会重复 DDR 写事务。
+- 完整 OV5640 行为 loopback 覆盖 slot0/slot1 两帧排队、顺序读回、slot0 第三帧复用、21 记录
+  错误帧带槽 drop 和 slot1 恢复。Questa Sim-64 2021.1 为 0 error/0 warning、唯一
+  `TEST PASS`、`4264 ns`；旧逐条 loopback 更新 writer allocation 后为 `3900 ns`。
+- 当前 done 只表示 DDR 响应已离开槽并被本地 PCIe 请求寄存器接受，不表示 PCIe ACK、TLP
+  完成或 RK3568 主机已接收。真实板级闭环仍等待原理图、OV5640 初始化、DDR3/PCIe IP 用户口
+  和 RK3568 驱动/缓存/帧协议资料。

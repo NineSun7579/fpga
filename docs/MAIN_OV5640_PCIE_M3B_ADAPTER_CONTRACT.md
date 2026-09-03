@@ -173,16 +173,17 @@ overflow abort 或其他协议错误的帧输出 `committed=0`。空载帧尾仍
 valid/ready 描述符，避免背压期间 free 槽变化导致 slot ID 漂移。可提交帧按完成顺序进入深度 2
 FIFO，reader active 时第二个 committed 帧仍可排队，但不会暴露第二个读描述符。
 
+分配描述符同时携带 slot ID、槽基 token 和 `SLOT_RECORD_CAPACITY`，writer 在帧开始前原子锁存，
+使槽表成为容量单一事实源。writer 的容量内记录按 `ADDR_STEP` 推进；越界后地址停在本槽最后
+一个 token，并从首条越界记录起强制 protocol error，继续接受到帧尾后 fault-drop，不跨入另一槽。
+
 读完成必须携带当前 active reader 的 slot ID；错误、重复或迟到完成只产生 fault，不释放任何槽。
-零记录、超过 `SLOT_RECORD_CAPACITY` 或 committed/error 决策矛盾的描述符均 fault-drop。
+零记录、超过 `SLOT_RECORD_CAPACITY`、错误首 token 或 committed/error 决策矛盾的描述符均
+fault-drop。正确 WRITING 槽若提交错误首 token，会释放该槽，避免永久泄漏。
 专项 TB 覆盖两个槽同时 WRITING、两个 committed 排队、描述符背压、持续 ready 下单 reader、
 错误完成、错误帧回收、超容量帧、合法 `commit+read_done` 同拍和运行中复位。连续-ready 测试在
 旧实现于 `126 ns` 红灯；修复后 Questa Sim-64 2021.1 为 `0 error/0 warning`、唯一
-`TEST PASS`、`406 ns`。
-
-该槽表当前仍是独立控制面：DDR writer 尚未按帧装载槽基 token，frame scheduler/done 尚未携带
-slot ID，committed wrapper 也未插入 committed FIFO。因此它不构成物理双槽数据链，更不证明
-真实 DDR3 地址、容量、控制器或 PCIe 主机闭环。
+`TEST PASS`；增加容量随分配输出和错误首 token 回收后，最新专项为 `436 ns`。
 
 `rgb565_axis4_frame_read_scheduler` 只为 committed 描述符产生读命令，从首 token 起按
 `ADDR_STEP` 推进；每次只允许一个响应 outstanding，命令在背压时保持，收到对应记录被后级
@@ -197,23 +198,23 @@ slot ID，committed wrapper 也未插入 committed FIFO。因此它不构成物�
 统一产生的 `frame_done_pulse` 关闭，不再独立依赖原始 `read_frame_end`。读出源可以独立拉高
 valid，但必须在握手前保持全部字段；外部调度器不得为作废帧安排读记录。
 
-`rgb565_axis4_committed_pcie_mwr_path` 将提交器、读命令调度器、读出门控与现有规范化 PCIe
-MWR path 串接。提交描述符只在调度器和门控都 ready 时原子分发，避免两侧帧序失配。
-顶层显式以 `TOKEN_ADDR_STEP` 绑定读 token 步长，并向帧管理器输出 `frame_done_pulse` 与
-`frame_fault_pulse`，为后续带槽号回收提供事件基础；当前事件尚未携带槽号。
-专项回归在读侧存在待发送记录时提交错误帧，确认读窗口保持关闭且没有 MWR 请求；随后
-提交正常帧，payload 与空载帧尾分别从 `0x2000`、`0x2004` 发起请求。增强测试还覆盖帧统计、
-已打开读窗口和等待 ACK 请求的运行中复位，复位后请求地址重新从 `0x2000` 开始。frame
-commit、readout gate 和组合 path 的 Questa Sim-64 2021.1 回归分别为 `240 ns`、`211 ns`、
-`576 ns`，均为 `0 error/0 warning`、唯一 `TEST PASS`。
+`rgb565_axis4_committed_pcie_mwr_path` 已将 frame commit、双槽表、读命令调度器、读出门控与
+规范化 PCIe MWR path 串接。frame commit 描述符完整进入槽表；槽表队首只在 scheduler 和 gate
+均 ready 时原子出队。scheduler 描述符锁存 slot ID，正常或读协议 fault 完成都用
+`frame_done_pulse/frame_done_slot_id` 回收匹配 READING 槽；错误帧的
+`drop_frame_pulse/drop_slot_id` 只由槽表产生。组合 path 最新专项为 `696 ns`。
 
-`tb_ov5640_ddr3_committed_pcie_loopback` 把写模型和 commit 接受绑定到同一握手边沿，DDR 模型
-只为已接受的调度命令返回记录。正常 3 像素帧由 token `0..2` 产生 `0x2000/0x2004/0x2006`
-请求；64 像素压力错误帧形成 21 条记录、一次 drop、零读命令和零 MWR；随后 2 像素恢复帧
-只读取 token `21/22` 并从 `0x2000/0x2004` 发送。该回归为 `0 error/0 warning`、唯一
-`TEST PASS`、`3158 ns`。
+`ov5640_dvp_rgb565_ddr3_pcie_pipeline` 是当前 vendor-independent 可综合顶层。writer 记录先通过
+外部 `ddr_write_valid && ddr_write_ready`，下一阶段才送 frame commit；等待 commit 时禁止重复
+DDR 写 valid，并保持记录字段，因此提交不会早于模型持久化边界。scheduler 的 done 表示最后一条
+DDR 读响应已被本地 PCIe 请求路径锁存，允许复用 DDR 槽；它不表示 PCIe ACK 或主机已经收到帧。
 
-该切片尚未连接已验证的独立双槽表，也没有槽基 token 重装或真实存储回收数据链。连续 token
-调度只覆盖当前行为模型，`drop_frame_pulse` 也不等同于实际 DDR3 空间已经回收。
-它不实例化厂商 DDR3/PCIe IP，不证明 DDR3 写入持久化、读口时序、TLP、DMA、链路训练、
-主机内存写入或板级时序。
+`tb_ov5640_ddr3_committed_pcie_loopback` 直接实例化该顶层：读侧阻塞时，两个正常帧分别写入
+slot0 token `0..2` 和 slot1 token `64..65`，随后按提交顺序回送 PCIe；slot0 完成后由第三帧
+重新写入 token `0..1`。64 像素压力错误帧形成 21 条记录，只产生一次 slot0 drop、零读命令和
+零 MWR；恢复帧使用 slot1 token `64/65`。Questa Sim-64 2021.1 为 `0 error/0 warning`、唯一
+`TEST PASS`、`4264 ns`。
+
+该闭环仍以数组索引解释 DDR token，以规范化 `mwr32_req/ack` 表示 PCIe 请求。它不实例化
+PG2L50H DDR3/PCIe IP，不证明真实地址单位、初始化/校准、读口时序、TLP、DMA、链路训练、
+RK3568 主机内存写入或板级时序。

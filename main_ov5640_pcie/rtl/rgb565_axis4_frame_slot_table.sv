@@ -13,7 +13,7 @@
  *
  * @par Interface contract
  * - `write_alloc_valid && write_alloc_ready` 把一个 FREE 槽转为 WRITING；分配字段
- *   在背压期间保持稳定。
+ *   在背压期间保持稳定，容量字段来自本模块唯一 `SLOT_RECORD_CAPACITY` 参数。
  * - `commit_valid && commit_ready` 只接受 WRITING 槽的完成描述符，且首 token
  *   必须等于该槽固定基 token。
  * - committed 且无协议错误的描述符进入 FIFO，槽转为 QUEUED。
@@ -30,7 +30,7 @@
  *
  * @par Parameters
  * - `SLOT0_BASE_ADDR`、`SLOT1_BASE_ADDR`：两个槽的 opaque 首 token，必须不同。
- * - `SLOT_RECORD_CAPACITY`：每槽最多允许的记录数，必须大于零。
+ * - `SLOT_RECORD_CAPACITY`：每槽最多允许的记录数，必须大于零，并随分配输出。
  *
  * @par Assumptions
  * - 每个已分配槽最终恰好提交一次；缺失 commit 的超时恢复属于上层帧管理器。
@@ -51,6 +51,7 @@ module rgb565_axis4_frame_slot_table #(
     input  wire logic        write_alloc_ready,
     output logic             write_alloc_slot_id,
     output logic [27:0]      write_alloc_base_addr,
+    output logic [31:0]      write_alloc_record_capacity,
     input  wire logic        commit_valid,
     output logic             commit_ready,
     input  wire logic        commit_slot_id,
@@ -99,6 +100,7 @@ module rgb565_axis4_frame_slot_table #(
 
     logic        commit_slot_writing;
     logic [27:0] commit_expected_addr;
+    logic        commit_address_match;
     logic        commit_owner_valid;
     logic        commit_policy_mismatch;
     logic        commit_descriptor_fault;
@@ -119,15 +121,17 @@ module rgb565_axis4_frame_slot_table #(
         write_alloc_valid = alloc_pending_reg;
         write_alloc_slot_id = alloc_slot_id_reg;
         write_alloc_base_addr = alloc_base_addr_reg;
+        write_alloc_record_capacity = SLOT_RECORD_CAPACITY;
 
         commit_slot_writing = commit_slot_id ?
                               (slot1_state_reg == SLOT_WRITING) :
                               (slot0_state_reg == SLOT_WRITING);
         commit_expected_addr = commit_slot_id ? SLOT1_BASE_ADDR : SLOT0_BASE_ADDR;
-        commit_owner_valid = commit_slot_writing &&
-                             (commit_start_addr == commit_expected_addr);
+        commit_address_match = (commit_start_addr == commit_expected_addr);
+        commit_owner_valid = commit_slot_writing;
         commit_policy_mismatch = (commit_committed == commit_protocol_error);
-        commit_descriptor_fault = commit_policy_mismatch ||
+        commit_descriptor_fault = !commit_address_match ||
+                                  commit_policy_mismatch ||
                                   (commit_records == 32'd0) ||
                                   (commit_records > SLOT_RECORD_CAPACITY);
         commit_effective = commit_committed && !commit_protocol_error &&

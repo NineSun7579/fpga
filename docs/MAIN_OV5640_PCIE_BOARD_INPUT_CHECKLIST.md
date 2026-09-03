@@ -4,8 +4,8 @@
 
 ## 目的
 
-当前 RTL 已完成从 OV5640 DVP 激励、灰度处理、DDR3 记录数组模型、帧提交/作废、顺序读调度
-到 PCIe MWR 请求的行为闭环。以下资料用于把 opaque token 和临时请求合同替换为
+当前 RTL 已完成从 OV5640 DVP 激励、灰度处理、双槽 DDR3 记录数组模型、帧提交/作废、顺序读调度
+到 PCIe MWR 请求的行为闭环，并提供 vendor-independent 可综合连接顶层。以下资料用于把 opaque token 和临时请求合同替换为
 `PG2L50H-6IFBG484` 板上的真实 DDR3、PCIe 和 RK3568 主机接口；资料未关闭前，不得把模型回归
 解释为上板闭环。
 

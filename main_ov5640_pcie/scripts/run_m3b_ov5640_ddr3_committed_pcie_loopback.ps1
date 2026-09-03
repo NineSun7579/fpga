@@ -30,12 +30,14 @@ $Sources = @(
     (Join-Path $ProjectRoot 'rtl\ov5640_dvp_rgb565_cdc_staging_pipeline.sv'),
     (Join-Path $ProjectRoot 'rtl\rgb565_axis4_ddr3_write_descriptor.sv'),
     (Join-Path $ProjectRoot 'rtl\rgb565_axis4_frame_commit.sv'),
+    (Join-Path $ProjectRoot 'rtl\rgb565_axis4_frame_slot_table.sv'),
     (Join-Path $ProjectRoot 'rtl\rgb565_axis4_frame_read_scheduler.sv'),
     (Join-Path $ProjectRoot 'rtl\rgb565_axis4_frame_readout_gate.sv'),
     (Join-Path $ProjectRoot 'rtl\rgb565_axis4_mwr_descriptor.sv'),
     (Join-Path $ProjectRoot 'rtl\rgb565_axis4_pcie_mwr_bridge.sv'),
     (Join-Path $ProjectRoot 'rtl\rgb565_axis4_pcie_mwr_path.sv'),
     (Join-Path $ProjectRoot 'rtl\rgb565_axis4_committed_pcie_mwr_path.sv'),
+    (Join-Path $ProjectRoot 'rtl\ov5640_dvp_rgb565_ddr3_pcie_pipeline.sv'),
     (Join-Path $ProjectRoot 'tb\tb_ov5640_ddr3_committed_pcie_loopback.sv')
 )
 

@@ -24,6 +24,7 @@ $Vmap = Require-Executable 'vmap.exe'
 $Vsim = Require-Executable 'vsim.exe'
 $Sources = @(
     (Join-Path $ProjectRoot 'rtl\rgb565_axis4_frame_commit.sv'),
+    (Join-Path $ProjectRoot 'rtl\rgb565_axis4_frame_slot_table.sv'),
     (Join-Path $ProjectRoot 'rtl\rgb565_axis4_frame_read_scheduler.sv'),
     (Join-Path $ProjectRoot 'rtl\rgb565_axis4_frame_readout_gate.sv'),
     (Join-Path $ProjectRoot 'rtl\rgb565_axis4_mwr_descriptor.sv'),

@@ -5,7 +5,7 @@
  * @brief 为已提交帧顺序生成单 outstanding 的 DDR3 记录读命令。
  *
  * @details
- * 调度器消费包含首记录 opaque 地址、记录数和 committed 决策的帧描述符。
+ * 调度器消费包含槽号、首记录 opaque 地址、记录数和 committed 决策的帧描述符。
  * 不可提交描述符直接结束且不产生读命令；已提交描述符从首地址开始，每次
  * 只允许一个命令等待对应响应被后级接受，随后按 `ADDR_STEP` 推进。记录数
  * 与响应帧尾不一致时，当前响应被归一化为帧尾并报告 fault，避免读调度和
@@ -14,6 +14,7 @@
  *
  * @par Interface contract
  * - `desc_valid && desc_ready` 接受一个帧描述符。
+ * - 描述符槽号保持到当前帧完成，并与 `frame_done_pulse` 同周期输出。
  * - 已提交且记录数为零的描述符不发命令，并输出完成和 fault 脉冲。
  * - `read_cmd_valid && read_cmd_ready` 发出一条读命令；命令在背压期间保持。
  * - `read_response_ready` 表示当前响应可与已接受命令配对；支持命令和零延迟
@@ -42,6 +43,7 @@ module rgb565_axis4_frame_read_scheduler #(
     input  wire logic        clk,
     input  wire logic        desc_valid,
     output logic             desc_ready,
+    input  wire logic        desc_slot_id,
     input  wire logic [27:0] desc_start_addr,
     input  wire logic [31:0] desc_records,
     input  wire logic        desc_committed,
@@ -54,6 +56,7 @@ module rgb565_axis4_frame_read_scheduler #(
     output logic             read_response_frame_end_normalized,
     output logic             read_response_protocol_error,
     output logic             frame_done_pulse,
+    output logic             frame_done_slot_id,
     output logic             frame_fault_pulse,
     output logic             active
 );
@@ -106,12 +109,14 @@ module rgb565_axis4_frame_read_scheduler #(
             next_addr_reg            <= 28'd0;
             records_left_reg         <= 32'd0;
             frame_done_pulse         <= 1'b0;
+            frame_done_slot_id       <= 1'b0;
             frame_fault_pulse        <= 1'b0;
         end else begin
             frame_done_pulse <= 1'b0;
             frame_fault_pulse <= 1'b0;
 
             if (desc_valid && desc_ready) begin
+                frame_done_slot_id       <= desc_slot_id;
                 active_reg               <= desc_committed &&
                                             (desc_records != 32'd0);
                 response_outstanding_reg <= 1'b0;

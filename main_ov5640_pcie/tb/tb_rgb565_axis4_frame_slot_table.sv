@@ -17,6 +17,7 @@ module tb_rgb565_axis4_frame_slot_table;
     logic        write_alloc_ready = 1'b0;
     logic        write_alloc_slot_id;
     logic [27:0] write_alloc_base_addr;
+    logic [31:0] write_alloc_record_capacity;
     logic        commit_valid = 1'b0;
     logic        commit_ready;
     logic        commit_slot_id = 1'b0;
@@ -60,7 +61,8 @@ module tb_rgb565_axis4_frame_slot_table;
             wait (write_alloc_valid);
             #1ns;
             if (write_alloc_slot_id !== expected_slot ||
-                write_alloc_base_addr !== expected_base)
+                write_alloc_base_addr !== expected_base ||
+                write_alloc_record_capacity !== 32'd16)
                 $fatal(1, "allocation mismatch: slot=%b base=%0d",
                        write_alloc_slot_id, write_alloc_base_addr);
             held_slot = write_alloc_slot_id;
@@ -229,7 +231,14 @@ module tb_rgb565_axis4_frame_slot_table;
         @(posedge clk);
 
         accept_allocation(1'b0, 28'd100, 0);
-        submit_commit(1'b0, 28'd100, 32'd4, 32'd1, 1'b0, 1'b1);
+        submit_commit(1'b0, 28'd101, 32'd4, 32'd1, 1'b0, 1'b1);
+        #1ns;
+        if (!fault_pulse || !drop_frame_pulse || drop_slot_id !== 1'b0)
+            $fatal(1, "wrong start token did not fault-drop its writing slot");
+        @(posedge clk);
+
+        accept_allocation(1'b1, 28'd200, 0);
+        submit_commit(1'b1, 28'd200, 32'd4, 32'd1, 1'b0, 1'b1);
         wait (read_desc_valid);
         @(negedge clk);
         rst_n = 1'b0;

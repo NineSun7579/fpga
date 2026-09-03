@@ -33,6 +33,7 @@
 - `tb/tb_rgb565_axis4_frame_readout_gate.sv`：已提交帧透传、响应资格门控、完成关闭、错误帧隔离和运行中复位自检。
 - `rtl/rgb565_axis4_committed_pcie_mwr_path.sv`：帧提交、统一读响应调度、fault 恢复和规范化 PCIe MWR 组合切片。
 - `tb/tb_rgb565_axis4_committed_pcie_mwr_path.sv`：错误帧隔离、正常帧恢复及等待 ACK 请求复位清除的联合自检。
+- `rtl/ov5640_dvp_rgb565_ddr3_pcie_pipeline.sv`：OV5640 DVP、按槽 DDR 写入、帧提交/读回和 PCIe MWR 的 vendor-independent 顶层。
 - `rtl/ov5640_dvp_rgb565_dma_staging_pipeline.sv`：OV5640 到 staging/帧描述符联合 wrapper。
 - `tb/tb_ov5640_dvp_rgb565_dma_staging_pipeline.sv`：联合数据路径自检。
 - `rtl/rgb565_axis4_mwr_descriptor.sv`：板级无关的规范化 PCIe Memory Write 请求描述符。
@@ -41,9 +42,8 @@
 - `tb/tb_rgb565_axis4_pcie_mwr_bridge.sv`：请求全字段保持和 ack 释放自检。
 - `rtl/rgb565_axis4_pcie_mwr_path.sv`：staging→MWR descriptor→请求桥的组合路径。
 - `tb/tb_rgb565_axis4_pcie_mwr_path.sv`：请求地址、4 KB 边界及等待 ack 时预取下一记录的字段保持自检。
-- `rtl/rgb565_axis4_ddr3_write_descriptor.sv`：staging beat 到规范化 128-bit DDR3 写记录，地址步长参数化。
-- `tb/tb_rgb565_axis4_ddr3_write_descriptor.sv`：写数据、写掩码、控制记录、背压保持、
-  地址步进和复位恢复自检。
+- `rtl/rgb565_axis4_ddr3_write_descriptor.sv`：按帧接受 slot/base/capacity 分配并生成槽内规范化 DDR3 写记录。
+- `tb/tb_rgb565_axis4_ddr3_write_descriptor.sv`：分配前背压、槽基装载、地址步进、容量夹断、多条越界记录和复位自检。
 - `rtl/rgb565_axis4_async_fifo.sv`：携带 `data/keep/last/user` 的板级无关双时钟 staging FIFO。
 - `tb/tb_rgb565_axis4_async_fifo.sv`：异步时钟、满/空、顺序和握手自检。
 - `rtl/rgb565_axis4_cdc_bridge.sv`：异步 FIFO 的 staging 上游/下游 CDC 封装边界。
@@ -59,9 +59,9 @@
 - staging、帧统计和规范化请求描述符已完成同域行为验证；DDR3 写记录层已完成边界回归，
   staging 异步 FIFO 已完成双时钟行为验证；行为级 DDR3 模型已将正常帧、overflow
   中止记录和恢复帧送入 PCIe MWR 请求路径。提交描述符现在携带首个 opaque token，调度器
-  按记录数发出有界读命令，并统一处理零延迟响应、提前/缺失帧尾和零记录 fault。独立双槽表
-  已验证槽分配、两个 committed 排队、单 active reader 和带槽回收；但尚未把槽表接入 writer、
-  scheduler 和 committed wrapper，因此仍没有物理槽数据链或真实 DDR3/PCIe IP。
+  按记录数发出有界读命令，并统一处理零延迟响应、提前/缺失帧尾和零记录 fault。双槽表现已
+  接入 writer、frame commit、scheduler 和 committed wrapper；完整行为回归覆盖两个正常帧排队、
+  带槽完成、错误帧 drop 和槽复用。该顶层仍只暴露规范化 DDR3/PCIe 边界，不包含真实 vendor IP。
 
 ## 运行
 
