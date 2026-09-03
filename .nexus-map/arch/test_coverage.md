@@ -227,3 +227,10 @@
 7. DDR3 D3-0 已冻结 AW/W/AR/R 握手语义与 `I_ips_ddr_top` 实例边界；D3-A/B/C 仍待用户审核和实现，且 D3-0 评审不构成 RTL/IP/约束变更或仿真通过证据。
 8. 三项目最终产物必须证明目标为 `PG2L50H/FBG484/-6`；任何 PG2L100H report、SDF 或位流均拒绝烧录和签核。
 9. PCIe H2-B 只有在 50H build/IDF/report/bitstream 一致、lane 极性/拓扑、I/O delay、SCBV 和 UART2APB 归属均有证据后才可发布。
+
+## main OV5640→PCIe M3-B CDC bridge 覆盖
+
+- 正向：`rgb565_axis4_cdc_bridge` 封装 `rgb565_axis4_async_fifo`，以独立 3 ns/5 ns 时钟传递 5 个 staging beat，验证顺序、首末事件、keep/last/user、ready/valid 与最终 drain。
+- 结果：Questa Sim-64 2021.1，0 error/0 warning，唯一 TEST PASS，155 ns。
+- 缺陷修正：FIFO entry 从错误的 41 bit 修正为实际 42 bit，避免 `user[4]` 截断。
+- 边界：未覆盖静态 CDC/RDC、RAM 推断、复位释放、三时钟约束、真实 DDR3/PCIe IP 集成或实现级时序。

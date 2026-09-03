@@ -317,3 +317,14 @@
 - contract_path: `docs/MAIN_OV5640_PCIE_M3B_ADAPTER_CONTRACT.md`
 - evidence: 2026-09-03 Questa 2021.1 编译 9 个 RTL/TB，0 error/0 warning，唯一 TEST PASS
 - boundary: 不包含 DDR3/PCIe IP、CDC/FIFO、SCCB、板级时钟/管脚或主机协议；frame_end_pending 仅为同域 staging 验证策略
+
+## main OV5640→PCIe M3-B rgb565_axis4 CDC bridge
+
+- implementation_status: behavior_verified_dual_clock_only
+- code_path: `main_ov5640_pcie/rtl/rgb565_axis4_cdc_bridge.sv`
+- wrapped_module: `rgb565_axis4_async_fifo`
+- test_path: `main_ov5640_pcie/tb/tb_rgb565_axis4_cdc_bridge.sv`
+- contract: 上游/下游独立时钟 ready/valid 边界；staging beat 携带 32-bit data、4-bit keep、last、5-bit user 事件。
+- evidence: 2026-09-03 Questa Sim-64 2021.1，独立 3 ns/5 ns 时钟，5 beat 顺序、首末事件、keep/last、ready、最终 drain；0 error/0 warning，唯一 TEST PASS，155 ns。
+- defect_fix: FIFO entry 41 bit/实际 42 bit导致 `user[4]` 截断，已修正为完整 42-bit entry。
+- boundary: 尚未完成静态 CDC/RDC、RAM 推断、复位释放、三时钟约束、真实 DDR3/PCIe IP 集成。
