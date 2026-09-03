@@ -159,6 +159,15 @@
 - verification: TB 覆盖地址递增、`keep`、`last`、`frame_end` 与 4KB 边界标志；使用 `BASE_ADDR=0xffc` 验证跨界请求标记。
 - boundary: 仅验证规范化描述符字段与 4KB 边界指示，不接厂商 PCIe IP，不定义 TLP 编码、最大 payload、DMA 完成、DDR3 地址或主机协议。
 
+## main 独立 OV5640→PCIe normalized DDR3 write record
+
+- implementation_status: behavior_verified_vendor_independent_ddr_record_only
+- code_path: `main_ov5640_pcie/rtl/rgb565_axis4_ddr3_write_descriptor.sv`
+- test_path: `main_ov5640_pcie/tb/tb_rgb565_axis4_ddr3_write_descriptor.sv`
+- script_path: `main_ov5640_pcie/scripts/run_m3b_ddr3_write_descriptor.ps1`
+- responsibility: 生成单 beat 128-bit 数据、16-bit strobe 的 vendor-independent normalized DDR3 write record；地址是 opaque 28-bit token。
+- boundary: 不假定地址单位、初始化行为或 AXI4 burst 语义；不接 vendor DDR3 IP。
+
 ## main 独立 OV5640→PCIe MWR bridge
 
 - implementation_status: behavior_verified_audited_pin_bridge_provisional

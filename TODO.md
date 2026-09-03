@@ -166,7 +166,8 @@ M3-B 审计结论见 [`docs/MAIN_OV5640_PCIE_M3B_ADAPTER_CONTRACT.md`](docs/MAIN
    - 已完成：新增板级无关 `rgb565_word_to_axis4_adapter` staging 实现和自检入口；每个 128-bit 字最多拆为 4 个 32-bit beat，保留低 lane 顺序、4-bit keep、末 beat 和首/末事件标记；新增帧统计描述符模块；Questa 编译/行为均为 0 error/0 warning、唯一 `TEST PASS`。
    - 已完成：新增 OV5640 DVP→staging→帧描述符板级无关 wrapper 和联合 TB；修正 accounting ready 握手、纯控制帧尾 `word_valid` 丢失，并验证 3 像素帧得到 2 个 staging beat、6 字节描述符，Questa `0 error/0 warning`、唯一 `TEST PASS`。
    - 已完成：新增规范化 Memory Write 请求描述符和临时请求桥接层，验证请求字段锁存、ack 前保持及释放；桥接层不修改厂商 IP，byte-enable 映射仍未获真实 TLP/DMA 证据。
-   - 下一步：基于活动控制器完整启动/ack/busy/4 KB 分段语义建立 vendor bridge 专项 TB，再接入 DDR3 地址与 burst、帧描述符和三时钟域合同。当前 staging `tuser` 不等同于厂商编码，联合 wrapper 的一位帧尾挂起仅用于同域验证，不能替代真实 FIFO/CDC。
+   - 已完成：新增规范化 DDR3 单 beat 写记录层，验证 128-bit 数据、16-bit `wstrb`、字段保持和释放；28-bit 地址仍是 opaque token，不代表 DDR3 地址单位或 AXI4 burst。
+   - 下一步：基于活动控制器完整启动/ack/busy/4 KB 分段语义建立 PCIe bridge 专项 TB，并在 50H IP 重生成后重审 DDR3 用户口，再接入真实 DDR3 地址、burst 和三时钟域合同。当前 staging `tuser` 不等同于厂商编码，联合 wrapper 的一位帧尾挂起仅用于同域验证，不能替代真实 FIFO/CDC。
    - 禁止：未完成资料审核前修改 canonical IP、DDR3/PCIe RTL、FDC/RCF，或把 M3-A 行为通过解释为端到端输出通过。
 
 ### 近期执行顺序

@@ -399,6 +399,22 @@
       "hotspot": true
     },
     {
+      "id": "main-ov5640-pcie-m3b-ddr3-write-record",
+      "type": "System",
+      "label": "main OV5640→PCIe vendor-independent normalized DDR3 write record",
+      "responsibility": "生成单 beat 128-bit 数据与 16-bit strobe 的规范化 DDR3 写记录，地址使用 opaque 28-bit token。",
+      "implementation_status": "behavior_verified_vendor_independent_ddr_record_only",
+      "project_path": "main_ov5640_pcie/",
+      "code_path": "main_ov5640_pcie/rtl/rgb565_axis4_ddr3_write_descriptor.sv",
+      "test_path": "main_ov5640_pcie/tb/tb_rgb565_axis4_ddr3_write_descriptor.sv",
+      "evidence_path": "main_ov5640_pcie/scripts/run_m3b_ddr3_write_descriptor.ps1",
+      "contracts": {"data": "single beat, 128-bit write_data, 16-bit write_strobe", "address": "opaque 28-bit token; no address-unit assumption", "burst": "write_awlen=0; no AXI4 burst assumption"},
+      "questa_evidence": "Questa Sim-64 2021.1 编译 0 error/0 warning，日志唯一 TEST PASS",
+      "uncovered_boundaries": ["vendor DDR3 IP", "地址初始化语义", "AXI4 burst", "DDR3 控制器/内存时序", "CDC/FIFO", "PDS/STA/SDF"],
+      "complexity": "low",
+      "hotspot": true
+    },
+    {
       "id": "ov7725-hdmi-system",
       "type": "System",
       "label": "OV7725 HDMI Legacy 顶层",
@@ -1138,6 +1154,18 @@
       "target": "pds-workflow-guide",
       "type": "staged_under",
       "description": "byte-enable 映射仍为临时合同；该 bridge 不代表真实 PCIe TLP/DMA 通过。"
+    },
+    {
+      "source": "main-ov5640-pcie-m3b-ddr3-write-record",
+      "target": "main-ov5640-pcie-m3b-mwr-descriptor",
+      "type": "parallel_boundary_slice",
+      "description": "DDR3 write record 与 MWR descriptor 并行承接 staging 语义；本记录仅定义单 beat 128-bit/16-bit strobe 与 opaque 28-bit 地址 token。"
+    },
+    {
+      "source": "main-ov5640-pcie-m3b-ddr3-write-record",
+      "target": "pds-workflow-guide",
+      "type": "staged_under",
+      "description": "该记录不接 vendor DDR3 IP，不假定地址单位、初始化或 AXI4 burst，不能作为 DDR3 控制器或内存时序通过证据。"
     },
     {
       "source": "ov7725-hdmi-system",

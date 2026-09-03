@@ -152,6 +152,12 @@
 - 结果：`tb_rgb565_axis4_pcie_mwr_bridge.sv` 使用 watchdog、`$fatal` 和唯一 `TEST PASS` 验证上述行为。
 - 边界：byte-enable 映射仍是临时合同；不证明真实 PCIe TLP、DMA、厂商 IP、DDR3、CDC/FIFO 或后级实现。
 
+## main OV5640→PCIe normalized DDR3 write record 覆盖
+
+- 正向：TB 检查单 beat 128-bit `write_data`、16-bit `write_strobe`、`write_awlen=0`、opaque 28-bit `write_addr` 及 `write_last/frame_end/protocol_error` 字段。
+- 结果：`run_m3b_ddr3_write_descriptor.ps1` 使用 Questa Sim-64 2021.1，编译 0 error/0 warning，行为日志唯一 `TEST PASS`。
+- 边界：地址仅为 opaque 28-bit token，不假定地址单位、初始化、AXI4 burst 或 vendor DDR3 IP；未覆盖 DDR3 控制器、CDC/FIFO、真实内存时序、PDS/STA/SDF。
+
 ## S1/S2/S3 仿真就绪度矩阵（2026-08-30）
 
 - 已验证盘点：`docs/SIMULATION_READINESS_MATRIX.md` 已逐项目记录项目级 testbench、filelist、DO、厂商示例和四级仿真前置条件；PCIe S2-A 已实际执行 Questa 动态 smoke。

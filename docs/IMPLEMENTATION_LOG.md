@@ -482,3 +482,13 @@
   通过，日志唯一 `TEST PASS`。
 - 该 bridge 不实例化厂商 PCIe IP，尚不证明真实 TLP、DMA、byte-enable、主机地址或
   PCIe 链路行为；下一步需用真实控制器/链路模型重新审核启动、ack、busy 和分段语义。
+
+## 2026-09-03：main OV5640 M3-B 临时 DDR3 写记录层
+
+- 新增 `rgb565_axis4_ddr3_write_descriptor`，将单个 32-bit staging beat 放入
+  128-bit 写数据低位，并将 4-bit keep 映射到 16-bit 写掩码低位。
+- 输出固定单 beat 记录（`write_awlen=0`）；28-bit 地址保持为 opaque token，不解释
+  活动 DDR3 IP 的地址单位、初始化时序或 AXI4 burst 语义。
+- 新增独立 Questa TB 和脚本；编译 `0 error/0 warning`，记录保持/释放、数据和掩码
+  映射通过，日志唯一 `TEST PASS`。
+- 该层不实例化 DDR3 IP；实际用户口接入必须等待 PG2L50H IP 重生成及 D3-0-M 复核。
