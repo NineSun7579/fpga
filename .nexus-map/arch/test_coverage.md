@@ -96,7 +96,7 @@
 
 | 项目 | PDS 实现证据 | 时序证据 | 行为仿真 | 综合后仿真 | PNR 功能仿真 | PNR 时序仿真 |
 |---|---|---|---|---|---|---|
-| main OV5640→PCIe | M3-A 仅有板级无关采集→灰度→128-bit 内部字 RTL/TB，无 PDS/IP/FDC/RCF/实现产物 | 固定 `cam_pclk` 源同步输入、一拍灰度处理与同域打包合同，无板级或 CDC STA | Questa 2021.1：6 个 RTL/TB 模块编译 0 error/0 warning、行为返回 0、唯一 `TEST PASS`；覆盖 8 像素完整字、3 像素补零行尾字、帧尾与奇字节错误控制事件 | 未生成 | 未生成 | 未生成/未标注 |
+| main OV5640→PCIe | M3-A/M3-B 仅有板级无关采集→灰度→128-bit 内部字→4-byte staging→帧描述符联合 RTL/TB，无 PDS/IP/FDC/RCF/实现产物 | 固定 `cam_pclk` 源同步输入、一拍灰度处理、同域打包与 staging/描述符 ready 合同，无板级或 CDC STA | Questa 2021.1：M3-A 6 个 RTL/TB、M3-B 联合 9 个 RTL/TB 均编译 0 error/0 warning、行为返回 0、唯一 `TEST PASS`；联合覆盖 3 像素、2 beat、6 有效字节、帧尾描述符与错误为 0 | 未生成 | 未生成 | 未生成/未标注 |
 | OV5640 摄像头 HDMI | 产品目标已冻结为 OV5640；C0 参考审计和 C1 产品范围仍待完成 | C3 前无产品 STA；OV7725 旧时序只作 legacy 参考 | S3 项目级入口缺失 | 新产品网表尚未生成 | 新产品 PNR 网表尚未生成 | 新产品 SDF 尚未生成/标注 |
 | DDR3 外层 | 旧 PG2L100H 七阶段与五类产物已完成，但不可用于实际 PG2L50H；需重生成 50H IP/FDC/RCF | 旧 100H `All Constraints Met` 只保留历史；50H STA 未执行 | D2/D3-0 旧契约已定，PG2L50H 重生成后须重审；S1 项目级入口缺失 | 旧网表不可签核 | 旧 PNR 网表不可签核 | VSIM/SDF 未验证，旧 100H 结果不可签核 |
 | PCIe DMA | 活动 IDF、build/PDS/gate 与新产物均为 PG2L50H；已从空 `build/` 完成七阶段重建 | 50H STA 已生成，最差解析 slack `0.100 ns`；严格 gate 仍受板级/功能缺口阻断 | S2-A 受控 smoke 动态 PASS；不覆盖真实链路/DMA/板级 | 顶层未闭环 | 新 50H 网表待集成仿真 | 公共 VSIM 已验证，项目 SDF 待标注 |
@@ -130,6 +130,13 @@
 - 边界：2-byte 部分字只输出 `keep=4'h3`；空载帧尾输出 `keep=0`、`last=1`；首/尾事件位置和 downstream backpressure 均受检。
 - 结果：`run_m3b.ps1` 使用 Questa Sim-64 2021.1 编译 2 个 RTL/TB 模块为 `0 error/0 warning`，行为返回 0、唯一 `TEST PASS`。
 - 边界：该测试只证明 staging 行为，不证明厂商 PCIe `tkeep/tuser`、TLP、DDR3、CDC/FIFO、主机协议或 PDS/STA。
+
+## main OV5640→PCIe M3-B 联合 staging 覆盖
+
+- 联合：`ov5640_dvp_rgb565_dma_staging_pipeline` 串接采集、灰度、128-bit 打包、4-byte staging 与帧统计描述符；3 像素输入输出 2 个 beat、6 个有效字节，帧描述符 `desc_protocol_error=0`。
+- 握手：固定 `staging_ready=1`，描述符先背压后释放；数据通道由 staging ready 与 accounting ready 合取背压，`desc_ready` 不直接反向控制 adapter。
+- 结果：`run_m3b_integration.ps1` 使用 Questa Sim-64 2021.1 编译 9 个 RTL/TB，0 error/0 warning，行为返回 0，日志唯一 `TEST PASS`。
+- 边界：仅证明同一 `cam_pclk` 域的 staging 联合行为；`frame_end_pending` 是无输入背压条件下的临时对齐策略，不覆盖真实 FIFO/CDC、DDR3、PCIe AXIS/TLP、主机协议或后级 PDS/STA/SDF。
 
 ## S1/S2/S3 仿真就绪度矩阵（2026-08-30）
 

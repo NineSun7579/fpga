@@ -61,3 +61,16 @@ DDR3/PCIe 请求层所需的帧统计输入，不包含地址分配、TLP 长度
 通道 ready；同时用一位 `frame_end_pending` 将 M3-A 无 payload 帧尾对齐到最后一个
 staging payload beat。该挂起策略只用于当前无背压的同域 staging 验证，不能替代后续
 真实 FIFO/CDC 的事件排队设计。
+
+## PCIe 请求描述边界补充
+
+对活动 PCIe DMA 控制器的手写 RTL 只读核对得到以下事实：`req_addr` 由高、低地址
+寄存器拼接；`req_length` 在控制器内部按 DWORD 计数编码，并转换为字节长度参与
+4 KB 边界判断；`req_data` 是 32-bit 请求数据。当前控制器以独立的 `i_mwr32_req` /
+`i_mwr64_req` 及对应 ack 驱动内部状态机，不能把这组端口直接宣称为标准
+`valid/ready` 请求接口。
+
+因此后续应先新增板级无关的“规范化 PCIe Memory Write 请求描述符”接口，至少包含
+目标地址、有效字节数、32-bit 数据、帧尾和错误状态，再由专用 vendor bridge 映射
+到 `req_length/req_addr/req_data/i_mwr*_req`。在该 bridge 的启动、ack、busy 和
+4 KB 分段语义获得 TB 证据前，不修改活动 PCIe IP 或把 staging stream 直接接入。

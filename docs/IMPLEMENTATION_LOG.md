@@ -448,6 +448,15 @@
 - 新增独立 Questa 入口 `run_m3b_accounting.ps1` 和 TB，覆盖 5-byte/2-beat 累计、
   空载帧尾、错误传播和描述符背压；编译 `0 error/0 warning`，行为返回 0，唯一 `TEST PASS`。
 
+## 2026-09-03：PCIe Memory Write 请求边界审计
+
+- 只读核对活动 PCIe DMA 控制器，确认 `req_addr` 为高低地址拼接，`req_length` 在
+  控制器内按 DWORD 计数并参与字节长度/4 KB 边界计算，`req_data` 为 32-bit。
+- 确认 `i_mwr32_req`/`i_mwr64_req` 与 ack 驱动内部状态机；这些端口不是可直接连接
+  staging stream 的标准 `valid/ready` 协议。
+- 决策：下一批先实现并验证板级无关的规范化 Memory Write 请求描述符，再实现独立
+  vendor bridge；本批不修改 PCIe IP，不声称 DMA 或主机输出已通过。
+
 ## 2026-09-03：main OV5640 M3-B 联合 staging wrapper
 
 - 新增 `ov5640_dvp_rgb565_dma_staging_pipeline`，连接 OV5640 DVP 采集、灰度处理、

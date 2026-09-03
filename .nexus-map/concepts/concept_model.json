@@ -350,6 +350,23 @@
       "hotspot": true
     },
     {
+      "id": "main-ov5640-pcie-m3b-staging-integration",
+      "type": "System",
+      "label": "main OV5640→PCIe M3-B 联合 staging wrapper",
+      "responsibility": "在同一 cam_pclk 域连接 OV5640 采集、灰度、128-bit 打包、4-byte staging 与帧统计描述符，验证联合 ready/事件边界。",
+      "implementation_status": "behavior_verified_same_clock_only",
+      "project_path": "main_ov5640_pcie/",
+      "branch": "codex/main-ov5640-pcie",
+      "code_path": ["main_ov5640_pcie/rtl/ov5640_dvp_rgb565_dma_staging_pipeline.sv", "main_ov5640_pcie/rtl/rgb565_word_to_axis4_adapter.sv", "main_ov5640_pcie/rtl/rgb565_axis4_frame_accounting.sv"],
+      "test_path": "main_ov5640_pcie/tb/tb_ov5640_dvp_rgb565_dma_staging_pipeline.sv",
+      "evidence_path": ["main_ov5640_pcie/scripts/run_m3b_integration.ps1", "docs/MAIN_OV5640_PCIE_M3B_ADAPTER_CONTRACT.md", "docs/IMPLEMENTATION_LOG.md", ".nexus-map/arch/test_coverage.md"],
+      "contracts": {"scenario": "3 pixels -> 2 staging beats -> 6 valid bytes", "ready": "staging_ready && accounting_ready; desc_ready is not data-path backpressure", "frame_end": "frame_end_pending aligns no-payload frame end to final staging payload beat"},
+      "questa_evidence": "2026-09-03 Questa Sim-64 2021.1 编译 9 个 RTL/TB，0 error/0 warning，行为返回 0，唯一 TEST PASS",
+      "uncovered_boundaries": ["真实 FIFO/CDC", "DDR3", "PCIe AXIS/TLP/主机协议", "SCCB/板级时钟与管脚", "PDS/STA/综合后/PNR/SDF"],
+      "complexity": "medium",
+      "hotspot": true
+    },
+    {
       "id": "ov7725-hdmi-system",
       "type": "System",
       "label": "OV7725 HDMI Legacy 顶层",
@@ -1047,6 +1064,24 @@
       "target": "main-ov5640-pcie-m3a-word-packing",
       "type": "governs_future_changes",
       "description": "M3-A 手写 packer、连接层和 TB 遵循 VSCS 注释边界；厂商资产与历史 RTL 不因此被视为全量合规。"
+    },
+    {
+      "source": "main-ov5640-pcie-m3b-staging-integration",
+      "target": "main-ov5640-pcie-m3a-word-packing",
+      "type": "extends",
+      "description": "M3-B 联合 wrapper 承接 M3-A 128-bit 字和控制事件，增加 4-byte staging 拆分、联合 ready 与帧统计描述符；不改变 M3-A 内部字布局职责。"
+    },
+    {
+      "source": "main-ov5640-pcie-m3b-staging-integration",
+      "target": "pds-workflow-guide",
+      "type": "staged_under",
+      "description": "M3-B 仅关闭同一 cam_pclk 域的联合 staging 行为；真实 FIFO/CDC、DDR3、PCIe、板级和后级 PDS/STA/SDF 仍未签核。"
+    },
+    {
+      "source": "vscs-commenting-standard",
+      "target": "main-ov5640-pcie-m3b-staging-integration",
+      "type": "governs_future_changes",
+      "description": "M3-B wrapper、adapter 连接与联合 TB 的后续手写修改遵循 VSCS 注释边界。"
     },
     {
       "source": "ov7725-hdmi-system",
