@@ -74,3 +74,11 @@ staging payload beat。该挂起策略只用于当前无背压的同域 staging 
 目标地址、有效字节数、32-bit 数据、帧尾和错误状态，再由专用 vendor bridge 映射
 到 `req_length/req_addr/req_data/i_mwr*_req`。在该 bridge 的启动、ack、busy 和
 4 KB 分段语义获得 TB 证据前，不修改活动 PCIe IP 或把 staging stream 直接接入。
+
+## 临时请求桥接层
+
+`rgb565_axis4_pcie_mwr_bridge` 已作为独立手写 RTL 实现初步桥接：它锁存规范化请求，
+将请求保持到 `mwr32_req_ack`，并保持 `req_length/req_addr/req_data/req_keep` 和
+4 KB 状态稳定。该模块不实例化厂商 PCIe IP；`req_keep` 仅作为旁路信息保留，因为
+活动控制器的请求端口没有独立 byte-enable 输入。该 byte-enable 映射、请求启动和
+ack 关系仍是临时合同，必须在真实 PCIe TLP/DMA TB 中重新审核后才能用于产品路径。

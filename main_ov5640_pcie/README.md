@@ -26,6 +26,8 @@
 - `tb/tb_ov5640_dvp_rgb565_dma_staging_pipeline.sv`：联合数据路径自检。
 - `rtl/rgb565_axis4_mwr_descriptor.sv`：板级无关的规范化 PCIe Memory Write 请求描述符。
 - `tb/tb_rgb565_axis4_mwr_descriptor.sv`：请求地址递增、keep、last 和 4 KB 边界自检。
+- `rtl/rgb565_axis4_pcie_mwr_bridge.sv`：规范化请求到已审计 PCIe Memory Write 请求脚的临时桥接。
+- `tb/tb_rgb565_axis4_pcie_mwr_bridge.sv`：请求锁存、字段保持和 ack 释放自检。
 - staging、帧统计和规范化请求描述符已完成同域行为验证；尚未接入 CDC、DDR3 或 PCIe IP。
 
 ## 运行
@@ -38,6 +40,7 @@
 .\scripts\run_m3b_accounting.ps1 -SimulatorExecPath '<questa-bin-dir>'
 .\scripts\run_m3b_integration.ps1 -SimulatorExecPath '<questa-bin-dir>'
 .\scripts\run_m3b_mwr_descriptor.ps1 -SimulatorExecPath '<questa-bin-dir>'
+.\scripts\run_m3b_pcie_mwr_bridge.ps1 -SimulatorExecPath '<questa-bin-dir>'
 ```
 
 运行态只写入 `main_ov5640_pcie/build/`。`vsim.exe`、`vlog.exe` 和许可证配置由本机

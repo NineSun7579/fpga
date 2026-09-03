@@ -471,3 +471,14 @@
 - 由于 M3-A 当前无输入背压，wrapper 暂以一位 `frame_end_pending` 将提前到达的帧尾
   对齐到最后一个 staging payload beat；该策略仅限同域 staging 验证，后续真实 FIFO/CDC
   设计必须重新冻结事件承载和吞吐合同。
+
+## 2026-09-03：main OV5640 M3-B 临时 PCIe Memory Write bridge
+
+- 新增 `rgb565_axis4_pcie_mwr_bridge`，将规范化请求描述符映射到已审计的
+  `mwr32_req/ack`、`req_length/req_addr/req_data` 和 4 KB 状态请求边界。
+- bridge 在 ack 前锁存并保持请求字段；`req_keep` 作为旁路信息保留，因为活动控制器
+  的请求端口没有独立 byte-enable 输入。
+- 新增独立 Questa TB 和脚本；编译 `0 error/0 warning`，请求字段稳定性和 ack 释放验证
+  通过，日志唯一 `TEST PASS`。
+- 该 bridge 不实例化厂商 PCIe IP，尚不证明真实 TLP、DMA、byte-enable、主机地址或
+  PCIe 链路行为；下一步需用真实控制器/链路模型重新审核启动、ack、busy 和分段语义。

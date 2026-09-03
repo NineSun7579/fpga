@@ -159,6 +159,15 @@
 - verification: TB 覆盖地址递增、`keep`、`last`、`frame_end` 与 4KB 边界标志；使用 `BASE_ADDR=0xffc` 验证跨界请求标记。
 - boundary: 仅验证规范化描述符字段与 4KB 边界指示，不接厂商 PCIe IP，不定义 TLP 编码、最大 payload、DMA 完成、DDR3 地址或主机协议。
 
+## main 独立 OV5640→PCIe MWR bridge
+
+- implementation_status: behavior_verified_audited_pin_bridge_provisional
+- code_path: `main_ov5640_pcie/rtl/rgb565_axis4_pcie_mwr_bridge.sv`
+- test_path: `main_ov5640_pcie/tb/tb_rgb565_axis4_pcie_mwr_bridge.sv`
+- script_path: `main_ov5640_pcie/scripts/run_m3b_pcie_mwr_bridge.ps1`
+- responsibility: 将规范化请求映射到已审计的 `mwr32_req/ack`、`req_length`、`req_addr`、`req_data`、`req_keep` 和 `cross_4kb_boundary`，并在 ack 前保持字段稳定。
+- boundary: `req_keep` 的 byte-enable 映射仍为临时合同；模块位于 vendor PCIe hierarchy 之外，不代表真实 PCIe TLP/DMA 通过。
+
 ## OV7725 HDMI Legacy 顶层
 
 - implementation_status: legacy_evidence_with_timing_failures

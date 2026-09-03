@@ -145,6 +145,13 @@
 - 结果：`tb_rgb565_axis4_mwr_descriptor.sv` 通过 watchdog、`$fatal` 和唯一 `TEST PASS` 判定上述字段。
 - 边界：该 TB 只证明 vendor-independent normalized descriptor 的地址/字段行为，不证明厂商 PCIe IP、TLP/max-payload、DMA 完成、DDR3、CDC/FIFO 或后级 PDS/STA/SDF。
 
+## main OV5640→PCIe MWR bridge 覆盖
+
+- 正向：检查规范化请求映射到已审计 `mwr32_req` 接口，`req_length/addr/data/keep/cross_4kb_boundary` 字段正确。
+- 握手：字段在 `mwr32_req_ack` 到达前保持稳定，ack 后释放 busy/request。
+- 结果：`tb_rgb565_axis4_pcie_mwr_bridge.sv` 使用 watchdog、`$fatal` 和唯一 `TEST PASS` 验证上述行为。
+- 边界：byte-enable 映射仍是临时合同；不证明真实 PCIe TLP、DMA、厂商 IP、DDR3、CDC/FIFO 或后级实现。
+
 ## S1/S2/S3 仿真就绪度矩阵（2026-08-30）
 
 - 已验证盘点：`docs/SIMULATION_READINESS_MATRIX.md` 已逐项目记录项目级 testbench、filelist、DO、厂商示例和四级仿真前置条件；PCIe S2-A 已实际执行 Questa 动态 smoke。

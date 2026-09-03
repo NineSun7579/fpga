@@ -384,6 +384,21 @@
       "hotspot": true
     },
     {
+      "id": "main-ov5640-pcie-m3b-mwr-bridge",
+      "type": "System",
+      "label": "main OV5640→PCIe normalized MWR bridge",
+      "responsibility": "将规范化请求保持到已审计 mwr32_req/ack 请求引脚，稳定传递长度、地址、数据、keep 与 4KB 边界标志。",
+      "implementation_status": "behavior_verified_audited_pin_bridge_provisional",
+      "project_path": "main_ov5640_pcie/",
+      "code_path": "main_ov5640_pcie/rtl/rgb565_axis4_pcie_mwr_bridge.sv",
+      "test_path": "main_ov5640_pcie/tb/tb_rgb565_axis4_pcie_mwr_bridge.sv",
+      "evidence_path": "main_ov5640_pcie/scripts/run_m3b_pcie_mwr_bridge.ps1",
+      "contracts": {"mapping": "req_length/addr/data/keep/cross_4kb_boundary -> audited mwr32 request pins", "stability": "mwr32_req_ack 前字段保持稳定", "byte_enable": "req_keep 映射为临时合同"},
+      "uncovered_boundaries": ["真实 PCIe TLP", "DMA", "厂商 PCIe IP", "DDR3", "CDC/FIFO", "主机协议"],
+      "complexity": "low",
+      "hotspot": true
+    },
+    {
       "id": "ov7725-hdmi-system",
       "type": "System",
       "label": "OV7725 HDMI Legacy 顶层",
@@ -1111,6 +1126,18 @@
       "target": "pds-workflow-guide",
       "type": "staged_under",
       "description": "该 descriptor 是 vendor-independent 行为切片，不接厂商 PCIe IP，不能作为 TLP、DMA、DDR3 或 PDS/STA 验收证据。"
+    },
+    {
+      "source": "main-ov5640-pcie-m3b-mwr-bridge",
+      "target": "main-ov5640-pcie-m3b-mwr-descriptor",
+      "type": "consumes",
+      "description": "bridge 消费 normalized MWR descriptor，并将其字段保持到已审计 mwr32_req/ack。"
+    },
+    {
+      "source": "main-ov5640-pcie-m3b-mwr-bridge",
+      "target": "pds-workflow-guide",
+      "type": "staged_under",
+      "description": "byte-enable 映射仍为临时合同；该 bridge 不代表真实 PCIe TLP/DMA 通过。"
     },
     {
       "source": "ov7725-hdmi-system",
