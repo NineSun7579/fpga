@@ -524,6 +524,16 @@
 - 本批仍不声称 OV5640 源端具备背压、完成静态 CDC/RDC、RAM 推断、复位释放和真实
   DDR3/PCIe 集成；这些边界继续等待最终帧缓存与板级时钟合同。
 
+## 2026-09-03：main OV5640 M3-B 规范化 PCIe MWR 组合路径
+
+- 新增 `rgb565_axis4_pcie_mwr_path`，串接 staging beat、规范化 MWR descriptor
+  和 `mwr32_req/ack` 临时桥，保留请求地址、长度、keep、last、帧尾及协议错误字段。
+- 专项 TB 使用 `BASE_ADDR=0x0ffc` 验证 4-byte 请求恰好到达 4 KB 边界时不误报 crossing；
+  ack 后下一请求地址为 `0x1000`，并验证请求字段在等待期间保持。
+- Questa Sim-64 `2021.1` 编译 `0 error/0 warning`，仿真至 `125 ns`，日志唯一 `TEST PASS`。
+- 该路径仍是 vendor-independent 合同，不实例化 PCIe IP；不证明 TLP、DMA、byte-enable、
+  链路、主机地址或真实控制器启动/忙状态已经闭合。
+
 ## 2026-09-03：main OV5640 M1-M3B 回归与工具环境诊断
 
 - 全回归首先发现 M3-A 旧 TB 将 `word_valid` 等同于 payload；随着纯控制事件修正为

@@ -28,6 +28,8 @@
 - `tb/tb_rgb565_axis4_mwr_descriptor.sv`：请求地址递增、keep、last 和 4 KB 边界自检。
 - `rtl/rgb565_axis4_pcie_mwr_bridge.sv`：规范化请求到已审计 PCIe Memory Write 请求脚的临时桥接。
 - `tb/tb_rgb565_axis4_pcie_mwr_bridge.sv`：请求锁存、字段保持和 ack 释放自检。
+- `rtl/rgb565_axis4_pcie_mwr_path.sv`：staging→MWR descriptor→请求桥的组合路径。
+- `tb/tb_rgb565_axis4_pcie_mwr_path.sv`：请求地址、长度、4 KB 边界和事件保持自检。
 - `rtl/rgb565_axis4_ddr3_write_descriptor.sv`：staging beat 到规范化 128-bit DDR3 写记录，地址步长参数化。
 - `tb/tb_rgb565_axis4_ddr3_write_descriptor.sv`：写数据、写掩码、控制记录、背压保持、
   地址步进和复位恢复自检。
@@ -49,6 +51,7 @@
 .\scripts\run_m3b_integration.ps1 -SimulatorExecPath '<questa-bin-dir>'
 .\scripts\run_m3b_mwr_descriptor.ps1 -SimulatorExecPath '<questa-bin-dir>'
 .\scripts\run_m3b_pcie_mwr_bridge.ps1 -SimulatorExecPath '<questa-bin-dir>'
+.\scripts\run_m3b_pcie_mwr_path.ps1 -SimulatorExecPath '<questa-bin-dir>'
 .\scripts\run_m3b_ddr3_write_descriptor.ps1 -SimulatorExecPath '<questa-bin-dir>'
 .\scripts\run_m3b_async_fifo.ps1 -SimulatorExecPath '<questa-bin-dir>'
 .\scripts\run_m3b_cdc_bridge.ps1 -SimulatorExecPath '<questa-bin-dir>'
