@@ -24,7 +24,9 @@
 - `rtl/rgb565_axis4_frame_accounting.sv`：M3-B 帧有效字节/beat/错误统计描述符。
 - `tb/tb_rgb565_axis4_frame_accounting.sv`：帧统计描述符自检。
 - `rtl/rgb565_axis4_frame_commit.sv`：规范化 DDR3 记录到帧提交/作废描述符。
-- `tb/tb_rgb565_axis4_frame_commit.sv`：正常提交、abort 作废、sticky 帧错误、描述符背压和运行中复位自检。
+- `tb/tb_rgb565_axis4_frame_commit.sv`：正常提交、槽号一致性、abort 作废、描述符背压和运行中复位自检。
+- `rtl/rgb565_axis4_frame_slot_table.sv`：两个帧槽的写分配、committed FIFO、带槽 drop/done 回收控制面。
+- `tb/tb_rgb565_axis4_frame_slot_table.sv`：双槽占用、顺序排队、单 reader、并发完成、容量越界和复位自检。
 - `rtl/rgb565_axis4_frame_read_scheduler.sv`：从已提交帧首 token/记录数生成单 outstanding DDR3 记录读命令。
 - `tb/tb_rgb565_axis4_frame_read_scheduler.sv`：不可提交隔离、命令背压、零延迟响应、帧尾不一致恢复、地址推进和复位自检。
 - `rtl/rgb565_axis4_frame_readout_gate.sv`：只为已提交帧打开 DDR3 记录读出窗口。
@@ -57,8 +59,9 @@
 - staging、帧统计和规范化请求描述符已完成同域行为验证；DDR3 写记录层已完成边界回归，
   staging 异步 FIFO 已完成双时钟行为验证；行为级 DDR3 模型已将正常帧、overflow
   中止记录和恢复帧送入 PCIe MWR 请求路径。提交描述符现在携带首个 opaque token，调度器
-  按记录数发出有界读命令，并统一处理零延迟响应、提前/缺失帧尾和零记录 fault，确保错误帧
-  零读命令/零 MWR；但尚未实现带槽号的帧表、物理槽复用、真实 DDR3 地址或真实 DDR3/PCIe IP。
+  按记录数发出有界读命令，并统一处理零延迟响应、提前/缺失帧尾和零记录 fault。独立双槽表
+  已验证槽分配、两个 committed 排队、单 active reader 和带槽回收；但尚未把槽表接入 writer、
+  scheduler 和 committed wrapper，因此仍没有物理槽数据链或真实 DDR3/PCIe IP。
 
 ## 运行
 
@@ -69,6 +72,7 @@
 .\scripts\run_m3b.ps1 -SimulatorExecPath '<questa-bin-dir>'
 .\scripts\run_m3b_accounting.ps1 -SimulatorExecPath '<questa-bin-dir>'
 .\scripts\run_m3b_frame_commit.ps1 -SimulatorExecPath '<questa-bin-dir>'
+.\scripts\run_m3b_frame_slot_table.ps1 -SimulatorExecPath '<questa-bin-dir>'
 .\scripts\run_m3b_frame_read_scheduler.ps1 -SimulatorExecPath '<questa-bin-dir>'
 .\scripts\run_m3b_frame_readout_gate.ps1 -SimulatorExecPath '<questa-bin-dir>'
 .\scripts\run_m3b_committed_pcie_mwr_path.ps1 -SimulatorExecPath '<questa-bin-dir>'

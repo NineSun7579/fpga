@@ -3,7 +3,7 @@ param([Parameter(Mandatory = $true)][string]$SimulatorExecPath)
 
 $ErrorActionPreference = 'Stop'
 $ProjectRoot = Split-Path -Parent $PSScriptRoot
-$RunId = Get-Date -Format 'yyyyMMdd-HHmmss'
+$RunId = [guid]::NewGuid().ToString('N')
 $RunRoot = Join-Path $ProjectRoot (Join-Path 'build' (Join-Path 'm3b-frame-commit' $RunId))
 $WorkLib = Join-Path $RunRoot 'work'
 $LogPath = Join-Path $RunRoot 'run.log'

@@ -161,9 +161,28 @@ DDR3 模型中的 28-bit 地址只作为记录槽位，未映射到活动控制�
 ## 帧提交、作废与 PCIe 读出门控
 
 `rgb565_axis4_frame_commit` 在规范化 DDR3 记录帧尾生成保持型描述符，保存该帧首个 opaque
-DDR token，并统计有效字节、记录数和累计协议错误。无错误帧输出 `committed=1`；包含
+DDR token 和 slot ID，并统计有效字节、记录数和累计协议错误。同帧记录切换 slot ID 会被
+聚合为协议错误。无错误帧输出 `committed=1`；包含
 overflow abort 或其他协议错误的帧输出 `committed=0`。空载帧尾仍计入记录数，但不增加
 有效字节。首 token 只是上游已经使用的记录标识，不是物理 DDR3 地址。
+
+## 双槽帧表控制面
+
+`rgb565_axis4_frame_slot_table` 管理两个固定槽基 token，槽生命周期只允许
+`FREE→WRITING→QUEUED→READING→FREE`；错误帧走 `WRITING→FREE`。写分配使用寄存保持的
+valid/ready 描述符，避免背压期间 free 槽变化导致 slot ID 漂移。可提交帧按完成顺序进入深度 2
+FIFO，reader active 时第二个 committed 帧仍可排队，但不会暴露第二个读描述符。
+
+读完成必须携带当前 active reader 的 slot ID；错误、重复或迟到完成只产生 fault，不释放任何槽。
+零记录、超过 `SLOT_RECORD_CAPACITY` 或 committed/error 决策矛盾的描述符均 fault-drop。
+专项 TB 覆盖两个槽同时 WRITING、两个 committed 排队、描述符背压、持续 ready 下单 reader、
+错误完成、错误帧回收、超容量帧、合法 `commit+read_done` 同拍和运行中复位。连续-ready 测试在
+旧实现于 `126 ns` 红灯；修复后 Questa Sim-64 2021.1 为 `0 error/0 warning`、唯一
+`TEST PASS`、`406 ns`。
+
+该槽表当前仍是独立控制面：DDR writer 尚未按帧装载槽基 token，frame scheduler/done 尚未携带
+slot ID，committed wrapper 也未插入 committed FIFO。因此它不构成物理双槽数据链，更不证明
+真实 DDR3 地址、容量、控制器或 PCIe 主机闭环。
 
 `rgb565_axis4_frame_read_scheduler` 只为 committed 描述符产生读命令，从首 token 起按
 `ADDR_STEP` 推进；每次只允许一个响应 outstanding，命令在背压时保持，收到对应记录被后级
@@ -185,7 +204,7 @@ MWR path 串接。提交描述符只在调度器和门控都 ready 时原子分�
 专项回归在读侧存在待发送记录时提交错误帧，确认读窗口保持关闭且没有 MWR 请求；随后
 提交正常帧，payload 与空载帧尾分别从 `0x2000`、`0x2004` 发起请求。增强测试还覆盖帧统计、
 已打开读窗口和等待 ACK 请求的运行中复位，复位后请求地址重新从 `0x2000` 开始。frame
-commit、readout gate 和组合 path 的 Questa Sim-64 2021.1 回归分别为 `210 ns`、`211 ns`、
+commit、readout gate 和组合 path 的 Questa Sim-64 2021.1 回归分别为 `240 ns`、`211 ns`、
 `576 ns`，均为 `0 error/0 warning`、唯一 `TEST PASS`。
 
 `tb_ov5640_ddr3_committed_pcie_loopback` 把写模型和 commit 接受绑定到同一握手边沿，DDR 模型
@@ -194,7 +213,7 @@ commit、readout gate 和组合 path 的 Questa Sim-64 2021.1 回归分别为 `2
 只读取 token `21/22` 并从 `0x2000/0x2004` 发送。该回归为 `0 error/0 warning`、唯一
 `TEST PASS`、`3158 ns`。
 
-该切片没有带槽号的帧表、槽位分配、槽基 token 重装或真实存储回收逻辑。连续 token 调度
-只覆盖当前行为模型，`drop_frame_pulse` 也不等同于实际 DDR3 空间已经回收。
+该切片尚未连接已验证的独立双槽表，也没有槽基 token 重装或真实存储回收数据链。连续 token
+调度只覆盖当前行为模型，`drop_frame_pulse` 也不等同于实际 DDR3 空间已经回收。
 它不实例化厂商 DDR3/PCIe IP，不证明 DDR3 写入持久化、读口时序、TLP、DMA、链路训练、
 主机内存写入或板级时序。

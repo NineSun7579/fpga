@@ -677,3 +677,21 @@
   `0..2`、压力错误帧 21 条记录且零读/零 MWR、恢复 token `21/22`；全部回归均为 Questa
   Sim-64 2021.1 `0 error/0 warning`、唯一 `TEST PASS`。
 - 这些修复关闭的是行为协议死锁，不增加物理双槽、DDR3 控制器、PCIe DMA/TLP 或主机驱动证据。
+
+## 2026-09-03：main 双槽帧表控制面
+
+- 新增 `rgb565_axis4_frame_slot_table`、专项 TB 和 Questa 脚本。槽表提供两个保持型写槽分配，
+  管理 `FREE/WRITING/QUEUED/READING` 生命周期，并以深度 2 FIFO 保存 committed 描述符顺序。
+- 错误帧不进入读队列，立即释放原槽并输出带槽号 drop；正常读完成必须匹配 active reader
+  slot ID，错误、重复或迟到事件只输出 fault，不改变槽状态。
+- 初版在 `read_desc_ready` 持续为高时会连续弹出两个描述符，使两个槽同时 READING。专项 TB
+  在 `126 ns` 得到预期红灯；加入内部 `reader_active/reader_slot_id` 后关闭该 P1。
+- 增加 `SLOT_RECORD_CAPACITY`，零记录、超容量和 committed/error 决策矛盾均 fault-drop；两个
+  槽基 token 相同或容量为零由初始化参数检查拒绝。
+- 最终槽表专项覆盖两槽同时写、两个 committed 排队、背压保持、单 reader、错槽完成、错误帧
+  回收、超容量、合法第二槽 commit 与第一槽 read-done 同拍，以及运行中复位；Questa Sim-64
+  2021.1 为 `0 error/0 warning`、唯一 `TEST PASS`、`406 ns`。
+- `frame_commit` 同步增加首 slot ID 保存和同帧槽号一致性检查，专项更新为 `240 ns`；既有
+  committed path `576 ns` 和完整行为 loopback `3158 ns` 保持通过。
+- 当前槽表尚未接入 DDR writer、read scheduler 和 committed wrapper，不能解释为物理双槽、
+  真实 DDR3 控制器或 PCIe 主机闭环。

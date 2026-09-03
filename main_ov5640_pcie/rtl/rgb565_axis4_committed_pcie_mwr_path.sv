@@ -93,10 +93,11 @@ module rgb565_axis4_committed_pcie_mwr_path #(
 
     rgb565_axis4_frame_commit u_frame_commit (
         .rst_n(rst_n), .clk(clk), .in_valid(commit_valid), .in_ready(commit_ready),
-        .in_addr(commit_addr), .in_keep(commit_keep), .in_frame_end(commit_frame_end),
+        .in_addr(commit_addr), .in_slot_id(1'b0), .in_keep(commit_keep),
+        .in_frame_end(commit_frame_end),
         .in_protocol_error(commit_protocol_error), .desc_valid(frame_desc_valid),
         .desc_ready(frame_desc_ready), .desc_start_addr(frame_desc_start_addr),
-        .desc_bytes(), .desc_records(frame_desc_records),
+        .desc_slot_id(), .desc_bytes(), .desc_records(frame_desc_records),
         .desc_protocol_error(),
         .desc_committed(frame_desc_committed)
     );

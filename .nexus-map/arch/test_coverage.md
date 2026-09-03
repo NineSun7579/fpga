@@ -200,9 +200,20 @@
 
 ## main OV5640→PCIe M3-B frame commit decision 覆盖
 
-- 正向：正常帧产生 committed 描述符；错误帧产生不可提交描述符；描述符保留首 opaque token、记录数、有效字节数和错误状态，后续正常帧可恢复；运行中复位清除半帧统计和待消费描述符。
-- 结果：`run_m3b_frame_commit.ps1` 使用 Questa Sim-64 2021.1，0 error/0 warning、日志唯一 `TEST PASS`、210 ns。
-- 边界：首 token 只是行为模型索引；不生成真实 DDR3 读地址，不证明 DDR3 持久化、物理双槽复用或 vendor IP 行为。
+- 正向：正常帧产生 committed 描述符；错误帧产生不可提交描述符；描述符保留首 opaque token、首 slot id、记录数、有效字节数和错误状态，同帧 slot id 变化会置协议错误并拒绝提交；后续正常帧可恢复，运行中复位清除半帧统计和待消费描述符。
+- TDD：新槽号检查在旧 RTL 上于 47 ns 失败，随后实现首槽号保存和同帧 slot mismatch 累计。
+- 结果：`run_m3b_frame_commit.ps1` 使用 Questa Sim-64 2021.1，0 error/0 warning、日志唯一 `TEST PASS`、240 ns。
+- 边界：首 token 只是行为模型索引；slot id 尚未驱动物理槽写入、读调度或回收。不生成真实 DDR3 读地址，不证明 DDR3 持久化、物理双槽复用或 vendor IP 行为。
+
+## main OV5640→PCIe M3-B 双槽帧控制面覆盖
+
+- TDD：专项脚本第一次编译因 `rgb565_axis4_frame_slot_table.sv` 尚不存在而红灯；后续连续保持 `read_desc_ready=1` 的测试在 126 ns 暴露第二描述符于首帧 READING 期间错误开放。
+- 分配：验证 `write_alloc_valid` 背压期间 slot id/槽基 token 保持，两个 FREE 槽依次进入 WRITING，两个槽占用后不再发出第三次分配。
+- 排队：验证两个正常提交进入深度 2 committed FIFO，描述符字段与 slot id 按提交顺序保持；内部 reader active 时，即使 ready 连续为高也不允许第二槽进入 READING。
+- 回收：验证匹配 active slot 的 `read_done` 才执行 `READING→FREE`；错槽、重复和迟到完成只产生 fault，不释放或改写正确槽；释放后槽可重新分配。
+- 错误：验证 WRITING 错误帧直接 fault/drop 回 FREE，不进入 FIFO且不影响另一活动 reader；`records==0`、`records>SLOT_RECORD_CAPACITY`、错误槽基和提交策略不一致均被拒绝。
+- 结果：`run_m3b_frame_slot_table.ps1` 使用 Questa Sim-64 2021.1，0 error/0 warning、日志唯一 `TEST PASS`、406 ns。
+- 边界：专项 TB 只覆盖独立双槽控制面；槽表尚未接入 writer、scheduler 或 committed wrapper，完整 loopback 也未实例化槽表，因此不构成完整双槽帧缓存或真实 DDR3/PCIe 闭环。
 
 ## main OV5640→PCIe M3-B frame read scheduler 覆盖
 
@@ -223,7 +234,7 @@
 - 组合：已接入统一完成语义的 frame read scheduler，以 frame commit 的首 token、记录数和显式 `TOKEN_ADDR_STEP` 生成单 outstanding 顺序读命令。
 - fault：覆盖命令与零延迟响应同拍、提前帧尾、最终响应缺失帧尾、committed 零记录；wrapper 对外输出 `frame_done_pulse/frame_fault_pulse`，错误帧仍只 drop 且零读零 MWR。
 - 结果：`run_m3b_committed_pcie_mwr_path.ps1` 使用 Questa Sim-64 2021.1，0 error/0 warning、日志唯一 `TEST PASS`、576 ns。
-- 边界：无物理双槽复用；不生成真实 DDR3 地址，不实例化 vendor IP，不证明 DDR3 持久化、PCIe TLP/DMA/链路、主机内存写入或板级时序。
+- 边界：wrapper 仍固定使用 slot 0 并丢弃 frame commit 的 slot id，未实例化双槽帧控制面；不生成真实 DDR3 地址，不实例化 vendor IP，不证明 DDR3 持久化、PCIe TLP/DMA/链路、主机内存写入或板级时序。
 
 ## main OV5640→DDR3模型→已提交 PCIe 单一回归覆盖
 
@@ -232,7 +243,7 @@
 - 压力作废：错误帧形成 21 条记录，恰好 1 次 drop，且 read command 与 MWR 数量均为 0。
 - 恢复：下一帧 token `21/22` 严格有序，对应 MWR 地址 `0x2000/0x2004`。
 - 结果：Questa Sim-64 2021.1 为 0 error/0 warning、日志唯一 `TEST PASS`、3158 ns。
-- 边界：TB 模型无物理双槽复用，opaque token 不代表真实 DDR3 地址；不覆盖 DDR3/PCIe vendor IP、DDR3 持久化、PCIe TLP/DMA/链路、主机内存或板级时序。
+- 边界：TB 模型未实例化新槽表，仍无物理双槽复用；opaque token 不代表真实 DDR3 地址。不覆盖 DDR3/PCIe vendor IP、DDR3 持久化、PCIe TLP/DMA/链路、主机内存或板级时序。
 
 ## S1/S2/S3 仿真就绪度矩阵（2026-08-30）
 
