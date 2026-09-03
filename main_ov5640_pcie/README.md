@@ -37,8 +37,10 @@
 - `tb/tb_rgb565_axis4_async_fifo.sv`：异步时钟、满/空、顺序和握手自检。
 - `rtl/rgb565_axis4_cdc_bridge.sv`：异步 FIFO 的 staging 上游/下游 CDC 封装边界。
 - `tb/tb_rgb565_axis4_cdc_bridge.sv`：双时钟数据顺序与首/末事件完整性自检。
+- `rtl/rgb565_word_skid_buffer.sv`：packer 与 4-byte adapter 之间的两槽短突发缓冲。
+- `tb/tb_rgb565_word_skid_buffer.sv`：顺序、背压保持、满队列丢弃和 sticky overflow 自检。
 - `rtl/ov5640_dvp_rgb565_cdc_staging_pipeline.sv`：OV5640 DVP 到双时钟 staging 输出，带源端压力报告。
-- `tb/tb_ov5640_dvp_rgb565_cdc_staging_pipeline.sv`：小帧数据跨域、事件和 `source_overflow` 自检。
+- `tb/tb_ov5640_dvp_rgb565_cdc_staging_pipeline.sv`：小帧正常路径与长帧压力、事件和 `source_overflow` 自检。
 - staging、帧统计和规范化请求描述符已完成同域行为验证；DDR3 写记录层已完成边界回归，
   staging 异步 FIFO 已完成双时钟行为验证；尚未接入真实 DDR3 或 PCIe IP。
 
@@ -57,10 +59,13 @@
 .\scripts\run_m3b_ddr3_write_descriptor.ps1 -SimulatorExecPath '<questa-bin-dir>'
 .\scripts\run_m3b_async_fifo.ps1 -SimulatorExecPath '<questa-bin-dir>'
 .\scripts\run_m3b_cdc_bridge.ps1 -SimulatorExecPath '<questa-bin-dir>'
+.\scripts\run_m3b_word_skid_buffer.ps1 -SimulatorExecPath '<questa-bin-dir>'
 .\scripts\run_m3b_ov5640_cdc_staging.ps1 -SimulatorExecPath '<questa-bin-dir>'
 ```
 
 运行态只写入 `main_ov5640_pcie/build/`。`vsim.exe`、`vlog.exe` 和许可证配置由本机
-环境提供，不写入仓库。当前切片不生成 PDS/IP/位流，也不证明 SCCB、板级电气时序、
-CDC/FIFO、DDR3 或 PCIe 集成。M3-A 的 128-bit 布局不等同于厂商 PCIe AXIS
-`tkeep` 或主机内存字节序，M3-B 适配层必须按独立合同冻结转换规则后再实现。
+环境提供，不写入仓库。两槽 word 缓冲只能吸收短突发；`source_overflow=1` 表示
+当前帧在进入帧缓存前发生了无法接收的 word，不代表自动恢复或无损。当前切片不生成
+PDS/IP/位流，也不证明 SCCB、板级电气时序、CDC/FIFO、DDR3 或 PCIe 集成。M3-A 的
+128-bit 布局不等同于厂商 PCIe AXIS `tkeep` 或主机内存字节序，M3-B 适配层必须按
+独立合同冻结转换规则后再实现。

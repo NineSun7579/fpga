@@ -318,6 +318,18 @@
 - evidence: 2026-09-03 Questa 2021.1 编译 9 个 RTL/TB，0 error/0 warning，唯一 TEST PASS
 - boundary: 不包含 DDR3/PCIe IP、CDC/FIFO、SCCB、板级时钟/管脚或主机协议；frame_end_pending 仅为同域 staging 验证策略
 
+## main OV5640→PCIe M3-B 两槽 word 短突发缓冲
+
+- implementation_status: behavior_verified_two_slot_word_skid_buffer
+- project_path: `main_ov5640_pcie/`
+- branch: `codex/main-ov5640-pcie`
+- code_path: `main_ov5640_pcie/rtl/rgb565_word_skid_buffer.sv`
+- test_path: `main_ov5640_pcie/tb/tb_rgb565_word_skid_buffer.sv`
+- script_path: `main_ov5640_pcie/scripts/run_m3b_word_skid_buffer.ps1`
+- contract: 位于无背压 RGB565 word packer 与 4-byte adapter 之间；两槽 FIFO 按先入先出保存 128-bit word 及 5 个事件位。满队列且下游未接收时丢弃新 word 并置位 sticky `overflow`；同拍出队/入队时允许替换尾槽；输出未接收期间字段保持。`in_ready` 仅用于诊断，不向无背压 packer 提供反向流控。
+- evidence: 2026-09-03 Questa Sim-64 2021.1 编译 2 个 RTL/TB，0 error/0 warning，日志唯一 TEST PASS，仿真至 85 ns。
+- boundary: 只吸收短突发并报告压力，不定义 overflow 后的帧丢弃、重启或恢复协议，不保证持续满载无损，也不替代 DDR3 帧缓存或最终 CDC/RDC 复位审核。
+
 ## main OV5640→PCIe M3-B rgb565_axis4 CDC bridge
 
 - implementation_status: behavior_verified_dual_clock_only
@@ -334,10 +346,10 @@
 - implementation_status: behavior_verified_dual_clock_staging_only
 - code_path: `main_ov5640_pcie/rtl/ov5640_dvp_rgb565_cdc_staging_pipeline.sv`
 - test_path: `main_ov5640_pcie/tb/tb_ov5640_dvp_rgb565_cdc_staging_pipeline.sv`
-- contract: 串接 DVP→灰度→128-bit pack→4-byte adapter→双时钟 CDC bridge；staging beat 跨域携带 data、keep、last 与首/末事件。
-- evidence: 2026-09-03 小帧双时钟 TB 验证 2 staging beat、keep、首/末事件跨域到达；Questa Sim-64 2021.1 为 0 error/0 warning、日志唯一 TEST PASS、413 ns。
-- source_overflow: camera-side packer 无输入背压且 adapter/FIFO 接收不足时置位并保持；这是当前帧缓存前的阻断状态，不是无损保证。
-- boundary: 仅覆盖该 staging/CDC 行为切片；未证明静态 CDC/RDC、复位释放、RAM 推断、真实 DDR3/PCIe IP、主机协议、PDS/STA 或 SDF。
+- contract: 串接 DVP→灰度→128-bit pack→两槽 word 短突发缓冲→4-byte adapter→双时钟 CDC bridge；staging beat 跨域携带 data、keep、last 与首/末事件。正常期输出 2 个 payload beat 加 1 个 `keep=0` 空载帧尾事件且无 overflow；压力期输入 64 像素并暂停下游，缓冲耗尽后置位 overflow，恢复 ready 后排出 19 个保留 beat。
+- evidence: 2026-09-03 联合 TB 使用 5 ns `cam_pclk` 与 7 ns `out_clk`，Questa Sim-64 2021.1 编译 11 个 RTL/TB，0 error/0 warning，日志唯一 TEST PASS，仿真至 2527 ns。
+- source_overflow: `source_overflow` 直接绑定两槽 word buffer 的 sticky `overflow`；当缓冲已满且无同拍出队时，新输入 word 被丢弃并保持报告。这是当前帧缓存前的阻断状态，不是无损保证。
+- boundary: 仅覆盖该 staging/CDC 行为切片与短缓冲丢弃语义；未证明静态 CDC/RDC、复位释放、RAM 推断、真实 DDR3/PCIe IP、主机协议、PDS/STA 或 SDF，也不等同真实 DDR3/PCIe 闭环通过。
 
 ## main OV5640→PCIe M3-B 规范化 PCIe MWR 组合路径
 

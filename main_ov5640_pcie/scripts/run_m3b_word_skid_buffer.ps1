@@ -1,0 +1,45 @@
+[CmdletBinding()]
+param([Parameter(Mandatory = $true)][string]$SimulatorExecPath)
+
+$ErrorActionPreference = 'Stop'
+$ProjectRoot = Split-Path -Parent $PSScriptRoot
+$RunId = Get-Date -Format 'yyyyMMdd-HHmmss'
+$RunRoot = Join-Path $ProjectRoot (Join-Path 'build' (Join-Path 'm3b-word-skid-buffer' $RunId))
+$WorkLib = Join-Path $RunRoot 'work'
+$LogPath = Join-Path $RunRoot 'run.log'
+
+function Require-Executable {
+    param([string]$Name)
+    $Path = Join-Path $SimulatorExecPath $Name
+    if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) {
+        throw "Required simulator executable not found: $Path"
+    }
+    return $Path
+}
+
+New-Item -ItemType Directory -Force -Path $RunRoot | Out-Null
+$Vlib = Require-Executable 'vlib.exe'
+$Vlog = Require-Executable 'vlog.exe'
+$Vmap = Require-Executable 'vmap.exe'
+$Vsim = Require-Executable 'vsim.exe'
+Push-Location $RunRoot
+try {
+    & $Vlib $WorkLib 2>&1 | Tee-Object $LogPath
+    if ($LASTEXITCODE -ne 0) { throw 'vlib.exe failed' }
+    & $Vlog -sv -work $WorkLib `
+        (Join-Path $ProjectRoot 'rtl\rgb565_word_skid_buffer.sv') `
+        (Join-Path $ProjectRoot 'tb\tb_rgb565_word_skid_buffer.sv') `
+        2>&1 | Tee-Object $LogPath -Append
+    if ($LASTEXITCODE -ne 0) { throw 'vlog.exe failed' }
+    & $Vmap work $WorkLib 2>&1 | Tee-Object $LogPath -Append
+    if ($LASTEXITCODE -ne 0) { throw 'vmap.exe failed' }
+    & $Vsim -c -lib work tb_rgb565_word_skid_buffer -do 'run -all; quit -f' 2>&1 | Tee-Object $LogPath -Append
+    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+    if (@(Select-String -LiteralPath $LogPath -Pattern '^(?:# )?TEST PASS$').Count -ne 1) {
+        throw 'Expected exactly one TEST PASS marker'
+    }
+    Write-Output "M3-B word skid buffer PASS: $LogPath"
+}
+finally {
+    Pop-Location
+}

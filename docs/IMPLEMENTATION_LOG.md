@@ -554,3 +554,20 @@
   Questa 实际报错为 `database or disk is full`，当时 D 盘仅剩 16 KB；清理忽略的
   `main_ov5640_pcie/build/` 运行态后，accounting 重新得到 `0 error/0 warning` 和
   唯一 `TEST PASS`。该故障不归因于 RTL。
+
+## 2026-09-03：main OV5640 M3-B 源端短突发缓冲
+
+- 新增 `rgb565_word_skid_buffer`，位于无背压 `rgb565_word_packer` 与 4-byte staging
+  adapter 之间，使用两个槽位保存 128-bit word、16-bit keep 和五项帧/行事件。
+- 缓冲输入沿用 packer 的无背压 `word_valid` 脉冲；输出使用标准 `valid/ready`。下游
+  暂停时保持队首字段，满队列同拍出队/入队允许替换尾槽；无可用槽位时丢弃新 word，
+  `overflow` 异步清零、事件发生后粘滞保持。
+- 新增 `tb_rgb565_word_skid_buffer.sv` 与 `run_m3b_word_skid_buffer.ps1`。Questa
+  Sim-64 2021.1 编译 `0 error/0 warning`，仿真至 `85 ns`，日志唯一 `TEST PASS`。
+- `ov5640_dvp_rgb565_cdc_staging_pipeline` 已接入该缓冲，联合 TB 的正常期验证 2 个
+  payload beat 加 1 个空载帧尾事件且无 overflow；64 像素、下游暂停压力期置位
+  overflow，恢复 ready 后排出 19 个保留 beat。联合 Questa 编译 `0 error/0 warning`，
+  唯一 `TEST PASS`，仿真至 `2527 ns`。
+- 测试诊断修正了一个过时假设：无 payload 帧尾是合法输出事件，不能从 staging beat
+  统计中删除。该缓冲只吸收短突发，未定义 overflow 后的帧丢弃/恢复，也不解除静态
+  CDC/RDC、三时钟复位、RAM 推断、真实 DDR3/PCIe IP 和板级协议阻断。

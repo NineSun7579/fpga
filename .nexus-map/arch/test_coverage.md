@@ -96,7 +96,7 @@
 
 | 项目 | PDS 实现证据 | 时序证据 | 行为仿真 | 综合后仿真 | PNR 功能仿真 | PNR 时序仿真 |
 |---|---|---|---|---|---|---|
-| main OV5640→PCIe | M3-A/M3-B 仅有板级无关采集→灰度→128-bit 内部字→4-byte staging→帧描述符联合 RTL/TB，无 PDS/IP/FDC/RCF/实现产物 | 固定 `cam_pclk` 源同步输入、一拍灰度处理、同域打包与 staging/描述符 ready 合同，无板级或 CDC STA | Questa 2021.1：M3-A 6 个 RTL/TB、M3-B 联合 9 个 RTL/TB 均编译 0 error/0 warning、行为返回 0、唯一 `TEST PASS`；联合覆盖 3 像素、2 beat、6 有效字节、帧尾描述符与错误为 0 | 未生成 | 未生成 | 未生成/未标注 |
+| main OV5640→PCIe | M3-A/M3-B 仅有板级无关采集→灰度→128-bit 内部字→两槽 word 短缓冲→4-byte staging→帧描述符/双时钟 CDC 联合 RTL/TB，无 PDS/IP/FDC/RCF/实现产物 | 固定 `cam_pclk` 源同步输入、一拍灰度处理、同域打包、两槽短突发缓冲与 staging/描述符 ready 合同，无板级或 CDC STA | Questa 2021.1：M3-A 6 个 RTL/TB、同域联合 staging 9 个 RTL/TB、双时钟联合 staging 11 个 RTL/TB 均编译 0 error/0 warning、行为返回 0、唯一 `TEST PASS`；专项缓冲 85 ns，双时钟联合正常期 2 个 payload beat 加 1 个空载帧尾事件且无 overflow，压力期 64 像素暂停后 overflow、恢复 ready 排出 19 个保留 beat，联合至 2527 ns | 未生成 | 未生成 | 未生成/未标注 |
 | OV5640 摄像头 HDMI | 产品目标已冻结为 OV5640；C0 参考审计和 C1 产品范围仍待完成 | C3 前无产品 STA；OV7725 旧时序只作 legacy 参考 | S3 项目级入口缺失 | 新产品网表尚未生成 | 新产品 PNR 网表尚未生成 | 新产品 SDF 尚未生成/标注 |
 | DDR3 外层 | 旧 PG2L100H 七阶段与五类产物已完成，但不可用于实际 PG2L50H；需重生成 50H IP/FDC/RCF | 旧 100H `All Constraints Met` 只保留历史；50H STA 未执行 | D2/D3-0 旧契约已定，PG2L50H 重生成后须重审；S1 项目级入口缺失 | 旧网表不可签核 | 旧 PNR 网表不可签核 | VSIM/SDF 未验证，旧 100H 结果不可签核 |
 | PCIe DMA | 活动 IDF、build/PDS/gate 与新产物均为 PG2L50H；已从空 `build/` 完成七阶段重建 | 50H STA 已生成，最差解析 slack `0.100 ns`；严格 gate 仍受板级/功能缺口阻断 | S2-A 受控 smoke 动态 PASS；不覆盖真实链路/DMA/板级 | 顶层未闭环 | 新 50H 网表待集成仿真 | 公共 VSIM 已验证，项目 SDF 待标注 |
@@ -132,12 +132,28 @@
 - 结果：`run_m3b.ps1` 使用 Questa Sim-64 2021.1 编译 2 个 RTL/TB 模块为 `0 error/0 warning`，行为返回 0、唯一 `TEST PASS`。
 - 边界：该测试只证明 staging 行为，不证明厂商 PCIe `tkeep/tuser`、TLP、DDR3、CDC/FIFO、主机协议或 PDS/STA。
 
+## main OV5640→PCIe M3-B 两槽 word 短突发缓冲覆盖
+
+- code：`main_ov5640_pcie/rtl/rgb565_word_skid_buffer.sv`
+- test：`main_ov5640_pcie/tb/tb_rgb565_word_skid_buffer.sv`
+- script：`main_ov5640_pcie/scripts/run_m3b_word_skid_buffer.ps1`
+- 正向：两槽 FIFO 按先入先出保存两个 128-bit word；下游暂停期间检查队首字段保持、第三个 word 在满队列且无同拍出队时被丢弃，并置位 sticky `overflow`；恢复 ready 后按序 drain。
+- 结果：Questa Sim-64 2021.1 编译 2 个 RTL/TB 为 0 error/0 warning，行为返回 0，日志唯一 `TEST PASS`，仿真至 85 ns。
+- 边界：`in_ready` 仅作诊断，不能反向节流无背压 packer；该短缓冲只吸收短突发，不保证持续满载无损，不定义帧丢弃/重启/恢复，也不替代真实帧缓存、DDR3、PCIe 或最终 CDC/RDC 复位审核。
+
 ## main OV5640→PCIe M3-B 联合 staging 覆盖
 
-- 联合：`ov5640_dvp_rgb565_dma_staging_pipeline` 串接采集、灰度、128-bit 打包、4-byte staging 与帧统计描述符；3 像素输入输出 2 个 beat、6 个有效字节，帧描述符 `desc_protocol_error=0`。
+- 联合：`ov5640_dvp_rgb565_dma_staging_pipeline` 串接采集、灰度、128-bit 打包、4-byte staging 与帧统计描述符；3 像素输入输出 2 个 beat、6 个有效字节，描述符 `desc_protocol_error=0`。
 - 握手：固定 `staging_ready=1`，描述符先背压后释放；数据通道由 staging ready 与 accounting ready 合取背压，`desc_ready` 不直接反向控制 adapter。
 - 结果：`run_m3b_integration.ps1` 使用 Questa Sim-64 2021.1 编译 9 个 RTL/TB，0 error/0 warning，行为返回 0，日志唯一 `TEST PASS`。
 - 边界：仅证明同一 `cam_pclk` 域的 staging 联合行为；`frame_end_pending` 是无输入背压条件下的临时对齐策略，不覆盖真实 FIFO/CDC、DDR3、PCIe AXIS/TLP、主机协议或后级 PDS/STA/SDF。
+
+## main OV5640→PCIe M3-B 双时钟 CDC staging 覆盖
+
+- 联合：`ov5640_dvp_rgb565_cdc_staging_pipeline` 串接采集、灰度、128-bit 打包、两槽 word 短突发缓冲、4-byte staging 与双时钟 CDC bridge；正常期 3 像素输入输出 2 个 payload beat 加 1 个 `keep=0` 空载帧尾事件，且 `source_overflow=0`。
+- 压力：复位后保持 `out_ready=0`，输入 64 像素使两槽缓冲耗尽并置位 `source_overflow`；恢复 ready 后排出 19 个保留 beat，新增输入丢弃语义由 sticky overflow 保留。
+- 结果：`run_m3b_ov5640_cdc_staging.ps1` 使用独立 5 ns/7 ns 时钟编译 11 个 RTL/TB，Questa Sim-64 2021.1 为 0 error/0 warning，行为返回 0，日志唯一 `TEST PASS`，仿真至 2527 ns。
+- 边界：仅证明该 staging/CDC 联合切片及短缓冲压力报告；不覆盖静态 CDC/RDC、复位释放、RAM 推断、真实 DDR3/PCIe IP、主机协议、PDS/STA 或 SDF，也不等同真实 DDR3/PCIe 闭环通过。
 
 ## main OV5640→PCIe normalized MWR descriptor 覆盖
 
@@ -245,7 +261,8 @@
 
 ## main OV5640 M3-B 双时钟 CDC staging pipeline 覆盖
 
-- 链路：`ov5640_dvp_rgb565_cdc_staging_pipeline` 串接 DVP、灰度、128-bit pack、4-byte adapter 与双时钟 CDC bridge。
-- 正向：小帧双时钟 TB 验证 2 staging beat、`keep` 以及首/末事件跨域到达；Questa Sim-64 2021.1 为 0 error/0 warning，日志唯一 `TEST PASS`，仿真至 413 ns。
-- 溢出语义：camera-side packer 无输入背压且 adapter/FIFO 接收不足时，`source_overflow` 置位并保持；该状态表示当前帧缓存前的阻断，不承诺无损。
-- 边界：未覆盖静态 CDC/RDC、复位释放、RAM 推断、真实 DDR3/PCIe IP、主机协议、PDS/STA 或 SDF。
+- 链路：`ov5640_dvp_rgb565_cdc_staging_pipeline` 串接 DVP、灰度、128-bit pack、两槽 word 短突发缓冲、4-byte adapter 与双时钟 CDC bridge。
+- 正向：小帧双时钟 TB 验证 2 个 payload beat、1 个空载帧尾事件、`keep` 以及首/末事件跨域到达，且无 overflow；压力期验证 64 像素输入、下游暂停、sticky overflow 与 ready 恢复后 19 个保留 beat drain。
+- 溢出语义：`source_overflow` 直接来自两槽 word buffer；缓冲满且无同拍出队时丢弃新输入并保持 overflow，表示当前帧缓存前的阻断，不承诺无损。
+- 结果：Questa Sim-64 2021.1 编译 11 个 RTL/TB 为 0 error/0 warning，日志唯一 `TEST PASS`，仿真至 2527 ns。
+- 边界：未覆盖静态 CDC/RDC、复位释放、RAM 推断、真实 DDR3/PCIe IP、主机协议、PDS/STA 或 SDF；短缓冲不等同帧缓存或真实 DDR3/PCIe 闭环。

@@ -350,6 +350,30 @@
       "hotspot": true
     },
     {
+      "id": "main-ov5640-pcie-m3b-word-skid-buffer",
+      "type": "System",
+      "label": "main OV5640→PCIe M3-B 两槽 word 短突发缓冲",
+      "responsibility": "在无背压 RGB565 word packer 与 4-byte adapter 之间吸收短突发，保存最多两个 128-bit word 及其事件，并报告缓冲耗尽。",
+      "implementation_status": "behavior_verified_two_slot_word_skid_buffer",
+      "project_path": "main_ov5640_pcie/",
+      "branch": "codex/main-ov5640-pcie",
+      "code_path": "main_ov5640_pcie/rtl/rgb565_word_skid_buffer.sv",
+      "test_path": "main_ov5640_pcie/tb/tb_rgb565_word_skid_buffer.sv",
+      "evidence_path": ["main_ov5640_pcie/scripts/run_m3b_word_skid_buffer.ps1", "docs/IMPLEMENTATION_LOG.md"],
+      "contracts": {
+        "capacity": "两槽 FIFO，按先入先出保存 128-bit word、16-bit keep 和 frame_start/line_start/line_end/frame_end/protocol_error 事件",
+        "overflow": "满队列且下游未接收时丢弃新 word 并置位 sticky overflow；异步复位清零",
+        "replacement": "满队列同拍出队与入队时允许直接替换尾槽",
+        "input_ready": "in_ready 仅用于诊断和压力判断，不能向无背压 packer 提供反向流控",
+        "output_hold": "out_valid 未被 out_ready 接收期间，队首全部字段保持"
+      },
+      "behavior_tb": "覆盖两 word 顺序、下游暂停时字段保持、满队列第三 word 丢弃、sticky overflow 及恢复 ready 后 drain",
+      "questa_evidence": "2026-09-03 Questa Sim-64 2021.1 编译 2 个 RTL/TB，0 error/0 warning，日志唯一 TEST PASS，仿真至 85 ns",
+      "uncovered_boundaries": ["持续满载无损", "overflow 后帧丢弃/重启/恢复协议", "真实帧缓存", "DDR3", "PCIe", "最终 CDC/RDC 复位审核"],
+      "complexity": "low",
+      "hotspot": true
+    },
+    {
       "id": "main-ov5640-pcie-m3b-staging-integration",
       "type": "System",
       "label": "main OV5640→PCIe M3-B 联合 staging wrapper",
@@ -370,16 +394,16 @@
       "id": "main-ov5640-pcie-m3b-cdc-staging-pipeline",
       "type": "System",
       "label": "main OV5640 M3-B 双时钟 CDC staging pipeline",
-      "responsibility": "串接 DVP、灰度、128-bit pack、4-byte adapter 与双时钟 CDC bridge，将 staging beat 的 keep、last、首/末事件跨域传递。",
+      "responsibility": "串接 DVP、灰度、128-bit pack、两槽 word 短突发缓冲、4-byte adapter 与双时钟 CDC bridge，将 staging beat 的 keep、last、首/末事件跨域传递。",
       "implementation_status": "behavior_verified_dual_clock_staging_only",
       "project_path": "main_ov5640_pcie/",
       "branch": "codex/main-ov5640-pcie",
       "code_path": "main_ov5640_pcie/rtl/ov5640_dvp_rgb565_cdc_staging_pipeline.sv",
       "test_path": "main_ov5640_pcie/tb/tb_ov5640_dvp_rgb565_cdc_staging_pipeline.sv",
-      "evidence_path": [".nexus-map/INDEX.md", ".nexus-map/arch/systems.md", ".nexus-map/arch/test_coverage.md"],
-      "contracts": {"scenario": "小帧双时钟 TB 验证 2 staging beat、keep、首/末事件跨域到达", "source_overflow": "camera-side packer 无输入背压且 adapter/FIFO 接收不足时置位并保持；表示当前帧缓存前阻断，不是无损保证"},
-      "questa_evidence": "2026-09-03 Questa Sim-64 2021.1，0 error/0 warning，唯一 TEST PASS，413 ns",
-      "uncovered_boundaries": ["静态 CDC/RDC", "复位释放", "RAM 推断", "真实 DDR3/PCIe IP", "主机协议", "PDS/STA/SDF"],
+      "evidence_path": ["main_ov5640_pcie/scripts/run_m3b_ov5640_cdc_staging.ps1", "main_ov5640_pcie/tb/tb_ov5640_dvp_rgb565_cdc_staging_pipeline.sv", "docs/IMPLEMENTATION_LOG.md", ".nexus-map/INDEX.md", ".nexus-map/arch/systems.md", ".nexus-map/arch/test_coverage.md"],
+      "contracts": {"scenario": "正常期 3 像素 -> 2 个 payload beat + 1 个 keep=0 空载帧尾事件且无 overflow；压力期 64 像素、out_ready=0 触发 overflow，恢复 ready 后排出 19 个保留 beat", "source_overflow": "source_overflow 直接绑定两槽 word buffer 的 sticky overflow；缓冲满且无同拍出队时丢弃新 word 并保持报告"},
+      "questa_evidence": "2026-09-03 Questa Sim-64 2021.1 编译 11 个 RTL/TB，0 error/0 warning，日志唯一 TEST PASS，仿真至 2527 ns",
+      "uncovered_boundaries": ["短缓冲持续满载无损", "overflow 后帧丢弃/恢复协议", "静态 CDC/RDC", "复位释放", "RAM 推断", "真实 DDR3/PCIe IP", "主机协议", "PDS/STA/SDF"],
       "complexity": "medium",
       "hotspot": true
     },
@@ -1145,6 +1169,24 @@
       "target": "main-ov5640-pcie-m3a-word-packing",
       "type": "governs_future_changes",
       "description": "M3-A 手写 packer、连接层和 TB 遵循 VSCS 注释边界；厂商资产与历史 RTL 不因此被视为全量合规。"
+    },
+    {
+      "source": "main-ov5640-pcie-m3b-word-skid-buffer",
+      "target": "main-ov5640-pcie-m3a-word-packing",
+      "type": "extends",
+      "description": "两槽 word 短突发缓冲承接 M3-A 无背压 packer 的 128-bit word 与事件，位于 packer 和 4-byte adapter 之间；不改变 M3-A 字布局职责。"
+    },
+    {
+      "source": "main-ov5640-pcie-m3b-cdc-staging-pipeline",
+      "target": "main-ov5640-pcie-m3b-word-skid-buffer",
+      "type": "consumes",
+      "description": "双时钟 CDC staging pipeline 集成并消费两槽 word 短突发缓冲输出，再送入 4-byte adapter；source_overflow 直接暴露其 sticky overflow。"
+    },
+    {
+      "source": "main-ov5640-pcie-m3b-word-skid-buffer",
+      "target": "pds-workflow-guide",
+      "type": "staged_under",
+      "description": "短缓冲仅为 board-independent 压力报告切片；丢弃/恢复协议、真实帧缓存、DDR3、PCIe、CDC/RDC 复位和实现级签核仍属后续集成边界。"
     },
     {
       "source": "main-ov5640-pcie-m3b-staging-integration",

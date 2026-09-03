@@ -5,13 +5,13 @@
  * @brief 将 OV5640 DVP 图像流送入双时钟 staging CDC 边界。
  *
  * @details
- * 数据路径为 DVP 采集、灰度处理、128-bit 打包、4-byte staging adapter，
- * 再进入双时钟 CDC bridge。`source_overflow` 用于暴露 camera-side packer
- * 没有输入背压时 adapter/FIFO 无法接收的情况。
+ * 数据路径为 DVP 采集、灰度处理、128-bit 打包、两槽 word 短突发缓冲、
+ * 4-byte staging adapter，再进入双时钟 CDC bridge。`source_overflow` 用于
+ * 暴露 camera-side 短缓冲耗尽的情况。
  *
  * @warning
- * 本模块不实例化 DDR3/PCIe IP，也不保证持续满载时无丢帧；overflow 策略、
- * FIFO 深度、三域复位和最终帧缓存仍由产品集成层负责。
+ * 本模块不实例化 DDR3/PCIe IP，也不保证持续满载时无丢帧；overflow 后的帧
+ * 丢弃、恢复策略、FIFO 深度、三域复位和最终帧缓存仍由产品集成层负责。
  */
 module ov5640_dvp_rgb565_cdc_staging_pipeline #(
     parameter logic VSYNC_ACTIVE_LEVEL = 1'b1,
@@ -39,6 +39,12 @@ module ov5640_dvp_rgb565_cdc_staging_pipeline #(
     logic [15:0] word_keep;
     logic word_frame_start, word_line_start, word_line_end;
     logic word_frame_end, word_protocol_error;
+    logic skid_in_ready, skid_valid;
+    logic [127:0] skid_data;
+    logic [15:0] skid_keep;
+    logic skid_frame_start, skid_line_start, skid_line_end;
+    logic skid_frame_end, skid_protocol_error;
+    logic skid_overflow;
     logic adapter_in_ready, adapter_valid;
     logic [127:0] adapter_data;
     logic [3:0] adapter_keep;
@@ -59,12 +65,24 @@ module ov5640_dvp_rgb565_cdc_staging_pipeline #(
         .word_protocol_error(word_protocol_error)
     );
 
+    rgb565_word_skid_buffer u_word_skid_buffer (
+        .rst_n(in_rst_n), .clk(cam_pclk), .in_valid(word_valid), .in_ready(skid_in_ready),
+        .in_data(word_data), .in_keep(word_keep), .in_frame_start(word_frame_start),
+        .in_line_start(word_line_start), .in_line_end(word_line_end),
+        .in_frame_end(word_frame_end), .in_protocol_error(word_protocol_error),
+        .out_valid(skid_valid), .out_ready(adapter_in_ready), .out_data(skid_data),
+        .out_keep(skid_keep), .out_frame_start(skid_frame_start),
+        .out_line_start(skid_line_start), .out_line_end(skid_line_end),
+        .out_frame_end(skid_frame_end), .out_protocol_error(skid_protocol_error),
+        .overflow(skid_overflow)
+    );
+
     rgb565_word_to_axis4_adapter u_axis4_adapter (
-        .rst_n(in_rst_n), .clk(cam_pclk), .in_valid(word_valid),
-        .in_ready(adapter_in_ready), .in_data(word_data), .in_keep(word_keep),
-        .in_frame_start(word_frame_start), .in_line_start(word_line_start),
-        .in_line_end(word_line_end), .in_frame_end(word_frame_end),
-        .in_protocol_error(word_protocol_error), .out_valid(adapter_valid),
+        .rst_n(in_rst_n), .clk(cam_pclk), .in_valid(skid_valid),
+        .in_ready(adapter_in_ready), .in_data(skid_data), .in_keep(skid_keep),
+        .in_frame_start(skid_frame_start), .in_line_start(skid_line_start),
+        .in_line_end(skid_line_end), .in_frame_end(skid_frame_end),
+        .in_protocol_error(skid_protocol_error), .out_valid(adapter_valid),
         .out_ready(cdc_in_ready), .out_data(adapter_data), .out_keep(adapter_keep),
         .out_last(adapter_last), .out_user(adapter_user)
     );
@@ -78,12 +96,7 @@ module ov5640_dvp_rgb565_cdc_staging_pipeline #(
         .out_user(out_user)
     );
 
-    always_ff @(posedge cam_pclk or negedge in_rst_n) begin
-        if (!in_rst_n)
-            source_overflow <= 1'b0;
-        else if (word_valid && !adapter_in_ready)
-            source_overflow <= 1'b1;
-    end
+    assign source_overflow = skid_overflow;
 endmodule
 
 `default_nettype wire

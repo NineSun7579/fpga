@@ -113,3 +113,20 @@ Sim-64 2021.1 编译 `0 error/0 warning`，唯一 `TEST PASS`，仿真至 `413 n
 该测试同时观察到 camera-side packer 无输入背压：在 adapter/FIFO 接收能力不足时，
 `source_overflow` 被置位。它是显式错误报告，不是无损保证；后续帧缓存必须增加源端
 流控、足够 FIFO 或丢帧/恢复策略后，才能进入真实 DDR3 写入。
+
+## 源端短突发缓冲
+
+`rgb565_word_skid_buffer` 位于无背压的 `rgb565_word_packer` 和
+`rgb565_word_to_axis4_adapter` 之间，保存两个 128-bit word 及完整事件字段。其输入
+沿用 packer 的 `word_valid` 脉冲，`in_ready` 只用于判断当前是否还有槽位；不能把该
+信号反向连接成 packer 的输入背压。输出仍是标准 `valid/ready`，下游暂停时已保存
+word 的所有字段保持，满队列同拍出队/入队时允许直接替换尾槽。
+
+当 `in_valid` 到达且两个槽位都不能接收时，模块丢弃该新 word 并将 `overflow` 粘滞
+置 1。该状态只报告当前帧在帧缓存前发生压力，未定义自动丢帧、重新同步、帧重启或
+错误恢复；产品集成必须在获得帧尺寸、吞吐、FIFO 深度和主机错误协议资料后另行冻结。
+
+专项 TB 覆盖两个 word 在下游暂停期间按顺序排出、第三个 word 的丢弃和 overflow，
+Questa Sim-64 2021.1 编译 `0 error/0 warning`、唯一 `TEST PASS`、仿真至 `85 ns`。
+联合 TB 覆盖 3 个正常 staging beat（含空载帧尾事件）和 64 像素下游暂停压力，
+Questa 编译 `0 error/0 warning`、唯一 `TEST PASS`，压力恢复后排出 19 个未丢失 beat。

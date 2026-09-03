@@ -20,7 +20,7 @@
 
 当前完成：M1-A 已实现板级无关的 DVP 8-bit→RGB565 采集；M2-A 已实现采集到 RGB565 灰度处理的单域流水线；M3-A 已实现 RGB565→128-bit 内部字打包及 DVP 集成自检。SCCB 配置、板级 PLL/FDC、CDC/FIFO、DDR3 IP 和 PCIe 集成必须分别完成前置事实审核。
 
-下一批：M1-B/M2-B 先根据 OV5640 模组和板级一手资料冻结 SCCB、MCLK、RESET/PWDN、DVP 极性/时序与处理模式；M3-B 已完成第一轮 PCIe/DDR3 接口事实审计，下一步先冻结转换合同，再进入跨域帧缓存设计。
+下一批：M1-B/M2-B 先根据 OV5640 模组和板级一手资料冻结 SCCB、MCLK、RESET/PWDN、DVP 极性/时序与处理模式；M3-B 已完成第一轮 PCIe/DDR3 接口事实审计和源端短突发缓冲，下一步冻结帧丢弃/恢复、FIFO 深度和三时钟复位合同，再进入跨域帧缓存设计。
 
 M3-B 审计结论见 [`docs/MAIN_OV5640_PCIE_M3B_ADAPTER_CONTRACT.md`](docs/MAIN_OV5640_PCIE_M3B_ADAPTER_CONTRACT.md)：M3-A 的 16-bit `word_keep` 不得直连 PCIe 4-bit `tkeep`；PCIe 请求长度/目标地址与数据流分离；DDR3 地址单位、burst 和非标准写握手仍待一手资料确认。
 
@@ -169,8 +169,8 @@ M3-B 审计结论见 [`docs/MAIN_OV5640_PCIE_M3B_ADAPTER_CONTRACT.md`](docs/MAIN
    - 已完成：新增规范化 DDR3 单 beat 写记录层，验证 128-bit 数据、16-bit `wstrb`、字段保持和释放；新增 `ADDR_STEP` 参数，28-bit 地址仍是 opaque token，不代表 DDR3 地址单位或 AXI4 burst。2026-09-03 增强回归覆盖空 `keep` 控制记录、背压字段稳定、连续记录地址步进和复位恢复 `BASE_ADDR`；Questa `0 error/0 warning`、唯一 `TEST PASS`、`126 ns`。
    - 已完成：新增板级无关 `rgb565_axis4_async_fifo` 与 `rgb565_axis4_cdc_bridge`，携带 staging `data/keep/last/user` 跨独立写入/读出时钟域；FIFO 6 beat 回归为 `287 ns`，CDC bridge 5 beat 事件回归为 `155 ns`，均 Questa `0 error/0 warning`、唯一 `TEST PASS`。联合测试还捕获并修正了 42-bit FIFO entry 被误声明为 41 bit 的事件截断缺陷。
    - 已完成：新增 `rgb565_axis4_pcie_mwr_path`，串接 staging、规范化 MWR descriptor 和临时 `mwr32_req/ack` bridge；`BASE_ADDR=0x0ffc` 专项回归验证 4-byte 请求恰到 4 KB 边界、ack 后地址 `0x1000`、字段保持与事件传播，Questa `0 error/0 warning`、唯一 `TEST PASS`、`125 ns`。
-   - 已完成：新增 `ov5640_dvp_rgb565_cdc_staging_pipeline`，形成 OV5640 DVP→图像处理→staging→双时钟 CDC 输出；小帧验证 2 beat、keep、首/末事件跨域，Questa `0 error/0 warning`、唯一 `TEST PASS`、`413 ns`。由于 camera-side packer 无输入背压，TB 同时确认 `source_overflow` 可显式报告 adapter/FIFO 压力。
-   - 下一步：先解决 `source_overflow` 对帧完整性的影响，冻结源端流控、FIFO 深度、丢帧/恢复和三时钟复位合同；再基于活动控制器完整启动/ack/busy/4 KB 分段语义建立真实控制器专项 TB，并在 50H IP 重生成后重审 DDR3 用户口。当前 FIFO 尚未完成静态 CDC/RDC、复位释放、RAM 推断和时钟约束审核；staging `tuser` 不等同于厂商编码，MWR 路径不证明真实 TLP/DMA/byte-enable/主机输出。
+   - 已完成：新增 `rgb565_word_skid_buffer` 两槽短突发缓冲，置于无背压 packer 与 4-byte adapter 之间；满队列时丢弃新 word 并粘滞报告 overflow，同拍出队/入队允许替换。独立 TB 与联合 TB 均由 Questa `0 error/0 warning`、唯一 `TEST PASS` 通过；联合回归覆盖 3 个正常 beat（2 个 payload 加 1 个空载帧尾事件）和 64 像素压力帧恢复排出 19 个保留 beat。
+   - 下一步：先冻结 `source_overflow` 后的帧完整性、丢帧/恢复、FIFO 深度和三时钟复位合同；再基于活动控制器完整启动/ack/busy/4 KB 分段语义建立真实控制器专项 TB，并在 50H IP 重生成后重审 DDR3 用户口。当前 FIFO 尚未完成静态 CDC/RDC、复位释放、RAM 推断和时钟约束审核；staging `tuser` 不等同于厂商编码，MWR 路径不证明真实 TLP/DMA/byte-enable/主机输出。
    - 禁止：未完成资料审核前修改 canonical IP、DDR3/PCIe RTL、FDC/RCF，或把 M3-A 行为通过解释为端到端输出通过。
 
 ### 近期执行顺序
