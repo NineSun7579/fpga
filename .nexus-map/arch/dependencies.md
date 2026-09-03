@@ -9,9 +9,13 @@ flowchart TD
   Guide["README.md\nPDS/仿真指南"] --> Todo["TODO.md\n整改与验收门槛"]
   Standard["VERILOG_SYSTEMVERILOG_COMMENTING_STANDARD.md"] --> HandRTL["后续手写 RTL/TB"]
 
-  MainOV["main_ov5640_pcie\nM1-A"] --> MainCapture["DVP 8-bit→RGB565\ncam_pclk 单域"]
+  MainOV["main_ov5640_pcie\nM1-A→M3-A"] --> MainCapture["DVP 8-bit→RGB565\ncam_pclk 单域"]
+  MainCapture --> MainProcess["M2-A RGB565 灰度\n固定一拍"]
+  MainProcess --> MainPack["M3-A 8×RGB565\n128-bit 内部字"]
   MainTB["M1-A 自检 TB"] --> MainCapture
   Standard --> MainCapture
+  Standard --> MainPack
+  MainPack -. "行为切片，未进入实现" .-> PDS
   Parallel["parallel_driver\n只读参考"] -. "不得导入资产/证据" .-> MainOV
 
   OV5640Target["OV5640 摄像头 HDMI\n产品目标 C0-C3/S3"] -. "C2 审核后选择性迁移" .-> OVLegacy["41_ov7725_hdmi\nOV7725 legacy"]
@@ -78,6 +82,9 @@ flowchart TD
 - M2-A 在同一 `cam_pclk` 域把 M1-A 采集输出送入 `rgb565_grayscale`；处理职责止于 RGB565 灰度化和一拍事件/坐标对齐，不延伸为 SCCB、板级时钟/电气时序、CDC/FIFO、DDR3、PCIe 或主机协议实现。
 - M2-A 的算法依赖 RGB565 分量扩展与固定整数系数 `77/150/29`；TB 参考值、系数、分量扩展或寄存器级数变化必须同步更新，当前证据只覆盖四个颜色样本、两行坐标、边界事件和奇数字节错误。
 - `run_m2a.ps1` 依赖外部提供的 Questa 可执行文件，通过参数注入模拟器目录；脚本在独立 `build/m2a/<run-id>/` 中编译并要求日志出现恰好一次 `TEST PASS`。Nexus 不记录模拟器安装路径、许可证或凭证。
+- M3-A 的 `ov5640_dvp_rgb565_word_pipeline` 承接 M2-A 同域灰度输出；`rgb565_word_packer` 按接收顺序将 8 个 RGB565 像素打成 128-bit 字，部分行尾只置 `word_keep` 低 `2N` 位并补零。该关系不改变 M2-A 的图像处理职责。
+- M3-A 的帧/行起止和协议错误可以附着数据字，也可在无 payload 时作为 `word_valid=0`、`word_keep=0` 控制事件输出。内部 keep 只表达 16 个 byte lane，不等同于厂商 PCIe AXIS `tkeep` 或主机字节序。
+- `run_m3a.ps1` 编译 5 个 RTL 与 1 个集成 TB，并要求 Questa 日志唯一 `TEST PASS`；2026-09-03 的 6 模块 `0 error/0 warning` 结果只证明板级无关行为，仍受 VSCS 与统一 PDS/四级仿真边界约束。
 - 用户确认三个产品方向共用 `RK3568+PG2L50H100H` 开发板，实际 FPGA 为 `PG2L50H-6IFBG484`；摄像头产品目标已校正为 OV5640，`41_ov7725_hdmi` 仅作 OV7725 legacy。统一有效 PDS 目标为 `Logos2 / PG2L50H / FBG484 / -6`，旧 PG2L100H 产物不得用于实板。
 - 厂商 `.idf`、生成 RTL 和 PDS 仿真库属于外部生成依赖，不应被误当作独立手写逻辑。
 - PCIe S2-A 的 `sim/behav.f` 依赖 37 个实现侧 canonical HDL、仿真专用补充源、DMA RAM init include、reset helper、项目 TB 与受控边界模型。历史动态 smoke 已通过同一 run-id 和唯一 `TEST PASS`；当前 S2-A/S2-B 静态门禁通过，但动态复验因仓库外许可证 checkout 失败返回 4，未产生新 PASS。

@@ -415,3 +415,14 @@
   仿真唯一输出 `TEST PASS`，返回码为 0。
 - 本批只定义内部 128-bit 数据布局，不证明 DDR3 用户接口地址单位、CDC/FIFO、
   PCIe AXIS `tkeep` 转换、PCIe TLP、主机地址或板级 OV5640 配置。
+
+## 2026-09-03：main OV5640 M3-B DDR3/PCIe 适配层接口审计
+
+- 只读核对 M3-A、活动 PCIe DMA 和 DDR3 用户接口，确认 M3-A 的 16-bit `word_keep`
+  与 PCIe 的 4-bit `tkeep` 不是同一语义，禁止直接连线。
+- 确认 PCIe Memory Write 还依赖独立的 10-bit 请求长度、64-bit 目标地址、32-bit
+  请求数据和 4 KB 边界状态；数据流、请求描述、TLP 分段必须由适配层分别管理。
+- 确认 DDR3 用户口为 128-bit 数据/16-bit 写掩码的非标准 AXI-like 接口；地址单位、
+  burst 长度和 `axi_wready` 完成语义尚未获得足够一手依据，暂不实现帧缓存地址发生器。
+- 新增 [`MAIN_OV5640_PCIE_M3B_ADAPTER_CONTRACT.md`](MAIN_OV5640_PCIE_M3B_ADAPTER_CONTRACT.md)，
+  固化转换职责、禁止事项和 M3-B 关闭条件。本批未修改 RTL、TB、厂商 IP、FDC/RCF 或生成物。

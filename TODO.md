@@ -1,6 +1,6 @@
 # 三项目整改 TODO
 
-更新日期：2026-09-02
+更新日期：2026-09-03
 
 状态：三项目器件迁移已获审核。DDR3、PCIe 和摄像头 HDMI 最终均运行在同一块 `RK3568+PG2L50H100H` 开发板，实际 FPGA 为 `PG2L50H-6IFBG484`，PDS 目标统一为 `Logos2 / PG2L50H / FBG484 / -6`。摄像头产品目标已由 owner 校正为 OV5640；现有 `41_ov7725_hdmi` 仅保留为 OV7725 legacy 历史基线与可复用基础设施来源。既有 PG2L100H 构建、STA、网表、SDF 和位流不得用于实际板卡验收或烧录。OV5640 范围见 [`docs/OV5640_TARGET_SCOPE.md`](docs/OV5640_TARGET_SCOPE.md)。
 
@@ -20,7 +20,9 @@
 
 当前完成：M1-A 已实现板级无关的 DVP 8-bit→RGB565 采集；M2-A 已实现采集到 RGB565 灰度处理的单域流水线；M3-A 已实现 RGB565→128-bit 内部字打包及 DVP 集成自检。SCCB 配置、板级 PLL/FDC、CDC/FIFO、DDR3 IP 和 PCIe 集成必须分别完成前置事实审核。
 
-下一批：M1-B/M2-B 先根据 OV5640 模组和板级一手资料冻结 SCCB、MCLK、RESET/PWDN、DVP 极性/时序与处理模式；随后 M3-B 定义 128-bit 字与 DDR3/PCIe 适配层的转换规则，再进入跨域帧缓存设计。
+下一批：M1-B/M2-B 先根据 OV5640 模组和板级一手资料冻结 SCCB、MCLK、RESET/PWDN、DVP 极性/时序与处理模式；M3-B 已完成第一轮 PCIe/DDR3 接口事实审计，下一步先冻结转换合同，再进入跨域帧缓存设计。
+
+M3-B 审计结论见 [`docs/MAIN_OV5640_PCIE_M3B_ADAPTER_CONTRACT.md`](docs/MAIN_OV5640_PCIE_M3B_ADAPTER_CONTRACT.md)：M3-A 的 16-bit `word_keep` 不得直连 PCIe 4-bit `tkeep`；PCIe 请求长度/目标地址与数据流分离；DDR3 地址单位、burst 和非标准写握手仍待一手资料确认。
 
 停止条件：缺少模组、时钟、I/O 电压、管脚、DDR3 拓扑或主机协议资料时，不修改 canonical IP、PLL、FDC/RCF，不把历史 PG2L100H 或 `parallel_driver` 产物解释为本工程通过。
 
@@ -158,6 +160,11 @@
    - 前置：C0/C1、H3 与 PG2L50H IP/FDC 决策完成；OV7725 O1/O2/O3/O4 只作问题清单和可复用性参考。
    - 交付：新的 OV5640 SCCB/读 ID/采集路径、逐域复位与事件 CDC、FIFO reset、DDR3/HDMI 约束和最终 gate。
    - 验收：setup/hold/recovery/removal 全通过，SDF/位流/仿真齐全；不得用宽泛 `false_path`、multicycle 或 waiver 掩盖结构问题。
+
+13. **M3-B：main OV5640 DDR3/PCIe 适配层合同与实现（当前审计完成）**
+   - 已完成：只读核对 M3-A 128-bit/16-byte 内部字、PCIe 128-bit/4-bit `tkeep`、10-bit 请求长度/64-bit 目标地址/4 KB 状态，以及 DDR3 128-bit/16-bit `wstrb` 的接口边界。
+   - 下一步：获取 PCIe AXIS/TLP、DDR3 地址与 burst、帧描述符和三时钟域资料，冻结字节转换、地址单位、边界拆分、FIFO 和完成/错误合同。
+   - 禁止：未完成资料审核前修改 canonical IP、DDR3/PCIe RTL、FDC/RCF，或把 M3-A 行为通过解释为端到端输出通过。
 
 ### 近期执行顺序
 

@@ -112,6 +112,22 @@
 - uncovered_boundaries: SCCB/寄存器与 sensor ID、板级时钟/电气时序/管脚、CDC/FIFO/逐域复位、DDR3、PCIe/主机协议、PDS/STA、综合后/PNR/SDF 均未覆盖。
 - reference_boundary: `parallel_driver` 仍仅只读参考；未导入其 RTL、IP、FDC/RCF、PDS 产物或验收证据。
 
+## main 独立 OV5640→PCIe M3-A
+
+- implementation_status: m3a_rgb565_128bit_word_packing_behavior_verified
+- project_path: `main_ov5640_pcie/`
+- branch: `codex/main-ov5640-pcie`
+- code_path: `main_ov5640_pcie/rtl/rgb565_word_packer.sv`, `main_ov5640_pcie/rtl/ov5640_dvp_rgb565_word_pipeline.sv`
+- test_path: `main_ov5640_pcie/tb/tb_rgb565_word_packer.sv`, `main_ov5640_pcie/tb/tb_ov5640_dvp_rgb565_word_pipeline.sv`
+- evidence_path: `docs/MAIN_OV5640_PCIE_WORD_PACKER_CONTRACT.md`, `docs/MAIN_OV5640_PCIE_FRAME_PROTOCOL.md`, `docs/IMPLEMENTATION_LOG.md`, `main_ov5640_pcie/README.md`, `main_ov5640_pcie/scripts/run_m3a.ps1`
+- responsibility: `rgb565_word_packer` 只把 M2-A 输出的同域灰度 RGB565 像素组织为内部 128-bit 图像字；wrapper 只连接既有采集/灰度 pipeline 与 packer，不负责 SCCB、CDC/FIFO、DDR3、PCIe TLP 或主机协议。
+- layout_contract: 像素 0..7 按接收顺序依次位于 `word_data[15:0]` 到 `word_data[127:112]`；8 像素完整字的 `word_keep=16'hffff`。
+- partial_contract: 行尾不足 8 像素时补零输出；N 个有效 RGB565 像素只置 `word_keep` 低 `2N` 位，其余 `word_data` 位和 keep 高位为 0。
+- control_contract: `frame_start/line_start` 随包含首像素的字输出；`line_end` 可附着完整待发送字或部分字；无 payload 的 `line_end/frame_end/protocol_error` 以 `word_valid=0`、`word_keep=0` 的控制事件输出。
+- behavior_tb_coverage: 单元 TB 覆盖 8 像素完整字、3 像素补零行尾字、空载帧尾与协议错误；DVP 集成 TB 覆盖采集→灰度→打包及奇字节错误传播，失败 `$fatal`，成功日志唯一 `TEST PASS`。
+- questa_evidence: `docs/IMPLEMENTATION_LOG.md` 记录 2026-09-03 使用 Questa Sim-64 2021.1 编译 6 个 RTL/TB 模块为 `0 error/0 warning`、集成行为仿真返回 0；`run_m3a.ps1` 校验日志中的 `TEST PASS` 恰好一次。
+- uncovered_boundaries: 内部布局不等同于 DDR3 地址单位、PCIe AXIS `tkeep`、PCIe TLP payload 或主机字节序；SCCB、板级、CDC/FIFO、DDR3/PCIe 集成、PDS/STA 和后级仿真均未覆盖。
+
 ## OV7725 HDMI Legacy 顶层
 
 - implementation_status: legacy_evidence_with_timing_failures

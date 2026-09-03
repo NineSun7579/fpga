@@ -1,6 +1,6 @@
 {
   "$schema": "nexus-mapper/concept-model/v1",
-  "generated_at": "2026-09-01T00:00:00+08:00",
+  "generated_at": "2026-09-03T00:00:00+08:00",
   "repo_path": ".",
   "generator": "Codex manual bootstrap",
   "nodes": [
@@ -321,6 +321,31 @@
       "questa_evidence": "Questa Sim-64 2021.1 编译 4 个 RTL/TB 模块为 0 error/0 warning，行为仿真返回 0，日志唯一 TEST PASS；不记录模拟器安装路径、许可证或凭证",
       "uncovered_boundaries": ["SCCB/寄存器与 sensor ID", "板级时钟/电气时序/管脚", "CDC/FIFO/逐域复位", "DDR3", "PCIe/主机协议", "PDS/STA/综合后/PNR/SDF"],
       "reference_boundary": "parallel_driver 仍仅只读参考，未导入其 RTL、IP、FDC/RCF、PDS 产物或验收证据",
+      "complexity": "medium",
+      "hotspot": true
+    },
+    {
+      "id": "main-ov5640-pcie-m3a-word-packing",
+      "type": "System",
+      "label": "main 独立 OV5640→PCIe M3-A RGB565 128-bit 图像字打包切片",
+      "responsibility": "在 cam_pclk 域承接 M2-A 灰度 RGB565 流，完成 8 像素 128-bit 内部字打包、部分行尾补零及控制事件传播。",
+      "implementation_status": "behavior_verified",
+      "project_path": "main_ov5640_pcie/",
+      "branch": "codex/main-ov5640-pcie",
+      "code_path": ["main_ov5640_pcie/rtl/rgb565_word_packer.sv", "main_ov5640_pcie/rtl/ov5640_dvp_rgb565_word_pipeline.sv"],
+      "test_path": ["main_ov5640_pcie/tb/tb_rgb565_word_packer.sv", "main_ov5640_pcie/tb/tb_ov5640_dvp_rgb565_word_pipeline.sv"],
+      "evidence_path": ["docs/MAIN_OV5640_PCIE_WORD_PACKER_CONTRACT.md", "docs/MAIN_OV5640_PCIE_FRAME_PROTOCOL.md", "docs/IMPLEMENTATION_LOG.md", "main_ov5640_pcie/README.md", "main_ov5640_pcie/scripts/run_m3a.ps1"],
+      "contracts": {
+        "input": "同一 cam_pclk 域的 M2-A 灰度 RGB565 流，每拍最多接收一个有效 16-bit 像素，无输入背压",
+        "output_layout": "像素 0..7 按接收顺序依次位于 word_data[15:0]、[31:16]、[47:32]、[63:48]、[79:64]、[95:80]、[111:96]、[127:112]",
+        "full_word": "8 个 RGB565 像素形成一个 128-bit 完整字，word_keep=16'hffff",
+        "partial_word": "行尾不足 8 像素时输出补零字；N 个有效像素只置 word_keep 低 2N 位，其余 word_data 位和 word_keep 高位为 0",
+        "control_events": "frame_start/line_start 附着包含首像素的字；line_end 可附着完整待发送字或部分字；无 payload 的 line_end/frame_end/protocol_error 以 word_valid=0、word_keep=0 的控制事件表达",
+        "boundary": "内部 word_data/word_keep 布局不等同于 DDR3 地址单位、PCIe AXIS tkeep、PCIe TLP payload 或主机内存字节序"
+      },
+      "behavior_tb": "单元 TB 检查 8 像素完整字、3 像素补零行尾字及空载帧尾/协议错误；DVP 集成 TB 检查采集、灰度、打包与奇字节错误传播，成功只输出一次 TEST PASS",
+      "questa_evidence": "2026-09-03 使用 Questa Sim-64 2021.1 编译 6 个 RTL/TB 模块为 0 error/0 warning，集成行为仿真返回 0，日志唯一 TEST PASS",
+      "uncovered_boundaries": ["SCCB/寄存器与 sensor ID", "板级时钟/电气时序/管脚", "CDC/FIFO/逐域复位", "DDR3 地址与事务", "PCIe AXIS/TLP/主机协议", "PDS/STA/综合后/PNR/SDF"],
       "complexity": "medium",
       "hotspot": true
     },
@@ -1006,6 +1031,24 @@
       "description": "M2-A 手写 RTL/TB 遵循 VSCS 注释边界；不得据此宣称历史或厂商 RTL 全量合规。"
     },
     {
+      "source": "main-ov5640-pcie-m3a-word-packing",
+      "target": "main-ov5640-pcie-m2a-grayscale",
+      "type": "extends",
+      "description": "M3-A 承接 M2-A 的同域灰度 RGB565 流，增加 8 像素 128-bit 打包、部分行尾补零和控制事件传播，不改变 M2-A 图像处理职责。"
+    },
+    {
+      "source": "main-ov5640-pcie-m3a-word-packing",
+      "target": "pds-workflow-guide",
+      "type": "staged_under",
+      "description": "M3-A 只关闭板级无关的内部图像字布局与行为；尚无 PDS/IP/FDC/RCF/STA、DDR3 或 PCIe 集成签核。"
+    },
+    {
+      "source": "vscs-commenting-standard",
+      "target": "main-ov5640-pcie-m3a-word-packing",
+      "type": "governs_future_changes",
+      "description": "M3-A 手写 packer、连接层和 TB 遵循 VSCS 注释边界；厂商资产与历史 RTL 不因此被视为全量合规。"
+    },
+    {
       "source": "ov7725-hdmi-system",
       "target": "ov5640-camera-hdmi-target",
       "type": "legacy_reference_for",
@@ -1116,7 +1159,7 @@
   ],
   "metadata": {
     "analysis_mode": "manual bootstrap",
-    "verified_at": "2026-09-01",
+    "verified_at": "2026-09-03",
     "git_commits_analyzed": 61,
     "raw_ast_available": false,
     "limitations": [

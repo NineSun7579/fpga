@@ -1,5 +1,5 @@
 > generated_by: Codex manual bootstrap
-> verified_at: 2026-09-01
+> verified_at: 2026-09-03
 > provenance: `git status`, `git log`, current worktree, and static project audit
 
 # Git Forensics
@@ -8,13 +8,14 @@
 
 - 分支为 `main`。
 - 根提交为 `1a2d493`，保存三个原始工程、已有 PDS 产物和整改文档。
-- CI-1 至 CI-7、H2-B0、CI-8A、PCIe S2-A、板级证据门禁、仿真器复核、M0/M1、M2-A（main OV5640 灰度处理）与 M2-B1 均按小批次记录；S2-A 后累计 61 个提交。样本仍不足以计算可信的 churn、共同变更或历史热点。
+- CI-1 至 CI-7、H2-B0、CI-8A、PCIe S2-A、板级证据门禁、仿真器复核、M0/M1、main OV5640 M2-A/M3-A 与 DDR3 M2-B1 均按小批次记录；样本仍不足以计算可信的 churn、共同变更或历史热点。
 
 ## 人工高关注区
 
 以下仅来自当前缺陷证据，不是 Git 统计热点：
 
 - `docs/OV5640_TARGET_SCOPE.md`：摄像头产品目标、OV7725 legacy 边界与 C0/C1/C2/C3/S3 关闭条件的首要入口；参考工程未审计前不得先改名或迁移 RTL。
+- `main_ov5640_pcie/rtl/rgb565_word_packer.sv`、`ov5640_dvp_rgb565_word_pipeline.sv`：M3-A 内部 128-bit 图像字布局与控制事件边界；后续 DDR3/PCIe 适配不得直接把 `word_keep` 当作厂商 AXIS `tkeep` 或主机字节序。
 - `41_ov7725_hdmi/rtl/ov7725_hdmi.v`：OV7725 legacy 视频链路顶层、跨域控制和复位组合点，只能作为 OV5640 C2 的候选结构参考。
 - `41_ov7725_hdmi/doc/CDC_RDC_AUDIT.md`：O0-A CDC/RDC 事实、旧/新 STA 映射和后续整改契约的首要证据；O1-B 不得顺带修改该结构。
 - `41_ov7725_hdmi/doc/RTL_HYGIENE_AUDIT.md`：O1-A 的 39 条告警归属、38 条确定修复、`mem_a` H3/O1-C 阻断、隐式网络和 serializer reset 契约的首要证据。
@@ -48,4 +49,4 @@
 
 ## 后续更新
 
-只有积累足够多、内容独立的提交后，才适合增加真实 churn 与共同变更分析。M2-A 已关闭 main OV5640 采集到灰度处理的板级无关行为切片；后续按 PCIe 当前动态复验、DDR3 M2、OV5640 C0/C1/C2/C3/S3 推进。缺少一手资料或仓库外许可证不可用时，不修改对应功能 RTL/物理约束，也不把历史仿真日志冒充当前结果。
+只有积累足够多、内容独立的提交后，才适合增加真实 churn 与共同变更分析。main OV5640 M3-A 已关闭采集、灰度处理到 128-bit 内部图像字的板级无关行为切片；后续必须分别审核 CDC/FIFO、DDR3、PCIe/主机协议与 PDS/STA，且不得把历史仿真日志冒充当前结果。

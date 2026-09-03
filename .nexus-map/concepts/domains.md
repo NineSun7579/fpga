@@ -1,5 +1,5 @@
 > generated_by: Codex manual bootstrap
-> verified_at: 2026-09-01
+> verified_at: 2026-09-03
 > provenance: root guide, TODO, source tree, PDS reports, and manual inspection
 
 # Domains
@@ -53,6 +53,10 @@ OV7725 的帧同步当前是长电平而非单周期脉冲，且 `wr_load`/`rd_l
 ## main OV5640 M2-A 图像处理
 
 M2-A 将 `cam_pclk` 域的 M1-A RGB565 采集流连接到 `rgb565_grayscale`。模块先按 R[15:11]、G[10:5]、B[4:0] 扩展 8 bit，再使用 `Y=(77*R+150*G+29*B)>>8`，把 Y 复制到 RGB565 三个分量；像素、坐标、帧/行事件和协议错误统一延迟一拍。项目自有 TB 覆盖黑/红/绿/蓝四像素、两行坐标、事件保持和奇数字节错误，并以 Questa 编译 0 error/0 warning、行为返回 0、唯一 `TEST PASS` 作为当前证据。该切片不覆盖 SCCB、板级、CDC/FIFO、DDR3、PCIe 或后级实现；`parallel_driver` 仅只读参考。
+
+## main OV5640 M3-A 128-bit 图像字
+
+M3-A 在同一 `cam_pclk` 域承接 M2-A 灰度 RGB565 流。`rgb565_word_packer` 将像素 0..7 按接收顺序放入 `word_data` 从低到高的八个 16-bit 槽位；完整字含 8 像素且 `word_keep=16'hffff`，N 像素部分行尾字补零并只置 keep 低 `2N` 位。帧/行起止与协议错误可附着数据字，无 payload 时使用 `word_valid=0`、`word_keep=0` 控制事件。Questa Sim-64 2021.1 的 6 模块集成行为仿真为 0 error/0 warning、返回 0、唯一 `TEST PASS`。该内部布局不定义 DDR3 地址、PCIe AXIS `tkeep`、TLP payload 或主机内存字节序。
 
 厂商异步 FIFO 可以承担多比特数据跨域，但 reset/flush 仍属于 RDC。write FIFO 的 camera/UI 两侧和 read FIFO 的 UI/pixel 两侧必须分别在本地时钟域释放复位；只有确认 SP6.4 对厂商指针同步结构的识别后，才允许添加最窄范围例外。
 

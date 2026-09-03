@@ -96,7 +96,7 @@
 
 | 项目 | PDS 实现证据 | 时序证据 | 行为仿真 | 综合后仿真 | PNR 功能仿真 | PNR 时序仿真 |
 |---|---|---|---|---|---|---|
-| main OV5640→PCIe | M2-A 仅有板级无关采集→灰度 RTL/TB，无 PDS/IP/FDC/RCF/实现产物 | 仅固定 `cam_pclk` 源同步输入与一拍处理延迟合同，无板级或 CDC STA | Questa 2021.1：4 个 RTL/TB 模块编译 0 error/0 warning、行为返回 0、唯一 `TEST PASS`；覆盖黑/红/绿/蓝 4 像素/2 行、坐标、帧行事件、奇数字节错误 | 未生成 | 未生成 | 未生成/未标注 |
+| main OV5640→PCIe | M3-A 仅有板级无关采集→灰度→128-bit 内部字 RTL/TB，无 PDS/IP/FDC/RCF/实现产物 | 固定 `cam_pclk` 源同步输入、一拍灰度处理与同域打包合同，无板级或 CDC STA | Questa 2021.1：6 个 RTL/TB 模块编译 0 error/0 warning、行为返回 0、唯一 `TEST PASS`；覆盖 8 像素完整字、3 像素补零行尾字、帧尾与奇字节错误控制事件 | 未生成 | 未生成 | 未生成/未标注 |
 | OV5640 摄像头 HDMI | 产品目标已冻结为 OV5640；C0 参考审计和 C1 产品范围仍待完成 | C3 前无产品 STA；OV7725 旧时序只作 legacy 参考 | S3 项目级入口缺失 | 新产品网表尚未生成 | 新产品 PNR 网表尚未生成 | 新产品 SDF 尚未生成/标注 |
 | DDR3 外层 | 旧 PG2L100H 七阶段与五类产物已完成，但不可用于实际 PG2L50H；需重生成 50H IP/FDC/RCF | 旧 100H `All Constraints Met` 只保留历史；50H STA 未执行 | D2/D3-0 旧契约已定，PG2L50H 重生成后须重审；S1 项目级入口缺失 | 旧网表不可签核 | 旧 PNR 网表不可签核 | VSIM/SDF 未验证，旧 100H 结果不可签核 |
 | PCIe DMA | 活动 IDF、build/PDS/gate 与新产物均为 PG2L50H；已从空 `build/` 完成七阶段重建 | 50H STA 已生成，最差解析 slack `0.100 ns`；严格 gate 仍受板级/功能缺口阻断 | S2-A 受控 smoke 动态 PASS；不覆盖真实链路/DMA/板级 | 顶层未闭环 | 新 50H 网表待集成仿真 | 公共 VSIM 已验证，项目 SDF 待标注 |
@@ -115,6 +115,14 @@
 - 负向：HREF 窗口内单字节尾部丢弃半像素并保持一次 `protocol_error`；watchdog 或检查失败使用 `$fatal`，成功只输出一次 `TEST PASS`。
 - 结果：`docs/IMPLEMENTATION_LOG.md` 记录 Questa Sim-64 2021.1 编译 4 个 RTL/TB 模块为 `0 error/0 warning`、行为仿真返回 0；`run_m2a.ps1` 另验证日志中 `TEST PASS` 恰好一次。
 - 边界：未覆盖 SCCB、板级时钟/电气时序/管脚、CDC/FIFO、DDR3、PCIe/主机协议、PDS/STA、综合后/PNR/SDF；`parallel_driver` 仍仅只读参考。
+
+## main OV5640→PCIe M3-A 行为覆盖
+
+- 正向：`rgb565_word_packer` 单元 TB 检查 8 像素完整字的低位优先槽位、`word_keep=16'hffff` 和首帧/首行/行尾事件；3 像素部分行检查 `word_keep=16'h003f`、高位补零及行首/行尾。
+- 集成：公开 OV5640 DVP 输入经 M1-A 采集、M2-A 灰度处理和 M3-A 打包形成一行 8 像素完整字与一行 3 像素部分字；另检查帧尾和奇字节协议错误各作为一次空载控制事件传播。
+- 控制/退出：watchdog、数据、keep 或事件错误使用 `$fatal`；`run_m3a.ps1` 编译 5 个 RTL 与 1 个集成 TB，并要求日志中的 `TEST PASS` 恰好一次。
+- 结果：`docs/IMPLEMENTATION_LOG.md` 记录 2026-09-03 使用 Questa Sim-64 2021.1 编译 6 个 RTL/TB 模块为 `0 error/0 warning`，集成行为仿真返回 0、唯一 `TEST PASS`。
+- 边界：该证据只验证内部 `word_data[127:0]`/`word_keep[15:0]` 布局及控制事件；不覆盖 SCCB、板级、CDC/FIFO、DDR3 地址/事务、PCIe AXIS/TLP、主机协议、PDS/STA、综合后/PNR/SDF。
 
 ## S1/S2/S3 仿真就绪度矩阵（2026-08-30）
 
