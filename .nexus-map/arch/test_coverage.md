@@ -138,6 +138,13 @@
 - 结果：`run_m3b_integration.ps1` 使用 Questa Sim-64 2021.1 编译 9 个 RTL/TB，0 error/0 warning，行为返回 0，日志唯一 `TEST PASS`。
 - 边界：仅证明同一 `cam_pclk` 域的 staging 联合行为；`frame_end_pending` 是无输入背压条件下的临时对齐策略，不覆盖真实 FIFO/CDC、DDR3、PCIe AXIS/TLP、主机协议或后级 PDS/STA/SDF。
 
+## main OV5640→PCIe normalized MWR descriptor 覆盖
+
+- 正向：以 `BASE_ADDR=64'hffc` 输入两个 staging beat，检查第二请求地址按第一 beat 的有效字节数递增至 `0x1000`，`keep`、`last` 与 `frame_end` 原样保持。
+- 边界：检查 4KB 跨界标志在首个请求置位、跨界后的请求清除；仅按 `keep` 有效字节计数，不引入厂商 TLP 编码。
+- 结果：`tb_rgb565_axis4_mwr_descriptor.sv` 通过 watchdog、`$fatal` 和唯一 `TEST PASS` 判定上述字段。
+- 边界：该 TB 只证明 vendor-independent normalized descriptor 的地址/字段行为，不证明厂商 PCIe IP、TLP/max-payload、DMA 完成、DDR3、CDC/FIFO 或后级 PDS/STA/SDF。
+
 ## S1/S2/S3 仿真就绪度矩阵（2026-08-30）
 
 - 已验证盘点：`docs/SIMULATION_READINESS_MATRIX.md` 已逐项目记录项目级 testbench、filelist、DO、厂商示例和四级仿真前置条件；PCIe S2-A 已实际执行 Questa 动态 smoke。

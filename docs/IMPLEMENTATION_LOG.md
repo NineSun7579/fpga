@@ -455,7 +455,7 @@
 - 确认 `i_mwr32_req`/`i_mwr64_req` 与 ack 驱动内部状态机；这些端口不是可直接连接
   staging stream 的标准 `valid/ready` 协议。
 - 决策：下一批先实现并验证板级无关的规范化 Memory Write 请求描述符，再实现独立
-  vendor bridge；本批不修改 PCIe IP，不声称 DMA 或主机输出已通过。
+  厂商桥接层；本批不修改 PCIe IP，不声称 DMA 或主机输出已通过。
 
 ## 2026-09-03：main OV5640 M3-B 联合 staging wrapper
 

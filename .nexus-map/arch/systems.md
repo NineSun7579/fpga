@@ -150,6 +150,15 @@
 - verification: Questa Sim-64 2021.1 编译 2 个 RTL/TB 模块为 0 error/0 warning，行为返回 0，唯一 TEST PASS；覆盖 5-byte/2-beat、空载帧尾、错误传播和描述符背压。
 - uncovered_boundaries: 描述符未定义 DDR3 地址单位、burst、PCIe TLP/最大 payload、CDC/FIFO 或主机协议。
 
+## main 独立 OV5640→PCIe normalized MWR descriptor
+
+- implementation_status: behavior_verified_vendor_independent_descriptor_only
+- code_path: `main_ov5640_pcie/rtl/rgb565_axis4_mwr_descriptor.sv`
+- test_path: `main_ov5640_pcie/tb/tb_rgb565_axis4_mwr_descriptor.sv`
+- responsibility: 将 4-byte staging beat 规范化为 vendor-independent PCIe Memory Write request descriptor，按 byte count 递增地址并转发 keep/last/frame_end。
+- verification: TB 覆盖地址递增、`keep`、`last`、`frame_end` 与 4KB 边界标志；使用 `BASE_ADDR=0xffc` 验证跨界请求标记。
+- boundary: 仅验证规范化描述符字段与 4KB 边界指示，不接厂商 PCIe IP，不定义 TLP 编码、最大 payload、DMA 完成、DDR3 地址或主机协议。
+
 ## OV7725 HDMI Legacy 顶层
 
 - implementation_status: legacy_evidence_with_timing_failures
