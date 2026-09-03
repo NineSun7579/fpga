@@ -96,7 +96,7 @@ flowchart TD
 - `run_m3a.ps1` 编译 5 个 RTL 与 1 个集成 TB，并要求 Questa 日志唯一 `TEST PASS`；2026-09-03 的 6 模块 `0 error/0 warning` 结果只证明板级无关行为，仍受 VSCS 与统一 PDS/四级仿真边界约束。
 - `tb_ov5640_ddr3_pcie_loopback.sv` 依赖现有 DVP/灰度/打包/短缓冲/CDC staging、规范化 DDR3 写记录和规范化 PCIe MWR 路径；TB 自带的 DDR3 数组模型只把 opaque 28-bit 写地址当作索引，不解释真实控制器地址单位或读写握手。
 - `run_m3b_ov5640_ddr3_pcie_loopback.ps1` 依赖外部 Questa Sim-64 2021.1，可执行文件目录由参数或 `QUESTA_BIN` 提供；每次运行使用独立 `build/m3b-ov5640-ddr3-pcie-loopback/<run-id>/`，要求仿真退出成功、Errors 为 0 且 `TEST PASS` 恰好一次。
-- 该行为链的 PCIe 地址推进依赖每条记录的有效字节数，因此从 `0x0ffc` 依次到 `0x1000`、`0x1002`；这只验证规范化描述符合同，不连接真实 DDR3 controller 或厂商 PCIe IP，不能外推为 DDR3 地址/握手、PCIe TLP/链路/主机或板级时序通过。
+- 该行为链的 PCIe 地址推进依赖每条记录的有效字节数：正常帧从 `0x0ffc` 到 `0x1000/0x1002`；压力 epoch 的空载 abort 与恢复 payload 均为 `0x104c`。这只验证规范化描述符和行为模型合同，不连接真实 DDR3 controller 或厂商 PCIe IP。
 - 用户确认三个产品方向共用 `RK3568+PG2L50H100H` 开发板，实际 FPGA 为 `PG2L50H-6IFBG484`；摄像头产品目标已校正为 OV5640，`41_ov7725_hdmi` 仅作 OV7725 legacy。统一有效 PDS 目标为 `Logos2 / PG2L50H / FBG484 / -6`，旧 PG2L100H 产物不得用于实板。
 - 厂商 `.idf`、生成 RTL 和 PDS 仿真库属于外部生成依赖，不应被误当作独立手写逻辑。
 - PCIe S2-A 的 `sim/behav.f` 依赖 37 个实现侧 canonical HDL、仿真专用补充源、DMA RAM init include、reset helper、项目 TB 与受控边界模型。历史动态 smoke 已通过同一 run-id 和唯一 `TEST PASS`；当前 S2-A/S2-B 静态门禁通过，但动态复验因仓库外许可证 checkout 失败返回 4，未产生新 PASS。

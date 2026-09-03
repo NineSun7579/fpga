@@ -36,14 +36,16 @@ module tb_rgb565_axis4_pcie_mwr_path;
             req_data !== 32'hdeadbeef || req_keep !== 4'hf || cross_4kb_boundary ||
             req_last || req_frame_end || req_protocol_error)
             $fatal(1, "PCIe MWR path first request mismatch");
+
+        // 第一条请求等待 ack 时预取下一条记录，当前请求的全部字段仍必须保持。
+        send_beat(32'h01020304, 4'h3, 1, 1, 1);
         repeat(2) begin @(posedge clk); #1ns;
-            if (req_addr !== 64'h0ffc || req_data !== 32'hdeadbeef || !mwr32_req)
+            if (req_addr !== 64'h0ffc || req_data !== 32'hdeadbeef ||
+                req_keep !== 4'hf || req_last || req_frame_end ||
+                req_protocol_error || !mwr32_req)
                 $fatal(1, "PCIe MWR path request was not held");
         end
         mwr32_req_ack=1; @(posedge clk); #1ns; mwr32_req_ack=0;
-        @(posedge clk); #1ns; if (busy || mwr32_req) $fatal(1, "PCIe MWR ack release mismatch");
-
-        send_beat(32'h01020304, 4'h3, 1, 1, 1);
         @(posedge clk); #1ns;
         if (!busy || req_addr !== 64'h1000 || req_length !== 0 || req_keep !== 4'h3 ||
             !req_last || !req_frame_end || !req_protocol_error || cross_4kb_boundary)

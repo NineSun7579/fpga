@@ -596,7 +596,7 @@
   原帧尾、中止记录已经排队且后续输入带 `frame_start` 时，才恢复保存新帧；中止记录
   排队前提前到达的新帧会被整帧跳过，避免从帧中段恢复。
 - `tb_rgb565_word_skid_buffer.sv` 覆盖已保存前缀、中间 word 丢失、原帧尾、提前新帧跳过、
-  唯一中止记录、后续帧恢复和 sticky overflow。2026-09-04 又补入满队列同拍出入队、
+  唯一中止记录、后续帧恢复和 sticky overflow。后续又补入满队列同拍出入队、
   丢弃侧帧尾与 abort 入队同拍、连续两个损坏帧及 drop 状态异步复位；Questa Sim-64
   2021.1 为 `0 error/0 warning`、唯一 `TEST PASS`、`526 ns`。
 - DVP→CDC 联合 TB 的压力帧排出 20 个 beat，其中恰好一个位于末尾的空载错误帧尾；随后 1 像素新帧
@@ -604,3 +604,28 @@
   `2863 ns`。M3-A 正常路径和 OV5640→DDR3 模型→PCIe MWR 往返仍分别通过。
 - 该策略只保证损坏帧可识别并从后续帧首重同步，不保证持续背压无丢帧；DDR3 侧仍需
   作废带协议错误的帧，FIFO 深度、三时钟复位和真实控制器接入仍未闭合。
+
+## 2026-09-03：main OV5640 PCIe 元数据保持与中止记录往返
+
+- PCIe path 新增预取竞态回归：首请求等待 ack 时，descriptor 接收下一条带
+  `last/frame_end/protocol_error` 的记录。旧实现的事件元数据直接旁路 descriptor，导致
+  当前请求地址/数据/keep 与下一记录事件错配；红灯于 `56 ns` 稳定复现。
+- `rgb565_axis4_pcie_mwr_bridge` 现将三个事件位与地址、长度、数据、keep 和 4 KB 状态
+  一并锁存。bridge 独立回归为 `76 ns`，组合 path 回归为 `115 ns`，均为 Questa
+  `0 error/0 warning`、唯一 `TEST PASS`。
+- 扩展行为级 DDR3→PCIe loopback：DDR writer 阻塞时输入 64 像素，压力帧形成 21 条
+  DDR 模型记录，唯一空载错误中止位于索引 20；下一帧恢复后，全部记录逐条回送 PCIe。
+- 中止记录和恢复 payload 均从 PCIe 地址 `0x104c` 发起，证明 `keep=0` 控制记录不会
+  消耗图像地址空间。Questa 为 `0 error/0 warning`、唯一 `TEST PASS`、`3844 ns`。
+- 该证据关闭的是 vendor-independent 行为模型中的中止记录保存和回送，不实例化真实
+  DDR3/PCIe IP，也不证明 TLP byte-enable、链路、DMA、主机内存或板级时序。
+
+## 最终回归：loopback 模型采样修正
+
+- 最终重跑 word skid、DVP→CDC staging、PCIe MWR bridge、PCIe MWR path、OV5640→DDR3 模型→PCIe
+  loopback 和 M3-A；每项均为 Questa Sim-64 2021.1 编译/仿真 `0 error/0 warning`、唯一 `TEST PASS`。
+- loopback 仿真至 `3844 ns`：正常帧 3 条记录；64 像素压力帧 21 条记录，唯一 abort 位于索引
+  20；1 像素恢复帧 2 条记录；abort 与恢复 payload 的 PCIe 地址均为 `0x104c`。
+- 复测发现测试模型若在 `negedge ddr_clk` 延迟采集，会在 descriptor 于 `posedge` 完成最后一次
+  握手后提前统计，漏掉最后一条 abort。现改为在 `posedge` 的 `write_valid && write_ready` 握手边沿
+  采集，记录语义与接口合同一致。

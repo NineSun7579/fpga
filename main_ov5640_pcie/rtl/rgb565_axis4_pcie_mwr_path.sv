@@ -61,15 +61,15 @@ module rgb565_axis4_pcie_mwr_path #(
         .rst_n(rst_n), .clk(clk), .in_valid(descriptor_valid), .in_ready(descriptor_ready),
         .in_addr(descriptor_addr), .in_length_dw_minus1(descriptor_length),
         .in_data(descriptor_data), .in_keep(descriptor_keep),
-        .in_cross_4kb_boundary(descriptor_boundary), .mwr32_req(mwr32_req),
+        .in_cross_4kb_boundary(descriptor_boundary), .in_last(descriptor_last),
+        .in_frame_end(descriptor_frame_end),
+        .in_protocol_error(descriptor_protocol_error), .mwr32_req(mwr32_req),
         .mwr32_req_ack(mwr32_req_ack), .req_length(req_length), .req_addr(req_addr),
         .req_data(req_data), .req_keep(req_keep), .cross_4kb_boundary(cross_4kb_boundary),
+        .req_last(req_last), .req_frame_end(req_frame_end),
+        .req_protocol_error(req_protocol_error),
         .busy(busy)
     );
-
-    assign req_last = descriptor_last;
-    assign req_frame_end = descriptor_frame_end;
-    assign req_protocol_error = descriptor_protocol_error;
 endmodule
 
 `default_nettype wire

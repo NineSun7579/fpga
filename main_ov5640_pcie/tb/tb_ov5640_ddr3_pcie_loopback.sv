@@ -15,7 +15,7 @@
  * 链路、TLP byte enable 或主机内存写入已经通过。
  */
 module tb_ov5640_ddr3_pcie_loopback;
-    localparam integer FRAME_RECORDS = 3;
+    localparam integer NORMAL_FRAME_RECORDS = 3;
 
     logic in_rst_n = 1'b0;
     logic out_rst_n = 1'b0;
@@ -67,6 +67,7 @@ module tb_ov5640_ddr3_pcie_loopback;
     logic ddr_model_last [0:255];
     logic ddr_model_frame_end [0:255];
     logic ddr_model_protocol_error [0:255];
+    logic [63:0] pcie_observed_addr [0:255];
     integer ddr_write_count = 0;
     logic frame_written = 1'b0;
 
@@ -110,7 +111,7 @@ module tb_ov5640_ddr3_pcie_loopback;
     // Intent: capture every accepted normalized DDR3 write into the model.
     // Invariant: the model keeps the descriptor fields needed for exact readback.
     // Assumption: this test uses BASE_ADDR=0 and ADDR_STEP=1 as model indices only.
-    always @(negedge ddr_clk) begin
+    always @(posedge ddr_clk) begin
         if (out_rst_n && ddr_write_valid && ddr_write_ready) begin
             if (ddr_write_addr > 28'd255)
                 $fatal(1, "DDR3 model address out of range: %0d", ddr_write_addr);
@@ -139,7 +140,51 @@ module tb_ov5640_ddr3_pcie_loopback;
         end
     endtask
 
-    task automatic send_pcie_record(input integer index);
+    function automatic logic [2:0] popcount4(input logic [3:0] value);
+        begin
+            popcount4 = {2'b0, value[0]} + {2'b0, value[1]} +
+                        {2'b0, value[2]} + {2'b0, value[3]};
+        end
+    endfunction
+
+    task automatic drive_frame(input integer pixel_count, input logic [15:0] base_pixel);
+        begin
+            @(negedge cam_pclk);
+            cam_vsync = 1'b1;
+            @(negedge cam_pclk);
+            cam_vsync = 1'b0;
+            @(negedge cam_pclk);
+            cam_href = 1'b1;
+            for (integer index = 0; index < pixel_count; index = index + 1)
+                drive_pixel(base_pixel + index);
+            @(negedge cam_pclk);
+            cam_href = 1'b0;
+            @(negedge cam_pclk);
+            cam_vsync = 1'b1;
+            @(negedge cam_pclk);
+            cam_vsync = 1'b0;
+        end
+    endtask
+
+    task automatic reset_pipeline;
+        begin
+            in_rst_n = 1'b0;
+            out_rst_n = 1'b0;
+            cam_vsync = 1'b0;
+            cam_href = 1'b0;
+            pcie_in_valid = 1'b0;
+            mwr32_req_ack = 1'b0;
+            repeat (2) @(posedge cam_pclk);
+            repeat (2) @(posedge ddr_clk);
+            ddr_write_count = 0;
+            frame_written = 1'b0;
+            in_rst_n = 1'b1;
+            out_rst_n = 1'b1;
+        end
+    endtask
+
+    task automatic send_pcie_record(input integer index,
+                                    input logic [63:0] expected_addr);
         begin
             while (!pcie_in_ready)
                 @(posedge ddr_clk);
@@ -157,24 +202,21 @@ module tb_ov5640_ddr3_pcie_loopback;
             @(posedge ddr_clk);
             #1ns;
             if (!mwr32_req || !pcie_busy || req_length !== 10'd0 ||
-                req_addr !== ((index == 0) ? 64'h0000_0000_0000_0ffc :
-                              (index == 1) ? 64'h0000_0000_0000_1000 :
-                              64'h0000_0000_0000_1002) ||
+                req_addr !== expected_addr ||
                 req_data !== ddr_model_data[index] || req_keep !== ddr_model_keep[index] ||
                 req_last !== ddr_model_last[index] ||
                 req_frame_end !== ddr_model_frame_end[index] ||
                 req_protocol_error !== ddr_model_protocol_error[index])
                 $fatal(1, "PCIe readback request mismatch at index %0d: addr=%h exp=%h data=%h exp=%h keep=%h exp=%h last=%b exp=%b frame=%b exp=%b err=%b exp=%b boundary=%b",
                        index, req_addr,
-                       ((index == 0) ? 64'h0000_0000_0000_0ffc :
-                        (index == 1) ? 64'h0000_0000_0000_1000 :
-                                       64'h0000_0000_0000_1002),
+                       expected_addr,
                        req_data, ddr_model_data[index], req_keep, ddr_model_keep[index],
                        req_last, ddr_model_last[index], req_frame_end,
                        ddr_model_frame_end[index], req_protocol_error,
                        ddr_model_protocol_error[index], cross_4kb_boundary);
             if (cross_4kb_boundary)
                 $fatal(1, "readback request unexpectedly crosses 4 KB boundary at index %0d", index);
+            pcie_observed_addr[index] = req_addr;
             mwr32_req_ack = 1'b1;
             @(posedge ddr_clk);
             #1ns;
@@ -185,6 +227,12 @@ module tb_ov5640_ddr3_pcie_loopback;
     endtask
 
     initial begin
+        logic [63:0] expected_pcie_addr;
+        integer pressure_record_count;
+        integer recovery_start_index;
+        integer abort_record_count;
+        integer abort_record_index;
+
         repeat (2) @(posedge cam_pclk);
         in_rst_n = 1'b1;
         repeat (2) @(posedge ddr_clk);
@@ -208,18 +256,76 @@ module tb_ov5640_ddr3_pcie_loopback;
 
         wait (frame_written);
         repeat (2) @(posedge ddr_clk);
-        if (ddr_write_count != FRAME_RECORDS || source_overflow)
+        if (ddr_write_count != NORMAL_FRAME_RECORDS || source_overflow)
             $fatal(1, "DDR3 write phase mismatch: writes=%0d overflow=%b",
                    ddr_write_count, source_overflow);
         if (ddr_model_keep[0] !== 4'hf || ddr_model_keep[1] !== 4'h3 ||
             ddr_model_keep[2] !== 4'h0 || !ddr_model_frame_end[2])
             $fatal(1, "DDR3 model payload or frame-end records mismatch");
 
-        for (integer index = 0; index < FRAME_RECORDS; index = index + 1)
-            send_pcie_record(index);
+        expected_pcie_addr = 64'h0000_0000_0000_0ffc;
+        for (integer index = 0; index < NORMAL_FRAME_RECORDS; index = index + 1) begin
+            send_pcie_record(index, expected_pcie_addr);
+            expected_pcie_addr = expected_pcie_addr + popcount4(ddr_model_keep[index]);
+        end
 
         $display("INFO: OV5640 DVP frame wrote %0d normalized DDR3 records", ddr_write_count);
         $display("INFO: DDR3 model readback reached PCIe MWR at 0x0ffc, 0x1000, 0x1002");
+
+        // 阻塞 DDR 写端制造 camera-side overflow，再验证中止记录和下一帧恢复。
+        reset_pipeline();
+        ddr_write_ready = 1'b0;
+        drive_frame(64, 16'h4000);
+        repeat (20) @(posedge cam_pclk);
+        if (!source_overflow)
+            $fatal(1, "loopback pressure did not trigger source overflow");
+
+        ddr_write_ready = 1'b1;
+        wait (frame_written);
+        wait (!staging_valid && !ddr_write_valid);
+        repeat (4) @(posedge ddr_clk);
+        pressure_record_count = ddr_write_count;
+        abort_record_count = 0;
+        abort_record_index = -1;
+        for (integer index = 0; index < pressure_record_count; index = index + 1) begin
+            if (ddr_model_protocol_error[index]) begin
+                abort_record_count = abort_record_count + 1;
+                abort_record_index = index;
+                if (ddr_model_keep[index] !== 4'h0 || !ddr_model_last[index] ||
+                    !ddr_model_frame_end[index])
+                    $fatal(1, "DDR3 model abort record fields mismatch at index %0d", index);
+            end
+        end
+        if (pressure_record_count < 2 || abort_record_count != 1 ||
+            abort_record_index != pressure_record_count - 1)
+            $fatal(1, "DDR3 model abort ordering mismatch: records=%0d aborts=%0d index=%0d",
+                   pressure_record_count, abort_record_count, abort_record_index);
+
+        recovery_start_index = ddr_write_count;
+        frame_written = 1'b0;
+        drive_frame(1, 16'hf800);
+        wait (ddr_write_count >= recovery_start_index + 2);
+        repeat (4) @(posedge ddr_clk);
+        if (ddr_model_keep[recovery_start_index] !== 4'h3 ||
+            ddr_model_protocol_error[recovery_start_index] ||
+            ddr_model_keep[recovery_start_index + 1] !== 4'h0 ||
+            !ddr_model_frame_end[recovery_start_index + 1] ||
+            ddr_model_protocol_error[recovery_start_index + 1])
+            $fatal(1, "DDR3 model next-frame recovery records mismatch");
+
+        expected_pcie_addr = 64'h0000_0000_0000_0ffc;
+        for (integer index = 0; index < ddr_write_count; index = index + 1) begin
+            send_pcie_record(index, expected_pcie_addr);
+            expected_pcie_addr = expected_pcie_addr + popcount4(ddr_model_keep[index]);
+        end
+        if (pcie_observed_addr[abort_record_index] !==
+            pcie_observed_addr[recovery_start_index])
+            $fatal(1, "empty abort record unexpectedly advanced PCIe address");
+
+        $display("INFO: pressure frame wrote %0d records with one abort at index %0d",
+                 pressure_record_count, abort_record_index);
+        $display("INFO: abort and recovered payload reused PCIe address %h",
+                 pcie_observed_addr[abort_record_index]);
         $display("TEST PASS");
         $finish;
     end

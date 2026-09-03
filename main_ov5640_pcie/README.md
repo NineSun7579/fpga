@@ -26,10 +26,10 @@
 - `tb/tb_ov5640_dvp_rgb565_dma_staging_pipeline.sv`：联合数据路径自检。
 - `rtl/rgb565_axis4_mwr_descriptor.sv`：板级无关的规范化 PCIe Memory Write 请求描述符。
 - `tb/tb_rgb565_axis4_mwr_descriptor.sv`：请求地址递增、keep、last 和 4 KB 边界自检。
-- `rtl/rgb565_axis4_pcie_mwr_bridge.sv`：规范化请求到已审计 PCIe Memory Write 请求脚的临时桥接。
-- `tb/tb_rgb565_axis4_pcie_mwr_bridge.sv`：请求锁存、字段保持和 ack 释放自检。
+- `rtl/rgb565_axis4_pcie_mwr_bridge.sv`：统一锁存数据、地址、keep 和帧事件的临时 PCIe 请求桥。
+- `tb/tb_rgb565_axis4_pcie_mwr_bridge.sv`：请求全字段保持和 ack 释放自检。
 - `rtl/rgb565_axis4_pcie_mwr_path.sv`：staging→MWR descriptor→请求桥的组合路径。
-- `tb/tb_rgb565_axis4_pcie_mwr_path.sv`：请求地址、长度、4 KB 边界和事件保持自检。
+- `tb/tb_rgb565_axis4_pcie_mwr_path.sv`：请求地址、4 KB 边界及等待 ack 时预取下一记录的字段保持自检。
 - `rtl/rgb565_axis4_ddr3_write_descriptor.sv`：staging beat 到规范化 128-bit DDR3 写记录，地址步长参数化。
 - `tb/tb_rgb565_axis4_ddr3_write_descriptor.sv`：写数据、写掩码、控制记录、背压保持、
   地址步进和复位恢复自检。
@@ -41,11 +41,11 @@
 - `tb/tb_rgb565_word_skid_buffer.sv`：顺序、中止记录、余帧丢弃、恢复和 sticky overflow 自检。
 - `rtl/ov5640_dvp_rgb565_cdc_staging_pipeline.sv`：OV5640 DVP 到双时钟 staging 输出，带源端压力报告。
 - `tb/tb_ov5640_dvp_rgb565_cdc_staging_pipeline.sv`：小帧正常路径与长帧压力、事件和 `source_overflow` 自检。
-- `tb/tb_ov5640_ddr3_pcie_loopback.sv`：OV5640→DDR3 记录模型→PCIe MWR 的行为级往返自检。
+- `tb/tb_ov5640_ddr3_pcie_loopback.sv`：正常帧、overflow 中止和下一帧恢复经 DDR3 模型回送 PCIe 的行为级自检。
 - `scripts/run_m3b_ov5640_ddr3_pcie_loopback.ps1`：上述往返自检的可重复 Questa 入口。
 - staging、帧统计和规范化请求描述符已完成同域行为验证；DDR3 写记录层已完成边界回归，
-  staging 异步 FIFO 已完成双时钟行为验证；行为级 DDR3 模型已将帧记录送入 PCIe MWR
-  请求路径，但尚未接入真实 DDR3 或 PCIe IP。
+  staging 异步 FIFO 已完成双时钟行为验证；行为级 DDR3 模型已将正常帧、overflow
+  中止记录和恢复帧送入 PCIe MWR 请求路径，但尚未接入真实 DDR3 或 PCIe IP。
 
 ## 运行
 

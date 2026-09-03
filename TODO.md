@@ -1,6 +1,6 @@
 # 三项目整改 TODO
 
-更新日期：2026-09-03
+更新日期：2026-09-03（最终回归已完成）
 
 状态：三项目器件迁移已获审核。DDR3、PCIe 和摄像头 HDMI 最终均运行在同一块 `RK3568+PG2L50H100H` 开发板，实际 FPGA 为 `PG2L50H-6IFBG484`，PDS 目标统一为 `Logos2 / PG2L50H / FBG484 / -6`。摄像头产品目标已由 owner 校正为 OV5640；现有 `41_ov7725_hdmi` 仅保留为 OV7725 legacy 历史基线与可复用基础设施来源。既有 PG2L100H 构建、STA、网表、SDF 和位流不得用于实际板卡验收或烧录。OV5640 范围见 [`docs/OV5640_TARGET_SCOPE.md`](docs/OV5640_TARGET_SCOPE.md)。
 
@@ -165,12 +165,12 @@ M3-B 审计结论见 [`docs/MAIN_OV5640_PCIE_M3B_ADAPTER_CONTRACT.md`](docs/MAIN
    - 已完成：只读核对 M3-A 128-bit/16-byte 内部字、PCIe 128-bit/4-bit `tkeep`、10-bit 请求长度/64-bit 目标地址/4 KB 状态，以及 DDR3 128-bit/16-bit `wstrb` 的接口边界。
    - 已完成：新增板级无关 `rgb565_word_to_axis4_adapter` staging 实现和自检入口；每个 128-bit 字最多拆为 4 个 32-bit beat，保留低 lane 顺序、4-bit keep、末 beat 和首/末事件标记；新增帧统计描述符模块；Questa 编译/行为均为 0 error/0 warning、唯一 `TEST PASS`。
    - 已完成：新增 OV5640 DVP→staging→帧描述符板级无关 wrapper 和联合 TB；修正 accounting ready 握手、纯控制帧尾 `word_valid` 丢失，并验证 3 像素帧得到 2 个 staging beat、6 字节描述符，Questa `0 error/0 warning`、唯一 `TEST PASS`。
-   - 已完成：新增规范化 Memory Write 请求描述符和临时请求桥接层，验证请求字段锁存、ack 前保持及释放；桥接层不修改厂商 IP，byte-enable 映射仍未获真实 TLP/DMA 证据。
+   - 已完成：新增规范化 Memory Write 请求描述符和临时请求桥接层；bridge 统一锁存地址、长度、数据、keep、4 KB 状态及 last/frame_end/protocol_error，避免等待 ack 时 descriptor 预取下一记录造成事件元数据错配。桥接层不修改厂商 IP，byte-enable 映射仍未获真实 TLP/DMA 证据。
    - 已完成：新增规范化 DDR3 单 beat 写记录层，验证 128-bit 数据、16-bit `wstrb`、字段保持和释放；新增 `ADDR_STEP` 参数，28-bit 地址仍是 opaque token，不代表 DDR3 地址单位或 AXI4 burst。2026-09-03 增强回归覆盖空 `keep` 控制记录、背压字段稳定、连续记录地址步进和复位恢复 `BASE_ADDR`；Questa `0 error/0 warning`、唯一 `TEST PASS`、`126 ns`。
    - 已完成：新增板级无关 `rgb565_axis4_async_fifo` 与 `rgb565_axis4_cdc_bridge`，携带 staging `data/keep/last/user` 跨独立写入/读出时钟域；FIFO 6 beat 回归为 `287 ns`，CDC bridge 5 beat 事件回归为 `155 ns`，均 Questa `0 error/0 warning`、唯一 `TEST PASS`。联合测试还捕获并修正了 42-bit FIFO entry 被误声明为 41 bit 的事件截断缺陷。
-   - 已完成：新增 `rgb565_axis4_pcie_mwr_path`，串接 staging、规范化 MWR descriptor 和临时 `mwr32_req/ack` bridge；`BASE_ADDR=0x0ffc` 专项回归验证 4-byte 请求恰到 4 KB 边界、ack 后地址 `0x1000`、字段保持与事件传播，Questa `0 error/0 warning`、唯一 `TEST PASS`、`125 ns`。
+   - 已完成：新增 `rgb565_axis4_pcie_mwr_path`，串接 staging、规范化 MWR descriptor 和临时 `mwr32_req/ack` bridge；`BASE_ADDR=0x0ffc` 专项回归验证 4-byte 请求恰到 4 KB 边界、等待 ack 时预取下一记录仍保持当前请求全部字段、ack 后地址 `0x1000`，Questa `0 error/0 warning`、唯一 `TEST PASS`、`115 ns`。
    - 已完成：`rgb565_word_skid_buffer` 在满队列溢出后保留已排队前缀、丢弃当前帧余下 word，并注入唯一 `keep=0/frame_end=1/protocol_error=1` 中止记录；看到原帧尾且中止记录已排队后，只从后续 `frame_start` 恢复。专项 TB 覆盖过早新帧整帧跳过、满队列同拍出入队、丢弃侧帧尾与 abort 同拍、连续损坏帧及 drop 状态复位，仿真至 `526 ns`；DVP→CDC 联合回归覆盖 3 个正常 beat、64 像素压力帧的 20 个输出（含末尾唯一中止记录）及下一帧 2 beat 恢复，仿真至 `2863 ns`，均 Questa `0 error/0 warning`、唯一 `TEST PASS`。
-   - 已完成：新增 `tb_ov5640_ddr3_pcie_loopback.sv` 和 `run_m3b_ov5640_ddr3_pcie_loopback.ps1`，将 OV5640 DVP、双时钟 staging、规范化 DDR3 单 beat 写记录、受控 DDR3 存储模型和 PCIe MWR 请求路径串成行为级往返；3 条记录读回后的请求地址为 `0x0ffc`、`0x1000`、`0x1002`，Questa 编译/运行 `0 error/0 warning`、唯一 `TEST PASS`、`442 ns`。
+   - 已完成：`tb_ov5640_ddr3_pcie_loopback.sv` 将 OV5640 DVP、双时钟 staging、规范化 DDR3 单 beat 写记录、受控 DDR3 存储模型和 PCIe MWR 请求路径串成行为级往返。除正常帧 3 条记录外，DDR 写阻塞压力帧动态形成 21 条记录，唯一空载错误中止位于末尾；下一帧恢复后全部记录回送 PCIe，中止与恢复 payload 共用地址 `0x104c`，证明 `keep=0` 不推进图像字节地址。DDR3 模型在 `posedge` valid/ready 握手边沿采集写事务，避免漏记最后一条 abort。Questa `0 error/0 warning`、唯一 `TEST PASS`、`3844 ns`。
    - 下一步：冻结 FIFO 深度和三时钟复位合同；再基于活动控制器完整启动/ack/busy/4 KB 分段语义建立真实控制器专项 TB，并在 50H IP 重生成后重审 DDR3 用户口。当前 overflow 恢复只保证损坏帧可识别并从后续帧首重同步，不保证持续背压无丢帧；FIFO 尚未完成静态 CDC/RDC、复位释放、RAM 推断和时钟约束审核；staging `tuser` 不等同于厂商编码，MWR 路径不证明真实 TLP/DMA/byte-enable/主机输出。
    - 禁止：未完成资料审核前修改 canonical IP、DDR3/PCIe RTL、FDC/RCF，或把 M3-A 行为通过解释为端到端输出通过。
 

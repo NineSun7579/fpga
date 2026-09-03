@@ -96,7 +96,7 @@
 
 | 项目 | PDS 实现证据 | 时序证据 | 行为仿真 | 综合后仿真 | PNR 功能仿真 | PNR 时序仿真 |
 |---|---|---|---|---|---|---|
-| main OV5640→PCIe | M3-A/M3-B 仅有板级无关采集→灰度→128-bit 内部字→两槽 word 短缓冲→4-byte staging→双时钟 CDC→规范化 DDR3 写记录→TB DDR3 模型→PCIe MWR 联合 RTL/TB，无 PDS/IP/FDC/RCF/实现产物 | 固定 `cam_pclk` 源同步输入、一拍灰度处理、同域打包、短缓冲、ready/valid 行为合同与 TB 模型，无板级或 CDC STA | Questa 2021.1：既有 M3-A/M3-B 回归保持通过；新增行为级 loopback 为 0 error/0 warning、唯一 `TEST PASS`、442 ns，并检查 PCIe 地址 `0x0ffc`、`0x1000`、`0x1002` | 未生成 | 未生成 | 未生成/未标注 |
+| main OV5640→PCIe | M3-A/M3-B 仅有板级无关采集→灰度→128-bit 内部字→两槽 word 短缓冲→4-byte staging→双时钟 CDC→规范化 DDR3 写记录→TB DDR3 模型→PCIe MWR 联合 RTL/TB，无 PDS/IP/FDC/RCF/实现产物 | 固定 `cam_pclk` 源同步输入、一拍灰度处理、同域打包、短缓冲、ready/valid 行为合同与 TB 模型，无板级或 CDC STA | Questa 2021.1：既有 M3-A/M3-B 回归保持通过；新增行为级 loopback 为 0 error/0 warning、唯一 `TEST PASS`、3844 ns，并检查 PCIe 地址 `0x0ffc`、`0x1000`、`0x1002` 及压力 abort/recovery 地址语义 | 未生成 | 未生成 | 未生成/未标注 |
 | OV5640 摄像头 HDMI | 产品目标已冻结为 OV5640；C0 参考审计和 C1 产品范围仍待完成 | C3 前无产品 STA；OV7725 旧时序只作 legacy 参考 | S3 项目级入口缺失 | 新产品网表尚未生成 | 新产品 PNR 网表尚未生成 | 新产品 SDF 尚未生成/标注 |
 | DDR3 外层 | 旧 PG2L100H 七阶段与五类产物已完成，但不可用于实际 PG2L50H；需重生成 50H IP/FDC/RCF | 旧 100H `All Constraints Met` 只保留历史；50H STA 未执行 | D2/D3-0 旧契约已定，PG2L50H 重生成后须重审；S1 项目级入口缺失 | 旧网表不可签核 | 旧 PNR 网表不可签核 | VSIM/SDF 未验证，旧 100H 结果不可签核 |
 | PCIe DMA | 活动 IDF、build/PDS/gate 与新产物均为 PG2L50H；已从空 `build/` 完成七阶段重建 | 50H STA 已生成，最差解析 slack `0.100 ns`；严格 gate 仍受板级/功能缺口阻断 | S2-A 受控 smoke 动态 PASS；不覆盖真实链路/DMA/板级 | 顶层未闭环 | 新 50H 网表待集成仿真 | 公共 VSIM 已验证，项目 SDF 待标注 |
@@ -168,16 +168,16 @@
 
 ## main OV5640→PCIe MWR bridge 覆盖
 
-- 正向：检查规范化请求映射到已审计 `mwr32_req` 接口，`req_length/addr/data/keep/cross_4kb_boundary` 字段正确。
-- 握手：字段在 `mwr32_req_ack` 到达前保持稳定，ack 后释放 busy/request。
-- 结果：`tb_rgb565_axis4_pcie_mwr_bridge.sv` 使用 watchdog、`$fatal` 和唯一 `TEST PASS` 验证上述行为。
+- 正向：检查规范化请求映射到已审计 `mwr32_req` 接口，length/address/data/keep/4KB 状态及 last/frame_end/protocol_error 字段正确。
+- 握手：全部字段在 `mwr32_req_ack` 到达前保持稳定；busy 期间改变输入事件字段不会污染当前请求，ack 后释放 busy/request。
+- 结果：Questa Sim-64 2021.1 为 0 error/0 warning、唯一 `TEST PASS`、76 ns。
 
 ## main OV5640→PCIe M3-B 规范化 MWR 组合路径覆盖
 
 - 组合：`rgb565_axis4_pcie_mwr_path` 串接 staging、MWR descriptor 与临时 `mwr32_req/ack` bridge。
 - 控制器事实：`req_length` 单位为 DWORD；在控制器边界 `req_length=0` 表示 `0x1000` 字节；当前每个 32-bit beat 仍发 `req_length=0`。
-- 边界回归：`BASE_ADDR=0x0ffc` 的 4-byte 请求恰到 4KB 边界，不报 crossing；ack 后地址为 `0x1000`，并检查请求字段保持和事件传播。
-- 结果：Questa Sim-64 2021.1，0 error/0 warning，唯一 `TEST PASS`，125 ns。
+- 边界回归：`BASE_ADDR=0x0ffc` 的 4-byte 请求恰到 4KB 边界；首请求等待 ack 时预取下一条带帧尾/错误记录，当前请求全部字段仍保持，ack 后地址为 `0x1000`。
+- 结果：Questa Sim-64 2021.1，0 error/0 warning，唯一 `TEST PASS`，115 ns。
 - 未覆盖：真实 TLP、DMA、byte-enable、PCIe 链路、主机输出及厂商 PCIe IP 集成。
 - 边界：byte-enable 映射仍是临时合同；不证明真实 PCIe TLP、DMA、厂商 IP、DDR3、CDC/FIFO 或后级实现。
 
@@ -192,11 +192,11 @@
 
 - test：`main_ov5640_pcie/tb/tb_ov5640_ddr3_pcie_loopback.sv`
 - script：`main_ov5640_pcie/scripts/run_m3b_ov5640_ddr3_pcie_loopback.ps1`
-- 链路：OV5640 DVP 输入经过双时钟 CDC staging，转换为规范化 DDR3 单 beat 写记录；TB 内数组模型保存 3 条记录，再按帧序送入规范化 PCIe MWR 路径。
-- 正向：3 个像素产生 2 条 payload 与 1 条空载帧尾记录；检查 DDR3 模型的 keep 分别为 `4'hf`、`4'h3`、`4'h0`，末记录携带 frame_end，回读请求的数据、keep、last、frame_end、protocol_error 与模型一致。
-- 地址：PCIe MWR 地址依次为 `0x0ffc`、`0x1000`、`0x1002`，三次请求均不得误报跨 4 KB，ack 后 busy/request 必须释放。
-- 结果：Questa Sim-64 2021.1 为 0 error/0 warning、日志唯一 `TEST PASS`，仿真至 442 ns。
-- 边界：只证明正常帧 vendor-independent 行为记录的端到端保存与回送，尚未覆盖 overflow 中止记录；不证明真实 DDR3 地址/握手/初始化/读时序，不证明 PCIe TLP、byte-enable、链路、DMA/主机，也不证明板级时序或实现级 CDC/RDC。
+- 链路：OV5640 DVP 输入经过双时钟 CDC staging 和规范化 DDR3 写记录；TB 数组模型保存正常帧、压力 abort 与恢复帧，再按序送入 PCIe MWR 路径。
+- 正向：正常 3 像素帧维持 3 条记录；DDR writer 阻塞下的 64 像素压力帧形成 21 条记录，唯一空载错误 abort 位于索引 20；下一 1 像素帧形成 2 条无错误恢复记录。
+- 地址：正常帧地址为 `0x0ffc/0x1000/0x1002`；压力 epoch 中 abort 与恢复 payload 地址均为 `0x104c`，所有请求 ack 后释放。
+- 结果：Questa Sim-64 2021.1 为 0 error/0 warning、日志唯一 `TEST PASS`，仿真至 3844 ns；DDR3 模型按 valid/ready 握手边沿采集写事务。
+- 边界：证明 vendor-independent 行为记录中 overflow abort 和恢复帧的保存、顺序、回送与有效字节地址语义；不证明真实 DDR3 地址/握手/初始化/读时序，不证明 PCIe TLP、byte-enable、链路、DMA/主机，也不证明板级时序或实现级 CDC/RDC。
 
 ## S1/S2/S3 仿真就绪度矩阵（2026-08-30）
 

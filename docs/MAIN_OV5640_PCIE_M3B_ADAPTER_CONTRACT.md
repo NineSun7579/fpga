@@ -87,8 +87,10 @@ opaque token，推进量由 `ADDR_STEP` 参数显式提供；`write_awlen=0` 只
 ## 临时请求桥接层
 
 `rgb565_axis4_pcie_mwr_bridge` 已作为独立手写 RTL 实现初步桥接：它锁存规范化请求，
-将请求保持到 `mwr32_req_ack`，并保持 `req_length/req_addr/req_data/req_keep` 和
-4 KB 状态稳定。该模块不实例化厂商 PCIe IP；`req_keep` 仅作为旁路信息保留，因为
+将请求保持到 `mwr32_req_ack`，并保持 `req_length/req_addr/req_data/req_keep`、
+4 KB 状态及 `last/frame_end/protocol_error` 稳定。事件元数据必须与地址和数据一起在
+bridge 内锁存；否则 descriptor 在 bridge 忙时预取下一记录会使当前请求与下一记录事件
+错配。该模块不实例化厂商 PCIe IP；`req_keep` 仅作为旁路信息保留，因为
 活动控制器的请求端口没有独立 byte-enable 输入。该 byte-enable 映射、请求启动和
 ack 关系仍是临时合同，必须在真实 PCIe TLP/DMA TB 中重新审核后才能用于产品路径。
 
@@ -96,9 +98,10 @@ ack 关系仍是临时合同，必须在真实 PCIe TLP/DMA TB 中重新审核�
 
 `rgb565_axis4_pcie_mwr_path` 已将 staging beat、规范化 MWR descriptor 和临时请求桥
 串接。2026-09-03 的专项 TB 使用 `BASE_ADDR=0x0ffc`：4-byte 请求恰好到达 4 KB
-边界时不标记 crossing，ack 后下一请求地址为 `0x1000`；请求字段、`keep`、`last`、
-帧尾和协议错误均在等待 ack 期间保持。Questa Sim-64 2021.1 编译 `0 error/0 warning`，
-唯一 `TEST PASS`，仿真至 `125 ns`。
+边界时不标记 crossing；首请求等待 ack 时 descriptor 预取下一条带帧尾/错误的记录，
+首请求的地址、数据、keep、last、帧尾和协议错误仍保持不变，ack 后下一请求地址为
+`0x1000`。Questa Sim-64 2021.1 编译 `0 error/0 warning`、唯一 `TEST PASS`，仿真至
+`115 ns`；bridge 独立字段保持回归为 `76 ns`。
 
 该组合路径仍不实例化厂商 PCIe IP，不证明真实 TLP、DMA、byte-enable、链路、主机
 地址或 PCIe 控制器启动/忙状态；真实接入必须继续使用活动控制器的链路模型和实现级证据。
@@ -142,8 +145,13 @@ Questa 编译 `0 error/0 warning`、唯一 `TEST PASS`，仿真至 `2863 ns`。
 `tb_ov5640_ddr3_pcie_loopback` 通过现有公开接口串接 DVP 采集、灰度/打包、双时钟
 staging、规范化 DDR3 写记录、受控存储模型和 PCIe MWR 请求路径。3 像素帧生成两个
 payload 记录和一个空载帧尾记录，读回后 PCIe 地址按有效字节从 `0x0ffc` 推进到
-`0x1000`、`0x1002`。2026-09-03 的 Questa Sim-64 2021.1 回归为
-`0 error/0 warning`、唯一 `TEST PASS`，仿真至 `442 ns`。
+`0x1000`、`0x1002`。扩展场景阻塞 DDR 写端并输入 64 像素，camera-side overflow 后
+DDR 模型动态保存 21 条压力记录，唯一 `keep=0/frame_end=1/protocol_error=1` 中止记录
+位于索引 20；随后 1 像素恢复帧写入两个正常记录。全部记录回读到 PCIe MWR 后，中止
+记录和恢复 payload 的请求地址均为 `0x104c`，验证空载中止不会推进图像字节地址。
+最终 Questa Sim-64 2021.1 回归为 `0 error/0 warning`、唯一 `TEST PASS`，
+仿真至 `3844 ns`。DDR3 记录模型在 `posedge` 的 `valid && ready` 握手边沿采集写事务，
+避免在握手完成后延迟到 `negedge` 采集而漏记最后一条控制记录。
 
 DDR3 模型中的 28-bit 地址只作为记录槽位，未映射到活动控制器的真实地址单位；模型
 读回也不代表活动 DDR3 IP 的 `axi_arvalid/axi_rvalid/axi_rlast` 时序。PCIe 请求仍由
