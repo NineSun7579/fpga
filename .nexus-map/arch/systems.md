@@ -167,6 +167,7 @@
 - script_path: `main_ov5640_pcie/scripts/run_m3b_ddr3_write_descriptor.ps1`
 - responsibility: 生成单 beat 128-bit 数据、16-bit strobe 的 vendor-independent normalized DDR3 write record；地址是 opaque 28-bit token，支持 `ADDR_STEP` 参数推进。
 - address_contract: `write_addr` 首次取 `BASE_ADDR`，每次记录释放后按 opaque `ADDR_STEP` 推进；该步长不解释为任何物理地址单位。
+- regression_2026_09_03: TB 新增 `write_valid=1` 且 `write_strobe=0` 的空 keep 控制记录；`write_ready=0` 背压期间检查 `write_addr/write_data/write_strobe/write_last/frame_end/protocol_error` 全字段保持；连续释放多个记录验证地址按 `ADDR_STEP` 连续推进；复位后验证地址重新由 `BASE_ADDR` 覆盖。Questa Sim-64 2021.1 为 0 error/0 warning、日志唯一 `TEST PASS`，仿真至 126 ns。
 - boundary: 不假定地址单位、初始化行为或 AXI4 burst 语义；不接 vendor DDR3 IP。
 
 ## main 独立 OV5640→PCIe MWR bridge

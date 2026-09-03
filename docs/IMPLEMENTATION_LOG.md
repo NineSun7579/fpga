@@ -495,6 +495,15 @@
   映射通过，日志唯一 `TEST PASS`。
 - 该层不实例化 DDR3 IP；实际用户口接入必须等待 PG2L50H IP 重生成及 D3-0-M 复核。
 
+## 2026-09-03：main OV5640 M3-B DDR3 写记录边界回归增强
+
+- 扩展 `tb_rgb565_axis4_ddr3_write_descriptor`，覆盖空 `keep` 控制记录、下游背压期间
+  数据/地址/标志稳定、第二条记录按 `ADDR_STEP` 推进，以及异步复位后回到 `BASE_ADDR`。
+- 使用 Questa Sim-64 `2021.1` 重新编译并运行；编译 `0 error/0 warning`，仿真在 `126 ns`
+  完成，日志包含唯一 `TEST PASS`。
+- 本批仍只证明规范化单 beat 记录层的握手合同；不改变“28-bit 地址为 opaque token”的
+  结论，也不解除真实 DDR3 用户口、地址单位、burst、初始化和 CDC 阻断。
+
 ## 2026-09-03：main OV5640 M1-M3B 回归与工具环境诊断
 
 - 全回归首先发现 M3-A 旧 TB 将 `word_valid` 等同于 payload；随着纯控制事件修正为

@@ -157,6 +157,7 @@
 
 - 正向：TB 使用 `BASE_ADDR=28'h12`、`ADDR_STEP=28'h4`，检查首个单 beat 128-bit `write_data`、16-bit `write_strobe`、`write_awlen=0`、opaque 28-bit `write_addr` 及 `write_last/frame_end/protocol_error` 字段；释放后验证地址为 `28'h16`。
 - 结果：`run_m3b_ddr3_write_descriptor.ps1` 使用 Questa Sim-64 2021.1，编译 0 error/0 warning，行为日志唯一 `TEST PASS`。
+- 回归增强（2026-09-03）：新增空 keep 控制记录（`write_valid=1`、`write_strobe=0`）；`write_ready=0` 背压期间保持地址、数据、strobe、last、frame_end 与 protocol_error 全部字段；连续记录检查 `ADDR_STEP` 地址推进；复位后检查 `BASE_ADDR` 覆盖恢复。Questa Sim-64 2021.1 为 0 error/0 warning、唯一 `TEST PASS`，仿真至 126 ns。
 - 边界：地址推进仅由 `ADDR_STEP` 控制，仍是 opaque 28-bit token；不假定地址单位、初始化、AXI4 burst 或 vendor DDR3 IP；未覆盖 DDR3 控制器、CDC/FIFO、真实内存时序、PDS/STA/SDF。
 
 ## S1/S2/S3 仿真就绪度矩阵（2026-08-30）

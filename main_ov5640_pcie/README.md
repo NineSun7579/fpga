@@ -29,8 +29,10 @@
 - `rtl/rgb565_axis4_pcie_mwr_bridge.sv`：规范化请求到已审计 PCIe Memory Write 请求脚的临时桥接。
 - `tb/tb_rgb565_axis4_pcie_mwr_bridge.sv`：请求锁存、字段保持和 ack 释放自检。
 - `rtl/rgb565_axis4_ddr3_write_descriptor.sv`：staging beat 到规范化 128-bit DDR3 写记录，地址步长参数化。
-- `tb/tb_rgb565_axis4_ddr3_write_descriptor.sv`：写数据、写掩码、记录保持和释放自检。
-- staging、帧统计和规范化请求描述符已完成同域行为验证；尚未接入 CDC、DDR3 或 PCIe IP。
+- `tb/tb_rgb565_axis4_ddr3_write_descriptor.sv`：写数据、写掩码、控制记录、背压保持、
+  地址步进和复位恢复自检。
+- staging、帧统计和规范化请求描述符已完成同域行为验证；DDR3 写记录层已完成边界回归，
+  尚未接入 CDC、DDR3 或 PCIe IP。
 
 ## 运行
 

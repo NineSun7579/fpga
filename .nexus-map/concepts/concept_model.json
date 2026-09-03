@@ -409,8 +409,8 @@
       "test_path": "main_ov5640_pcie/tb/tb_rgb565_axis4_ddr3_write_descriptor.sv",
       "evidence_path": "main_ov5640_pcie/scripts/run_m3b_ddr3_write_descriptor.ps1",
       "contracts": {"data": "single beat, 128-bit write_data, 16-bit write_strobe", "address": "opaque 28-bit token; next address = current + ADDR_STEP; no address-unit assumption", "parameters": "BASE_ADDR initializes the token and ADDR_STEP advances it after record release", "burst": "write_awlen=0; no AXI4 burst assumption"},
-      "behavior_tb": "BASE_ADDR=28'h12、ADDR_STEP=28'h4；首个记录地址 0x12，释放后地址 0x16",
-      "questa_evidence": "Questa Sim-64 2021.1 编译 0 error/0 warning，日志唯一 TEST PASS",
+      "behavior_tb": "BASE_ADDR=28'h12、ADDR_STEP=28'h4；首个记录地址 0x12，释放后地址 0x16；覆盖空 keep 控制记录、背压期间全字段保持、连续 ADDR_STEP 地址推进及复位后 BASE_ADDR 覆盖",
+      "questa_evidence": "2026-09-03 Questa Sim-64 2021.1：0 error/0 warning，日志唯一 TEST PASS，仿真至 126 ns",
       "uncovered_boundaries": ["vendor DDR3 IP", "地址初始化语义", "AXI4 burst", "DDR3 控制器/内存时序", "CDC/FIFO", "PDS/STA/SDF"],
       "complexity": "low",
       "hotspot": true
