@@ -60,7 +60,7 @@ module tb_rgb565_word_packer;
     // 监视公开输出，避免测试与实现内部状态耦合。
     always @(posedge clk) begin
         #1ns;
-        if (word_valid) begin
+        if (word_valid && word_keep != 16'h0000) begin
             case (observed_words)
                 0: begin
                     if (word_data !== 128'h00880077006600550044003300220011) begin
@@ -90,13 +90,13 @@ module tb_rgb565_word_packer;
             observed_words = observed_words + 1;
         end
         if (word_frame_end) begin
-            if (word_valid || word_keep !== 16'h0000) begin
+            if (!word_valid || word_keep !== 16'h0000) begin
                 $fatal(1, "Frame-end control event carried unexpected payload");
             end
             observed_frame_ends = observed_frame_ends + 1;
         end
         if (word_protocol_error) begin
-            if (word_valid || word_keep !== 16'h0000) begin
+            if (!word_valid || word_keep !== 16'h0000) begin
                 $fatal(1, "Protocol-error control event carried unexpected payload");
             end
             observed_protocol_errors = observed_protocol_errors + 1;

@@ -123,7 +123,7 @@
 - responsibility: `rgb565_word_packer` 只把 M2-A 输出的同域灰度 RGB565 像素组织为内部 128-bit 图像字；wrapper 只连接既有采集/灰度 pipeline 与 packer，不负责 SCCB、CDC/FIFO、DDR3、PCIe TLP 或主机协议。
 - layout_contract: 像素 0..7 按接收顺序依次位于 `word_data[15:0]` 到 `word_data[127:112]`；8 像素完整字的 `word_keep=16'hffff`。
 - partial_contract: 行尾不足 8 像素时补零输出；N 个有效 RGB565 像素只置 `word_keep` 低 `2N` 位，其余 `word_data` 位和 keep 高位为 0。
-- control_contract: `frame_start/line_start` 随包含首像素的字输出；`line_end` 可附着完整待发送字或部分字；无 payload 的 `line_end/frame_end/protocol_error` 以 `word_valid=0`、`word_keep=0` 的控制事件输出。
+- control_contract: `frame_start/line_start` 随包含首像素的字输出；payload 判定为 `word_valid && word_keep!=0`；纯控制事件统一为 `word_valid=1`、`word_keep=0`，覆盖无 payload 的 `line_end/frame_end/protocol_error`。
 - behavior_tb_coverage: 单元 TB 覆盖 8 像素完整字、3 像素补零行尾字、空载帧尾与协议错误；DVP 集成 TB 覆盖采集→灰度→打包及奇字节错误传播，失败 `$fatal`，成功日志唯一 `TEST PASS`。
 - questa_evidence: `docs/IMPLEMENTATION_LOG.md` 记录 2026-09-03 使用 Questa Sim-64 2021.1 编译 6 个 RTL/TB 模块为 `0 error/0 warning`、集成行为仿真返回 0；`run_m3a.ps1` 校验日志中的 `TEST PASS` 恰好一次。
 - uncovered_boundaries: 内部布局不等同于 DDR3 地址单位、PCIe AXIS `tkeep`、PCIe TLP payload 或主机字节序；SCCB、板级、CDC/FIFO、DDR3/PCIe 集成、PDS/STA 和后级仿真均未覆盖。

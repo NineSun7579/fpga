@@ -492,3 +492,13 @@
 - 新增独立 Questa TB 和脚本；编译 `0 error/0 warning`，记录保持/释放、数据和掩码
   映射通过，日志唯一 `TEST PASS`。
 - 该层不实例化 DDR3 IP；实际用户口接入必须等待 PG2L50H IP 重生成及 D3-0-M 复核。
+
+## 2026-09-03：main OV5640 M1-M3B 回归与工具环境诊断
+
+- 全回归首先发现 M3-A 旧 TB 将 `word_valid` 等同于 payload；随着纯控制事件修正为
+  `word_valid=1、word_keep=0`，两个 TB 已改为按 keep 区分 payload 与控制事件，M3-A
+  和联合 M3-B 随后重新通过。
+- accounting 回归曾在 `vopt` 阶段报告 `Unexpected signal: 11`。最小化诊断确认
+  Questa 实际报错为 `database or disk is full`，当时 D 盘仅剩 16 KB；清理忽略的
+  `main_ov5640_pcie/build/` 运行态后，accounting 重新得到 `0 error/0 warning` 和
+  唯一 `TEST PASS`。该故障不归因于 RTL。

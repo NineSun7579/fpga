@@ -53,7 +53,7 @@ module tb_ov5640_dvp_rgb565_word_pipeline;
     // 只检查公开输出，保持集成测试不依赖子模块内部状态。
     always @(posedge cam_pclk) begin
         #1ns;
-        if (word_valid) begin
+        if (word_valid && word_keep != 16'h0000) begin
             case (observed_words)
                 0: begin
                     if (word_data !== 128'h18e394b24a69000018e394b24a690000 ||
@@ -80,13 +80,13 @@ module tb_ov5640_dvp_rgb565_word_pipeline;
             observed_words = observed_words + 1;
         end
         if (word_frame_end) begin
-            if (word_valid || word_keep !== 16'h0000) begin
+            if (!word_valid || word_keep !== 16'h0000) begin
                 $fatal(1, "Integrated frame-end control event carried payload");
             end
             observed_frame_ends = observed_frame_ends + 1;
         end
         if (word_protocol_error) begin
-            if (word_valid || word_keep !== 16'h0000) begin
+            if (!word_valid || word_keep !== 16'h0000) begin
                 $fatal(1, "Integrated protocol-error control event carried payload");
             end
             observed_protocol_errors = observed_protocol_errors + 1;

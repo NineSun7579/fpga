@@ -83,7 +83,7 @@ flowchart TD
 - M2-A 的算法依赖 RGB565 分量扩展与固定整数系数 `77/150/29`；TB 参考值、系数、分量扩展或寄存器级数变化必须同步更新，当前证据只覆盖四个颜色样本、两行坐标、边界事件和奇数字节错误。
 - `run_m2a.ps1` 依赖外部提供的 Questa 可执行文件，通过参数注入模拟器目录；脚本在独立 `build/m2a/<run-id>/` 中编译并要求日志出现恰好一次 `TEST PASS`。Nexus 不记录模拟器安装路径、许可证或凭证。
 - M3-A 的 `ov5640_dvp_rgb565_word_pipeline` 承接 M2-A 同域灰度输出；`rgb565_word_packer` 按接收顺序将 8 个 RGB565 像素打成 128-bit 字，部分行尾只置 `word_keep` 低 `2N` 位并补零。该关系不改变 M2-A 的图像处理职责。
-- M3-A 的帧/行起止和协议错误可以附着数据字，也可在无 payload 时作为 `word_valid=0`、`word_keep=0` 控制事件输出。内部 keep 只表达 16 个 byte lane，不等同于厂商 PCIe AXIS `tkeep` 或主机字节序。
+- M3-A 的两个 TB 已按新协议区分 payload（`word_valid && word_keep!=0`）与纯控制事件（`word_valid=1`、`word_keep=0`）；帧/行起止和协议错误可按该规则传播。内部 keep 只表达 16 个 byte lane，不等同于厂商 PCIe AXIS `tkeep` 或主机字节序。
 - `run_m3a.ps1` 编译 5 个 RTL 与 1 个集成 TB，并要求 Questa 日志唯一 `TEST PASS`；2026-09-03 的 6 模块 `0 error/0 warning` 结果只证明板级无关行为，仍受 VSCS 与统一 PDS/四级仿真边界约束。
 - 用户确认三个产品方向共用 `RK3568+PG2L50H100H` 开发板，实际 FPGA 为 `PG2L50H-6IFBG484`；摄像头产品目标已校正为 OV5640，`41_ov7725_hdmi` 仅作 OV7725 legacy。统一有效 PDS 目标为 `Logos2 / PG2L50H / FBG484 / -6`，旧 PG2L100H 产物不得用于实板。
 - 厂商 `.idf`、生成 RTL 和 PDS 仿真库属于外部生成依赖，不应被误当作独立手写逻辑。

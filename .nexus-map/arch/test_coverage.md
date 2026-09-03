@@ -123,6 +123,7 @@
 - 控制/退出：watchdog、数据、keep 或事件错误使用 `$fatal`；`run_m3a.ps1` 编译 5 个 RTL 与 1 个集成 TB，并要求日志中的 `TEST PASS` 恰好一次。
 - 结果：`docs/IMPLEMENTATION_LOG.md` 记录 2026-09-03 使用 Questa Sim-64 2021.1 编译 6 个 RTL/TB 模块为 `0 error/0 warning`，集成行为仿真返回 0、唯一 `TEST PASS`。
 - 边界：该证据只验证内部 `word_data[127:0]`/`word_keep[15:0]` 布局及控制事件；不覆盖 SCCB、板级、CDC/FIFO、DDR3 地址/事务、PCIe AXIS/TLP、主机协议、PDS/STA、综合后/PNR/SDF。
+- 协议判定：两个 M3-A TB 现统一把 `word_valid && word_keep!=0` 视为 payload，把 `word_valid=1`、`word_keep=0` 视为纯控制事件，避免帧尾/协议错误被误判为无效输出。
 
 ## main OV5640→PCIe M3-B staging 覆盖
 
@@ -208,6 +209,7 @@
 - 三项目新流程均已生成顶层 PNR SDF，但尚未由 QuestaSim 验证实例层级。
 - Questa Sim-64 2021.1、Logos2 USIM/VSIM、`V_BUF` 和 PCIe S2-A 保留历史通过证据；当前动态复验未通过许可证 checkout。不得将历史证据外推为当前运行、DDR3、OV5640、真实 PCIe 链路、DMA 或项目后级网表/SDF 通过。
 - PDS 可能在日志含 `E:` 时仍返回退出码 0；新 PowerShell 入口必须同时检查退出码和错误日志。
+- 2026-09-03 全回归曾出现 Questa `vopt signal 11`；根因是 D 盘仅余约 16 KB、数据库写满，非 HDL/库缺陷。清理忽略的 `build/` 运行态后，`run_m3b_accounting.ps1` 重新通过，恢复 `0 error/0 warning` 与唯一 `TEST PASS` 证据。
 
 - main OV5640 M3-B 联合覆盖：3 像素 RGB565 输入经采集、灰度、128-bit 打包和 4-byte staging，输出 2 个 beat、6 个有效字节，并生成无协议错误帧描述符；固定 `staging_ready=1`、描述符先背压后释放。该证据不覆盖真实 DDR3/PCIe/CDC。
 - PCIe 位流阶段报告 SCBV 未配置，这是当前发布阻断项。
