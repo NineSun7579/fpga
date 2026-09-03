@@ -1,6 +1,6 @@
 # main 独立 OV5640→PCIe 产品合同
 
-更新日期：2026-09-02
+更新日期：2026-09-03
 
 ## 项目边界
 
@@ -43,3 +43,7 @@
 - `main` 已有 PCIe DMA 和 128-bit AXIS 内部接口，可作为 PCIe 输出基础，但当前没有本地视频生产者。
 - 当前统一器件目标为 `Logos2 / PG2L50H / FBG484 / -6`；历史 PG2L100H 产物只能作为不可烧录的迁移证据。
 - OV5640 模组、DDR3 料号/拓扑、25 MHz 时钟树、PCIe 100 MHz refclk 和主机帧协议仍需一手资料确认。
+- 当前已具备 OV5640 DVP→处理→DDR3 记录数组模型→已提交帧读调度→PCIe MWR 请求的完整行为回归，
+  但没有实例化真实 DDR3/PCIe IP，也没有带槽号物理帧表或 RK3568 主机收帧证据。
+- 进入真实板级连接前必须关闭的资料项见
+  [`MAIN_OV5640_PCIE_BOARD_INPUT_CHECKLIST.md`](MAIN_OV5640_PCIE_BOARD_INPUT_CHECKLIST.md)。

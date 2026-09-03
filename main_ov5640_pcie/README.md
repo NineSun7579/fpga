@@ -18,15 +18,18 @@
 - `docs/MAIN_OV5640_PCIE_PROCESS_CONTRACT.md`：图像处理算法和延迟合同。
 - `docs/MAIN_OV5640_PCIE_WORD_PACKER_CONTRACT.md`：128-bit 内部数据布局合同。
 - `docs/MAIN_OV5640_PCIE_M3B_ADAPTER_CONTRACT.md`：DDR3/PCIe 适配层职责、转换边界和关闭条件。
+- `docs/MAIN_OV5640_PCIE_BOARD_INPUT_CHECKLIST.md`：真实板级闭环所需的一手资料和验收输入。
 - `rtl/rgb565_word_to_axis4_adapter.sv`：M3-B 板级无关 128-bit 到 4-byte staging beat 适配。
 - `tb/tb_rgb565_word_to_axis4_adapter.sv`：M3-B 字节顺序、keep、事件和背压自检。
 - `rtl/rgb565_axis4_frame_accounting.sv`：M3-B 帧有效字节/beat/错误统计描述符。
 - `tb/tb_rgb565_axis4_frame_accounting.sv`：帧统计描述符自检。
 - `rtl/rgb565_axis4_frame_commit.sv`：规范化 DDR3 记录到帧提交/作废描述符。
 - `tb/tb_rgb565_axis4_frame_commit.sv`：正常提交、abort 作废、sticky 帧错误、描述符背压和运行中复位自检。
+- `rtl/rgb565_axis4_frame_read_scheduler.sv`：从已提交帧首 token/记录数生成单 outstanding DDR3 记录读命令。
+- `tb/tb_rgb565_axis4_frame_read_scheduler.sv`：不可提交隔离、命令背压、零延迟响应、帧尾不一致恢复、地址推进和复位自检。
 - `rtl/rgb565_axis4_frame_readout_gate.sv`：只为已提交帧打开 DDR3 记录读出窗口。
-- `tb/tb_rgb565_axis4_frame_readout_gate.sv`：已提交帧透传、背压保持、错误帧待发送记录隔离、帧尾关闭和运行中复位自检。
-- `rtl/rgb565_axis4_committed_pcie_mwr_path.sv`：帧提交决策、读出门控和规范化 PCIe MWR 组合切片。
+- `tb/tb_rgb565_axis4_frame_readout_gate.sv`：已提交帧透传、响应资格门控、完成关闭、错误帧隔离和运行中复位自检。
+- `rtl/rgb565_axis4_committed_pcie_mwr_path.sv`：帧提交、统一读响应调度、fault 恢复和规范化 PCIe MWR 组合切片。
 - `tb/tb_rgb565_axis4_committed_pcie_mwr_path.sv`：错误帧隔离、正常帧恢复及等待 ACK 请求复位清除的联合自检。
 - `rtl/ov5640_dvp_rgb565_dma_staging_pipeline.sv`：OV5640 到 staging/帧描述符联合 wrapper。
 - `tb/tb_ov5640_dvp_rgb565_dma_staging_pipeline.sv`：联合数据路径自检。
@@ -49,10 +52,13 @@
 - `tb/tb_ov5640_dvp_rgb565_cdc_staging_pipeline.sv`：小帧正常路径与长帧压力、事件和 `source_overflow` 自检。
 - `tb/tb_ov5640_ddr3_pcie_loopback.sv`：正常帧、overflow 中止和下一帧恢复经 DDR3 模型回送 PCIe 的行为级自检。
 - `scripts/run_m3b_ov5640_ddr3_pcie_loopback.ps1`：上述往返自检的可重复 Questa 入口。
+- `tb/tb_ov5640_ddr3_committed_pcie_loopback.sv`：将帧提交、读命令调度、错误帧作废和 PCIe MWR 接入同一行为闭环。
+- `scripts/run_m3b_ov5640_ddr3_committed_pcie_loopback.ps1`：上述已提交帧行为闭环的可重复 Questa 入口。
 - staging、帧统计和规范化请求描述符已完成同域行为验证；DDR3 写记录层已完成边界回归，
   staging 异步 FIFO 已完成双时钟行为验证；行为级 DDR3 模型已将正常帧、overflow
-  中止记录和恢复帧送入 PCIe MWR 请求路径。新增提交门控确保错误帧不进入 MWR，正常帧
-  在提交后才允许读回记录发送，但尚未实现帧表、DDR3 读地址或真实 DDR3/PCIe IP。
+  中止记录和恢复帧送入 PCIe MWR 请求路径。提交描述符现在携带首个 opaque token，调度器
+  按记录数发出有界读命令，并统一处理零延迟响应、提前/缺失帧尾和零记录 fault，确保错误帧
+  零读命令/零 MWR；但尚未实现带槽号的帧表、物理槽复用、真实 DDR3 地址或真实 DDR3/PCIe IP。
 
 ## 运行
 
@@ -63,6 +69,7 @@
 .\scripts\run_m3b.ps1 -SimulatorExecPath '<questa-bin-dir>'
 .\scripts\run_m3b_accounting.ps1 -SimulatorExecPath '<questa-bin-dir>'
 .\scripts\run_m3b_frame_commit.ps1 -SimulatorExecPath '<questa-bin-dir>'
+.\scripts\run_m3b_frame_read_scheduler.ps1 -SimulatorExecPath '<questa-bin-dir>'
 .\scripts\run_m3b_frame_readout_gate.ps1 -SimulatorExecPath '<questa-bin-dir>'
 .\scripts\run_m3b_committed_pcie_mwr_path.ps1 -SimulatorExecPath '<questa-bin-dir>'
 .\scripts\run_m3b_integration.ps1 -SimulatorExecPath '<questa-bin-dir>'
@@ -75,6 +82,7 @@
 .\scripts\run_m3b_word_skid_buffer.ps1 -SimulatorExecPath '<questa-bin-dir>'
 .\scripts\run_m3b_ov5640_cdc_staging.ps1 -SimulatorExecPath '<questa-bin-dir>'
 .\scripts\run_m3b_ov5640_ddr3_pcie_loopback.ps1 -SimulatorExecPath '<questa-bin-dir>'
+.\scripts\run_m3b_ov5640_ddr3_committed_pcie_loopback.ps1 -SimulatorExecPath '<questa-bin-dir>'
 ```
 
 运行态只写入 `main_ov5640_pcie/build/`。`vsim.exe`、`vlog.exe` 和许可证配置由本机

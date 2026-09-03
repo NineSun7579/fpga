@@ -160,23 +160,41 @@ DDR3 模型中的 28-bit 地址只作为记录槽位，未映射到活动控制�
 
 ## 帧提交、作废与 PCIe 读出门控
 
-`rgb565_axis4_frame_commit` 在规范化 DDR3 记录帧尾生成保持型描述符，统计有效字节、
-记录数和累计协议错误。无错误帧输出 `committed=1`；包含 overflow abort 或其他协议错误
-的帧输出 `committed=0`。空载帧尾仍计入记录数，但不增加有效字节。
+`rgb565_axis4_frame_commit` 在规范化 DDR3 记录帧尾生成保持型描述符，保存该帧首个 opaque
+DDR token，并统计有效字节、记录数和累计协议错误。无错误帧输出 `committed=1`；包含
+overflow abort 或其他协议错误的帧输出 `committed=0`。空载帧尾仍计入记录数，但不增加
+有效字节。首 token 只是上游已经使用的记录标识，不是物理 DDR3 地址。
+
+`rgb565_axis4_frame_read_scheduler` 只为 committed 描述符产生读命令，从首 token 起按
+`ADDR_STEP` 推进；每次只允许一个响应 outstanding，命令在背压时保持，收到对应记录被后级
+接受的事件后才推进下一 token。命令和零延迟响应允许同拍；提前帧尾或最后计数响应缺少帧尾
+都会结束当前帧、归一化输出帧尾并报告 fault；committed 零记录描述符直接 fault 完成，不进入
+无命令 active 状态。专项回归以非默认 `ADDR_STEP=4` 覆盖上述边界、背压、响应配对和运行中复位，Questa Sim-64
+2021.1 为 `0 error/0 warning`、唯一 `TEST PASS`、`346 ns`。
 
 `rgb565_axis4_frame_readout_gate` 只为 `committed=1` 的帧打开 DDR3 记录读出窗口；作废帧
 不拉高读侧 ready，并产生一个单周期 `drop_frame_pulse`，供后续帧表回收对应槽位。已提交
-帧的读回记录按 ready/valid 透传，帧尾记录完成握手后关闭窗口。读出源可以独立拉高 valid，
-但必须在握手前保持全部字段；外部调度器不得为作废帧安排读记录。
+帧的读回记录只有在 scheduler 声明可与当前命令配对时才按 ready/valid 透传；窗口由 scheduler
+统一产生的 `frame_done_pulse` 关闭，不再独立依赖原始 `read_frame_end`。读出源可以独立拉高
+valid，但必须在握手前保持全部字段；外部调度器不得为作废帧安排读记录。
 
-`rgb565_axis4_committed_pcie_mwr_path` 将上述两个边界与现有规范化 PCIe MWR path 串接。
+`rgb565_axis4_committed_pcie_mwr_path` 将提交器、读命令调度器、读出门控与现有规范化 PCIe
+MWR path 串接。提交描述符只在调度器和门控都 ready 时原子分发，避免两侧帧序失配。
+顶层显式以 `TOKEN_ADDR_STEP` 绑定读 token 步长，并向帧管理器输出 `frame_done_pulse` 与
+`frame_fault_pulse`，为后续带槽号回收提供事件基础；当前事件尚未携带槽号。
 专项回归在读侧存在待发送记录时提交错误帧，确认读窗口保持关闭且没有 MWR 请求；随后
 提交正常帧，payload 与空载帧尾分别从 `0x2000`、`0x2004` 发起请求。增强测试还覆盖帧统计、
 已打开读窗口和等待 ACK 请求的运行中复位，复位后请求地址重新从 `0x2000` 开始。frame
-commit、readout gate 和组合 path 的 Questa Sim-64 2021.1 回归分别为 `210 ns`、`171 ns`、
-`366 ns`，均为 `0 error/0 warning`、唯一 `TEST PASS`。
+commit、readout gate 和组合 path 的 Questa Sim-64 2021.1 回归分别为 `210 ns`、`211 ns`、
+`576 ns`，均为 `0 error/0 warning`、唯一 `TEST PASS`。
 
-该切片没有帧表、槽位分配、DDR3 读地址发生器或真实存储回收逻辑。commit 记录与 read
-记录的帧序映射由外部帧管理器保证；`drop_frame_pulse` 也不等同于实际 DDR3 空间已经回收。
+`tb_ov5640_ddr3_committed_pcie_loopback` 把写模型和 commit 接受绑定到同一握手边沿，DDR 模型
+只为已接受的调度命令返回记录。正常 3 像素帧由 token `0..2` 产生 `0x2000/0x2004/0x2006`
+请求；64 像素压力错误帧形成 21 条记录、一次 drop、零读命令和零 MWR；随后 2 像素恢复帧
+只读取 token `21/22` 并从 `0x2000/0x2004` 发送。该回归为 `0 error/0 warning`、唯一
+`TEST PASS`、`3158 ns`。
+
+该切片没有带槽号的帧表、槽位分配、槽基 token 重装或真实存储回收逻辑。连续 token 调度
+只覆盖当前行为模型，`drop_frame_pulse` 也不等同于实际 DDR3 空间已经回收。
 它不实例化厂商 DDR3/PCIe IP，不证明 DDR3 写入持久化、读口时序、TLP、DMA、链路训练、
 主机内存写入或板级时序。

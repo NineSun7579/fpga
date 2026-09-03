@@ -514,9 +514,25 @@
       "code_path": "main_ov5640_pcie/rtl/rgb565_axis4_frame_commit.sv",
       "test_path": "main_ov5640_pcie/tb/tb_rgb565_axis4_frame_commit.sv",
       "evidence_path": "main_ov5640_pcie/scripts/run_m3b_frame_commit.ps1",
-      "contracts": {"error_frame": "输出不可提交描述符，不直接产生 drop pulse", "recovery": "错误帧后的正常帧仍可恢复并提交"},
+      "contracts": {"first_token": "描述符保留该帧第一条记录的 opaque token", "error_frame": "输出不可提交描述符，不直接产生 drop pulse", "recovery": "错误帧后的正常帧仍可恢复并提交"},
       "questa_evidence": "Questa Sim-64 2021.1：0 error/0 warning，唯一 TEST PASS，210 ns；覆盖运行中复位",
-      "uncovered_boundaries": ["真实 DDR3 读地址", "DDR3 持久化", "vendor DDR3/PCIe IP", "PCIe TLP/DMA/链路", "主机内存", "板级时序"],
+      "uncovered_boundaries": ["真实 DDR3 读地址", "物理双槽复用", "DDR3 持久化", "vendor DDR3/PCIe IP", "PCIe TLP/DMA/链路", "主机内存", "板级时序"],
+      "complexity": "low",
+      "hotspot": true
+    },
+    {
+      "id": "main-ov5640-pcie-m3b-frame-read-scheduler",
+      "type": "System",
+      "label": "main OV5640→PCIe M3-B single-outstanding frame read scheduler",
+      "responsibility": "依据已提交帧的首 opaque token 和记录数生成顺序读命令，并保证任一时刻最多一个响应 outstanding。",
+      "implementation_status": "behavior_verified_single_outstanding_scheduler_only",
+      "project_path": "main_ov5640_pcie/",
+      "code_path": "main_ov5640_pcie/rtl/rgb565_axis4_frame_read_scheduler.sv",
+      "test_path": "main_ov5640_pcie/tb/tb_rgb565_axis4_frame_read_scheduler.sv",
+      "evidence_path": "main_ov5640_pcie/scripts/run_m3b_frame_read_scheduler.ps1",
+      "contracts": {"address": "从描述符首 opaque token 起按 ADDR_STEP 逐记录递增", "outstanding": "统一 read_response_ready/read_response_accepted 配对；最多一个响应 outstanding", "zero_latency": "命令握手和零延迟响应支持同拍", "frame_end_normalization": "提前 frame_end 或最终响应缺失 frame_end 均归一化为帧尾并 protocol fault-complete", "zero_records": "committed 且 records=0 不发命令并 fault-complete", "drop": "不可提交帧不产生读命令", "completion": "正常或 fault 均产生 frame_done_pulse；fault 同时产生 frame_fault_pulse"},
+      "questa_evidence": "2026-09-03 Questa Sim-64 2021.1：0 error/0 warning，唯一 TEST PASS，346 ns",
+      "uncovered_boundaries": ["真实 DDR3 物理地址与读事务", "物理双槽复用", "DDR3 仲裁/突发/持久化", "vendor DDR3 IP", "板级时序"],
       "complexity": "low",
       "hotspot": true
     },
@@ -530,8 +546,8 @@
       "code_path": "main_ov5640_pcie/rtl/rgb565_axis4_frame_readout_gate.sv",
       "test_path": "main_ov5640_pcie/tb/tb_rgb565_axis4_frame_readout_gate.sv",
       "evidence_path": "main_ov5640_pcie/scripts/run_m3b_frame_readout_gate.ps1",
-      "contracts": {"drop": "drop_frame_pulse 不打开 DDR 读窗口", "commit": "正常提交帧开放读取资格并支持错误帧后恢复"},
-      "questa_evidence": "Questa Sim-64 2021.1：0 error/0 warning，唯一 TEST PASS，171 ns；覆盖待发送读记录隔离和运行中复位",
+      "contracts": {"drop": "drop_frame_pulse 不打开 DDR 读窗口", "commit": "正常提交帧开放窗口", "response_pairing": "只有 read_accept_enable 时接受并透传读响应", "completion": "frame_done_pulse 统一关闭当前窗口"},
+      "questa_evidence": "2026-09-03 Questa Sim-64 2021.1：0 error/0 warning，唯一 TEST PASS，211 ns",
       "uncovered_boundaries": ["真实 DDR3 读地址与读事务", "DDR3 初始化/仲裁/突发/持久化", "vendor DDR3 IP", "板级时序"],
       "complexity": "low",
       "hotspot": true
@@ -540,15 +556,31 @@
       "id": "main-ov5640-pcie-m3b-committed-pcie-mwr-path",
       "type": "System",
       "label": "main OV5640→PCIe M3-B committed PCIe MWR path",
-      "responsibility": "把帧提交/作废和读取资格门控串接到 vendor-independent PCIe MWR；错误帧不发请求，正常帧可恢复输出。",
+      "responsibility": "串接帧提交、单 outstanding 读调度、读取资格门控与 vendor-independent PCIe MWR；错误帧不发读命令或请求，正常帧可恢复输出。",
       "implementation_status": "behavior_verified_committed_mwr_path_only",
       "project_path": "main_ov5640_pcie/",
       "code_path": "main_ov5640_pcie/rtl/rgb565_axis4_committed_pcie_mwr_path.sv",
       "test_path": "main_ov5640_pcie/tb/tb_rgb565_axis4_committed_pcie_mwr_path.sv",
       "evidence_path": "main_ov5640_pcie/scripts/run_m3b_committed_pcie_mwr_path.ps1",
-      "contracts": {"error_frame": "单周期 drop_frame_pulse；DDR 读窗口关闭且不产生 MWR", "recovery_frame": "payload 和空载帧尾请求地址依次为 0x2000、0x2004"},
-      "questa_evidence": "Questa Sim-64 2021.1：0 error/0 warning，唯一 TEST PASS，366 ns；覆盖等待 ACK 请求复位清除和基地址恢复",
-      "uncovered_boundaries": ["真实 DDR3 读地址", "DDR3 持久化", "vendor DDR3/PCIe IP", "PCIe TLP/byte-enable/DMA/链路", "主机内存写入", "板级时序"],
+      "contracts": {"scheduler": "依据首 opaque token、记录数和 TOKEN_ADDR_STEP 生成单 outstanding 顺序读命令", "zero_latency": "命令与零延迟响应可同拍", "fault_normalization": "提前/缺失 frame_end 和 committed 零记录均 fault-complete", "status": "对外暴露 frame_done_pulse/frame_fault_pulse", "error_frame": "1 次 drop_frame_pulse；0 读命令且不产生 MWR", "recovery_frame": "正常帧可恢复并进入 MWR"},
+      "parameters": {"BASE_ADDR": "vendor-independent MWR 起始地址", "TOKEN_ADDR_STEP": "opaque token 递增步长"},
+      "questa_evidence": "2026-09-03 Questa Sim-64 2021.1：0 error/0 warning，唯一 TEST PASS，576 ns",
+      "uncovered_boundaries": ["真实 DDR3 地址", "物理双槽复用", "DDR3 持久化", "vendor DDR3/PCIe IP", "PCIe TLP/byte-enable/DMA/链路", "主机内存写入", "板级时序"],
+      "complexity": "medium",
+      "hotspot": true
+    },
+    {
+      "id": "main-ov5640-pcie-m3b-ddr3-committed-pcie-loopback",
+      "type": "TestSuite",
+      "label": "main OV5640→DDR3模型→已提交 PCIe 单一回归",
+      "responsibility": "验证 OV5640 记录写入 TB DDR3 模型后，经帧提交、单 outstanding 读调度和 readout gate，仅将正常帧送入 PCIe MWR。",
+      "implementation_status": "behavior_verified_committed_model_loopback_only",
+      "project_path": "main_ov5640_pcie/",
+      "test_path": "main_ov5640_pcie/tb/tb_ov5640_ddr3_committed_pcie_loopback.sv",
+      "evidence_path": "main_ov5640_pcie/scripts/run_m3b_ov5640_ddr3_committed_pcie_loopback.ps1",
+      "contracts": {"normal": "token 0..2 -> MWR 0x2000/0x2004/0x2006", "pressure": "21 条错误帧记录 -> 1 drop、0 read command、0 MWR", "recovery": "token 21/22 -> MWR 0x2000/0x2004"},
+      "questa_evidence": "2026-09-03 Questa Sim-64 2021.1：0 error/0 warning，唯一 TEST PASS，3158 ns",
+      "uncovered_boundaries": ["物理双槽复用", "真实 DDR3 地址/IP/持久化", "真实 PCIe TLP/DMA/链路", "主机内存写入", "板级时序"],
       "complexity": "medium",
       "hotspot": true
     },
@@ -1324,10 +1356,16 @@
       "description": "该记录不接 vendor DDR3 IP，不假定地址单位、初始化或 AXI4 burst，不能作为 DDR3 控制器或内存时序通过证据。"
     },
     {
-      "source": "main-ov5640-pcie-m3b-frame-readout-gate",
+      "source": "main-ov5640-pcie-m3b-frame-read-scheduler",
       "target": "main-ov5640-pcie-m3b-frame-commit",
       "type": "consumes",
-      "description": "readout gate 消费 committed/不可提交描述符，只为已提交帧开放读取资格，并为不可提交描述符产生单周期作废脉冲。"
+      "description": "read scheduler 消费 frame commit 的首 opaque token、记录数和提交决策，为正常帧生成单 outstanding 顺序读命令。"
+    },
+    {
+      "source": "main-ov5640-pcie-m3b-frame-readout-gate",
+      "target": "main-ov5640-pcie-m3b-frame-read-scheduler",
+      "type": "consumes",
+      "description": "readout gate 仅透传 scheduler 当前 outstanding 命令对应的已提交帧响应。"
     },
     {
       "source": "main-ov5640-pcie-m3b-committed-pcie-mwr-path",
@@ -1346,6 +1384,12 @@
       "target": "pds-workflow-guide",
       "type": "staged_under",
       "description": "该行为切片不生成真实 DDR3 读地址、不实例化 vendor IP，不能作为 DDR3 持久化、PCIe TLP/DMA/链路、主机内存或板级验收证据。"
+    },
+    {
+      "source": "main-ov5640-pcie-m3b-ddr3-committed-pcie-loopback",
+      "target": "main-ov5640-pcie-m3b-committed-pcie-mwr-path",
+      "type": "tests",
+      "description": "单一回归覆盖正常 token 顺序、压力错误帧零读零 MWR 和恢复帧地址语义；仅使用 TB DDR3 数组模型。"
     },
     {
       "source": "ov7725-hdmi-system",

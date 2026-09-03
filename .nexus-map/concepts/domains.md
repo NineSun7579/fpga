@@ -66,9 +66,9 @@ M3-B 的两槽 word skid 位于无背压 packer 与 4-byte adapter 之间。满�
 
 ## main OV5640 M3-B 帧提交、作废与已提交帧回送
 
-`rgb565_axis4_frame_commit` 把帧级协议结果收敛为 committed 或不可提交描述符，不直接产生 drop pulse；`rgb565_axis4_frame_readout_gate` 对不可提交描述符产生单周期 `drop_frame_pulse`，并仅对正常提交帧开放读取资格。对应 Questa Sim-64 2021.1 专项测试均为 0 error/0 warning、唯一 `TEST PASS`，分别为 210 ns 和 171 ns，覆盖运行中复位和待发送读记录隔离。
+`rgb565_axis4_frame_commit` 把帧级协议结果收敛为 committed 或不可提交描述符，并保留首条记录的 opaque token、记录数、有效字节数与错误状态；专项 Questa Sim-64 2021.1 为 0 error/0 warning、唯一 `TEST PASS`、210 ns。`rgb565_axis4_frame_read_scheduler` 从首 token 起按记录数生成单 outstanding 顺序命令，并统一响应接收与完成语义：命令和零延迟响应可同拍；提前帧尾或最终响应缺失帧尾均归一化为帧尾并 fault-complete；committed 零记录也直接 fault-complete。scheduler 专项为 346 ns，readout gate 以 `read_accept_enable` 配对响应并以 `frame_done_pulse` 关闭窗口，专项为 211 ns，均 0 error/0 warning、唯一 `TEST PASS`。opaque token 只是数组索引，不是 DDR3 物理地址。
 
-`rgb565_axis4_committed_pcie_mwr_path` 将上述资格门控与 vendor-independent MWR 行为串接：待发送读记录不能穿过错误帧门控；错误帧不产生 MWR；恢复正常帧的 payload 与空载帧尾请求地址依次为 `0x2000`、`0x2004`，等待 ACK 时复位清除旧请求并恢复基地址。专项测试为 0 error/0 warning、唯一 `TEST PASS`、366 ns。该切片不生成真实 DDR3 读地址，不实例化 vendor IP，也不证明 DDR3 持久化、PCIe TLP/DMA/链路、主机内存写入或板级时序。
+`rgb565_axis4_committed_pcie_mwr_path` 已接入上述 scheduler 与 readout gate，显式参数化 `TOKEN_ADDR_STEP` 并暴露 `frame_done_pulse/frame_fault_pulse`；正常完成只置 done，恢复性协议 fault 和 committed 零记录同时置 done/fault。专项结果为 0 error/0 warning、唯一 `TEST PASS`、576 ns。完整 `tb_ov5640_ddr3_committed_pcie_loopback` 最新结果仍为 3158 ns，验证正常 token `0..2` 对应 MWR `0x2000/0x2004/0x2006`，21 记录压力错误帧产生 1 drop 且 0 read command/0 MWR，恢复 token `21/22` 对应 `0x2000/0x2004`。该切片无物理双槽复用，不生成真实 DDR3 地址，不实例化 vendor IP，也不证明 DDR3 持久化、PCIe TLP/DMA/链路、主机内存写入或板级时序。
 
 厂商异步 FIFO 可以承担多比特数据跨域，但 reset/flush 仍属于 RDC。write FIFO 的 camera/UI 两侧和 read FIFO 的 UI/pixel 两侧必须分别在本地时钟域释放复位；只有确认 SP6.4 对厂商指针同步结构的识别后，才允许添加最窄范围例外。
 

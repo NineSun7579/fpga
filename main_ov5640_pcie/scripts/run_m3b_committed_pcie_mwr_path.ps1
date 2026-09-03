@@ -3,7 +3,7 @@ param([Parameter(Mandatory = $true)][string]$SimulatorExecPath)
 
 $ErrorActionPreference = 'Stop'
 $ProjectRoot = Split-Path -Parent $PSScriptRoot
-$RunId = Get-Date -Format 'yyyyMMdd-HHmmss'
+$RunId = [guid]::NewGuid().ToString('N')
 $RunRoot = Join-Path $ProjectRoot (Join-Path 'build' (Join-Path 'm3b-committed-pcie-mwr-path' $RunId))
 $WorkLib = Join-Path $RunRoot 'work'
 $LogPath = Join-Path $RunRoot 'run.log'
@@ -24,6 +24,7 @@ $Vmap = Require-Executable 'vmap.exe'
 $Vsim = Require-Executable 'vsim.exe'
 $Sources = @(
     (Join-Path $ProjectRoot 'rtl\rgb565_axis4_frame_commit.sv'),
+    (Join-Path $ProjectRoot 'rtl\rgb565_axis4_frame_read_scheduler.sv'),
     (Join-Path $ProjectRoot 'rtl\rgb565_axis4_frame_readout_gate.sv'),
     (Join-Path $ProjectRoot 'rtl\rgb565_axis4_mwr_descriptor.sv'),
     (Join-Path $ProjectRoot 'rtl\rgb565_axis4_pcie_mwr_bridge.sv'),

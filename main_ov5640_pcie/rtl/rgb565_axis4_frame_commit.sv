@@ -5,13 +5,14 @@
  * @brief 将规范化 DDR3 记录聚合为帧提交或帧作废描述符。
  *
  * @details
- * 本模块位于 DDR3 记录读回与后续 PCIe 发送策略之间，只观察每条记录的
- * 有效字节数、帧尾和协议错误。帧尾被接受后产生一个保持型描述符；没有
- * 协议错误的帧标记为 `committed`，带错误的帧标记为不可提交。模块不生成
- * DDR3 物理地址，不解释控制器 burst，也不驱动厂商 PCIe IP。
+ * 本模块位于 DDR3 记录写入完成与后续 PCIe 发送策略之间，观察每条记录的
+ * opaque 地址、有效字节数、帧尾和协议错误。帧尾被接受后产生一个保持型
+ * 描述符；没有协议错误的帧标记为 `committed`，带错误的帧标记为不可提交。
+ * 模块不生成 DDR3 物理地址，不解释控制器 burst，也不驱动厂商 PCIe IP。
  *
  * @par Interface contract
  * - `in_valid && in_ready` 接受一条规范化 DDR3 记录。
+ * - `in_addr` 是该记录已经使用的 opaque 地址 token；描述符保存首条记录地址。
  * - `in_keep` 的每个置位表示一字节有效数据；空载控制记录仍计入 `records`。
  * - `in_frame_end` 接受后，当前帧的 `bytes`、`records` 和错误状态锁存到描述符。
  * - 描述符在 `desc_valid && desc_ready` 前保持稳定，并阻塞下一帧输入。
@@ -34,11 +35,13 @@ module rgb565_axis4_frame_commit (
     input  wire logic        clk,
     input  wire logic        in_valid,
     output logic             in_ready,
+    input  wire logic [27:0] in_addr,
     input  wire logic [3:0]  in_keep,
     input  wire logic        in_frame_end,
     input  wire logic        in_protocol_error,
     output logic             desc_valid,
     input  wire logic        desc_ready,
+    output logic [27:0]      desc_start_addr,
     output logic [31:0]      desc_bytes,
     output logic [31:0]      desc_records,
     output logic             desc_protocol_error,
@@ -46,6 +49,7 @@ module rgb565_axis4_frame_commit (
 );
     logic [31:0] byte_count_reg;
     logic [31:0] record_count_reg;
+    logic [27:0] frame_start_addr_reg;
     logic        error_seen_reg;
     logic [2:0]  keep_bytes;
     logic        frame_error;
@@ -69,8 +73,10 @@ module rgb565_axis4_frame_commit (
         if (!rst_n) begin
             byte_count_reg      <= 32'd0;
             record_count_reg    <= 32'd0;
+            frame_start_addr_reg <= 28'd0;
             error_seen_reg      <= 1'b0;
             desc_valid          <= 1'b0;
+            desc_start_addr     <= 28'd0;
             desc_bytes          <= 32'd0;
             desc_records        <= 32'd0;
             desc_protocol_error <= 1'b0;
@@ -82,14 +88,19 @@ module rgb565_axis4_frame_commit (
             if (in_valid && in_ready) begin
                 if (in_frame_end) begin
                     desc_valid          <= 1'b1;
+                    desc_start_addr     <= (record_count_reg == 32'd0) ?
+                                           in_addr : frame_start_addr_reg;
                     desc_bytes          <= byte_count_reg + keep_bytes;
                     desc_records        <= record_count_reg + 32'd1;
                     desc_protocol_error <= frame_error;
                     desc_committed      <= !frame_error;
                     byte_count_reg      <= 32'd0;
                     record_count_reg    <= 32'd0;
+                    frame_start_addr_reg <= 28'd0;
                     error_seen_reg      <= 1'b0;
                 end else begin
+                    if (record_count_reg == 32'd0)
+                        frame_start_addr_reg <= in_addr;
                     byte_count_reg   <= byte_count_reg + keep_bytes;
                     record_count_reg <= record_count_reg + 32'd1;
                     error_seen_reg   <= error_seen_reg | in_protocol_error;

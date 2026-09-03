@@ -17,15 +17,21 @@ flowchart TD
   MainStaging --> MainDDRRecord["规范化 DDR3 写记录\nopaque 地址 token"]
   MainDDRRecord --> MainDDRModel["TB 内 DDR3 模型\n按记录保存/回读"]
   MainDDRModel --> MainMWR["规范化 PCIe MWR\n0x0ffc/0x1000/0x1002"]
-  MainDDRModel --> MainFrameCommit["M3-B frame commit\n提交/不可提交描述符"]
-  MainFrameCommit --> MainReadoutGate["M3-B frame readout gate\n仅正常提交帧开放"]
-  MainReadoutGate --> MainCommittedMWR["committed PCIe MWR\n0x2000/0x2004"]
+  MainDDRModel --> MainFrameCommit["M3-B frame commit\n首 opaque token + 记录数"]
+  MainFrameCommit --> MainReadScheduler["M3-B frame read scheduler\n单 outstanding 顺序命令"]
+  MainReadScheduler --> MainReadoutGate["M3-B frame readout gate\n仅正常提交帧开放"]
+  MainReadoutGate --> MainCommittedMWR["committed PCIe MWR\n0x2000 起始"]
   MainLoopbackTB["tb_ov5640_ddr3_pcie_loopback\n行为级闭环"] --> MainStaging
   MainLoopbackTB --> MainDDRModel
   MainLoopbackTB --> MainMWR
-  MainCommitTB["frame_commit/readout/committed MWR TB\n210/171/366 ns"] --> MainFrameCommit
+  MainCommitTB["frame_commit/scheduler/gate/committed MWR TB\n210/346/211/576 ns"] --> MainFrameCommit
+  MainCommitTB --> MainReadScheduler
   MainCommitTB --> MainReadoutGate
   MainCommitTB --> MainCommittedMWR
+  MainCommittedLoopbackTB["tb_ov5640_ddr3_committed_pcie_loopback\n3158 ns"] --> MainDDRModel
+  MainCommittedLoopbackTB --> MainFrameCommit
+  MainCommittedLoopbackTB --> MainReadScheduler
+  MainCommittedLoopbackTB --> MainCommittedMWR
   MainTB["M1-A 自检 TB"] --> MainCapture
   Standard --> MainCapture
   Standard --> MainPack

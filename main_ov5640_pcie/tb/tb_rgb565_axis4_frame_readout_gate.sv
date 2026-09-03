@@ -15,6 +15,8 @@ module tb_rgb565_axis4_frame_readout_gate;
     logic        desc_valid = 1'b0;
     logic        desc_ready;
     logic        desc_committed = 1'b0;
+    logic        read_accept_enable = 1'b1;
+    logic        frame_done_pulse = 1'b0;
     logic        read_valid = 1'b0;
     logic        read_ready;
     logic [31:0] read_data = 32'h0;
@@ -50,6 +52,16 @@ module tb_rgb565_axis4_frame_readout_gate;
             #1ns;
             desc_valid = 1'b0;
             desc_committed = 1'b0;
+        end
+    endtask
+
+    task automatic complete_frame;
+        begin
+            @(negedge clk);
+            frame_done_pulse = 1'b1;
+            @(posedge clk);
+            #1ns;
+            frame_done_pulse = 1'b0;
         end
     endtask
 
@@ -92,10 +104,9 @@ module tb_rgb565_axis4_frame_readout_gate;
         submit_descriptor(1'b1);
         transfer_record(32'h11223344, 4'hf, 1'b1, 1'b0, 1'b0);
         transfer_record(32'h00000000, 4'h0, 1'b1, 1'b1, 1'b0);
-        @(posedge clk);
-        #1ns;
+        complete_frame();
         if (out_valid)
-            $fatal(1, "committed frame readout did not close at frame end");
+            $fatal(1, "committed frame readout did not close on completion pulse");
 
         @(negedge clk);
         read_data = 32'hdeadbeef;
@@ -142,6 +153,28 @@ module tb_rgb565_axis4_frame_readout_gate;
         read_keep = 4'h0;
         read_last = 1'b0;
         read_frame_end = 1'b0;
+        complete_frame();
+
+        submit_descriptor(1'b1);
+        out_ready = 1'b1;
+        read_accept_enable = 1'b0;
+        @(negedge clk);
+        read_data = 32'h12345678;
+        read_keep = 4'hf;
+        read_valid = 1'b1;
+        #1ns;
+        if (read_ready || out_valid)
+            $fatal(1, "disabled response acceptance leaked a read record");
+        read_accept_enable = 1'b1;
+        #1ns;
+        if (!read_ready || !out_valid || out_data !== 32'h12345678)
+            $fatal(1, "enabled response acceptance did not release held record");
+        @(posedge clk);
+        #1ns;
+        read_valid = 1'b0;
+        read_data = 32'h0;
+        read_keep = 4'h0;
+        complete_frame();
 
         submit_descriptor(1'b1);
         out_ready = 1'b1;
@@ -166,7 +199,7 @@ module tb_rgb565_axis4_frame_readout_gate;
         if (read_ready || out_valid || drop_frame_pulse)
             $fatal(1, "readout gate reopened without a post-reset descriptor");
 
-        $display("INFO: committed readout, invalid isolation, backpressure, and reset verified");
+        $display("INFO: committed readout, response enable, invalid isolation, backpressure, and reset verified");
         $display("TEST PASS");
         $finish;
     end

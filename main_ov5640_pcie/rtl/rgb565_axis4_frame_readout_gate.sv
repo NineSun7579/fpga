@@ -7,27 +7,29 @@
  * @details
  * 该模块接收帧提交描述符和随后从 DDR3 读出的规范化记录。已提交帧才会
  * 打开读侧 ready 并透传记录；作废帧保持读侧关闭，同时产生一个单周期
- * `drop_frame_pulse`。模块不生成 DDR3 地址，不缓存整帧，也不实例化厂商
- * PCIe IP；实际存储和读出调度由集成层负责。
+ * `drop_frame_pulse`。读调度器通过 `read_accept_enable` 配对响应，并通过
+ * `frame_done_pulse` 统一关闭窗口。模块不生成 DDR3 地址，不缓存整帧，也不
+ * 实例化厂商 PCIe IP；实际存储和读出调度由集成层负责。
  *
  * @par Interface contract
  * - `desc_valid && desc_ready` 接受一个帧提交结果。
  * - `desc_committed=1` 后，读侧记录按照 ready/valid 原样透传。
  * - `desc_committed=0` 时不接受读侧记录，并在描述符接受后输出一个
  *   `drop_frame_pulse`。
- * - 已提交帧的 `read_frame_end` 记录完成握手后，下一周期关闭读侧。
+ * - `read_accept_enable=0` 时不接受或透传读记录。
+ * - `frame_done_pulse` 被采样后关闭当前已提交帧的读窗口。
  * - 输出记录在 `out_valid && out_ready` 前保持，字段来自读侧输入。
  *
  * @par Clock and reset
  * - Clock: `clk`，上升沿。
- * - Reset: `rst_n`，异步断言；释放行为属于集成层责任。
+ * - Reset: `rst_n`，低有效异步断言；集成层必须相对 `clk` 同步释放。
  *
  * @par Assumptions
  * - 外部 DDR3 读出器可独立于 `read_ready` 拉高 `read_valid`；未完成握手时
  *   必须保持 `read_valid` 和全部记录字段稳定。
  * - 作废帧不得向本模块提供读记录；`drop_frame_pulse` 用于通知外部调度器
  *   回收该帧并推进到下一帧描述符。
- * - 已提交描述符对应的读出序列最终提供一个 `read_frame_end`。
+ * - `frame_done_pulse` 只属于当前活动帧，并由同一时钟域的读调度器产生。
  *
  * @warning
  * 该模块只实现帧完整性结果到读出使能的策略，不证明 DDR3 读时序、PCIe
@@ -39,6 +41,8 @@ module rgb565_axis4_frame_readout_gate (
     input  wire logic        desc_valid,
     output logic             desc_ready,
     input  wire logic        desc_committed,
+    input  wire logic        read_accept_enable,
+    input  wire logic        frame_done_pulse,
     input  wire logic        read_valid,
     output logic             read_ready,
     input  wire logic [31:0] read_data,
@@ -59,8 +63,8 @@ module rgb565_axis4_frame_readout_gate (
 
     always_comb begin
         desc_ready = !frame_active;
-        read_ready = frame_active && out_ready;
-        out_valid = frame_active && read_valid;
+        read_ready = frame_active && read_accept_enable && out_ready;
+        out_valid = frame_active && read_accept_enable && read_valid;
         out_data = read_data;
         out_keep = read_keep;
         out_last = read_last;
@@ -76,8 +80,8 @@ module rgb565_axis4_frame_readout_gate (
      * Illegal state: Both bit values are defined, so there is no unused encoding.
      * Invariant: An uncommitted frame cannot produce an output handshake.
      * Latency: A committed descriptor opens the window after its sampling edge;
-     *          a frame-end record closes it after that record's handshake edge.
-     * Hazard: A missing read-side frame end leaves the committed window active;
+     *          `frame_done_pulse` closes it after the pulse sampling edge.
+     * Hazard: A missing completion pulse leaves the committed window active;
      *         timeout recovery belongs to the integrating frame manager.
      */
     always_ff @(posedge clk or negedge rst_n) begin
@@ -90,7 +94,7 @@ module rgb565_axis4_frame_readout_gate (
                 frame_active <= desc_committed;
                 if (!desc_committed)
                     drop_frame_pulse <= 1'b1;
-            end else if (frame_active && read_valid && read_ready && read_frame_end) begin
+            end else if (frame_active && frame_done_pulse) begin
                 frame_active <= 1'b0;
             end
         end

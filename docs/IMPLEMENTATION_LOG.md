@@ -645,3 +645,35 @@
   关闭读窗口，复位后地址重新从 `0x2000` 起始。专项回归 `366 ns`。
 - 三项均为 Questa Sim-64 2021.1 `0 error/0 warning`、唯一 `TEST PASS`。当前仍没有帧表、DDR3
   读地址、槽位回收或真实 DDR3/PCIe IP，因此不能解释为板级闭环。
+
+## 2026-09-03：main OV5640 已提交帧读命令与完整行为闭环
+
+- `rgb565_axis4_frame_commit` 描述符增加帧首 opaque DDR token；首记录地址与 records/bytes/error
+  一起保持，专项回归仍为 `210 ns`。
+- 新增 `rgb565_axis4_frame_read_scheduler`：不可提交描述符不产生命令；已提交帧从首 token 起
+  产生单 outstanding 连续读命令，每条命令等待对应响应被后级接受后再推进。专项回归覆盖命令
+  背压、三记录顺序、最终完成脉冲和运行中复位，`226 ns`。
+- `rgb565_axis4_committed_pcie_mwr_path` 原子分发同一提交描述符给调度器和读出门控，并把读记录
+  握手作为调度响应完成事件。错误帧零命令/零 MWR、正常帧地址和等待 ACK 复位回归为 `416 ns`。
+- 新增 `tb_ov5640_ddr3_committed_pcie_loopback.sv`：DDR 模型写入与 commit 在同一边沿接受，模型只
+  响应调度器命令。正常帧 token `0..2` 到达 `0x2000/0x2004/0x2006`；压力错误帧 21 条记录后
+  一次 drop、零读命令、零 MWR；恢复帧 token `21/22` 从 `0x2000/0x2004` 发送。Questa Sim-64
+  2021.1 为 `0 error/0 warning`、唯一 `TEST PASS`、`3158 ns`。
+- 该证据仍没有带槽号双槽帧表、物理槽复用、真实 DDR3 地址/控制器、PCIe TLP/DMA/链路、
+  主机内存或板级时序，不能作为真实硬件闭环结论。
+
+## 2026-09-03：main 读响应完成语义与零延迟配对修复
+
+- 只读评审确认首 token 和描述符原子分发正确，同时发现 gate 按原始 `frame_end`、scheduler
+  按记录数分别结束时会在提前或缺失帧尾场景永久分裂；命令与零延迟响应同拍时，旧 scheduler
+  还可能漏记已经被下游消费的响应。
+- scheduler 现在统一输出响应接收资格，支持命令/响应同拍，并以“原始帧尾或最后计数响应”
+  结束当前帧；两者不一致时强制归一化帧尾并置协议 fault。committed 零记录描述符直接输出
+  完成/fault，不进入挂死状态。扩展 TB 在旧 RTL 上于 `91 ns` 得到预期红灯，修复后 `346 ns`。
+- readout gate 只透传 scheduler 可配对的响应，并由统一完成脉冲关闭；专项回归 `211 ns`。
+- committed wrapper 暴露 `frame_done_pulse/frame_fault_pulse`，显式绑定 `TOKEN_ADDR_STEP`，联合
+  回归覆盖提前帧尾、缺失最终帧尾、零延迟响应、错误标记和下一帧恢复，`576 ns`。
+- 完整 OV5640→DDR3 记录模型→已提交帧读调度→PCIe MWR 行为回归保持 `3158 ns`：正常 token
+  `0..2`、压力错误帧 21 条记录且零读/零 MWR、恢复 token `21/22`；全部回归均为 Questa
+  Sim-64 2021.1 `0 error/0 warning`、唯一 `TEST PASS`。
+- 这些修复关闭的是行为协议死锁，不增加物理双槽、DDR3 控制器、PCIe DMA/TLP 或主机驱动证据。
