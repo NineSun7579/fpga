@@ -66,7 +66,8 @@ staging payload beat。该挂起策略只用于当前无背压的同域 staging 
 
 `rgb565_axis4_ddr3_write_descriptor` 将一个 staging beat 转换为单 beat、128-bit
 数据和 16-bit 写掩码记录，并在下游 ready 前保持字段稳定。其 28-bit 地址只是
-opaque token，`write_awlen=0` 只表示本模块输出一个记录，不代表活动 DDR3 IP 的
+opaque token，推进量由 `ADDR_STEP` 参数显式提供；`write_awlen=0` 只表示本模块
+输出一个记录，不代表活动 DDR3 IP 的
 地址单位、burst 长度或初始化完成语义。该层不实例化 DDR3 IP，必须在 50H IP 重生成
 并完成 D3-0-M 复核后，才能进行实际用户口映射。
 

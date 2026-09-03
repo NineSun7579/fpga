@@ -10,7 +10,8 @@
  * initialization behavior, or AXI4 burst semantics.
  */
 module rgb565_axis4_ddr3_write_descriptor #(
-    parameter logic [27:0] BASE_ADDR = 28'd0
+    parameter logic [27:0] BASE_ADDR = 28'd0,
+    parameter logic [27:0] ADDR_STEP = 28'd1
 ) (
     input  wire logic        rst_n,
     input  wire logic        clk,
@@ -67,7 +68,7 @@ module rgb565_axis4_ddr3_write_descriptor #(
             protocol_error_reg <= in_protocol_error;
         end else if (active && write_ready) begin
             active <= 1'b0;
-            addr_reg <= addr_reg + 28'd1;
+            addr_reg <= addr_reg + ADDR_STEP;
         end
     end
 endmodule

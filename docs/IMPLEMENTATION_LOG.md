@@ -489,6 +489,8 @@
   128-bit 写数据低位，并将 4-bit keep 映射到 16-bit 写掩码低位。
 - 输出固定单 beat 记录（`write_awlen=0`）；28-bit 地址保持为 opaque token，不解释
   活动 DDR3 IP 的地址单位、初始化时序或 AXI4 burst 语义。
+- 地址推进改为显式 `ADDR_STEP` 参数；TB 使用 `BASE_ADDR=0x12`、`ADDR_STEP=0x4`
+  验证释放后地址为 `0x16`，不再把 token 步长硬编码为某种地址单位。
 - 新增独立 Questa TB 和脚本；编译 `0 error/0 warning`，记录保持/释放、数据和掩码
   映射通过，日志唯一 `TEST PASS`。
 - 该层不实例化 DDR3 IP；实际用户口接入必须等待 PG2L50H IP 重生成及 D3-0-M 复核。

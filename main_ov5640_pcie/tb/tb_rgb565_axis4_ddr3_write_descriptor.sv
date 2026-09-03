@@ -9,7 +9,7 @@ module tb_rgb565_axis4_ddr3_write_descriptor;
     logic [27:0] write_addr; logic [3:0] write_awlen;
     logic [127:0] write_data; logic [15:0] write_strb;
     logic write_last, write_frame_end, write_protocol_error;
-    rgb565_axis4_ddr3_write_descriptor #(.BASE_ADDR(28'h12)) dut (.*);
+    rgb565_axis4_ddr3_write_descriptor #(.BASE_ADDR(28'h12), .ADDR_STEP(28'h4)) dut (.*);
     always #5ns clk=~clk;
     initial begin #5us; $fatal(1, "DDR3 write descriptor timeout"); end
     initial begin
@@ -22,7 +22,7 @@ module tb_rgb565_axis4_ddr3_write_descriptor;
             $fatal(1, "DDR3 write descriptor mismatch");
         repeat(2) begin @(posedge clk); #1ns; if (!write_valid || write_data !== 128'h000000000000000000000000cafebabe) $fatal(1,"DDR3 record not held"); end
         write_ready=1; @(posedge clk); #1ns;
-        if (write_valid) $fatal(1, "DDR3 record release mismatch");
+        if (write_valid || write_addr !== 28'h16) $fatal(1, "DDR3 record release mismatch");
         $display("INFO: normalized DDR3 write descriptor verified");
         $display("TEST PASS"); $finish;
     end
