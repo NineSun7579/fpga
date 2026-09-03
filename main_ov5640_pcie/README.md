@@ -22,6 +22,12 @@
 - `tb/tb_rgb565_word_to_axis4_adapter.sv`：M3-B 字节顺序、keep、事件和背压自检。
 - `rtl/rgb565_axis4_frame_accounting.sv`：M3-B 帧有效字节/beat/错误统计描述符。
 - `tb/tb_rgb565_axis4_frame_accounting.sv`：帧统计描述符自检。
+- `rtl/rgb565_axis4_frame_commit.sv`：规范化 DDR3 记录到帧提交/作废描述符。
+- `tb/tb_rgb565_axis4_frame_commit.sv`：正常提交、abort 作废、sticky 帧错误、描述符背压和运行中复位自检。
+- `rtl/rgb565_axis4_frame_readout_gate.sv`：只为已提交帧打开 DDR3 记录读出窗口。
+- `tb/tb_rgb565_axis4_frame_readout_gate.sv`：已提交帧透传、背压保持、错误帧待发送记录隔离、帧尾关闭和运行中复位自检。
+- `rtl/rgb565_axis4_committed_pcie_mwr_path.sv`：帧提交决策、读出门控和规范化 PCIe MWR 组合切片。
+- `tb/tb_rgb565_axis4_committed_pcie_mwr_path.sv`：错误帧隔离、正常帧恢复及等待 ACK 请求复位清除的联合自检。
 - `rtl/ov5640_dvp_rgb565_dma_staging_pipeline.sv`：OV5640 到 staging/帧描述符联合 wrapper。
 - `tb/tb_ov5640_dvp_rgb565_dma_staging_pipeline.sv`：联合数据路径自检。
 - `rtl/rgb565_axis4_mwr_descriptor.sv`：板级无关的规范化 PCIe Memory Write 请求描述符。
@@ -45,7 +51,8 @@
 - `scripts/run_m3b_ov5640_ddr3_pcie_loopback.ps1`：上述往返自检的可重复 Questa 入口。
 - staging、帧统计和规范化请求描述符已完成同域行为验证；DDR3 写记录层已完成边界回归，
   staging 异步 FIFO 已完成双时钟行为验证；行为级 DDR3 模型已将正常帧、overflow
-  中止记录和恢复帧送入 PCIe MWR 请求路径，但尚未接入真实 DDR3 或 PCIe IP。
+  中止记录和恢复帧送入 PCIe MWR 请求路径。新增提交门控确保错误帧不进入 MWR，正常帧
+  在提交后才允许读回记录发送，但尚未实现帧表、DDR3 读地址或真实 DDR3/PCIe IP。
 
 ## 运行
 
@@ -55,6 +62,9 @@
 .\scripts\run_m3a.ps1 -SimulatorExecPath '<questa-bin-dir>'
 .\scripts\run_m3b.ps1 -SimulatorExecPath '<questa-bin-dir>'
 .\scripts\run_m3b_accounting.ps1 -SimulatorExecPath '<questa-bin-dir>'
+.\scripts\run_m3b_frame_commit.ps1 -SimulatorExecPath '<questa-bin-dir>'
+.\scripts\run_m3b_frame_readout_gate.ps1 -SimulatorExecPath '<questa-bin-dir>'
+.\scripts\run_m3b_committed_pcie_mwr_path.ps1 -SimulatorExecPath '<questa-bin-dir>'
 .\scripts\run_m3b_integration.ps1 -SimulatorExecPath '<questa-bin-dir>'
 .\scripts\run_m3b_mwr_descriptor.ps1 -SimulatorExecPath '<questa-bin-dir>'
 .\scripts\run_m3b_pcie_mwr_bridge.ps1 -SimulatorExecPath '<questa-bin-dir>'

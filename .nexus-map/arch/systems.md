@@ -370,3 +370,33 @@
 - pcie_addresses: 正常帧地址仍为 `0x0ffc/0x1000/0x1002`；压力 epoch 中 abort 和恢复 payload 均从 `0x104c` 发起，证明空载控制记录不推进按有效字节计数的 PCIe 地址。
 - evidence: 最终 Questa Sim-64 2021.1 编译为 0 error/0 warning，日志唯一 TEST PASS，仿真至 3844 ns；DDR3 模型在 posedge valid/ready 握手边沿采集写事务。
 - boundary: 已覆盖 overflow 中止记录和恢复帧在 vendor-independent DDR3 模型与 PCIe MWR 路径中的保存、顺序和地址语义；不证明真实 DDR3 地址单位、初始化、AW/W 握手或读口时序，不证明厂商 PCIe IP、TLP、byte-enable、链路、DMA/主机写入，也不证明管脚、电气或板级时序。
+
+## main OV5640→PCIe M3-B vendor-independent 帧提交决策
+
+- implementation_status: behavior_verified_frame_commit_decision_only
+- code_path: `main_ov5640_pcie/rtl/rgb565_axis4_frame_commit.sv`
+- test_path: `main_ov5640_pcie/tb/tb_rgb565_axis4_frame_commit.sv`
+- script_path: `main_ov5640_pcie/scripts/run_m3b_frame_commit.ps1`
+- contract: 正常帧输出 committed 描述符；累计协议错误帧输出不可提交描述符。模块不产生 drop pulse，后续正常帧仍可恢复并产生提交描述符。
+- evidence: Questa Sim-64 2021.1 为 0 error/0 warning、日志唯一 TEST PASS、仿真至 210 ns；覆盖半帧统计和待消费描述符的运行中复位。
+- boundary: 只定义 vendor-independent 帧提交决策，不生成真实 DDR3 读地址，不实例化 vendor IP，不证明 DDR3 数据已持久化或可被真实控制器读回。
+
+## main OV5640→PCIe M3-B committed frame readout gate
+
+- implementation_status: behavior_verified_readout_qualification_only
+- code_path: `main_ov5640_pcie/rtl/rgb565_axis4_frame_readout_gate.sv`
+- test_path: `main_ov5640_pcie/tb/tb_rgb565_axis4_frame_readout_gate.sv`
+- script_path: `main_ov5640_pcie/scripts/run_m3b_frame_readout_gate.ps1`
+- contract: 错误帧的单周期 `drop_frame_pulse` 不打开 DDR 读窗口；只有正常提交帧开放读取资格，错误帧后到达的正常帧可以恢复。
+- evidence: Questa Sim-64 2021.1 为 0 error/0 warning、日志唯一 TEST PASS、仿真至 171 ns；覆盖待发送读记录隔离和已打开窗口的运行中复位。
+- boundary: 该 gate 只产生读取资格/窗口语义，不生成 DDR3 读地址或真实读事务，不证明 DDR3 持久化、初始化、仲裁、突发或时序。
+
+## main OV5640→PCIe M3-B committed PCIe MWR 路径
+
+- implementation_status: behavior_verified_committed_mwr_path_only
+- code_path: `main_ov5640_pcie/rtl/rgb565_axis4_committed_pcie_mwr_path.sv`
+- test_path: `main_ov5640_pcie/tb/tb_rgb565_axis4_committed_pcie_mwr_path.sv`
+- script_path: `main_ov5640_pcie/scripts/run_m3b_committed_pcie_mwr_path.ps1`
+- contract: 错误帧只产生 `drop_frame_pulse`，不打开 DDR 读窗口且不产生 PCIe MWR；正常恢复帧依次输出 payload 与空载帧尾请求，地址为 `0x2000`、`0x2004`。
+- evidence: Questa Sim-64 2021.1 为 0 error/0 warning、日志唯一 TEST PASS、仿真至 366 ns；覆盖错误帧待发送记录隔离、等待 ACK 请求复位清除和基地址恢复。
+- boundary: 不生成真实 DDR3 读地址，不实例化 DDR3/PCIe vendor IP，不证明 DDR3 持久化、PCIe TLP/byte-enable/DMA/链路、主机内存写入或板级时序。

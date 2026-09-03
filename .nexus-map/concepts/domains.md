@@ -64,6 +64,12 @@ M3-B 的两槽 word skid 位于无背压 packer 与 4-byte adapter 之间。满�
 
 恢复需要两个先决条件同时成立：已经观察到被丢弃原帧的帧尾，且唯一中止记录已经排队。随后只接受带 `frame_start` 的新输入；在条件成立前到达的新帧整帧跳过，避免帧中段或过早新帧泄漏。Questa 2021.1 专项回归扩展为 526 ns，新增覆盖满队列同拍 pop/push、原 `frame_end` 与 abort 入队同拍、连续两个损坏帧各自产生唯一 abort 且顺序正确，以及 drop/abort 状态异步复位；联合 DVP→CDC 回归保持 2863 ns。两项均为 0 error/0 warning、日志唯一 `TEST PASS`，联合压力仍为 20 个 beat（含 1 个中止）并验证下一帧恢复 2 个 beat。该证据仍不覆盖中止记录经真实 DDR3/PCIe/主机协议保存、DDR3 无效帧回收、静态 CDC/RDC、复位释放或板级时序。
 
+## main OV5640 M3-B 帧提交、作废与已提交帧回送
+
+`rgb565_axis4_frame_commit` 把帧级协议结果收敛为 committed 或不可提交描述符，不直接产生 drop pulse；`rgb565_axis4_frame_readout_gate` 对不可提交描述符产生单周期 `drop_frame_pulse`，并仅对正常提交帧开放读取资格。对应 Questa Sim-64 2021.1 专项测试均为 0 error/0 warning、唯一 `TEST PASS`，分别为 210 ns 和 171 ns，覆盖运行中复位和待发送读记录隔离。
+
+`rgb565_axis4_committed_pcie_mwr_path` 将上述资格门控与 vendor-independent MWR 行为串接：待发送读记录不能穿过错误帧门控；错误帧不产生 MWR；恢复正常帧的 payload 与空载帧尾请求地址依次为 `0x2000`、`0x2004`，等待 ACK 时复位清除旧请求并恢复基地址。专项测试为 0 error/0 warning、唯一 `TEST PASS`、366 ns。该切片不生成真实 DDR3 读地址，不实例化 vendor IP，也不证明 DDR3 持久化、PCIe TLP/DMA/链路、主机内存写入或板级时序。
+
 厂商异步 FIFO 可以承担多比特数据跨域，但 reset/flush 仍属于 RDC。write FIFO 的 camera/UI 两侧和 read FIFO 的 UI/pixel 两侧必须分别在本地时钟域释放复位；只有确认 SP6.4 对厂商指针同步结构的识别后，才允许添加最窄范围例外。
 
 ## 复位域交叉

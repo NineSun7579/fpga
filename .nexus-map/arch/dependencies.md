@@ -17,9 +17,15 @@ flowchart TD
   MainStaging --> MainDDRRecord["规范化 DDR3 写记录\nopaque 地址 token"]
   MainDDRRecord --> MainDDRModel["TB 内 DDR3 模型\n按记录保存/回读"]
   MainDDRModel --> MainMWR["规范化 PCIe MWR\n0x0ffc/0x1000/0x1002"]
+  MainDDRModel --> MainFrameCommit["M3-B frame commit\n提交/不可提交描述符"]
+  MainFrameCommit --> MainReadoutGate["M3-B frame readout gate\n仅正常提交帧开放"]
+  MainReadoutGate --> MainCommittedMWR["committed PCIe MWR\n0x2000/0x2004"]
   MainLoopbackTB["tb_ov5640_ddr3_pcie_loopback\n行为级闭环"] --> MainStaging
   MainLoopbackTB --> MainDDRModel
   MainLoopbackTB --> MainMWR
+  MainCommitTB["frame_commit/readout/committed MWR TB\n210/171/366 ns"] --> MainFrameCommit
+  MainCommitTB --> MainReadoutGate
+  MainCommitTB --> MainCommittedMWR
   MainTB["M1-A 自检 TB"] --> MainCapture
   Standard --> MainCapture
   Standard --> MainPack

@@ -157,3 +157,26 @@ DDR3 模型中的 28-bit 地址只作为记录槽位，未映射到活动控制�
 读回也不代表活动 DDR3 IP 的 `axi_arvalid/axi_rvalid/axi_rlast` 时序。PCIe 请求仍由
 临时 `mwr32_req/ack` bridge 接收，不证明 TLP byte enable、DMA、链路训练或主机内存
 写入。该测试是后续真实控制器连接的回归合同，不能作为板级闭环验收证据。
+
+## 帧提交、作废与 PCIe 读出门控
+
+`rgb565_axis4_frame_commit` 在规范化 DDR3 记录帧尾生成保持型描述符，统计有效字节、
+记录数和累计协议错误。无错误帧输出 `committed=1`；包含 overflow abort 或其他协议错误
+的帧输出 `committed=0`。空载帧尾仍计入记录数，但不增加有效字节。
+
+`rgb565_axis4_frame_readout_gate` 只为 `committed=1` 的帧打开 DDR3 记录读出窗口；作废帧
+不拉高读侧 ready，并产生一个单周期 `drop_frame_pulse`，供后续帧表回收对应槽位。已提交
+帧的读回记录按 ready/valid 透传，帧尾记录完成握手后关闭窗口。读出源可以独立拉高 valid，
+但必须在握手前保持全部字段；外部调度器不得为作废帧安排读记录。
+
+`rgb565_axis4_committed_pcie_mwr_path` 将上述两个边界与现有规范化 PCIe MWR path 串接。
+专项回归在读侧存在待发送记录时提交错误帧，确认读窗口保持关闭且没有 MWR 请求；随后
+提交正常帧，payload 与空载帧尾分别从 `0x2000`、`0x2004` 发起请求。增强测试还覆盖帧统计、
+已打开读窗口和等待 ACK 请求的运行中复位，复位后请求地址重新从 `0x2000` 开始。frame
+commit、readout gate 和组合 path 的 Questa Sim-64 2021.1 回归分别为 `210 ns`、`171 ns`、
+`366 ns`，均为 `0 error/0 warning`、唯一 `TEST PASS`。
+
+该切片没有帧表、槽位分配、DDR3 读地址发生器或真实存储回收逻辑。commit 记录与 read
+记录的帧序映射由外部帧管理器保证；`drop_frame_pulse` 也不等同于实际 DDR3 空间已经回收。
+它不实例化厂商 DDR3/PCIe IP，不证明 DDR3 写入持久化、读口时序、TLP、DMA、链路训练、
+主机内存写入或板级时序。

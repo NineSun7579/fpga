@@ -171,7 +171,9 @@ M3-B 审计结论见 [`docs/MAIN_OV5640_PCIE_M3B_ADAPTER_CONTRACT.md`](docs/MAIN
    - 已完成：新增 `rgb565_axis4_pcie_mwr_path`，串接 staging、规范化 MWR descriptor 和临时 `mwr32_req/ack` bridge；`BASE_ADDR=0x0ffc` 专项回归验证 4-byte 请求恰到 4 KB 边界、等待 ack 时预取下一记录仍保持当前请求全部字段、ack 后地址 `0x1000`，Questa `0 error/0 warning`、唯一 `TEST PASS`、`115 ns`。
    - 已完成：`rgb565_word_skid_buffer` 在满队列溢出后保留已排队前缀、丢弃当前帧余下 word，并注入唯一 `keep=0/frame_end=1/protocol_error=1` 中止记录；看到原帧尾且中止记录已排队后，只从后续 `frame_start` 恢复。专项 TB 覆盖过早新帧整帧跳过、满队列同拍出入队、丢弃侧帧尾与 abort 同拍、连续损坏帧及 drop 状态复位，仿真至 `526 ns`；DVP→CDC 联合回归覆盖 3 个正常 beat、64 像素压力帧的 20 个输出（含末尾唯一中止记录）及下一帧 2 beat 恢复，仿真至 `2863 ns`，均 Questa `0 error/0 warning`、唯一 `TEST PASS`。
    - 已完成：`tb_ov5640_ddr3_pcie_loopback.sv` 将 OV5640 DVP、双时钟 staging、规范化 DDR3 单 beat 写记录、受控 DDR3 存储模型和 PCIe MWR 请求路径串成行为级往返。除正常帧 3 条记录外，DDR 写阻塞压力帧动态形成 21 条记录，唯一空载错误中止位于末尾；下一帧恢复后全部记录回送 PCIe，中止与恢复 payload 共用地址 `0x104c`，证明 `keep=0` 不推进图像字节地址。DDR3 模型在 `posedge` valid/ready 握手边沿采集写事务，避免漏记最后一条 abort。Questa `0 error/0 warning`、唯一 `TEST PASS`、`3844 ns`。
-   - 下一步：冻结 FIFO 深度和三时钟复位合同；再基于活动控制器完整启动/ack/busy/4 KB 分段语义建立真实控制器专项 TB，并在 50H IP 重生成后重审 DDR3 用户口。当前 overflow 恢复只保证损坏帧可识别并从后续帧首重同步，不保证持续背压无丢帧；FIFO 尚未完成静态 CDC/RDC、复位释放、RAM 推断和时钟约束审核；staging `tuser` 不等同于厂商编码，MWR 路径不证明真实 TLP/DMA/byte-enable/主机输出。
+   - 已完成：新增 `rgb565_axis4_frame_commit`、`rgb565_axis4_frame_readout_gate` 和 `rgb565_axis4_committed_pcie_mwr_path`。规范化 DDR3 记录在帧尾形成提交/作废描述符；错误帧只产生单周期 drop 提示，不打开读出窗口、不产生 PCIe MWR；后续正常帧可恢复，读回 payload 与空载帧尾分别从 `0x2000/0x2004` 发起请求。增强回归还覆盖错误描述符面对待发送读记录时的隔离，以及帧统计、已打开读窗口和等待 ACK 请求的运行中复位。三项 Questa 专项分别为 `210/171/366 ns`，均 `0 error/0 warning`、唯一 `TEST PASS`。
+   - 下一步工程：冻结帧表槽位、DDR3 读地址发生器、FIFO 深度和三时钟复位合同；补顶层连续记录预取交互和仿真运行目录并发隔离；再基于活动控制器完整启动/ack/busy/4 KB 分段语义建立真实控制器专项 TB，并在 50H IP 重生成后重审 DDR3 用户口。当前 drop 提示只定义作废策略，没有实现存储槽回收或真实 DDR3 读调度；FIFO 尚未完成静态 CDC/RDC、复位释放、RAM 推断和时钟约束审核；staging `tuser` 不等同于厂商编码，MWR 路径不证明真实 TLP/DMA/byte-enable/主机输出。
+   - 仍需外部资料：目标分辨率/帧率/像素格式/处理算法和允许丢帧策略；OV5640 模组原理图、供电、MCLK、DVP 极性/时序和 SCCB 初始化表；板载 DDR3 颗粒型号、位宽/拓扑、完整 RCF/FDC 与 PG2L50H 控制器用户口资料；PCIe IP 应用侧接口定义，以及 RK3568 的 BAR/iATU/IOMMU、缓存一致性、驱动和帧缓冲协议。
    - 禁止：未完成资料审核前修改 canonical IP、DDR3/PCIe RTL、FDC/RCF，或把 M3-A 行为通过解释为端到端输出通过。
 
 ### 近期执行顺序

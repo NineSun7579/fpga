@@ -629,3 +629,19 @@
 - 复测发现测试模型若在 `negedge ddr_clk` 延迟采集，会在 descriptor 于 `posedge` 完成最后一次
   握手后提前统计，漏掉最后一条 abort。现改为在 `posedge` 的 `write_valid && write_ready` 握手边沿
   采集，记录语义与接口合同一致。
+
+## main OV5640 帧提交/作废与 PCIe 读出门控
+
+- 审计确认既有路径只有 DDR3 记录写入和逐条 MWR 请求，没有独立的帧完成提交、错误帧作废
+  和“只发送已提交帧”边界。
+- 新增 `rgb565_axis4_frame_commit`：在规范化记录帧尾锁存有效字节、记录数和累计错误；正常帧
+  标记 committed，overflow abort 或中途协议错误帧标记为不可提交；运行中复位清除半帧统计
+  和待消费描述符。专项回归 `210 ns`。
+- 新增 `rgb565_axis4_frame_readout_gate`：已提交帧按 ready/valid 透传 DDR3 读回记录，帧尾握手后
+  关闭窗口；作废帧只产生单周期 drop 提示。增强回归在 `read_valid=1` 时证明作废帧不泄漏，
+  并验证运行中复位关闭读窗口。专项回归 `171 ns`。
+- 新增 `rgb565_axis4_committed_pcie_mwr_path`，串接提交、读出门控和现有 MWR path。联合回归先
+  作废错误帧，再恢复正常帧；仅正常帧产生 `0x2000/0x2004` 请求。等待 ACK 时复位会清除旧请求、
+  关闭读窗口，复位后地址重新从 `0x2000` 起始。专项回归 `366 ns`。
+- 三项均为 Questa Sim-64 2021.1 `0 error/0 warning`、唯一 `TEST PASS`。当前仍没有帧表、DDR3
+  读地址、槽位回收或真实 DDR3/PCIe IP，因此不能解释为板级闭环。

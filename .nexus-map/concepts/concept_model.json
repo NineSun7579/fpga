@@ -505,6 +505,54 @@
       "hotspot": true
     },
     {
+      "id": "main-ov5640-pcie-m3b-frame-commit",
+      "type": "System",
+      "label": "main OV5640→PCIe M3-B vendor-independent frame commit decision",
+      "responsibility": "将帧级协议结果收敛为 committed 或不可提交描述符，并允许错误帧后的正常帧恢复。",
+      "implementation_status": "behavior_verified_frame_commit_decision_only",
+      "project_path": "main_ov5640_pcie/",
+      "code_path": "main_ov5640_pcie/rtl/rgb565_axis4_frame_commit.sv",
+      "test_path": "main_ov5640_pcie/tb/tb_rgb565_axis4_frame_commit.sv",
+      "evidence_path": "main_ov5640_pcie/scripts/run_m3b_frame_commit.ps1",
+      "contracts": {"error_frame": "输出不可提交描述符，不直接产生 drop pulse", "recovery": "错误帧后的正常帧仍可恢复并提交"},
+      "questa_evidence": "Questa Sim-64 2021.1：0 error/0 warning，唯一 TEST PASS，210 ns；覆盖运行中复位",
+      "uncovered_boundaries": ["真实 DDR3 读地址", "DDR3 持久化", "vendor DDR3/PCIe IP", "PCIe TLP/DMA/链路", "主机内存", "板级时序"],
+      "complexity": "low",
+      "hotspot": true
+    },
+    {
+      "id": "main-ov5640-pcie-m3b-frame-readout-gate",
+      "type": "System",
+      "label": "main OV5640→PCIe M3-B committed frame readout gate",
+      "responsibility": "仅为正常提交帧开放读取资格，错误帧作废时保持 DDR 读窗口关闭。",
+      "implementation_status": "behavior_verified_readout_qualification_only",
+      "project_path": "main_ov5640_pcie/",
+      "code_path": "main_ov5640_pcie/rtl/rgb565_axis4_frame_readout_gate.sv",
+      "test_path": "main_ov5640_pcie/tb/tb_rgb565_axis4_frame_readout_gate.sv",
+      "evidence_path": "main_ov5640_pcie/scripts/run_m3b_frame_readout_gate.ps1",
+      "contracts": {"drop": "drop_frame_pulse 不打开 DDR 读窗口", "commit": "正常提交帧开放读取资格并支持错误帧后恢复"},
+      "questa_evidence": "Questa Sim-64 2021.1：0 error/0 warning，唯一 TEST PASS，171 ns；覆盖待发送读记录隔离和运行中复位",
+      "uncovered_boundaries": ["真实 DDR3 读地址与读事务", "DDR3 初始化/仲裁/突发/持久化", "vendor DDR3 IP", "板级时序"],
+      "complexity": "low",
+      "hotspot": true
+    },
+    {
+      "id": "main-ov5640-pcie-m3b-committed-pcie-mwr-path",
+      "type": "System",
+      "label": "main OV5640→PCIe M3-B committed PCIe MWR path",
+      "responsibility": "把帧提交/作废和读取资格门控串接到 vendor-independent PCIe MWR；错误帧不发请求，正常帧可恢复输出。",
+      "implementation_status": "behavior_verified_committed_mwr_path_only",
+      "project_path": "main_ov5640_pcie/",
+      "code_path": "main_ov5640_pcie/rtl/rgb565_axis4_committed_pcie_mwr_path.sv",
+      "test_path": "main_ov5640_pcie/tb/tb_rgb565_axis4_committed_pcie_mwr_path.sv",
+      "evidence_path": "main_ov5640_pcie/scripts/run_m3b_committed_pcie_mwr_path.ps1",
+      "contracts": {"error_frame": "单周期 drop_frame_pulse；DDR 读窗口关闭且不产生 MWR", "recovery_frame": "payload 和空载帧尾请求地址依次为 0x2000、0x2004"},
+      "questa_evidence": "Questa Sim-64 2021.1：0 error/0 warning，唯一 TEST PASS，366 ns；覆盖等待 ACK 请求复位清除和基地址恢复",
+      "uncovered_boundaries": ["真实 DDR3 读地址", "DDR3 持久化", "vendor DDR3/PCIe IP", "PCIe TLP/byte-enable/DMA/链路", "主机内存写入", "板级时序"],
+      "complexity": "medium",
+      "hotspot": true
+    },
+    {
       "id": "ov7725-hdmi-system",
       "type": "System",
       "label": "OV7725 HDMI Legacy 顶层",
@@ -1274,6 +1322,30 @@
       "target": "pds-workflow-guide",
       "type": "staged_under",
       "description": "该记录不接 vendor DDR3 IP，不假定地址单位、初始化或 AXI4 burst，不能作为 DDR3 控制器或内存时序通过证据。"
+    },
+    {
+      "source": "main-ov5640-pcie-m3b-frame-readout-gate",
+      "target": "main-ov5640-pcie-m3b-frame-commit",
+      "type": "consumes",
+      "description": "readout gate 消费 committed/不可提交描述符，只为已提交帧开放读取资格，并为不可提交描述符产生单周期作废脉冲。"
+    },
+    {
+      "source": "main-ov5640-pcie-m3b-committed-pcie-mwr-path",
+      "target": "main-ov5640-pcie-m3b-frame-readout-gate",
+      "type": "consumes",
+      "description": "committed MWR 路径只消费 readout gate 放行的正常帧；错误帧不产生 PCIe 请求。"
+    },
+    {
+      "source": "main-ov5640-pcie-m3b-committed-pcie-mwr-path",
+      "target": "main-ov5640-pcie-m3b-mwr-path",
+      "type": "extends",
+      "description": "在既有 vendor-independent MWR 请求路径前增加帧提交/作废与读取资格门控，不改变真实 PCIe 边界。"
+    },
+    {
+      "source": "main-ov5640-pcie-m3b-committed-pcie-mwr-path",
+      "target": "pds-workflow-guide",
+      "type": "staged_under",
+      "description": "该行为切片不生成真实 DDR3 读地址、不实例化 vendor IP，不能作为 DDR3 持久化、PCIe TLP/DMA/链路、主机内存或板级验收证据。"
     },
     {
       "source": "ov7725-hdmi-system",
