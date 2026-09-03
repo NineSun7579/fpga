@@ -96,7 +96,7 @@
 
 | 项目 | PDS 实现证据 | 时序证据 | 行为仿真 | 综合后仿真 | PNR 功能仿真 | PNR 时序仿真 |
 |---|---|---|---|---|---|---|
-| main OV5640→PCIe | M3-A/M3-B 仅有板级无关采集→灰度→128-bit 内部字→两槽 word 短缓冲→4-byte staging→帧描述符/双时钟 CDC 联合 RTL/TB，无 PDS/IP/FDC/RCF/实现产物 | 固定 `cam_pclk` 源同步输入、一拍灰度处理、同域打包、两槽短突发缓冲与 staging/描述符 ready 合同，无板级或 CDC STA | Questa 2021.1：M3-A 6 个 RTL/TB、同域联合 staging 9 个 RTL/TB、双时钟联合 staging 11 个 RTL/TB 均编译 0 error/0 warning、行为返回 0、唯一 `TEST PASS`；专项缓冲 85 ns，双时钟联合正常期 2 个 payload beat 加 1 个空载帧尾事件且无 overflow，压力期 64 像素暂停后 overflow、恢复 ready 排出 19 个保留 beat，联合至 2527 ns | 未生成 | 未生成 | 未生成/未标注 |
+| main OV5640→PCIe | M3-A/M3-B 仅有板级无关采集→灰度→128-bit 内部字→两槽 word 短缓冲→4-byte staging→双时钟 CDC→规范化 DDR3 写记录→TB DDR3 模型→PCIe MWR 联合 RTL/TB，无 PDS/IP/FDC/RCF/实现产物 | 固定 `cam_pclk` 源同步输入、一拍灰度处理、同域打包、短缓冲、ready/valid 行为合同与 TB 模型，无板级或 CDC STA | Questa 2021.1：既有 M3-A/M3-B 回归保持通过；新增行为级 loopback 为 0 error/0 warning、唯一 `TEST PASS`、442 ns，并检查 PCIe 地址 `0x0ffc`、`0x1000`、`0x1002` | 未生成 | 未生成 | 未生成/未标注 |
 | OV5640 摄像头 HDMI | 产品目标已冻结为 OV5640；C0 参考审计和 C1 产品范围仍待完成 | C3 前无产品 STA；OV7725 旧时序只作 legacy 参考 | S3 项目级入口缺失 | 新产品网表尚未生成 | 新产品 PNR 网表尚未生成 | 新产品 SDF 尚未生成/标注 |
 | DDR3 外层 | 旧 PG2L100H 七阶段与五类产物已完成，但不可用于实际 PG2L50H；需重生成 50H IP/FDC/RCF | 旧 100H `All Constraints Met` 只保留历史；50H STA 未执行 | D2/D3-0 旧契约已定，PG2L50H 重生成后须重审；S1 项目级入口缺失 | 旧网表不可签核 | 旧 PNR 网表不可签核 | VSIM/SDF 未验证，旧 100H 结果不可签核 |
 | PCIe DMA | 活动 IDF、build/PDS/gate 与新产物均为 PG2L50H；已从空 `build/` 完成七阶段重建 | 50H STA 已生成，最差解析 slack `0.100 ns`；严格 gate 仍受板级/功能缺口阻断 | S2-A 受控 smoke 动态 PASS；不覆盖真实链路/DMA/板级 | 顶层未闭环 | 新 50H 网表待集成仿真 | 公共 VSIM 已验证，项目 SDF 待标注 |
@@ -183,6 +183,16 @@
 - 结果：`run_m3b_ddr3_write_descriptor.ps1` 使用 Questa Sim-64 2021.1，编译 0 error/0 warning，行为日志唯一 `TEST PASS`。
 - 回归增强（2026-09-03）：新增空 keep 控制记录（`write_valid=1`、`write_strobe=0`）；`write_ready=0` 背压期间保持地址、数据、strobe、last、frame_end 与 protocol_error 全部字段；连续记录检查 `ADDR_STEP` 地址推进；复位后检查 `BASE_ADDR` 覆盖恢复。Questa Sim-64 2021.1 为 0 error/0 warning、唯一 `TEST PASS`，仿真至 126 ns。
 - 边界：地址推进仅由 `ADDR_STEP` 控制，仍是 opaque 28-bit token；不假定地址单位、初始化、AXI4 burst 或 vendor DDR3 IP；未覆盖 DDR3 控制器、CDC/FIFO、真实内存时序、PDS/STA/SDF。
+
+## main OV5640→PCIe M3-B 行为级 DDR3/PCIe loopback 覆盖
+
+- test：`main_ov5640_pcie/tb/tb_ov5640_ddr3_pcie_loopback.sv`
+- script：`main_ov5640_pcie/scripts/run_m3b_ov5640_ddr3_pcie_loopback.ps1`
+- 链路：OV5640 DVP 输入经过双时钟 CDC staging，转换为规范化 DDR3 单 beat 写记录；TB 内数组模型保存 3 条记录，再按帧序送入规范化 PCIe MWR 路径。
+- 正向：3 个像素产生 2 条 payload 与 1 条空载帧尾记录；检查 DDR3 模型的 keep 分别为 `4'hf`、`4'h3`、`4'h0`，末记录携带 frame_end，回读请求的数据、keep、last、frame_end、protocol_error 与模型一致。
+- 地址：PCIe MWR 地址依次为 `0x0ffc`、`0x1000`、`0x1002`，三次请求均不得误报跨 4 KB，ack 后 busy/request 必须释放。
+- 结果：Questa Sim-64 2021.1 为 0 error/0 warning、日志唯一 `TEST PASS`，仿真至 442 ns。
+- 边界：只证明 vendor-independent 行为记录的端到端保存与回送；不证明真实 DDR3 地址/握手/初始化/读时序，不证明 PCIe TLP、byte-enable、链路、DMA/主机，也不证明板级时序或实现级 CDC/RDC。
 
 ## S1/S2/S3 仿真就绪度矩阵（2026-08-30）
 

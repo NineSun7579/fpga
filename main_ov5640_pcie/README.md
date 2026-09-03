@@ -41,8 +41,11 @@
 - `tb/tb_rgb565_word_skid_buffer.sv`：顺序、背压保持、满队列丢弃和 sticky overflow 自检。
 - `rtl/ov5640_dvp_rgb565_cdc_staging_pipeline.sv`：OV5640 DVP 到双时钟 staging 输出，带源端压力报告。
 - `tb/tb_ov5640_dvp_rgb565_cdc_staging_pipeline.sv`：小帧正常路径与长帧压力、事件和 `source_overflow` 自检。
+- `tb/tb_ov5640_ddr3_pcie_loopback.sv`：OV5640→DDR3 记录模型→PCIe MWR 的行为级往返自检。
+- `scripts/run_m3b_ov5640_ddr3_pcie_loopback.ps1`：上述往返自检的可重复 Questa 入口。
 - staging、帧统计和规范化请求描述符已完成同域行为验证；DDR3 写记录层已完成边界回归，
-  staging 异步 FIFO 已完成双时钟行为验证；尚未接入真实 DDR3 或 PCIe IP。
+  staging 异步 FIFO 已完成双时钟行为验证；行为级 DDR3 模型已将帧记录送入 PCIe MWR
+  请求路径，但尚未接入真实 DDR3 或 PCIe IP。
 
 ## 运行
 
@@ -61,6 +64,7 @@
 .\scripts\run_m3b_cdc_bridge.ps1 -SimulatorExecPath '<questa-bin-dir>'
 .\scripts\run_m3b_word_skid_buffer.ps1 -SimulatorExecPath '<questa-bin-dir>'
 .\scripts\run_m3b_ov5640_cdc_staging.ps1 -SimulatorExecPath '<questa-bin-dir>'
+.\scripts\run_m3b_ov5640_ddr3_pcie_loopback.ps1 -SimulatorExecPath '<questa-bin-dir>'
 ```
 
 运行态只写入 `main_ov5640_pcie/build/`。`vsim.exe`、`vlog.exe` 和许可证配置由本机
@@ -68,4 +72,6 @@
 当前帧在进入帧缓存前发生了无法接收的 word，不代表自动恢复或无损。当前切片不生成
 PDS/IP/位流，也不证明 SCCB、板级电气时序、CDC/FIFO、DDR3 或 PCIe 集成。M3-A 的
 128-bit 布局不等同于厂商 PCIe AXIS `tkeep` 或主机内存字节序，M3-B 适配层必须按
-独立合同冻结转换规则后再实现。
+独立合同冻结转换规则后再实现。往返 TB 中的 DDR3 地址是模型槽位，PCIe 地址使用
+`0x0ffc` 起始并按 `keep` 有效字节推进；这只证明行为级字段贯通，不证明真实地址单位、
+DDR3 初始化、PCIe TLP/DMA、链路或主机内存写入。

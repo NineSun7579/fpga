@@ -571,3 +571,17 @@
 - 测试诊断修正了一个过时假设：无 payload 帧尾是合法输出事件，不能从 staging beat
   统计中删除。该缓冲只吸收短突发，未定义 overflow 后的帧丢弃/恢复，也不解除静态
   CDC/RDC、三时钟复位、RAM 推断、真实 DDR3/PCIe IP 和板级协议阻断。
+
+## 2026-09-03：main OV5640 行为级 DDR3→PCIe 往返切片
+
+- 新增 `tb_ov5640_ddr3_pcie_loopback.sv`，通过公开接口串接 OV5640 DVP 采集、灰度/128-bit
+  打包、双时钟 staging、规范化 DDR3 单 beat 写记录、受控 DDR3 存储模型和 PCIe MWR 请求路径。
+- DDR3 模型按规范化记录槽位保存 `data/keep/last/frame_end/protocol_error`，再逐条读回；
+  不把 28-bit DDR3 地址 token 解释为真实控制器地址单位。
+- 3 像素帧产生 3 条记录：`keep=0xf`、`keep=0x3` 和空载帧尾 `keep=0x0`；PCIe MWR
+  请求以 `0x0ffc` 起始，按有效字节推进到 `0x1000`、`0x1002`，并验证请求字段在 ack
+  前保持、4 KB 边界不误报。
+- 使用 Questa Sim-64 `2021.1` 运行 `run_m3b_ov5640_ddr3_pcie_loopback.ps1`；编译和仿真均为
+  `0 error/0 warning`，日志唯一 `TEST PASS`，仿真至 `442 ns`。
+- 该证据只证明行为级接口字段和控制事件贯通；尚未证明厂商 DDR3 初始化/读写时序、真实
+  PCIe TLP/DMA/byte-enable、链路训练、主机目标地址或板级 OV5640 电气时序。

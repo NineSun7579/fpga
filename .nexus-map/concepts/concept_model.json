@@ -472,6 +472,27 @@
       "hotspot": true
     },
     {
+      "id": "main-ov5640-pcie-m3b-ddr3-pcie-loopback",
+      "type": "System",
+      "label": "main OV5640→PCIe M3-B 行为级 DDR3/PCIe loopback",
+      "responsibility": "验证 OV5640 DVP 经 CDC staging 形成规范化 DDR3 写记录，在 TB 内 DDR3 模型保存并回读后生成 PCIe MWR 请求的 vendor-independent 行为链。",
+      "implementation_status": "behavior_verified_model_loopback_only",
+      "project_path": "main_ov5640_pcie/",
+      "test_path": "main_ov5640_pcie/tb/tb_ov5640_ddr3_pcie_loopback.sv",
+      "evidence_path": ["main_ov5640_pcie/scripts/run_m3b_ov5640_ddr3_pcie_loopback.ps1", ".nexus-map/INDEX.md", ".nexus-map/arch/systems.md", ".nexus-map/arch/test_coverage.md"],
+      "behavior_path": ["OV5640 DVP", "CDC staging", "normalized DDR3 write record", "testbench DDR3 model", "PCIe MWR"],
+      "contracts": {
+        "records": "3 个 RGB565 像素形成 2 个 payload 记录与 1 个 keep=0 帧尾控制记录",
+        "ddr3_model": "opaque 28-bit 写地址仅作为数组索引，保存 data/keep/last/frame_end/protocol_error 后按序回读",
+        "pcie_addresses": ["0x0ffc", "0x1000", "0x1002"],
+        "request_release": "每个 MWR 请求在 ack 前字段稳定，ack 后 busy/request 释放"
+      },
+      "questa_evidence": "2026-09-03 Questa Sim-64 2021.1：0 error/0 warning，日志唯一 TEST PASS，仿真至 442 ns",
+      "uncovered_boundaries": ["真实 DDR3 地址单位与初始化", "真实 DDR3 AW/W/读口握手和内存时序", "厂商 PCIe IP/TLP/byte-enable", "PCIe 链路与 DMA/主机写入", "板级管脚、电气与时序", "实现级 CDC/RDC、PDS/STA/SDF"],
+      "complexity": "medium",
+      "hotspot": true
+    },
+    {
       "id": "ov7725-hdmi-system",
       "type": "System",
       "label": "OV7725 HDMI Legacy 顶层",

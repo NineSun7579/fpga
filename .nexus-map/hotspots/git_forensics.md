@@ -16,6 +16,7 @@
 
 - `docs/OV5640_TARGET_SCOPE.md`：摄像头产品目标、OV7725 legacy 边界与 C0/C1/C2/C3/S3 关闭条件的首要入口；参考工程未审计前不得先改名或迁移 RTL。
 - `main_ov5640_pcie/rtl/rgb565_word_packer.sv`、`ov5640_dvp_rgb565_word_pipeline.sv`：M3-A 内部 128-bit 图像字布局与控制事件边界；后续 DDR3/PCIe 适配不得直接把 `word_keep` 当作厂商 AXIS `tkeep` 或主机字节序。
+- `main_ov5640_pcie/tb/tb_ov5640_ddr3_pcie_loopback.sv`、`main_ov5640_pcie/scripts/run_m3b_ov5640_ddr3_pcie_loopback.ps1`：M3-B 行为级 DVP→CDC staging→规范化 DDR3 写记录→TB DDR3 模型→PCIe MWR 闭环入口；Questa 2021.1 证据为 0 error/0 warning、唯一 `TEST PASS`、442 ns，地址为 `0x0ffc/0x1000/0x1002`。评审时必须保留其模型边界，禁止升格为真实 DDR3、PCIe 链路/主机或板级时序证明。
 - `41_ov7725_hdmi/rtl/ov7725_hdmi.v`：OV7725 legacy 视频链路顶层、跨域控制和复位组合点，只能作为 OV5640 C2 的候选结构参考。
 - `41_ov7725_hdmi/doc/CDC_RDC_AUDIT.md`：O0-A CDC/RDC 事实、旧/新 STA 映射和后续整改契约的首要证据；O1-B 不得顺带修改该结构。
 - `41_ov7725_hdmi/doc/RTL_HYGIENE_AUDIT.md`：O1-A 的 39 条告警归属、38 条确定修复、`mem_a` H3/O1-C 阻断、隐式网络和 serializer reset 契约的首要证据。

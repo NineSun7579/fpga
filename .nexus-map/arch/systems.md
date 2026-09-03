@@ -358,3 +358,14 @@
 - contract: 串接 staging beat、`rgb565_axis4_mwr_descriptor` 与临时 `mwr32_req/ack` bridge；活动控制器事实为 `req_length` 按 DWORD，控制器边界将 `req_length=0` 判断为 `0x1000` 字节；当前组合路径每个 32-bit beat 仍发 `req_length=0`。
 - evidence: 2026-09-03 专项 TB 使用 `BASE_ADDR=0x0ffc`，验证 4-byte 请求恰到 4KB 边界不误报 crossing、ack 后地址为 `0x1000`、请求字段保持及事件传播；Questa Sim-64 2021.1 为 0 error/0 warning、唯一 TEST PASS、125 ns。
 - boundary: 不实例化厂商 PCIe IP；不证明真实 TLP、DMA、byte-enable、链路或主机输出。
+
+## main OV5640→PCIe M3-B 行为级 DDR3/PCIe loopback
+
+- implementation_status: behavior_verified_model_loopback_only
+- test_path: `main_ov5640_pcie/tb/tb_ov5640_ddr3_pcie_loopback.sv`
+- script_path: `main_ov5640_pcie/scripts/run_m3b_ov5640_ddr3_pcie_loopback.ps1`
+- behavior_path: OV5640 DVP→`ov5640_dvp_rgb565_cdc_staging_pipeline`→`rgb565_axis4_ddr3_write_descriptor`→TB 内 DDR3 数组模型→`rgb565_axis4_pcie_mwr_path`。
+- scenario: 3 个 RGB565 像素经采集、灰度、打包和 CDC staging 形成 2 个 payload 记录与 1 个 `keep=0` 帧尾控制记录；DDR3 模型按 opaque 写地址 token 保存 `data/keep/last/frame_end/protocol_error`，随后按记录顺序送入 PCIe MWR 路径。
+- pcie_addresses: 三次 MWR 请求地址依次为 `0x0ffc`、`0x1000`、`0x1002`，请求数据、keep 与事件必须与 DDR3 模型记录一致，ack 后请求释放。
+- evidence: 2026-09-03 Questa Sim-64 2021.1 编译为 0 error/0 warning，日志唯一 TEST PASS，仿真至 442 ns。
+- boundary: 这是 vendor-independent 行为模型闭环；不证明真实 DDR3 地址单位、初始化、AW/W 握手或读口时序，不证明厂商 PCIe IP、TLP、byte-enable、链路、DMA/主机写入，也不证明管脚、电气或板级时序。

@@ -130,3 +130,16 @@ word 的所有字段保持，满队列同拍出队/入队时允许直接替换�
 Questa Sim-64 2021.1 编译 `0 error/0 warning`、唯一 `TEST PASS`、仿真至 `85 ns`。
 联合 TB 覆盖 3 个正常 staging beat（含空载帧尾事件）和 64 像素下游暂停压力，
 Questa 编译 `0 error/0 warning`、唯一 `TEST PASS`，压力恢复后排出 19 个未丢失 beat。
+
+## 行为级 DDR3 到 PCIe 往返证据
+
+`tb_ov5640_ddr3_pcie_loopback` 通过现有公开接口串接 DVP 采集、灰度/打包、双时钟
+staging、规范化 DDR3 写记录、受控存储模型和 PCIe MWR 请求路径。3 像素帧生成两个
+payload 记录和一个空载帧尾记录，读回后 PCIe 地址按有效字节从 `0x0ffc` 推进到
+`0x1000`、`0x1002`。2026-09-03 的 Questa Sim-64 2021.1 回归为
+`0 error/0 warning`、唯一 `TEST PASS`，仿真至 `442 ns`。
+
+DDR3 模型中的 28-bit 地址只作为记录槽位，未映射到活动控制器的真实地址单位；模型
+读回也不代表活动 DDR3 IP 的 `axi_arvalid/axi_rvalid/axi_rlast` 时序。PCIe 请求仍由
+临时 `mwr32_req/ack` bridge 接收，不证明 TLP byte enable、DMA、链路训练或主机内存
+写入。该测试是后续真实控制器连接的回归合同，不能作为板级闭环验收证据。
