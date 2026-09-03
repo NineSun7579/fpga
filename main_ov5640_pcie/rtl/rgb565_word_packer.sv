@@ -147,6 +147,7 @@ module rgb565_word_packer (
                 assembly_line_start    <= 1'b0;
                 assembly_protocol_error <= 1'b0;
             end else if (in_line_end || in_frame_end || in_protocol_error) begin
+                word_valid          <= 1'b1;
                 word_line_end       <= in_line_end;
                 word_frame_end      <= in_frame_end;
                 word_protocol_error <= in_protocol_error;

@@ -279,3 +279,12 @@
 - s2_next_layers: S2-B 使用厂商 `pango_pcie_top_sim` RC 与项目 `pcie_dma_test` EP 验证真实链路；S2-C 在 S2-B 后执行固定地址/长度/数据的基础 DMA 回读。S2-A 边界模型不得进入这两层或后级网表验收。
 - h2b_stop_conditions: 板级 lane 极性/拓扑、I/O delay 或 SCBV 缺失，IDF/PDS 器件元数据不一致，或 UART2APB `rxd/txd` 归属未决时，H2-B 不得收紧 gate；不得用 waiver 掩盖缺口。
 - next_step: 保持 H2-B1 strict gate 阻断并等待 lane/refclk/PERST#/SCBV 与 UART 决策；独立处理 `o_trgt1_radm_pkt_halt` RTL hygiene TODO，再进入真实 RC/EP 的 S2-B、S2-C DMA 与项目后级网表/SDF 仿真
+
+## main OV5640→PCIe M3-B 联合 staging
+
+- implementation_status: behavior_verified_same_clock_only
+- code_path: `main_ov5640_pcie/rtl/ov5640_dvp_rgb565_dma_staging_pipeline.sv`
+- test_path: `main_ov5640_pcie/tb/tb_ov5640_dvp_rgb565_dma_staging_pipeline.sv`
+- contract_path: `docs/MAIN_OV5640_PCIE_M3B_ADAPTER_CONTRACT.md`
+- evidence: 2026-09-03 Questa 2021.1 编译 9 个 RTL/TB，0 error/0 warning，唯一 TEST PASS
+- boundary: 不包含 DDR3/PCIe IP、CDC/FIFO、SCCB、板级时钟/管脚或主机协议；frame_end_pending 仅为同域 staging 验证策略

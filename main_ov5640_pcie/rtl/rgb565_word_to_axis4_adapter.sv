@@ -78,7 +78,11 @@ module rgb565_word_to_axis4_adapter (
     end
 
     always_comb begin
-        in_ready  = !active;
+        // A terminal output beat may be replaced by the next input word in
+        // the same cycle, preventing adjacent line/frame control events from
+        // being dropped by the no-backpressure M3-A packer.
+        in_ready  = !active || (active && out_ready &&
+                    (control_only || (beat_index == beat_count)));
         out_valid = active;
         out_data  = 128'h0;
         out_keep  = 4'h0;
@@ -111,7 +115,7 @@ module rgb565_word_to_axis4_adapter (
             beat_index   <= 2'd0;
             beat_count   <= 2'd0;
             user_reg     <= 8'h0;
-        end else if (!active && in_valid) begin
+        end else if (in_valid && in_ready) begin
             active       <= 1'b1;
             control_only <= (in_keep == 16'h0);
             data_reg     <= in_data;

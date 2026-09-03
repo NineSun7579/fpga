@@ -181,6 +181,8 @@
 - 三项目新流程均已生成顶层 PNR SDF，但尚未由 QuestaSim 验证实例层级。
 - Questa Sim-64 2021.1、Logos2 USIM/VSIM、`V_BUF` 和 PCIe S2-A 保留历史通过证据；当前动态复验未通过许可证 checkout。不得将历史证据外推为当前运行、DDR3、OV5640、真实 PCIe 链路、DMA 或项目后级网表/SDF 通过。
 - PDS 可能在日志含 `E:` 时仍返回退出码 0；新 PowerShell 入口必须同时检查退出码和错误日志。
+
+- main OV5640 M3-B 联合覆盖：3 像素 RGB565 输入经采集、灰度、128-bit 打包和 4-byte staging，输出 2 个 beat、6 个有效字节，并生成无协议错误帧描述符；固定 `staging_ready=1`、描述符先背压后释放。该证据不覆盖真实 DDR3/PCIe/CDC。
 - PCIe 位流阶段报告 SCBV 未配置，这是当前发布阻断项。
 
 ## 统一验收门槛

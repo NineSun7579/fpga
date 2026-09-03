@@ -22,6 +22,8 @@
 - `tb/tb_rgb565_word_to_axis4_adapter.sv`：M3-B 字节顺序、keep、事件和背压自检。
 - `rtl/rgb565_axis4_frame_accounting.sv`：M3-B 帧有效字节/beat/错误统计描述符。
 - `tb/tb_rgb565_axis4_frame_accounting.sv`：帧统计描述符自检。
+- `rtl/ov5640_dvp_rgb565_dma_staging_pipeline.sv`：OV5640 到 staging/帧描述符联合 wrapper。
+- `tb/tb_ov5640_dvp_rgb565_dma_staging_pipeline.sv`：联合数据路径自检。
 - 当前 staging 与帧统计模块尚未接入 OV5640 wrapper；进入 CDC/DDR3/PCIe 前需先完成联合行为验证。
 
 ## 运行
@@ -32,6 +34,7 @@
 .\scripts\run_m3a.ps1 -SimulatorExecPath '<questa-bin-dir>'
 .\scripts\run_m3b.ps1 -SimulatorExecPath '<questa-bin-dir>'
 .\scripts\run_m3b_accounting.ps1 -SimulatorExecPath '<questa-bin-dir>'
+.\scripts\run_m3b_integration.ps1 -SimulatorExecPath '<questa-bin-dir>'
 ```
 
 运行态只写入 `main_ov5640_pcie/build/`。`vsim.exe`、`vlog.exe` 和许可证配置由本机

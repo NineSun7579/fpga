@@ -340,7 +340,7 @@
         "output_layout": "像素 0..7 按接收顺序依次位于 word_data[15:0]、[31:16]、[47:32]、[63:48]、[79:64]、[95:80]、[111:96]、[127:112]",
         "full_word": "8 个 RGB565 像素形成一个 128-bit 完整字，word_keep=16'hffff",
         "partial_word": "行尾不足 8 像素时输出补零字；N 个有效像素只置 word_keep 低 2N 位，其余 word_data 位和 word_keep 高位为 0",
-        "control_events": "frame_start/line_start 附着包含首像素的字；line_end 可附着完整待发送字或部分字；无 payload 的 line_end/frame_end/protocol_error 以 word_valid=0、word_keep=0 的控制事件表达",
+        "control_events": "frame_start/line_start 附着包含首像素的字；line_end 可附着完整待发送字或部分字；无 payload 的 line_end/frame_end/protocol_error 以 word_valid=1、word_keep=0 的控制事件表达",
         "boundary": "内部 word_data/word_keep 布局不等同于 DDR3 地址单位、PCIe AXIS tkeep、PCIe TLP payload 或主机内存字节序"
       },
       "behavior_tb": "单元 TB 检查 8 像素完整字、3 像素补零行尾字及空载帧尾/协议错误；DVP 集成 TB 检查采集、灰度、打包与奇字节错误传播，成功只输出一次 TEST PASS",

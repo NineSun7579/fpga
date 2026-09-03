@@ -447,3 +447,18 @@
   有效字节、有效 beat 与协议错误，在帧尾生成固定描述符；不承载 DDR3 地址或 PCIe TLP 语义。
 - 新增独立 Questa 入口 `run_m3b_accounting.ps1` 和 TB，覆盖 5-byte/2-beat 累计、
   空载帧尾、错误传播和描述符背压；编译 `0 error/0 warning`，行为返回 0，唯一 `TEST PASS`。
+
+## 2026-09-03：main OV5640 M3-B 联合 staging wrapper
+
+- 新增 `ov5640_dvp_rgb565_dma_staging_pipeline`，连接 OV5640 DVP 采集、灰度处理、
+  128-bit word packer、4-byte staging adapter 和帧统计描述符；本批不接 DDR3、PCIe、
+  CDC 或板级配置。
+- 修正 wrapper 握手：staging 输出由外部 `staging_ready` 与 accounting `in_ready`
+  合取施加背压，`desc_ready` 不再直接反向控制数据通道。
+- 修正 word packer 的纯控制事件分支，确保无 payload 的帧尾/协议错误事件也拉高
+  `word_valid`；否则帧尾会在 M3-A 与 M3-B 之间静默丢失。
+- 联合 TB 覆盖 3 像素、2 个 staging beat、6 个有效字节、帧尾描述符和错误为 0；
+  Questa Sim-64 2021.1 编译 `0 error/0 warning`，行为仿真返回 0，唯一 `TEST PASS`。
+- 由于 M3-A 当前无输入背压，wrapper 暂以一位 `frame_end_pending` 将提前到达的帧尾
+  对齐到最后一个 staging payload beat；该策略仅限同域 staging 验证，后续真实 FIFO/CDC
+  设计必须重新冻结事件承载和吞吐合同。
