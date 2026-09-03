@@ -18,9 +18,9 @@
   → 主机/RK3568 内存
 ```
 
-当前完成：M1-A 已实现板级无关的 DVP 8-bit→RGB565 采集；M2-A 已实现采集到 RGB565 灰度处理的单域流水线与自检 TB。SCCB 配置、板级 PLL/FDC、CDC/FIFO、DDR3 IP 和 PCIe 集成必须分别完成前置事实审核。
+当前完成：M1-A 已实现板级无关的 DVP 8-bit→RGB565 采集；M2-A 已实现采集到 RGB565 灰度处理的单域流水线；M3-A 已实现 RGB565→128-bit 内部字打包及 DVP 集成自检。SCCB 配置、板级 PLL/FDC、CDC/FIFO、DDR3 IP 和 PCIe 集成必须分别完成前置事实审核。
 
-下一批：M1-B/M2-B 先根据 OV5640 模组和板级一手资料冻结 SCCB、MCLK、RESET/PWDN、DVP 极性/时序与处理模式，再进入配置控制器和跨域帧缓存设计。
+下一批：M1-B/M2-B 先根据 OV5640 模组和板级一手资料冻结 SCCB、MCLK、RESET/PWDN、DVP 极性/时序与处理模式；随后 M3-B 定义 128-bit 字与 DDR3/PCIe 适配层的转换规则，再进入跨域帧缓存设计。
 
 停止条件：缺少模组、时钟、I/O 电压、管脚、DDR3 拓扑或主机协议资料时，不修改 canonical IP、PLL、FDC/RCF，不把历史 PG2L100H 或 `parallel_driver` 产物解释为本工程通过。
 

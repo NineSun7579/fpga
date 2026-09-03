@@ -401,3 +401,17 @@
   不写入仓库。
 - Questa Sim-64 2021.1 实测 4 个 RTL/TB 模块编译 `0 error/0 warning`，管线行为仿真返回 0；
   当前证据仍不覆盖 SCCB、板级时钟/电气时序、CDC/FIFO、DDR3、PCIe 或 PDS 实现。
+
+## 2026-09-03：main OV5640 M3-A 128-bit 图像字打包
+
+- 新增 `rgb565_word_packer`，按接收顺序将 8 个 RGB565 像素组织为 128-bit 字：
+  像素 0 位于低 16 bit，`word_keep` 低 2N 位表示 N 个有效像素的 byte lane。
+- 部分行尾字补零并保留 `line_end`；无数据的帧尾和协议错误以控制事件输出，避免
+  帧边界或错误被静默吞掉。
+- 新增 `ov5640_dvp_rgb565_word_pipeline` 连接层、单元 TB、DVP 集成 TB 和
+  `run_m3a.ps1`。集成测试覆盖 8 像素完整字、3 像素行尾字、帧尾事件和奇字节
+  协议错误传播。
+- Questa Sim-64 2021.1 实测 6 个 RTL/TB 模块编译 `0 error/0 warning`，集成行为
+  仿真唯一输出 `TEST PASS`，返回码为 0。
+- 本批只定义内部 128-bit 数据布局，不证明 DDR3 用户接口地址单位、CDC/FIFO、
+  PCIe AXIS `tkeep` 转换、PCIe TLP、主机地址或板级 OV5640 配置。
