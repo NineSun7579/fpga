@@ -77,6 +77,17 @@
 - evidence_gap: 现有厂商代码和历史 RTL 尚未进行全量合规检查。
 - responsibility: 约束后续手写 RTL 的意图、接口、FSM、复位、CDC/RDC 和风险注释。
 
+## main OV5640→PCIe 板级一手资料
+
+- implementation_status: primary_documents_registered_board_facts_partially_closed
+- evidence_path: `docs/MAIN_OV5640_PCIE_BOARD_EVIDENCE.md`, `docs/MAIN_OV5640_PCIE_BOARD_INPUT_CHECKLIST.md`, `docs/MAIN_OV5640_PCIE_CLOCK_RESET_CONTRACT.md`
+- external_source_boundary: 两份 PDF 保持在本机 Downloads，仅记录文件名、版本、页数、SHA-256 和关键 PDF 页码；不复制入仓、不作为构建依赖。
+- rk_board_evidence: RK3568 与 FPGA 通过 PCIe x2、FSPI、I2C0 和 GPIO 相连；FPGA PCIe RX0/1=`D9/C9/B10/A10`、TX0/1=`D7/C7/B6/A6`，100 MHz refclk=`F6/E6`，25 MHz 系统时钟=`V4`，DDR 参考时钟=`R4/T4`。
+- ddr3_board_evidence: 一片 `F60C1A0004-M79W`，x16、512 MByte、最大 1066 Mbps；有效地址为 `ddr3_addr[14:0]`，完整物理映射见板卡手册 PDF 第 13 页。
+- ov5640_reference_evidence: 外置 OV5640 为 DVP；8-bit 输出使用 `D[9:2]`，RESETB 低有效、PWDN 高有效，SCCB 需上拉，并有供电、电平转换及上电/复位时序参考。
+- evidence_gap: OV5640 实际排线/连接器、FPGA Bank 电压和管脚仍暂定；还缺完整原理图/BOM、PCIe PERST#/链路时序、DDR3 IP 用户口、full PCIe TX/DMA 接入、RK3568 驱动/缓存协议及冻结 RGB565 模式。
+- stop_condition: 未关闭上述缺口前，不修改 canonical IP/FDC/RCF，不把行为模型解释为真实板级闭环。
+
 ## main 独立 OV5640→PCIe M1-A
 
 - implementation_status: m1a_capture_behavior_verified

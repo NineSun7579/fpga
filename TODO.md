@@ -1,6 +1,6 @@
 # 三项目整改 TODO
 
-更新日期：2026-09-04（DDR→PCIe 异步事务边界回归已完成）
+更新日期：2026-09-04（板卡与 OV5640 DVP 一手资料已登记，板级缺口部分收敛）
 
 状态：三项目器件迁移已获审核。DDR3、PCIe 和摄像头 HDMI 最终均运行在同一块 `RK3568+PG2L50H100H` 开发板，实际 FPGA 为 `PG2L50H-6IFBG484`，PDS 目标统一为 `Logos2 / PG2L50H / FBG484 / -6`。摄像头产品目标已由 owner 校正为 OV5640；现有 `41_ov7725_hdmi` 仅保留为 OV7725 legacy 历史基线与可复用基础设施来源。既有 PG2L100H 构建、STA、网表、SDF 和位流不得用于实际板卡验收或烧录。OV5640 范围见 [`docs/OV5640_TARGET_SCOPE.md`](docs/OV5640_TARGET_SCOPE.md)。
 
@@ -20,7 +20,9 @@
 
 当前完成：M1-A 已实现板级无关的 DVP 8-bit→RGB565 采集；M2-A 已实现 RGB565 灰度处理；M3-A/M3-B 已完成打包、CDC、双槽提交/回收、PG2L50H canonical DDR3 AW/W 与 AR/R 单 outstanding 适配，以及 canonical MWR32 TX 边界。当前端到端行为回归在 1086 ns 内完成 OV5640→canonical DDR3 写入→读回→`core_clk`/`pclk_div2` 异步 mailbox→双源仲裁→未修改 MWR TX header/data，0 error/0 warning、唯一 `TEST PASS`。该结论尚不包含加密 DDR3 core、完整 PCIe DMA 顶层、链路和 RK3568 主机。
 
-下一批：把应用边界接入生成的 PG2L50H DDR3 core 和 PCIe DMA/TX 顶层，再与 RK3568 驱动做单帧 golden image。开始前必须取得板卡原理图/BOM、匹配当前 IP 版本的 DDR3 用户手册与地址单位、PCIe 请求源接入/byte-enable 合同、RK3568 DMA 缓冲协议，以及 OV5640 模组和冻结视频模式资料。
+新增资料：已登记并核对 RK3568+PG2L50H/100H 硬件使用手册 v1.1 与 OV5640 DVP 模组指南 2.13；已确认 RK↔FPGA PCIe x2/FSPI/I2C0/GPIO、主要时钟、DDR3 颗粒/容量/物理映射，以及 OV5640 DVP 参考电气和上电时序。详细页码、SHA-256 和剩余缺口见 [`docs/MAIN_OV5640_PCIE_BOARD_EVIDENCE.md`](docs/MAIN_OV5640_PCIE_BOARD_EVIDENCE.md)。外部 PDF 不复制入仓，也不作为构建依赖。
+
+下一批：把应用边界接入生成的 PG2L50H DDR3 core 和 PCIe DMA/TX 顶层，再与 RK3568 驱动做单帧 golden image。开始前仍必须取得完整原理图/BOM、匹配当前 IP 版本的 DDR3 用户手册与地址单位、PCIe 请求源接入/byte-enable 合同、PERST#/链路时序、RK3568 DMA 缓冲协议，以及 OV5640 实际模组接线、FPGA Bank 电压/管脚和冻结 RGB565 模式资料。
 
 M3-B 审计结论见 [`docs/MAIN_OV5640_PCIE_M3B_ADAPTER_CONTRACT.md`](docs/MAIN_OV5640_PCIE_M3B_ADAPTER_CONTRACT.md)：M3-A 的 16-bit `word_keep` 不得直连 PCIe 4-bit `tkeep`；逐记录 sideband 已编码到 DDR3 第 5 byte 并可读回；事务 CDC 与项目侧请求仲裁已关闭行为合同，DDR3 地址单位、`RLAST` 正式语义、完整 PCIe DMA/TX 顶层接入与 partial keep 仍待一手资料确认。
 
@@ -80,6 +82,7 @@ M3-B 审计结论见 [`docs/MAIN_OV5640_PCIE_M3B_ADAPTER_CONTRACT.md`](docs/MAIN
 - [x] 识别 PCIe 静态 gate 的错误目标：已改为 PG2L50H，并增加日志、STA、bitstream 器件交叉检查。
 - [x] PCIe 完成 H2-B0 精确 baseline 指纹：16 个对象签名、42 次记录；任何对象/数量/位置或 IP metadata 漂移均失败，严格 gate 仍保持发布阻断。
 - [x] H0/H1/H3 资料准备：现有 OV7725 HDMI 与 DDR3 板级证据清单保留历史事实；OV5640 另行收集模组、接口、时钟、电压、拓扑和 I/O 时序依据，资料未提供前不修改硬件参数。
+- [x] 2026-09-04 登记并核对 RK3568 板卡手册 v1.1 与 OV5640 DVP 指南 2.13，固化版本、页数、SHA-256、关键页码和“外部资料非仓库依赖”边界。
 - [x] S0-0 完成公共仿真器可执行文件复核；2026-08-30 的历史复核未发现 `vsim.exe`、`vlog.exe`、`vlib.exe`。
 - [x] S0-0-Q（2026-09-01）：确认 Questa Sim-64 `2021.1` 的 `vsim.exe`、`vlog.exe`、`vlib.exe` 可执行；许可证由本机外部环境提供，仓库不得记录许可证路径、服务器、feature 或许可证文件。
 - [x] S0-0-Q：最小 SystemVerilog 编译、elaboration 和运行成功，退出码为 0，日志包含唯一 `TEST PASS`。
@@ -131,7 +134,8 @@ M3-B 审计结论见 [`docs/MAIN_OV5640_PCIE_M3B_ADAPTER_CONTRACT.md`](docs/MAIN
    - 剩余边界：公共环境门禁完成不等于三个项目的后级网表、SDF 标注或板级功能通过；这些仍由 S1/S2/S3 分项目关闭。
 
 7. **H0/H1/H3：补齐其余板级事实（外部阻断）**
-   - 前置：板卡型号与 FPGA 型号已确认；仍需原理图/BOM、bank 电压、DDR3 料号/拓扑、OV5640/HDMI 时序资料。
+   - 当前：板卡手册已确认 PCIe x2、FSPI、I2C0、GPIO、系统/PCIe/DDR 时钟、DDR3 颗粒与物理映射；OV5640 指南已确认 DVP 参考接口、电压风险、控制极性和时序。
+   - 前置：仍需完整原理图/BOM、bank 电压、PCIe PERST#/链路时序、DDR3 IP 用户口、OV5640 实际模组接线与冻结 RGB565 模式。
    - 交付：经审核的板级参数清单，明确 OV7725 `mem_a` 为 14/15 bit、DDR3 组织、时钟与 I/O delay。
    - 验收：清单与 IDF/FDC/RTL 一致；资料缺失时禁止猜测或收紧 gate。
 
@@ -184,7 +188,7 @@ M3-B 审计结论见 [`docs/MAIN_OV5640_PCIE_M3B_ADAPTER_CONTRACT.md`](docs/MAIN
    - 已完成：新增 `rgb565_pg2l50h_pcie_mwr32_async_mailbox` 与 `rgb565_pg2l50h_pcie_tx_cdc_arbiter`，以单 outstanding toggle handshake 和 bundled-data MCP 将 camera MWR32 从 DDR `core_clk` 送入 PCIe `pclk_div2`，再与完整 native bundle 仲裁。mailbox 双速率/复位专项 `2296 ns`，CDC 仲裁到未修改 MWR TX 集成 `385 ns`，均 0 error/0 warning、唯一 `TEST PASS`。
    - 已完成：canonical OV5640→DDR3 回归已插入异步 mailbox 和双源仲裁边界；4 像素帧经 AW/W→AR/R、`core_clk`→`pclk_div2`、未修改 MWR TX 输出两组 TLP header/data，`1086 ns`、0 error/0 warning、唯一 `TEST PASS`。
    - 下一步工程：把项目 CDC/仲裁 wrapper 接入实际 `ips2l_pcie_dma_tx_top`/产品顶层，实例化匹配版本的 PG2L50H DDR3 core，并完成 PDS CDC/RDC、payload max-delay/bus-skew、STA 和位流签核；随后与 RK3568 驱动完成主机帧协议闭环。当前行为回归不证明真实 DDR3/PCIe/RK3568 板级闭环。
-   - 仍需外部资料：见 [`docs/MAIN_OV5640_PCIE_BOARD_INPUT_CHECKLIST.md`](docs/MAIN_OV5640_PCIE_BOARD_INPUT_CHECKLIST.md)。最高优先级是板卡原理图/管脚时钟复位、OV5640 模组与初始化表、PG2L50H DDR3 IP 用户口和 PCIe DMA 应用口、RK3568 主机内存与缓存/驱动协议、最终视频模式和丢帧策略。
+   - 资料状态：板卡手册与 OV5640 DVP 指南已经登记并部分关闭物理接口/电气时序事实；见 [`docs/MAIN_OV5640_PCIE_BOARD_INPUT_CHECKLIST.md`](docs/MAIN_OV5640_PCIE_BOARD_INPUT_CHECKLIST.md)。最高优先级仍是完整原理图/BOM、OV5640 实际排线/Bank 电压/FPGA 管脚与 RGB565 初始化表、PG2L50H DDR3 IP 用户口、完整 PCIe DMA 应用口、PERST#/链路时序、RK3568 主机内存与缓存/驱动协议、最终视频模式和丢帧策略。
    - 禁止：未完成资料审核前修改 canonical IP、DDR3/PCIe RTL、FDC/RCF，或把 M3-A 行为通过解释为端到端输出通过。
 
 ### 近期执行顺序
@@ -452,6 +456,7 @@ O2-D2 停止条件：控制相位或 `/5` generated clock 未被 PDS 唯一识�
 
 - [x] 确认三个工程统一面向 `RK3568+PG2L50H100H` 开发板，实际 FPGA 为 `PG2L50H-6IFBG484`。
 - [x] 确认 PDS 目标统一为 `Logos2 / PG2L50H / FBG484 / -6`。
+- [x] 登记板卡硬件使用手册 v1.1，确认 RK↔FPGA 使用 PCIe、FSPI、I2C0 和部分 GPIO，并记录主要 FPGA 管脚。
 - [ ] 提供原理图版本、BOM 和可归档的 FPGA 丝印照片或等价一手记录。
 - [ ] 提供配置 bank 电压、启动模式和 share pin 使用条件。
 
@@ -459,8 +464,9 @@ O2-D2 停止条件：控制相位或 `/5` generated clock 未被 PDS 唯一识�
 
 ### H1：DDR3 板级参数
 
-- [ ] 提供 DDR3 完整料号、数量、容量、rank、x16/x32 组织和目标速率。
-- [ ] 核对 A/BA/CK/DQ/DQS/DM byte-lane 映射及 bit/byte swap。
+- [x] 板卡手册确认一片 `F60C1A0004-M79W`、x16、512 MByte、最大 1066 Mbps；完整管脚表位于手册 PDF 第 13 页。
+- [ ] 提供颗粒正式数据手册，确认 rank/bank 组织、目标工作速率和控制器参数。
+- [ ] 依据手册第 13 页和网表核对 A/BA/CK/DQ/DQS/DM byte-lane 映射及 bit/byte swap，并生成可审核 RCF/FDC。
 - [ ] 确认 `free_clk` 频率、电气标准、精度和 `rst_board` 极性。
 - [ ] 提供 VCCIO/VREF、ODT、终端、拓扑和 PCB 走线时延依据。
 - [ ] 决定 UART/ADC 是否保留；若保留，提供管脚、电压和波特率。
@@ -472,8 +478,9 @@ O2-D2 停止条件：控制相位或 `/5` generated clock 未被 PDS 唯一识�
 - [x] H2-A：确认新事实：实际器件和活动 `pcie_test.idf` 均为 PG2L50H，原 PDS 目标 PG2L100H 才是不一致项；FDC 固定 `F6/E6`、`M16`、`M15`、`M17/J16`，未提供 lane 极性、I/O delay 或 SCBV 板级证据；UART `rxd/txd` 为隐式网络且 `rxd` 被绑 0。
 - [x] H2-B0：将 baseline gate 收紧为 16 个已知对象签名、42 次原始记录的精确多重集；任何新增、消失、重命名、位置或数量漂移默认失败，并继续输出不可发布标记。
 - [x] H2-B0：活动 IDF 的 family/device/package/speedgrade 漂移改为无条件硬失败，不再由 baseline 参数放行。
+- [x] 板卡手册确认实际 PCIe x2 连接、FPGA RX0/1=`D9/C9/B10/A10`、TX0/1=`D7/C7/B6/A6`，以及 100 MHz refclk=`F6/E6`。
 - [ ] H2-B1：补齐板级资料并关闭 UART、SCBV、lane/refclk/PERST#、share pin 和 I/O timing 阻断，使严格 gate 返回 0。
-- [ ] 确认 PCIe x2 lane 映射/极性、100 MHz refclk、PERST# 和 M15/M16 share pin。
+- [ ] 复核 lane P/N 极性与 AC 耦合，确认 PERST#/CLKREQ#/WAKE#、M15/M16 share pin 和上电/释放时序；完成实际 Gen/link 训练记录。
 - [ ] 决定 UART2APB 保留或删除；保留则提供 RX/TX 管脚、电气标准和波特率。
 - [ ] 提供 SCBV 所需配置 bank 电压。
 - [ ] 确认 LED 属于人眼状态灯且无外部同步时序要求，或提供正式时序要求。
@@ -485,10 +492,13 @@ O2-D2 停止条件：控制相位或 `/5` generated clock 未被 PDS 唯一识�
 
 ### H3：OV5640/HDMI 板级参数
 
-- [ ] 确认 OV5640 模组完整料号、单摄或双摄、MCLK、RESET/PWDN、供电和 I/O 电压。
-- [ ] 确认 DVP 位宽、行场/像素时钟极性、输出格式、字节序、分辨率和帧率。
+- [x] 登记 OV5640 DVP 指南 2.13，确认 8-bit 输出使用 `D[9:2]`、RESETB 低有效、PWDN 高有效、SCCB 上拉、供电范围和参考上电/复位时序。
+- [ ] 确认实际 OV5640 模组完整料号、单摄或双摄、排线/连接器定义、XCLK、供电和 DOVDD。
+- [ ] 冻结 OV5640 接入 FPGA 的连接器、Bank、具体管脚与 IO 电压；判断 DVP/RESETB 是否需要电平转换。当前位置由 owner 明确保持暂定。
+- [ ] 确认 DVP 行场/像素时钟极性、PCLK 采样边沿、RGB565 字节序、分辨率和帧率。
+- [ ] 提供并实测 SCCB 7-bit 地址、芯片 ID 期望值和 RGB565 初始化表；指南中的 `0x78` 8-bit 写地址及 VGA/YUV 示例不得直接冻结。
 - [ ] 确认 HDMI 输出模式及外部时序要求。
-- [ ] 核对 DDR3 型号、32-bit 配置、800 MT/s 和 PCB 拓扑。
+- [ ] 根据板卡手册的一片 x16 DDR3 事实，清理 OV7725 legacy 的 32-bit/800 MT/s 假设；正式颗粒手册、IP 参数和 PCB 拓扑审核完成前不得复用。
 - [ ] 确认 DDR3 row address 位数及 `mem_a[14] / V3` 是否真实连接，关闭 O1-C 分支决策。
 - [ ] 依据 OV5640 模组和 PCB 数据补摄像头时钟及 input delay。
 - [ ] 复核 `PAP_CLOCK_DEDICATED_ROUTE FALSE`、TMDS/DDR/share pin 和 I/O 电压。

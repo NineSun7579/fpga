@@ -792,3 +792,23 @@
   仲裁集成 205 ns、canonical MWR32 TX 136 ns。
 - 六项均为 0 error/0 warning、日志唯一 `TEST PASS`。该证据确认行为级请求和数据字段贯通，
   不替代加密 DDR3 core、完整 PCIe DMA/TX 顶层、placed-design CDC/RDC/STA、链路和主机验证。
+
+## 2026-09-04：RK3568 板卡与 OV5640 DVP 一手资料登记
+
+- 登记本机外部资料 `RK3568_MES2L50H_100H_硬件使用手册_v1.1.pdf`：34 页、
+  SHA-256 `FE7017CC64FDAD56ECE2BED92391A9071B2D0B8FB92BDC195BAEA0D987B395F5`。
+- 板卡手册确认 RK↔FPGA 使用 PCIe、FSPI、I2C0 和部分 GPIO；PCIe 实际为 x2，FPGA RX0/1
+  P/N=`D9/C9/B10/A10`，TX0/1 P/N=`D7/C7/B6/A6`；100 MHz HSST refclk 为 `F6/E6`。
+- 手册还确认 `MAIN_CLK_25M=V4`、DDR 参考时钟 `R4/T4`，以及一片
+  `F60C1A0004-M79W` x16 512 MByte DDR3；有效地址为 `ddr3_addr[14:0]`，完整物理映射见 PDF 第 13 页。
+- 登记本机外部资料 `OV5640_自动对焦照相模组应用指南(DVP_接口)__R2.13C.pdf`：版本 2.13、
+  63 页、修改日期 2011-11-04、SHA-256
+  `D709BDF8DC26AD2608759B4DFB4BC083DA409F7D3DC7074C47C6B6BFA9D81AD8`。
+- 指南确认 8-bit DVP 使用传感器 `D[9:2]`，RESETB 低有效、PWDN 高有效，SCCB 需外部上拉；
+  供电/电平差异可能要求 DVP 与 RESETB 电平转换。参考启动下限为 AVDD 稳定 5 ms、PWDN 拉低
+  1 ms、RESETB 拉高后 20 ms 再初始化；硬件复位低脉冲至少 1 ms。
+- 两份 PDF 只登记位置、版本、hash 和关键页码，不复制入仓、不进入构建依赖。OV5640 实际模组
+  排线、FPGA 连接器/Bank/管脚仍保持暂定；指南中的 SCCB `0x78` 写地址和 VGA/YUV 示例不能
+  直接冻结为产品 RGB565 配置。
+- 当前剩余主阻断为完整原理图/BOM、PCIe PERST#/链路时序、DDR3 IP 正式用户口、完整 PCIe
+  DMA/TX 接入、RK3568 驱动/缓存协议，以及 OV5640 实际电平/接线和冻结 RGB565 模式。

@@ -119,6 +119,13 @@ flowchart TD
 
 ## 关键依赖约束
 
+- `docs/MAIN_OV5640_PCIE_BOARD_EVIDENCE.md` 登记两份本机外部一手 PDF 及 SHA-256。它们是人工审核输入，
+  不是仓库源文件或构建依赖；文件缺失不会改变 RTL 构建，但会阻止板级事实重新审计。
+- 板卡手册已关闭 RK↔FPGA PCIe x2/FSPI/I2C0/GPIO、主要时钟和 DDR3 物理连接依赖；仍不能替代
+  PG2L50H DDR3 IP 用户手册、完整 PCIe TX/DMA 应用口、PERST#/链路时序或 RK3568 软件合同。
+- OV5640 指南只定义参考 DVP、电源和时序边界。产品实现仍依赖实际模组排线、FPGA Bank/DOVDD、
+  连接器/管脚、XCLK、采样极性、RGB565 字节序和初始化表；接入位置暂定时禁止生成管脚约束。
+
 - `main_ov5640_pcie/` 位于 `codex/main-ov5640-pcie`，M1-A 只依赖项目自有采集 RTL/TB 与公开合同；`parallel_driver` 仅只读参考，未导入 RTL、IP、约束、PDS 产物或验收证据。
 - M1-A 的 VSYNC/HREF/字节序/坐标事件均属于 `cam_pclk` 域合同。SCCB、板级时序、CDC/FIFO、DDR3 和 PCIe 是后续独立依赖，不能由当前唯一 `TEST PASS` 推导为通过。
 - M2-A 在同一 `cam_pclk` 域把 M1-A 采集输出送入 `rgb565_grayscale`；处理职责止于 RGB565 灰度化和一拍事件/坐标对齐，不延伸为 SCCB、板级时钟/电气时序、CDC/FIFO、DDR3、PCIe 或主机协议实现。

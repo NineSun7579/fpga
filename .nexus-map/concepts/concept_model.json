@@ -5,6 +5,51 @@
   "generator": "Codex manual bootstrap",
   "nodes": [
     {
+      "id": "main-ov5640-pcie-board-evidence",
+      "type": "Evidence",
+      "label": "main OV5640→PCIe 板级一手资料",
+      "responsibility": "登记 RK3568+PG2L50H/100H 板卡与 OV5640 DVP 一手 PDF，区分已确认物理事实、参考要求和仍待冻结的产品合同。",
+      "implementation_status": "primary_documents_registered_board_facts_partially_closed",
+      "evidence_path": [
+        "docs/MAIN_OV5640_PCIE_BOARD_EVIDENCE.md",
+        "docs/MAIN_OV5640_PCIE_BOARD_INPUT_CHECKLIST.md",
+        "docs/MAIN_OV5640_PCIE_CLOCK_RESET_CONTRACT.md"
+      ],
+      "external_documents": [
+        {
+          "name": "RK3568_MES2L50H_100H_硬件使用手册_v1.1.pdf",
+          "version": "v1.1",
+          "pages": 34,
+          "sha256": "FE7017CC64FDAD56ECE2BED92391A9071B2D0B8FB92BDC195BAEA0D987B395F5",
+          "repository_dependency": false
+        },
+        {
+          "name": "OV5640_自动对焦照相模组应用指南(DVP_接口)__R2.13C.pdf",
+          "version": "2.13",
+          "document_date": "2011-11-04",
+          "pages": 63,
+          "sha256": "D709BDF8DC26AD2608759B4DFB4BC083DA409F7D3DC7074C47C6B6BFA9D81AD8",
+          "repository_dependency": false
+        }
+      ],
+      "confirmed_board_facts": {
+        "rk_fpga_links": ["PCIe x2", "FSPI", "I2C0", "GPIO"],
+        "pcie_fpga_lanes": "RX0/1 P/N=D9/C9/B10/A10; TX0/1 P/N=D7/C7/B6/A6",
+        "pcie_refclk": "100 MHz differential on F6/E6",
+        "system_clock": "MAIN_CLK_25M on V4",
+        "ddr_reference_clock": "GCLK_DDR_133_P/N on R4/T4",
+        "ddr3": "one F60C1A0004-M79W, x16, 512 MByte, up to 1066 Mbps; effective address ddr3_addr[14:0]"
+      },
+      "ov5640_reference_facts": {
+        "interface": "external DVP; 8-bit output uses sensor D[9:2]",
+        "control": "RESETB active-low; PWDN active-high; SCCB requires pull-ups",
+        "boundary": "supply and I/O-level mismatch may require video/RESETB level shifting; power/reset timing is a reference minimum"
+      },
+      "evidence_gap": "实际 OV5640 排线、FPGA connector/bank/pins 和 I/O 电压仍暂定；缺完整原理图/BOM、PCIe PERST#/链路时序、DDR3 IP 用户口、完整 PCIe DMA/TX 接入、RK3568 驱动/缓存协议及冻结 RGB565 模式。",
+      "complexity": "medium",
+      "hotspot": true
+    },
+    {
       "id": "pds-workflow-guide",
       "type": "System",
       "label": "PDS 实现与外部仿真规范",
@@ -1736,6 +1781,30 @@
       "target": "pds-workflow-guide",
       "type": "built_by",
       "description": "PCIe 工程将作为公共构建和仿真流水线的首个基准。"
+    },
+    {
+      "source": "main-ov5640-pcie-board-evidence",
+      "target": "main-ov5640-pcie-m3b-pg2l50h-canonical-pipeline",
+      "type": "constrains_board_integration",
+      "description": "板卡手册已关闭 PCIe x2、主要时钟和 DDR3 物理映射；canonical pipeline 仍须等待 DDR3 IP 用户口、完整 PCIe TX top 和主机协议。"
+    },
+    {
+      "source": "main-ov5640-pcie-board-evidence",
+      "target": "pcie-dma-system",
+      "type": "provides_physical_mapping",
+      "description": "提供 RK↔FPGA x2 lane 与 100 MHz refclk 管脚证据，但不关闭 PERST#/CLKREQ#/WAKE#、链路训练或软件配置。"
+    },
+    {
+      "source": "main-ov5640-pcie-board-evidence",
+      "target": "ddr3-outer-project",
+      "type": "provides_physical_mapping",
+      "description": "提供 DDR3 颗粒、x16/512 MByte 和物理管脚表证据；仍需正式颗粒手册、IP 用户口和审核后的 PG2L50H RCF/FDC。"
+    },
+    {
+      "source": "main-ov5640-pcie-board-evidence",
+      "target": "main-ov5640-pcie-m1a-capture",
+      "type": "constrains_sensor_integration",
+      "description": "OV5640 指南确认 DVP 参考接口、电气和启动时序；实际 connector/bank/pins、PCLK 边沿、RGB565 字节序和初始化表仍未冻结。"
     },
     {
       "source": "external-simulation-suite",

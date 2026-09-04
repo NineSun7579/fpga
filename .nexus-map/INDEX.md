@@ -96,7 +96,7 @@
 ## 当前优先级
 
 1. Questa Sim-64 2021.1 工具与 Logos2 USIM/VSIM 的历史验证保留；当前动态 checkout 返回 4，恢复仓库外许可证后必须以新 run id 重跑，不能复用旧 PASS。
-2. H0/H1/H3 补齐板卡、原理图/BOM、器件丝印、bank 电压、DDR3 料号/拓扑及 OV5640/HDMI 时序资料；资料缺失时不得猜测参数、I/O delay 或收紧 gate。
+2. H0/H1/H3 已登记 RK 板卡手册 v1.1 和 OV5640 DVP 指南 2.13，关闭 PCIe x2/主要时钟/DDR3 物理连接及 OV5640 参考电气时序；下一步仍需完整原理图/BOM、器件身份、bank 电压、PERST#/链路时序、DDR3 IP 用户口、OV5640 实际排线/管脚和 RGB565 冻结表。资料缺失时不得猜测参数、I/O delay 或收紧 gate。
 3. OV5640 按 [`OV5640_TARGET_SCOPE.md`](../docs/OV5640_TARGET_SCOPE.md) 推进：C0 只读审计参考工程，C1 冻结单/双摄、模组与接口，C2 设计新项目/顶层和 SCCB/采集/DDR3/HDMI 边界，C3 在 PG2L50H 下完成实现；S3 建立四级自检仿真。OV7725 O0/O1/O2/M3-A 仅作 legacy 问题清单和可复用性参考。
 4. DDR3 M2-B1 已纠正 staging 生成路径并完成参数/资产差异审计；下一步依据原理图/BOM 审核 28 项 FDC pin 差异及 DDR3 颗粒/拓扑，再决定是否升格 canonical。升格后必须重跑 CI-6、空目录七阶段与 D3-0-R，审核通过后才可进入 D3-A → D3-B → D3-C。
 5. PCIe M1 已完成 build/PDS/gate 的 PG2L50H 迁移和空 `build/` 重建；活动 PCIe IP 无需因器件型号重生成。H2-B 仍等待 lane/refclk/PERST#/SCBV 与 UART 决策闭环。

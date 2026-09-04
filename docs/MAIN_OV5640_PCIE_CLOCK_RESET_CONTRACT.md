@@ -5,10 +5,10 @@
 ## 计划时钟域
 
 ```text
-sys_clk       系统/摄像头配置域，来源待板级确认
+sys_clk       系统/摄像头配置域，板载 MAIN_CLK_25M 可作为已确认输入候选
 cam_pclk      OV5640 源同步采集域
 ddr_ui_clk    DDR3 控制器用户域，由 DDR3 IP 产生
-pcie_ref_clk  PCIe 差分 100 MHz 参考时钟
+pcie_ref_clk  PCIe 差分 100 MHz 参考时钟，板卡手册确认 FPGA F6/E6
 pcie_user_clk PCIe DMA/AXIS 用户域，由 PCIe IP 产生
 ```
 
@@ -19,6 +19,25 @@ pcie_user_clk PCIe DMA/AXIS 用户域，由 PCIe IP 产生
 - PCIe `ref_clk_p/n` 必须按独立差分 100 MHz 参考时钟审核，不能把板载单端 25 MHz 直接替代。
 - 若 `sys_clk` 实际直接来自 25 MHz，必须依据冻结的视频模式重新生成 PLL；不得手工修改厂商生成 IP。
 - `ddr_init_done`、PCIe link-up 和摄像头 `cam_init_done` 必须形成明确的启动顺序，不能用 LED 状态替代内部握手。
+
+## 已确认的板级时钟事实
+
+- 板卡手册 v1.1 PDF 第 9 页确认 `MAIN_CLK_25M` 接 FPGA `V4`。
+- PDF 第 10 页确认 DDR 参考差分时钟 `GCLK_DDR_133_P/N` 接 FPGA `R4/T4`。
+- PDF 第 11 页确认 PI6C557-05BLE 从 25 MHz 产生 100 MHz 差分时钟，同时供 FPGA HSST 与 RK PCIe；
+  FPGA `HSSTREFCLK0_CP/CN_QR3` 为 `F6/E6`。
+- 以上只关闭时钟源和管脚事实，不关闭 PLL/IP 参数、时钟质量、抖动预算、generated clock 或 STA。
+
+## OV5640 控制与上电时序下限
+
+- OV5640 DVP 指南 2.13 PDF 第 5–6 页确认 `RESETB` 低有效、`PWDN` 高有效。
+- 初始保持 `RESETB=0`、`PWDN=1`；DOVDD 应先于或与 AVDD 同时稳定。
+- AVDD 稳定至少 5 ms 后才能拉低 PWDN；PWDN 拉低至少 1 ms 后拉高 RESETB；RESETB 拉高
+  至少 20 ms 后才能开始 SCCB 初始化。
+- 硬件复位低脉冲至少 1 ms。进入 power-down 后 XCLK 至少保持 0.1 ms；唤醒时先恢复 XCLK，
+  等待至少 0.1 ms 后再拉低 PWDN。
+- 这些是传感器参考下限。真实电源 rail 控制、FPGA Bank 电压、电平转换、XCLK 来源和板级复位树
+  尚未冻结，不能直接据此生成产品 FDC/RCF 或启动状态机。
 
 ## DDR 到 PCIe 请求 CDC
 
@@ -45,9 +64,11 @@ pcie_user_clk PCIe DMA/AXIS 用户域，由 PCIe IP 产生
 
 ## 当前待确认
 
-- `sys_clk` 是否为 25 MHz 直接输入或经过外部时钟链。
-- OV5640 MCLK 与 `cam_pclk` 的实际频率关系。
+- 产品 `sys_clk` 是否直接使用 FPGA `V4` 的 25 MHz，及其后续 PLL/分频方案。
+- OV5640 XCLK 来源、目标频率、容差，以及与 `cam_pclk` 的实际频率关系。
 - DDR3 IP 用户时钟和参考时钟参数。
-- PCIe refclk 实际来源、管脚和 P/N 极性。
-- 各复位信号的有效电平、异步断言和同步释放方式。
+- PCIe refclk 来源和 FPGA 管脚已确认；仍需 P/N 板级极性复核、AC 耦合、PERST#/CLKREQ#/WAKE#
+  连接及实际链路时序。
+- OV5640 的参考控制极性已确认；仍需 FPGA 具体管脚、Bank 电压、电平转换和产品状态机实现。
+- FPGA/RK/DDR3/PCIe 各复位信号的有效电平、异步断言和同步释放方式。
 - PDS 对 `ASYNC_REG`、`set_max_delay -datapath_only` 和 `set_bus_skew` 的最终识别报告与约束优先级。

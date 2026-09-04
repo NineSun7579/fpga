@@ -16,6 +16,17 @@ HDL 经 compile、synthesize、dev_map、PNR、timing report、netlist 和 bitst
 
 DDR3、PCIe 和摄像头 HDMI 共用 `RK3568+PG2L50H100H` 开发板与 `PG2L50H-6IFBG484`，统一 PDS 目标为 `Logos2/PG2L50H/FBG484/-6`。摄像头产品目标于 2026-09-01 校正为 OV5640；`41_ov7725_hdmi` 及其 O0/O1/O2/M3-A 只作 legacy。OV5640 按 C0 参考审计、C1 范围冻结、C2 项目边界、C3 PG2L50H 实现和 S3 四级仿真推进。
 
+## 板级一手资料与产品冻结边界
+
+2026-09-04 登记的 RK3568 板卡手册 v1.1 已把 RK↔FPGA PCIe x2、FSPI、I2C0、GPIO、25 MHz 系统
+时钟、100 MHz PCIe refclk、DDR 参考时钟和 x16 512 MByte DDR3 物理映射从“推断”提升为手册事实。
+这些事实不定义 PG2L50H DDR3 控制器用户口、PCIe DMA/TX 软件语义或 RK3568 缓存一致性。
+
+同日登记的 OV5640 DVP 指南 2.13 定义 8-bit `D[9:2]` 参考接口、RESETB/PWDN 极性、供电范围、
+电平转换风险、SCCB 上拉和参考启动/复位时序。它不是实际模组原理图，也不冻结 FPGA Bank、管脚、
+SCCB 7-bit 地址、RGB565 寄存器表、PCLK 采样边沿、字节序、宽高或帧率。用户已明确接入位置暂定，
+因此产品顶层和 FDC/RCF 必须继续等待实际接线决策。
+
 ## 外部四级仿真
 
 ModelSim/QuestaSim 分别承担行为级、综合后、PNR 后功能和 PNR 后时序仿真。USIM 用于 PNR 前原语，VSIM 用于 PNR 后原语；时序仿真还依赖正确层级的 SDF 标注。
