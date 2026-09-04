@@ -42,7 +42,7 @@
 
 ## 当前结论
 
-当前 staging adapter 已完成板级无关的行为实现和自检，但不能声称已经具备“OV5640 输入、DDR3 缓存、PCIe 处理后图像输出”的可综合或可上板闭环。M3-A 只证明内部图像字布局；M3-B 的厂商接口接入仍需资料驱动的转换合同。
+当前已完成板级无关 staging、canonical DDR3 用户口适配、双槽行为帧缓存、跨域请求仲裁以及完整 PCIe TX top 的行为接线和自检，但不能声称已经具备“OV5640 输入、DDR3 缓存、PCIe 处理后图像输出”的可上板闭环。剩余缺口集中在真实 DDR3 core、产品顶层、物理链路、RK3568 主机协议与板级约束。
 
 ## Staging adapter 方案
 
@@ -310,5 +310,18 @@ ACK 延迟/延长、保持请求防重复、idle 单域复位、在途双向复�
 AW/W→AR/R、`core_clk`→`pclk_div2` mailbox、仲裁器和未修改 MWR TX 输出两组 TLP header/data，
 `1086 ns`、0 error/0 warning、唯一 `TEST PASS`。
 
-本节仍不证明完整 `ips2l_pcie_dma_tx_top`/产品顶层实例化、partial DWORD、链路训练、RK3568 内存写入、
-中断完成或 placed-design CDC/RDC/STA。真正的 exactly-once 还需要事务序号和接收端去重协议。
+## 完整 PCIe TX top 行为接线
+
+`rgb565_pg2l50h_pcie_tx_top_adapter` 将 `rgb565_pg2l50h_pcie_tx_cdc_arbiter` 的完整请求 bundle
+接入未修改的 `ips2l_pcie_dma_tx_top`，并向产品集成层暴露 CPLD、MRD、MWR 三路 AXIS TX、
+BAR0/BAR2 读口以及 RX completion 相关输入。adapter 不修改厂商生成 RTL，也不解释 BAR 存储、
+RX completion、链路状态或主机 DMA 缓冲所有权。
+
+非谐波双时钟专项先发 native user-defined MWR32，再发送 camera MWR32，验证 AXIS2 上两组
+header/data、地址 `0x1000/0x2000`、DWORD length 1、full-DWORD byte enable、Requester ID
+`16'h2a18`、数据字节序和 TLAST。AXIS0/1 在无 CPLD/MRD 输入时必须保持无有效流量。Questa
+Sim-64 2021.1 于 `385 ns` 返回唯一 `TEST PASS`，编译和仿真摘要均为 0 error/0 warning。
+
+本节关闭的是“项目 CDC/仲裁请求到完整 TX top AXIS 输出”的行为集成缺口，仍不证明产品顶层、
+PCIe IP/RX/config/reset/clock 接线、LTSSM、串行链路、RK3568 内存写入、中断完成或 placed-design
+CDC/RDC/STA。真正的 exactly-once 还需要事务序号和接收端去重协议。

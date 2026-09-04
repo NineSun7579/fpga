@@ -810,5 +810,20 @@
 - 两份 PDF 只登记位置、版本、hash 和关键页码，不复制入仓、不进入构建依赖。OV5640 实际模组
   排线、FPGA 连接器/Bank/管脚仍保持暂定；指南中的 SCCB `0x78` 写地址和 VGA/YUV 示例不能
   直接冻结为产品 RGB565 配置。
-- 当前剩余主阻断为完整原理图/BOM、PCIe PERST#/链路时序、DDR3 IP 正式用户口、完整 PCIe
-  DMA/TX 接入、RK3568 驱动/缓存协议，以及 OV5640 实际电平/接线和冻结 RGB565 模式。
+- 当前剩余主阻断为完整原理图/BOM、PCIe PERST#/链路时序、DDR3 IP 正式用户口、产品顶层
+  PCIe IP/RX/config/reset/clock 接线、RK3568 驱动/缓存协议，以及 OV5640 实际电平/接线和冻结 RGB565 模式。
+
+## 2026-09-04：main 完整 PCIe TX top adapter
+
+- 新增项目自有 `rgb565_pg2l50h_pcie_tx_top_adapter`，串接 camera MWR32 异步 mailbox、完整 native
+  request bundle 仲裁与未修改的 `ips2l_pcie_dma_tx_top`；厂商生成 RTL 未改动。
+- 新增非谐波 camera/PCIe 双时钟专项。首轮编译因三个 FIFO filelist 漏写 `fifo/` 子目录失败；
+  修正脚本后全量编译通过。第二轮运行超时由 VCD 定位为 TB 在 ACK 后负沿过早撤 request，违反
+  下游 MWR 控制器下一正沿采样 `request && ack` 的保持合同；改为本域正沿撤请求后通过，功能 RTL 未改。
+- 最终专项验证 native/camera 两笔 MWR32 的 AXIS2 header/data、地址 `0x1000/0x2000`、Requester ID
+  `16'h2a18`、DWORD length、byte enable、数据字节序和 TLAST，并断言 AXIS0/1 无意外流量；
+  Questa Sim-64 2021.1 为 `385 ns`、编译/仿真均 0 error/0 warning、唯一 `TEST PASS`。
+- 受影响回归保持通过：同域 TX 仲裁集成 `205 ns`、CDC 仲裁集成 `385 ns`、canonical
+  OV5640→DDR3→PCIe 行为闭环 `1086 ns`，均 0 error/0 warning、唯一 `TEST PASS`。
+- 本批只关闭项目请求边界到完整 PCIe TX top AXIS 输出的行为集成缺口；真实 DDR3 core、产品顶层、
+  PCIe LTSSM/串行链路、PDS CDC/RDC/STA 和 RK3568 主机内存仍未闭合。
