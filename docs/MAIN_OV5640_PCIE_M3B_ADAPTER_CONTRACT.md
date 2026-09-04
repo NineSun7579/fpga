@@ -326,6 +326,22 @@ Sim-64 2021.1 于 `385 ns` 返回唯一 `TEST PASS`，编译和仿真摘要均�
 PCIe IP/RX/config/reset/clock 接线、LTSSM、串行链路、RK3568 内存写入、中断完成或 placed-design
 CDC/RDC/STA。真正的 exactly-once 还需要事务序号和接收端去重协议。
 
+## PCIe Endpoint AXIS 边界
+
+`rgb565_pg2l50h_pcie_endpoint_axis_boundary` 是产品自有的 TX-facing 接线层。它接收产品
+Endpoint 提供的 `endpoint_pclk_div2` 与 `endpoint_core_rst_n`，将三路 `endpoint_axis_slaveN_tready`
+送入完整 TX top，并将 `tvld/tdata/tlast/tuser` 原样送回 Endpoint。配置的 bus/device 与最大读请求、
+最大 payload 参数也由产品 Endpoint/配置层提供；camera-only 模式关闭 native、MRD、CPLD、BAR-read
+和 restart 输入，camera MWR32 仅走 AXIS2。
+
+`endpoint_smlh_link_up` 与 `endpoint_rdlh_link_up` 只作为观察信号透传。ready/valid 是唯一数据流控；
+链路状态没有在本工程中定义取消、重放或 exactly-once 语义，因此不得用链路状态组合门控请求。
+该层禁止同时实例化整套 `pcie_dma_test` 作为第二个 TX 生成路径，避免与 camera TX top 重复驱动。
+
+专项 TB 使用等端口 Endpoint stub，验证 reset ownership、AXIS2 背压下 payload 保持、AXIS0/1 静默、
+Requester ID 和 TLAST。stub 结果仅证明项目到 Endpoint AXIS 子集的行为合同，不代表真实 `pcie_test`、
+PHY、LTSSM、RX/DBI/APB、主机 DMA 或板级链路已闭合。
+
 ## 单一 OV5640 到完整 TX top 行为路径
 
 `ov5640_dvp_rgb565_pg2l50h_pcie_tx_top_pipeline` 在一个 camera-only 可综合 wrapper 中连接

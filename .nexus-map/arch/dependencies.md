@@ -208,3 +208,13 @@ flowchart TD
 - CI-7 依赖 `docs/PDS_TCL_ENTRYPOINT_INVENTORY.json` 与 `scripts/check_pds_tcl_entrypoints.ps1`：13 个 tracked Tcl 必须逐项分类；只有三个 `scripts/build.tcl` 可由 `run.ps1` 调用。PCIe build 目标为 PG2L50H，OV7725/DDR3 build 仍为 PG2L100H migration-blocked；历史 GUI、厂商内部和厂商仿真 Tcl 不得进入当前器件/STA/位流证据链。正向门禁为 0，缺失清单项负向测试为 1。
 - CI-2 在 CI-0 上增加三项目板级证据清单路径、项目关键词、README 链接和统一章节门禁；清单结构通过只允许继续收集证据，不会自动解锁 H0/H1/H2/H3、PCIe H2-B 或 DDR3/OV7725 板级整改。
 - CI-9 依赖 `scripts/check_sensitive_diff.ps1` 与 `docs/SENSITIVE_DIFF_GATE.md`：`-FullTree` 扫描当前 tracked/untracked 工作树，PR 模式扫描 merge-base 后的路径和新增行。68 个 tracked 日志中的 143 处许可证绝对路径已替换为 `<license-path>`；全树通过证明当前版本已清理，差异通过阻止后续重引入，但两者都不改写 Git 历史。
+## Endpoint 边界依赖（2026-09-04）
+
+```mermaid
+graph LR
+  CompletePipeline[Complete TX pipeline] --> EndpointBoundary[Endpoint AXIS boundary]
+  EndpointBoundary --> PCIeEndpoint[pcie_test Endpoint]
+  EndpointBoundary -. tested by .-> EndpointTB[Endpoint subset TB/stub]
+```
+
+`EndpointBoundary` 只复用 camera TX adapter 的 AXIS 输出，不与完整 `pcie_dma_test` 并行实例化第二套 TX 生成路径。真实 `pcie_test` 的 PHY、RX、DBI/APB、配置和复位整合仍待产品顶层切片。

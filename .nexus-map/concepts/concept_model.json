@@ -634,6 +634,25 @@
       "hotspot": true
     },
     {
+      "id": "main-ov5640-pcie-m3b-pcie-endpoint-axis-boundary",
+      "type": "System",
+      "label": "main OV5640→PCIe Endpoint AXIS boundary",
+      "responsibility": "将 camera TX adapter 的三路 AXIS、Endpoint 用户时钟/复位和配置字段收口为产品自有 PCIe Endpoint 接线边界。",
+      "implementation_status": "behavior_verified_with_endpoint_boundary_model",
+      "project_path": "main_ov5640_pcie/",
+      "branch": "codex/main-ov5640-pcie",
+      "code_path": "main_ov5640_pcie/rtl/rgb565_pg2l50h_pcie_endpoint_axis_boundary.sv",
+      "test_path": "main_ov5640_pcie/tb/tb_rgb565_pg2l50h_pcie_endpoint_axis_boundary.sv",
+      "evidence_path": "main_ov5640_pcie/scripts/run_m3b_pg2l50h_pcie_endpoint_axis_boundary.ps1",
+      "clock_domains": {"endpoint_user": "endpoint_pclk_div2/endpoint_core_rst_n", "camera": "camera_clk/camera_rst_n"},
+      "contracts": {"axis": "Endpoint ready is consumed as trdy; TX tvld/tdata/tlast/tuser are returned to Endpoint", "channels": "AXIS0=CPLD, AXIS1=MRD, AXIS2=MWR", "config": "bus/device/max-read-request/max-payload are supplied by Endpoint integration", "link": "smlh_link_up/rdlh_link_up are telemetry only", "reset": "Endpoint owns PCIe user clock/reset; no second TX path is allowed"},
+      "questa_evidence": "2026-09-04 Questa Sim-64 2021.1：Endpoint subset stub 专项 0 error/0 warning、唯一 TEST PASS；覆盖 reset、AXIS2 payload 背压、AXIS0/1 静默、链路遥测和 camera MWR32",
+      "closed_gap": "项目完整 TX top adapter 到产品 PCIe Endpoint TX-facing AXIS 子集的行为接线",
+      "uncovered_boundaries": ["真实 pcie_test 编译", "PHY/LTSSM/串行链路", "RX/DBI/APB", "RK3568 主机内存", "PDS CDC/RDC/STA", "板级闭环"],
+      "complexity": "medium",
+      "hotspot": true
+    },
+    {
       "id": "main-ov5640-pcie-m3b-ddr3-write-record",
       "type": "System",
       "label": "main OV5640→PCIe vendor-independent normalized DDR3 write record",
@@ -1695,6 +1714,30 @@
       "target": "pds-workflow-guide",
       "type": "staged_under",
       "description": "1996 ns 单一 TB 只关闭 DVP→canonical DDR 行为模型→完整 TX top AXIS 输出；DDR core、placed CDC/RDC/STA、PCIe 链路、RK3568 和板级签核仍未关闭。"
+    },
+    {
+      "source": "main-ov5640-pcie-m3b-pcie-endpoint-axis-boundary",
+      "target": "main-ov5640-pcie-m3b-pg2l50h-complete-tx-pipeline",
+      "type": "composes",
+      "description": "Endpoint AXIS boundary 复用统一 camera→complete TX top pipeline 的项目请求路径。"
+    },
+    {
+      "source": "main-ov5640-pcie-m3b-pcie-endpoint-axis-boundary",
+      "target": "pcie-dma-system",
+      "type": "integrates_with_endpoint_axis",
+      "description": "按 pcie_test 真实端口方向收口 pclk_div2/core_rst_n、AXIS0/1/2 和配置字段；当前仅由等端口 stub 动态验证。"
+    },
+    {
+      "source": "main-ov5640-pcie-m3b-pcie-endpoint-axis-boundary",
+      "target": "pds-workflow-guide",
+      "type": "staged_under",
+      "description": "stub 只证明 Endpoint AXIS 接线、背压和遥测透传，不证明真实 PHY/LTSSM、RX/DBI/APB、主机内存或板级闭环。"
+    },
+    {
+      "source": "vscs-commenting-standard",
+      "target": "main-ov5640-pcie-m3b-pcie-endpoint-axis-boundary",
+      "type": "governs_future_changes",
+      "description": "Endpoint boundary RTL、TB 和脚本遵循 VSCS 注释、时钟复位和接口合同规范。"
     },
     {
       "source": "vscs-commenting-standard",

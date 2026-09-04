@@ -405,3 +405,10 @@
 - 溢出语义：`source_overflow` 直接来自两槽 word skid；满队列溢出后保留前缀、丢弃当前帧余量，并注入唯一 `keep=0/frame_end=1/protocol_error=1` 中止记录。只有原帧尾已观察且中止记录已排队，后续 `frame_start` 才恢复；此前到达的新帧整帧跳过。
 - 结果：Questa Sim-64 2021.1 编译 11 个 RTL/TB 为 0 error/0 warning，日志唯一 `TEST PASS`，仿真至 2863 ns。
 - 边界：未覆盖中止记录经真实 DDR3/PCIe/主机协议保存或无效帧回收，也未覆盖静态 CDC/RDC、复位释放、RAM 推断、PDS/STA 或 SDF；两槽 skid 不等同帧缓存或真实 DDR3/PCIe 闭环。
+## PCIe Endpoint AXIS boundary
+
+- TB：`main_ov5640_pcie/tb/tb_rgb565_pg2l50h_pcie_endpoint_axis_boundary.sv`。
+- 入口：`main_ov5640_pcie/scripts/run_m3b_pg2l50h_pcie_endpoint_axis_boundary.ps1`。
+- 覆盖：Endpoint reset ownership、AXIS0/1 静默、AXIS2 header/data/TLAST、ready 背压时 payload 保持、Requester ID、链路遥测透传。
+- 结果：2026-09-04 Questa Sim-64 2021.1，编译/仿真 `0 error/0 warning`、唯一 `TEST PASS`。
+- 缺口：stub 不覆盖真实 `pcie_test`、PHY/LTSSM/串行链路、RX/DBI/APB、PDS CDC/RDC/STA、RK3568 和板级连接。

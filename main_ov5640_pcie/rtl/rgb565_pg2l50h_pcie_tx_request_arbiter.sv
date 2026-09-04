@@ -98,7 +98,10 @@ module rgb565_pg2l50h_pcie_tx_request_arbiter (
     // Invariant: owner cannot change before the selected request handshake;
     // no new owner is selected until downstream ACK and old source request fall.
     always_comb begin
-        tx_user_define_data_flag = mwr_user_define_data_mode;
+        // Camera ownership is the user-defined MWR mode. Present it before
+        // the vendor ACK edge so request, ACK, and mode align in one cycle.
+        tx_user_define_data_flag = (owner == OWNER_CAMERA) ? 1'b1 :
+                                   mwr_user_define_data_mode;
         tx_mwr32_req = 1'b0;
         tx_mwr64_req = 1'b0;
         tx_mrd32_req = 1'b0;

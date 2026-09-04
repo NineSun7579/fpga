@@ -172,3 +172,6 @@ serializer 接收高有效 reset；O1-B 已让该信号驱动四个 serializer �
 ## VSCS 注释治理
 
 后续手写 Verilog/SystemVerilog 应记录设计意图、接口契约、FSM、复位、CDC/RDC 和风险，不重复可以从代码、Git 或工具报告自动推导的事实。
+## Endpoint AXIS 域
+
+Endpoint AXIS boundary 位于完整 TX top adapter 与产品 `pcie_test` 之间。Endpoint 拥有用户时钟/复位和 ready，项目拥有 valid/data/last/user；AXIS2 承载 camera MWR。当前只完成等端口模型行为验证，AXIS 接线不等于 PCIe 链路或主机内存完成。

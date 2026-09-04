@@ -846,3 +846,21 @@
   完整 TX top adapter `385 ns`，均 0 error/0 warning、唯一 `TEST PASS`。
 - 该证据仍不包含加密 DDR3 core、实际产品顶层、PCIe LTSSM/串行链路、RK3568 驱动与缓存协议、
   PDS CDC/RDC/STA、位流或 golden image，不能表述为板级闭环。
+
+## 2026-09-04：PCIe Endpoint AXIS boundary wrapper
+
+- 审计 `pcie_test.v` 和 `pango_pcie_top.v` 后冻结项目边界：Endpoint 产生 `pclk_div2/core_rst_n`，
+  三路 AXIS slave 的 ready 由 Endpoint 产生，项目送入 valid/data/last/user；AXIS0/1/2 分别保留
+  CPLD/MRD/MWR 通道，camera 图像使用 AXIS2。
+- 新增 `main_ov5640_pcie/rtl/rgb565_pg2l50h_pcie_endpoint_axis_boundary.sv`，复用现有完整
+  TX-top adapter，明确关闭 native、MRD、CPLD、BAR-read 和 restart 输入；`smlh_link_up` 与
+  `rdlh_link_up` 只透传为遥测，不参与 ACK、丢弃或重放策略。
+- 新增 `main_ov5640_pcie/tb/tb_rgb565_pg2l50h_pcie_endpoint_axis_boundary.sv` 和
+  `main_ov5640_pcie/scripts/run_m3b_pg2l50h_pcie_endpoint_axis_boundary.ps1`。Questa Sim-64 2021.1
+  最终编译/仿真均 `0 error/0 warning`、唯一 `TEST PASS`；覆盖 Endpoint reset ownership、
+  AXIS0/1 静默、AXIS2 header 后 payload 背压保持、链路遥测和 camera MWR32 header/data/TLAST。
+- 调试记录：第一次超时来自 TB 从 IDLE 拉低 ready，第二次来自 ACK 被误当作 AXIS 完成；两次均由
+  源码/追踪确认后修正测试合同。另发现仲裁器必须在 camera owner 选中时提前呈现 user-defined
+  mode，已修复 `rgb565_pg2l50h_pcie_tx_request_arbiter.sv`，既有回归需重跑。
+- 本批只证明项目 TX path 到 Endpoint AXIS 子集的行为接线；不证明真实 `pcie_test` 编译、PHY、
+  LTSSM、串行链路、RC、DDR3 持久化、RK3568 主机内存、PDS CDC/RDC/STA 或板级闭环。

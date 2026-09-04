@@ -566,3 +566,9 @@
 - completion_contract: `frame_done_pulse` 只表示 DDR 记录读出/请求路径接受，不表示完整 TX top 已发完 TLP，更不表示 PCIe 链路或 RK3568 主机内存完成。
 - evidence: 2026-09-04 Questa Sim-64 2021.1：统一 TB 至 1996 ns，0 error/0 warning、日志唯一 `TEST PASS`；覆盖两个帧的 canonical DDR 元数据存取、3 条 full-DWORD MWR32 的 header/data/TLAST、Requester ID、地址连续性、AXIS0/1 静默，以及 partial-DWORD 请求无 ACK fail-stop、policy pulse/sticky 和协调复位清除。
 - boundary: DDR 仍是 TB canonical 端口行为模型，PCIe 仍止于完整 TX top 的 AXIS 输出；不覆盖加密 DDR core、正式地址单位/物理槽、placed-design CDC/RDC/STA、LTSSM、串行链路、RK3568 DMA/缓存一致性、主机完成协议、产品顶层或板级闭环。
+## PCIe Endpoint AXIS 边界（2026-09-04）
+
+- 项目自有实现：`main_ov5640_pcie/rtl/rgb565_pg2l50h_pcie_endpoint_axis_boundary.sv`。
+- 接口事实来自 `pcie_test.v`/`pango_pcie_top.v`：Endpoint 产生 `pclk_div2/core_rst_n`，输出三路 AXIS ready，接收项目 valid/data/last/user；AXIS2 为 MWR。
+- camera-only 边界关闭 native、MRD、CPLD、BAR-read 和 restart；bus/device、最大读请求和最大 payload 从产品 Endpoint 配置侧输入。
+- 链路状态只透传为观察信号。专项 stub/TB 证明 AXIS 接线与背压，不代表真实 PHY、LTSSM、RX/DBI/APB 或板级闭环。

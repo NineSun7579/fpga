@@ -108,3 +108,4 @@
 ## 更新规则
 
 当顶层、器件、IP 边界、时钟域、约束、测试结果或 Git 基线发生变化时，应同步更新本目录。人工推断必须继续标明证据缺口；未执行的工具流程不得记录为通过。
+本轮新增 PCIe Endpoint AXIS 边界：`rgb565_pg2l50h_pcie_endpoint_axis_boundary.sv` 按真实 `pcie_test` 端口方向收口 `pclk_div2/core_rst_n`、AXIS0/1/2 和配置字段；stub 专项已通过，但真实 PHY/LTSSM/RX/DBI/APB、产品顶层和 RK3568 主机协议仍未闭合。
