@@ -56,18 +56,6 @@ $Ddr3RegenerationDocPath = Join-Path $RepoRoot `
     'ddr3_test\ddr3_test\doc\M2_IP_REGENERATION.md'
 $Ddr3M2B1AuditPath = Join-Path $RepoRoot `
     'ddr3_test\ddr3_test\doc\M2B1_PARAMETER_AND_DIFF_AUDIT.md'
-$OvM3AuditPath = Join-Path $RepoRoot `
-    '41_ov7725_hdmi\doc\M3A_IP_MIGRATION_AUDIT.md'
-$OvM3CanonicalIpHashes = [ordered]@{
-    '41_ov7725_hdmi\prj\ipcore\ddr3_ip\ddr3_ip.idf' = `
-        '4C103420EDF48C5E361A8B7CA132E00EFA268E71B7ABE2BA3826B46A8712E3A1'
-    '41_ov7725_hdmi\prj\ipcore\pll_clk\pll_clk.idf' = `
-        'B93FDCB80209C0DA3F0BE9BA08E8D1D9E90D37002473C3BA98E5B3C0AB6EF2A1'
-    '41_ov7725_hdmi\prj\ipcore\rd_fifo\rd_fifo.idf' = `
-        '734DAE3B41599127C648E7012C8E7F5D50945A324981AB52ADBD61195BFB049A'
-    '41_ov7725_hdmi\prj\ipcore\wr_fifo\wr_fifo.idf' = `
-        'C1C55F4D5C578172B7BA8FBF057163D7E980C9B59C67D99252404A9BDF8E6F70'
-}
 
 function Add-Failure {
     param([Parameter(Mandatory)][string]$Message)
@@ -105,21 +93,6 @@ function Require-Pattern {
 }
 
 $Projects = @(
-    [pscustomobject]@{
-        Name = 'OV7725 HDMI'
-        Root = '41_ov7725_hdmi'
-        Top = 'ov7725_hdmi'
-        Readme = 'README.md'
-        BoardEvidence = 'doc/BOARD_EVIDENCE.md'
-        BoardKeywords = @('OV7725', 'HDMI')
-        ReadmePatterns = @{
-            Clock = '(?i)cam_pclk|pixel_clk|\u65f6\u949f'
-            Interface = '(?i)HDMI|TMDS|DDR3|RGB565'
-            Build = 'scripts/(?:build|run)\.ps1|scripts/(?:build|run)\.tcl'
-            IpSource = '(?i)IP|IDF|ipcore'
-            Blocker = '\u963b\u65ad|\u5c1a\u672a|\u4e0d\u4e00\u81f4|\u5f85\u5ba1\u6838'
-        }
-    },
     [pscustomobject]@{
         Name = 'DDR3 bring-up'
         Root = 'ddr3_test/ddr3_test'
@@ -170,7 +143,6 @@ if ($Ov5640ScopeExists) {
     $Ov5640ScopeText = Get-Content -Raw -Encoding UTF8 -LiteralPath $Ov5640ScopePath
     foreach ($Required in ([ordered]@{
             'OV5640 product target' = 'OV5640'
-            'OV7725 legacy boundary' = 'OV7725.*(?:legacy|\u5386\u53f2)'
             'approved FPGA target' = 'PG2L100H-6IFBG484'
             'reference import boundary' = '59_top_dual_ov5640_hdmi'
             'Questa validation requirement' = 'Questa.*2021\.1'
@@ -326,51 +298,11 @@ if ($Ddr3M2B1AuditExists) {
     }
 }
 
-# M3-A is an audit-only gate. Protect the four active IDFs until the current
-# PG2L100H baseline is reviewed; old PG2L50H staging remains historical only.
-$OvM3AuditExists = Require-File -Path $OvM3AuditPath `
-    -Description 'OV7725 M3-A four-IP migration audit'
-if ($OvM3AuditExists) {
-    $OvM3AuditText = Get-Content -Raw -Encoding UTF8 -LiteralPath $OvM3AuditPath
-    foreach ($Required in ([ordered]@{
-            'M3-A approved FPGA part' = [regex]::Escape($ApprovedFpgaPart)
-            'M3-A approved PDS target' = 'Logos2\s*/\s*PG2L100H\s*/\s*FBG484\s*/\s*-6'
-            'M3-A active IP target' = '\u6d3b\u52a8 IDF \u5747\u9762\u5411 PG2L100H'
-            'M3-A old PDS version evidence' = 'PDS SP4\.2'
-            'M3-A SP6.4 PG2L100H staging rule' = 'PDS 2022\.2-SP6\.4 \u5728 PG2L100H \u76ee\u6807\u4e0b\u5efa\u7acb\u72ec\u7acb staging'
-            'M3-A legacy PG2L50H rejection' = '\u65e7 PG2L50H \u8fc1\u79fb.*\u4e0d\u5f97\u6267\u884c'
-            'M3-A PG2L100H staging path' = 'build/ipgen/pg2l100h/ddr3_ip'
-            'M3-A canonical hash preservation' = 'canonical IDF SHA-256 \u4e0d\u53d8'
-            'M3-A DDR3 parameter review' = '\u9897\u7c92\u6599\u53f7.*x16/x32'
-            'M3-A PLL parameter review' = 'pixel_clk.*pixel_clk_5x'
-            'M3-A FIFO parameter review' = '\u8bfb\u5199\u5bbd\u5ea6.*\u6df1\u5ea6'
-            'M3-A RCF object-hit review' = 'RCF.*\u5b9e\u9645\u5bf9\u8c61\u547d\u4e2d'
-            'M3-A promotion conditions section' = '(?m)^##\s+6\.\s+\u5347\u683c\u6761\u4ef6\s*\r?$'
-        }).GetEnumerator()) {
-        Require-Pattern -Text $OvM3AuditText -Pattern $Required.Value `
-            -Description $Required.Key | Out-Null
-    }
-}
-
-foreach ($Entry in $OvM3CanonicalIpHashes.GetEnumerator()) {
-    $IdfPath = Join-Path $RepoRoot $Entry.Key
-    if (Require-File -Path $IdfPath -Description "OV7725 canonical IP $($Entry.Key)") {
-        $ActualHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $IdfPath).Hash
-        if ($ActualHash -ne $Entry.Value) {
-            Add-Failure "OV7725 canonical IP changed before M3 promotion: $($Entry.Key)"
-        } else {
-            Write-Host "INFO: OV7725 canonical IP hash preserved: $($Entry.Key)"
-        }
-    }
-}
-
 $RootReadmePath = Join-Path $RepoRoot 'README.md'
 $TodoPath = Join-Path $RepoRoot 'TODO.md'
 $MatrixExists = Require-File -Path $MatrixPath -Description 'simulation readiness matrix'
 if ($MatrixExists) {
     $MatrixText = Get-Content -Raw -Encoding UTF8 -LiteralPath $MatrixPath
-    Require-Pattern -Text $MatrixText -Pattern 'OV7725 legacy' `
-        -Description 'simulation matrix OV7725 legacy boundary' | Out-Null
     Require-Pattern -Text $MatrixText -Pattern 'OV5640' `
         -Description 'simulation matrix OV5640 target coverage' | Out-Null
     Require-Pattern -Text $MatrixText -Pattern 'DDR3' `

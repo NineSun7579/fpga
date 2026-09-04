@@ -32,17 +32,15 @@ powershell.exe -ExecutionPolicy Bypass `
 
 | 项目 | `run.ps1` 实际入口 | 当前角色 | 器件事实 |
 |---|---|---|---|
-| OV7725 HDMI | `41_ov7725_hdmi/scripts/build.tcl` | `migration_blocked_project_build` | 目标为 PG2L100H；等待 M3 完成当前版本 IP/约束核验 |
 | DDR3 bring-up | `ddr3_test/ddr3_test/scripts/build.tcl` | `migration_blocked_project_build` | 目标为 PG2L100H；等待 M2 完成当前版本 IP/约束核验 |
 | PCIe DMA | `pcie_dma_test_100h/scripts/build.tcl` | `migration_blocked_project_build` | 入口已恢复为 PG2L100H，但活动 IDF 仍为旧 PG2L50H |
 
-三个 `run.ps1` 均只调用同目录 `scripts/build.tcl`。仓库没有 canonical 调用链引用任何历史 `impl.tcl`、parse-design screen 或 IP 内部脚本。
+两个 `run.ps1` 均只调用同目录 `scripts/build.tcl`。仓库没有 canonical 调用链引用任何历史 `impl.tcl`、parse-design screen 或 IP 内部脚本。
 
 ## 历史与厂商脚本
 
 以下事实必须保留，而不是文本替换：
 
-- OV7725 `prj/impl.tcl` 同时记录 PGL25G 与 PG2L100H，并含旧机器绝对路径。
 - PCIe 根 `impl.tcl` 同时记录 PG2L50H 与 PG2L100H，并含旧机器绝对路径。
 - DDR3 IP 内部 `pnr/impl.tcl` 同时记录 PG2L50H 与 PG2L100H；它只能证明厂商 IP 历史，不能证明外层工程目标。
 - DDR3 根 `impl.tcl`、三份 parse-design screen 和两份 `ctrl_phy_sim.tcl` 虽无 `set_arch`，仍包含旧绝对路径，因此同样必须分类。
