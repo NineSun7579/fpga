@@ -605,6 +605,35 @@
       "hotspot": true
     },
     {
+      "id": "main-ov5640-pcie-m3b-pg2l50h-complete-tx-pipeline",
+      "type": "System",
+      "label": "main OV5640→canonical DDR3→complete PCIe TX top pipeline",
+      "responsibility": "组合 OV5640 canonical DDR3 流水线与完整 PCIe TX top adapter，并在 IO 域执行 full-DWORD 单请求准入和 fail-stop 故障策略。",
+      "implementation_status": "behavior_verified_single_tb_canonical_ddr_to_complete_tx_top_boundary",
+      "project_path": "main_ov5640_pcie/",
+      "branch": "codex/main-ov5640-pcie",
+      "code_path": "main_ov5640_pcie/rtl/ov5640_dvp_rgb565_pg2l50h_pcie_tx_top_pipeline.sv",
+      "test_path": "main_ov5640_pcie/tb/tb_ov5640_pg2l50h_ddr3_pcie_tx_top_pipeline.sv",
+      "evidence_path": "main_ov5640_pcie/scripts/run_m3b_ov5640_pg2l50h_ddr3_pcie_tx_top.ps1",
+      "clock_domains": {
+        "camera": "cam_pclk/cam_rst_n",
+        "io": "io_clk/io_rst_n; canonical DDR, request policy, mailbox source",
+        "pcie": "pcie_clk/pcie_rst_n; complete TX top"
+      },
+      "contracts": {
+        "admission": "req_keep=4'hf && req_length=10'd1 && !req_protocol_error && !cross_4kb_boundary",
+        "invalid_request": "not forwarded, no ACK, no replay; upstream remains fail-stopped",
+        "policy_fault": "one tx_policy_fault_pulse on first blocked request; tx_policy_fault_sticky remains set until io_rst_n",
+        "recovery": "coordinate camera, IO, and PCIe reset domains",
+        "completion": "frame_done_pulse is DDR readout/request-path acceptance, not TX, TLP, link, or RK3568 host completion"
+      },
+      "questa_evidence": "2026-09-04 Questa Sim-64 2021.1：统一 DVP→canonical DDR AW/W→AR/R→异步 mailbox→完整 TX top TB，1996 ns，0 error/0 warning、唯一 TEST PASS；验证 3 条 full-DWORD MWR32、Requester ID、地址/数据/TLAST、AXIS0/1 静默、partial-DWORD 无 ACK fail-stop、policy pulse/sticky 与协调复位清除",
+      "closed_gap": "以单一测试证据连接 canonical DDR 行为路径和完整 ips2l_pcie_dma_tx_top AXIS 输出，并明确拒绝无法映射 byte-enable 的非法请求",
+      "uncovered_boundaries": ["加密 DDR3 core", "正式 DDR 地址单位和物理槽", "placed-design CDC/RDC/STA", "PCIe PHY/LTSSM/串行链路", "RK3568 DMA/缓存一致性与主机完成", "产品顶层与板级闭环"],
+      "complexity": "high",
+      "hotspot": true
+    },
+    {
       "id": "main-ov5640-pcie-m3b-ddr3-write-record",
       "type": "System",
       "label": "main OV5640→PCIe vendor-independent normalized DDR3 write record",
@@ -1648,6 +1677,30 @@
       "target": "rgb565_pg2l50h_pcie_tx_top_adapter",
       "type": "governs_future_changes",
       "description": "adapter、专项 TB 与后续手写修改遵循 VSCS 注释和接口边界说明规范。"
+    },
+    {
+      "source": "main-ov5640-pcie-m3b-pg2l50h-complete-tx-pipeline",
+      "target": "main-ov5640-pcie-m3b-pg2l50h-canonical-pipeline",
+      "type": "composes",
+      "description": "统一 wrapper 复用 canonical OV5640→DDR3 双槽与读回请求路径，并保留第 5 byte 元数据和逐记录协议状态。"
+    },
+    {
+      "source": "main-ov5640-pcie-m3b-pg2l50h-complete-tx-pipeline",
+      "target": "rgb565_pg2l50h_pcie_tx_top_adapter",
+      "type": "composes",
+      "description": "只把 full-DWORD、length=1、无协议错误且不跨 4 KiB 的 camera MWR32 请求送入完整 TX top adapter。"
+    },
+    {
+      "source": "main-ov5640-pcie-m3b-pg2l50h-complete-tx-pipeline",
+      "target": "pds-workflow-guide",
+      "type": "staged_under",
+      "description": "1996 ns 单一 TB 只关闭 DVP→canonical DDR 行为模型→完整 TX top AXIS 输出；DDR core、placed CDC/RDC/STA、PCIe 链路、RK3568 和板级签核仍未关闭。"
+    },
+    {
+      "source": "vscs-commenting-standard",
+      "target": "main-ov5640-pcie-m3b-pg2l50h-complete-tx-pipeline",
+      "type": "governs_future_changes",
+      "description": "统一 wrapper、TB 与运行脚本的后续手写修改遵循 VSCS 注释、三时钟域和 fail-stop 合同。"
     },
     {
       "source": "main-ov5640-pcie-m3b-ddr3-write-record",

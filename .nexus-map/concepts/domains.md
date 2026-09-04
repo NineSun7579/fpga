@@ -101,6 +101,14 @@ normalized MWR length 字段已从 DWORD-1 改为实际 DWORD 数，payload requ
 
 该证据只关闭“camera/native CDC/仲裁请求到完整 TX top AXIS 输出”的行为集成缺口。AXIS 输出不是链路完成或主机内存可见的证明；LTSSM、PCIe 串行链路、真实 DDR3 IP、RK3568 主机内存、产品顶层与板级闭环仍未关闭。
 
+## main OV5640 M3-B canonical DDR→完整 TX top 统一策略边界
+
+`ov5640_dvp_rgb565_pg2l50h_pcie_tx_top_pipeline` 将 `cam_pclk/cam_rst_n`、`io_clk/io_rst_n`、`pcie_clk/pcie_rst_n` 固定为三个独立域；canonical DDR、逐记录策略和 mailbox 源端位于 IO 域，完整 TX top 位于 PCIe 域。它只放行 `req_keep=4'hf`、`req_length=1`、无 `req_protocol_error`、不跨 4 KiB 的请求，形成明确的 `FULL_DWORD_ONLY` 边界。
+
+任何 policy-invalid 有效请求都不会进入 TX adapter，也不会获得 ACK。上游保持请求并 fail-stop，IO 域首次阻断产生一个 `tx_policy_fault_pulse`，sticky 保持到复位；恢复需要 camera/IO/PCIe 协调复位，不能伪造 ACK 或自动重放。`frame_done_pulse` 仍是 DDR 读出/请求路径接受事件，不是完整 TX top、TLP、PCIe 链路或 RK3568 主机完成。
+
+2026-09-04 的统一 TB 在同一仿真中跨过 DVP、canonical DDR 行为存储、异步 mailbox 和完整 TX top，Questa Sim-64 2021.1 至 1996 ns，0 error/0 warning、日志唯一 `TEST PASS`。它验证 3 条 full-DWORD MWR32、Requester ID、地址/数据/TLAST、AXIS0/1 静默、partial-DWORD 无 ACK fail-stop 及 policy pulse/sticky；真实 DDR3 core、placed-design CDC/RDC/STA、PCIe PHY/LTSSM/链路和 RK3568 软件仍是外部证据缺口。
+
 ## main OV5640 M3-B canonical DDR3 用户口
 
 `rgb565_axis4_ddr3_write_descriptor` 把 32-bit payload 放在记录低 4 byte，第 5 byte 的 bit `[3:0]/[4]/[5]/[6]` 保存 `keep/last/frame_end/protocol_error`，并固定 `write_strb[4]=1`。因此即使 `keep=0`，控制记录仍会写入元数据 byte，而不是在 DDR 写路径被本地消费。

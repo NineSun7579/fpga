@@ -18,13 +18,13 @@
   → 主机/RK3568 内存
 ```
 
-当前完成：M1-A 已实现板级无关的 DVP 8-bit→RGB565 采集；M2-A 已实现 RGB565 灰度处理；M3-A/M3-B 已完成打包、CDC、双槽提交/回收、PG2L50H canonical DDR3 AW/W 与 AR/R 单 outstanding 适配，以及 canonical MWR32 TX 边界。当前端到端行为回归在 1086 ns 内完成 OV5640→canonical DDR3 写入→读回→`core_clk`/`pclk_div2` 异步 mailbox→双源仲裁→未修改 MWR TX header/data；新增完整 `ips2l_pcie_dma_tx_top` adapter 专项在 385 ns 内验证 native/camera 两笔 MWR32 的 AXIS2 header/data、Requester ID、TLAST，并断言 AXIS0/1 空闲。两项均 0 error/0 warning、唯一 `TEST PASS`。该结论尚不包含加密 DDR3 core、产品顶层、链路和 RK3568 主机。
+当前完成：M1-A 已实现板级无关的 DVP 8-bit→RGB565 采集；M2-A 已实现 RGB565 灰度处理；M3-A/M3-B 已完成打包、CDC、双槽提交/回收、PG2L50H canonical DDR3 AW/W 与 AR/R 单 outstanding 适配，以及完整 PCIe TX top 行为边界。统一 TB 在 1996 ns 内由同一 wrapper 贯通 OV5640→canonical DDR3 写入/读回→`core_clk`/`pclk_div2` 异步 mailbox→未修改 `ips2l_pcie_dma_tx_top` AXIS2，验证三笔合法 full-DWORD MWR32、Requester ID、TLAST、AXIS0/1 空闲、partial 请求 fail-stop 和协调复位恢复；编译/仿真均 0 error/0 warning、唯一 `TEST PASS`。该结论尚不包含加密 DDR3 core、产品顶层、链路和 RK3568 主机。
 
 新增资料：已登记并核对 RK3568+PG2L50H/100H 硬件使用手册 v1.1 与 OV5640 DVP 模组指南 2.13；已确认 RK↔FPGA PCIe x2/FSPI/I2C0/GPIO、主要时钟、DDR3 颗粒/容量/物理映射，以及 OV5640 DVP 参考电气和上电时序。详细页码、SHA-256 和剩余缺口见 [`docs/MAIN_OV5640_PCIE_BOARD_EVIDENCE.md`](docs/MAIN_OV5640_PCIE_BOARD_EVIDENCE.md)。外部 PDF 不复制入仓，也不作为构建依赖。
 
 下一批：把应用边界接入生成的 PG2L50H DDR3 core 和实际产品顶层，完成 PCIe IP/RX/config/reset/clock 接线，再与 RK3568 驱动做单帧 golden image。开始前仍必须取得完整原理图/BOM、匹配当前 IP 版本的 DDR3 用户手册与地址单位、PCIe byte-enable/主机协议、PERST#/链路时序、RK3568 DMA 缓冲协议，以及 OV5640 实际模组接线、FPGA Bank 电压/管脚和冻结 RGB565 模式资料。
 
-M3-B 审计结论见 [`docs/MAIN_OV5640_PCIE_M3B_ADAPTER_CONTRACT.md`](docs/MAIN_OV5640_PCIE_M3B_ADAPTER_CONTRACT.md)：M3-A 的 16-bit `word_keep` 不得直连 PCIe 4-bit `tkeep`；逐记录 sideband 已编码到 DDR3 第 5 byte 并可读回；事务 CDC、项目侧请求仲裁以及到完整 PCIe TX top 的行为接线已关闭，DDR3 地址单位、`RLAST` 正式语义、产品顶层/链路接入与 partial keep 仍待一手资料确认。
+M3-B 审计结论见 [`docs/MAIN_OV5640_PCIE_M3B_ADAPTER_CONTRACT.md`](docs/MAIN_OV5640_PCIE_M3B_ADAPTER_CONTRACT.md)：M3-A 的 16-bit `word_keep` 不得直连 PCIe 4-bit `tkeep`；逐记录 sideband 已编码到 DDR3 第 5 byte 并可读回；事务 CDC、项目侧请求仲裁以及到完整 PCIe TX top 的行为接线已关闭。partial keep 的发送能力仍不存在，但已冻结为无 ACK fail-stop 和 sticky policy fault；DDR3 地址单位、`RLAST` 正式语义及产品顶层/链路仍待一手资料确认。
 
 停止条件：缺少模组、时钟、I/O 电压、管脚、DDR3 拓扑或主机协议资料时，不修改 canonical IP、PLL、FDC/RCF，不把历史 PG2L100H 或 `parallel_driver` 产物解释为本工程通过。
 
@@ -188,7 +188,9 @@ M3-B 审计结论见 [`docs/MAIN_OV5640_PCIE_M3B_ADAPTER_CONTRACT.md`](docs/MAIN
    - 已完成：新增 `rgb565_pg2l50h_pcie_mwr32_async_mailbox` 与 `rgb565_pg2l50h_pcie_tx_cdc_arbiter`，以单 outstanding toggle handshake 和 bundled-data MCP 将 camera MWR32 从 DDR `core_clk` 送入 PCIe `pclk_div2`，再与完整 native bundle 仲裁。mailbox 双速率/复位专项 `2296 ns`，CDC 仲裁到未修改 MWR TX 集成 `385 ns`，均 0 error/0 warning、唯一 `TEST PASS`。
    - 已完成：canonical OV5640→DDR3 回归已插入异步 mailbox 和双源仲裁边界；4 像素帧经 AW/W→AR/R、`core_clk`→`pclk_div2`、未修改 MWR TX 输出两组 TLP header/data，`1086 ns`、0 error/0 warning、唯一 `TEST PASS`。
    - 已完成：新增 `rgb565_pg2l50h_pcie_tx_top_adapter`，把项目 CDC/仲裁请求 bundle 接入未修改的完整 `ips2l_pcie_dma_tx_top`。非谐波双时钟专项验证 native/camera 两笔 MWR32 的 AXIS2 header/data、Requester ID=`16'h2a18`、TLAST，并断言 AXIS0/1 无意外流量；`385 ns`、0 error/0 warning、唯一 `TEST PASS`。
-   - 下一步工程：把 adapter 接入实际产品顶层，实例化匹配版本的 PG2L50H DDR3 core，补齐 PCIe IP/RX/config/reset/clock 接线并完成 PDS CDC/RDC、payload max-delay/bus-skew、STA 和位流签核；随后与 RK3568 驱动完成主机帧协议闭环。当前行为回归不证明真实 DDR3/PCIe/RK3568 板级闭环。
+   - 已完成：新增 `ov5640_dvp_rgb565_pg2l50h_pcie_tx_top_pipeline`，在一个可综合 camera-only wrapper 中连接 OV5640、canonical DDR3、异步 mailbox 和完整 TX top。仅允许 `keep=4'hf`、length 1、无逐记录协议错误且不跨 4 KiB 的请求进入下游；非法请求不 ACK、不自动重放，产生一次 policy pulse 和 sticky fault，协调复位后恢复。
+   - 已完成：统一 TB 的 4 像素正常帧形成两笔 full-DWORD TLP，3 像素场景先形成一笔合法 TLP，再在 partial 记录上 fail-stop；全程 AXIS0/1 空闲，三笔 AXIS2 header 均含 Requester ID=`16'h2a18`。协调 camera/io/PCIe 复位清除 sticky/busy；Questa `1996 ns`、编译/仿真均 0 error/0 warning、唯一 `TEST PASS`。
+   - 下一步工程：实例化匹配版本的 PG2L50H DDR3 core，并把当前 camera-only wrapper 的边界接入实际产品顶层及 PCIe IP/RX/config/reset/clock，完成 PDS CDC/RDC、payload max-delay/bus-skew、STA 和位流签核；随后与 RK3568 驱动完成主机帧协议闭环。当前行为回归不证明真实 DDR3/PCIe/RK3568 板级闭环。
    - 资料状态：板卡手册与 OV5640 DVP 指南已经登记并部分关闭物理接口/电气时序事实；见 [`docs/MAIN_OV5640_PCIE_BOARD_INPUT_CHECKLIST.md`](docs/MAIN_OV5640_PCIE_BOARD_INPUT_CHECKLIST.md)。最高优先级仍是完整原理图/BOM、OV5640 实际排线/Bank 电压/FPGA 管脚与 RGB565 初始化表、PG2L50H DDR3 IP 用户口、完整 PCIe DMA 应用口、PERST#/链路时序、RK3568 主机内存与缓存/驱动协议、最终视频模式和丢帧策略。
    - 禁止：未完成资料审核前修改 canonical IP、DDR3/PCIe RTL、FDC/RCF，或把 M3-A 行为通过解释为端到端输出通过。
 

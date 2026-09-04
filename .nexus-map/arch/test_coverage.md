@@ -307,6 +307,15 @@
 - 结果：2026-09-04 Questa Sim-64 2021.1 为 0 error/0 warning、日志唯一 `TEST PASS`、1086 ns；保留回归同时包括旧 806 ns 同时钟 canonical 边界、双槽 4194 ns、canonical MWR32 TX 隔离 136 ns、请求仲裁专项/集成 265/205 ns、mailbox 2296 ns、CDC 仲裁集成 385 ns 和完整 TX top adapter 专项 385 ns。
 - 边界：DDR 侧为公开 canonical 端口行为模型，不含真实 DDR3 IP；该 1086 ns 回归本身不串接完整 TX top，而独立 adapter 专项只验证请求到 AXIS 输出。两项证据不能拼接外推为正式 DDR 地址单位/槽范围、placed-design max-delay/bus-skew、CDC/RDC/STA、产品顶层、partial keep、LTSSM/串行链路、RK3568 主机内存或板级资料闭环。
 
+## main OV5640→canonical DDR3→完整 PCIe TX top 统一覆盖
+
+- 组合：`tb_ov5640_pg2l50h_ddr3_pcie_tx_top_pipeline.sv` 实例化 `ov5640_dvp_rgb565_pg2l50h_pcie_tx_top_pipeline`；同一 TB 内连接 OV5640 DVP、canonical DDR AW/W 与 AR/R 行为存储、IO→PCIe 异步 mailbox、仲裁和未修改的完整 `ips2l_pcie_dma_tx_top`。`cam_pclk/io_clk/pcie_clk` 为三组独立时钟/复位域，IO 与 PCIe 时钟非谐波。
+- 正向：4 像素帧写入并读回 3 条带第 5 byte 元数据的记录，其中 2 条 full-DWORD 请求形成 4 个 AXIS2 beat；3 像素帧再产生 1 条 full-DWORD 请求，累计检查 3 组 header/data、`length=1`、DWBE `0x0f`、Requester ID `16'h2a18`、地址 `0x4000/0x4004/0x4008`、数据字节序和 TLAST，AXIS0/1 始终静默。
+- 策略：仅 `keep=4'hf`、`length=1`、无逐记录协议错误且不跨 4 KiB 的请求可进入 TX top。第二帧 partial-DWORD 记录被阻断且无 ACK，`tx_policy_fault_pulse` 恰好一次、sticky 置位、请求路径保持 busy；协调复位后 pulse/sticky/busy 清除。
+- 完成语义：TB 中两个 `frame_done_pulse` 只证明 DDR 记录已由读出/请求路径接受；被阻断的 partial 请求仍可出现在该事件之后，因此该脉冲不是 TX/TLP 或主机完成指示。
+- 结果：2026-09-04 Questa Sim-64 2021.1，统一 TB 至 1996 ns，0 error/0 warning、日志唯一 `TEST PASS`。
+- 边界：这是单一行为级集成证据，仍未实例化加密 DDR3 core、PCIe PHY/LTSSM/串行链路或 RK3568 主机软件；不证明正式 DDR 地址单位/槽范围、placed-design CDC/RDC/STA、主机内存可见、DMA/缓存一致性、产品顶层或板级闭环。
+
 ## S1/S2/S3 仿真就绪度矩阵（2026-08-30）
 
 - 已验证盘点：`docs/SIMULATION_READINESS_MATRIX.md` 已逐项目记录项目级 testbench、filelist、DO、厂商示例和四级仿真前置条件；PCIe S2-A 已实际执行 Questa 动态 smoke。

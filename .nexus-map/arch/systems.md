@@ -552,3 +552,17 @@
 - evidence: 2026-09-04 Questa Sim-64 2021.1 为 0 error/0 warning、日志唯一 `TEST PASS`、仿真至 1086 ns；覆盖 canonical AW/W→AR/R、异步 mailbox、双源仲裁和 vendor MWR TX 的两组 TLP header/data，以及 `ddr_read_port_fault_pulse=0` 的正常链路。
 - retained_regressions: 旧 806 ns 同时钟 canonical 边界、双槽数组模型 4194 ns、canonical MWR32 TX 隔离 136 ns、同域 TX 请求仲裁专项/集成 265/205 ns、mailbox 专项 2296 ns、CDC 仲裁集成 385 ns、完整 TX top adapter 专项 385 ns。
 - boundary: 未实例化或解密 DDR core。该 1086 ns 流水回归本身未串接完整 TX top；独立 adapter 专项只覆盖请求到 AXIS 输出，不能与本回归拼接外推为真实 DDR3 IP、正式地址单位/物理槽范围、placed-design payload max-delay/bus-skew、CDC/RDC/STA、产品顶层、LTSSM/串行链路、RK3568 主机内存或板级闭环。
+
+## main OV5640→PG2L50H canonical DDR3→完整 PCIe TX top 流水顶层
+
+- implementation_status: behavior_verified_single_tb_canonical_ddr_to_complete_tx_top_boundary
+- code_path: `main_ov5640_pcie/rtl/ov5640_dvp_rgb565_pg2l50h_pcie_tx_top_pipeline.sv`
+- test_path: `main_ov5640_pcie/tb/tb_ov5640_pg2l50h_ddr3_pcie_tx_top_pipeline.sv`
+- script_path: `main_ov5640_pcie/scripts/run_m3b_ov5640_pg2l50h_ddr3_pcie_tx_top.ps1`
+- clock_domains: `cam_pclk/cam_rst_n` 采集域、`io_clk/io_rst_n` canonical DDR 与请求策略域、`pcie_clk/pcie_rst_n` 完整 TX top 域；TX adapter 的 camera 源域绑定 `io_clk`，三域独立复位。
+- responsibility: 组合 `ov5640_dvp_rgb565_pg2l50h_pcie_pipeline` 与 `rgb565_pg2l50h_pcie_tx_top_adapter`，在单一 wrapper 中把 DVP→canonical DDR AW/W→AR/R→异步 mailbox→完整 `ips2l_pcie_dma_tx_top` AXIS2 MWR 行为串联起来。
+- admission_contract: 仅当 `req_keep=4'hf`、`req_length=10'd1`、`req_protocol_error=0` 且 `cross_4kb_boundary=0` 时向 TX adapter 发布 camera MWR32 请求。
+- fail_stop_contract: 非法请求不传给 adapter、不获得 ACK、不自动重放；请求保持使路径停住，首次命中产生一个 `tx_policy_fault_pulse`，`tx_policy_fault_sticky` 保持到 `io_rst_n`，恢复要求 camera/IO/PCIe 协调复位。
+- completion_contract: `frame_done_pulse` 只表示 DDR 记录读出/请求路径接受，不表示完整 TX top 已发完 TLP，更不表示 PCIe 链路或 RK3568 主机内存完成。
+- evidence: 2026-09-04 Questa Sim-64 2021.1：统一 TB 至 1996 ns，0 error/0 warning、日志唯一 `TEST PASS`；覆盖两个帧的 canonical DDR 元数据存取、3 条 full-DWORD MWR32 的 header/data/TLAST、Requester ID、地址连续性、AXIS0/1 静默，以及 partial-DWORD 请求无 ACK fail-stop、policy pulse/sticky 和协调复位清除。
+- boundary: DDR 仍是 TB canonical 端口行为模型，PCIe 仍止于完整 TX top 的 AXIS 输出；不覆盖加密 DDR core、正式地址单位/物理槽、placed-design CDC/RDC/STA、LTSSM、串行链路、RK3568 DMA/缓存一致性、主机完成协议、产品顶层或板级闭环。

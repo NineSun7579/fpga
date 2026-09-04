@@ -325,3 +325,30 @@ Sim-64 2021.1 于 `385 ns` 返回唯一 `TEST PASS`，编译和仿真摘要均�
 本节关闭的是“项目 CDC/仲裁请求到完整 TX top AXIS 输出”的行为集成缺口，仍不证明产品顶层、
 PCIe IP/RX/config/reset/clock 接线、LTSSM、串行链路、RK3568 内存写入、中断完成或 placed-design
 CDC/RDC/STA。真正的 exactly-once 还需要事务序号和接收端去重协议。
+
+## 单一 OV5640 到完整 TX top 行为路径
+
+`ov5640_dvp_rgb565_pg2l50h_pcie_tx_top_pipeline` 在一个 camera-only 可综合 wrapper 中连接
+`ov5640_dvp_rgb565_pg2l50h_pcie_pipeline` 与 `rgb565_pg2l50h_pcie_tx_top_adapter`。adapter 的
+camera 域绑定 DDR 应用 `io_clk`，PCIe TX top 保持独立 `pcie_clk`；native DMA、MRD、CPLD、
+BAR read data 和 TX restart 在该边界内明确关断，三路 AXIS 仍对外可见。
+
+完整 TX top 没有逐请求 byte-enable 输入，因此准入条件固定为：`req_keep=4'hf`、
+`req_length=1`、`req_protocol_error=0` 且 `cross_4kb_boundary=0`。任一条件不满足时，请求不会
+进入 mailbox，也不会收到伪造 ACK；wrapper 在 `io_clk` 产生一次 `tx_policy_fault_pulse` 并保持
+`tx_policy_fault_sticky`，原请求维持 fail-stop。恢复必须协调复位 camera、IO 和 PCIe 域，禁止
+自动重放。该策略关闭的是错误数据外发风险，不代表 partial-DWORD TLP 发送能力已经实现。
+
+`frame_fault_pulse` 在 IO 域汇总原流水线 fault、camera 侧 CDC fault 和 policy fault；PCIe 侧
+CDC fault 仍独立留在 `pcie_clk` 域。`frame_done_pulse` 只表示 DDR 记录被本地请求路径接收，
+即使后续 policy fail-stop 也可能已产生，不能解释为 TX ACK、TLP 发出或 RK3568 内存完成。
+
+统一 TB 在非谐波 `io_clk/pcie_clk` 下输入 4 像素和 3 像素两帧。第一帧产生两笔合法
+full-DWORD MWR32；第二帧先产生一笔合法 MWR32，再在 partial 记录上 fail-stop。三笔 AXIS2
+header/data 的地址为 `0x4000/0x4004/0x4008`，Requester ID 为 `16'h2a18`，TLAST 和数据字节序
+正确，AXIS0/1 全程无有效流量。协调复位后 policy sticky 和 camera request busy 清零。
+Questa Sim-64 2021.1 于 `1996 ns` 返回唯一 `TEST PASS`，编译和仿真摘要均为 0 error/0 warning。
+
+该统一证据仍使用 canonical DDR3 行为模型，并只覆盖完整 TX top 的 AXIS 输出。加密 DDR3 core、
+PCIe IP/RX/config/reset/clock、LTSSM、串行链路、RK3568 DMA/IOMMU/cache、主机帧描述符、中断和
+golden image 均未进入本测试，不能据此宣称板级闭环。

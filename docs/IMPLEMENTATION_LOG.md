@@ -827,3 +827,22 @@
   OV5640→DDR3→PCIe 行为闭环 `1086 ns`，均 0 error/0 warning、唯一 `TEST PASS`。
 - 本批只关闭项目请求边界到完整 PCIe TX top AXIS 输出的行为集成缺口；真实 DDR3 core、产品顶层、
   PCIe LTSSM/串行链路、PDS CDC/RDC/STA 和 RK3568 主机内存仍未闭合。
+
+## 2026-09-04：main OV5640→DDR3→完整 PCIe TX top 统一行为集成
+
+- 新增 `ov5640_dvp_rgb565_pg2l50h_pcie_tx_top_pipeline`，在同一 camera-only wrapper 中连接
+  OV5640/canonical DDR3 主链、异步 request mailbox 和未修改的完整 `ips2l_pcie_dma_tx_top`。
+  native DMA、MRD、CPLD、BAR read data 与 TX restart 在该边界内关断，三路 AXIS 保持可见。
+- wrapper 只准入 full-DWORD、length 1、无逐记录协议错误且不跨 4 KiB 的请求。partial keep 或
+  其他非法请求不进入 mailbox、不获得伪 ACK，产生一次 IO 域 policy fault 并保持 fail-stop；
+  sticky 状态只由协调 camera/io/PCIe 复位清除，禁止自动重放。
+- 首轮专项按 TDD 在目标 wrapper 不存在时得到 Questa `1 error/0 warning`。实现后首次动态失败由
+  TB 把 `frame_done` 误当 TX 完成导致；状态值证明 request 已 fail-stop，按既有“请求路径接受”
+  语义修正断言，功能 RTL 不因该测试假设修改。
+- 最终统一 TB 在一个实例中覆盖 DVP、canonical AW/W 与 AR/R、非谐波 IO/PCIe 时钟、完整 TX top、
+  AXIS0/1 空闲、三笔合法 AXIS2 TLP、partial policy fault 和协调复位恢复。Questa Sim-64 2021.1
+  于 `1996 ns` 返回唯一 `TEST PASS`，编译/仿真均 0 error/0 warning。
+- 受影响回归保持通过：canonical OV5640→DDR3→异步 MWR TX `1086 ns`、CDC 仲裁集成 `385 ns`、
+  完整 TX top adapter `385 ns`，均 0 error/0 warning、唯一 `TEST PASS`。
+- 该证据仍不包含加密 DDR3 core、实际产品顶层、PCIe LTSSM/串行链路、RK3568 驱动与缓存协议、
+  PDS CDC/RDC/STA、位流或 golden image，不能表述为板级闭环。

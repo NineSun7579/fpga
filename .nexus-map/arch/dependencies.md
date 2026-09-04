@@ -40,6 +40,10 @@ flowchart TD
   MainTxTopAdapter --> CompleteTxTop["完整 ips2l_pcie_dma_tx_top\n三路 AXIS TX 输出"]
   MainTxTopTB["完整 TX top adapter TB\n385 ns PASS"] --> MainTxTopAdapter
   MainTxTopTB --> CompleteTxTop
+  MainCompletePipeline["OV5640 canonical DDR→完整 TX top wrapper\ncam/io/pcie 三时钟域 + FULL_DWORD_ONLY"] --> MainTxTopAdapter
+  MainCompletePipeline --> MainDDRWriteAdapter
+  MainCompletePipeline --> MainDDRReadAdapter
+  MainUnifiedTxTopTB["DVP→canonical DDR→完整 TX top 统一 TB\n1996 ns PASS"] --> MainCompletePipeline
   MainMailboxTB["mailbox/CDC TX TB\n2296/385 ns PASS"] --> MainAsyncMailbox
   MainMailboxTB --> MainTxCdcArbiter
   MainLoopbackTB["tb_ov5640_ddr3_pcie_loopback\n行为级闭环"] --> MainStaging
@@ -140,6 +144,9 @@ flowchart TD
 - `rgb565_axis4_mwr_descriptor` 只对 payload 生成请求：`req_length_dw` 表示实际 DWORD 数且固定为 `1`；`keep=0` 控制记录在 descriptor 本地接受，不依赖 bridge/vendor ACK，不产生 MWR，不推进 PCIe 字节地址。
 - `tb_rgb565_pg2l50h_mwr32_tx_integration.sv` 同时依赖项目 bridge 与未修改 `pcie_dma_test_100h/hdl/pcie_dma_ctrl/ips2l_pcie_dma_mwr_tx_ctrl.v`；该旧隔离测试只验证保持型 req/ack 和单 DWORD TLP 输出，本身不实例化新增仲裁器或 mailbox，也不覆盖完整 TX 顶层、PCIe link training 或主机内存。
 - canonical MWR TX 固定 full-DWORD byte enable；当前只有 `keep=4'hf`、4 字节对齐请求可无损进入该隔离边界，partial keep 仍是未关闭依赖。
+- `ov5640_dvp_rgb565_pg2l50h_pcie_tx_top_pipeline` 将完整 TX top 的准入合同固定为 `req_keep=4'hf && req_length=1 && !req_protocol_error && !cross_4kb_boundary`。`cam_pclk`、`io_clk`、`pcie_clk` 是三个独立时钟/复位域，adapter camera 源域明确绑定 `io_clk`。
+- 不满足准入合同的有效请求不会送入 adapter，也不会获得 ACK；上游请求保持并 fail-stop。IO 域只在首次阻断时产生一个 `tx_policy_fault_pulse`，`tx_policy_fault_sticky` 保持到复位，禁止把伪造 ACK 或自动重放作为恢复手段。
+- 统一 1996 ns TB 在单一仿真中连接 DVP、canonical DDR AW/W→AR/R 行为模型、异步 mailbox 与完整 TX top，关闭了此前 1086 ns canonical 回归和 385 ns adapter 专项只能分开取证的问题。该证据仍止于 AXIS 输出；`frame_done_pulse` 不是 TX/TLP、链路或 RK3568 主机完成。
 - `rgb565_pg2l50h_pcie_tx_request_arbiter` 依赖 canonical DMA controller 的完整共享请求合同：native `MWR32/MWR64/MRD32/MRD64` 必须连同 `user_define_data_flag/length/address/data` 作为一个原子 bundle；camera 只注入 MWR32。两源在 PCIe 域轮转，owner/字段保持到匹配 ACK，ACK 只返回 owner。MWR user-defined 模式在 MWR ACK 时锁存，native MRD 不改写，并保持到下一次 MWR；握手后进入 `WAIT_ACK_LOW`，vendor ACK 撤销前不得换 owner或发布下一事务。
 - `tb_rgb565_pg2l50h_pcie_tx_request_arbiter.sv` 的 265 ns 专项验证四类 native request、轮转、字段保持、ACK 隔离、复位、下游 ACK/已完成源请求双低释放和 MWR 模式保持；`tb_rgb565_pg2l50h_pcie_tx_arbiter_integration.sv` 的 205 ns 集成验证 native RAM-data 与 camera user-defined 依次经过未修改 vendor MWR TX。两项均未实例化完整 `ips2l_pcie_dma_tx_top`，也不提供 partial keep、链路或 RK3568 证据。
 - `rgb565_pg2l50h_pcie_mwr32_async_mailbox` 依赖源 payload 在 request token 发出后保持到 ACK 返回的 bundled-data MCP；online/fault 单比特状态保持目标域两级同步，request/ACK token 使用三级同步，确保 peer-offline 先于事务 token 到达事务逻辑；目标检测 token 后额外等待一拍再采样 length/address/data。不得把整条 payload 总线简单设为 false-path；placed-design 必须签核 max-delay/bus-skew。
