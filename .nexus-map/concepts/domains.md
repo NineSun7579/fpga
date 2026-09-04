@@ -15,11 +15,11 @@ HDL 经 compile、synthesize、dev_map、PNR、timing report、netlist 和 bitst
 
 2026-08-30 S0 环境复核的“未发现仿真器”结论已被后续实际执行证据取代。截至 2026-09-01，Questa Sim-64 2021.1 最小 SystemVerilog 已通过，参数化 `scripts/compile_simlib.tcl`/`.ps1` 已成功生成 Logos2 USIM/VSIM；VSIM 编译退出 0、日志无 `^E:` 且库目录非空。
 
-2026-08-30 CI-7 入口分类确认全部 13 个 tracked Tcl 已登记。只有三个项目 `scripts/build.tcl` 通过 `run.ps1` 进入 `pds_shell`；三个入口当前均以 PG2L100H 为唯一目标，PCIe 因活动 IDF 仍带旧 PG2L50H metadata 而 migration-blocked。`impl.tcl`、parse-design screen、厂商 IP PNR 和单 IP 仿真脚本中的旧器件、混合目标或绝对路径只保留为历史/内部证据，不能用于当前器件、STA、网表、SDF、位流或集成仿真签核。
+CI-7 入口分类要求全部 tracked Tcl 完整登记。只有项目自有 `scripts/build.tcl` 可通过 `run.ps1` 进入 `pds_shell`；活动入口以 PG2L100H 为唯一目标，PCIe 因活动 IDF 仍带旧 PG2L50H metadata 而 migration-blocked。`impl.tcl`、parse-design screen、厂商 IP PNR 和单 IP 仿真脚本中的旧器件、混合目标或绝对路径只保留为历史/内部证据，不能用于当前器件、STA、网表、SDF、位流或集成仿真签核。
 
 2026-09-01 CI-9 同时覆盖当前树和 PR 差异：`-FullTree` 扫描 tracked/untracked 工作树，PR 模式依据 Git merge-base 扫描 changed paths 与 added lines。当前版本已将 68 个 tracked 日志中的 143 处许可证绝对路径替换为 `<license-path>`；全树和差异门禁均通过。门禁不读取实际配置，也不改写 Git 历史。
 
-DDR3、PCIe 和摄像头产品共用 `RK3568_MES2L100H`（FPGA + ARM）平台，FPGA 为 `PG2L100H-6IFBG484`，统一 PDS 目标为 `Logos2/PG2L100H/FBG484/-6`。摄像头产品目标为 OV5640；`41_ov7725_hdmi` 及其 O0/O1/O2/M3-A 只作 legacy。OV5640 按 C0 参考审计、C1 范围冻结、C2 项目边界、C3 PG2L100H 实现和 S3 四级仿真推进。
+DDR3、PCIe 和摄像头产品共用 `RK3568_MES2L100H`（FPGA + ARM）平台，FPGA 为 `PG2L100H-6IFBG484`，统一 PDS 目标为 `Logos2/PG2L100H/FBG484/-6`。摄像头产品目标为 OV5640，按 C0 参考审计、C1 范围冻结、C2 项目边界、C3 PG2L100H 实现和 S3 四级仿真推进。
 
 ## 板级一手资料与产品冻结边界
 
@@ -36,7 +36,7 @@ SCCB 7-bit 地址、RGB565 寄存器表、PCLK 采样边沿、字节序、宽高
 
 ModelSim/QuestaSim 分别承担行为级、综合后、PNR 后功能和 PNR 后时序仿真。USIM 用于 PNR 前原语，VSIM 用于 PNR 后原语；时序仿真还依赖正确层级的 SDF 标注。
 
-Questa Sim-64 2021.1、Logos2 USIM/VSIM、`V_BUF` 和 PCIe S2-A 受控 smoke 均保留历史通过证据。当前版本 S2-A/S2-B 静态门禁通过，但 S2-A 动态复验因仓库外许可证 checkout 失败返回 4，未产生新 PASS。DDR3 与 OV5640 仍缺项目级入口，OV7725 资产只作 legacy 参考；三个产品方向的真实网表/SDF 仿真仍待完成。
+Questa Sim-64 2021.1、Logos2 USIM/VSIM、`V_BUF` 和 PCIe S2-A 受控 smoke 均保留历史通过证据。当前版本 S2-A/S2-B 静态门禁通过，但 S2-A 动态复验因仓库外许可证 checkout 失败返回 4，未产生新 PASS。DDR3 与 OV5640 仍缺项目级入口，三个产品方向的真实网表/SDF 仿真仍待完成。
 
 ## 产品顶层与 IP 示例边界
 
@@ -65,8 +65,6 @@ DDR3 D2 已进一步固定该边界：厂商 `test_ddr`、持续运行 BIST 与�
 单比特电平、脉冲、多比特数据和 FIFO 指针需要不同跨时钟域策略。同步器降低亚稳态传播概率但不消除亚稳态；时序例外只能施加在结构已验证的 CDC 上。
 
 main 线的 DDR `core_clk`→PCIe `pclk_div2` MWR32 边界使用“同步控制 token + bundled-data MCP”，而不是逐位同步 payload。源 payload 从 request token 发出保持到 ACK 返回；online/fault 保持两级同步，request/ACK token 使用三级同步，确保 peer-offline 先于事务 token 到达事务逻辑；目标检测 token 后额外等待一拍再采样。placed-design 必须为 holding registers→capture registers 签核 max-delay/bus-skew，禁止把整条 payload 总线简单 false-path。RTL 行为通过不等价于 CDC/RDC/STA 签核。
-
-OV7725 的帧同步当前是长电平而非单周期脉冲，且 `wr_load`/`rd_load` 分别被多个逻辑独立采样。整改契约要求源域用 toggle 或握手表达事件，目标 `ui_clk` 域只同步一次、生成单周期事件后统一扇出，避免多同步器重汇聚。
 
 ## main OV5640 M2-A 图像处理
 
@@ -136,26 +134,6 @@ normalized MWR length 字段已从 DWORD-1 改为实际 DWORD 数，payload requ
 
 各时钟域应明确复位来源和释放方式。外部异步条件或其他时钟域状态直接释放复位会形成 recovery/removal 风险，应采用异步置位、同步释放或等效的经验证结构。
 
-OV7725 已确定 sys、I2C、camera、pixel 和 DDR UI 域需要各自的本地复位。O3-A 必须先将 `ddr3_init_done` 同步为 camera/pixel 域的状态与使能，O2-C1 才能解除它对其他域异步复位释放的直接控制并建立普通时钟域本地复位。
-
-O1-B 将高有效 reset 接入四个 serializer 内的八个 OSERDES 后，PDS 新报告 Slow Recovery `pixel_clk → pixel_clk_5x` `-0.643 ns / TNS -4.191 ns / 8/8`。O2-A 已确认 SP6.4 对同一 `RST` 同时建立 `OCLK/SERCLK=pixel_clk_5x` 与 `OCLKDIV=pixel_clk` 的 recovery/removal 检查，并将八个唯一 `opit_2/opit_2_com/OSR_IOLHR` endpoint 固定为验收集合。
-
-O2-B 已实现上述级联结构并完成 compile/七阶段实验，但 Slow Recovery 同时出现 `pixel_clk_5x → pixel_clk_5x -0.349 ns / 8/8` 和 `pixel_clk_5x → pixel_clk -2.173 ns / 8/8`，Fast Recovery 反向组仍为 `-1.464 ns / 8/8`。八个反向 endpoint 均为 OSERDES `OCLKDIV` 检查；方案已否决、RTL 已回退，baseline/gate 未放宽。
-
-历史 PG2L100H O2-D1 已否决动态 `GTP_IOCLKBUF` 门控，其 Liberty 没有 `DI` clock-gating check；O2-D1-G 曾收口出 `CLKOUT3=65.0026 MHz`、约 `+0.192 ns` 与本地 reset 复制候选。该结论必须在当前 PG2L100H IP/布局基线重新核验后，才能提请 O2-D2 审核。
-
-M3-A 进一步确认当前 IP 版本与 SP6.4 安装版本存在断层，`IPCompiler 0037/0057` 已否决旧 CLI override。当前允许路径是 SP6.4 在 PG2L100H 目标下新建版本实例并只写 staging；必须重新证明 DDR3 派生参数、PLL/FIFO 资源、RCF 对象命中、DDR3 组织和板级电气，未关闭前不得升格 canonical。
-
-O2-D1-R 已完成回退基线重建：七组失败精确复现，Slow/Fast `ddrphy_sysclk → pixel_clk` 均为 `53/53`，endpoint 分类为 read FIFO 控制 26、RAM reset 8、video driver 17、video display 1、原 DVI reset 同步器 1。O2-D1-G 已冻结 `/5` 奇数分频 waveform 和取点：必须显式且仅创建一个 `pixel_clk` generated clock，源为 PLL wrapper `u_pll_clk/clkout1`，目标为唯一 `GTP_IOCLKDIV_E2.CLKDIVOUT`，波形为 `-edges {1 5 11} -edge_shift {0 0 0}`，master 为唯一 `CLKOUT1_Inferred`，旧 `CLKOUT0_Inferred` 对 pixel 域零消费者，divider 不得接 post-buffer。
-
-O2-D1-G 的唯一控制器状态序列为 `HARD_HOLD → QUALIFY → ARM → SER_RELEASE → RUN`：`HARD_HOLD` 对 `!sys_rst_n || !pll_lock` 异步保持并清 divider、pixel/business、四路本地 serializer reset 和计数；`QUALIFY` 要求 4 个 control_clk 周期；`ARM` 释放 `/5`、同步释放 pixel reset、强制 encoder `CTRLTOKEN0` 条件并等待 3 个 pixel 周期；`SER_RELEASE` 在同步 `arm_req` 后下一个 control 周期清除四个本地 reset，驻留 2 个完整 control 周期；`RUN` 才撤销 encoder 强制。计数表示已完成周期且饱和，阈值统一用 `N-1`。
-
-复位分权固定为：sys_rst_n 下降或 pll_lock 丢失可异步回 HARD_HOLD；普通 video/business reset 只能撤销 RUN 并重新 warm-up，不得组合异步驱动 OSERDES 本地 reset；`ddr3_init_done` 不参与 hard reset、QUALIFY、ARM、OSERDES reset 或状态转移，后续仅作为同步业务 enable/status；FIFO reset/flush 独立归 O2-C2。首个有效 TMDS symbol 是 serializer reset 下降后首个 `OCLKDIV` 上升沿采入的四路同时确定完整 TMDS 并行字，不等同于首个活动像素；RUN 至少延后两个 control 周期确保其完整发送。
-
-审核后只允许一次 O2-D2；generated-clock 对象为 0/多对象、源计数非 1、自动/显式重名、waveform 不符、divider 接 post-buffer、八个 OSERDES endpoint 的 Slow/Fast Recovery/Removal 未全覆盖或为负、PDS/gate/产物失败、或出现新 baseline 失败签名，均立即停止并完整回退。禁止第二相位扫描、false path、multicycle、clock-group waiver 或放宽 baseline。
-
-两个厂商异步 FIFO 的 reset/flush 属于独立的 O2-C2，不与 O2-C1 的普通寄存器复位混批；帧事件 CDC 归 O3-B。O4 只有在 O2-C2 与 O3-B 都完成后才可进入约束和最终时序闭环。
-
 ## 时序闭环
 
 `All Constraints Met` 只覆盖已建模路径。验收还需检查未约束时钟、未约束关键 I/O、CDC 报告、setup/hold/recovery/removal、SDF 标注与板级接口假设。
@@ -164,15 +142,7 @@ O2-D1-G 的唯一控制器状态序列为 `HARD_HOLD → QUALIFY → ARM → SER
 
 GUI 原生工程目录中的日志、数据库和绝对路径脚本是历史证据，不是可移植构建入口。目标结构应以相对路径脚本和统一 `build/` 目录隔离生成物。
 
-OV7725 O1-B 已按该边界固定 16 个手写 RTL、4 个活动 IDF 和唯一顶层 FDC，在 SP6.4 下完成七阶段实现：进程退出 0、日志 `E: 0`、warning `4067`、critical `81`，五类产物均非零。严格 gate 返回 1；baseline 只有在七组 corner/check/clock pair/endpoints 精确匹配时返回 0，并继续标记不可发布。
-
 ## RTL 卫生与板级接口边界
-
-OV7725 O1-A 以 `RTL_HYGIENE_AUDIT.md` 固定手写 RTL 卫生契约，O1-B 已完成其中 38 条确定性修复：显式零扩展、定宽 tie-off、地址/长度编码、`rst_n` 声明、删除 `sys_init_done` 死网及 serializer reset 连接均已落地。
-
-serializer 接收高有效 reset；O1-B 已让该信号驱动四个 serializer 内共八个 OSERDES 的高有效 `RST`。O2-B 级联释放实验已由 STA 否决并回退，O2-D1-R 已证明当前仍精确复现旧七组失败基线；O2-D1-G 完成并经用户审核前不得启动新的 serializer RTL。
-
-`mem_a` 是板级接口冲突而非机械消警：活动 IP 为 14 bit，顶层/FDC 为 15 bit，当前综合网表将第 15 bit 绑 0。它必须等待 H3 板级 DDR3 事实并在 O1-C 独立处理；O1-B 不修改 `mem_a`、IP、FDC、CDC/RDC 或时序例外。
 
 ## VSCS 注释治理
 

@@ -33,13 +33,13 @@
 ## CI-2 板级证据清单完整性门禁（2026-08-30）
 
 - 已验证：提交 `677808d` 将三项目板级证据清单路径和项目关键词加入 `scripts/check_repo_consistency.ps1`，并要求各项目 README 直接链接对应清单。
-- 已验证：OV7725、DDR3、PCIe 清单均包含“当前工程事实”“必须提供的资料”“关闭条件”；PCIe 清单已统一章节名称和结构。
+- 已验证：DDR3、PCIe 清单均包含“当前工程事实”“必须提供的资料”“关闭条件”；PCIe 清单已统一章节名称和结构。
 - 已验证：HEAD `677808d` 上仓库一致性门禁退出码为 0，并输出 `INFO: repository consistency gate passed`。
 - 边界：CI-2 只证明清单结构、关键词和 README 链接完整，不证明清单中的板级资料已提交、审核或与实物一致。
 
 ## CI-3 项目 README 元数据完整性门禁（2026-08-30）
 
-- 已验证：提交 `5bfaae9` 扩展 `scripts/check_repo_consistency.ps1`，对 OV7725、DDR3、PCIe 三个项目 README 统一检查器件目标、顶层、时钟、主要接口、构建入口、IP/IDF 来源和当前阻断七类元数据。
+- 已验证：提交 `5bfaae9` 扩展 `scripts/check_repo_consistency.ps1`，对活动项目 README 统一检查器件目标、顶层、时钟、主要接口、构建入口、IP/IDF 来源和当前阻断七类元数据。
 - 已验证：当前 HEAD `5bfaae9` 上仓库一致性门禁退出码为 0，并输出 `INFO: repository consistency gate passed`。
 - 边界：CI-3 仅检查 README 中已有事实的可追溯表达和入口特征，不验证器件/板级参数是否真实或已审核，不替代 PDS、STA、SCBV、板级证据或四级仿真。
 
@@ -101,7 +101,7 @@
 | 项目 | PDS 实现证据 | 时序证据 | 行为仿真 | 综合后仿真 | PNR 功能仿真 | PNR 时序仿真 |
 |---|---|---|---|---|---|---|
 | main OV5640→PCIe | M3-A/M3-B 已形成板级无关采集→灰度→128-bit 内部字→两槽 word 短缓冲→4-byte staging→双时钟 CDC→双槽 allocation/DDR record→旧 50H 文件名 AW/W→AR/R 行为 adapters→异步 MWR32 mailbox→native/camera TX 仲裁；独立 adapter 已接入未修改完整 `ips2l_pcie_dma_tx_top` 并观察 AXIS 输出；全部相关行为切片仍待 PG2L100H IP/产品顶层复核，无 PDS/FDC/RCF/实现产物 | 固定 `cam_pclk` 源同步输入、一拍灰度处理、同域打包、短缓冲、ready/valid、公开用户口、单 outstanding bundled-data MCP、online/fault 两级同步、request/ACK token 三级同步和 `WAIT_ACK_LOW` 行为合同；PG2L100H placed-design max-delay/bus-skew、CDC/RDC/STA 未签核 | Questa 2021.1：write 221 ns、write path 196 ns、read 191 ns、mailbox 2296 ns、CDC arbiter→MWR TX 385 ns、完整 TX top adapter 385 ns、AW/W→AR/R→异步 mailbox→仲裁→MWR TX 1086 ns、双槽 4194 ns、MWR TX 隔离 136 ns、仲裁专项/集成 265/205 ns，均 0 error/0 warning、唯一 `TEST PASS`；这些旧文件名行为证据不批准 50H，且未执行真实 PG2L100H DDR3 IP、LTSSM、串行链路、产品顶层或 RK3568 主机内存闭环 | 未生成 | 未生成 | 未生成/未标注 |
-| OV5640 摄像头 HDMI | 产品目标已冻结为 OV5640；C0 参考审计和 C1 产品范围仍待完成 | C3 前无产品 STA；OV7725 旧时序只作 legacy 参考 | S3 项目级入口缺失 | 新产品网表尚未生成 | 新产品 PNR 网表尚未生成 | 新产品 SDF 尚未生成/标注 |
+| OV5640 摄像头 HDMI | 产品目标已冻结为 OV5640；C0 参考审计和 C1 产品范围仍待完成 | C3 前无产品 STA | S3 项目级入口缺失 | 新产品网表尚未生成 | 新产品 PNR 网表尚未生成 | 新产品 SDF 尚未生成/标注 |
 | DDR3 外层 | 当前活动输入目标为 PG2L100H；旧七阶段与五类产物仍需结合板级资料和 100H IP/FDC/RCF 重新核验，旧 50H staging 只作迁移阻断证据 | 现有 `All Constraints Met` 只保留为历史，PG2L100H 最终 STA 尚未签核 | D2/D3-0 旧契约已定，PG2L100H IP 核验或重生成后须重审；S1 项目级入口缺失 | 旧网表不可签核 | 旧 PNR 网表不可签核 | VSIM/SDF 未验证，现有结果不可签核 |
 | PCIe DMA | 项目 build/PDS/gate 当前目标为 PG2L100H；活动 IDF 仍错误为 PG2L50H，旧 50H 七阶段与产物只作历史证据，一致性门禁应失败 | 旧 50H STA 最差解析 slack `0.100 ns`，不得作为 PG2L100H 签核；严格 gate 仍受器件、板级和功能缺口阻断 | S2-A 受控 smoke 历史动态 PASS；不覆盖真实链路/DMA/板级 | 顶层未闭环 | PG2L100H 网表未生成/核验 | 公共 VSIM 已验证，项目 SDF 待重新生成和标注 |
 
@@ -323,8 +323,8 @@
 ## S1/S2/S3 仿真就绪度矩阵（2026-08-30）
 
 - 已验证盘点：`docs/SIMULATION_READINESS_MATRIX.md` 已逐项目记录项目级 testbench、filelist、DO、厂商示例和四级仿真前置条件；PCIe S2-A 已实际执行 Questa 动态 smoke。
-- DDR3 与 OV7725 的项目级资产仍为 `project_tb=0`、`project_f=0`、`project_do=0`。PCIe 已具备 1 个项目集成 TB、1 个受控边界模型、1 个行为 filelist 和 1 个 DO 入口，并已动态 PASS。
-- OV5640/S3：先完成 C0 参考审计与 C1 产品范围冻结，再由 C2/C3 建立新项目顶层、PG2L100H IP/约束和实现 baseline；OV7725 厂商示例与 O2/O3 结果只作 legacy 参考。
+- DDR3 与 OV5640 的项目级资产仍为 `project_tb=0`、`project_f=0`、`project_do=0`。PCIe 已具备 1 个项目集成 TB、1 个受控边界模型、1 个行为 filelist 和 1 个 DO 入口，并已动态 PASS。
+- OV5640/S3：先完成 C0 参考审计与 C1 产品范围冻结，再由 C2/C3 建立新项目顶层、PG2L100H IP/约束和实现 baseline。
 - DDR3/S1：现有厂商 `test_ddr`/memory-model 资产端口失配且含绝对路径与 FSDB/Verdi 假设。进入 S1 前必须关闭 S0-1、核验或重生成 PG2L100H DDR3 IP/FDC/RCF、完成 D3-A/B/C 与 D4，并提供项目自有有限 BIST/top 与自检 TB。
 - PCIe/S2：S2-A 已用项目级 `tb_pcie_dma_test` 实例化产品顶层，并以受控 `pcie_test` 边界动态验证顶层/复位/LED/未知态；现有 `pango_pcie_top` RC/EP testbench 仍不实例化产品顶层，只能在 S2-B 中作为真实 RC/编译顺序 oracle；S2-C 才验证 DMA。
 - 验收边界：`ipcore/`、`ip_core/`、`ip_backup/` 中的厂商示例只能作为参考证据，不能计入产品集成覆盖，也不能通过改名冒充项目自有 testbench。
@@ -352,12 +352,6 @@
 - OV5640 指南覆盖 DVP 参考位宽、RESETB/PWDN 极性、供电/电平风险、SCCB 上拉和参考上电时序；
   未覆盖实际模组排线、FPGA 接入管脚/Bank 电压、产品 RGB565 初始化表、极性/采样边沿或试拍结果。
 
-- OV7725：`41_ov7725_hdmi/doc/CDC_RDC_AUDIT.md` 已记录七类时钟域、`wr_load`/`rd_load` 多点采样、两个异步 FIFO 数据方向和分侧复位风险，以及三条旧 STA 失败路径。
-- OV7725：O1-B 已完成 38 条确定性 RTL 卫生修复，手写 RTL 位宽告警只剩 `mem_a` 1 条；该单项因活动 IP 14 bit 与顶层/FDC 15 bit 冲突继续转 H3/O1-C，当前综合网表把 `mem_a[14]` 绑 0。
-- OV7725：O2-B 详细 STA 将反向八个 endpoint 唯一映射到 `serializer_b/g/r/clk × opit_2/opit_2_com` 的 OSERDES `OCLKDIV` 检查；慢角高速同域 `OCLK` 也仍为负。该覆盖证明候选失败，不构成 serializer reset 通过证据。
-- OV7725：O2-D1-R 已从空 `build/` 完成七阶段，baseline gate 精确匹配原七组 corner/check/clock pair/endpoints 并返回 0，严格 gate 返回 1；Slow/Fast `ddrphy_sysclk → pixel_clk` Recovery 均恢复为 `53/53`，endpoint 分类为 `26+8+17+1+1`，没有新增失败签名或 waiver。O2-D1-G 现已冻结：只允许一条 `pixel_clk` `/5` generated clock，源 `u_pll_clk/clkout1`、目标唯一 `GTP_IOCLKDIV_E2.CLKDIVOUT`、波形 `-edges {1 5 11} -edge_shift {0 0 0}`，并使用 `HARD_HOLD → QUALIFY → ARM → SER_RELEASE → RUN` 状态契约；审核前不实现 O2-D2，QuestaSim/S3 未完成。
-- OV7725 M3-A：SP6.4 隔离探针已覆盖四个活动 IDF，确认不带安装定义时报 `IPCompiler 0037`，显式绑定当前定义时报版本不匹配 `IPCompiler 0057`，均退出 104。仓库门禁现检查历史迁移审计文档和四个活动 IDF 的 SHA-256；该覆盖只证明旧 IDF 不可直接迁移及活动输入未改，不指导生成 50H。
-- OV7725 M3-B 待覆盖：只允许在 SP6.4 GUI 中按 PG2L100H 新建或核验四个隔离实例，并验证 100H 派生参数、资源容量、wrapper/FDC/RCF/仿真资产差异和 RCF 对象命中；历史 `build/ipgen/pg2l50h/**` 路径及 50H 参数/资源门槛均为错误假设，不得执行。
 - DDR3：临时 `test_ddr` bring-up 已完成全流程与内部 STA/产物基线。严格 gate 因 7 类问题返回 1：BIST error-data 位宽不匹配、BIST dangling cleanup、`rst_board` 使用 share pin、BANKR4 VCCIO 3.3 不兼容、UART I/O 约束缺失、顶层输入 timing 缺失、顶层输出 timing 缺失。显式 baseline 放行返回 0，但明确标记不可发布。
 - DDR3 M2 只读审计（2026-08-30）：活动 IDF 为 `ip_core/ddr3/ddr3.idf`，metadata `Logos2/PG2L100H/FBG484/-6`、生成器 `2022.2-SP6.4`；canonical FDC/RCF 为 `ip_core/ddr3/pnr/ddr_test.fdc` 与 `ip_core/ddr3/pnr/ddr3.rcf`。唯一 PG2L50H 备份来自 SP6.1，是旧产物，只能用于差异参考，不能替换或指导生成。
 - DDR3 M2-B1 历史参数覆盖（2026-08-30）：PDS SP6.4 `ui.tcl` 静态证据确认 `DEVICE_100H_EN` 是隐藏派生参数，`PG2L100H/HX=true`、`PG2L50H=false`；错误探针证明直接 `-device PG2L50H` 覆盖 100H IDF 会保留不一致值并生成错误分支，该 50H 路径已禁止。

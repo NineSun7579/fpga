@@ -57,7 +57,7 @@
       "implementation_status": "documented",
       "code_path": null,
       "evidence_path": "README.md",
-      "evidence_gap": "Questa Sim-64 2021.1、Logos2 USIM/VSIM、V_BUF 和 PCIe S2-A 保留历史通过证据；当前 S2-A/S2-B 静态门禁通过，但动态复验因仓库外许可证 checkout 失败返回 4，未产生新 PASS。摄像头产品目标为 OV5640，C0/C1/C2/C3/S3 尚未完成；OV7725 只作 legacy。",
+      "evidence_gap": "Questa Sim-64 2021.1、Logos2 USIM/VSIM、V_BUF 和 PCIe S2-A 保留历史通过证据；当前 S2-A/S2-B 静态门禁通过，但动态复验因仓库外许可证 checkout 失败返回 4，未产生新 PASS。摄像头产品目标为 OV5640，C0/C1/C2/C3/S3 尚未完成。",
       "s0_environment_review": {
         "date": "2026-09-01",
         "historical_review_date": "2026-08-30",
@@ -100,7 +100,6 @@
         "powershell_script_count": 7,
         "powershell_ast_errors": 0,
         "readme_gaps_fixed": [
-          "41_ov7725_hdmi/README.md PDS version and top module",
           "ddr3_test/ddr3_test/README.md PDS version and simulation status",
           "pcie_dma_test_100h/README.md PDS version"
         ],
@@ -113,7 +112,6 @@
         "script": "scripts/check_repo_consistency.ps1",
         "exit_code": 0,
         "projects": {
-          "OV7725 HDMI legacy": {"checklist": "41_ov7725_hdmi/doc/BOARD_EVIDENCE.md", "readme": "41_ov7725_hdmi/README.md", "keywords": ["OV7725", "legacy", "HDMI"]},
           "DDR3 bring-up": {"checklist": "ddr3_test/ddr3_test/doc/BOARD_EVIDENCE.md", "readme": "ddr3_test/ddr3_test/README.md", "keywords": ["DDR3", "test_ddr"]},
           "PCIe DMA": {"checklist": "pcie_dma_test_100h/doc/PCIE_BOARD_EVIDENCE.md", "readme": "pcie_dma_test_100h/README.md", "keywords": ["PCIe", "H2-A"]}
         },
@@ -128,7 +126,7 @@
         "script": "scripts/check_repo_consistency.ps1",
         "exit_code": 0,
         "required_fields": ["device target", "top module", "clock summary", "interface summary", "build command", "IP/IDF source", "known blockers"],
-        "projects": ["OV7725 HDMI", "DDR3 bring-up", "PCIe DMA"],
+        "projects": ["DDR3 bring-up", "PCIe DMA"],
         "boundary": "static README traceability only; does not validate hardware truth or close implementation and simulation blockers"
       },
       "ci_4_pds_build_gate_contract": {
@@ -140,7 +138,7 @@
         "head_commit_count": 44,
         "run_requirements": ["PDS process exit-code check", "^E: error-record check", "stage completion handling"],
         "check_build_requirements": ["stage or final-build entry", "timing summary/gate", "throw failure path", "non-empty artifact check", "AllowKnownBaselineIssues switch"],
-        "projects": ["OV7725 HDMI", "DDR3 bring-up", "PCIe DMA"],
+        "projects": ["DDR3 bring-up", "PCIe DMA"],
         "boundary": "static gate-contract presence only; does not execute or replace PDS, STA, bitstream generation, strict project gates or external simulation; baseline remains non-release"
       },
       "ci_5_powershell_ast_gate": {
@@ -210,7 +208,6 @@
           "M0": "approved and documented on 2026-09-04: RK3568_MES2L100H with PG2L100H-6IFBG484 is the only current board/device fact",
           "M1": "project-owned PCIe build/PDS/gate now require PG2L100H; active PG2L50H IDF is migration-blocked pending SP6.4 regeneration and a new clean build provenance",
           "M2": "in progress: audit or regenerate PG2L100H DDR3 IP/FDC/RCF in isolated staging; board review, canonical promotion, CI-6, clean rebuild and D3-0-R remain before D3-A",
-          "M3": "legacy only: OV7725 migration audit remains historical evidence and does not authorize the OV5640 product",
           "C0/C1/C2/C3/S3": "OV5640 product path: reference audit, scope freeze, project boundary, PG2L100H implementation and four-level simulation"
         }
       },
@@ -237,25 +234,6 @@
         "evidence_update_commit": "11dfcc2",
         "date": "2026-08-30",
         "checklists": {
-          "ov7725_hdmi": {
-            "path": "41_ov7725_hdmi/doc/BOARD_EVIDENCE.md",
-            "readme_path": "41_ov7725_hdmi/README.md",
-            "readme_linked": true,
-            "blocked_workstreams": ["H0", "H3"],
-            "confirmed_conflict": {
-              "active_idf_path": "41_ov7725_hdmi/prj/ipcore/ddr3_ip/ddr3_ip.idf",
-              "idf_generator_version": "2022.2-SP4.2",
-              "active_idf_address_widths": {
-                "MEM_ADDR_WIDTH": 14,
-                "DDR3_MEM_ROW_WIDTH": 14,
-                "MEM_ROW_WIDTH": 14
-              },
-              "handwritten_top_mem_a_width": 15,
-              "fdc_mem_a_width": 15,
-              "status": "blocked_h3_o1c",
-              "decision_boundary": "DDR3 part and schematic must decide the final width; do not narrow from FDC alone"
-            }
-          },
           "ddr3_bringup": {
             "path": "ddr3_test/ddr3_test/doc/BOARD_EVIDENCE.md",
             "readme_path": "ddr3_test/ddr3_test/README.md",
@@ -279,7 +257,6 @@
         },
         "h0_status": "blocked_external",
         "h1_status": "blocked_external",
-        "h3_status": "blocked_external",
         "boundary": "documentation and README collection entries only; required board evidence is still missing"
       },
       "queue_status": "pcie_revalidation_m2_and_ov5640_c0_c1_next",
@@ -304,15 +281,13 @@
       "implementation_status": "scope_documented_reference_audit_pending",
       "code_path": null,
       "evidence_path": "docs/OV5640_TARGET_SCOPE.md",
-      "board": "RK3568+PG2L50H100H",
-      "physical_fpga": "PG2L50H-6IFBG484",
-      "legacy_reference": "41_ov7725_hdmi",
-      "legacy_boundary": "OV7725 O0/O1/O2/M3-A evidence must not be renamed or counted as OV5640 implementation or acceptance",
+      "board": "RK3568_MES2L100H",
+      "physical_fpga": "PG2L100H-6IFBG484",
       "phases": {
         "C0": "read-only reference-project audit in staging; enumerate sources, IP, constraints, top, device metadata and absolute paths without canonical overwrite",
         "C1": "freeze single/dual camera scope, module part, MCLK, RESET/PWDN, I/O voltage, pins, DVP width/polarity, format, resolution, frame rate and byte order",
         "C2": "design a new project directory and top with OV5640 SCCB/configuration, sensor-ID self-check, capture, DDR3 frame buffer and HDMI boundaries",
-        "C3": "review or regenerate all IP and constraints for Logos2/PG2L50H/FBG484/-6, then run seven PDS stages and the strict gate",
+        "C3": "review or regenerate all IP and constraints for Logos2/PG2L100H/FBG484/-6, then run seven PDS stages and the strict gate",
         "S3": "project-owned self-checking behavior, post-synthesis, post-PNR functional and SDF timing simulations"
       },
       "current_blockers": ["reference project not imported and audited", "camera module and interface facts not frozen", "new project/top not designed", "current dynamic license checkout unavailable"],
@@ -855,201 +830,6 @@
       "hotspot": true
     },
     {
-      "id": "ov7725-hdmi-system",
-      "type": "System",
-      "label": "OV7725 HDMI Legacy 顶层",
-      "responsibility": "保存 OV7725 采集、DDR3 帧缓存与 HDMI/TMDS 的历史实现和问题证据，供 OV5640 C2 选择性参考。",
-      "implementation_status": "legacy_evidence_with_timing_failures",
-      "code_path": "41_ov7725_hdmi/rtl/",
-      "evidence_path": "41_ov7725_hdmi/doc/M3A_IP_MIGRATION_AUDIT.md",
-      "evidence_gap": "M3-A、O1-B、O2-B/O2-D1 和旧 PDS/STA 结果只属于 OV7725 legacy；不得直接继承为 OV5640 产品实现、板级签核或 S3 结果。",
-      "m3a_ip_migration_audit": {
-        "status": "documented_staging_blocked",
-        "active_target": "Logos2/PG2L100H/FBG484/-6, PDS SP4.2 build 132111",
-        "approved_target": "Logos2/PG2L100H/FBG484/-6, PDS SP6.4",
-        "version_gaps": {
-          "ddr3_ip": {"active": "1.12", "installed": "1.10"},
-          "pll_clk": {"active": "1.3", "installed": "1.5"},
-          "rd_fifo": {"active": "1.8", "installed": "1.10"},
-          "wr_fifo": {"active": "1.8", "installed": "1.10"}
-        },
-        "probe_failures": ["IPCompiler 0037", "IPCompiler 0057"],
-        "approved_generation_path": "SP6.4 IP Compiler GUI new-instance only; output only to 41_ov7725_hdmi/build/ipgen/pg2l50h/**",
-        "derived_parameter_gates": {"DEVICE_100H_EN": false, "DEVICE_PG2L50H": true},
-        "fifo_pg2l50h_limits": {"DRM36K": 85, "DRM18K": 170},
-        "rcf_status": "legacy hierarchy mismatch; historical processing hit zero nets; explicit load and object hit remain unproven",
-        "canonical_hash_gate": true,
-        "promotion_blockers": ["DDR3 part and x16/x32 organization", "row14 versus row15", "byte lanes and pinout", "VCCIO/VREF/ODT", "wrapper/FDC/RCF/clock-object diff review", "PG2L50H clean baseline"]
-      },
-      "tech_stack": ["Verilog", "Pango Logos2", "DDR3", "TMDS"],
-      "related_reqs": ["逐域复位", "单点事件同步", "FIFO 分侧复位", "结构后精确例外", "O1-B complete", "M3-A complete", "O2-A/O2-B rejected/O2-D1/O2-D2/O3-A/O2-C1/O2-C2/O3-B/O4", "H3/O1-C mem_a"],
-      "complexity": "high",
-      "hotspot": true
-    },
-    {
-      "id": "ov7725-rtl-hygiene-audit",
-      "type": "Domain",
-      "label": "OV7725 RTL 卫生修复契约",
-      "responsibility": "将 SP6.4 的 39 条手写 RTL 位宽告警、隐式网络与 serializer reset 归属为可审核的最小修改，并隔离 mem_a 板级冲突。",
-      "implementation_status": "implemented_validated_non_release",
-      "code_path": "41_ov7725_hdmi/rtl/",
-      "evidence_path": "41_ov7725_hdmi/doc/RTL_HYGIENE_AUDIT.md",
-      "evidence_gap": "O1-B 的 38 条修复和 O2 实验只属于 OV7725 legacy；这些结果可供 OV5640 C2 审核参考，但不构成 OV5640 RTL、S3 或板级验收。",
-      "warning_groups": {
-        "i2c": 1,
-        "axi_adapter": 4,
-        "ddr3_ip_boundary": 26,
-        "top_parameters": 6,
-        "oserdes_reset": 2,
-        "total": 39,
-        "deterministic_fixes": 38,
-        "board_blocked": 1
-      },
-      "o1b_result": {
-        "remaining_handwritten_width_warnings": 1,
-        "remaining_warning": "ddr3_ip.mem_a",
-        "pds_exit_code": 0,
-        "pds_error_records": 0,
-        "warnings": 4067,
-        "critical_warnings": 81,
-        "strict_gate_exit_code": 1,
-        "baseline_gate_exit_code": 0,
-        "baseline_failure_groups": 7,
-        "baseline_failures": [
-          {"corner": "slow", "check": "setup", "launch_clock": "pixel_clk", "capture_clock": "ddrphy_sysclk", "failing_endpoints": 20, "total_endpoints": 20},
-          {"corner": "slow", "check": "setup", "launch_clock": "ddrphy_sysclk", "capture_clock": "pixel_clk", "failing_endpoints": 11, "total_endpoints": 11},
-          {"corner": "slow", "check": "recovery", "launch_clock": "pixel_clk", "capture_clock": "pixel_clk_5x", "failing_endpoints": 8, "total_endpoints": 8},
-          {"corner": "slow", "check": "recovery", "launch_clock": "ddrphy_sysclk", "capture_clock": "pixel_clk", "failing_endpoints": 53, "total_endpoints": 53},
-          {"corner": "fast", "check": "setup", "launch_clock": "pixel_clk", "capture_clock": "ddrphy_sysclk", "failing_endpoints": 20, "total_endpoints": 20},
-          {"corner": "fast", "check": "setup", "launch_clock": "ddrphy_sysclk", "capture_clock": "pixel_clk", "failing_endpoints": 11, "total_endpoints": 11},
-          {"corner": "fast", "check": "recovery", "launch_clock": "ddrphy_sysclk", "capture_clock": "pixel_clk", "failing_endpoints": 53, "total_endpoints": 53}
-        ],
-        "release_ready": false,
-        "artifacts_bytes": {
-          "synthesis_netlist": 6873482,
-          "pnr_netlist": 11604756,
-          "sdf": 8898464,
-          "sbit": 3791112,
-          "bin": 3789476
-        }
-      },
-      "new_rdc_finding": {
-        "corner": "slow",
-        "check": "recovery",
-        "launch_clock": "pixel_clk",
-        "capture_clock": "pixel_clk_5x",
-        "wns_ns": -0.643,
-        "tns_ns": -4.191,
-        "failing_endpoints": 8,
-        "total_endpoints": 8,
-        "endpoint_scope": "four serializers, eight OSERDES",
-        "next_steps": ["user review", "O2-D2 single attempt", "H3 board evidence", "O1-C", "O3-A", "O2-C1", "O2-C2", "O3-B", "O4"]
-      },
-      "decisions": [
-        "显式声明 rst_n",
-        "删除无消费者 sys_init_done",
-        "高有效 reset 驱动四个 serializer 内的八个 OSERDES",
-        "mem_a 从 O1-B 排除并转 H3/O1-C",
-        "O1-B 不修改 IP、FDC、CDC/RDC"
-      ],
-      "tech_stack": ["Verilog-2001", "PDS SP6.4 elaboration", "DDR3 IP", "GTP_OSERDES_E2"],
-      "related_reqs": ["O1-A complete", "O1-B complete", "O2-A/O2-B rejected/O2-D1/O2-D2/O3-A/O2-C1/O2-C2/O3-B/O4", "H3/O1-C", "VSCS"],
-      "complexity": "medium",
-      "hotspot": true
-    },
-    {
-      "id": "ov7725-cdc-rdc-audit",
-      "type": "Domain",
-      "label": "OV7725 CDC/RDC 审计契约",
-      "responsibility": "记录 sys、i2c_dri、cam、pixel、pixel_5x、ref/clk50、ui 时钟域，帧事件与 FIFO 跨域事实，以及逐域复位和精确例外决策。",
-      "implementation_status": "documented",
-      "code_path": null,
-      "evidence_path": "41_ov7725_hdmi/doc/CDC_RDC_AUDIT.md",
-      "evidence_gap": "O2-B/O2-D1-R/O2-D1-G 只保留为 OV7725 legacy 的 CDC/RDC 与 serializer 证据；OV5640 是否采用相关结构必须在 C2 重新审核。",
-      "o2a_serializer_reset_contract": {
-        "status": "complete_read_only",
-        "evidence_path": "41_ov7725_hdmi/doc/SERIALIZER_RESET_CONTRACT.md",
-        "release_scheme": "existing pixel_clk two-stage reset followed by pixel_clk_5x two-stage synchronized release",
-        "endpoint_count": 8,
-        "endpoints": [
-          "serializer_b/GTP_OUTBUFDS_data_lane/opit_2/OSR_IOLHR",
-          "serializer_b/GTP_OUTBUFDS_data_lane/opit_2_com/OSR_IOLHR",
-          "serializer_g/GTP_OUTBUFDS_data_lane/opit_2/OSR_IOLHR",
-          "serializer_g/GTP_OUTBUFDS_data_lane/opit_2_com/OSR_IOLHR",
-          "serializer_r/GTP_OUTBUFDS_data_lane/opit_2/OSR_IOLHR",
-          "serializer_r/GTP_OUTBUFDS_data_lane/opit_2_com/OSR_IOLHR",
-          "serializer_clk/GTP_OUTBUFDS_data_lane/opit_2/OSR_IOLHR",
-          "serializer_clk/GTP_OUTBUFDS_data_lane/opit_2_com/OSR_IOLHR"
-        ],
-        "prohibited_acceptance_shortcuts": ["false_path", "multicycle", "clock_group_waiver", "new_baseline_failure"],
-        "pds_rerun_completed": true,
-        "questa_completed": false
-      },
-      "o2b_experiment": {
-        "status": "rejected_rolled_back",
-        "compile_completed": true,
-        "seven_stage_pds_completed": true,
-        "pds_error_records": 0,
-        "rtl_rolled_back": true,
-        "gate_relaxed": false,
-        "baseline_failure_groups": 7,
-        "slow_recovery": [
-          {"launch_clock": "pixel_clk_5x", "capture_clock": "pixel_clk_5x", "wns_ns": -0.349, "failing_endpoints": 8, "total_endpoints": 8},
-          {"launch_clock": "pixel_clk", "capture_clock": "pixel_clk_5x", "wns_ns": 1.111, "failing_endpoints": 0, "total_endpoints": 1},
-          {"launch_clock": "pixel_clk_5x", "capture_clock": "pixel_clk", "wns_ns": -2.173, "failing_endpoints": 8, "total_endpoints": 8}
-        ],
-        "fast_reverse_recovery": {"launch_clock": "pixel_clk_5x", "capture_clock": "pixel_clk", "wns_ns": -1.464, "failing_endpoints": 8, "total_endpoints": 8},
-        "reverse_endpoint_scope": "serializer_b/g/r/clk x opit_2/opit_2_com OSERDES OCLKDIV",
-        "next_phase": "O2-D1-G contract complete; pending user review before one O2-D2 attempt"
-      },
-      "o2d1_architecture_decision": {
-        "status": "contract_frozen_pending_implementation",
-        "dynamic_ioclkbuf_gating": "rejected",
-        "gating_rejection_reason": "SP6.4 PG2L100H Liberty has no DI clock-gating check and cannot statically prove stop-reset-release-restart ordering",
-        "only_candidate": {
-          "control_clock": "PLL CLKOUT3",
-          "frequency_mhz": 65.0026,
-          "phase_offset_ns": 0.192,
-          "pll_parameters": {"STATIC_RATIO3": 10, "STATIC_CPHASE3": 0, "STATIC_PHASE3": 1},
-          "reset_topology": "one local reset register copy per serializer",
-          "validated": false
-        },
-        "o2d1_r": "complete: rebuilt the rolled-back seven-group baseline; Slow/Fast ddrphy_sysclk to pixel_clk are 53/53 with endpoint classes 26+8+17+1+1",
-        "o2d1_g": {
-          "status": "contract_frozen",
-          "generated_clock": {
-            "name": "pixel_clk",
-            "count": 1,
-            "source_pin": "u_pll_clk/clkout1",
-            "target_pin": "唯一 GTP_IOCLKDIV_E2.CLKDIVOUT primitive pin",
-            "waveform": "-edges {1 5 11} -edge_shift {0 0 0}",
-            "expected_period_ns": 15.380,
-            "expected_high_ns": 6.152,
-            "master_clock": "唯一 CLKOUT1_Inferred",
-            "old_clkout0_pixel_consumers": 0,
-            "divider_post_buffer": false
-          },
-          "control_clock": "PLL CLKOUT3, 65.0026 MHz, approximately +0.192 ns phase",
-          "states": ["HARD_HOLD", "QUALIFY", "ARM", "SER_RELEASE", "RUN"],
-          "cycle_thresholds": {"qualify_control_cycles": 4, "encoder_warmup_pixel_cycles": 3, "serializer_fill_control_cycles": 2, "counter_semantics": "completed cycles, saturating, compare N-1"},
-          "reset_ownership": {
-            "hard_reset_condition": "!sys_rst_n || !pll_lock",
-            "hard_reset_targets": ["divider reset", "pixel/business reset", "four local serializer reset registers", "controller counter"],
-            "business_reset": "exit RUN and re-warm up; never asynchronously or combinationally drive OSERDES local reset",
-            "ddr3_init_done": "excluded from hard reset, QUALIFY, ARM, OSERDES reset and state transitions; later synchronized as business enable/status",
-            "fifo_reset_flush": "reserved for O2-C2"
-          },
-          "first_valid_tmds_symbol": "first OCLKDIV rising edge after serializer reset deassertion that captures a simultaneously determined complete TMDS parallel word across all four lanes; not the first active video pixel; RUN is delayed at least two control cycles",
-          "stop_conditions": ["generated-clock object resolves to zero or multiple objects", "source count is not one", "automatic/explicit clock name collision", "waveform mismatch", "divider connected to post-buffer", "any required Slow/Fast Recovery or Removal endpoint missing or negative", "new baseline failure signature", "PDS/gate/artifact failure" ]
-        },
-        "o2d2_policy": "one user-approved implementation attempt; rollback on any stop condition; no second phase scan or waiver"
-      },
-      "tech_stack": ["Verilog", "PDS STA", "CDC", "RDC"],
-      "related_reqs": ["O1-A", "逐域复位", "事件不丢不重", "FIFO reset/flush"],
-      "complexity": "high",
-      "hotspot": true
-    },
-    {
       "id": "ddr3-outer-project",
       "type": "System",
       "label": "DDR3 外层工程（PG2L100H）",
@@ -1314,7 +1094,7 @@
           "strict_gate_exit_code": 1,
           "interpretation": "historical PG2L50H inputs reproduced an obsolete non-release baseline; no current PG2L100H build evidence"
         },
-        "ci8b_boundary": "DDR3 and OV7725 proceed only after PG2L100H staging audit and canonical promotion; audit each source list and artifact layout independently before considering shared modules."
+        "ci8b_boundary": "DDR3 and OV5640 proceed only after PG2L100H staging audit and canonical promotion; audit each source list and artifact layout independently before considering shared modules."
       },
       "s2a_behavior_smoke": {
         "date": "2026-09-01",
@@ -1389,7 +1169,7 @@
           "script": "scripts/check_repo_consistency.ps1",
           "checks": [
             "simulation readiness matrix exists",
-            "matrix contains OV5640 camera HDMI, DDR3 and PCIe while preserving OV7725 as legacy",
+            "matrix contains OV5640 camera HDMI, DDR3 and PCIe",
             "matrix independently contains S1 DDR3",
             "matrix independently contains S2 PCIe",
             "matrix independently contains S3 OV5640",
@@ -1414,19 +1194,14 @@
             "project_level_tb_count": 0,
             "project_level_filelist_count": 0,
             "project_level_do_count": 0,
-            "legacy_reference_assets": [
-              "41_ov7725_hdmi/prj/ipcore/ddr3_ip/example_design/bench/",
-              "41_ov7725_hdmi/prj/ipcore/** PLL/FIFO example benches"
-            ],
             "prerequisites": [
               "C0 reference audit",
               "C1 product scope freeze",
               "C2 new project and top boundary",
-              "C3 PG2L50H implementation",
+              "C3 PG2L100H implementation",
               "external license checkout recovery",
               "project-level OV5640 camera/frame-buffer/HDMI integration testbench"
-            ],
-            "legacy_boundary": "OV7725 assets are reference-only and do not count as OV5640 coverage"
+            ]
           },
           "ddr3": {
             "suite": "S1",
@@ -1872,30 +1647,6 @@
       "description": "该顶层不实例化 PG2L50H DDR3/PCIe IP，不证明真实地址、链路、RK3568 DMA/主机接收或板级时序。"
     },
     {
-      "source": "ov7725-hdmi-system",
-      "target": "ov5640-camera-hdmi-target",
-      "type": "legacy_reference_for",
-      "description": "OV7725 只提供历史问题与结构参考；C2 审核前不得直接继承为 OV5640 产品。"
-    },
-    {
-      "source": "ov7725-hdmi-system",
-      "target": "pds-workflow-guide",
-      "type": "built_by",
-      "description": "OV7725 legacy 顶层保留原 PDS 与仿真事实，不再作为摄像头产品主线。"
-    },
-    {
-      "source": "ov7725-cdc-rdc-audit",
-      "target": "ov7725-hdmi-system",
-      "type": "governs_future_changes",
-      "description": "旧 PG2L100H O2-B/O2-D1-R/O2-D1-G 仅保留为 OV7725 legacy；OV5640 C2 必须重新审核结构适用性。"
-    },
-    {
-      "source": "ov7725-rtl-hygiene-audit",
-      "target": "ov7725-hdmi-system",
-      "type": "records_completed_change",
-      "description": "O1-B 手写 RTL 修复保留为 legacy；不得把旧 PG2L100H STA、位流或模块名迁移视为 OV5640 产品证据。"
-    },
-    {
       "source": "ddr3-outer-project",
       "target": "ddr3-ip-example",
       "type": "depends_on",
@@ -1941,7 +1692,7 @@
       "source": "main-ov5640-pcie-board-evidence",
       "target": "ddr3-outer-project",
       "type": "provides_physical_mapping",
-      "description": "提供 DDR3 颗粒、x16/512 MByte 和物理管脚表证据；仍需正式颗粒手册、IP 用户口和审核后的 PG2L50H RCF/FDC。"
+      "description": "提供 DDR3 颗粒、x16/512 MByte 和物理管脚表证据；仍需正式颗粒手册、IP 用户口和审核后的 PG2L100H RCF/FDC。"
     },
     {
       "source": "main-ov5640-pcie-board-evidence",
@@ -1953,7 +1704,7 @@
       "source": "external-simulation-suite",
       "target": "ov5640-camera-hdmi-target",
       "type": "tests",
-      "description": "S3 计划覆盖 OV5640 项目自有顶层的四级仿真；OV7725 示例不计入产品覆盖。"
+      "description": "S3 计划覆盖 OV5640 项目自有顶层的四级仿真。"
     },
     {
       "source": "external-simulation-suite",
@@ -1978,12 +1729,6 @@
       "target": "ov5640-camera-hdmi-target",
       "type": "governs_future_changes",
       "description": "C2/C3/S3 新增的 OV5640 手写 RTL/TB 必须遵循 VSCS；legacy 与厂商生成文件不批量改写。"
-    },
-    {
-      "source": "vscs-commenting-standard",
-      "target": "ov7725-hdmi-system",
-      "type": "governs_future_changes",
-      "description": "后续手写 OV7725 RTL/TB 需遵循 VSCS。"
     },
     {
       "source": "vscs-commenting-standard",
@@ -2014,7 +1759,7 @@
       "S0-1 is complete: the parameterized simulation-library entry compiled Logos2 USIM/VSIM and the minimal V_BUF post-primitive smoke passed.",
       "No HDL/raw source AST extraction was run; CI-0 PowerShell syntax parsing is recorded separately.",
       "Questa Sim-64 2021.1 tools, Logos2 USIM/VSIM, V_BUF and the historical PCIe S2-A smoke are verified; the current dynamic revalidation exits 4 on external license checkout and has no new PASS.",
-      "The camera product is OV5640. OV7725 evidence is legacy-only; C0/C1/C2/C3/S3 remain incomplete. CI-9 FullTree protects the current version after replacing 143 machine-local license references in 68 tracked logs, while Git history remains unchanged."
+      "The camera product is OV5640; C0/C1/C2/C3/S3 remain incomplete. CI-9 FullTree protects the current version after replacing 143 machine-local license references in 68 tracked logs, while Git history remains unchanged."
     ]
   }
 }
