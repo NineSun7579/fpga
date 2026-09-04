@@ -6,7 +6,7 @@
 
 ## 结论
 
-DDR3 与摄像头 HDMI 当前仍没有面向项目集成顶层的仿真入口。现有摄像头资产属于 OV7725 legacy，产品目标已校正为 OV5640，当前平台为 `RK3568_MES2L100H / PG2L100H-6IFBG484`，必须先完成 C0/C1 再设计项目 TB。Questa Sim-64 `2021.1`、最小 SystemVerilog smoke、Logos2 USIM/VSIM 和 `V_BUF` 原语 smoke 均有历史通过证据，许可证配置保持在仓库外部。PCIe S2-A 历史动态已完成项目级受控行为 smoke：RTL 编译 0 errors/0 warnings，elaboration 成功，仿真运行到 `1476105 ns`，同一 run marker、唯一 `TEST PASS` 和 PowerShell 退出码 0 均通过；2026-09-01 当前复验的环境检查和 S2-A/S2-B 静态门禁通过，但动态启动因外部许可证 checkout 失败返回 4，必须在恢复后产生新 run id。S2-B 仍只有静态入口，三个项目的后级网表和 SDF 动态仿真仍待完成。
+当前产品主线是 `main_ov5640_pcie` 的 OV5640→DDR3→PCIe 数据通路，平台为 `RK3568_MES2L100H / PG2L100H-6IFBG484`。该主线已有项目自有行为级回归，但尚未接入真实 PG2L100H DDR3 IP、完整 PCIe Endpoint、链路和 RK3568 主机协议。Questa Sim-64 `2021.1`、最小 SystemVerilog smoke、Logos2 USIM/VSIM 和 `V_BUF` 原语 smoke 均有历史通过证据，许可证配置保持在仓库外部。PCIe S2-A 历史动态已完成项目级受控行为 smoke；2026-09-01 复验的环境检查和 S2-A/S2-B 静态门禁通过，但动态启动因外部许可证 checkout 失败返回 4，必须在恢复后产生新 run id。后级网表和 SDF 动态仿真仍待完成。
 
 项目级仿真必须新增相对路径的 filelist、DO 脚本和自检 testbench；不得批量修改 `ipcore/`、`ip_core/`、`ip_backup/` 下的厂商生成文件，也不得把厂商示例顶层改名后冒充集成验证。
 
@@ -14,30 +14,29 @@ DDR3 与摄像头 HDMI 当前仍没有面向项目集成顶层的仿真入口。
 
 | 项目 | 项目级 TB | 项目级 `.f/.do` | 厂商示例资产 | 当前最高阻断 | 进入动态仿真的前置 |
 |---|---:|---:|---|---|---|
-| 摄像头 HDMI（OV5640 目标） | 无 | 无 | OV7725 legacy 的 DDR3、PLL、FIFO 示例 | 参考工程未导入、产品范围未冻结、无集成 TB | C0/C1、OV5640 输入契约和新项目边界 |
+| OV5640→DDR3→PCIe | 多个行为级自检 TB | 项目自有 PowerShell/Questa 入口 | vendor-independent DDR3/PCIe 行为模型 | PG2L100H IP、产品顶层、链路与主机协议未闭合 | C0/C1、100H IP/FDC、产品级集成 |
 | DDR3 | 无 | 无 | DDR3 `test_ddr`/memory model 示例 | 旧 TB 端口失配 | D3-A/B/C 项目自有 BIST/top |
 | PCIe DMA | S2-A 受控 TB；S2-B 真实 RC/EP TB | `behav.f/run_behav.do`；`link.f/run_link.do` | `pango_pcie_top` RC/EP 示例 | S2-B 动态、DMA、H2-B1；S2-A 有 2 条 RTL hygiene warning | 运行 S2-B 真实链路；再进入 S2-C DMA |
 
-## 摄像头 HDMI：OV7725 legacy 与 OV5640 目标
+## OV5640→DDR3→PCIe
 
 ### 已发现资产
 
-- legacy 设计顶层为 `41_ov7725_hdmi/rtl/ov7725_hdmi.v`，不能改名冒充 OV5640。
 - owner 指定的 `59_top_dual_ov5640_hdmi` 参考工程尚未导入仓库，当前不能审核其源码和约束。
-- 活动 IP 示例位于 `41_ov7725_hdmi/prj/ipcore/ddr3_ip/example_design/bench/`，并配有 `sim/modelsim/sim_file_list.f` 与 `sim/modelsim/ctrl_phy_sim.tcl`。
-- `prj/ipcore/` 下还存在 PLL、FIFO 的厂商示例 testbench，但它们只验证单个 IP，不覆盖 `ov7725_hdmi` 集成数据通路。
+- `main_ov5640_pcie/rtl/` 已形成 DVP 采集、图像处理、DDR3 记录/帧提交和 PCIe MWR 请求路径。
+- `main_ov5640_pcie/tb/` 与 `scripts/run_m3b_*.ps1` 已提供项目自有行为级自检入口。
 
 ### 缺口与风险
 
-- 没有项目级 `sim/`、`tb/`、行为级 DO 或门级 SDF 入口。
-- DDR3 示例 filelist 面向 `ddr3_test_top_tb`/`test_ddr`，不包含摄像头输入、帧缓存切换和 HDMI 输出检查。
-- `ctrl_phy_sim.tcl` 含历史绝对路径；不能在另一台 Windows 主机上直接复用。
-- 尚未冻结 OV5640 的单/双摄、模组接口、DVP 格式、分辨率和帧率，也没有项目级 `TEST PASS`、超时和 `$fatal` 退出契约。
+- 尚未冻结 OV5640 的单/双摄、实际模组接口、DVP 格式、分辨率和帧率。
+- 行为回归使用规范化 DDR3/PCIe 接口，不证明真实控制器、PHY、LTSSM、DMA 或主机内存写入。
+- 活动 PCIe IDF 仍为 `PG2L50H` metadata，与当前 `PG2L100H` 目标不一致，必须保持硬阻断。
+- 尚无产品级 PDS 顶层、完整 FDC/RCF、综合网表、PNR 网表和 SDF 验收入口。
 
 ### TODO（S3）
 
 1. 先按 [`OV5640_TARGET_SCOPE.md`](OV5640_TARGET_SCOPE.md) 完成 C0/C1，只读审计参考工程并冻结产品接口。
-2. 新建 OV5640 项目级 `tb_ov5640_hdmi.sv`、相对路径 filelist 和四级 DO；不得直接改名复用 OV7725 TB 计划。
+2. 在现有项目自有行为回归基础上建立产品级相对路径 filelist、DO 和四级仿真入口。
 3. 覆盖读 ID/配置、复位、DDR 初始化延迟、帧写入/切换/读出、HDMI 有效区和 FIFO 边界。
 4. 为每个级别加入超时、错误计数、唯一 `TEST PASS` 和非零失败退出；C3 锁定后再接入综合网表、PNR 功能网表和 SDF。
 

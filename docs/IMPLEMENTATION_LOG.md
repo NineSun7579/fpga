@@ -68,27 +68,6 @@
 - 本次日志没有出现 SCBV 告警，但这不能替代板级配置 bank 电压确认；经审核的板级参数清单仍是发布前置条件。
 - `check_build.ps1` 的 PowerShell AST 检查为 0 个错误；局部正则结果变量不再覆盖自动变量 `$Matches`。
 
-## 2026-08-29：OV7725 CDC/RDC 审计基线
-
-- 本批只新增项目状态与 CDC/RDC 契约文档，不修改 RTL、厂商 IP 或 FDC。
-- 明确 `sys_clk`、`i2c_dri_clk`、`cam_pclk`、`pixel_clk`、`pixel_clk_5x`、`clk_50m/ref_clk` 和 `ui_clk` 的来源与用途。
-- 明确两个厂商 FIFO 的数据方向：write FIFO 为 `cam_pclk → ui_clk`，read FIFO 为 `ui_clk → pixel_clk`；FIFO 类型正确，但帧复位脉冲跨两侧直接分发，释放未逐域同步。
-- 明确 `cmos_frame_vsync/wr_load` 与 `video_vs/rd_load` 缺少单点事件同步契约，并被多个目标逻辑分别采样。
-- 明确 `ddr3_init_done` 从 `ui_clk` 域直接参与 camera、pixel 和 AXI 逻辑的异步复位组合；顶层 `rst_n = sys_rst_n & clk_locked` 也未逐域同步释放。
-- 旧 STA 直接印证风险：`video_vs → rd_load` setup WNS `-7.056 ns`，read FIFO 指针路径 WNS `-2.279 ns`，`ddr3_init_done → pixel reset` recovery WNS `-4.857 ns`。
-- 后续方向固定为逐域复位、状态同步、单点事件同步、FIFO 分侧复位以及结构整改后的最窄时序例外；禁止先用宽泛 `false_path` 消除报告。
-- `cam_pclk` input delay、专用时钟路由豁免、DDR/HDMI 板级参数仍需原理图、传感器和 PCB 资料，当前不猜测。
-
-## 2026-08-29：OV7725 SP6.4 完整重建与 gate
-
-- 新构建入口显式固定 `Logos2 / PG2L100H / FBG484 / -6`、16 个手写 Verilog、4 个活动 IDF 和唯一 FDC；不再依赖 `prj/impl.tcl`、`ip_backup/**`、IP 内部 RTL/VP 或示例约束。
-- compile-only 从空 `build/` 完成，PDS 退出码为 0、日志无 `E:`，共 1139 条 warning；严格 compile gate 精确命中 39 条项目手写 RTL 端口位宽告警。
-- 随后从空 `build/` 完成 `compile → synthesize → dev_map → pnr → report_timing → gen_netlist → gen_bit_stream`，总耗时约 3 分 33 秒，PDS 退出码为 0，日志仍无 `E:`。
-- 最终 STA 为 `Some Constraints Violated`。慢角 setup 中 `video_vs/rd_load` 跨域相关路径 WNS `-7.344 ns`、TNS `-132.832 ns`、20/20 端点失败；read FIFO 指针相关路径 WNS `-2.275 ns`、TNS `-24.111 ns`、11/11 端点失败；慢角 recovery WNS `-4.263 ns`、TNS `-202.445 ns`、53/53 端点失败。快角存在相同三组失败端点。
-- 完整日志包含 81 条 critical 和 4105 条 warning。critical 分类为 72 条 `ConstraintEditor-2002`、4 条 `SDC-2025`、3 条 `Route-2036`、1 条 `DeviceMap-2011` 和 1 条 `Place-2028`；另有 88 条 `STA-3011`、129 条 `Timing-4086` 和 249 条 `Timing-4087`。
-- 新生成 `ov7725_hdmi_syn.vm`（6,873,287 字节）、`ov7725_hdmi_sim.v`（11,600,361 字节）、`ov7725_hdmi_sta.sdf`（8,894,116 字节）、`ov7725_hdmi.sbit`（3,791,112 字节）和 `ov7725_hdmi.bin`（3,789,476 字节）。
-- 严格 gate 实测返回 1，覆盖负时序、39 条手写 RTL 位宽、未约束时钟、次优时钟路由/拓扑/放置、share pin 和未约束顶层 I/O；显式 baseline 模式返回 0，只允许当前快慢角六组已知失败端点，并输出不可发布警告。
-- 本批未修改 RTL、厂商 IP、FDC 或 RCF，也未运行四级仿真。下一步先做 DDR3 D2 有限自检契约评审，再对 OV7725 O1-A 最小 RTL 卫生修复方案提请审核。
 
 ## 2026-08-29：DDR3 D2 有限自检契约
 
@@ -99,81 +78,7 @@
 - 首版契约固定为 16 个单 beat 写读比较 pair、控制器地址 `0x0..0x78`、步长 8、确定数据函数、4096 周期 pair timeout 和 131072 周期 run timeout。
 - 完成接口固定为稳定 `test_done/test_failed/error_count/completed_pairs`、失败码和首错地址/期望值/实际值；最终比较及 outstanding 清零后的下一周期才允许置位 `test_done`。
 - 新 RTL/TB 必须遵守 VSCS 的模块边界、接口、FSM、复位和验证证据条款；文件不得维护作者/日期历史，注释不得替代 elaboration、assertion、仿真或 PDS 报告。
-- 本批只新增契约并同步状态，没有修改 RTL、TB、IDF、FDC 或 RCF。D3 实现待审核；下一批转入 OV7725 O1-A 只读评审。
 
-## 2026-08-29：OV7725 O1-A RTL 卫生修复评审
-
-- 从 SP6.4 完整日志精确复现 39 条项目根 `rtl/` 的 `Verilog-2019`：I2C 1 条、AXI 适配 4 条、DDR3 IP 实例 26 条、顶层参数 6 条、OSERDES 2 条。
-- 38 条已有确定修复：I2C 零扩展、地址/长度编码的显式低位选择、25 个 DDR3 IP 定宽 tie-off、顶层参数零扩展及高有效 OSERDES reset。
-- 地址和长度左移 3 是现有协议的一部分；当前地址高 3 位固定为 0，burst 为 160。后续必须显式固化低 24/8 bit 及上界，不能直接删除拼接。
-- `rst_n` 是有实际扇出的隐式 wire，应显式声明；`sys_init_done` 只有赋值没有读取者，应删除死网。复位跨域结构仍留在 O2，不在 O1-B 顺带重构。
-- PDS SP6.4 原语模型和官方 PG2L100H 示例确认 `GTP_OSERDES_E2.RST` 高有效；当前四个 serializer 共八个 OSERDES 的本地复位均被绑 0，后续应连接现有高有效 reset。
-- `mem_a` 存在真实冲突：活动 IDF/module/template 为 14 bit，手写顶层和 FDC 为 15 bit，综合网表把 `mem_a[14]` 固定为 0。该项必须等待 DDR3 料号和原理图，转入 H3/O1-C。
-- 本批新增 `RTL_HYGIENE_AUDIT.md` 并同步状态，没有修改 RTL、厂商 IP、FDC 或 RCF，也没有运行 PDS 或四级仿真。
-
-## 2026-08-29：OV7725 O1-B RTL 卫生修复
-
-- 将 5 个目标历史 RTL 无损转换为无 BOM UTF-8，并以独立提交 `963a2e5` 固化编码准备；逻辑修改随后单独实施。
-- I2C 地址显式 8→16 bit 零扩展；DDR 地址/长度保留 legacy 左移 3 编码，并显式限制为地址低 24 bit、长度低 8 bit；25 个 DDR3 IP tie-off 改为 formal 对应的定宽常量。
-- 顶层显式声明 `rst_n`、删除无消费者 `sys_init_done`，并把六个地址/长度连接改为显式定宽。
-- serializer 端口统一为高有效 `reset`；四个 serializer 的 master/slave 共八个 `GTP_OSERDES_E2.RST` 均获得受控复位。新增注释按 VSCS 记录极性、原语 `ASYNC_RESET` 行为和 O2/RDC 剩余责任。
-- `check_build.ps1` 新增参数上界检查，并把手写 RTL 位宽白名单收紧为唯一 `ddr3_ip.mem_a`；即使 baseline 模式也拒绝其他位宽告警。
-- 从空 `build/` 完成 compile：PDS 退出码 0、日志无 `E:`，compile warning 从 1139 降为 1101，38 条确定性手写 RTL 位宽告警全部消失。
-- 随后完成七阶段实现：完整日志无 `E:`，warning 从 4105 降为 4067，critical 保持 81；综合网表 6,873,482 字节、PNR 网表 11,604,756 字节、SDF 8,898,464 字节、`.sbit` 3,791,112 字节、`.bin` 3,789,476 字节。
-- 接入 OSERDES reset 后新增 Slow/Recovery `pixel_clk → pixel_clk_5x`，WNS `-0.643 ns`、TNS `-4.191 ns`、8/8 endpoint；详细报告确认对应八个 OSERDES。baseline gate 改为精确匹配 `corner/check/clock pair/endpoints` 的 7 组失败指纹，不把该路径视为 waiver。
-- PowerShell AST 为 0 个错误；严格 gate 返回 1，baseline gate 返回 0 并明确不可发布。`mem_a`、厂商 IP、FDC、RCF、FIFO、CDC/RDC 结构和时序例外均未修改。
-- 下一步依次拆为 O2-A 只读联合释放契约、O2-B serializer 局部实现、O3-A 同步初始化状态、O2-C1 普通时钟域复位、O2-C2 FIFO reset/flush、O3-B 帧事件 CDC 与 O4 时序闭环。SP6.4 timing model 对同一 `RST` 同时建立 `OCLK`、`OCLKDIV`、`SERCLK` 的 recovery/removal 检查，因此 O2-A 必须先证明方案，不能预设“只同步到高速域”必然闭环；QuestaSim 未安装，不能声明 HDMI 动态复位或四级仿真通过。
-
-## 2026-08-29：OV7725 O2-A Serializer Reset 联合释放契约
-
-- 本批只新增契约和同步状态，不修改 RTL、厂商 IP、FDC、RCF 或 gate，也未运行新的 PDS/QuestaSim 流程。
-- SP6.4 功能/timing model、PG2L100H 示例和当前 RTL 共同确认：OSERDES `RST` 高有效；同一端口相对 `OCLK/SERCLK=pixel_clk_5x` 与 `OCLKDIV=pixel_clk` 均有 recovery/removal 要求。
-- 最终 STA 的 serializer 组为 Slow Recovery `-0.643 ns / -4.191 ns / 8/8`、Slow Removal `+0.305 ns / 0/8`、Fast Recovery `+0.123 ns / 0/8`、Fast Removal `+0.114 ns / 0/8`。
-- Device-map 与 STA 已将 `serializer_b/g/r/clk` 各自 master=`opit_2`、slave=`opit_2_com` 的八个 `OSR_IOLHR` endpoint 唯一闭合。
-- O2-A 当时把 O2-B 首选最小结构固定为：保留现有 `pixel_clk` 两级 reset 驱动 encoder，再级联现有两级同步器到 `pixel_clk_5x`，生成只驱动八个 OSERDES 的高有效 `serializer_reset`；该结构后来已由 O2-B 真实 STA 否决并回退。
-- O2-B 必须由完整 PDS 同时证明八端点相对 `OCLK`、`SERCLK`、`OCLKDIV` 的 Slow/Fast Recovery 与 Removal 全部非负；若违例转移、需要 false path/waiver 或扩大到 PLL/IP/FDC/FIFO/业务 CDC，则回退并重新评审。
-- 当前只能声明 O2-A 设计契约完成，不能声明 serializer reset、HDMI 动态复位或四级仿真已经通过。
-
-## 2026-08-29：OV7725 O2-B 级联复位实验否决与回退
-
-- O2-B 曾仅修改 `rtl/hdmi_top/dvi_transmitter_top.v`：保留 encoder 的 `pixel_clk` reset，再级联现有两级同步器到 `pixel_clk_5x`，生成只驱动四个 serializer、八个 OSERDES 的高有效 `serializer_reset`。
-- 从空 `build/` 完成 compile 和七阶段流程，PDS 退出码均为 0，日志无 `E:`；compile warning 为 1101，与 O1-B 基线一致。完整实现 warning 4067、critical 81，五类关键产物均非零。
-- 产物大小为：`ov7725_hdmi_syn.vm` 6,895,395 字节、`ov7725_hdmi_sim.v` 11,594,515 字节、`ov7725_hdmi_sta.sdf` 8,897,235 字节、`ov7725_hdmi.sbit` 3,791,112 字节、`ov7725_hdmi.bin` 3,789,476 字节。
-- Slow Recovery 为 `pixel_clk_5x → pixel_clk_5x -0.349 ns / -1.599 ns / 8/8`、`pixel_clk → pixel_clk_5x +1.111 ns / 0/1`、`pixel_clk_5x → pixel_clk -2.173 ns / -16.191 ns / 8/8`。
-- Fast Recovery 的同域组为 `+0.310 ns / 0/8`，单同步器组为 `+1.830 ns / 0/1`，但反向 `pixel_clk_5x → pixel_clk` 仍为 `-1.464 ns / -10.863 ns / 8/8`。Slow/Fast Removal 均为正，不能抵消 Recovery 失败。
-- 八个反向 endpoint 正好是 `serializer_b/g/r/clk × opit_2/opit_2_com` 的 OSERDES `OCLKDIV` 检查；原 `pixel_clk → pixel_clk_5x` 失败没有被结构性关闭，而是转移并在慢角增加同域失败。
-- O2-B 已按契约停止条件完整回退；未修改 `check_build.ps1`、baseline、FDC、RCF、PLL/IP，也未加入任何时序例外或 waiver。
-- 下一批为 O2-D1 只读架构评审，比较显式释放相位 sequencer、统一复位控制器和厂商推荐结构；审核前不启动新的 serializer RTL。
-
-## 2026-08-30：OV7725 O2-D1 统一拓扑中间评审
-
-- 本批只读复核 SP6.4 `GTP_OSERDES_E2`、`V_OSERDES_E2`、`GTP_IOCLKDIV_E2`、`GTP_IOCLKBUF`、PG2L100H LVDS 示例、当前 PLL/RTL 和 O2-B STA；未修改 RTL、IP、PLL、FDC、RCF 或 gate，未运行 PDS/QuestaSim。
-- timing model 对同一 `RST` 相对 `OCLK` 正负边沿、`OCLKDIV` 正边沿和 `SERCLK` 正边沿均建立 Recovery/Removal；O2-B 已证明普通级联同步器会把失败转移到 `pixel_clk_5x → pixel_clk`，固定等待周期不能改变固有相位预算。
-- 同源高速时钟经 `GTP_IOCLKDIV_E2 /5` 生成整个 pixel 域是当前领先拓扑；当前 `pixel_clk` 同时驱动 DDR read FIFO 读侧、video driver/display、encoder 与 serializer，最终若采用该拓扑必须原子迁移。
-- 进一步核对发现官方示例的 `tx_gate_en` 没有消费者，`GTP_IOCLKBUF` 使用默认 `GATE_EN="FALSE"`，且 400 MHz/50 MHz PLL 输出请求相位均为 0；示例没有证明停钟释放，也没有最终 STA 报告。
-- 动态门控路线已否决：功能模型虽可无毛刺停启，但 SP6.4 Liberty 没有 `DI` clock-gating check，也不能证明停钟、复位、释放、启钟的顺序；仿真、endpoint 消失或 waiver 都不能替代八端点 STA。
-- 唯一待验证候选为新增 `65.0026 MHz`、约 `+0.192 ns` 的 PLL 控制输出，并为每个 serializer 本地复制 reset 寄存器。按 O2-B 路径预算，reset 总数据延迟需压到约 `0.939 ns` 以下；纯相位调整不能通过。
-- `/5` generated-clock、奇数分频 waveform、IOCLKBUF 前后取点、serializer hard reset 与业务 reset 分权均为 O2-D2 前置契约；FIFO 只迁移 `rd_clk`，reset/flush 仍留给 O2-C2。
-- 当前 `build/` 已清空，下一步先重建已回退 RTL 的等价基线并判断 53/54 endpoint 漂移，再收口 O2-D1-G 并提请审核；当前仍不允许编码 O2-D2，工程继续不可发布。
-
-## 2026-08-30：OV7725 O2-D1-R 回退基线重建
-
-- 从空 `41_ov7725_hdmi/build/` 使用 PDS 2022.2-SP6.4 完成七阶段实现，进程退出 0、日志无 `^E:`，总耗时约 3 分 4 秒；本批未修改 RTL、IP、PLL、FDC、RCF、构建脚本或 gate。
-- baseline gate 精确匹配原 7 组 `corner/check/clock pair/endpoints` 失败签名并返回 0；严格 gate 按预期返回 1，工程继续不可发布。
-- 新最终报告中 Slow/Fast `ddrphy_sysclk → pixel_clk` Recovery 均为 `53/53`，Removal 均为 `0/53`；Slow serializer Recovery 恢复为旧基线 `pixel_clk → pixel_clk_5x -0.643 ns / 8/8`。
-- 完整详细路径的 53 个唯一 endpoint 分类为 read FIFO 控制 26、read FIFO RAM reset 8、video driver 17、video display 1、原 DVI reset 同步器 1。
-- O2-B 的 `54` 来自 video-driver 物理 endpoint 增为 18；新增 `serializer_reset_syn/reset_1` 属于另一 clock pair。该漂移未在回退后保留，因此不修改旧 baseline，也不归为已修复问题。
-- 五类产物大小与既有基线一致：综合网表 6,873,482、PNR 网表 11,604,756、SDF 8,898,464、`.sbit` 3,791,112、`.bin` 3,789,476 字节。
-- O2-D1-R 完成；下一批只收口 O2-D1-G generated-clock、状态/计数、复位分权、warm-up 和一次性停止条件，审核前不修改功能设计。
-
-## 2026-08-30：OV7725 O2-D1-G 实现前契约收口
-
-- 本批仅更新 `SERIALIZER_RESET_CONTRACT.md`、根 `TODO.md`、OV7725 README 和知识图，不修改 RTL、PLL/IP、FDC、RCF、构建脚本、gate 或 `build/`，也未声明 QuestaSim 可用。
-- 唯一 pixel 时钟拓扑冻结为：PLL `u_pll_clk/clkout1` 同时进入唯一 `GTP_IOCLKBUF` 和唯一 `GTP_IOCLKDIV_E2(DIV_FACTOR="5")`；divider 取 pre-buffer 点，`pixel_clk` generated-clock 仅允许一条显式对象，waveform 固定 `-edges {1 5 11} -edge_shift {0 0 0}`。`-divide_by 5`、post-buffer 取点和自动/显式重名均触发回退。
-- 控制状态冻结为 `HARD_HOLD → QUALIFY → ARM → SER_RELEASE → RUN`；`QUALIFY=4`、`ENCODER_WARMUP=3`、`SERIALIZER_FILL=2`，counter 表示已完成完整周期且饱和不回卷。`sys_rst_n/pll_lock` 负责异步 hard reset，video/business reset 与四路本地 serializer reset 分权；`ddr3_init_done` 不进入控制器状态或 OSERDES reset。
-- ARM/SER_RELEASE 期间 encoder 输入强制 `de=0,c0=0,c1=0,din=0`；首个有效 TMDS symbol 定义为四 lane 同时确定的完整并行字，RUN 至少延后两个 control 周期以覆盖未复位 encoder 流水。
-- O2-D2 只允许一次实现试验：IP Compiler 重生成 PLL，新增项目自有控制器并原子迁移 read FIFO `rd_clk` 与完整 pixel 域。任何 generated-clock/endpoint/Recovery/Removal/覆盖、warning、baseline、CDC 或 SDF 停止条件触发即完整回退，不扫描第二相位、不增加 waiver。
-- O2-D1-G 文档收口完成，等待用户审核；审核前不得进入 O2-D2 编码。
 
 ## 2026-08-30：S0 公共仿真环境复核
 
@@ -197,7 +102,6 @@
 
 ## 2026-08-30：三项目 TODO 状态索引校正
 
-- 总 TODO 已同步标记 S0-0、DDR3 D3-0 和 PCIe H2-A 为已完成的只读/环境复核；对应的安装、D3-A、H2-B 和 OV7725 O2-D2 仍保持未完成并受外部资料或用户审核约束。
 - 本次只修正状态索引，没有改变任何实现结论、gate 规则或功能文件边界。
 
 ## 2026-08-30：仓库级静态一致性门禁
@@ -222,15 +126,12 @@
 
 ## 2026-08-30：三项目 S1/S2/S3 仿真就绪度盘点
 
-- 新增 `docs/SIMULATION_READINESS_MATRIX.md`，记录 OV7725 HDMI、DDR3 和 PCIe DMA 三个项目的项目级 TB、filelist、DO、厂商示例资产、路径可移植性和四级仿真缺口。
-- 盘点结论：三个项目均没有项目级集成 testbench 或四级仿真入口；现有 `tb`、`.f`、`.do` 面向 Pango 厂商 IP 示例，不能作为项目验收。
-- OV7725 现有 DDR3/PLL/FIFO 示例不覆盖 `ov7725_hdmi`；DDR3 现有 `test_ddr` 示例 TB 与计划项目 BIST/top 不同且端口已失配；PCIe 现有 `pango_pcie_top_tb` 不实例化 `pcie_dma_test`。
-- 三项目厂商仿真脚本或 filelist 含历史绝对路径/工作目录假设；本批不修改厂商生成文件，后续新增项目级相对路径入口。
-- S0-1 仍因本机缺少 `vsim.exe`、`vlog.exe`、`vlib.exe` 阻断；本批只做静态盘点和 TODO 排序，未运行 ModelSim/QuestaSim、PDS 或 SDF 仿真。
+- 新增 `docs/SIMULATION_READINESS_MATRIX.md`，记录 DDR3、PCIe DMA 与 OV5640→DDR3→PCIe 产品主线的项目级 TB、filelist、DO、路径可移植性和四级仿真缺口。
+- 厂商示例顶层不能作为项目验收；后续统一新增项目自有相对路径入口。
+- 本批只做静态盘点和 TODO 排序，未运行 PDS、ModelSim/QuestaSim 或 SDF 仿真。
 
 ## 2026-08-30：CI-1 仿真矩阵引用门禁
 
-- 扩展 `scripts/check_repo_consistency.ps1`，要求仿真就绪度矩阵存在，并包含 OV7725、DDR3、PCIe 和 S1/S2/S3 执行队列。
 - 门禁同时验证根 `README.md` 与 `TODO.md` 均链接 `docs/SIMULATION_READINESS_MATRIX.md`，防止规划文档脱离入口指南。
 - PowerShell AST、仓库一致性门禁和 `git diff --check` 均通过；本批未运行 PDS、ModelSim/QuestaSim 或 SDF，也未修改 RTL/IP/约束/生成物。
 
@@ -242,16 +143,15 @@
 
 ## 2026-08-30：H0/H1/H3 板级证据清单准备
 
-- 新增 `41_ov7725_hdmi/doc/BOARD_EVIDENCE.md` 与 `ddr3_test/ddr3_test/doc/BOARD_EVIDENCE.md`，分别记录当前工程事实、证据来源、用户需提供的板级字段和关闭条件。
-- 清单覆盖 FPGA/板卡身份、DDR3 颗粒与拓扑、`mem_a[14]` 分支、时钟/复位、bank 电压、share pin、OV7725 输入格式和 HDMI 模式。
-- 本批只新增文档并更新 TODO；未修改 RTL、厂商 IP、IDF、FDC、RCF 或生成物。资料缺失仍保持 H0/H1/H3 阻断。
-- 只读复核进一步确认 OV7725 活动 `ddr3_ip.idf` 的 `MEM_ADDR_WIDTH`、`DDR3_MEM_ROW_WIDTH`、`MEM_ROW_WIDTH` 均为 14，手写顶层/FDC 仍为 15 位，并发现该 IDF 生成器版本为 SP4.2；该冲突和版本差异已写入证据清单，不能依据 FDC 单独收窄。
+- DDR3、PCIe 与 OV5640 产品主线分别维护板级事实、资料来源和关闭条件。
+- 清单覆盖 FPGA/板卡身份、DDR3 颗粒与拓扑、时钟/复位、bank 电压、share pin、摄像头输入格式和产品接口。
+- 资料缺失时不修改 RTL、厂商 IP、IDF、FDC、RCF 或生成物。
 
 ## 2026-08-30：CI-2 板级证据清单完整性门禁
 
-- 仓库级一致性脚本现检查 OV7725、DDR3、PCIe 三份板级证据清单是否存在，并要求统一的“当前工程事实”“必须提供的资料”“关闭条件”章节。
-- 同时检查每个项目 README 是否链接对应清单，以及清单是否包含项目关键词；门禁只验证结构和入口，不把模板或待提供字段当作已确认硬件事实。
-- 本批未修改 RTL、厂商 IP、IDF、FDC、RCF 或生成物；H0/H1/H2/H3 的资料阻断保持不变。
+- 仓库级一致性脚本检查板级证据清单的“当前工程事实”“必须提供的资料”“关闭条件”章节。
+- 门禁只验证结构和入口，不把模板或待提供字段当作已确认硬件事实。
+- 本批未修改 RTL、厂商 IP、IDF、FDC、RCF 或生成物；资料阻断保持不变。
 
 ## 2026-08-30：CI-3 项目 README 元数据完整性门禁
 
@@ -300,7 +200,6 @@
 - 当时曾因错误的 50H 选型判断而降级既有 PG2L100H 产物；当前这些产物仍需重新核验，但原因是 IP metadata、版本、约束和板级证据未闭合，而不是平台应改为 50H。
 - 当时错误地把 PCIe 50H IDF 视为正确输入并计划把 build/gate 降到 50H；当前做法相反：build/gate 保持 100H，并硬拒绝该 IDF。
 - 当时规划用 SP6.4 重生成 50H DDR3 controller/PHY、FDC/RCF 和仿真资产；该执行路径已作废，当前只能核验或重生成 PG2L100H 资产。
-- 当时规划把 OV7725 四个 IP 重生为 50H；该执行路径已作废，当前只允许在 `PG2L100H / FBG484 / -6` 下建立 staging。
 - O2-D1-G 的状态机、复位分权、唯一 `/5` clock 和端点覆盖方法仍可复用，但任何旧器件 STA/指纹都不能作为当前 PG2L100H 验收证据。
 - 本批只更新规划、README、板级证据和契约状态；未修改 RTL、厂商 IP、IDF、FDC、RCF、构建脚本或生成物。
 
@@ -331,7 +230,6 @@
 - complete manifest 固定记录 full log、timing report、post-PNR 网表、slow SDF、`.sbit`、`.bin` 和 `bgr.db` 七项证据的工程相对路径、长度和 SHA-256。
 - 动态负测证明：真实 partial compile、PDS executable 缺失、run-id 漂移、`bgr.db` 字节漂移和 FDC 输入漂移均返回 1，旧 full-build 证据不可复用。
 - 该历史 PG2L50H 七阶段构建曾返回 0，manifest 为 complete/valid、43 输入/7 证据；现已降级为旧产物来源记录，不得用于当前 100H 验收。
-- 本批未修改 RTL、活动 IDF、FDC 或厂商 IP；当时规划的 DDR3/OV7725 PG2L50H canonical 迁移已作废，当前只允许 PG2L100H 核验与构建入口闭合。
 
 ## 2026-08-31：PCIe S2-A 项目级行为 smoke 入口
 
@@ -372,7 +270,7 @@
 ## 2026-09-01：OV5640 范围校正、Questa 复验与许可证日志脱敏
 
 - 从远端快进到 PR #5 合并后的最新 `origin/main`，后续工作基于该主线。
-- owner 将摄像头产品目标校正为 OV5640；现有 `41_ov7725_hdmi`、O0/O1/O2/M3-A 和对应 STA/CDC/RDC 证据保留为 OV7725 legacy，不改名冒充新项目。
+- 产品主线明确为 OV5640→DDR3→PCIe，并由 `main_ov5640_pcie/` 承载独立实现与验证证据。
 - 新增 `docs/OV5640_TARGET_SCOPE.md`，将参考工程只读导入、单/双摄与模组接口冻结、项目边界、PG2L50H 迁移和四级 Questa 验证拆为 C0/C1/C2/C3/S3。
 - 本机复核确认 Questa Sim-64 `2021.1` 的 `vsim`、`vlog` 和 `vlib` 可执行文件位于安装根的 `win64` 子目录；tracked 文档不记录本机安装或许可证实际路径。
 - PCIe S2-A/S2-B 静态门禁和环境检查通过；当前 S2-A 动态启动因外部许可证 checkout 失败返回 4，没有生成新的 `TEST PASS`。历史 run id 的通过证据继续保留，但不作为本次复验结果。
@@ -880,7 +778,6 @@
 ## 2026-09-04：当前平台纠偏为 RK3568_MES2L100H
 
 - owner 最新确认当前平台为 `RK3568_MES2L100H`（FPGA + ARM），目标 FPGA 为 `PG2L100H-6IFBG484`，PDS 目标为 `Logos2 / PG2L100H / FBG484 / -6`。
-- 此前 50H 器件迁移批次、PCIe 50H 构建、DDR3/OV7725 50H staging 和 `main_ov5640_pcie` 的 `pg2l50h` 行为切片均降级为历史/待迁移证据，不得作为当前平台验收结果。
 - 活动 PCIe `pcie_test.idf` 仍为 `PG2L50H/FBG484/-6`。本轮只修正项目自有文档、build/gate/入口清单，不修改厂商 IDF；根一致性门禁因此保持对活动 IDF 的硬失败。
 - `parallel_driver` 继续独立隔离，只读参考，不进入 `main` 的 RTL、IP、约束、构建产物或验收证据。
 - 已进一步修正 TODO、DDR3 README、Endpoint 合同和历史实施记录：PCIe build/gate 的 100H 改造标记为已完成，100H PCIe IP/产物重建保持未完成；旧 DDR3 50H 自动探针继续硬阻断。
