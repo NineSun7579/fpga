@@ -217,4 +217,4 @@ graph LR
   EndpointBoundary -. tested by .-> EndpointTB[Endpoint subset TB/stub]
 ```
 
-`EndpointBoundary` 只复用 camera TX adapter 的 AXIS 输出，不与完整 `pcie_dma_test` 并行实例化第二套 TX 生成路径。真实 `pcie_test` 的 PHY、RX、DBI/APB、配置和复位整合仍待产品顶层切片。
+`EndpointBoundary` 只复用 camera TX adapter 的 AXIS 输出，不与完整 `pcie_dma_test` 并行实例化第二套 TX 生成路径；接入合同见 `docs/MAIN_OV5640_PCIE_ENDPOINT_INTEGRATION_CONTRACT.md`。真实 `pcie_test` 的 PHY、RX、DBI/APB、配置和复位整合仍待产品顶层切片。

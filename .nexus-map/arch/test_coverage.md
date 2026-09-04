@@ -407,6 +407,7 @@
 - 边界：未覆盖中止记录经真实 DDR3/PCIe/主机协议保存或无效帧回收，也未覆盖静态 CDC/RDC、复位释放、RAM 推断、PDS/STA 或 SDF；两槽 skid 不等同帧缓存或真实 DDR3/PCIe 闭环。
 ## PCIe Endpoint AXIS boundary
 
+- 合同：`docs/MAIN_OV5640_PCIE_ENDPOINT_INTEGRATION_CONTRACT.md`。
 - TB：`main_ov5640_pcie/tb/tb_rgb565_pg2l50h_pcie_endpoint_axis_boundary.sv`。
 - 入口：`main_ov5640_pcie/scripts/run_m3b_pg2l50h_pcie_endpoint_axis_boundary.ps1`。
 - 覆盖：Endpoint reset ownership、AXIS0/1 静默、AXIS2 header/data/TLAST、ready 背压时 payload 保持、Requester ID、链路遥测透传。

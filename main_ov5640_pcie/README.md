@@ -18,6 +18,7 @@
 - `docs/MAIN_OV5640_PCIE_PROCESS_CONTRACT.md`：图像处理算法和延迟合同。
 - `docs/MAIN_OV5640_PCIE_WORD_PACKER_CONTRACT.md`：128-bit 内部数据布局合同。
 - `docs/MAIN_OV5640_PCIE_M3B_ADAPTER_CONTRACT.md`：DDR3/PCIe 适配层职责、转换边界和关闭条件。
+- `docs/MAIN_OV5640_PCIE_ENDPOINT_INTEGRATION_CONTRACT.md`：产品 PCIe Endpoint 的时钟、复位、AXIS 方向和接入关闭条件。
 - `docs/MAIN_OV5640_PCIE_BOARD_INPUT_CHECKLIST.md`：真实板级闭环所需的一手资料和验收输入。
 - `rtl/rgb565_word_to_axis4_adapter.sv`：M3-B 板级无关 128-bit 到 4-byte staging beat 适配。
 - `tb/tb_rgb565_word_to_axis4_adapter.sv`：M3-B 字节顺序、keep、事件和背压自检。
@@ -113,6 +114,7 @@
 .\scripts\run_m3b_ov5640_cdc_staging.ps1 -SimulatorExecPath '<questa-bin-dir>'
 .\scripts\run_m3b_ov5640_ddr3_pcie_loopback.ps1 -SimulatorExecPath '<questa-bin-dir>'
 .\scripts\run_m3b_ov5640_ddr3_committed_pcie_loopback.ps1 -SimulatorExecPath '<questa-bin-dir>'
+.\scripts\run_m3b_pg2l50h_pcie_endpoint_axis_boundary.ps1 -SimulatorExecPath '<questa-bin-dir>'
 ```
 
 运行态只写入 `main_ov5640_pcie/build/`。`vsim.exe`、`vlog.exe` 和许可证配置由本机
@@ -127,3 +129,6 @@ DDR3 初始化、完整 PCIe DMA 仲裁、链路或主机内存写入。新增 c
 AW/W 和无 RREADY 的 AR/R 边界并恢复元数据；它仍使用明文用户口模型，不等价于加密 DDR3 core
 仿真或实板存储。canonical 回归现已通过单 outstanding mailbox 跨过 DDR/PCIe 异步时钟并进入
 未修改 MWR TX；它仍不等价于完整 TX top、PCIe 链路、主机完成或 placed-design CDC/STA 签核。
+Endpoint 边界合同见 `docs/MAIN_OV5640_PCIE_ENDPOINT_INTEGRATION_CONTRACT.md`；其专项只用等端口
+Endpoint stub 验证 `pclk_div2/core_rst_n`、AXIS0/1/2 方向、AXIS2 背压和链路遥测。真实产品
+`pcie_test` 的 PHY、RX、DBI/APB、配置、复位、链路训练和 RK3568 主机协议仍未接入。

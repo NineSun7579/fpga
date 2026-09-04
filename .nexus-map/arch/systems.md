@@ -569,6 +569,7 @@
 ## PCIe Endpoint AXIS 边界（2026-09-04）
 
 - 项目自有实现：`main_ov5640_pcie/rtl/rgb565_pg2l50h_pcie_endpoint_axis_boundary.sv`。
+- 接入合同：`docs/MAIN_OV5640_PCIE_ENDPOINT_INTEGRATION_CONTRACT.md`，冻结时钟/复位所有权、AXIS 方向、配置来源和 camera-only 关断规则。
 - 接口事实来自 `pcie_test.v`/`pango_pcie_top.v`：Endpoint 产生 `pclk_div2/core_rst_n`，输出三路 AXIS ready，接收项目 valid/data/last/user；AXIS2 为 MWR。
 - camera-only 边界关闭 native、MRD、CPLD、BAR-read 和 restart；bus/device、最大读请求和最大 payload 从产品 Endpoint 配置侧输入。
 - 链路状态只透传为观察信号。专项 stub/TB 证明 AXIS 接线与背压，不代表真实 PHY、LTSSM、RX/DBI/APB 或板级闭环。

@@ -194,11 +194,12 @@ M3-B 审计结论见 [`docs/MAIN_OV5640_PCIE_M3B_ADAPTER_CONTRACT.md`](docs/MAIN
    - 资料状态：板卡手册与 OV5640 DVP 指南已经登记并部分关闭物理接口/电气时序事实；见 [`docs/MAIN_OV5640_PCIE_BOARD_INPUT_CHECKLIST.md`](docs/MAIN_OV5640_PCIE_BOARD_INPUT_CHECKLIST.md)。最高优先级仍是完整原理图/BOM、OV5640 实际排线/Bank 电压/FPGA 管脚与 RGB565 初始化表、PG2L50H DDR3 IP 用户口、完整 PCIe DMA 应用口、PERST#/链路时序、RK3568 主机内存与缓存/驱动协议、最终视频模式和丢帧策略。
    - 禁止：未完成资料审核前修改 canonical IP、DDR3/PCIe RTL、FDC/RCF，或把 M3-A 行为通过解释为端到端输出通过。
 
-14. **M3-B-P：产品 PCIe Endpoint AXIS 边界切片（进行中）**
+14. **M3-B-P：产品 PCIe Endpoint AXIS 边界切片（行为边界已完成）**
    - 已审计 `pcie_test.v`/`pango_pcie_top.v`：Endpoint 输出 `pclk_div2/core_rst_n` 和 AXIS0/1/2 ready，接收项目 valid/data/last/user；AXIS2 为 MWR。
    - 已新增项目自有 `rgb565_pg2l50h_pcie_endpoint_axis_boundary.sv`，复用 camera TX adapter；native/MRD/CPLD/BAR/restart 在 camera-only 边界关闭，链路状态只作遥测。
    - 已新增 stub/TB/Questa 入口；最终专项编译/仿真均 `0 error/0 warning`、唯一 `TEST PASS`，覆盖 reset、AXIS2 背压保持、AXIS0/1 静默和 Requester ID。
-   - 下一步：把该边界接入实际产品顶层 `pcie_test`，补齐 PHY/DBI/APB/RX/config/reset/clock 以及真实链路验证；禁止将 stub 证据表述为 PCIe 板级闭环。
+   - 已新增 [`docs/MAIN_OV5640_PCIE_ENDPOINT_INTEGRATION_CONTRACT.md`](docs/MAIN_OV5640_PCIE_ENDPOINT_INTEGRATION_CONTRACT.md)，冻结 Endpoint 时钟/复位所有权、AXIS 方向、配置字段来源、camera-only 关断项和禁止双 TX top 规则。
+   - 下一步：在取得当前 50H 产品顶层资料后，把该边界接入实际 `pcie_test`，补齐 PHY/DBI/APB/RX/config/reset/clock 以及真实链路验证；禁止将 stub 证据表述为 PCIe 板级闭环。
 
 ### 近期执行顺序
 

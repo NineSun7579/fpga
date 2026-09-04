@@ -864,3 +864,13 @@
   mode，已修复 `rgb565_pg2l50h_pcie_tx_request_arbiter.sv`，既有回归需重跑。
 - 本批只证明项目 TX path 到 Endpoint AXIS 子集的行为接线；不证明真实 `pcie_test` 编译、PHY、
   LTSSM、串行链路、RC、DDR3 持久化、RK3568 主机内存、PDS CDC/RDC/STA 或板级闭环。
+
+## 2026-09-04：PCIe Endpoint 产品接入合同
+
+- 新增 `docs/MAIN_OV5640_PCIE_ENDPOINT_INTEGRATION_CONTRACT.md`，依据仓库内真实
+  `pcie_test.v` 与 `pango_pcie_top.v` 冻结 Endpoint 用户时钟/复位所有权、AXIS0/1/2 方向、
+  配置字段来源、camera-only 关断清单、ACK 与 AXIS 握手的区别以及链路遥测边界。
+- 合同明确产品顶层只允许一套完整 PCIe TX 生成路径；当前项目 wrapper 不实例化真实 Endpoint，
+  不复制其复位同步器，也不把 `link_up` 组合门控到 ACK、丢弃或重放。
+- 合同将现有专项证据标为等端口 stub 行为验证，保留真实 `pcie_test`/PHY/LTSSM/RX/DBI/APB、
+  DDR3 core、RK3568 主机协议和板级 PDS/STA 作为未关闭边界。
