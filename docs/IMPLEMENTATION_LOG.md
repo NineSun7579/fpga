@@ -761,3 +761,34 @@
   唯一 `TEST PASS`。
 - 当前切片只关闭同一 PCIe 时钟域的请求 bundle 仲裁。DDR `core_clk`→PCIe `pclk_div2` 异步 mailbox、
   完整 TX top 接线、partial keep、链路和 RK3568 主机完成仍未关闭。
+
+## 2026-09-03：main DDR→PCIe 异步 MWR32 mailbox
+
+- 新增 `rgb565_pg2l50h_pcie_mwr32_async_mailbox`。单 outstanding 请求使用 toggle 往返，payload 采用
+  源寄存保持、目标额外等待一拍捕获的 bundled-data MCP；目标请求保持到真实 ACK，源 ACK 保持到
+  原请求撤销。目标 ACK 保持高期间，源端不重新开放 channel ready。
+- 独立审查指出 online/token 同级独立同步可能在硅上错拍；实现改为 online 两级、request/ACK token
+  三级同步，使 peer-offline 先进入事务决策。该结构仍需 placed-design CDC/RDC 报告确认。
+- reset/online 双向握手保证 idle 单域复位必须先被 peer 观察再重入。事务在途任一域复位由保留侧
+  产生单周期 fault 并锁存 sticky，禁止静默成功或自动重放；恢复需要协调双域复位。
+- mailbox 首轮在 220 ns 因 TB 监视器早于 DUT NBA 更新计数而红灯，修正监视器采样相位后继续；
+  第二轮在 332 ns 暴露源端会在目标 ACK 仍高时过早 ready，增加目标 release-ready 返回同步后关闭。
+- 最终 mailbox 专项同时运行源快/目标慢和源慢/目标快两实例，覆盖每组至少三笔 token 往返、字段
+  稳定、ACK 延迟/延长、请求保持防重复、idle 单域复位、在途双向复位 fault 与协调恢复；
+  Questa Sim-64 2021.1 为 0 error/0 warning、唯一 `TEST PASS`、`2296 ns`。
+- 仲裁器完成态改为等待下游 ACK 与已完成源请求都拉低，再接受下一 owner；增强专项 `265 ns`。
+- 新增 `rgb565_pg2l50h_pcie_tx_cdc_arbiter`，将 mailbox 输出接到完整 native/camera 请求仲裁。
+  native RAM-data 与异步 camera user-defined 请求经未修改 MWR TX 输出两组 TLP，`385 ns` 通过。
+- canonical OV5640→DDR3 TB 已拆分 `core_clk` 和 `pclk_div2`：4 像素帧完成 AW/W→AR/R、异步
+  mailbox、仲裁和未修改 MWR TX 两组 header/data，`1086 ns` 通过。三项均 0 error/0 warning、
+  唯一 `TEST PASS`。
+- 当前仍是公开用户口/行为模型证据。完整 `ips2l_pcie_dma_tx_top`、加密 DDR3 core、PDS CDC/RDC/STA、
+  partial DWORD、PCIe link、RK3568 缓冲/缓存/驱动与 OV5640 SCCB/模式仍是板级闭环条件。
+
+## 2026-09-04：DDR→PCIe CDC 发布复验
+
+- 在未修改 RTL 的前提下重跑六项关键 Questa Sim-64 2021.1 回归：mailbox 2296 ns、CDC 仲裁到
+  MWR TX 385 ns、canonical OV5640→DDR3→异步 PCIe TX 1086 ns、请求仲裁器 265 ns、既有同域
+  仲裁集成 205 ns、canonical MWR32 TX 136 ns。
+- 六项均为 0 error/0 warning、日志唯一 `TEST PASS`。该证据确认行为级请求和数据字段贯通，
+  不替代加密 DDR3 core、完整 PCIe DMA/TX 顶层、placed-design CDC/RDC/STA、链路和主机验证。

@@ -7,7 +7,8 @@
  *
  * @details
  * A small DVP frame is processed, stored in a canonical-port memory model,
- * read back without an RREADY signal, and emitted through the unmodified
+ * read back without an RREADY signal, crossed from DDR `core_clk` into an
+ * asynchronous PCIe `pclk_div2` model, and emitted through the unmodified
  * PG2L50H MWR32 TX controller. The model checks that the DDR record metadata
  * byte survives storage, two TLP header/data pairs are generated, and a
  * zero-payload frame-end record completes locally without a PCIe request.
@@ -24,6 +25,8 @@ module tb_ov5640_pg2l50h_ddr3_pcie_loopback;
     logic [7:0]   cam_data = 8'd0;
     logic         io_rst_n = 1'b0;
     logic         io_clk = 1'b0;
+    logic         pcie_rst_n = 1'b0;
+    logic         pcie_clk = 1'b0;
     logic         ddr_init_done = 1'b0;
     logic         source_overflow;
     logic [27:0]  axi_awaddr;
@@ -65,6 +68,19 @@ module tb_ov5640_pg2l50h_ddr3_pcie_loopback;
     logic         req_protocol_error;
     logic         pcie_busy;
 
+    logic         camera_channel_ready;
+    logic         camera_cdc_fault_pulse;
+    logic         camera_cdc_fault_sticky;
+    logic         pcie_channel_ready;
+    logic         pcie_cdc_fault_pulse;
+    logic         pcie_cdc_fault_sticky;
+    logic         tx_user_define_data_flag;
+    logic         tx_mwr32_req;
+    logic         tx_mwr32_req_ack;
+    logic [9:0]   tx_req_length;
+    logic [63:0]  tx_req_addr;
+    logic [31:0]  tx_req_data;
+
     logic         vendor_mwr64_req_ack;
     logic         vendor_rd_en;
     logic [9:0]   vendor_rd_length;
@@ -95,13 +111,56 @@ module tb_ov5640_pg2l50h_ddr3_pcie_loopback;
         .DDR_REQUEST_ID(4'h3)
     ) dut (.*);
 
+    rgb565_pg2l50h_pcie_tx_cdc_arbiter u_tx_cdc_arbiter (
+        .camera_rst_n(io_rst_n),
+        .camera_clk(io_clk),
+        .camera_mwr32_req(mwr32_req),
+        .camera_mwr32_req_ack(mwr32_req_ack),
+        .camera_req_length(req_length),
+        .camera_req_addr(req_addr),
+        .camera_req_data(req_data),
+        .camera_channel_ready(camera_channel_ready),
+        .camera_cdc_fault_pulse(camera_cdc_fault_pulse),
+        .camera_cdc_fault_sticky(camera_cdc_fault_sticky),
+        .pcie_rst_n(pcie_rst_n),
+        .pcie_clk(pcie_clk),
+        .native_user_define_data_flag(1'b0),
+        .native_mwr32_req(1'b0),
+        .native_mwr32_req_ack(),
+        .native_mwr64_req(1'b0),
+        .native_mwr64_req_ack(),
+        .native_mrd32_req(1'b0),
+        .native_mrd32_req_ack(),
+        .native_mrd64_req(1'b0),
+        .native_mrd64_req_ack(),
+        .native_req_length(10'd0),
+        .native_req_addr(64'd0),
+        .native_req_data(32'd0),
+        .pcie_channel_ready(pcie_channel_ready),
+        .pcie_cdc_fault_pulse(pcie_cdc_fault_pulse),
+        .pcie_cdc_fault_sticky(pcie_cdc_fault_sticky),
+        .tx_user_define_data_flag(tx_user_define_data_flag),
+        .tx_mwr32_req(tx_mwr32_req),
+        .tx_mwr32_req_ack(tx_mwr32_req_ack),
+        .tx_mwr64_req(),
+        .tx_mwr64_req_ack(1'b0),
+        .tx_mrd32_req(),
+        .tx_mrd32_req_ack(1'b0),
+        .tx_mrd64_req(),
+        .tx_mrd64_req_ack(1'b0),
+        .tx_req_length(tx_req_length),
+        .tx_req_addr(tx_req_addr),
+        .tx_req_data(tx_req_data)
+    );
+
     ips2l_pcie_dma_mwr_tx_ctrl u_vendor_tx (
-        .clk(io_clk), .rst_n(io_rst_n), .i_cfg_pbus_num(8'h2a),
+        .clk(pcie_clk), .rst_n(pcie_rst_n), .i_cfg_pbus_num(8'h2a),
         .i_cfg_pbus_dev_num(5'h03), .i_cfg_max_payload_size(3'd0),
-        .i_user_define_data_flag(1'b1), .i_mwr32_req(mwr32_req),
-        .o_mwr32_req_ack(mwr32_req_ack), .i_mwr64_req(1'b0),
-        .o_mwr64_req_ack(vendor_mwr64_req_ack), .i_req_length(req_length),
-        .i_req_addr(req_addr), .i_req_data(req_data), .o_rd_en(vendor_rd_en),
+        .i_user_define_data_flag(tx_user_define_data_flag),
+        .i_mwr32_req(tx_mwr32_req),
+        .o_mwr32_req_ack(tx_mwr32_req_ack), .i_mwr64_req(1'b0),
+        .o_mwr64_req_ack(vendor_mwr64_req_ack), .i_req_length(tx_req_length),
+        .i_req_addr(tx_req_addr), .i_req_data(tx_req_data), .o_rd_en(vendor_rd_en),
         .o_rd_length(vendor_rd_length), .i_gen_tlp_start(1'b0),
         .i_rd_data(128'd0), .i_last_data(1'b0), .i_axis_slave2_trdy(1'b1),
         .o_axis_slave2_tvld(vendor_axis_tvld),
@@ -114,6 +173,7 @@ module tb_ov5640_pg2l50h_ddr3_pcie_loopback;
 
     always #5ns cam_pclk = ~cam_pclk;
     always #7ns io_clk = ~io_clk;
+    always #5ns pcie_clk = ~pcie_clk;
 
     always_comb begin
         axi_awready = ddr_init_done;
@@ -137,7 +197,7 @@ module tb_ov5640_pg2l50h_ddr3_pcie_loopback;
 
     // Intent: Capture each accepted vendor AXIS beat after registered outputs settle.
     // Invariant: Two single-DWORD requests produce exactly header/data/header/data.
-    always @(posedge io_clk) begin
+    always @(posedge pcie_clk) begin
         #1ns;
         if (vendor_axis_tvld) begin
             if (axis_beat_count > 3)
@@ -262,10 +322,14 @@ module tb_ov5640_pg2l50h_ddr3_pcie_loopback;
     initial begin
         repeat (3) @(posedge cam_pclk);
         repeat (3) @(posedge io_clk);
+        repeat (3) @(posedge pcie_clk);
         @(negedge cam_pclk);
         cam_rst_n = 1'b1;
         @(negedge io_clk);
         io_rst_n = 1'b1;
+        @(negedge pcie_clk);
+        pcie_rst_n = 1'b1;
+        wait (camera_channel_ready && pcie_channel_ready);
         repeat (2) @(posedge io_clk);
         @(negedge io_clk);
         ddr_init_done = 1'b1;
@@ -287,14 +351,16 @@ module tb_ov5640_pg2l50h_ddr3_pcie_loopback;
         repeat (3) @(posedge io_clk);
         #1ns;
         wait (axis_beat_count == 4);
-        repeat (2) @(posedge io_clk);
+        repeat (2) @(posedge pcie_clk);
         #1ns;
         if (write_count != 3 || read_count != 3 || mwr_count != 2 ||
             frame_done_slot_id !== 1'b0 || drop_frame_pulse ||
             frame_fault_pulse || ddr_read_port_fault_pulse || source_overflow ||
             mwr32_req || pcie_busy || ddr_write_busy || ddr_read_busy ||
             vendor_busy || vendor_axis_tvld || vendor_rd_en ||
-            vendor_mwr_tx_hold)
+            vendor_mwr_tx_hold || tx_mwr32_req ||
+            camera_cdc_fault_pulse || camera_cdc_fault_sticky ||
+            pcie_cdc_fault_pulse || pcie_cdc_fault_sticky)
             $fatal(1, "Canonical DDR3 frame completion accounting mismatch");
 
         if (axis_last[0] !== 1'b0 || axis_last[1] !== 1'b1 ||

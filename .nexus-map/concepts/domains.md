@@ -1,5 +1,5 @@
 > generated_by: Codex manual bootstrap
-> verified_at: 2026-09-03
+> verified_at: 2026-09-04
 > provenance: root guide, TODO, source tree, PDS reports, and manual inspection
 
 # Domains
@@ -48,6 +48,8 @@ DDR3 D2 已进一步固定该边界：厂商 `test_ddr`、持续运行 BIST 与�
 
 单比特电平、脉冲、多比特数据和 FIFO 指针需要不同跨时钟域策略。同步器降低亚稳态传播概率但不消除亚稳态；时序例外只能施加在结构已验证的 CDC 上。
 
+main 线的 DDR `core_clk`→PCIe `pclk_div2` MWR32 边界使用“同步控制 token + bundled-data MCP”，而不是逐位同步 payload。源 payload 从 request token 发出保持到 ACK 返回；online/fault 保持两级同步，request/ACK token 使用三级同步，确保 peer-offline 先于事务 token 到达事务逻辑；目标检测 token 后额外等待一拍再采样。placed-design 必须为 holding registers→capture registers 签核 max-delay/bus-skew，禁止把整条 payload 总线简单 false-path。RTL 行为通过不等价于 CDC/RDC/STA 签核。
+
 OV7725 的帧同步当前是长电平而非单周期脉冲，且 `wr_load`/`rd_load` 分别被多个逻辑独立采样。整改契约要求源域用 toggle 或握手表达事件，目标 `ui_clk` 域只同步一次、生成单周期事件后统一扇出，避免多同步器重汇聚。
 
 ## main OV5640 M2-A 图像处理
@@ -72,9 +74,15 @@ normalized MWR length 字段已从 DWORD-1 改为实际 DWORD 数，payload requ
 
 ## main OV5640 M3-B PG2L50H PCIe TX 请求仲裁边界
 
-`rgb565_pg2l50h_pcie_tx_request_arbiter` 在同一 TX 时钟域内仲裁完整 native `MWR32/MWR64/MRD32/MRD64` bundle 与 camera MWR32。native 的 request type、MWR user-defined 模式、length/address/data 原子选择；owner 与字段保持到匹配 ACK，ACK 只返回当前 owner。空闲同拍竞争按上次完成 owner 轮转，复位后 native 先行。MWR 模式在 MWR ACK 时锁存，native MRD 不改变该模式，并保持到下一次 MWR。
+`rgb565_pg2l50h_pcie_tx_request_arbiter` 在 PCIe TX 时钟域内仲裁完整 native `MWR32/MWR64/MRD32/MRD64` bundle 与 camera MWR32。native 的 request type、MWR user-defined 模式、length/address/data 原子选择；owner 与字段保持到匹配 ACK，ACK 只返回当前 owner。空闲同拍竞争按上次完成 owner 轮转，复位后 native 先行。MWR 模式在 MWR ACK 时锁存，native MRD 不改变该模式，并保持到下一次 MWR。匹配 ACK 后进入 `WAIT_ACK_LOW`，vendor ACK 拉低前不得换 owner或发布下一事务。
 
-专项 TB 为 245 ns；native RAM-data 与 camera user-defined 通过未修改 vendor MWR TX 的集成 TB 为 205 ns。两者均为 0 error/0 warning、日志唯一 `TEST PASS`。这关闭的是同域项目仲裁合同，不是完整 PCIe 顶层：DDR `core_clk`→PCIe `pclk_div2` CDC、`ips2l_pcie_dma_tx_top`/产品顶层实例化、partial keep/byte enable、PCIe 链路和 RK3568 仍未关闭。
+增强专项 TB 为 265 ns；native RAM-data 与 camera user-defined 通过未修改 vendor MWR TX 的集成 TB 为 205 ns。两者均为 0 error/0 warning、日志唯一 `TEST PASS`。这关闭的是 PCIe 域项目仲裁合同，不是完整 PCIe 顶层；异步 camera 请求由下述 mailbox/wrapper 接入，`ips2l_pcie_dma_tx_top`/产品顶层实例化、partial keep/byte enable、PCIe 链路和 RK3568 仍未关闭。
+
+## main OV5640 M3-B DDR→PCIe MWR32 异步事务边界
+
+`rgb565_pg2l50h_pcie_mwr32_async_mailbox` 以单 outstanding toggle handshake 把 length/address/data 从 DDR `core_clk` 传到 PCIe `pclk_div2`。源端只在目标真实 ACK 后回应上游，目标端寄存并保持请求字段；源 request 撤销前保持源 ACK，目标 ACK 撤销前停留 `WAIT_ACK_LOW`。在线 reset handshake 在双方 channel-ready 前阻止新请求；idle 单域复位可重对齐，在途任一域复位则产生 fault、事务结果不确定且不 replay，要求上层作废当前 frame/slot 并协调 flush。
+
+`rgb565_pg2l50h_pcie_tx_cdc_arbiter` 将该 mailbox 与现有 native/camera 仲裁器组合。2026-09-04 Questa Sim-64 2021.1 的 mailbox 双速率/复位专项为 2296 ns，CDC arbiter→未修改 MWR TX 集成为 385 ns，均 0 error/0 warning、唯一 `TEST PASS`。因此“DDR→PCIe CDC 未实现”的旧结论已关闭；当前缺口是 placed-design payload max-delay/bus-skew、CDC/RDC/STA，以及完整 `ips2l_pcie_dma_tx_top`/产品顶层、partial keep、链路和主机协议签核。
 
 ## main OV5640 M3-B canonical DDR3 用户口
 
@@ -82,7 +90,7 @@ normalized MWR length 字段已从 DWORD-1 改为实际 DWORD 数，payload requ
 
 `rgb565_pg2l50h_ddr3_write_adapter` 将记录映射到非标准 AW/W 口：`ddr_init_done` 两拍同步后准入，单 outstanding、`AWLEN=0`，上游只在 `axi_wready` 消费数据时完成；专项 write 221 ns、writer→adapter path 196 ns。`rgb565_pg2l50h_ddr3_read_adapter` 将 scheduler 命令映射到 AR/R 口；由于 core 没有 `axi_rready`，返回拍必须先本地缓冲。RID/RLAST 错误并入记录协议错误，非预期或重复 RVALID 产生 port fault；专项 read 191 ns。三项均为 0 error/0 warning、唯一 `TEST PASS`。
 
-`ov5640_dvp_rgb565_pg2l50h_pcie_pipeline` 串接双槽主链和 canonical AW/W→AR/R adapters；端到端 TB 再接入未修改 vendor MWR TX。2026-09-03 的行为回归为 806 ns，验证第 5 byte 元数据跨 DDR 存储边界恢复及两组 TLP header/data；旧双槽回归 4194 ns、canonical MWR TX 隔离测试 136 ns、同域请求仲裁专项/集成 245/205 ns 继续保留。这里的 DDR 是公开端口模型，不是加密 core；仲裁器尚未接入该流水顶层，正式地址单位/槽范围、DDR `core_clk`→PCIe `pclk_div2` CDC、完整 `tx_top` 实例化、partial keep、链路、RK3568 软件及板级约束仍未关闭。
+`ov5640_dvp_rgb565_pg2l50h_pcie_pipeline` 串接双槽主链和 canonical AW/W→AR/R adapters；端到端 TB 在其 MWR32 输出后接入异步 mailbox、native/camera 仲裁与未修改 vendor MWR TX。2026-09-04 的更新回归为 1086 ns，验证第 5 byte 元数据跨 DDR 存储边界恢复、`core_clk`→`pclk_div2` 和两组 TLP header/data；旧 806 ns 同时钟边界、双槽 4194 ns、canonical MWR TX 隔离 136 ns、请求仲裁专项/集成 265/205 ns、mailbox 2296 ns、CDC 仲裁集成 385 ns 继续保留。这里的 DDR 是公开端口模型，不是加密 core；正式地址单位/槽范围、placed-design max-delay/bus-skew、CDC/RDC/STA、完整 `tx_top`/产品顶层、partial keep、链路、RK3568 软件及板级资料仍未关闭。
 
 ## main OV5640 M3-B 帧提交、作废与已提交帧回送
 

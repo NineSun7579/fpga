@@ -1,6 +1,6 @@
 # main OV5640 M3-B DDR3/PCIe 适配层合同
 
-更新日期：2026-09-03
+更新日期：2026-09-04
 
 ## 范围
 
@@ -268,8 +268,8 @@ MRD64 四类请求驱动 TX top，因此 camera MWR32 不能只与 native MWR32 
 `rgb565_pg2l50h_pcie_tx_request_arbiter` 将完整 native request bundle 作为一个原子源，并把 camera
 full-DWORD MWR32 作为第二源；vendor 生成 RTL 保持未修改。
 
-owner 从空闲仲裁后保持到对应 TX ACK，未选源不会收到 ACK。每次完成后经过 `OWNER_IDLE`，使保持型
-下游 ACK 在下一源请求暴露前有一个清除采样边沿。两源同拍到达使用基于上一完成 owner 的轮转，
+owner 从空闲仲裁后保持到对应 TX ACK，未选源不会收到 ACK。完成后进入显式 ACK-low 释放状态；
+只有下游 ACK 和已完成源请求均拉低才返回 `OWNER_IDLE`，保持型 ACK 不会泄漏到下一源。两源同拍到达使用基于上一完成 owner 的轮转，
 复位后的首次竞争优先 native；该策略避免持续同拍竞争时固定饿死 camera，但不声明 PCIe 链路级公平性。
 
 该 MWR TX 不只在 ACK 边沿读取 `i_user_define_data_flag`，其启动、RAM 读使能和 DATA_TX 结束条件
@@ -282,6 +282,33 @@ MRD ACK 不改变该模式。专项覆盖四类 native 请求、camera 请求、
 `ips2l_pcie_dma_mwr_tx_ctrl` 最终输出两组独立 header/data，地址为 `0x1000/0x2000`，仿真
 `205 ns`，0 error/0 warning、唯一 `TEST PASS`。
 
-该模块和两项回归均工作在单一 PCIe 时钟域。真实应用仍需在 DDR `core_clk` 与 PCIe `pclk_div2`
-之间加入可审计的异步事务 mailbox/FIFO，并验证两域独立复位、无重复/幽灵请求和源端 backpressure。
-本节不证明完整 `ips2l_pcie_dma_tx_top` 实例化、partial DWORD、链路训练、RK3568 内存写入或中断完成。
+增强专项加入保持型 ACK 在请求撤销后继续拉高的场景，最终 `265 ns` 通过。
+
+## DDR core_clk 到 PCIe pclk_div2 事务 mailbox
+
+`rgb565_pg2l50h_pcie_mwr32_async_mailbox` 使用单 outstanding toggle handshake。源域同拍锁存
+length/address/data 并翻转请求 token；token 三级同步到 PCIe 域后，目标额外等待一个目标周期再采样
+稳定 payload。目标只使用本地捕获寄存器，并保持 MWR32 请求直到真实 ACK；ACK token 返回源域后，
+源 ACK 保持到原请求撤销。目标与源端都等待保持型 ACK 的释放状态，不允许同一高电平完成下一笔。
+
+reset/online 使用双向可见握手：本地域复位后 online 保持低，直到 peer 明确观察到该低电平才重新加入。
+online 用两级同步而 request/ACK token 用三级同步，使 peer-offline 先于复位导致的 token 改变进入事务逻辑。
+idle 单域复位因此可重新对齐 token 且不产生幽灵请求。事务在途时任一域复位会使保留侧置位 fault，
+禁止自动重放；恢复要求双方协调复位。该协议不承诺 PCIe exactly-once，在 ACK 或复位边界发生时，
+上层必须作废当前 frame/slot 并执行系统级 flush。
+
+payload 是 bundled-data MCP，不是逐位同步。源 holding register 到目标 capture register 必须施加经 PDS
+验证的 max-delay/bus-skew 约束；toggle/online/fault 同步器需要 CDC 报告确认。不得用异步 clock-group
+或总线 false-path 把 payload 一并隐藏。RTL 仿真只证明协议状态和数据稳定，不能证明亚稳态或位间 skew。
+
+mailbox 专项以两组非谐波时钟覆盖源快/目标慢、目标快/源慢、三笔 token 往返、payload 捕获后上游改值、
+ACK 延迟/延长、保持请求防重复、idle 单域复位、在途双向复位 fault 与协调恢复；Questa Sim-64 2021.1
+为 0 error/0 warning、唯一 `TEST PASS`、`2296 ns`。`rgb565_pg2l50h_pcie_tx_cdc_arbiter` 再把 mailbox
+输出接入完整 native/camera 仲裁器；未修改 MWR TX 的双源动态回归为 `385 ns`。
+
+`tb_ov5640_pg2l50h_ddr3_pcie_loopback` 已将 canonical DDR 行为模型和 PCIe TX 时钟拆分。4 像素帧经
+AW/W→AR/R、`core_clk`→`pclk_div2` mailbox、仲裁器和未修改 MWR TX 输出两组 TLP header/data，
+`1086 ns`、0 error/0 warning、唯一 `TEST PASS`。
+
+本节仍不证明完整 `ips2l_pcie_dma_tx_top`/产品顶层实例化、partial DWORD、链路训练、RK3568 内存写入、
+中断完成或 placed-design CDC/RDC/STA。真正的 exactly-once 还需要事务序号和接收端去重协议。

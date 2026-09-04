@@ -1,11 +1,11 @@
 # main OV5640→DDR3→PCIe 板级输入资料清单
 
-更新日期：2026-09-03
+更新日期：2026-09-04
 
 ## 目的
 
 当前 RTL 已完成从 OV5640 DVP 激励、灰度处理、双槽帧管理到 PG2L50H canonical DDR3 AW/W、AR/R
-用户口及 PCIe MWR 请求的应用边界闭环。以下资料用于把明文 canonical 用户口模型和 opaque 地址替换为
+用户口，并通过 `core_clk`→`pclk_div2` 异步 mailbox/仲裁进入 PCIe MWR TX 的应用边界闭环。以下资料用于把明文 canonical 用户口模型和 opaque 地址替换为
 `PG2L50H-6IFBG484` 板上的真实 DDR3、PCIe 和 RK3568 主机接口；资料未关闭前，不得把模型回归
 解释为上板闭环。
 
@@ -19,8 +19,8 @@
 1. 开发板准确型号/版本、原理图和 BOM，至少覆盖 FPGA、DDR3、PCIe、OV5640、时钟与复位页。
 2. 当前 PG2L50H DDR3 IP 的 IDF/生成报告和匹配版本用户手册，尤其是 28-bit 地址单位、对齐、
    `RLAST/RVALID`、`AWREADY/WREADY`、初始化与 `core_clk` 合同。
-3. PCIe DMA/TX 完整连接图或手册：如何把第二个 MWR 请求源接入现有 controller，partial DWORD
-   byte enable 如何表达，以及 ACK、发送完成、错误与中断的区别。
+3. PCIe DMA/TX 完整连接图或手册：项目仲裁后的完整 request bundle 应接入 `tx_top`/产品顶层的
+   哪一层，partial DWORD byte enable 如何表达，以及 ACK、发送完成、错误与中断的区别。
 4. RK3568 侧内核/设备树/驱动源码或冻结 API，包括 DMA 缓冲分配、IOMMU、缓存一致性、目标地址、
    槽所有权、完成通知和 golden frame 校验程序。
 5. OV5640 模组资料与首版模式：SCCB 初始化表、MCLK、RESET/PWDN、DVP 极性、RGB565 字节序、

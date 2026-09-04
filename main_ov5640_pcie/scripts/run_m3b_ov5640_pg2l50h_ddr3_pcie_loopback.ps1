@@ -47,6 +47,9 @@ $Sources = @(
     (Join-Path $ProjectRoot 'rtl\rgb565_pg2l50h_ddr3_write_adapter.sv'),
     (Join-Path $ProjectRoot 'rtl\rgb565_pg2l50h_ddr3_read_adapter.sv'),
     (Join-Path $ProjectRoot 'rtl\ov5640_dvp_rgb565_pg2l50h_pcie_pipeline.sv'),
+    (Join-Path $ProjectRoot 'rtl\rgb565_pg2l50h_pcie_mwr32_async_mailbox.sv'),
+    (Join-Path $ProjectRoot 'rtl\rgb565_pg2l50h_pcie_tx_request_arbiter.sv'),
+    (Join-Path $ProjectRoot 'rtl\rgb565_pg2l50h_pcie_tx_cdc_arbiter.sv'),
     (Join-Path $RepositoryRoot 'pcie_dma_test_100h\hdl\pcie_dma_ctrl\ips2l_pcie_dma_mwr_tx_ctrl.v'),
     (Join-Path $ProjectRoot 'tb\tb_ov5640_pg2l50h_ddr3_pcie_loopback.sv')
 )

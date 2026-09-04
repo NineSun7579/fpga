@@ -65,6 +65,10 @@
 - `rtl/rgb565_pg2l50h_pcie_tx_request_arbiter.sv`：完整 native TX 请求 bundle 与 camera MWR32 的同域轮转仲裁边界。
 - `tb/tb_rgb565_pg2l50h_pcie_tx_request_arbiter.sv`：四类 native 请求透明通过、owner 保持、ACK 隔离、轮转与模式保持自检。
 - `tb/tb_rgb565_pg2l50h_pcie_tx_arbiter_integration.sv`：native RAM-data 和 camera user-defined MWR32 共享未修改 vendor TX 的动态自检。
+- `rtl/rgb565_pg2l50h_pcie_mwr32_async_mailbox.sv`：DDR `core_clk` 到 PCIe `pclk_div2` 的单 outstanding MWR32 toggle/bundled-data mailbox。
+- `tb/tb_rgb565_pg2l50h_pcie_mwr32_async_mailbox.sv`：双速率、连续事务、保持型 ACK、idle/在途复位与 fault 合同自检。
+- `rtl/rgb565_pg2l50h_pcie_tx_cdc_arbiter.sv`：mailbox 与完整 native/camera TX 请求仲裁的可综合连接层。
+- `tb/tb_rgb565_pg2l50h_pcie_tx_cdc_arbiter_integration.sv`：异步 camera 与 native 请求经未修改 MWR TX 输出两组 TLP 的动态自检。
 - staging、帧统计和规范化请求描述符已完成同域行为验证；DDR3 写记录层已完成边界回归，
   staging 异步 FIFO 已完成双时钟行为验证；行为级 DDR3 模型已将正常帧、overflow
   中止记录和恢复帧送入 PCIe MWR 请求路径。提交描述符现在携带首个 opaque token，调度器
@@ -73,8 +77,8 @@
   带槽完成、错误帧 drop 和槽复用。PG2L50H 应用层现已接到 canonical DDR3 AW/W 与 AR/R 端口；
   每条记录的 keep/last/frame-end/error 写入第 5 byte，读适配器用必要的单条弹性寄存器恢复 sideband。
   独立 PG2L50H MWR32 TX 专项已验证 full-DWORD 请求的 ACK、header、地址和数据输出；项目自有
-  仲裁器进一步验证完整 native request bundle 与 camera MWR32 同域共享 vendor TX。DDR `core_clk`
-  到 PCIe `pclk_div2` 的事务 CDC、完整 DMA 顶层实例化、partial keep、链路和主机内存仍未关闭。
+  mailbox 与仲裁层已把 camera 请求从 DDR `core_clk` 安全送入 PCIe `pclk_div2`，并与完整 native
+  request bundle 共享未修改 MWR TX。完整 DMA 顶层实例化、partial keep、链路和主机内存仍未关闭。
 
 ## 运行
 
@@ -96,6 +100,8 @@
 .\scripts\run_m3b_pg2l50h_mwr32_tx_integration.ps1 -SimulatorExecPath '<questa-bin-dir>'
 .\scripts\run_m3b_pg2l50h_pcie_tx_request_arbiter.ps1 -SimulatorExecPath '<questa-bin-dir>'
 .\scripts\run_m3b_pg2l50h_pcie_tx_arbiter_integration.ps1 -SimulatorExecPath '<questa-bin-dir>'
+.\scripts\run_m3b_pg2l50h_pcie_mwr32_async_mailbox.ps1 -SimulatorExecPath '<questa-bin-dir>'
+.\scripts\run_m3b_pg2l50h_pcie_tx_cdc_arbiter_integration.ps1 -SimulatorExecPath '<questa-bin-dir>'
 .\scripts\run_m3b_ddr3_write_descriptor.ps1 -SimulatorExecPath '<questa-bin-dir>'
 .\scripts\run_m3b_pg2l50h_ddr3_write_adapter.ps1 -SimulatorExecPath '<questa-bin-dir>'
 .\scripts\run_m3b_pg2l50h_ddr3_write_path.ps1 -SimulatorExecPath '<questa-bin-dir>'
@@ -119,5 +125,5 @@ PDS/IP/位流，也不证明 SCCB、板级电气时序、真实 DDR3 或完整 P
 `0x0ffc` 起始并按 `keep` 有效字节推进；这只证明行为级字段贯通，不证明真实地址单位、
 DDR3 初始化、完整 PCIe DMA 仲裁、链路或主机内存写入。新增 canonical 应用层回归证明记录跨过
 AW/W 和无 RREADY 的 AR/R 边界并恢复元数据；它仍使用明文用户口模型，不等价于加密 DDR3 core
-仿真或实板存储。canonical MWR32 TX 与双源仲裁专项只证明 full-DWORD 请求在同一 PCIe 时钟域的
-该厂商控制器仿真边界内生成；它们不等价于跨域 mailbox、完整 TX top、链路或主机完成。
+仿真或实板存储。canonical 回归现已通过单 outstanding mailbox 跨过 DDR/PCIe 异步时钟并进入
+未修改 MWR TX；它仍不等价于完整 TX top、PCIe 链路、主机完成或 placed-design CDC/STA 签核。

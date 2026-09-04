@@ -236,8 +236,24 @@ module tb_rgb565_pg2l50h_pcie_tx_request_arbiter;
         #1ns;
         if (!tx_user_data)
             $fatal(1, "Camera user-defined-data mode was not retained after ACK");
+
+        // A held downstream ACK must not complete or expose a waiting request.
         @(negedge clk);
-        clear_requests();
+        camera_mwr32_req = 1'b0;
+        native_mwr32_req = 1'b1;
+        native_length = 10'd1;
+        native_addr = 64'h1800;
+        native_data = 32'h0bad_f00d;
+        repeat (2) begin
+            @(posedge clk);
+            #1ns;
+            if (tx_mwr32_req || tx_mwr64_req || tx_mrd32_req || tx_mrd64_req ||
+                native_mwr32_ack || camera_mwr32_ack)
+                $fatal(1, "Held TX ACK leaked into the waiting native request");
+        end
+        @(negedge clk);
+        tx_mwr32_ack = 1'b0;
+        native_mwr32_req = 1'b0;
 
         // Camera completion makes native first on the next simultaneous race.
         @(negedge clk);

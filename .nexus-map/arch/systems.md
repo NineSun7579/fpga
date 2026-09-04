@@ -1,5 +1,5 @@
 > generated_by: Codex manual bootstrap
-> verified_at: 2026-09-03
+> verified_at: 2026-09-04
 > provenance: current source tree, PDS project files, reports, and root audit notes
 
 # Systems
@@ -205,19 +205,43 @@
 - responsibility: 将规范化请求映射到已审计的 `mwr32_req/ack`，锁存实际 DWORD 数、地址、数据与事件字段，并在 canonical ACK 前保持请求稳定。
 - evidence: 2026-09-03 Questa Sim-64 2021.1 独立 bridge TB 为 0 error/0 warning、唯一 TEST PASS、76 ns；新增 `tb_rgb565_pg2l50h_mwr32_tx_integration.sv` 直接实例化未修改 `ips2l_pcie_dma_mwr_tx_ctrl`，为 136 ns、0 error/0 warning、唯一 TEST PASS。
 - canonical_tx_contract: 隔离动态集成验证 req 保持至 ACK、header length=`1`、DWBE=`8'h0f`、4 字节对齐地址 `0x1000`、用户数据低 DWORD=`0x44332211` 以及 bridge/vendor busy 最终释放。
-- boundary: 只证明单 DWORD、`keep=4'hf`、4 字节对齐的 vendor TX 仿真边界。项目自有第二请求源仲裁另有独立证据，但 partial keep、跨域、完整 TX 顶层实例化、PCIe link training、RK3568/主机内存写入仍未关闭。
+- boundary: 只证明单 DWORD、`keep=4'hf`、4 字节对齐的 vendor TX 仿真边界。项目自有第二请求源仲裁和异步 CDC 另有独立证据，但 partial keep、完整 TX 顶层实例化、PCIe link training、RK3568/主机内存写入仍未关闭。
 
 ## main PG2L50H PCIe TX native/camera 请求仲裁器
 
-- implementation_status: behavior_verified_same_clock_request_arbiter_not_tx_top_integrated
+- implementation_status: behavior_verified_pcie_domain_request_arbiter_with_ack_release_barrier
 - code_path: `main_ov5640_pcie/rtl/rgb565_pg2l50h_pcie_tx_request_arbiter.sv`
 - test_path: `main_ov5640_pcie/tb/tb_rgb565_pg2l50h_pcie_tx_request_arbiter.sv`, `main_ov5640_pcie/tb/tb_rgb565_pg2l50h_pcie_tx_arbiter_integration.sv`
 - script_path: `main_ov5640_pcie/scripts/run_m3b_pg2l50h_pcie_tx_request_arbiter.ps1`, `main_ov5640_pcie/scripts/run_m3b_pg2l50h_pcie_tx_arbiter_integration.ps1`
 - responsibility: 在同一 TX 时钟域内原子仲裁完整 native `MWR32/MWR64/MRD32/MRD64` 请求 bundle 与 camera MWR32；native bundle 包含四类 request、MWR user-defined mode、length/address/data，camera bundle 包含 MWR32、length/address/data。
 - arbitration_contract: 空闲且两源同时请求时按上次完成 owner 轮转，复位后 native 先行；owner 与被选字段保持到匹配 TX ACK，未授权源不得看到 ACK。
+- ack_release_contract: 匹配 ACK 后撤销下游请求并进入 `WAIT_ACK_LOW`；只有观察到 vendor ACK 拉低，才允许换 owner 或发布下一事务，防止保持型 ACK 被下一请求误消费。
 - mwr_mode_contract: MWR user-defined 模式只在 native/camera MWR ACK 时更新；native MRD 不得改变该模式，锁存值保持到下一次 MWR handshake，使 vendor MWR TX 在 ACK 后仍看到正确 RAM-data 或 user-defined 模式。
-- evidence: 2026-09-03 Questa Sim-64 2021.1：专项 arbiter 245 ns；native RAM-data 与 camera user-defined 依次经过未修改 `ips2l_pcie_dma_mwr_tx_ctrl` 的集成测试 205 ns；均 0 error/0 warning、日志唯一 `TEST PASS`。
-- boundary: ACK 只表示 TX controller 接受请求，不表示 TLP 完成或主机写入。当前仅验证同域仲裁；DDR `core_clk`→PCIe `pclk_div2` CDC、完整 `ips2l_pcie_dma_tx_top`/产品顶层实例化、partial keep/byte enable、链路和 RK3568 均未关闭。
+- evidence: 2026-09-04 Questa Sim-64 2021.1：增强 arbiter 专项 265 ns；native RAM-data 与 camera user-defined 依次经过未修改 `ips2l_pcie_dma_mwr_tx_ctrl` 的集成测试 205 ns；均 0 error/0 warning、日志唯一 `TEST PASS`。
+- boundary: ACK 只表示 TX controller 接受请求，不表示 TLP 完成或主机写入。异步 camera 请求由独立 CDC wrapper 接入；完整 `ips2l_pcie_dma_tx_top`/产品顶层实例化、partial keep/byte enable、链路和 RK3568 均未关闭。
+
+## main PG2L50H PCIe MWR32 异步 mailbox
+
+- implementation_status: behavior_verified_single_outstanding_async_mailbox
+- code_path: `main_ov5640_pcie/rtl/rgb565_pg2l50h_pcie_mwr32_async_mailbox.sv`
+- test_path: `main_ov5640_pcie/tb/tb_rgb565_pg2l50h_pcie_mwr32_async_mailbox.sv`
+- script_path: `main_ov5640_pcie/scripts/run_m3b_pg2l50h_pcie_mwr32_async_mailbox.ps1`
+- responsibility: 将一笔保持型 camera MWR32 的 length/address/data 从 DDR3 应用 `core_clk` 域传到 PCIe `pclk_div2` 域，并只在目标端真实 ACK 后向源端完成。
+- cdc_contract: 单 outstanding toggle handshake；online/fault 电平保持两级同步，request/ACK token 使用三级同步，确保 peer-offline 先于事务 token 到达事务逻辑；目标检测 token 后额外等待一拍，再采样源端持续稳定的 bundled-data MCP；目标寄存 payload 并保持请求到 ACK，ACK token 返回源域。
+- reset_contract: 在线 reset handshake 在双方 channel-ready 前禁止新请求；idle 单域复位可重新对齐；在途任一域复位产生 pulse/sticky fault，事务结果定义为不确定且不自动 replay，要求上层作废当前 frame/slot 并协调 flush。
+- ack_release_contract: 源 ACK 保持到源请求撤销；目标进入 `WAIT_ACK_LOW`，vendor ACK 拉低前不接收下一 token。
+- evidence: 2026-09-04 Questa Sim-64 2021.1：源快/目标慢与源慢/目标快、连续 token、payload 稳定、ACK 延迟/保持、idle 与在途复位回归 2296 ns，0 error/0 warning、日志唯一 `TEST PASS`。
+- boundary: RTL 行为仿真不证明亚稳态或位间 skew；placed-design 必须对源 payload holding registers→目标 capture registers 签核 max-delay/bus-skew，并完成 CDC/RDC 与 STA。单纯 false-path 整条 payload 总线不可接受。
+
+## main PG2L50H PCIe TX CDC/仲裁集成
+
+- implementation_status: behavior_verified_async_camera_and_native_tx_boundary
+- code_path: `main_ov5640_pcie/rtl/rgb565_pg2l50h_pcie_tx_cdc_arbiter.sv`
+- test_path: `main_ov5640_pcie/tb/tb_rgb565_pg2l50h_pcie_tx_cdc_arbiter_integration.sv`
+- script_path: `main_ov5640_pcie/scripts/run_m3b_pg2l50h_pcie_tx_cdc_arbiter_integration.ps1`
+- responsibility: 组合异步 MWR32 mailbox 与现有 PCIe 域 native/camera 请求仲裁器，不修改厂商 MWR TX RTL。
+- evidence: 2026-09-04 Questa Sim-64 2021.1：native RAM-data 与异步 camera user-defined 请求各形成且仅形成一条正确单 DWORD TLP，385 ns，0 error/0 warning、日志唯一 `TEST PASS`。
+- boundary: 只关闭事务 CDC、ACK 隔离和 PCIe 域仲裁行为；不关闭完整 `ips2l_pcie_dma_tx_top`/产品顶层、partial keep、链路、RK3568 主机协议、加密 DDR core 或板级实现。
 
 ## OV7725 HDMI Legacy 顶层
 
@@ -497,12 +521,12 @@
 
 ## main OV5640→PG2L50H canonical DDR3→PCIe 流水顶层
 
-- implementation_status: behavior_verified_canonical_ddr_port_pipeline_only
+- implementation_status: behavior_verified_canonical_ddr_to_async_pcie_tx_boundary
 - code_path: `main_ov5640_pcie/rtl/ov5640_dvp_rgb565_pg2l50h_pcie_pipeline.sv`
 - test_path: `main_ov5640_pcie/tb/tb_ov5640_pg2l50h_ddr3_pcie_loopback.sv`
 - script_path: `main_ov5640_pcie/scripts/run_m3b_ov5640_pg2l50h_ddr3_pcie_loopback.ps1`
-- behavior_path: OV5640 DVP→CDC staging→双槽 allocation/write record→canonical AW/W adapter→公开端口 DDR 模型→canonical AR/R adapter→frame scheduler/readout gate→未修改 vendor MWR TX。
+- behavior_path: OV5640 DVP→CDC staging→双槽 allocation/write record→canonical AW/W adapter→公开端口 DDR 模型→canonical AR/R adapter→frame scheduler/readout gate→`core_clk`/`pclk_div2` 异步 mailbox→native/camera 仲裁→未修改 vendor MWR TX。
 - metadata_contract: DDR record 第 5 byte 保存 `keep/last/frame_end/protocol_error`，且 `WSTRB[4]=1`；读适配器从相同 bit 位置恢复 sideband，使控制记录和 partial payload 语义跨 DDR 存储边界保留。
-- evidence: 2026-09-03 Questa Sim-64 2021.1 为 0 error/0 warning、日志唯一 `TEST PASS`、仿真至 806 ns；覆盖 canonical AW/W→AR/R→vendor MWR TX 的两组 TLP header/data，以及 `ddr_read_port_fault_pulse=0` 的正常链路。
-- retained_regressions: 旧双槽数组模型回归 4194 ns、canonical MWR32 TX 隔离回归 136 ns、同域 TX 请求仲裁专项/集成为 245/205 ns。
-- boundary: 未实例化或解密 DDR core；同域第二请求源仲裁已独立验证但尚未接入本顶层。正式 DDR 地址单位/物理槽范围、DDR `core_clk`→PCIe `pclk_div2` CDC、完整 `ips2l_pcie_dma_tx_top` 实例化、partial keep、PCIe 链路、RK3568 软件、FDC/RCF/STA 和板级闭环均未关闭。
+- evidence: 2026-09-04 Questa Sim-64 2021.1 为 0 error/0 warning、日志唯一 `TEST PASS`、仿真至 1086 ns；覆盖 canonical AW/W→AR/R、异步 mailbox、双源仲裁和 vendor MWR TX 的两组 TLP header/data，以及 `ddr_read_port_fault_pulse=0` 的正常链路。
+- retained_regressions: 旧 806 ns 同时钟 canonical 边界、双槽数组模型 4194 ns、canonical MWR32 TX 隔离 136 ns、同域 TX 请求仲裁专项/集成 265/205 ns、mailbox 专项 2296 ns、CDC 仲裁集成 385 ns。
+- boundary: 未实例化或解密 DDR core。正式 DDR 地址单位/物理槽范围、placed-design payload max-delay/bus-skew、CDC/RDC/STA、完整 `ips2l_pcie_dma_tx_top`/产品顶层实例化、partial keep、PCIe 链路、RK3568 软件和板级闭环均未关闭。

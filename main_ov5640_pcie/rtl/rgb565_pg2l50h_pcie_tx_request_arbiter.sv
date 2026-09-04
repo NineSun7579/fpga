@@ -10,10 +10,13 @@
  * that complete native bundle atomic while allowing the camera path to inject
  * a full-DWORD user-defined MWR32 request. Vendor-generated RTL is not changed.
  *
- * Both sources must hold request and fields until their routed ACK is sampled.
+ * Both sources must hold request and fields until their routed ACK is sampled,
+ * then remove the completed request before presenting another transaction.
  * Native input must assert at most one request type. Ownership remains locked
- * through the matching TX ACK; simultaneous idle requests alternate by the
- * previously completed owner, with native selected first after reset.
+ * through the matching TX ACK and a release state suppresses all requests until
+ * both the downstream ACK and completed source request return low. Simultaneous
+ * idle requests alternate by the previously completed owner, with native
+ * selected first after reset.
  * The vendor MWR controller continues to sample user-defined-data mode after
  * ACK, so that mode is captured on each MWR handshake and retained until the
  * next MWR handshake replaces it.
@@ -60,7 +63,8 @@ module rgb565_pg2l50h_pcie_tx_request_arbiter (
     typedef enum logic [1:0] {
         OWNER_IDLE,
         OWNER_NATIVE,
-        OWNER_CAMERA
+        OWNER_CAMERA,
+        OWNER_WAIT_ACK_LOW
     } owner_t;
 
     owner_t owner;
@@ -70,6 +74,9 @@ module rgb565_pg2l50h_pcie_tx_request_arbiter (
     logic   native_handshake;
     logic   native_mwr_handshake;
     logic   camera_handshake;
+    logic   completed_owner_camera;
+    logic   all_tx_acks_low;
+    logic   completed_source_req_low;
 
     always_comb begin
         native_any_req = native_mwr32_req || native_mwr64_req ||
@@ -81,10 +88,15 @@ module rgb565_pg2l50h_pcie_tx_request_arbiter (
         native_mwr_handshake = (tx_mwr32_req && tx_mwr32_req_ack) ||
                                (tx_mwr64_req && tx_mwr64_req_ack);
         camera_handshake = tx_mwr32_req && tx_mwr32_req_ack;
+        all_tx_acks_low = !tx_mwr32_req_ack && !tx_mwr64_req_ack &&
+                          !tx_mrd32_req_ack && !tx_mrd64_req_ack;
+        completed_source_req_low = completed_owner_camera ?
+                                   !camera_mwr32_req : !native_any_req;
     end
 
     // Intent: expose only the selected source and return ACK only to its owner.
-    // Invariant: owner cannot change before the selected request handshake.
+    // Invariant: owner cannot change before the selected request handshake;
+    // no new owner is selected until downstream ACK and old source request fall.
     always_comb begin
         tx_user_define_data_flag = mwr_user_define_data_mode;
         tx_mwr32_req = 1'b0;
@@ -134,11 +146,14 @@ module rgb565_pg2l50h_pcie_tx_request_arbiter (
     // Encoding: auto; no implementation depends on a fixed encoding.
     // Reset state: OWNER_IDLE, with native first on the initial simultaneous race.
     // Illegal-state policy: return to OWNER_IDLE and restore native-first priority.
+    // Output timing: the ACK edge enters OWNER_WAIT_ACK_LOW, which suppresses all
+    // requests for at least one cycle and prevents a held ACK completing a new owner.
     always_ff @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             owner <= OWNER_IDLE;
             last_grant_camera <= 1'b1;
             mwr_user_define_data_mode <= 1'b0;
+            completed_owner_camera <= 1'b0;
         end else begin
             unique case (owner)
                 OWNER_IDLE: begin
@@ -156,8 +171,9 @@ module rgb565_pg2l50h_pcie_tx_request_arbiter (
 
                 OWNER_NATIVE: begin
                     if (native_handshake) begin
-                        owner <= OWNER_IDLE;
+                        owner <= OWNER_WAIT_ACK_LOW;
                         last_grant_camera <= 1'b0;
+                        completed_owner_camera <= 1'b0;
                         if (native_mwr_handshake)
                             mwr_user_define_data_mode <= native_user_define_data_flag;
                     end
@@ -165,16 +181,23 @@ module rgb565_pg2l50h_pcie_tx_request_arbiter (
 
                 OWNER_CAMERA: begin
                     if (camera_handshake) begin
-                        owner <= OWNER_IDLE;
+                        owner <= OWNER_WAIT_ACK_LOW;
                         last_grant_camera <= 1'b1;
+                        completed_owner_camera <= 1'b1;
                         mwr_user_define_data_mode <= 1'b1;
                     end
+                end
+
+                OWNER_WAIT_ACK_LOW: begin
+                    if (all_tx_acks_low && completed_source_req_low)
+                        owner <= OWNER_IDLE;
                 end
 
                 default: begin
                     owner <= OWNER_IDLE;
                     last_grant_camera <= 1'b1;
                     mwr_user_define_data_mode <= 1'b0;
+                    completed_owner_camera <= 1'b0;
                 end
             endcase
         end
