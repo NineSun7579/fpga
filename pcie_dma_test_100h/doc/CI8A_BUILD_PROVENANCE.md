@@ -1,8 +1,10 @@
 # CI-8A PCIe PDS 构建证据绑定契约
 
+当前平台基线：`RK3568_MES2L100H / PG2L100H-6IFBG484`。旧 50H manifest、日志和产物均不可复用于当前平台。
+
 ## 状态与范围
 
-CI-8A 已在 PCIe PG2L50H 工程完成试点。它解决的是 partial/failed PDS 运行复用旧 full-build 日志和产物的问题，不关闭 H2-B1 的 lane、refclk、PERST#、UART、SCBV 或 I/O timing 阻断。
+CI-8A 曾在旧 PG2L50H 工程完成试点。该结果只证明 provenance 机制能够拒绝 partial/failed PDS 运行复用旧 full-build 日志和产物，不构成当前 PG2L100H 构建证据，也不关闭 H2-B1 的 lane、refclk、PERST#、UART、SCBV 或 I/O timing 阻断。
 
 固定 manifest 位于：
 
@@ -60,7 +62,7 @@ PDS 前后会重新计算输入记录；构建期间任一路径、长度或 SHA
 - 真实 `compile` partial run 返回 0，manifest 为 `partial/false`，baseline gate 返回 1；
 - PDS executable 缺失返回 1，manifest 为 `failed/false`，baseline gate 返回 1；
 - manifest run-id、`bgr.db` 字节和 FDC 输入三类漂移均使 baseline gate 返回 1；
-- 最终 PG2L50H 七阶段构建返回 0，manifest 为 `complete/true`，包含 43 项输入和 7 项证据；
+- 历史 PG2L50H 七阶段构建返回 0，manifest 为 `complete/true`，包含 43 项输入和 7 项证据；当前 PG2L100H 必须重新生成 manifest、日志和产物；
 - H2-B0 baseline gate 返回 0，仍精确匹配 16 个签名、42 次记录并输出不可发布；
 - strict gate 返回 1，最差解析 slack 为 `0.100 ns`，五类 H2-B1 阻断保持可见。
 

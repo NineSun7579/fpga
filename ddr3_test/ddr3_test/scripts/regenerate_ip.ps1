@@ -8,6 +8,8 @@ param(
 # script never modifies the canonical vendor IP directory.
 $ErrorActionPreference = 'Stop'
 
+throw 'Obsolete PG2L50H probe. Current target is PG2L100H; execution is blocked.'
+
 $ProjectRoot = Split-Path -Parent $PSScriptRoot
 $CanonicalIpRoot = Join-Path $ProjectRoot 'ip_core\ddr3'
 $CanonicalIdf = Join-Path $CanonicalIpRoot 'ddr3.idf'

@@ -2,6 +2,9 @@
 
 # PDS 外部设计实现与仿真指南
 
+当前仓库平台基线：`RK3568_MES2L100H`（FPGA + ARM），目标 FPGA 为
+`PG2L100H-6IFBG484`。历史 50H 文本仅用于说明已作废迁移方案，不得作为当前器件依据。
+
 适用于：
 
 ```text
@@ -149,7 +152,7 @@ puts "INFO: project root is $project_root"
 set_arch \
     -family Logos2 \
     -device PG2L100H \
-    -package FBG676 \
+    -package FBG484 \
     -speedgrade -6
 
 # RTL 文件。PDS 根据扩展名识别文件类型。

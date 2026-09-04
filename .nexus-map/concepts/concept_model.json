@@ -202,16 +202,16 @@
       },
       "m0_m3_pg2l50h_migration": {
         "date": "2026-08-30",
-        "board": "RK3568+PG2L50H100H",
-        "physical_fpga": "PG2L50H-6IFBG484",
-        "pds_target": {"family": "Logos2", "device": "PG2L50H", "package": "FBG484", "speedgrade": "-6"},
-        "legacy_pg2l100h_artifacts": "historical evidence only; forbidden for programming and board acceptance",
+        "board": "historical mistaken assumption from RK3568_MES2L50H_100H manual filename",
+        "physical_fpga": "historical mistaken assumption: PG2L50H-6IFBG484; corrected to PG2L100H-6IFBG484 on 2026-09-04",
+        "pds_target": {"family": "Logos2", "device": "PG2L50H", "package": "FBG484", "speedgrade": "-6", "status": "obsolete_mistaken_assumption"},
+        "legacy_pg2l100h_artifacts": "require current IP metadata, version, constraints and board-evidence revalidation before use",
         "phases": {
-          "M0": "approved and documented: unified board/device fact and anti-stale-artifact policy",
-          "M1": "completed build migration: keep the existing PG2L50H PCIe IDF, fix PCIe build/PDS/gate, cross-check log/report/bgr device and rebuild from empty build; HSSTLP moved to PDS PG2L50H template site HSSTLP_292_612",
-          "M2": "in progress: M2-A staged PG2L50H regeneration completed with SP6.4 build 146967 without modifying canonical inputs; parameter/board review, canonical promotion, CI-6, clean rebuild and D3-0-R remain before D3-A",
+          "M0": "approved and documented on 2026-09-04: RK3568_MES2L100H with PG2L100H-6IFBG484 is the only current board/device fact",
+          "M1": "project-owned PCIe build/PDS/gate now require PG2L100H; active PG2L50H IDF is migration-blocked pending SP6.4 regeneration and a new clean build provenance",
+          "M2": "in progress: audit or regenerate PG2L100H DDR3 IP/FDC/RCF in isolated staging; board review, canonical promotion, CI-6, clean rebuild and D3-0-R remain before D3-A",
           "M3": "legacy only: OV7725 migration audit remains historical evidence and does not authorize the OV5640 product",
-          "C0/C1/C2/C3/S3": "OV5640 product path: reference audit, scope freeze, project boundary, PG2L50H implementation and four-level simulation"
+          "C0/C1/C2/C3/S3": "OV5640 product path: reference audit, scope freeze, project boundary, PG2L100H implementation and four-level simulation"
         }
       },
       "s0_0_r_simulator_recheck": {
@@ -284,11 +284,11 @@
       },
       "queue_status": "pcie_revalidation_m2_and_ov5640_c0_c1_next",
       "execution_queue": [
-        {"order": 1, "id": "M0", "status": "approved_documented", "prerequisite": "user-confirmed PG2L50H-6IFBG484 board target"},
-        {"order": 2, "id": "M1", "status": "next", "prerequisite": "fix PCIe project-owned build/gate while retaining the matching PG2L50H IDF"},
-        {"order": 3, "id": "M2", "status": "staging_validated_blocked_board_review", "prerequisite": "board-approved PG2L50H DDR3 IP/FDC/RCF promotion and CI-6 rerun"},
+        {"order": 1, "id": "M0", "status": "approved_documented", "prerequisite": "user-confirmed RK3568_MES2L100H with PG2L100H-6IFBG484"},
+        {"order": 2, "id": "M1", "status": "blocked_ip_regeneration", "prerequisite": "SP6.4 PG2L100H PCIe IP regeneration or auditable 100H IP evidence, then clean build provenance"},
+        {"order": 3, "id": "M2", "status": "blocked_board_and_version_review", "prerequisite": "board-approved PG2L100H DDR3 IP/FDC/RCF staging, promotion and CI-6 rerun"},
         {"order": 4, "id": "C0/C1", "status": "next_reference_audit_and_scope_freeze", "prerequisite": "read-only OV5640 reference import and owner-approved camera module/interface facts"},
-        {"order": 5, "id": "C2/C3", "status": "blocked_by_c0_c1", "prerequisite": "new OV5640 project/top boundary and PG2L50H IP/FDC implementation plan"},
+        {"order": 5, "id": "C2/C3", "status": "blocked_by_c0_c1", "prerequisite": "new OV5640 project/top boundary and PG2L100H IP/FDC implementation plan"},
         {"order": 6, "id": "S1/S2/S3", "status": "current_dynamic_revalidation_blocked_external_license", "prerequisite": "external license recovery, locked project RTL/IP/netlist/SDF and project-owned simulation entrypoints"}
       ],
       "tech_stack": ["PDS Tcl", "PowerShell", "ModelSim/QuestaSim"],
@@ -672,8 +672,8 @@
     {
       "id": "main-ov5640-pcie-m3b-pg2l50h-ddr3-write-adapter",
       "type": "System",
-      "label": "main PG2L50H canonical DDR3 write adapter",
-      "responsibility": "将一条规范化 128-bit DDR 记录映射为 PG2L50H 非标准 AW/W 单拍事务，并把上游完成延迟到 axi_wready 数据消费边沿。",
+      "label": "main 旧 PG2L50H 文件名 DDR3 write adapter 行为切片",
+      "responsibility": "将一条规范化 128-bit DDR 记录映射为待 PG2L100H 复核的非标准 AW/W 单拍事务，并把上游完成延迟到 axi_wready 数据消费边沿；不构成 50H 平台批准。",
       "implementation_status": "behavior_verified_canonical_user_port_adapter",
       "project_path": "main_ov5640_pcie/",
       "code_path": "main_ov5640_pcie/rtl/rgb565_pg2l50h_ddr3_write_adapter.sv",
@@ -688,8 +688,8 @@
     {
       "id": "main-ov5640-pcie-m3b-pg2l50h-ddr3-read-adapter",
       "type": "System",
-      "label": "main PG2L50H canonical DDR3 read adapter",
-      "responsibility": "将 PG2L50H 非标准 AR/R 单拍事务转换为可背压的规范化 32-bit 记录，并从 DDR 第 5 byte 恢复逐记录元数据。",
+      "label": "main 旧 PG2L50H 文件名 DDR3 read adapter 行为切片",
+      "responsibility": "将待 PG2L100H 复核的非标准 AR/R 单拍事务转换为可背压的规范化 32-bit 记录，并从 DDR 第 5 byte 恢复逐记录元数据；不构成 50H 平台批准。",
       "implementation_status": "behavior_verified_canonical_user_port_adapter",
       "project_path": "main_ov5640_pcie/",
       "code_path": "main_ov5640_pcie/rtl/rgb565_pg2l50h_ddr3_read_adapter.sv",
@@ -704,8 +704,8 @@
     {
       "id": "main-ov5640-pcie-m3b-pg2l50h-canonical-pipeline",
       "type": "System",
-      "label": "main OV5640→PG2L50H canonical DDR3→MWR TX 应用边界",
-      "responsibility": "串接 OV5640 双槽主链、canonical DDR3 AW/W 与 AR/R adapters，并在端到端 TB 中把读回 payload 经异步 mailbox 和 native/camera 仲裁送入未修改 PG2L50H MWR TX controller。",
+      "label": "main OV5640→旧 PG2L50H 文件名 DDR3→MWR TX 行为切片",
+      "responsibility": "串接 OV5640 双槽主链、待 PG2L100H 复核的 DDR3 AW/W 与 AR/R adapters，并在端到端 TB 中把读回 payload 经异步 mailbox 和 native/camera 仲裁送入未修改的历史 PCIe TX controller；不构成 50H 平台批准。",
       "implementation_status": "behavior_verified_canonical_ddr_to_async_pcie_tx_boundary",
       "project_path": "main_ov5640_pcie/",
       "code_path": "main_ov5640_pcie/rtl/ov5640_dvp_rgb565_pg2l50h_pcie_pipeline.sv",
@@ -866,7 +866,7 @@
       "m3a_ip_migration_audit": {
         "status": "documented_staging_blocked",
         "active_target": "Logos2/PG2L100H/FBG484/-6, PDS SP4.2 build 132111",
-        "approved_target": "Logos2/PG2L50H/FBG484/-6, PDS SP6.4",
+        "approved_target": "Logos2/PG2L100H/FBG484/-6, PDS SP6.4",
         "version_gaps": {
           "ddr3_ip": {"active": "1.12", "installed": "1.10"},
           "pll_clk": {"active": "1.3", "installed": "1.5"},
@@ -1052,7 +1052,7 @@
     {
       "id": "ddr3-outer-project",
       "type": "System",
-      "label": "DDR3 外层工程",
+      "label": "DDR3 外层工程（PG2L100H）",
       "responsibility": "承载最终板级 DDR3 测试顶层、IP 和约束。",
       "implementation_status": "bringup_full_implementation_baseline",
       "code_path": "ddr3_test/ddr3_test/",
@@ -1062,11 +1062,11 @@
         "ddr3_test/ddr3_test/doc/M2B1_PARAMETER_AND_DIFF_AUDIT.md",
         "ddr3_test/ddr3_test/build/logs/pds-gen_bit_stream.log"
       ],
-      "evidence_gap": "M2-B1 已纠正 PG2L50H staging 生成路径并完成参数/资产差异审计，但 canonical IP/FDC/RCF 仍为 PG2L100H。板级参数、28 项 FDC pin 差异、canonical 升格、CI-6、50H 空目录七阶段、D3-0-R、有限 BIST 和四级仿真仍未验收。",
+      "evidence_gap": "当前目标为 PG2L100H；活动 IP/FDC/RCF 的版本、板级参数、canonical 升格、CI-6、D3-0-R、有限 BIST 和四级仿真仍未验收。旧 50H staging 仅作历史差异记录。",
       "hardware_target": {
-        "board": "RK3568+PG2L50H100H",
-        "fpga": "PG2L50H-6IFBG484",
-        "pds_target": "Logos2 / PG2L50H / FBG484 / -6"
+        "board": "RK3568_MES2L100H",
+        "fpga": "PG2L100H-6IFBG484",
+        "pds_target": "Logos2 / PG2L100H / FBG484 / -6"
       },
       "m2_read_only_audit": {
         "date": "2026-08-30",
@@ -1208,7 +1208,7 @@
         "ddr3_test/ddr3_test/rtl/ddr3_finite_bist.sv"
       ],
       "evidence_path": "ddr3_test/ddr3_test/doc/FINITE_SELF_TEST_CONTRACT.md",
-      "evidence_gap": "D2 与旧 D3-0 只读决策已完成，M2-B1 正确 PG2L50H staging 与参数/差异审计已验证；canonical 升格、CI-6、D3-0-R 和 D3-A 仍未完成，两个项目自有 RTL 文件未创建。Questa 工具和库有历史验证，但当前动态 checkout 不可用。",
+      "evidence_gap": "D2 与旧 D3-0 只读决策已完成；M2-B1 的旧 50H staging 仅作历史差异证据，PG2L100H staging 核验或重生成、canonical 升格、CI-6、D3-0-R 和 D3-A 仍未完成，两个项目自有 RTL 文件未创建。Questa 工具和库有历史验证，但当前动态 checkout 不可用。",
       "transaction_contract": {
         "pair_count": 16,
         "burst": "single-beat write/read compare",
@@ -1239,7 +1239,7 @@
       "implementation_status": "implemented_example_only",
       "code_path": "ddr3_test/ddr3_test/ip_core/ddr3/pnr/",
       "evidence_path": "ddr3_test/ddr3_test/ip_core/ddr3/pnr/place_route/test_ddr_timing_summary_after_hold_fix.txt",
-      "evidence_gap": "外层重建已生成当前 PG2L100H test_ddr 的 PNR 网表与 SDF，但示例通过仍不代表产品工程；M2-B1 已生成正确 PG2L50H staging，仍需原理图/BOM审核 28 项 FDC pin 差异后才能升格 canonical，testbench 失配且 SDF 未标注验证。",
+      "evidence_gap": "外层重建已生成历史 PG2L100H test_ddr 的 PNR 网表与 SDF，但示例通过仍不代表产品工程；旧 50H staging 只作差异证据，仍需原理图/BOM审核 28 项 FDC pin 差异并完成 PG2L100H staging 核验或重生成后才能升格 canonical，testbench 失配且 SDF 未标注验证。",
       "tech_stack": ["Verilog", "Pango Logos2", "DDR3 IP"],
       "related_reqs": ["示例迁移", "端口匹配", "四级仿真"],
       "complexity": "high",
@@ -1253,7 +1253,7 @@
       "implementation_status": "implemented_with_known_functional_gap",
       "code_path": "pcie_dma_test_100h/hdl/",
       "evidence_path": "pcie_dma_test_100h/place_route/pcie_dma_test_timing_summary_after_hold_fix.txt",
-      "evidence_gap": "PCIe IDF、build/PDS/gate 与产物已统一匹配 PG2L50H；S2-A 保留历史动态 PASS，当前 S2-A/S2-B 静态门禁通过。当前动态复验因仓库外许可证 checkout 失败返回 4，未产生新 PASS；真实 RC/EP、DMA、板级证据和后级网表/SDF 仍缺失。",
+      "evidence_gap": "当前目标为 PG2L100H，但活动 PCIe IDF 仍错误带有 PG2L50H metadata；S2-A 保留历史动态 PASS，当前 S2-A/S2-B 静态门禁通过。当前动态复验因仓库外许可证 checkout 失败返回 4，未产生新 PASS；真实 RC/EP、DMA、板级证据和后级网表/SDF 仍缺失。",
       "h2a_read_only_evidence": {
         "date": "2026-08-30",
         "top_module": "pcie_dma_test",
@@ -1265,10 +1265,10 @@
         "constraint_gaps": ["lane polarity", "board topology", "I/O delay", "SCBV"],
         "active_idf_metadata": {"family": "Logos2", "device": "PG2L50H", "package": "FBG484", "speedgrade": "-6"},
         "legacy_pds_target": {"family": "Logos2", "device": "PG2L100H", "package": "FBG484", "speedgrade": "-6"},
-        "approved_pds_target": {"family": "Logos2", "device": "PG2L50H", "package": "FBG484", "speedgrade": "-6"},
+        "approved_pds_target": {"family": "Logos2", "device": "PG2L100H", "package": "FBG484", "speedgrade": "-6"},
         "next_scope": ["UART2APB ownership", "lane/refclk/PERST# evidence", "SCBV", "project-level simulation"],
         "still_forbidden_without_board_evidence": ["RTL", "FDC", "vendor IDF manual edit"],
-        "status": "device_target_approved_m1_pending"
+        "status": "approved_pg2l100h_active_idf_migration_blocked"
       },
       "h2a_uart_gap": "UART2APB uses implicit rxd/txd nets and rxd is tied to 0; functional ownership remains unresolved.",
       "h2b_static_metadata_gate": {
@@ -1279,15 +1279,15 @@
         "idf_path": "pcie_dma_test_100h/ipcore/pcie_test/pcie_test.idf",
         "validation_method": "direct PowerShell XML parsing via [xml] and ip_inst.header fields",
         "checked_fields": ["family", "device", "package", "speedgrade"],
-        "legacy_expected_metadata": {"family": "Logos2", "device": "PG2L100H", "package": "FBG484", "speedgrade": "-6"},
-        "approved_expected_metadata": {"family": "Logos2", "device": "PG2L50H", "package": "FBG484", "speedgrade": "-6"},
+        "legacy_expected_metadata": {"family": "Logos2", "device": "PG2L50H", "package": "FBG484", "speedgrade": "-6", "status": "obsolete_baseline"},
+        "approved_expected_metadata": {"family": "Logos2", "device": "PG2L100H", "package": "FBG484", "speedgrade": "-6"},
         "observed_metadata": {"family": "Logos2", "device": "PG2L50H", "package": "FBG484", "speedgrade": "-6"},
         "baseline_gate_exit_code": 0,
         "strict_gate_exit_code": 1,
         "baseline_release_ready": false,
-        "boundary": "M1 updated the gate to PG2L50H and verified build log, timing report and bitstream database device identity; UART, board evidence, SCBV and simulation remain release blockers"
+        "boundary": "project-owned gate now requires PG2L100H and rejects the observed PG2L50H IDF; new 100H build log, timing report and bitstream evidence plus UART, board evidence, SCBV and simulation remain release blockers"
       },
-      "h2b_prerequisites": ["M1 PG2L50H clean rebuild", "board lane polarity/topology", "I/O delay", "SCBV decision", "UART2APB port ownership"],
+      "h2b_prerequisites": ["SP6.4 PG2L100H PCIe IP and clean rebuild", "board lane polarity/topology", "I/O delay", "SCBV decision", "UART2APB port ownership"],
       "h2b_stop_condition": "Any missing board evidence, IDF/PDS device mismatch, or unresolved UART2APB port ownership stops gate tightening; no waiver substitute.",
       "ci8a_build_provenance": {
         "date": "2026-08-31",
@@ -1312,9 +1312,9 @@
           "artifact_count": 7,
           "baseline_gate_exit_code": 0,
           "strict_gate_exit_code": 1,
-          "interpretation": "current inputs reproduce the approved non-release baseline; strict release remains blocked"
+          "interpretation": "historical PG2L50H inputs reproduced an obsolete non-release baseline; no current PG2L100H build evidence"
         },
-        "ci8b_boundary": "DDR3 and OV7725 migrate only after their own PG2L50H canonical promotion; audit each source list and artifact layout independently before considering shared modules."
+        "ci8b_boundary": "DDR3 and OV7725 proceed only after PG2L100H staging audit and canonical promotion; audit each source list and artifact layout independently before considering shared modules."
       },
       "s2a_behavior_smoke": {
         "date": "2026-09-01",

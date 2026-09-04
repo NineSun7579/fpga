@@ -44,10 +44,10 @@ $PcieLinkSimCheckPath = Join-Path $RepoRoot `
     'pcie_dma_test_100h\scripts\check_link_sim.ps1'
 $PcieS2bDocPath = Join-Path $RepoRoot `
     'pcie_dma_test_100h\doc\S2B_REAL_LINK.md'
-$ApprovedBoard = 'RK3568+PG2L50H100H'
-$ApprovedFpgaPart = 'PG2L50H-6IFBG484'
+$ApprovedBoard = 'RK3568_MES2L100H'
+$ApprovedFpgaPart = 'PG2L100H-6IFBG484'
 $ApprovedPdsFamily = 'Logos2'
-$ApprovedPdsDevice = 'PG2L50H'
+$ApprovedPdsDevice = 'PG2L100H'
 $ApprovedPdsPackage = 'FBG484'
 $ApprovedPdsSpeedgrade = '-6'
 $Ddr3RegeneratePath = Join-Path $RepoRoot `
@@ -171,7 +171,7 @@ if ($Ov5640ScopeExists) {
     foreach ($Required in ([ordered]@{
             'OV5640 product target' = 'OV5640'
             'OV7725 legacy boundary' = 'OV7725.*(?:legacy|\u5386\u53f2)'
-            'approved FPGA target' = 'PG2L50H-6IFBG484'
+            'approved FPGA target' = 'PG2L100H-6IFBG484'
             'reference import boundary' = '59_top_dual_ov5640_hdmi'
             'Questa validation requirement' = 'Questa.*2021\.1'
         }).GetEnumerator()) {
@@ -272,7 +272,7 @@ if ($SimlibPsExists) {
 }
 
 $Ddr3RegenerateExists = Require-File -Path $Ddr3RegeneratePath `
-    -Description 'DDR3 PG2L50H staging regeneration entry'
+    -Description 'blocked legacy DDR3 PG2L50H probe'
 $Ddr3RegenerationDocExists = Require-File -Path $Ddr3RegenerationDocPath `
     -Description 'DDR3 M2 IP regeneration audit'
 $Ddr3M2B1AuditExists = Require-File -Path $Ddr3M2B1AuditPath `
@@ -281,18 +281,10 @@ if ($Ddr3RegenerateExists) {
     $Ddr3RegenerateText = Get-Content -Raw -Encoding UTF8 `
         -LiteralPath $Ddr3RegeneratePath
     foreach ($Required in ([ordered]@{
-            'PDS IP generator invocation' = 'ip_generate\.exe'
-            'approved DDR3 device override' = '-device\s+PG2L50H'
-            'approved DDR3 package override' = '-pack\s+FBG484'
-            'approved DDR3 speed override' = '-speed\s+-6'
-            'staging under build directory' = "'build'"
-            'validated PG2L50H seed' = 'ip_backup\\20250108100125\\ddr3'
-            'case-sensitive IDF parameter comparison' = 'Sort-Object\s+-CaseSensitive'
-            'order-independent IDF parameter diff' = 'Compare-Object'
-            'canonical hash preservation gate' = 'Get-FileHash'
-            'DEVICE_100H_EN false gate' = "DEVICE_100H_EN.*false"
-            'PG2L50H PPLL synthesis gate' = 'CLKOUT4_SYN_EN'
-            'PG2L50H PPLL feedback gate' = 'INTERNAL_FB'
+            'legacy probe immediate execution block' = '(?m)^throw\s+''[^'']*PG2L50H[^'']*PG2L100H[^'']*blocked[^'']*''\s*$'
+            'legacy PDS IP generator body retained for audit' = 'ip_generate\.exe'
+            'legacy staging constrained under build directory' = "'build'"
+            'legacy canonical hash preservation gate retained' = 'Get-FileHash'
         }).GetEnumerator()) {
         Require-Pattern -Text $Ddr3RegenerateText -Pattern $Required.Value `
             -Description $Required.Key | Out-Null
@@ -303,11 +295,14 @@ if ($Ddr3RegenerationDocExists) {
         -LiteralPath $Ddr3RegenerationDocPath
     foreach ($Required in ([ordered]@{
             'M2 approved FPGA part' = [regex]::Escape($ApprovedFpgaPart)
-            'M2 canonical promotion conditions' = '(?m)^##\s+\u5347\u683c\u6761\u4ef6\s*\r?$'
-            'M2 rollback conditions' = '(?m)^##\s+\u56de\u9000\u6761\u4ef6\s*\r?$'
-            'M2 wrapper clock drift' = 'ref_clk_p/ref_clk_n'
-            'M2 derived device parameter gate' = 'DEVICE_100H_EN=false'
-            'M2-B1 audit link' = 'M2B1_PARAMETER_AND_DIFF_AUDIT\.md'
+            'M2 approved PDS target' = 'Logos2\s*/\s*PG2L100H\s*/\s*FBG484\s*/\s*-6'
+            'M2 legacy probe rejection' = 'scripts/regenerate_ip\.ps1.*\u4e0d\u80fd\u6267\u884c'
+            'M2 PG2L100H staging path' = 'build/ipgen/pg2l100h'
+            'M2 canonical hash preservation' = 'SHA-256 \u4e0d\u53d8'
+            'M2 no manual IDF edits' = '\u7981\u6b62\u624b\u6539.*<version>.*<device>'
+            'M2 pre-generation evidence section' = '(?m)^##\s+3\.\s+\u751f\u6210\u524d\u8d44\u6599\s*\r?$'
+            'M2 post-generation verification section' = '(?m)^##\s+4\.\s+\u751f\u6210\u540e\u6838\u9a8c\s*\r?$'
+            'M2 promotion review boundary' = '\u624d\u5141\u8bb8\u8fdb\u5165 D3-A \u548c canonical \u5347\u683c\u8bc4\u5ba1'
         }).GetEnumerator()) {
         Require-Pattern -Text $Ddr3RegenerationDocText -Pattern $Required.Value `
             -Description $Required.Key | Out-Null
@@ -317,38 +312,40 @@ if ($Ddr3M2B1AuditExists) {
     $Ddr3M2B1AuditText = Get-Content -Raw -Encoding UTF8 `
         -LiteralPath $Ddr3M2B1AuditPath
     foreach ($Required in ([ordered]@{
-            'M2-B1 hidden parameter conclusion' = '\u9690\u85cf\u5668\u4ef6\u6d3e\u751f\u53c2\u6570'
-            'M2-B1 PG2L50H false value' = 'PG2L50H.*false'
-            'M2-B1 PPLL branch evidence' = 'CLKOUT4_SYN_EN.*TRUE'
-            'M2-B1 added port count' = '21\s*\u4e2a\u589e\u52a0\u5230\s*26\s*\u4e2a'
-            'M2-B1 pin diff count' = '28\s*\u9879\u5dee\u5f02'
-            'M2-B1 canonical promotion boundary' = '(?m)^##\s+\u5347\u683c\u8fb9\u754c\s*\r?$'
+            'M2-B1 approved FPGA part' = [regex]::Escape($ApprovedFpgaPart)
+            'M2-B1 active PG2L100H header' = '\u6d3b\u52a8 DDR3 IP \u7684\u76ee\u6807 header \u5df2\u662f PG2L100H'
+            'M2-B1 hidden derived parameter review' = 'DEVICE_100H_EN.*\u6d3e\u751f\u503c'
+            'M2-B1 PG2L100H staging path' = 'build/ipgen/pg2l100h'
+            'M2-B1 current staging acceptance section' = '(?m)^##\s+4\.\s+\u5f53\u524d PG2L100H staging \u9a8c\u6536\s*\r?$'
+            'M2-B1 canonical hash preservation' = 'SHA-256.*\u4fdd\u6301\u4e0d\u53d8'
+            'M2-B1 promotion threshold section' = '(?m)^##\s+5\.\s+\u5347\u683c\u95e8\u69db\s*\r?$'
+            'M2-B1 legacy 50H rejection' = '\u5386\u53f2 50H \u8d44\u4ea7.*PG2L100H \u901a\u8fc7\u8bc1\u636e'
         }).GetEnumerator()) {
         Require-Pattern -Text $Ddr3M2B1AuditText -Pattern $Required.Value `
             -Description $Required.Key | Out-Null
     }
 }
 
-# M3-A is an audit-only gate. Protect the four active IDFs until the reviewed
-# PG2L50H staging set is promoted atomically in a later batch.
+# M3-A is an audit-only gate. Protect the four active IDFs until the current
+# PG2L100H baseline is reviewed; old PG2L50H staging remains historical only.
 $OvM3AuditExists = Require-File -Path $OvM3AuditPath `
     -Description 'OV7725 M3-A four-IP migration audit'
 if ($OvM3AuditExists) {
     $OvM3AuditText = Get-Content -Raw -Encoding UTF8 -LiteralPath $OvM3AuditPath
     foreach ($Required in ([ordered]@{
             'M3-A approved FPGA part' = [regex]::Escape($ApprovedFpgaPart)
-            'M3-A old-IP path rejection' = 'IPCompiler 0037'
-            'M3-A version mismatch rejection' = 'IPCompiler 0057'
-            'M3-A DDR3 version gap' = '1\.12.*1\.10'
-            'M3-A PLL version gap' = '1\.3.*1\.5'
-            'M3-A FIFO version gap' = '1\.8.*1\.10'
-            'M3-A GUI new-instance rule' = 'SP6\.4 IP Compiler GUI'
-            'M3-A staging-only output' = 'build/ipgen/pg2l50h'
-            'M3-A canonical promotion block' = '\u7981\u6b62 canonical \u5347\u683c'
-            'M3-A DDR3 derived parameter' = 'DEVICE_100H_EN=false'
-            'M3-A PLL derived parameter' = 'DEVICE_PG2L50H=true'
-            'M3-A FIFO PG2L50H resource limits' = '85 \u4e2a DRM36K/170 \u4e2a DRM18K'
-            'M3-A RCF object-hit review' = 'RCF.*\u5bf9\u8c61.*\u547d\u4e2d'
+            'M3-A approved PDS target' = 'Logos2\s*/\s*PG2L100H\s*/\s*FBG484\s*/\s*-6'
+            'M3-A active IP target' = '\u6d3b\u52a8 IDF \u5747\u9762\u5411 PG2L100H'
+            'M3-A old PDS version evidence' = 'PDS SP4\.2'
+            'M3-A SP6.4 PG2L100H staging rule' = 'PDS 2022\.2-SP6\.4 \u5728 PG2L100H \u76ee\u6807\u4e0b\u5efa\u7acb\u72ec\u7acb staging'
+            'M3-A legacy PG2L50H rejection' = '\u65e7 PG2L50H \u8fc1\u79fb.*\u4e0d\u5f97\u6267\u884c'
+            'M3-A PG2L100H staging path' = 'build/ipgen/pg2l100h/ddr3_ip'
+            'M3-A canonical hash preservation' = 'canonical IDF SHA-256 \u4e0d\u53d8'
+            'M3-A DDR3 parameter review' = '\u9897\u7c92\u6599\u53f7.*x16/x32'
+            'M3-A PLL parameter review' = 'pixel_clk.*pixel_clk_5x'
+            'M3-A FIFO parameter review' = '\u8bfb\u5199\u5bbd\u5ea6.*\u6df1\u5ea6'
+            'M3-A RCF object-hit review' = 'RCF.*\u5b9e\u9645\u5bf9\u8c61\u547d\u4e2d'
+            'M3-A promotion conditions section' = '(?m)^##\s+6\.\s+\u5347\u683c\u6761\u4ef6\s*\r?$'
         }).GetEnumerator()) {
         Require-Pattern -Text $OvM3AuditText -Pattern $Required.Value `
             -Description $Required.Key | Out-Null
@@ -538,8 +535,8 @@ foreach ($Project in $Projects) {
     }
 }
 
-# The active PCIe IP already matches the approved physical FPGA. Parse the IDF
-# structurally so future edits cannot silently restore the rejected 100H target.
+# The active PCIe IP must match the approved current physical FPGA. Parse the
+# IDF structurally so an old PG2L50H asset cannot silently pass as 100H.
 $PcieIdfPath = Join-Path $RepoRoot 'pcie_dma_test_100h\ipcore\pcie_test\pcie_test.idf'
 if (Require-File -Path $PcieIdfPath -Description 'active PCIe IP definition') {
     try {

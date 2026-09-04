@@ -1,12 +1,12 @@
 # 三项目仿真就绪度矩阵
 
-更新日期：2026-09-01
+更新日期：2026-09-04
 
 适用工具：PDS `2022.2-SP6.4`、外部 ModelSim/QuestaSim
 
 ## 结论
 
-DDR3 与摄像头 HDMI 当前仍没有面向项目集成顶层的仿真入口。现有摄像头资产属于 OV7725 legacy，产品目标已校正为 OV5640，必须先完成 C0/C1 再设计项目 TB。Questa Sim-64 `2021.1`、最小 SystemVerilog smoke、Logos2 USIM/VSIM 和 `V_BUF` 原语 smoke 均有历史通过证据，许可证配置保持在仓库外部。PCIe S2-A 历史动态已完成项目级受控行为 smoke：RTL 编译 0 errors/0 warnings，elaboration 成功，仿真运行到 `1476105 ns`，同一 run marker、唯一 `TEST PASS` 和 PowerShell 退出码 0 均通过；2026-09-01 当前复验的环境检查和 S2-A/S2-B 静态门禁通过，但动态启动因外部许可证 checkout 失败返回 4，必须在恢复后产生新 run id。S2-B 仍只有静态入口，三个项目的后级网表和 SDF 动态仿真仍待完成。
+DDR3 与摄像头 HDMI 当前仍没有面向项目集成顶层的仿真入口。现有摄像头资产属于 OV7725 legacy，产品目标已校正为 OV5640，当前平台为 `RK3568_MES2L100H / PG2L100H-6IFBG484`，必须先完成 C0/C1 再设计项目 TB。Questa Sim-64 `2021.1`、最小 SystemVerilog smoke、Logos2 USIM/VSIM 和 `V_BUF` 原语 smoke 均有历史通过证据，许可证配置保持在仓库外部。PCIe S2-A 历史动态已完成项目级受控行为 smoke：RTL 编译 0 errors/0 warnings，elaboration 成功，仿真运行到 `1476105 ns`，同一 run marker、唯一 `TEST PASS` 和 PowerShell 退出码 0 均通过；2026-09-01 当前复验的环境检查和 S2-A/S2-B 静态门禁通过，但动态启动因外部许可证 checkout 失败返回 4，必须在恢复后产生新 run id。S2-B 仍只有静态入口，三个项目的后级网表和 SDF 动态仿真仍待完成。
 
 项目级仿真必须新增相对路径的 filelist、DO 脚本和自检 testbench；不得批量修改 `ipcore/`、`ip_core/`、`ip_backup/` 下的厂商生成文件，也不得把厂商示例顶层改名后冒充集成验证。
 
@@ -82,7 +82,7 @@ DDR3 与摄像头 HDMI 当前仍没有面向项目集成顶层的仿真入口。
 - Questa `2021.1` 与 Logos2 USIM 已验证；S2-A 仅在仿真专用 `sim/behav.f` 中补入 `ipcore/pcie_test/rtl/ips2l_pcie_apb_cross_v1_0.v`，未修改由 IDF 管理的 canonical PDS 源清单。动态 smoke 的 RTL 编译为 0 errors/0 warnings，elaboration 成功并运行到 `1476105 ns`，同一 run marker、唯一 `TEST PASS` 和 PowerShell 退出码 0 均通过。
 - 当前复验确认 Questa 版本、三项工具、S2-A/S2-B 静态 gate 和现有 USIM/VSIM 目录；S2-A 动态启动被外部许可证 checkout 阻断并返回 4，恢复后必须生成新的 `SIM_RUN_ID`，不能复用历史 transcript。
 - S2-A 最终 2 条 warning 均来自 `u_ips2l_pcie_dma` 未连接输出 `o_trgt1_radm_pkt_halt`，作为独立 RTL hygiene TODO；受控 link indication 仍不证明真实 LTSSM、TLP、DMA 或板级链路。
-- 活动 PCIe IP、PDS 目标和新构建产物均与实际 PG2L50H 一致；lane/refclk/PERST#/SCBV 和 UART 决策继续由 H2-B1 阻断。
+- 活动 PCIe IP 仍为旧 50H metadata，与当前 `PG2L100H` 目标不一致；在重新生成/核验 100H IP 前，PCIe 构建和后级仿真证据均保持阻断。lane/refclk/PERST#/SCBV 和 UART 决策继续由 H2-B1 阻断。
 
 ### TODO（S2）
 

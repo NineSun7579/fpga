@@ -1,6 +1,12 @@
 # main 独立 OV5640→PCIe 产品合同
 
-更新日期：2026-09-03
+更新日期：2026-09-04
+
+## 当前平台基线
+
+当前平台唯一目标是 `RK3568_MES2L100H`（FPGA + ARM），FPGA 器件为
+`PG2L100H-6IFBG484`，PDS 目标为 `Logos2 / PG2L100H / FBG484 / -6`。
+仓库中带有 `PG2L50H` 的历史文件、模块名和仿真脚本不代表当前平台，必须按待迁移行为切片处理。
 
 ## 项目边界
 
@@ -35,15 +41,15 @@
 3. DDR3 单帧写入/读出数据一致。
 4. PCIe DMA 产生正确的 Memory Write，主机收到的数据与参考帧一致。
 5. 行为级、综合后、PNR 后功能和 PNR 后时序仿真均具备独立退出契约。
-6. `Logos2 / PG2L50H / FBG484 / -6` 目标下完成可重复 PDS 构建、STA 和实板验证。
+6. `Logos2 / PG2L100H / FBG484 / -6` 目标下完成可重复 PDS 构建、STA 和实板验证。
 
 ## 当前事实与阻断
 
 - `main` 当前 PCIe 顶层为 `pcie_dma_test`，只有 PCIe、复位和 LED 端口，没有 OV5640 或 DDR3 产品端口。
 - `main` 已有 PCIe DMA 和 128-bit AXIS 内部接口，可作为 PCIe 输出基础，但当前没有本地视频生产者。
-- 当前统一器件目标为 `Logos2 / PG2L50H / FBG484 / -6`；历史 PG2L100H 产物只能作为不可烧录的迁移证据。
+- 当前统一器件目标为 `Logos2 / PG2L100H / FBG484 / -6`；历史 PG2L50H 产物和行为证据只能作为待迁移参考，不能作为当前平台验收依据。
 - OV5640 模组、DDR3 料号/拓扑、25 MHz 时钟树、PCIe 100 MHz refclk 和主机帧协议仍需一手资料确认。
-- 当前已具备 OV5640 DVP→处理→DDR3 记录数组模型→已提交帧读调度→PCIe MWR 请求的完整行为回归，
-  但没有实例化真实 DDR3/PCIe IP，也没有带槽号物理帧表或 RK3568 主机收帧证据。
+- 当前已有的 OV5640 DVP→处理→DDR3 记录数组模型→已提交帧读调度→PCIe MWR 请求行为回归，
+  均来自旧 50H 假设下的项目自有切片；它们尚未按 100H IP、真实 DDR3/PCIe、物理帧表或 RK3568 主机收帧合同重新核验。
 - 进入真实板级连接前必须关闭的资料项见
   [`MAIN_OV5640_PCIE_BOARD_INPUT_CHECKLIST.md`](MAIN_OV5640_PCIE_BOARD_INPUT_CHECKLIST.md)。

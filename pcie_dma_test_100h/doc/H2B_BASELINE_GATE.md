@@ -1,22 +1,24 @@
 # PCIe H2-B0 精确 baseline 指纹门禁
 
-状态：H2-B0 静态门禁已实现，H2-B1 板级闭环仍受外部资料阻断。日期：2026-08-30。
+状态：H2-B0 旧 50H 静态指纹仅作历史证据；当前平台为 100H，必须重建指纹。H2-B1 板级闭环仍受外部资料阻断。日期：2026-09-04。
+
+当前平台硬事实：`RK3568_MES2L100H / PG2L100H-6IFBG484`。本文件中的旧 50H 指纹不得作为当前构建或发布依据。
 
 ## 1. 目的
 
 `-AllowKnownBaselineIssues` 只用于证明当前失败状态可重复，不能作为发布 waiver。旧门禁只检查五类宽泛正则是否出现，无法发现同类别对象新增、消失、重命名、管脚位置或重复次数漂移，并且可能放行错误的 PCIe IP metadata。
 
-H2-B0 将当前 PG2L50H 构建的失败状态固化为机器清单 [`H2B_BASELINE_FINGERPRINT.json`](H2B_BASELINE_FINGERPRINT.json)。baseline 模式只有在对象多重集完全一致时返回 0；strict 模式继续因任何现存阻断返回非零。
+H2-B0 曾将旧 PG2L50H 构建的失败状态固化为机器清单 [`H2B_BASELINE_FINGERPRINT.json`](H2B_BASELINE_FINGERPRINT.json)。该清单在 100H IP/构建重新完成前冻结为历史证据；baseline 模式不得据此放行当前平台。
 
 ## 2. 器件硬门禁
 
 以下四元组不属于 baseline 可放行问题：
 
 ```text
-Logos2 / PG2L50H / FBG484 / -6
+Logos2 / PG2L100H / FBG484 / -6
 ```
 
-活动 IDF 任一字段不一致时，无论是否使用 `-AllowKnownBaselineIssues`，门禁均立即失败。构建日志、最终 timing report 和 bitstream database 中的 PG2L50H 交叉检查同样保持硬失败语义，任何 PG2L100H 痕迹均拒绝。
+活动 IDF 任一字段不一致时，无论是否使用 `-AllowKnownBaselineIssues`，门禁均立即失败。构建日志、最终 timing report 和 bitstream database 必须交叉确认 PG2L100H；任何 PG2L50H 痕迹均拒绝。
 
 ## 3. 当前精确指纹
 

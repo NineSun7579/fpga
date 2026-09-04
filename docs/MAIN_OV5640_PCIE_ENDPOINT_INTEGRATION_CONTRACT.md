@@ -3,6 +3,8 @@
 更新日期：2026-09-04
 状态：Draft，作为产品顶层接线前的接口冻结记录，不作为 PCIe 链路签核。
 
+当前平台：`RK3568_MES2L100H / PG2L100H-6IFBG484`。本合同中的 `pg2l50h` 文件名和专项证据属于旧 50H 假设下的行为切片，接入 100H 产品顶层前必须重新核验。
+
 ## 1. 范围与证据等级
 
 本合同定义 `main_ov5640_pcie` 的 camera TX 路径如何接入产品 PCIe Endpoint。它只约束
@@ -117,7 +119,7 @@ ACK 生成、数据丢弃、自动重放或槽回收条件。
 遥测透传以及 camera MWR32 的 header/data/TLAST。要把本合同从行为边界升格为产品闭环，
 还必须取得并验证：
 
-1. 当前 50H 目标下实际使用的 `pcie_test`/产品 Endpoint IP、PHY/refclk/PERST# 和 lane 接线；
+1. 当前 100H 目标下实际使用的 `pcie_test`/产品 Endpoint IP、PHY/refclk/PERST# 和 lane 接线；
 2. 完整产品顶层的 RX、DBI/APB、配置、复位和时钟连接；
 3. 真实 DDR3 core 与该产品顶层之间的地址单位、初始化、读写完成和槽所有权合同；
 4. RK3568 驱动、DMA 缓冲、IOMMU/SMMU、cache 一致性、帧完成和错误恢复协议；

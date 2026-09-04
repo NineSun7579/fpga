@@ -4,7 +4,7 @@ param(
 )
 
 # Classify every tracked Tcl file so historical and vendor-generated scripts
-# cannot be mistaken for the project-owned PG2L50H build entries.
+# cannot be mistaken for the project-owned PG2L100H build entries.
 $ErrorActionPreference = 'Stop'
 
 if ([string]::IsNullOrWhiteSpace($RepoRoot)) {

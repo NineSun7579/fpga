@@ -1,7 +1,8 @@
 # main OV5640→PCIe
 
-本目录承载 `codex/main-ov5640-pcie` 的独立产品实现。当前已完成从 M1-A 采集、M2-A
-灰度处理到 M3-B 双槽/canonical DDR3/vendor MWR TX 应用边界，不依赖 `parallel_driver`。
+本目录承载 `codex/main-ov5640-pcie` 的独立产品实现。当前平台为
+`RK3568_MES2L100H`（FPGA + ARM），目标 FPGA 为 `PG2L100H-6IFBG484`。
+M1-A/M2-A 及后续带 `pg2l50h` 命名的 RTL/TB 是旧 50H 假设下的行为切片，尚未迁移或核验为 100H 产品实现；不依赖 `parallel_driver`。
 
 ## 当前文件
 
@@ -45,9 +46,9 @@
 - `tb/tb_rgb565_axis4_pcie_mwr_path.sv`：请求地址、4 KB 边界及等待 ack 时预取下一记录的字段保持自检。
 - `rtl/rgb565_axis4_ddr3_write_descriptor.sv`：按帧接受 slot/base/capacity 分配并生成槽内规范化 DDR3 写记录。
 - `tb/tb_rgb565_axis4_ddr3_write_descriptor.sv`：分配前背压、槽基装载、地址步进、容量夹断、多条越界记录和复位自检。
-- `rtl/rgb565_pg2l50h_ddr3_write_adapter.sv`：规范化记录到 PG2L50H canonical AW/W 用户写口的单 outstanding 适配。
-- `rtl/rgb565_pg2l50h_ddr3_read_adapter.sv`：PG2L50H canonical AR/R 用户读口到带背压规范化记录的单 outstanding 适配。
-- `rtl/ov5640_dvp_rgb565_pg2l50h_pcie_pipeline.sv`：把 OV5640 双槽主链与 canonical DDR3 读写口、MWR32 请求边界串接的可综合应用层。
+- `rtl/rgb565_pg2l50h_ddr3_write_adapter.sv`：旧 50H 假设下的规范化记录到 DDR3 AW/W 用户写口行为适配，待 100H IP 端口核验。
+- `rtl/rgb565_pg2l50h_ddr3_read_adapter.sv`：旧 50H 假设下的 DDR3 AR/R 用户读口行为适配，待 100H IP 端口核验。
+- `rtl/ov5640_dvp_rgb565_pg2l50h_pcie_pipeline.sv`：旧 50H 假设下把 OV5640 双槽主链与 DDR3 读写口、MWR32 请求边界串接的行为应用层。
 - `tb/tb_ov5640_pg2l50h_ddr3_pcie_loopback.sv`：canonical DDR3 AW/W、AR/R 模型到未修改 vendor MWR TX 的闭环自检。
 - `rtl/rgb565_axis4_async_fifo.sv`：携带 `data/keep/last/user` 的板级无关双时钟 staging FIFO。
 - `tb/tb_rgb565_axis4_async_fifo.sv`：异步时钟、满/空、顺序和握手自检。
@@ -75,9 +76,9 @@
   中止记录和恢复帧送入 PCIe MWR 请求路径。提交描述符现在携带首个 opaque token，调度器
   按记录数发出有界读命令，并统一处理零延迟响应、提前/缺失帧尾和零记录 fault。双槽表现已
   接入 writer、frame commit、scheduler 和 committed wrapper；完整行为回归覆盖两个正常帧排队、
-  带槽完成、错误帧 drop 和槽复用。PG2L50H 应用层现已接到 canonical DDR3 AW/W 与 AR/R 端口；
+  带槽完成、错误帧 drop 和槽复用。旧 50H 假设下的应用层曾接到行为化 DDR3 AW/W 与 AR/R 端口；
   每条记录的 keep/last/frame-end/error 写入第 5 byte，读适配器用必要的单条弹性寄存器恢复 sideband。
-  独立 PG2L50H MWR32 TX 专项已验证 full-DWORD 请求的 ACK、header、地址和数据输出；项目自有
+  独立旧 50H 命名 MWR32 TX 专项已验证 full-DWORD 请求的 ACK、header、地址和数据输出；项目自有
   mailbox 与仲裁层已把 camera 请求从 DDR `core_clk` 安全送入 PCIe `pclk_div2`，并与完整 native
   request bundle 共享未修改 MWR TX。完整 DMA 顶层实例化、partial keep、链路和主机内存仍未关闭。
 
@@ -121,7 +122,7 @@
 环境提供，不写入仓库。两槽 word 缓冲只能吸收短突发；`source_overflow=1` 表示
 当前帧在进入帧缓存前发生了无法接收的 word。该帧会以空载错误帧尾结束，余帧被
 丢弃，并只从后续 `frame_start` 恢复；这保证损坏帧可识别，不代表持续背压无丢帧。当前切片不生成
-PDS/IP/位流，也不证明 SCCB、板级电气时序、真实 DDR3 或完整 PCIe 系统集成。M3-A 的
+  PDS/IP/位流，也不证明 SCCB、板级电气时序、真实 DDR3 或完整 PCIe 系统集成。现有行为证据基于旧 50H 假设，必须按 100H 重新核验。M3-A 的
 128-bit 布局不等同于厂商 PCIe AXIS `tkeep` 或主机内存字节序，M3-B 适配层必须按
 独立合同冻结转换规则后再实现。往返 TB 中的 DDR3 地址是模型槽位，PCIe 地址使用
 `0x0ffc` 起始并按 `keep` 有效字节推进；这只证明行为级字段贯通，不证明真实地址单位、

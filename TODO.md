@@ -2,7 +2,7 @@
 
 更新日期：2026-09-04（板卡与 OV5640 DVP 一手资料已登记，板级缺口部分收敛）
 
-状态：三项目器件迁移已获审核。DDR3、PCIe 和摄像头 HDMI 最终均运行在同一块 `RK3568+PG2L50H100H` 开发板，实际 FPGA 为 `PG2L50H-6IFBG484`，PDS 目标统一为 `Logos2 / PG2L50H / FBG484 / -6`。摄像头产品目标已由 owner 校正为 OV5640；现有 `41_ov7725_hdmi` 仅保留为 OV7725 legacy 历史基线与可复用基础设施来源。既有 PG2L100H 构建、STA、网表、SDF 和位流不得用于实际板卡验收或烧录。OV5640 范围见 [`docs/OV5640_TARGET_SCOPE.md`](docs/OV5640_TARGET_SCOPE.md)。
+状态：当前平台唯一目标为 `RK3568_MES2L100H`（FPGA + ARM），FPGA 为 `PG2L100H-6IFBG484`，PDS 目标为 `Logos2 / PG2L100H / FBG484 / -6`。此前写入的 50H 器件迁移结论全部作废；`PG2L50H` 只保留在历史错误假设、旧产物和待迁移文件名上下文。摄像头产品目标为 OV5640；现有 `41_ov7725_hdmi` 仅保留为 OV7725 legacy 历史基线与可复用基础设施来源。OV5640 范围见 [`docs/OV5640_TARGET_SCOPE.md`](docs/OV5640_TARGET_SCOPE.md)。
 
 ## `main` 独立 OV5640→PCIe 工程（2026-09-02）
 
@@ -18,15 +18,15 @@
   → 主机/RK3568 内存
 ```
 
-当前完成：M1-A 已实现板级无关的 DVP 8-bit→RGB565 采集；M2-A 已实现 RGB565 灰度处理；M3-A/M3-B 已完成打包、CDC、双槽提交/回收、PG2L50H canonical DDR3 AW/W 与 AR/R 单 outstanding 适配，以及完整 PCIe TX top 行为边界。统一 TB 在 1996 ns 内由同一 wrapper 贯通 OV5640→canonical DDR3 写入/读回→`core_clk`/`pclk_div2` 异步 mailbox→未修改 `ips2l_pcie_dma_tx_top` AXIS2，验证三笔合法 full-DWORD MWR32、Requester ID、TLAST、AXIS0/1 空闲、partial 请求 fail-stop 和协调复位恢复；编译/仿真均 0 error/0 warning、唯一 `TEST PASS`。该结论尚不包含加密 DDR3 core、产品顶层、链路和 RK3568 主机。
+当前完成：M1-A 已实现板级无关的 DVP 8-bit→RGB565 采集；M2-A 已实现 RGB565 灰度处理；后续 M3-A/M3-B 行为证据均建立在旧 50H 假设下。现有统一 TB 只能证明项目自有行为切片，不能视为 `PG2L100H` 适配，更不能视为真实 DDR3、PCIe Endpoint、链路或 RK3568 主机闭环。活动 PCIe IDF 仍为 50H metadata，必须先完成 100H IP/约束/顶层核验。
 
 新增资料：已登记并核对 RK3568+PG2L50H/100H 硬件使用手册 v1.1 与 OV5640 DVP 模组指南 2.13；已确认 RK↔FPGA PCIe x2/FSPI/I2C0/GPIO、主要时钟、DDR3 颗粒/容量/物理映射，以及 OV5640 DVP 参考电气和上电时序。详细页码、SHA-256 和剩余缺口见 [`docs/MAIN_OV5640_PCIE_BOARD_EVIDENCE.md`](docs/MAIN_OV5640_PCIE_BOARD_EVIDENCE.md)。外部 PDF 不复制入仓，也不作为构建依赖。
 
-下一批：把应用边界接入生成的 PG2L50H DDR3 core 和实际产品顶层，完成 PCIe IP/RX/config/reset/clock 接线，再与 RK3568 驱动做单帧 golden image。开始前仍必须取得完整原理图/BOM、匹配当前 IP 版本的 DDR3 用户手册与地址单位、PCIe byte-enable/主机协议、PERST#/链路时序、RK3568 DMA 缓冲协议，以及 OV5640 实际模组接线、FPGA Bank 电压/管脚和冻结 RGB565 模式资料。
+下一批：以 `PG2L100H` 为目标重新核验/生成 DDR3、PCIe IP 和约束，建立 100H 产品顶层，再完成 PCIe IP/RX/config/reset/clock 接线，并与 RK3568 驱动做单帧 golden image。开始前仍必须取得完整原理图/BOM、匹配当前 IP 版本的 DDR3 用户手册与地址单位、PCIe byte-enable/主机协议、PERST#/链路时序、RK3568 DMA 缓冲协议，以及 OV5640 实际模组接线、FPGA Bank 电压/管脚和冻结 RGB565 模式资料。
 
 M3-B 审计结论见 [`docs/MAIN_OV5640_PCIE_M3B_ADAPTER_CONTRACT.md`](docs/MAIN_OV5640_PCIE_M3B_ADAPTER_CONTRACT.md)：M3-A 的 16-bit `word_keep` 不得直连 PCIe 4-bit `tkeep`；逐记录 sideband 已编码到 DDR3 第 5 byte 并可读回；事务 CDC、项目侧请求仲裁以及到完整 PCIe TX top 的行为接线已关闭。partial keep 的发送能力仍不存在，但已冻结为无 ACK fail-stop 和 sticky policy fault；DDR3 地址单位、`RLAST` 正式语义及产品顶层/链路仍待一手资料确认。
 
-停止条件：缺少模组、时钟、I/O 电压、管脚、DDR3 拓扑或主机协议资料时，不修改 canonical IP、PLL、FDC/RCF，不把历史 PG2L100H 或 `parallel_driver` 产物解释为本工程通过。
+停止条件：缺少模组、时钟、I/O 电压、管脚、DDR3 拓扑或主机协议资料时，不修改 canonical IP、PLL、FDC/RCF，不把历史 PG2L50H 行为切片、旧产物或 `parallel_driver` 产物解释为本工程通过。
 
 ## 1. 总体验收目标
 
@@ -54,13 +54,13 @@ M3-B 审计结论见 [`docs/MAIN_OV5640_PCIE_M3B_ADAPTER_CONTRACT.md`](docs/MAIN
 ## 3. 当前完成状态
 
 - [x] 建立 Git 基线、根目录指南、`.gitignore` 和 repo-local `.nexus-map`。
-- [x] 用户确认三项目共用实际焊接 `PG2L50H-6IFBG484` 的 `RK3568+PG2L50H100H` 开发板，并批准统一迁移方案。
+- [x] 用户确认当前平台为 `RK3568_MES2L100H`（FPGA + ARM），目标器件为 `PG2L100H-6IFBG484`。
 - [x] owner 将摄像头产品目标校正为 OV5640；现有 OV7725 工程和完成证据保留为 legacy，不机械改名或继承为 OV5640 验收。
-- [x] 完成三项目 50H 只读审计：PCIe 活动 IP 已匹配 50H；DDR3 活动 IP 和 OV7725 legacy 的四个活动 IP 仍为 100H，必须分项目处理。
+- [x] 完成平台纠偏审计：此前 50H 迁移结论作废；现有 50H 资产统一降级为历史/待迁移证据，当前工程回到 100H 目标。
 - [x] 明确 VSCS 只强制覆盖后续修改的手写 RTL/TB，排除厂商生成 IP。
 - [x] PCIe 建立相对路径 `build.tcl`、PowerShell 入口和严格产物检查器。
-- [x] PCIe 在错误的 PG2L100H 工程目标下完成历史全流程重建，慢角 setup WNS `0.584 ns`、TNS `0`；该数值不得继承为 50H 验收结果。
-- [x] PCIe 生成过非零 PNR 时序网表、SDF、`.sbit` 和 `.bin`；当前 100H 产物与实物不符，不可使用。
+- [x] PCIe 历史上曾在 PDS `PG2L100H` 工程目标下完成全流程重建，慢角 setup WNS `0.584 ns`、TNS `0`；由于活动 IP metadata 与当前 100H 目标不一致，该数值不得作为当前验收结果。
+- [x] PCIe 生成过非零 PNR 时序网表、SDF、`.sbit` 和 `.bin`；这些历史 100H 产物未满足当前 IP metadata、约束与板级复核要求，不可直接使用。
 - [x] PCIe 严格 gate 能拦截 6 类已知发布阻断；baseline 放行模式仅用于复现旧设计。
 - [x] DDR3 明确暂用厂商 `test_ddr` 作为板级 bring-up 顶层，不声称为产品顶层。
 - [x] DDR3 新脚本显式加载 18 个示例 RTL、`ddr3.idf`、PG2L100H FDC 和 RCF；该输入集现仅作为历史 100H 基线。
@@ -77,9 +77,10 @@ M3-B 审计结论见 [`docs/MAIN_OV5640_PCIE_M3B_ADAPTER_CONTRACT.md`](docs/MAIN
 - [x] OV7725 完成 O1-B 七阶段回归；严格 gate 返回非零，baseline 精确匹配 7 组失败指纹后返回 0 并标记不可发布。
 - [x] OV7725 完成 O2-A serializer reset 联合释放契约，闭合快慢时钟检查、八个 OSERDES endpoint、O2-B 文件范围和回退条件。
 - [x] OV7725 完成 O2-B 最小实现与七阶段实验；方案因 Slow/Fast Recovery 转移到 `pixel_clk_5x → pixel_clk` 且慢角同域仍为负而被否决，失败 RTL 已回退。
-- [x] OV7725 完成 M3-A 四 IP 迁移前审计：活动/安装版本断层使 CLI override 被 `IPCompiler 0037/0057` 否决，唯一后续路径为 SP6.4 GUI 在 50H 目标下新建实例并只写入 staging。
-- [x] PCIe 完成 H2-A lane/refclk/PERST#/UART/SCBV/IP 目标证据矩阵；新器件事实证明活动 `pcie_test.idf` 的 PG2L50H 元数据正确，原“重生为 100H”结论作废。
-- [x] 识别 PCIe 静态 gate 的错误目标：已改为 PG2L50H，并增加日志、STA、bitstream 器件交叉检查。
+- [x] OV7725 完成 M3-A 四 IP 迁移前审计：活动/安装版本断层使 CLI override 被 `IPCompiler 0037/0057` 否决；当前后续路径只能是在 SP6.4 GUI 中以 `PG2L100H / FBG484 / -6` 新建或核验实例并只写入 staging。
+- [x] PCIe 完成 H2-A lane/refclk/PERST#/UART/SCBV/IP 目标证据矩阵；当前 100H 目标下，活动 `pcie_test.idf` 的 50H 元数据被识别为迁移阻断。
+- [x] 修正 PCIe 静态 gate 为 `PG2L100H`，并在 100H IP 重新生成前保持严格失败。
+- [ ] 重新生成或核验匹配 `PG2L100H` 的 PCIe IP，并从空 `build/` 建立新的 100H 产物基线。
 - [x] PCIe 完成 H2-B0 精确 baseline 指纹：16 个对象签名、42 次记录；任何对象/数量/位置或 IP metadata 漂移均失败，严格 gate 仍保持发布阻断。
 - [x] H0/H1/H3 资料准备：现有 OV7725 HDMI 与 DDR3 板级证据清单保留历史事实；OV5640 另行收集模组、接口、时钟、电压、拓扑和 I/O 时序依据，资料未提供前不修改硬件参数。
 - [x] 2026-09-04 登记并核对 RK3568 板卡手册 v1.1 与 OV5640 DVP 指南 2.13，固化版本、页数、SHA-256、关键页码和“外部资料非仓库依赖”边界。
@@ -93,38 +94,36 @@ M3-B 审计结论见 [`docs/MAIN_OV5640_PCIE_M3B_ADAPTER_CONTRACT.md`](docs/MAIN
 - [ ] S0-2-Q（2026-09-01 当前复验）：Questa `2021.1` 环境检查、S2-A/S2-B 静态门禁通过，但 S2-A 动态启动因外部许可证 checkout 失败而以退出码 4 阻断；恢复仓库外许可证后必须生成新的 `SIM_RUN_ID` 和唯一 `TEST PASS`。
 - [ ] 完成三项目分级自检仿真。
 
-### 当前执行队列（2026-09-01）
+### 当前执行队列（2026-09-04）
 
 按以下顺序推进；每项独立提交，未满足前置条件时保持阻塞，不以 baseline 放行代替验收：
 
-1. **M0：统一 PG2L50H 板级事实与防错门禁**
-   - 前置：用户已确认并批准实际器件与三项目共板边界。
-   - 交付：TODO、README、板级证据、实施记录和 `.nexus-map` 统一记录 50H；旧 100H 产物明确标记不可烧录。
-   - 验收：静态门禁禁止把 build、IDF、README、STA 或位流中的 100H/50H 混用解释为通过。
+1. **M0：统一 `RK3568_MES2L100H / PG2L100H` 平台事实**
+   - 前置：用户已确认平台为 FPGA + ARM 的 `RK3568_MES2L100H`。
+   - 交付：TODO、README、板级证据、实施记录、Nexus 和静态门禁统一记录 `PG2L100H-6IFBG484`。
+   - 验收：静态门禁拒绝 50H IDF、构建日志、STA 或位流被解释为当前平台通过。
 
-2. **M1：PCIe PG2L50H 首批迁移（构建部分完成）**
-   - 前置：活动 PCIe IDF 已由 SP6.4 生成为 `PG2L50H/FBG484/-6`；不需要仅为型号重新生成 IP。
-   - 交付：build/gate 改为 50H，从空 `build/` 完成 compile 和七阶段重建，重新采集 STA、网表、SDF 和位流；HSSTLP 资源迁移到 PDS SP6.4 模板指定的 `HSSTLP_292_612`。
-   - 验收：日志、IDF、时序报告和 bitstream 数据库全部为 PG2L50H；strict gate 已验证仍因 UART、SCBV、lane/refclk/PERST# 板级缺口返回非零。
+2. **M1：PCIe PG2L100H IP/构建基线**
+   - 前置：使用 SP6.4 重新生成或核验 100H `pcie_test` IP；当前活动 IDF 的 50H metadata 是硬阻断。
+   - 交付：build/gate/清单改为 100H，从空 `build/` 重新完成 compile 和七阶段构建，重新采集 STA、网表、SDF 和位流。
+   - 验收：日志、IDF、时序报告和 bitstream database 全部为 `PG2L100H`；UART、SCBV、lane/refclk/PERST# 等独立板级缺口仍必须显式处理。
 
-3. **M2：DDR3 PG2L50H IP 与约束重生成**
-   - 前置：使用本机 SP6.4 IP Compiler；SP6.1 的 50H backup 只作参数和差异证据。
-   - 交付：按现有 row15/col10/bank3/DQ16/DQS2 参数重生成 50H controller/PHY、示例、FDC/RCF 和 sim 资产，再完成 compile/dev_map 与七阶段重建。
-   - M2-A 已建立 `scripts/regenerate_ip.ps1` staging 入口和 [`M2_IP_REGENERATION.md`](ddr3_test/ddr3_test/doc/M2_IP_REGENERATION.md)。M2-B1 已从 SP6.4 `ui.tcl` 关闭 `DEVICE_100H_EN` 语义，并形成 [`参数与差异审计`](ddr3_test/ddr3_test/doc/M2B1_PARAMETER_AND_DIFF_AUDIT.md)。
-   - 当前正确 staging 为 PG2L50H、SP6.4、`DEVICE_100H_EN=false`，DDR PHY 使用 `TRUE/CLKOUT4` 分支，canonical 哈希不变；顶层新增 5 个端口，FDC 有 28 项管脚差异，尚未升格。
-   - 验收：先用原理图/BOM 关闭新增 refclk、DDR byte lane、复位/UART/LED/状态输出和电压拓扑，再原子升格并重跑 CI-6、七阶段和 D3-0-R。D3-A 仍需另行审核。
+3. **M2：DDR3 PG2L100H IP 与约束核验**
+   - 前置：使用本机 SP6.4 IP Compiler，禁止把旧 50H staging 或 backup 升格为当前输入。
+   - 交付：核验/重生成 100H controller/PHY、示例、FDC/RCF 和仿真资产，完成 compile/dev_map 与七阶段重建。
+   - 验收：实际 DDR3 颗粒、地址单位、byte lane、复位、时钟和电压拓扑与 100H IP/FDC/RTL 一致，再重跑 CI-6 和 D3-0-R。
 
 4. **C0/C1：OV5640 参考工程审计与产品范围冻结**
    - 前置：将 owner 指定的 `59_top_dual_ov5640_hdmi` 参考工程只读导入 staging；当前路径尚不可访问，不能声称已审核源码。
    - 交付：源/IP/FDC/顶层/器件清单；单摄或双摄决策；模组、MCLK、RESET/PWDN、电压、DVP、格式、分辨率、帧率和字节序契约。
    - 验收：明确新的 OV5640 项目目录与顶层；旧 OV7725 的 SCCB 地址、8 位寄存器表、640x480 RGB565 和板级假设均不得默认继承。
 
-5. **M3：OV7725 legacy 基础设施的 PG2L50H 可复用性审计**
-   - 前置：先获得实际 DDR3 料号、x16/x32 组织、row 位数和管脚拓扑；当前 100H DDR 配置与仓库历史 50H DDR 工程不可互换。
+5. **M3：OV7725 legacy 基础设施的 PG2L100H 可复用性审计**
+   - 前置：先获得实际 DDR3 料号、x16/x32 组织、row 位数和管脚拓扑；当前目标保留 100H，历史 50H DDR 工程不可互换。
    - M3-A 已完成 [`四 IP 迁移前审计`](41_ov7725_hdmi/doc/M3A_IP_MIGRATION_AUDIT.md)：活动版本为 DDR3 `1.12`、PLL `1.3`、FIFO `1.8`，SP6.4 安装版本为 `1.10/1.5/1.10`；旧 IDF override 和手改版本字段均禁止。
-   - 下一批 M3-B 只允许用 SP6.4 IP Compiler GUI 在 `Logos2 / PG2L50H / FBG484 / -6` 下新建四个实例，输出到 `build/ipgen/pg2l50h/**`，先完成参数和完整资产差异审计，不原地覆盖 canonical。
-   - 交付：板级参数审核后原子升格四个 IP，重建 FDC/RCF、clock object 和全流程 baseline；DDR3 `DEVICE_100H_EN=false`、PLL `DEVICE_PG2L50H=true`，FIFO 必须满足 85 个 DRM36K/170 个 DRM18K 资源上限。
-   - 验收：旧 100H 七组时序指纹、endpoint 数和 `+0.192 ns` 裕量全部作废；基于新 50H STA 重新审核 O2-D2。
+   - 下一批 M3-B 只允许用 SP6.4 IP Compiler GUI 在 `Logos2 / PG2L100H / FBG484 / -6` 下新建或核验四个实例，输出到独立 staging，先完成参数和完整资产差异审计，不原地覆盖 canonical。
+   - 交付：板级参数审核后原子升格四个 100H IP，重建 FDC/RCF、clock object 和全流程 baseline；旧 50H 派生参数和时序裕量不再作为依据。
+   - 验收：以新 100H STA、endpoint 集合、SDF 和门禁指纹重新审核 O2；旧 50H/100H 混合证据全部失效。
 
 6. **S0-1：关闭公共 Questa 仿真环境门禁（已完成）**
    - 已完成：Questa Sim-64 `2021.1` 三项可执行文件、外部许可证 checkout、最小 SystemVerilog smoke，以及 Logos2 USIM/VSIM 编译验证。
@@ -140,7 +139,7 @@ M3-B 审计结论见 [`docs/MAIN_OV5640_PCIE_M3B_ADAPTER_CONTRACT.md`](docs/MAIN
    - 验收：清单与 IDF/FDC/RTL 一致；资料缺失时禁止猜测或收紧 gate。
 
 8. **O2-D2：OV7725 legacy serializer reset 研究（不得直接延续到 OV5640）**
-   - 前置：M3 的 50H baseline 完成，并基于 50H PLL/STA 重新确认 O2-D1-G 契约；原 100H 审核不能直接作为编码授权。
+   - 前置：M3 的 PG2L100H 四 IP/约束核验和新 baseline 完成，并基于新 PLL/STA 重新确认 O2-D1-G 契约；旧混合器件证据不能直接作为编码授权。
    - 交付：一次性 PLL 重生成、项目自有控制器、`/5` generated-clock 和 pixel/read-FIFO 时钟原子迁移。
    - 验收：compile/elaboration 与七阶段 STA 均满足契约；八个 OSERDES endpoint 的 Slow/Fast Recovery/Removal 全部非负且覆盖完整。任一对象、warning、CDC、SDF 或 baseline 漂移触发整批回退。
 
@@ -152,7 +151,7 @@ M3-B 审计结论见 [`docs/MAIN_OV5640_PCIE_M3B_ADAPTER_CONTRACT.md`](docs/MAIN
 10. **H2-B1：PCIe 板级闭环**
    - 前置：M1 完成，补齐 H2 板级资料和 UART 保留/删除决策。
    - H2-B0 已完成精确 baseline 指纹；它只保护失败状态不漂移，不解除任何板级阻断。
-   - 交付：PG2L50H 一致的工程/IDF/产物、lane/refclk/PERST#/SCBV 约束和精确 gate 指纹。
+   - 交付：PG2L100H 一致的工程/IDF/产物、lane/refclk/PERST#/SCBV 约束和重新建立的精确 gate 指纹；旧 50H 指纹不得直接继承。
    - 验收：严格 gate 无 baseline 参数返回 0；UART 隐式网络、器件元数据和板级约束阻断全部关闭。
 
 11. **S1/S2/S3：三项目四级 Questa 仿真**
@@ -161,7 +160,7 @@ M3-B 审计结论见 [`docs/MAIN_OV5640_PCIE_M3B_ADAPTER_CONTRACT.md`](docs/MAIN
    - 验收：每级只输出一次 `TEST PASS`；失败/超时 `$fatal`，退出码非零；SDF 无 annotation 或层级匹配错误。
 
 12. **C2/C3：OV5640 项目实现与最终闭环**
-   - 前置：C0/C1、H3 与 PG2L50H IP/FDC 决策完成；OV7725 O1/O2/O3/O4 只作问题清单和可复用性参考。
+   - 前置：C0/C1、H3 与 PG2L100H IP/FDC 决策完成；OV7725 O1/O2/O3/O4 只作问题清单和可复用性参考。
    - 交付：新的 OV5640 SCCB/读 ID/采集路径、逐域复位与事件 CDC、FIFO reset、DDR3/HDMI 约束和最终 gate。
    - 验收：setup/hold/recovery/removal 全通过，SDF/位流/仿真齐全；不得用宽泛 `false_path`、multicycle 或 waiver 掩盖结构问题。
 
@@ -173,25 +172,25 @@ M3-B 审计结论见 [`docs/MAIN_OV5640_PCIE_M3B_ADAPTER_CONTRACT.md`](docs/MAIN
    - 已完成：新增规范化 DDR3 单 beat 写记录层，验证 128-bit 数据、16-bit `wstrb`、字段保持和释放；新增 `ADDR_STEP` 参数，28-bit 地址仍是 opaque token，不代表 DDR3 地址单位或 AXI4 burst。2026-09-03 增强回归覆盖空 `keep` 控制记录、背压字段稳定、连续记录地址步进和复位恢复 `BASE_ADDR`；Questa `0 error/0 warning`、唯一 `TEST PASS`、`126 ns`。
    - 已完成：新增板级无关 `rgb565_axis4_async_fifo` 与 `rgb565_axis4_cdc_bridge`，携带 staging `data/keep/last/user` 跨独立写入/读出时钟域；FIFO 6 beat 回归为 `287 ns`，CDC bridge 5 beat 事件回归为 `155 ns`，均 Questa `0 error/0 warning`、唯一 `TEST PASS`。联合测试还捕获并修正了 42-bit FIFO entry 被误声明为 41 bit 的事件截断缺陷。
    - 已完成：新增 `rgb565_axis4_pcie_mwr_path`，串接 staging、规范化 MWR descriptor 和临时 `mwr32_req/ack` bridge；`BASE_ADDR=0x0ffc` 专项回归验证 4-byte 请求恰到 4 KB 边界、等待 ack 时预取下一记录仍保持当前请求全部字段、ack 后地址 `0x1000`，Questa `0 error/0 warning`、唯一 `TEST PASS`、`125 ns`。
-   - 已完成：修正 canonical MWR 请求长度为实际 DWORD 数，单 DWORD输出 `req_length=1`；`keep=0` 控制记录本地完成且不产生 MWR、不推进 PCIe 地址。直接实例化未修改的 PG2L50H `ips2l_pcie_dma_mwr_tx_ctrl`，动态验证保持型 ACK、header length/DWBE、对齐地址和数据字节序；Questa `0 error/0 warning`、唯一 `TEST PASS`、`136 ns`。当前仅关闭 `keep=4'hf`、4 字节对齐、单 DWORD user-defined data 路径，partial keep 与完整 DMA 顶层仲裁仍未关闭。
+   - 已完成（旧 50H 行为切片）：修正 canonical MWR 请求长度为实际 DWORD 数，单 DWORD 输出 `req_length=1`；`keep=0` 控制记录本地完成且不产生 MWR、不推进 PCIe 地址。该证据仅覆盖旧命名模块和行为模型，必须按 100H PCIe IP 重新核验。
    - 已完成：`rgb565_word_skid_buffer` 在满队列溢出后保留已排队前缀、丢弃当前帧余下 word，并注入唯一 `keep=0/frame_end=1/protocol_error=1` 中止记录；看到原帧尾且中止记录已排队后，只从后续 `frame_start` 恢复。专项 TB 覆盖过早新帧整帧跳过、满队列同拍出入队、丢弃侧帧尾与 abort 同拍、连续损坏帧及 drop 状态复位，仿真至 `526 ns`；DVP→CDC 联合回归覆盖 3 个正常 beat、64 像素压力帧的 20 个输出（含末尾唯一中止记录）及下一帧 2 beat 恢复，仿真至 `2863 ns`，均 Questa `0 error/0 warning`、唯一 `TEST PASS`。
    - 已完成：`tb_ov5640_ddr3_pcie_loopback.sv` 将 OV5640 DVP、双时钟 staging、按帧装载槽基的 DDR3 单 beat 写记录、受控 DDR3 存储模型和 PCIe MWR 请求路径串成行为级往返。正常帧、21 记录压力 abort 和下一帧恢复保持通过；payload 请求使用实际 DWORD 长度 1，空控制记录本地完成且不推进 PCIe 地址。Questa `0 error/0 warning`、唯一 `TEST PASS`、`3858 ns`。
    - 已完成：`rgb565_axis4_committed_pcie_mwr_path` 已实例化双槽表；frame commit 描述符先进入深度 2 committed FIFO，队首再原子交给 scheduler/gate。错误帧只由槽表产生带槽 drop，scheduler 正常/fault 完成携带 slot ID 回收正确 READING 槽。frame commit/read scheduler/readout gate/组合 path 专项分别为 `240/346/211/656 ns`。
    - 已完成：DDR writer 改为先接受带槽号、槽基 token 和单一容量的 allocation 描述符；帧内全程携带 slot ID，地址只在槽容量内推进，越界后停在本槽末 token 并强制错误直到帧尾。增强专项覆盖多条越界记录和写背压，Questa `251 ns`。
    - 已完成：新增 `ov5640_dvp_rgb565_ddr3_pcie_pipeline` vendor-independent 顶层。每条记录先被外部 DDR 写口接受，下一阶段才进入 frame commit，避免先提交后持久化；该顶层连接 OV5640 DVP、双时钟 staging、双槽 writer/commit/read 和 PCIe MWR 请求边界。
    - 已完成：完整 `tb_ov5640_ddr3_committed_pcie_loopback.sv` 验证两个正常帧分别写入 slot0 token `0..2`、slot1 token `64..65`，读侧阻塞时排队并按序发送；slot0 完成后被第三帧复用。压力错误帧 21 记录只产生 slot0 drop、零读/零 MWR，恢复帧使用 slot1 token `64/65`；空帧尾控制响应不生成 MWR但正常释放对应槽。Questa `0 error/0 warning`、唯一 `TEST PASS`、`4194 ns`。
-   - 已完成：新增 PG2L50H canonical DDR3 单 outstanding 写适配器；init 两拍同步，AW 保持到握手，数据保持到 `axi_wready`，专项/联合路径为 `221/196 ns`。
+   - 已完成（旧 50H 行为切片）：新增 DDR3 单 outstanding 写适配器；init 两拍同步，AW 保持到握手，数据保持到 `axi_wready`，专项/联合路径为 `221/196 ns`。100H 用户口重新核验前不得接入产品。
    - 已完成：新增无 RREADY 的 canonical AR/R 读适配器，以本地寄存器吸收返回拍；覆盖 AR 背压、同拍 AR/R、RID/RLAST 错误、无命令响应和复位，专项 `191 ns`。
    - 已完成：把 keep/last/frame_end/error 编码进 DDR3 第 5 byte 并令 `WSTRB[4]=1`，从而无歧义读回任意逐记录 sideband 和零 payload 帧尾。
-   - 已完成：新增 `ov5640_dvp_rgb565_pg2l50h_pcie_pipeline`。4 像素回归经 canonical AW/W 写 3 条记录、AR/R 读回，并通过未修改 vendor MWR TX 输出两组 TLP header/data，`806 ns`、0 error/0 warning、唯一 `TEST PASS`。
+   - 已完成（旧 50H 文件名行为切片）：新增 `ov5640_dvp_rgb565_pg2l50h_pcie_pipeline`。4 像素回归经 canonical AW/W 写 3 条记录、AR/R 读回，并通过未修改 vendor MWR TX 输出两组 TLP header/data，`806 ns`、0 error/0 warning、唯一 `TEST PASS`。
    - 已完成：新增项目自有 `rgb565_pg2l50h_pcie_tx_request_arbiter`，对 native MWR32/MWR64/MRD32/MRD64 共用的 length/address/data bundle 与 camera full-DWORD MWR32 做同域轮转仲裁。owner 保持到对应 ACK，ACK 只返回当前源；MWR user-defined 模式在 ACK 时锁存并保持到下一 MWR。仲裁器现额外等待下游 ACK 和已完成源请求均拉低后才重新仲裁，防止保持型 ACK 误完成下一笔；增强专项 `265 ns`。
    - 已完成：新增 `rgb565_pg2l50h_pcie_mwr32_async_mailbox` 与 `rgb565_pg2l50h_pcie_tx_cdc_arbiter`，以单 outstanding toggle handshake 和 bundled-data MCP 将 camera MWR32 从 DDR `core_clk` 送入 PCIe `pclk_div2`，再与完整 native bundle 仲裁。mailbox 双速率/复位专项 `2296 ns`，CDC 仲裁到未修改 MWR TX 集成 `385 ns`，均 0 error/0 warning、唯一 `TEST PASS`。
    - 已完成：canonical OV5640→DDR3 回归已插入异步 mailbox 和双源仲裁边界；4 像素帧经 AW/W→AR/R、`core_clk`→`pclk_div2`、未修改 MWR TX 输出两组 TLP header/data，`1086 ns`、0 error/0 warning、唯一 `TEST PASS`。
    - 已完成：新增 `rgb565_pg2l50h_pcie_tx_top_adapter`，把项目 CDC/仲裁请求 bundle 接入未修改的完整 `ips2l_pcie_dma_tx_top`。非谐波双时钟专项验证 native/camera 两笔 MWR32 的 AXIS2 header/data、Requester ID=`16'h2a18`、TLAST，并断言 AXIS0/1 无意外流量；`385 ns`、0 error/0 warning、唯一 `TEST PASS`。
-   - 已完成：新增 `ov5640_dvp_rgb565_pg2l50h_pcie_tx_top_pipeline`，在一个可综合 camera-only wrapper 中连接 OV5640、canonical DDR3、异步 mailbox 和完整 TX top。仅允许 `keep=4'hf`、length 1、无逐记录协议错误且不跨 4 KiB 的请求进入下游；非法请求不 ACK、不自动重放，产生一次 policy pulse 和 sticky fault，协调复位后恢复。
+   - 已完成（旧 50H 文件名行为切片）：新增 `ov5640_dvp_rgb565_pg2l50h_pcie_tx_top_pipeline`，在一个可综合 camera-only wrapper 中连接 OV5640、canonical DDR3、异步 mailbox 和完整 TX top。仅允许 `keep=4'hf`、length 1、无逐记录协议错误且不跨 4 KiB 的请求进入下游；非法请求不 ACK、不自动重放，产生一次 policy pulse 和 sticky fault，协调复位后恢复。
    - 已完成：统一 TB 的 4 像素正常帧形成两笔 full-DWORD TLP，3 像素场景先形成一笔合法 TLP，再在 partial 记录上 fail-stop；全程 AXIS0/1 空闲，三笔 AXIS2 header 均含 Requester ID=`16'h2a18`。协调 camera/io/PCIe 复位清除 sticky/busy；Questa `1996 ns`、编译/仿真均 0 error/0 warning、唯一 `TEST PASS`。
-   - 下一步工程：实例化匹配版本的 PG2L50H DDR3 core，并把当前 camera-only wrapper 的边界接入实际产品顶层及 PCIe IP/RX/config/reset/clock，完成 PDS CDC/RDC、payload max-delay/bus-skew、STA 和位流签核；随后与 RK3568 驱动完成主机帧协议闭环。当前行为回归不证明真实 DDR3/PCIe/RK3568 板级闭环。
-   - 资料状态：板卡手册与 OV5640 DVP 指南已经登记并部分关闭物理接口/电气时序事实；见 [`docs/MAIN_OV5640_PCIE_BOARD_INPUT_CHECKLIST.md`](docs/MAIN_OV5640_PCIE_BOARD_INPUT_CHECKLIST.md)。最高优先级仍是完整原理图/BOM、OV5640 实际排线/Bank 电压/FPGA 管脚与 RGB565 初始化表、PG2L50H DDR3 IP 用户口、完整 PCIe DMA 应用口、PERST#/链路时序、RK3568 主机内存与缓存/驱动协议、最终视频模式和丢帧策略。
+   - 下一步工程：按 `PG2L100H` 重新生成/核验 DDR3 与 PCIe IP，把 camera-only wrapper 的边界接入实际产品顶层及 PCIe IP/RX/config/reset/clock，完成 PDS CDC/RDC、payload max-delay/bus-skew、STA 和位流签核；随后与 RK3568 驱动完成主机帧协议闭环。当前行为回归不证明真实 DDR3/PCIe/RK3568 板级闭环。
+   - 资料状态：板卡手册与 OV5640 DVP 指南已经登记并部分关闭物理接口/电气时序事实；见 [`docs/MAIN_OV5640_PCIE_BOARD_INPUT_CHECKLIST.md`](docs/MAIN_OV5640_PCIE_BOARD_INPUT_CHECKLIST.md)。最高优先级仍是完整原理图/BOM、OV5640 实际排线/Bank 电压/FPGA 管脚与 RGB565 初始化表、PG2L100H DDR3 IP 用户口、完整 PCIe DMA 应用口、PERST#/链路时序、RK3568 主机内存与缓存/驱动协议、最终视频模式和丢帧策略。
    - 禁止：未完成资料审核前修改 canonical IP、DDR3/PCIe RTL、FDC/RCF，或把 M3-A 行为通过解释为端到端输出通过。
 
 14. **M3-B-P：产品 PCIe Endpoint AXIS 边界切片（行为边界已完成）**
@@ -199,13 +198,13 @@ M3-B 审计结论见 [`docs/MAIN_OV5640_PCIE_M3B_ADAPTER_CONTRACT.md`](docs/MAIN
    - 已新增项目自有 `rgb565_pg2l50h_pcie_endpoint_axis_boundary.sv`，复用 camera TX adapter；native/MRD/CPLD/BAR/restart 在 camera-only 边界关闭，链路状态只作遥测。
    - 已新增 stub/TB/Questa 入口；最终专项编译/仿真均 `0 error/0 warning`、唯一 `TEST PASS`，覆盖 reset、AXIS2 背压保持、AXIS0/1 静默和 Requester ID。
    - 已新增 [`docs/MAIN_OV5640_PCIE_ENDPOINT_INTEGRATION_CONTRACT.md`](docs/MAIN_OV5640_PCIE_ENDPOINT_INTEGRATION_CONTRACT.md)，冻结 Endpoint 时钟/复位所有权、AXIS 方向、配置字段来源、camera-only 关断项和禁止双 TX top 规则。
-   - 下一步：在取得当前 50H 产品顶层资料后，把该边界接入实际 `pcie_test`，补齐 PHY/DBI/APB/RX/config/reset/clock 以及真实链路验证；禁止将 stub 证据表述为 PCIe 板级闭环。
+   - 下一步：在取得当前 100H 产品顶层资料后，把该边界接入实际 `pcie_test`，补齐 PHY/DBI/APB/RX/config/reset/clock 以及真实链路验证；禁止将 stub 证据表述为 PCIe 板级闭环。
 
 ### 近期执行顺序
 
-1. **P0：M0 器件事实落盘。** 统一三项目实际目标为 PG2L50H，并禁止误用所有 100H 产物。
-2. **P0：M1 PCIe 先行。** 活动 PCIe IP 已是 SP6.4 50H，先修 build/gate，再从空 `build/` 建立新的 50H 七阶段基线。
-3. **P1：M2 DDR3 迁移。** 以 SP6.1 50H backup 为参数/差异 oracle，用 SP6.4 正式重生成；当前 100H FDC 不得复用。
+1. **P0：M0 器件事实落盘。** 统一三项目实际目标为 `RK3568_MES2L100H / PG2L100H-6IFBG484`，并禁止误用所有旧 50H 产物。
+2. **P0：M1 PCIe 先行。** 活动 PCIe IDF 仍错误带有 SP6.4 50H metadata；保留 build/gate 的 100H 目标，重新生成或核验 100H IP 后，从空 `build/` 建立新的 100H 七阶段基线。
+3. **P1：M2 DDR3 版本核验。** 以当前 PG2L100H 为唯一目标，用 SP6.4 核验或重生成 IP/FDC/RCF；旧 50H backup 仅作历史差异 oracle，不得升格。
 4. **P1：C0/C1 OV5640 范围。** 先导入并只读审计参考工程，再冻结单/双摄、模组接口和输出格式；不得先改名或移植 RTL。
 5. **P1：M3 基础设施迁移。** 只审核 OV7725 legacy 中 DDR3/PLL/FIFO/HDMI 基础设施的可复用性；不能继承旧 `+0.192 ns` 或七组时序指纹。
 6. **P2：恢复功能主线。** M2 后重审 D3-A；OV5640 仅在 C0/C1 审核完成后进入 C2/C3，不由旧 O2-D2 批准自动解锁。
@@ -264,7 +263,7 @@ M3-B 审计结论见 [`docs/MAIN_OV5640_PCIE_M3B_ADAPTER_CONTRACT.md`](docs/MAIN
 
 ### D3：实现 DDR3 项目自有限 BIST（先完成 D3-0 评审）
 
-依赖 D2 和 M2。D3-0 是基于旧 100H 活动 IP 的只读评审；PG2L50H IP 重生成后必须先重跑 CI-6 和契约审核，D3-A 以后才修改项目自有 RTL 和 PDS 输入，始终不手改厂商 `ip_core/ddr3/**` 生成文件。
+依赖 D2 和 M2。D3-0 是基于当前 100H 活动 IP 的只读评审；D3-A 以后才修改项目自有 RTL 和 PDS 输入，始终不手改厂商 `ip_core/ddr3/**` 生成文件。任何非 PG2L100H 生成资产均不得进入当前工程。
 
 - [x] D3-0：明确公开 core `ddr3` 与物理 board wrapper `test_ddr` 边界；统计状态只作为 core 公开接口，不新增 FPGA 物理 I/O。
 - [x] D3-0：确认活动 DDR UI 是非标准 AXI-like 接口：写侧以 `axi_awvalid & axi_awready` 接收地址、以 `axi_wready` 计数据接受，IP 返回 `axi_wusero_id/axi_wusero_last`；读侧以 `axi_arvalid & axi_arready` 发起、仅以 `axi_rvalid/axi_rlast` 返回，没有 `axi_rready`。
@@ -272,7 +271,7 @@ M3-B 审计结论见 [`docs/MAIN_OV5640_PCIE_M3B_ADAPTER_CONTRACT.md`](docs/MAIN
 - [x] D3-0：固定 D3-A 只允许新增项目自有 BIST/top、切换 PDS 顶层和输入清单并做 compile/elaboration；若重新生成 IP 后 AXI 语义、地址单位或 `I_ips_ddr_top` 层级发生变化，立即停止在评审并重新审核。
 - [x] D3-0-R：只读核对活动 `ddr3` core 的完整用户/物理端口、参数宽度、`test_ddr` wrapper 复位链和 `I_ips_ddr_top` 实例映射，形成 [`D3A_PORT_MAP.md`](ddr3_test/ddr3_test/doc/D3A_PORT_MAP.md)。
 - [x] D3-0-R：明确 D3-A 不得套用完整 AXI4 假设：写地址按 `axi_awvalid && axi_awready`，写数据按活动 `axi_wready` 语义，读返回按 `axi_rvalid/axi_rlast`，且没有 `axi_rready`。
-- [ ] D3-0-M：M2 重生成 50H IP 后重跑 CI-6；确认端口、参数、`I_ips_ddr_top`、地址单位和 `axi_wready` 语义，再单独提请 D3-A 审核。
+- [ ] D3-0-M：M2 在 PG2L100H 目标下核验或重生成 IP 后重跑 CI-6；确认端口、参数、`I_ips_ddr_top`、地址单位和 `axi_wready` 语义，再单独提请 D3-A 审核。
 - [ ] D3-A：新增 `rtl/ddr3_bringup_top.sv` 与 `rtl/ddr3_finite_bist.sv` 接口/FSM 骨架，并按 VSCS 完成注释。
 - [ ] D3-A：直接实例化活动 DDR3 IP，自动在初始化完成后启动一次有限测试。
 - [ ] D3-A：原子更新 PDS 顶层、输入清单和 gate 中的产物基名，完成 compile/elaboration，禁止新增端口或位宽告警。
@@ -379,8 +378,8 @@ M3-B 审计结论见 [`docs/MAIN_OV5640_PCIE_M3B_ADAPTER_CONTRACT.md`](docs/MAIN
 - [x] O2-D1-G：冻结 `/5` generated-clock 唯一对象：source=`u_pll_clk/clkout1`，target=唯一 `GTP_IOCLKDIV_E2.CLKDIVOUT`，pre-buffer 取点，waveform=`-edges {1 5 11} -edge_shift {0 0 0}`；对象重名、数量异常、waveform 不符或误接 post-buffer 均立即回退。
 - [x] O2-D1-G：冻结 encoder warm-up 与首个有效 TMDS symbol 条件；ARM/SER_RELEASE 期间强制 `de=0,c0=0,c1=0,din=0`，serializer 释放后至少延后两个 control 周期再进入 RUN，避免未复位 encoder 流水造成不确定首符号。
 - [x] O2-D1-G：冻结一次性 O2-D2 文件范围和预期 delta：PLL IDF/wrapper 由 IP Compiler 重生成；新增项目自有 TMDS clock/reset 控制器；修改顶层与 HDMI/DVI 接线、`build.tcl`，FDC/gate 仅在对象和 STA 证据满足后精确更新；完成后提请用户审核。
-- [ ] O2-D1-M：完成 M3 的 PG2L50H 四 IP 重生成和新七阶段 baseline；重新计算相位裕量、七组失败指纹和 endpoint 集合，并再次提请 O2-D2 审核。
-- [ ] O2-D2：只实现经 50H baseline 重新审核的候选。`ddr3_init_done` 不得进入 serializer hard-reset 控制器；旧 PLL `CLKOUT0` 对 pixel 域必须零消费者，派生 `/5` 时钟必须同时驱动 read FIFO `rd_clk` 和完整 HDMI pixel 域。
+- [ ] O2-D1-M：完成当前 PG2L100H 四 IP/约束核验和新七阶段 baseline；重新计算相位裕量、失败指纹和 endpoint 集合，并再次提请 O2-D2 审核。
+- [ ] O2-D2：只实现经 PG2L100H 新 baseline 重新审核的候选。`ddr3_init_done` 不得进入 serializer hard-reset 控制器；旧 PLL `CLKOUT0` 对 pixel 域必须零消费者，派生 `/5` 时钟必须同时驱动 read FIFO `rd_clk` 和完整 HDMI pixel 域。
 - [ ] O2-D2：从空 `build/` 先完成 compile/elaboration，确认 17 个手写源、1 个 IOCLKBUF、1 个 `/5` IOCLKDIV、4 个 serializer、8 个 OSERDES、唯一 pixel generated clock，且没有旧/新同频 pixel clock CDC。
 - [ ] O2-D2：完成七阶段实现；八个 endpoint 的 Slow/Fast × Recovery/Removal × `OCLK` 双边沿/`OCLKDIV`/`SERCLK` 必须全部被覆盖且非负，只允许 O2-D1-G 预先列出的 clock 名、source count 和 reset endpoint delta。
 - [ ] O2-D2：STA 成功后才更新 `check_build.ps1`，删除已关闭的 serializer 失败指纹并增加 generated clock、结构数量、八端点正向覆盖和旧 `CLKOUT0` 零消费者检查；失败则回退本批全部功能/IP/约束修改。
@@ -454,8 +453,8 @@ O2-D2 停止条件：控制相位或 `/5` generated clock 未被 PDS 唯一识�
 - [x] CI-8A PCIe：每次 build 以唯一 `run_id` 原子发布 `running/partial/failed/complete` manifest，partial 或失败运行立即使旧 complete 证据失效。
 - [x] CI-8A PCIe：固定 43 项 canonical 输入和 7 项最终证据的相对路径、长度与 SHA-256；日志必须含唯一且匹配的开始/完成标志，不使用时间窗口猜测。
 - [x] CI-8A PCIe：真实 full build、partial、PDS 启动失败、run-id/输入/产物漂移和 baseline/strict gate 已验证，详见 `pcie_dma_test_100h/doc/CI8A_BUILD_PROVENANCE.md`。
-- [ ] CI-8B DDR3：在 PG2L50H canonical IP/FDC 升格并可执行最终构建后，按项目真实源清单和产物布局实现 provenance manifest。
-- [ ] CI-8B OV7725：在四个 PG2L50H IP 升格并可执行最终构建后，按项目真实源清单和产物布局实现 provenance manifest。
+- [ ] CI-8B DDR3：在 PG2L100H canonical IP/FDC 核验并可执行最终构建后，按项目真实源清单和产物布局实现 provenance manifest。
+- [ ] CI-8B OV7725：在四个 PG2L100H IP 核验并可执行最终构建后，按项目真实源清单和产物布局实现 provenance manifest。
 - [ ] 两个迁移完成并通过负向测试后，再评估是否抽公共模块；当前保持三个项目 gate 独立。
 
 ## 5. 外部阻断泳道
@@ -464,8 +463,8 @@ O2-D2 停止条件：控制相位或 `/5` generated clock 未被 PDS 唯一识�
 
 ### H0：三项目板级资料
 
-- [x] 确认三个工程统一面向 `RK3568+PG2L50H100H` 开发板，实际 FPGA 为 `PG2L50H-6IFBG484`。
-- [x] 确认 PDS 目标统一为 `Logos2 / PG2L50H / FBG484 / -6`。
+- [x] 确认三个工程统一面向 `RK3568_MES2L100H`（FPGA + ARM），目标 FPGA 为 `PG2L100H-6IFBG484`。
+- [x] 确认 PDS 目标统一为 `Logos2 / PG2L100H / FBG484 / -6`。
 - [x] 登记板卡硬件使用手册 v1.1，确认 RK↔FPGA 使用 PCIe、FSPI、I2C0 和部分 GPIO，并记录主要 FPGA 管脚。
 - [ ] 提供原理图版本、BOM 和可归档的 FPGA 丝印照片或等价一手记录。
 - [ ] 提供配置 bank 电压、启动模式和 share pin 使用条件。
@@ -485,7 +484,7 @@ O2-D2 停止条件：控制相位或 `/5` generated clock 未被 PDS 唯一识�
 ### H2：PCIe 板级参数与严格 gate
 
 - [x] H2-A：建立 lane/refclk/PERST#/share pin/UART/SCBV/IP 目标的板级证据矩阵和 SP6.4 IP 再生成契约；不修改 RTL/IDF/FDC，详见 `pcie_dma_test_100h/doc/PCIE_BOARD_EVIDENCE.md`。
-- [x] H2-A：确认新事实：实际器件和活动 `pcie_test.idf` 均为 PG2L50H，原 PDS 目标 PG2L100H 才是不一致项；FDC 固定 `F6/E6`、`M16`、`M15`、`M17/J16`，未提供 lane 极性、I/O delay 或 SCBV 板级证据；UART `rxd/txd` 为隐式网络且 `rxd` 被绑 0。
+- [x] H2-A：确认当前事实：目标器件为 PG2L100H，但活动 `pcie_test.idf` 仍为旧 PG2L50H，构成器件迁移阻断；FDC 固定 `F6/E6`、`M16`、`M15`、`M17/J16`，未提供 lane 极性、I/O delay 或 SCBV 板级证据；UART `rxd/txd` 为隐式网络且 `rxd` 被绑 0。
 - [x] H2-B0：将 baseline gate 收紧为 16 个已知对象签名、42 次原始记录的精确多重集；任何新增、消失、重命名、位置或数量漂移默认失败，并继续输出不可发布标记。
 - [x] H2-B0：活动 IDF 的 family/device/package/speedgrade 漂移改为无条件硬失败，不再由 baseline 参数放行。
 - [x] 板卡手册确认实际 PCIe x2 连接、FPGA RX0/1=`D9/C9/B10/A10`、TX0/1=`D7/C7/B6/A6`，以及 100 MHz refclk=`F6/E6`。
@@ -494,7 +493,8 @@ O2-D2 停止条件：控制相位或 `/5` generated clock 未被 PDS 唯一识�
 - [ ] 决定 UART2APB 保留或删除；保留则提供 RX/TX 管脚、电气标准和波特率。
 - [ ] 提供 SCBV 所需配置 bank 电压。
 - [ ] 确认 LED 属于人眼状态灯且无外部同步时序要求，或提供正式时序要求。
-- [x] 将 PCIe build/gate 恢复为 PG2L50H，保留已匹配实物的 SP6.4 PCIe IDF，并从空 `build/` 重新生成全部 50H 产物；严格 gate 仍保留发布阻断。
+- [x] PCIe 项目自有 build/gate、入口清单和器件交叉检查已统一为 `PG2L100H`，并会拒绝活动 50H IDF/产物被解释为当前平台通过。
+- [ ] 使用 SP6.4 重新生成或核验匹配 `PG2L100H` 的 PCIe IP/IDF，并从空 `build/` 重建 100H 产物；旧 50H 产物不得复用。
 - [ ] 按决策处理 UART，消除无驱动 `rxd` 和隐式网络。
 - [ ] 为 HSST/refclk/lane/share pin 建立有官方模板和原理图依据的精确约束或 waiver。
 - [x] 使用 baseline 放行完成全流程重建并保留产物、STA 和阻断证据。

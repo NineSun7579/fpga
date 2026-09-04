@@ -292,17 +292,19 @@
 - 复核 PATH、`C:\questasim64\win64`、常见 ModelSim/QuestaSim 安装目录及 Windows 卸载注册表，均未发现 `vsim.exe`、`vlog.exe` 或 `vlib.exe`。
 - 本批没有下载或安装商业仿真器，也未调用 PDS `compile_simlib`；S0-1 仍等待用户提供合法安装路径、版本和许可证环境。
 
-## 2026-08-30：三项目实际 PG2L50H 目标审核与迁移规划
+## 2026-08-30：历史错误假设——三项目 PG2L50H 目标审核与迁移规划
 
-- 用户确认 DDR3、PCIe、OV7725 HDMI 三个项目最终运行在同一块 `RK3568+PG2L50H100H` 开发板，实际焊接 FPGA 为 `PG2L50H-6IFBG484`；PDS 目标统一为 `Logos2/PG2L50H/FBG484/-6`，并批准按 PCIe → DDR3 → OV7725 分批迁移。
-- 既有 PG2L100H compile/PNR/STA、网表、SDF、`.sbit` 和 `.bin` 全部降级为历史证据，不得用于实际板卡验收或烧录。
-- PCIe 活动 `pcie_test.idf` 已由 SP6.4 生成为 PG2L50H，配置方向正确；原 build/gate 强制 PG2L100H 才是错误项。下一批只修正工程目标和器件交叉 gate，再从空 `build/` 重建，不为型号重复生成 PCIe IP。
-- DDR3 活动 IDF/FDC 为 PG2L100H；SP6.1 的 PG2L50H backup 与活动配置参数高度一致，但 PHY slice 和硬宏位置存在器件差异，只能作参数/差异依据。必须用本机 SP6.4 重生成 50H controller/PHY、FDC/RCF 和仿真资产，再重跑 CI-6；器件迁移批准不等同于 D3-A 编码授权。
-- OV7725 的 DDR3、PLL、读 FIFO、写 FIFO 四个活动 IDF 均为 SP4.2 PG2L100H 生成物，旧 backup 是 PGL25G 而非 50H。实际 DDR3 组织和管脚闭合后，四个 IP 都必须在 SP6.4/PG2L50H 下重生成。
-- O2-D1-G 的状态机、hard/business reset 分权、唯一 `/5` clock、八端点覆盖和禁止 waiver/第二相位等纪律继续有效；100H 的 `+0.192 ns` 裕量、七组时序指纹和 endpoint 数不再是 50H 验收证据，O2-D2 暂停到新基线后重新审核。
+> 2026-09-04 纠偏：本节记录已作废的 50H 平台假设，只用于解释旧提交和旧产物来源；当前唯一平台为 `RK3568_MES2L100H / PG2L100H-6IFBG484`，不得执行本节迁移指令。
+
+- 当时误把系列手册文件名解释成实物选型，进而把三个项目写成 `PG2L50H-6IFBG484` 并规划 50H 迁移；该结论已于 2026-09-04 作废。
+- 当时曾因错误的 50H 选型判断而降级既有 PG2L100H 产物；当前这些产物仍需重新核验，但原因是 IP metadata、版本、约束和板级证据未闭合，而不是平台应改为 50H。
+- 当时错误地把 PCIe 50H IDF 视为正确输入并计划把 build/gate 降到 50H；当前做法相反：build/gate 保持 100H，并硬拒绝该 IDF。
+- 当时规划用 SP6.4 重生成 50H DDR3 controller/PHY、FDC/RCF 和仿真资产；该执行路径已作废，当前只能核验或重生成 PG2L100H 资产。
+- 当时规划把 OV7725 四个 IP 重生为 50H；该执行路径已作废，当前只允许在 `PG2L100H / FBG484 / -6` 下建立 staging。
+- O2-D1-G 的状态机、复位分权、唯一 `/5` clock 和端点覆盖方法仍可复用，但任何旧器件 STA/指纹都不能作为当前 PG2L100H 验收证据。
 - 本批只更新规划、README、板级证据和契约状态；未修改 RTL、厂商 IP、IDF、FDC、RCF、构建脚本或生成物。
 
-## 2026-08-30：PCIe M1 PG2L50H 首批迁移
+## 2026-08-30：历史错误假设——PCIe M1 PG2L50H 首批迁移
 
 - 将 `pcie_dma_test_100h/scripts/build.tcl` 的 PDS 目标改为 `Logos2 / PG2L50H / FBG484 / -6`，并把 `check_build.ps1` 的器件期望改为 PG2L50H。
 - 门禁新增三方器件交叉校验：PDS 构建日志的 `set_arch`、最终 timing report 的 `Device` 字段、`generate_bitstream/bgr.db` 的 `PG2L50H-6FBG484`；发现陈旧 PG2L100H 即失败。
@@ -314,7 +316,7 @@
 
 ## 2026-08-30：PCIe H2-B0 精确 baseline 指纹门禁
 
-- 复验当前 PG2L50H 构建：baseline gate 返回 0 并明确不可发布，strict gate 返回 1；IDF、build log、timing report 与 `bgr.db` 均匹配 `Logos2/PG2L50H/FBG484/-6`。
+- 复验当时的 PG2L50H 历史构建：baseline gate 返回 0 并明确不可发布，strict gate 返回 1；该结果只用于解释旧指纹。
 - 旧 gate 只按五个宽泛正则判断是否命中，不比较对象或数量；同类别新增、消失、改名、share-pin 位置漂移可被误放行，IP metadata mismatch 也被错误并入 baseline 集合。
 - 新增 `doc/H2B_BASELINE_FINGERPRINT.json` 与审核文档，将五类阻断归一化为 16 个签名、42 次记录。baseline 模式逐项比较完整多重集；metadata 漂移改为无条件硬失败。
 - 日志变异测试覆盖缺失 UART、重复 UART、Timing 端口改名、share-pin `M15 -> N15` 和 IDF `PG2L50H -> PG2L100H`，五项即使显式 baseline 均返回 1。
@@ -328,8 +330,8 @@
 - `build.tcl` 强制校验并回显 32 位小写十六进制 `PDS_RUN_ID`，完整结束时输出同 id 的 `PDS_RUN_COMPLETE`；gate 要求两个标志各出现一次。
 - complete manifest 固定记录 full log、timing report、post-PNR 网表、slow SDF、`.sbit`、`.bin` 和 `bgr.db` 七项证据的工程相对路径、长度和 SHA-256。
 - 动态负测证明：真实 partial compile、PDS executable 缺失、run-id 漂移、`bgr.db` 字节漂移和 FDC 输入漂移均返回 1，旧 full-build 证据不可复用。
-- 最终 PG2L50H 七阶段构建返回 0，manifest 为 complete/valid、43 输入/7 证据；baseline=0、strict=1、最差解析 slack `0.100 ns`，16/42 H2-B0 指纹和 H2-B1 五类阻断保持不变。
-- 本批未修改 RTL、活动 IDF、FDC 或厂商 IP；DDR3/OV7725 的 CI-8B 迁移继续等待各自 PG2L50H canonical 输入和最终构建入口闭合。
+- 该历史 PG2L50H 七阶段构建曾返回 0，manifest 为 complete/valid、43 输入/7 证据；现已降级为旧产物来源记录，不得用于当前 100H 验收。
+- 本批未修改 RTL、活动 IDF、FDC 或厂商 IP；当时规划的 DDR3/OV7725 PG2L50H canonical 迁移已作废，当前只允许 PG2L100H 核验与构建入口闭合。
 
 ## 2026-08-31：PCIe S2-A 项目级行为 smoke 入口
 
@@ -339,7 +341,7 @@
 - 新增 `scripts/run_behav.do` 与 `scripts/check_sim.ps1`。DO 使用相对路径、独立 work、USIM 和 transcript；静态门禁检查 filelist 顺序、路径、模型端口、DUT/TB/DO 契约。
 - `run.ps1 -Action sim-behav` 现在生成唯一 `SIM_RUN_ID`，动态成功必须在同一日志中包含匹配 run marker 和唯一 `TEST PASS`。
 - S2 后续拆为 S2-B 真实厂商 RC/EP LTSSM/link-up 和 S2-C 基础 DMA 回读；S2-A model-controlled link 不得冒充两者。
-- `run.ps1` 属于 CI-8A canonical 输入，因此 S2-A 入口变更后旧 manifest 被正确拒绝；重新执行七阶段 PG2L50H 构建，run id `c24bc06b5d0643eeb6c9cb2878e7ace5` 返回 0，manifest 为 complete/valid、43 输入/7 证据，baseline=0、strict=1、最差解析 slack `0.100 ns`。
+- `run.ps1` 属于 CI-8A canonical 输入，因此 S2-A 入口变更后旧 manifest 被正确拒绝；当时按错误 50H 目标重新执行的七阶段构建只保留为 provenance 机制历史证据，不是当前器件证据。
 - 本机仍未发现 QuestaSim/ModelSim，故本批只完成静态门禁，未执行动态仿真、未生成 `TEST PASS`；活动 IDF、FDC、项目 RTL 和厂商示例未修改，忽略的 PDS 证据仅由上述同一次 canonical 构建自动刷新。
 
 ## 2026-08-31：PCIe S2-B 真实 RC/EP 静态入口
@@ -493,7 +495,7 @@
   验证释放后地址为 `0x16`，不再把 token 步长硬编码为某种地址单位。
 - 新增独立 Questa TB 和脚本；编译 `0 error/0 warning`，记录保持/释放、数据和掩码
   映射通过，日志唯一 `TEST PASS`。
-- 该层不实例化 DDR3 IP；实际用户口接入必须等待 PG2L50H IP 重生成及 D3-0-M 复核。
+- 该层不实例化 DDR3 IP；实际用户口接入必须等待 PG2L100H IP 核验或重生成及 D3-0-M 复核。
 
 ## 2026-09-03：main OV5640 M3-B DDR3 写记录边界回归增强
 
@@ -716,7 +718,7 @@
   完成或 RK3568 主机已接收。真实板级闭环仍等待原理图、OV5640 初始化、DDR3/PCIe IP 用户口
   和 RK3568 驱动/缓存/帧协议资料。
 
-## 2026-09-03：main PG2L50H canonical MWR32 TX 语义修复
+## 2026-09-03：main 旧 PG2L50H 文件名行为切片——canonical MWR32 TX 语义修复
 
 - canonical 源码审计确认 `i_req_length` 是实际 DWORD 数；旧 normalized path 的单 DWORD值 0
   会被解释为错误长度。descriptor/bridge/path 已统一改为 `length_dw=1`。
@@ -730,7 +732,7 @@
   scheduler/槽释放。该证据不证明完整 DMA 顶层
   请求仲裁、PCIe 链路训练、RK3568 缓冲映射、主机内存写入或真实 DDR3 接入。
 
-## 2026-09-03：main PG2L50H canonical DDR3 读写应用边界
+## 2026-09-03：main 旧 PG2L50H 文件名行为切片——canonical DDR3 读写应用边界
 
 - 新增单 outstanding canonical DDR3 写适配器：两拍同步 `ddr_init_done`，AW 保持到握手，数据保持
   到 `axi_wready`，完成型 ready 保证 frame commit 不早于用户口消费。专项 221 ns、联合写路径
@@ -747,7 +749,7 @@
 - 应用边界尚未实例化加密 DDR3 core 或完整 PCIe DMA 顶层；地址单位、板级槽范围、partial DWORD、
   RK3568 DMA 缓冲/缓存一致性、OV5640 SCCB/管脚和 golden frame 仍是外部关闭条件。
 
-## 2026-09-03：main PG2L50H PCIe TX 双请求源仲裁
+## 2026-09-03：main 旧 PG2L50H 文件名行为切片——PCIe TX 双请求源仲裁
 
 - 审计确认 canonical DMA controller 的 MWR32/MWR64/MRD32/MRD64 共用同一组 length/address/data，
   因此只 mux MWR32 会在其他 native 请求活动时破坏 bundle 原子性。
@@ -874,3 +876,14 @@
   不复制其复位同步器，也不把 `link_up` 组合门控到 ACK、丢弃或重放。
 - 合同将现有专项证据标为等端口 stub 行为验证，保留真实 `pcie_test`/PHY/LTSSM/RX/DBI/APB、
   DDR3 core、RK3568 主机协议和板级 PDS/STA 作为未关闭边界。
+
+## 2026-09-04：当前平台纠偏为 RK3568_MES2L100H
+
+- owner 最新确认当前平台为 `RK3568_MES2L100H`（FPGA + ARM），目标 FPGA 为 `PG2L100H-6IFBG484`，PDS 目标为 `Logos2 / PG2L100H / FBG484 / -6`。
+- 此前 50H 器件迁移批次、PCIe 50H 构建、DDR3/OV7725 50H staging 和 `main_ov5640_pcie` 的 `pg2l50h` 行为切片均降级为历史/待迁移证据，不得作为当前平台验收结果。
+- 活动 PCIe `pcie_test.idf` 仍为 `PG2L50H/FBG484/-6`。本轮只修正项目自有文档、build/gate/入口清单，不修改厂商 IDF；根一致性门禁因此保持对活动 IDF 的硬失败。
+- `parallel_driver` 继续独立隔离，只读参考，不进入 `main` 的 RTL、IP、约束、构建产物或验收证据。
+- 已进一步修正 TODO、DDR3 README、Endpoint 合同和历史实施记录：PCIe build/gate 的 100H 改造标记为已完成，100H PCIe IP/产物重建保持未完成；旧 DDR3 50H 自动探针继续硬阻断。
+- 当前不能宣称 OV5640→DDR3→PCIe 实板闭环；活动 PCIe IDF 仍是唯一已定位的器件级硬阻断，其他板级资料与真实 DDR3/主机协议缺口继续保留。
+- 根一致性门禁已同步为 PG2L100H 合同，不再强制旧 50H staging/派生参数；最终运行精确只报告活动 PCIe IDF 的一项器件不一致。
+- PDS Tcl 13 项分类、敏感信息 self/full/origin-main、全部 JSON、全部非 build PowerShell AST、Nexus 39 节点/84 边结构和 `git diff --check` 均通过；本批没有 RTL 修改。

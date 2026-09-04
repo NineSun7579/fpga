@@ -4,7 +4,7 @@
 
 本文定义 OV7725 HDMI 工程中四个 TMDS serializer、八个 `GTP_OSERDES_E2` 的复位契约，记录 O2-B 最小方案的实现、真实 STA 否决与回退，并为 O2-D1-G/O2-D2 提供唯一可执行的时钟、状态和复位边界。
 
-O2-A/O2-D1 仅完成证据核验和设计决策，不修改 RTL、厂商 IP、FDC、RCF、gate 或生成物，也不声明动态仿真通过。用户已经批准三项目迁移到实际 PG2L50H；因此本契约中的状态机、复位分权和验证纪律继续保留，但 100H 的 `+0.192 ns` 裕量、STA 指纹和 endpoint 数全部降级为历史证据。完成 PG2L50H baseline 并重新审核前，不得据此开始 O2-D2 实现。
+O2-A/O2-D1 仅完成证据核验和设计决策，不修改 RTL、厂商 IP、FDC、RCF、gate 或生成物，也不声明动态仿真通过。当前平台固定为 PG2L100H；本契约中的状态机、复位分权和验证纪律继续保留，但历史 `+0.192 ns` 裕量、STA 指纹和 endpoint 数必须在当前版本 IP/布局重新建立后复核。完成 PG2L100H baseline 并重新审核前，不得据此开始 O2-D2 实现。
 
 本文只处理 serializer 局部复位。以下问题仍属于后续批次：
 
@@ -295,7 +295,7 @@ O2-D1-G 仍需把异步断言条件、资格确认、ARM、OSERDES 释放、pixe
 
 1. **O2-D1-R：** 从空 `build/` 重建已回退 RTL，确认原 7 组失败指纹，并判断 `ddrphy_sysclk → pixel_clk` 为 53 还是 54 个 endpoint。该漂移不能在没有等价基线时归因于 serializer reset。
 2. **O2-D1-G：** 固定控制器状态、计数、reset 断言/释放边沿、generated-clock waveform、业务 reset 顺序、encoder warm-up、预期网表/STA delta 和完整回退条件。
-3. 完成 PG2L50H 四 IP 重生成和新 baseline 后，必须重新计算相位裕量、时序指纹与 endpoint 集合并再次通过用户审核，才允许进入 O2-D2；旧 100H 审核不是编码授权。
+3. 完成 PG2L100H 四 IP 版本核验或重生成和新 baseline 后，必须重新计算相位裕量、时序指纹与 endpoint 集合并再次通过用户审核，才允许进入 O2-D2；历史审核不是编码授权。
 
 ### 12.5 O2-D2 硬验收与停止条件
 

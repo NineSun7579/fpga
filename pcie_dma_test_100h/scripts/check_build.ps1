@@ -92,10 +92,10 @@ if ($RunId -notmatch '^[0-9a-f]{32}$') {
     throw 'PDS provenance manifest run_id is not a 32-character lowercase hexadecimal value.'
 }
 foreach ($Target in ([ordered]@{
-            board = 'RK3568+PG2L50H100H'
-            fpga = 'PG2L50H-6IFBG484'
+            board = 'RK3568_MES2L100H'
+            fpga = 'PG2L100H-6IFBG484'
             pds_family = 'Logos2'
-            pds_device = 'PG2L50H'
+            pds_device = 'PG2L100H'
             pds_package = 'FBG484'
             pds_speedgrade = '-6'
         }).GetEnumerator()) {
@@ -135,7 +135,7 @@ try {
 
 $ExpectedMetadata = [ordered]@{
     family = 'Logos2'
-    device = 'PG2L50H'
+    device = 'PG2L100H'
     package = 'FBG484'
     speedgrade = '-6'
 }
@@ -167,8 +167,8 @@ if (Select-String -LiteralPath $BuildLog -Pattern '^E:' -Quiet) {
 }
 
 $TimingText = Get-Content -Raw -LiteralPath $TimingReport
-if ($TimingText -notmatch '(?im)\bDevice\s*:\s*PG2L50H\b') {
-    throw 'Final timing report does not identify device PG2L50H.'
+if ($TimingText -notmatch '(?im)\bDevice\s*:\s*PG2L100H\b') {
+    throw 'Final timing report does not identify device PG2L100H.'
 }
 if ($TimingText -notmatch 'Design Summary\s*:\s*All Constraints Met\.') {
     throw 'Final timing report does not contain All Constraints Met.'
@@ -188,19 +188,19 @@ if ([regex]::Matches(
     ).Count -ne 1) {
     throw 'PDS build log run-id or completion marker does not match provenance manifest.'
 }
-if ($BuildText -notmatch '(?im)-device\s+PG2L50H') {
-    throw 'PDS build log does not record set_arch device PG2L50H.'
+if ($BuildText -notmatch '(?im)-device\s+PG2L100H') {
+    throw 'PDS build log does not record set_arch device PG2L100H.'
 }
-if ($BuildText -match '(?im)PG2L100H') {
-    throw 'PDS build log contains stale PG2L100H device metadata.'
+if ($BuildText -match '(?im)PG2L50H') {
+    throw 'PDS build log contains stale PG2L50H device metadata.'
 }
 
 $BitstreamText = Get-Content -Raw -LiteralPath $BitstreamDatabase
-if ($BitstreamText -notmatch '(?im)PG2L50H-6FBG484') {
-    throw 'Bitstream database does not identify PG2L50H-6FBG484.'
+if ($BitstreamText -notmatch '(?im)PG2L100H-6FBG484') {
+    throw 'Bitstream database does not identify PG2L100H-6FBG484.'
 }
-if ($BitstreamText -match '(?im)PG2L100H') {
-    throw 'Bitstream database contains stale PG2L100H device metadata.'
+if ($BitstreamText -match '(?im)PG2L50H') {
+    throw 'Bitstream database contains stale PG2L50H device metadata.'
 }
 
 $TimingRows = foreach ($Line in Get-Content -LiteralPath $TimingReport) {

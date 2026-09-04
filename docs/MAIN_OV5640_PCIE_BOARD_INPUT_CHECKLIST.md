@@ -4,9 +4,9 @@
 
 ## 目的
 
-当前 RTL 已完成从 OV5640 DVP 激励、灰度处理、双槽帧管理到 PG2L50H canonical DDR3 AW/W、AR/R
+当前 RTL 已完成从 OV5640 DVP 激励、灰度处理、双槽帧管理到旧 50H 假设下 canonical DDR3 AW/W、AR/R
 用户口，并通过 `core_clk`→`pclk_div2` 异步 mailbox/仲裁进入 PCIe MWR TX 的应用边界闭环。以下资料用于把明文 canonical 用户口模型和 opaque 地址替换为
-`PG2L50H-6IFBG484` 板上的真实 DDR3、PCIe 和 RK3568 主机接口；资料未关闭前，不得把模型回归
+`PG2L100H-6IFBG484` 板上的真实 DDR3、PCIe 和 RK3568 主机接口；资料未关闭前，不得把模型回归
 解释为上板闭环。
 
 本地 canonical PCIe TX 源码已足以验证单 DWORD、full-byte-enable 的 MWR32 生成，但不能替代
@@ -31,7 +31,7 @@
 
 1. 开发板准确硬件版本、完整原理图/BOM/网表，以及 PCIe PERST#/CLKREQ#/WAKE# 和 OV5640
    接入页；现有硬件使用手册已关闭主要总线、时钟和 DDR3 物理连接，但不是完整原理图。
-2. 当前 PG2L50H DDR3 IP 的 IDF/生成报告和匹配版本用户手册，尤其是 28-bit 地址单位、对齐、
+2. 当前 PG2L100H DDR3 IP 的 IDF/生成报告和匹配版本用户手册，尤其是 28-bit 地址单位、对齐、
    `RLAST/RVALID`、`AWREADY/WREADY`、初始化与 `core_clk` 合同。
 3. PCIe DMA/TX 完整连接图或手册：项目仲裁后的完整 request bundle 应接入 `tx_top`/产品顶层的
    哪一层，partial DWORD byte enable 如何表达，以及 ACK、发送完成、错误与中断的区别。
@@ -59,12 +59,12 @@
      通过实际模组读 ID/试拍确认，不得直接冻结。
    - 首版冻结值：宽、高、帧率、RGB565 字节序、当前灰度算法是否保留、允许的丢帧策略。
 
-3. **DDR3 颗粒与 PG2L50H 控制器**
+3. **DDR3 颗粒与 PG2L100H 控制器**
    - 手册已确认一片 `F60C1A0004-M79W`、x16、512 MByte、最大 1066 Mbps；仍需颗粒正式
      数据手册、rank/bank 组织、终端/VREF/Bank 电压和 PCB 拓扑。
    - 手册第 13 页已给出物理管脚表并确认有效地址 `ddr3_addr[14:0]`；仍需从该表审核生成
      完整 RCF/FDC，禁止手抄或继承历史 100H 约束。
-   - 在 `Logos2 / PG2L50H / FBG484 / -6` 下生成的 DDR3 IP 工程、IP 版本和官方用户手册。
+   - 在 `Logos2 / PG2L100H / FBG484 / -6` 下生成的 DDR3 IP 工程、IP 版本和官方用户手册。
    - 用户口逐信号语义：地址单位、`awlen/arlen` 编码、写接受条件、写响应、读 valid/last、
      是否存在 read ready、读返回顺序、初始化/校准完成、复位和用户时钟要求。
    - 可用 DDR 地址范围及保留区域；双槽所需的槽大小、对齐和越界规则。
@@ -72,7 +72,7 @@
 4. **PCIe IP 与板级拓扑**
    - 手册已确认 RK↔FPGA 物理 x2 lane 和 FPGA lane/refclk 管脚；仍需 Endpoint/Root Complex
      软件配置确认、目标/实际协商 Gen、参考时钟模式和 PERST#/CLKREQ#/WAKE# 连接。
-   - 当前 PG2L50H PCIe/DMA IP 的版本、配置导出、官方应用口手册和可运行 RC/EP 仿真模型。
+   - 当前 PG2L100H PCIe/DMA IP 的版本、配置导出、官方应用口手册和可运行 RC/EP 仿真模型。
    - `req_addr/req_length/req/ack/busy` 或 AXIS 接口的精确定义，包括长度单位、byte enable、
      `tkeep/tuser/tlast`、最大 payload、4 KB 边界、错误和完成语义。
    - BAR 尺寸/布局、MSI/MSI-X/INTx 选择，以及 FPGA 侧控制/状态寄存器需求。
@@ -96,7 +96,7 @@
 ## 收到资料后的工程顺序
 
 1. 冻结板级管脚、时钟、复位和 OV5640 SCCB/DVP 合同。
-2. 将已验证的 canonical 适配层接入实际 PG2L50H DDR3 core，先跑元数据记录单拍写读 BIST，再跑双槽帧。
+2. 将已验证的 canonical 适配层接入实际 PG2L100H DDR3 core，先跑元数据记录单拍写读 BIST，再跑双槽帧。
 3. 将 MWR32 请求边界接入完整 PCIe DMA/TX 顶层，完成仲裁、4 KB、最大 payload 和 byte-enable 回归。
 4. 与 RK3568 驱动冻结目标缓冲和槽所有权协议，完成单帧 golden image 闭环。
 5. 依次完成行为级、综合后、PNR 后功能、PNR 后时序和实板验收；每层保持独立失败退出契约。

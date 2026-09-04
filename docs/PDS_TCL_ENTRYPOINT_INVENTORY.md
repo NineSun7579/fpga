@@ -1,10 +1,10 @@
 # PDS Tcl 入口清单与执行边界
 
-日期：2026-08-30
+日期：2026-09-04
 
 ## 目的
 
-仓库保留了 PDS GUI 操作记录、厂商 IP 内部脚本、仿真辅助脚本和项目自有构建脚本。文件扩展名相同不代表用途相同，旧脚本中的 PG2L100H、PGL25G 或绝对路径也不能被当作当前 PG2L50H 发布输入。
+仓库保留了 PDS GUI 操作记录、厂商 IP 内部脚本、仿真辅助脚本和项目自有构建脚本。文件扩展名相同不代表用途相同，旧脚本中的 PG2L50H、PGL25G 或绝对路径也不能被当作当前 PG2L100H 发布输入。
 
 机器可读事实位于 [`PDS_TCL_ENTRYPOINT_INVENTORY.json`](PDS_TCL_ENTRYPOINT_INVENTORY.json)，检查入口为：
 
@@ -32,9 +32,9 @@ powershell.exe -ExecutionPolicy Bypass `
 
 | 项目 | `run.ps1` 实际入口 | 当前角色 | 器件事实 |
 |---|---|---|---|
-| OV7725 HDMI | `41_ov7725_hdmi/scripts/build.tcl` | `migration_blocked_project_build` | 仍为 PG2L100H；等待 M3 |
-| DDR3 bring-up | `ddr3_test/ddr3_test/scripts/build.tcl` | `migration_blocked_project_build` | 仍为 PG2L100H；等待 M2 |
-| PCIe DMA | `pcie_dma_test_100h/scripts/build.tcl` | `canonical_project_build` | 已为 PG2L50H |
+| OV7725 HDMI | `41_ov7725_hdmi/scripts/build.tcl` | `migration_blocked_project_build` | 目标为 PG2L100H；等待 M3 完成当前版本 IP/约束核验 |
+| DDR3 bring-up | `ddr3_test/ddr3_test/scripts/build.tcl` | `migration_blocked_project_build` | 目标为 PG2L100H；等待 M2 完成当前版本 IP/约束核验 |
+| PCIe DMA | `pcie_dma_test_100h/scripts/build.tcl` | `migration_blocked_project_build` | 入口已恢复为 PG2L100H，但活动 IDF 仍为旧 PG2L50H |
 
 三个 `run.ps1` 均只调用同目录 `scripts/build.tcl`。仓库没有 canonical 调用链引用任何历史 `impl.tcl`、parse-design screen 或 IP 内部脚本。
 
@@ -62,7 +62,7 @@ powershell.exe -ExecutionPolicy Bypass `
 1. Git 当前 tracked Tcl 与 JSON 清单必须完全相等；新增或漏登记文件均失败。
 2. 每个文件的角色、`set_arch` 次数、器件集合和绝对路径事实必须与清单一致。
 3. 只有三份项目 `scripts/build.tcl` 可标记 `run_ps1_entry=true`。
-4. `canonical_project_build` 必须只使用 `PG2L50H`，且不得包含盘符或 UNC 绝对路径。
+4. `canonical_project_build` 必须只使用 `PG2L100H`，且不得包含盘符或 UNC 绝对路径。
 5. `migration_blocked_project_build` 必须仍明确包含 PG2L100H，并不得被误写成发布入口。
 6. 历史 GUI 与厂商内部脚本不得标记为 `run_ps1` 入口。
 7. 公共 `compile_simlib.tcl` 必须继续通过环境变量提供外部仿真器路径覆盖。

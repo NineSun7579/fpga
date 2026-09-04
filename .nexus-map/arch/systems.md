@@ -4,6 +4,14 @@
 
 # Systems
 
+## 当前平台覆盖规则
+
+- platform: `RK3568_MES2L100H`（FPGA + ARM）
+- fpga: `PG2L100H-6IFBG484`
+- pds_target: `Logos2 / PG2L100H / FBG484 / -6`
+- status: 当前 100H 目标已写入文档、构建入口和门禁；活动 PCIe IDF 仍为旧 50H metadata，不能验收。
+- legacy_boundary: `main_ov5640_pcie` 中 `pg2l50h` 命名的 RTL/TB 仅为旧 50H 行为切片，待 100H 迁移复核。
+
 ## PDS 实现与外部仿真规范
 
 - implementation_status: documented
@@ -39,29 +47,29 @@
 - ci_6_status: committed_as_a5d1785
 - ci_6_scope: 静态交叉核对 `ddr3.v`、`test_ddr.v` 与 `D3A_PORT_MAP.md` 的模块、参数宽度、128-bit 数据、28-bit 地址、`I_ips_ddr_top` 层级、AXI-like 握手字段及 core 不含 `axi_rready`。
 - ci_6_result: 2026-08-30 在 HEAD `a5d1785`（52 个 Git 提交）复验仓库一致性门禁、8 个 PowerShell AST 与 `git diff --check` 均通过。
-- ci_6_boundary: 仅保护当前 D3-0-R 静态契约不漂移；PG2L50H DDR3 IP/FDC/RCF 重生成后必须重新核对并审核，不能把当前通过解释为新器件实现或动态验证通过。
+- ci_6_boundary: 仅保护当前 D3-0-R 静态契约不漂移；PG2L100H DDR3 IP/FDC/RCF 版本核验或重生成后必须重新核对并审核，不能把当前通过解释为动态验证通过。
 - ci_7_scope: `docs/PDS_TCL_ENTRYPOINT_INVENTORY.json` 覆盖全部 13 个 tracked Tcl；逐项记录角色、`set_arch` 次数、器件集合、绝对路径事实和 `run_ps1_entry`。
 - ci_7_roles: 角色集合固定为 `canonical_project_build`、`migration_blocked_project_build`、`canonical_support_tool`、`historical_gui`、`vendor_generated_internal`、`vendor_sim_internal`；只有三个项目 `scripts/build.tcl` 可由对应 `run.ps1` 调用。
-- ci_7_target_boundary: PCIe `scripts/build.tcl` 已是 `Logos2 / PG2L50H / FBG484 / -6` canonical；OV7725 与 DDR3 `scripts/build.tcl` 仍是 PG2L100H migration-blocked。历史 GUI、厂商内部和厂商仿真脚本的混合器件/绝对路径不构成当前器件或实现证据。
+- ci_7_target_boundary: 三个项目 `scripts/build.tcl` 均以 `Logos2 / PG2L100H / FBG484 / -6` 为当前目标；PCIe 因活动 IDF 仍带 50H metadata 而 migration-blocked。历史 GUI、厂商内部和厂商仿真脚本的混合器件/绝对路径不构成当前器件或实现证据。
 - ci_7_result: 正向 `check_pds_tcl_entrypoints.ps1` 退出 0；删除任一清单项的负向测试退出 1。M2/M3 升格时必须同步清单角色与器件集合。
-- h2_b0_scope: PCIe 当前 PG2L50H baseline 将五类问题归一化为 16 个唯一签名、42 次原始记录；baseline 比较完整多重集，新增、消失、改名、share-pin 位置或次数漂移均失败，活动 IDF family/device/package/speedgrade 漂移永久硬失败。
-- h2_b0_result: canonical fixture 正向退出 0、strict 退出 1；缺失 UART、重复 UART、Timing 端口改名、share pin 改位和 IDF 改为 PG2L100H 五个变异均退出 1。本批无 RTL、活动 IDF、FDC、厂商 IP 或生成物修改。
+- h2_b0_scope: PCIe 历史 PG2L50H baseline 将五类问题归一化为 16 个唯一签名、42 次原始记录；该多重集只保留为旧产物审计证据。当前 PG2L100H gate 必须把活动 IDF 的 50H family/device metadata 作为迁移硬失败。
+- h2_b0_result: 历史 50H fixture 正向退出 0、strict 退出 1；当时将 IDF 改为 PG2L100H 的变异也被旧规则拒绝，说明该 fixture 不能沿用为当前门禁。当前只批准 PG2L100H，且本批无 RTL、活动 IDF、FDC、厂商 IP 或生成物修改。
 - h2_b1_boundary: lane/refclk/PERST#/SCBV/UART/I/O timing 仍需板级资料与决策；H2-B0 不解除发布阻断。
-- ci_8_status: PCIe 的 partial/stale evidence 风险已由 CI-8A manifest 关闭；CI-8B 等待 DDR3/OV7725 各自 PG2L50H canonical 升格后迁移，不使用时间戳容差或隐式假设。
+- ci_8_status: PCIe 的 partial/stale evidence 风险已由 CI-8A manifest 关闭；CI-8B 等待 DDR3 与 OV5640 各自建立 PG2L100H canonical 输入和最终构建入口后迁移，不使用时间戳容差或隐式假设。
 - ci_8a_status: PCIe provenance pilot completed on 2026-08-31。
 - ci_8a_inputs: `scripts/pds_sources.f` 是 37 个 HDL 的单一有序清单；与 `run.ps1`、`build.tcl`、`build_provenance.ps1`、活动 IDF/FDC 等合计形成 43 项 canonical 输入。
 - ci_8a_manifest: 每次 build 以 32 位小写十六进制 `run_id` 原子替换固定 `build/provenance/pds-build.json`；状态为 `running/partial/failed/complete`，只有 `complete` 且 `valid=true` 可进入最终 gate。
 - ci_8a_binding: 43 项输入与 full log、timing report、PNR 网表、slow SDF、`.sbit`、`.bin`、`bgr.db` 七项最终证据均绑定相对 POSIX path、length、SHA-256；日志中的唯一开始/完成标志必须与 manifest run_id 一致。
-- ci_8a_result: partial compile、PDS executable 缺失、run-id 漂移、产物漂移和 FDC 输入漂移均 gate=1；最新完整 PG2L50H run `c24bc06b5d0643eeb6c9cb2878e7ace5` 为 `gen_bit_stream/complete/valid=true`，绑定 43 inputs/7 artifacts，full build=0、baseline=0、strict=1、slack=`0.100 ns`，H2-B0 16/42 多重集不变。baseline 可复现不解除发布阻断。
-- ci_8b_boundary: DDR3 与 OV7725 仅在各自 PG2L50H canonical IP/约束和最终构建入口升格后迁移 provenance；先按项目真实源清单/产物布局独立实现，不抽公共模块。
+- ci_8a_result: partial compile、PDS executable 缺失、run-id 漂移、产物漂移和 FDC 输入漂移均 gate=1；历史完整 PG2L50H run `c24bc06b5d0643eeb6c9cb2878e7ace5` 为 `gen_bit_stream/complete/valid=true`，绑定 43 inputs/7 artifacts，full build=0、baseline=0、strict=1、slack=`0.100 ns`，H2-B0 16/42 多重集不变。该 run 只证明旧产物可审计，不是当前 PG2L100H 输入或发布证据。
+- ci_8b_boundary: DDR3 与 OV5640 仅在各自 PG2L100H canonical IP/约束和最终构建入口升格后迁移 provenance；OV7725 只作 legacy，先按项目真实源清单/产物布局独立实现，不抽公共模块。
 - ci_9_status: 2026-09-01 implemented_and_verified_sensitive_diff_gate
 - ci_9_entry: `scripts/check_sensitive_diff.ps1`；契约文档为 `docs/SENSITIVE_DIFF_GATE.md`，并由 `scripts/check_repo_consistency.ps1` 调用规则自检、`-FullTree` 当前树扫描和 PR merge-base 差异扫描。
 - ci_9_scope: 全树模式检查当前 tracked/untracked 工作树，PR 模式检查 merge-base 之后的 changed paths 与 added lines；严格占位符白名单之外，拒绝许可证文件名、Windows/UNC/Unix 绝对许可证路径、真实许可证环境赋值、裸端点、FlexNet 内容、签名及 host id。
 - ci_9_self_test: 2 个允许新增行、5 个拒绝新增行、1 个允许文件名、1 个拒绝文件名均按预期判定。
 - ci_9_result: 68 个 tracked 日志中的 143 处许可证绝对路径已替换为 `<license-path>`；当前树 `-FullTree` 扫描和 PR 差异扫描均通过。
 - ci_9_boundary: 保护当前版本并阻止后续重新引入，不读取或输出实际许可证配置；本批不改写 Git 历史，历史清理和任何历史重写必须独立审核。
-- hardware_target_decision: 用户于 2026-08-30 确认三个项目共用 `RK3568+PG2L50H100H` 开发板，实际 FPGA 为 `PG2L50H-6IFBG484`；统一 PDS 目标为 `Logos2 / PG2L50H / FBG484 / -6`。
-- legacy_100h_boundary: 全部 PG2L100H PDS/STA/网表/位流仅保留为历史证据，不得烧录或作为实板验收；三个项目必须分别建立 PG2L50H 新 baseline。
+- hardware_target_decision: 用户于 2026-09-04 确认三个项目共用 `RK3568_MES2L100H` 平台，实际 FPGA 为 `PG2L100H-6IFBG484`；统一 PDS 目标为 `Logos2 / PG2L100H / FBG484 / -6`。
+- legacy_50h_boundary: 全部旧 PG2L50H PDS/STA/网表/位流仅保留为历史证据，不得烧录或作为实板验收；三个项目必须分别建立 PG2L100H 当前版本基线。
 - ci_0_boundary: 仅为仓库结构与文档静态一致性门禁，不启动或替代 PDS 构建、STA、项目严格 gate 或四级仿真。
 - simulation_readiness_status: Questa 2021.1 tools and Logos2 USIM/VSIM verified historically; PCIe S2-A historical controlled smoke PASS retained; current S2-A/S2-B static gates pass but dynamic revalidation exits 4 on external license checkout; DDR3 and OV5640 project suites remain pending
 - simulation_asset_boundary: `ipcore/`、`ip_core/`、`ip_backup/` 内的 DDR3、PLL、FIFO 和 PCIe RC/EP testbench/filelist/DO 均为厂商示例，只能作为模型与接口参考；不得改名或直接计入 `ov7725_hdmi`、`ddr3_bringup_top` 或 `pcie_dma_test` 的集成覆盖。
@@ -184,24 +192,24 @@
 - regression_2026_09_03: Questa Sim-64 2021.1 为 0 error/0 warning、日志唯一 `TEST PASS`，仿真至 251 ns；覆盖 allocation 的 slot/base/capacity、背压字段保持、容量边界与恢复。
 - boundary: 不假定正式地址单位、物理槽范围、初始化行为或 AXI4 burst 语义；记录已接入项目自有 canonical adapter，但尚未通过加密 DDR core、PDS/STA 或实板验证。
 
-## main PG2L50H canonical DDR3 write adapter
+## main 旧 50H 文件名行为切片：DDR3 write adapter
 
 - implementation_status: behavior_verified_canonical_aw_w_adapter_only
 - code_path: `main_ov5640_pcie/rtl/rgb565_pg2l50h_ddr3_write_adapter.sv`
 - test_path: `main_ov5640_pcie/tb/tb_rgb565_pg2l50h_ddr3_write_adapter.sv`
 - script_path: `main_ov5640_pcie/scripts/run_m3b_pg2l50h_ddr3_write_adapter.ps1`
-- responsibility: 把一条 normalized 128-bit 写记录映射到 PG2L50H canonical 非标准 AW/W 用户口，并在真实写数据拍被 `axi_wready` 消费前保持地址、数据和 strobe。
+- responsibility: 旧 50H 文件名行为切片，把一条 normalized 128-bit 写记录映射到待 PG2L100H 复核的非标准 AW/W 用户口，并在真实写数据拍被 `axi_wready` 消费前保持地址、数据和 strobe；不构成 50H 平台批准。
 - contract: `ddr_init_done` 在 `io_clk` 域两拍同步后才准入；单 outstanding、`axi_awlen=0`、固定 request id、`axi_awuser_ap=0`；支持 AW 与 W 同拍完成，上游 `in_ready` 只在 W consume 时拉高。
 - evidence: 2026-09-03 Questa Sim-64 2021.1：专项 write adapter 221 ns，writer→adapter path 196 ns；均 0 error/0 warning、日志唯一 `TEST PASS`。
 - boundary: canonical 接口没有 B channel，`in_ready` 只证明用户写数据拍已被 core 端口消费，不证明物理 DDR 持久化；正式地址单位/槽范围、加密 core、PDS/STA/板级均未关闭。
 
-## main PG2L50H canonical DDR3 read adapter
+## main 旧 50H 文件名行为切片：DDR3 read adapter
 
 - implementation_status: behavior_verified_canonical_ar_r_adapter_only
 - code_path: `main_ov5640_pcie/rtl/rgb565_pg2l50h_ddr3_read_adapter.sv`
 - test_path: `main_ov5640_pcie/tb/tb_rgb565_pg2l50h_ddr3_read_adapter.sv`
 - script_path: `main_ov5640_pcie/scripts/run_m3b_pg2l50h_ddr3_read_adapter.ps1`
-- responsibility: 把单条 frame scheduler 读命令映射到 canonical AR/R 用户口，并把 128-bit 返回拍还原为 32-bit payload 与第 5 byte 元数据。
+- responsibility: 旧 50H 文件名行为切片，把单条 frame scheduler 读命令映射到待 PG2L100H 复核的 AR/R 用户口，并把 128-bit 返回拍还原为 32-bit payload 与第 5 byte 元数据；不构成 50H 平台批准。
 - contract: `ddr_init_done` 两拍同步后准入；单 outstanding、`axi_arlen=0`、固定 request id、`axi_aruser_ap=0`；由于 core 无 `axi_rready`，R 拍必须先进入本地缓冲再等待下游，AR/R 同拍返回也必须正确捕获。
 - fault_contract: RID 不匹配或 RLAST 缺失并入 `out_protocol_error`；无命令、AR 尚未握手或本地响应缓冲已占用时出现 RVALID，产生 `port_fault_pulse`。
 - evidence: 2026-09-03 Questa Sim-64 2021.1：专项 read adapter 191 ns，0 error/0 warning、日志唯一 `TEST PASS`。
@@ -214,53 +222,53 @@
 - test_path: `main_ov5640_pcie/tb/tb_rgb565_axis4_pcie_mwr_bridge.sv`
 - script_path: `main_ov5640_pcie/scripts/run_m3b_pcie_mwr_bridge.ps1`
 - responsibility: 将规范化请求映射到已审计的 `mwr32_req/ack`，锁存实际 DWORD 数、地址、数据与事件字段，并在 canonical ACK 前保持请求稳定。
-- evidence: 2026-09-03 Questa Sim-64 2021.1 独立 bridge TB 为 0 error/0 warning、唯一 TEST PASS、76 ns；新增 `tb_rgb565_pg2l50h_mwr32_tx_integration.sv` 直接实例化未修改 `ips2l_pcie_dma_mwr_tx_ctrl`，为 136 ns、0 error/0 warning、唯一 TEST PASS。
+- evidence: 2026-09-03 Questa Sim-64 2021.1 独立 bridge TB 为 0 error/0 warning、唯一 TEST PASS、76 ns；旧 50H 文件名行为切片 `tb_rgb565_pg2l50h_mwr32_tx_integration.sv` 直接实例化未修改 `ips2l_pcie_dma_mwr_tx_ctrl`，为 136 ns、0 error/0 warning、唯一 TEST PASS，仍待 PG2L100H IP 边界复核。
 - canonical_tx_contract: 隔离动态集成验证 req 保持至 ACK、header length=`1`、DWBE=`8'h0f`、4 字节对齐地址 `0x1000`、用户数据低 DWORD=`0x44332211` 以及 bridge/vendor busy 最终释放。
 - boundary: 只证明单 DWORD、`keep=4'hf`、4 字节对齐的 vendor TX 仿真边界。项目自有第二请求源仲裁和异步 CDC 另有独立证据，但 partial keep、完整 TX 顶层实例化、PCIe link training、RK3568/主机内存写入仍未关闭。
 
-## main PG2L50H PCIe TX native/camera 请求仲裁器
+## main 旧 50H 文件名行为切片：PCIe TX native/camera 请求仲裁器
 
 - implementation_status: behavior_verified_pcie_domain_request_arbiter_with_ack_release_barrier
 - code_path: `main_ov5640_pcie/rtl/rgb565_pg2l50h_pcie_tx_request_arbiter.sv`
 - test_path: `main_ov5640_pcie/tb/tb_rgb565_pg2l50h_pcie_tx_request_arbiter.sv`, `main_ov5640_pcie/tb/tb_rgb565_pg2l50h_pcie_tx_arbiter_integration.sv`
 - script_path: `main_ov5640_pcie/scripts/run_m3b_pg2l50h_pcie_tx_request_arbiter.ps1`, `main_ov5640_pcie/scripts/run_m3b_pg2l50h_pcie_tx_arbiter_integration.ps1`
-- responsibility: 在同一 TX 时钟域内原子仲裁完整 native `MWR32/MWR64/MRD32/MRD64` 请求 bundle 与 camera MWR32；native bundle 包含四类 request、MWR user-defined mode、length/address/data，camera bundle 包含 MWR32、length/address/data。
+- responsibility: 旧 50H 文件名行为切片，在同一 TX 时钟域内原子仲裁完整 native `MWR32/MWR64/MRD32/MRD64` 请求 bundle 与 camera MWR32；native bundle 包含四类 request、MWR user-defined mode、length/address/data，camera bundle 包含 MWR32、length/address/data。该行为需在 PG2L100H Endpoint/IP 下复核。
 - arbitration_contract: 空闲且两源同时请求时按上次完成 owner 轮转，复位后 native 先行；owner 与被选字段保持到匹配 TX ACK，未授权源不得看到 ACK。
 - ack_release_contract: 匹配 ACK 后撤销下游请求并进入 `WAIT_ACK_LOW`；只有观察到 vendor ACK 拉低，才允许换 owner 或发布下一事务，防止保持型 ACK 被下一请求误消费。
 - mwr_mode_contract: MWR user-defined 模式只在 native/camera MWR ACK 时更新；native MRD 不得改变该模式，锁存值保持到下一次 MWR handshake，使 vendor MWR TX 在 ACK 后仍看到正确 RAM-data 或 user-defined 模式。
 - evidence: 2026-09-04 Questa Sim-64 2021.1：增强 arbiter 专项 265 ns；native RAM-data 与 camera user-defined 依次经过未修改 `ips2l_pcie_dma_mwr_tx_ctrl` 的集成测试 205 ns；均 0 error/0 warning、日志唯一 `TEST PASS`。
 - boundary: ACK 只表示 TX controller 接受请求，不表示 TLP 完成或主机写入。异步 camera 请求由独立 CDC wrapper 接入；本节两个仲裁专项不实例化完整 `ips2l_pcie_dma_tx_top`，该请求到完整 TX top AXIS 输出的独立行为集成由下述 adapter 专项覆盖。partial keep/byte enable、LTSSM、串行链路和 RK3568 主机内存仍未关闭。
 
-## main PG2L50H PCIe MWR32 异步 mailbox
+## main 旧 50H 文件名行为切片：PCIe MWR32 异步 mailbox
 
 - implementation_status: behavior_verified_single_outstanding_async_mailbox
 - code_path: `main_ov5640_pcie/rtl/rgb565_pg2l50h_pcie_mwr32_async_mailbox.sv`
 - test_path: `main_ov5640_pcie/tb/tb_rgb565_pg2l50h_pcie_mwr32_async_mailbox.sv`
 - script_path: `main_ov5640_pcie/scripts/run_m3b_pg2l50h_pcie_mwr32_async_mailbox.ps1`
-- responsibility: 将一笔保持型 camera MWR32 的 length/address/data 从 DDR3 应用 `core_clk` 域传到 PCIe `pclk_div2` 域，并只在目标端真实 ACK 后向源端完成。
+- responsibility: 旧 50H 文件名行为切片，将一笔保持型 camera MWR32 的 length/address/data 从 DDR3 应用 `core_clk` 域传到 PCIe `pclk_div2` 域，并只在目标端真实 ACK 后向源端完成；placed-design 只面向 PG2L100H 签核。
 - cdc_contract: 单 outstanding toggle handshake；online/fault 电平保持两级同步，request/ACK token 使用三级同步，确保 peer-offline 先于事务 token 到达事务逻辑；目标检测 token 后额外等待一拍，再采样源端持续稳定的 bundled-data MCP；目标寄存 payload 并保持请求到 ACK，ACK token 返回源域。
 - reset_contract: 在线 reset handshake 在双方 channel-ready 前禁止新请求；idle 单域复位可重新对齐；在途任一域复位产生 pulse/sticky fault，事务结果定义为不确定且不自动 replay，要求上层作废当前 frame/slot 并协调 flush。
 - ack_release_contract: 源 ACK 保持到源请求撤销；目标进入 `WAIT_ACK_LOW`，vendor ACK 拉低前不接收下一 token。
 - evidence: 2026-09-04 Questa Sim-64 2021.1：源快/目标慢与源慢/目标快、连续 token、payload 稳定、ACK 延迟/保持、idle 与在途复位回归 2296 ns，0 error/0 warning、日志唯一 `TEST PASS`。
 - boundary: RTL 行为仿真不证明亚稳态或位间 skew；placed-design 必须对源 payload holding registers→目标 capture registers 签核 max-delay/bus-skew，并完成 CDC/RDC 与 STA。单纯 false-path 整条 payload 总线不可接受。
 
-## main PG2L50H PCIe TX CDC/仲裁集成
+## main 旧 50H 文件名行为切片：PCIe TX CDC/仲裁集成
 
 - implementation_status: behavior_verified_async_camera_and_native_tx_boundary
 - code_path: `main_ov5640_pcie/rtl/rgb565_pg2l50h_pcie_tx_cdc_arbiter.sv`
 - test_path: `main_ov5640_pcie/tb/tb_rgb565_pg2l50h_pcie_tx_cdc_arbiter_integration.sv`
 - script_path: `main_ov5640_pcie/scripts/run_m3b_pg2l50h_pcie_tx_cdc_arbiter_integration.ps1`
-- responsibility: 组合异步 MWR32 mailbox 与现有 PCIe 域 native/camera 请求仲裁器，不修改厂商 MWR TX RTL。
+- responsibility: 旧 50H 文件名行为切片，组合异步 MWR32 mailbox 与现有 PCIe 域 native/camera 请求仲裁器，不修改厂商 MWR TX RTL；该组合必须在 PG2L100H IP 下复核。
 - evidence: 2026-09-04 Questa Sim-64 2021.1：native RAM-data 与异步 camera user-defined 请求各形成且仅形成一条正确单 DWORD TLP，385 ns，0 error/0 warning、日志唯一 `TEST PASS`。
 - boundary: 只关闭事务 CDC、ACK 隔离和 PCIe 域仲裁行为；本节专项不实例化完整 `ips2l_pcie_dma_tx_top`，该请求到 AXIS 输出的独立集成由下述 adapter 专项覆盖。partial keep、LTSSM、串行链路、RK3568 主机协议、真实 DDR3 IP 或板级实现仍未关闭。
 
-## main PG2L50H PCIe 完整 TX top adapter
+## main 旧 50H 文件名行为切片：PCIe 完整 TX top adapter
 
 - implementation_status: behavior_verified_camera_native_requests_to_complete_tx_top_axis
 - code_path: `main_ov5640_pcie/rtl/rgb565_pg2l50h_pcie_tx_top_adapter.sv`
 - test_path: `main_ov5640_pcie/tb/tb_rgb565_pg2l50h_pcie_tx_top_adapter.sv`
 - script_path: `main_ov5640_pcie/scripts/run_m3b_pg2l50h_pcie_tx_top_adapter.ps1`
-- responsibility: 在项目自有边界内组合 `rgb565_pg2l50h_pcie_tx_cdc_arbiter` 与未修改的完整 `ips2l_pcie_dma_tx_top`，把异步 camera MWR32 和 PCIe 域 native `MWR32/MWR64/MRD32/MRD64` bundle 接入厂商 TX 顶层，并透传三路 AXIS TX、BAR0/BAR2 读口及 CPLD 输入。
+- responsibility: 旧 50H 文件名行为切片，在项目自有边界内组合 `rgb565_pg2l50h_pcie_tx_cdc_arbiter` 与未修改的完整 `ips2l_pcie_dma_tx_top`，把异步 camera MWR32 和 PCIe 域 native `MWR32/MWR64/MRD32/MRD64` bundle 接入厂商 TX 顶层，并透传三路 AXIS TX、BAR0/BAR2 读口及 CPLD 输入；不构成 50H 平台批准，正式集成只面向 PG2L100H。
 - evidence: 2026-09-04 Questa Sim-64 2021.1：非谐波 camera/PCIe 双时钟下，native user-defined MWR 与 camera MWR 依次形成正确 header/data，共 4 个 AXIS beat；专项仿真至 385 ns，0 error/0 warning、日志唯一 `TEST PASS`。
 - closure: 关闭 camera/native CDC/仲裁请求到完整 `ips2l_pcie_dma_tx_top` AXIS 输出的行为集成缺口，且不修改厂商 PCIe RTL。
 - boundary: 不代表 LTSSM、PCIe 串行链路、真实 DDR3 IP、RK3568 主机内存或产品板级闭环；也不替代 placed-design CDC/RDC/STA 与 partial keep/byte-enable 签核。
@@ -278,10 +286,10 @@
 - clock_domains: `sys_clk`, `i2c_dri_clk`, `cam_pclk`, `pixel_clk`, `pixel_clk_5x`, `clk_50m/ref_clk`, `ui_clk`
 - cdc_findings: `wr_load`/`rd_load` 被多个逻辑独立采样；write FIFO 为 `cam_pclk → ui_clk`，read FIFO 为 `ui_clk → pixel_clk`
 - rdc_findings: 两个异步 FIFO 的帧复位从单一源域同时驱动两侧；`ddr3_init_done` 和组合顶层复位未逐域同步释放
-- build_inputs: 16 个手写 RTL、4 个活动 IDF、1 个顶层 FDC；当前文件仍是旧 `Logos2 / PG2L100H / FBG484 / -6` 基线，已被实物确认否决，目标应迁移到 `Logos2 / PG2L50H / FBG484 / -6`
+- build_inputs: 16 个手写 RTL、4 个活动 IDF、1 个顶层 FDC；现有文件是 PG2L100H legacy 工程输入，需在板级资料和 SP6.4 版本审计后按 `Logos2 / PG2L100H / FBG484 / -6` 核验或重生成，不得迁移到 50H。
 - m3a_version_gap: 四个活动 SP4.2 IP 与 SP6.4 安装定义均断层：DDR3 `1.12 → 1.10`、PLL `1.3 → 1.5`、rd/wr FIFO `1.8 → 1.10`；隔离探针分别被 `IPCompiler 0037` 和 `IPCompiler 0057` 拒绝，旧 IDF CLI override 与手改版本均禁止。
-- m3a_staging_contract: 只允许用 SP6.4 IP Compiler GUI 在 `Logos2/PG2L50H/FBG484/-6` 下创建当前版本的新实例，并只输出 `build/ipgen/pg2l50h/**`；四个 canonical IDF 由仓库门禁做 SHA-256 保护，板级审核前不得升格。
-- m3a_derived_parameters: DDR3 必须得到 `DEVICE_100H_EN=false`，PLL 必须得到 `DEVICE_PG2L50H=true`；两个异步混宽 FIFO 必须满足 PG2L50H 的 85 个 DRM36K/170 个 DRM18K 资源上限。
+- m3a_staging_contract: 历史审计曾提出在 `Logos2/PG2L50H/FBG484/-6` 下创建实例并输出 `build/ipgen/pg2l50h/**`；该路径属于错误平台假设，现禁止执行。若需复核 OV7725 legacy，只允许在 `Logos2/PG2L100H/FBG484/-6` 下创建隔离实例，四个活动 IDF 由仓库门禁做 SHA-256 保护，审核前不得原地覆盖。
+- m3a_derived_parameters: 历史 50H 参数 `DEVICE_100H_EN=false`、`DEVICE_PG2L50H=true` 及其资源上限只用于旧产物差异解释；当前必须使用 PG2L100H 派生参数和资源容量重新审核。
 - m3a_constraint_gap: 旧 `ddr3_ip.rcf` 层级与当前集成层级不一致，历史记录只处理 0 条 net；M3-B 必须证明 RCF 被加载且对象命中，并重新审核 FDC、wrapper、clock object 和全部板级 I/O。
 - build_status: O2-D1-R 已从空 `build/` 完成 SP6.4 七阶段且日志无 `^E:`；baseline gate 精确匹配原七组 corner/check/clock pair/endpoints 后返回 0，严格 gate 仍返回 1，五类产物非零并继续标记不可发布
 - timing_findings: O2-D1-R 报告中 Slow/Fast `ddrphy_sysclk → pixel_clk` Recovery 均为 `53/53`，Removal 均为 `0/53`；53 个 endpoint 分类为 `26+8+17+1+1`。O2-B 的 `54` 来自 video-driver endpoint 从 17 增至 18；新增 serializer reset 同步器属于另一 clock pair，不修改旧 baseline
@@ -301,11 +309,11 @@
 - implementation_status: target_scoped_pending_reference_audit
 - code_path: null
 - evidence_path: `docs/OV5640_TARGET_SCOPE.md`
-- product_boundary: 产品摄像头为 OV5640，目标板卡与器件为 `RK3568+PG2L50H100H` / `PG2L50H-6IFBG484`；现有 `41_ov7725_hdmi` 不属于产品实现。
+- product_boundary: 产品摄像头为 OV5640，当前唯一板卡与器件为 `RK3568_MES2L100H` / `PG2L100H-6IFBG484`；现有 `41_ov7725_hdmi` 不属于产品实现。
 - c0_boundary: 只读导入并审计参考工程的源、IP、约束、顶层、器件元数据和绝对路径，不覆盖 canonical。
 - c1_boundary: 冻结单/双摄、模组料号、MCLK、RESET/PWDN、I/O 电压、管脚、DVP 位宽/极性、输出格式、分辨率、帧率与字节序。
 - c2_boundary: 设计新的项目目录与顶层，形成 OV5640 SCCB/寄存器配置、读 ID 自检、采集、DDR3 帧缓存和 HDMI 输出迁移方案。
-- c3_boundary: 所有 IP/约束按 `Logos2 / PG2L50H / FBG484 / -6` 重新审核或生成，完成七阶段 PDS 与严格 gate；旧 100H 产物不可继承。
+- c3_boundary: 所有 IP/约束按 `Logos2 / PG2L100H / FBG484 / -6` 重新审核或生成，完成七阶段 PDS 与严格 gate；任何旧 50H 产物不可继承。
 - s3_boundary: 建立 OV5640 项目级自检 TB、相对路径 filelist/DO，并依次关闭行为级、综合后、PNR 功能和 PNR 时序仿真；公共 Questa/USIM/VSIM 证据不等于产品通过。
 - next_step: 先完成 C0 参考工程可访问性与只读审计，再由 C1 冻结产品范围；C0/C1 未完成前不修改活动 RTL、IP 或约束。
 - high_attention: `i2c_dri_clk` 逻辑生成时钟、`cam_pclk`/DDR `ui_clk`/`pixel_clk` 间业务 CDC、FIFO 分侧复位，以及 `ddr3_init_done` 参与的复位释放。
@@ -316,22 +324,22 @@
 - code_path: `ddr3_test/ddr3_test/`
 - project_path: `ddr3_test/ddr3_test/ddr3_test.pds`
 - evidence_path: `ddr3_test/ddr3_test/scripts/regenerate_ip.ps1`, `ddr3_test/ddr3_test/doc/M2_IP_REGENERATION.md`, `ddr3_test/ddr3_test/doc/M2B1_PARAMETER_AND_DIFF_AUDIT.md`, `ddr3_test/ddr3_test/build/logs/pds-gen_bit_stream.log`, `ddr3_test/ddr3_test/build/pds/report_timing/test_ddr.rtr`, `ddr3_test/ddr3_test/scripts/check_build.ps1`
-- evidence_gap: M2-B1 已纠正 PG2L50H staging 生成路径并完成参数/资产差异审计，但 canonical IP/FDC/RCF 仍是旧 PG2L100H 输入，旧全流程、STA、网表、SDF 和位流不可烧录实际板卡。板级 DDR3 参数、28 项 FDC pin 差异、canonical 升格、CI-6、50H 空目录七阶段、D3-0-R 与 D3-A/B/C 均未验收。
+- evidence_gap: M2-B1 的 50H staging 只保留为历史错误假设下的参数/资产差异审计，旧自动生成入口已硬阻断。活动 IP/FDC/RCF 当前为 PG2L100H，但仍需依据板级 DDR3 参数审核 28 项 FDC pin 差异、核验或重生成 100H IP、完成 canonical 升格、CI-6、100H 空目录七阶段、D3-0-R 与 D3-A/B/C；未完成前现有 STA、网表、SDF 和位流不得用于实板。
 - responsibility: 当前以厂商 `test_ddr` 作为临时 DDR3 board bring-up 顶层；后续必须明确真正产品顶层和板级功能范围。
-- hardware_target: `RK3568+PG2L50H100H` / `PG2L50H-6IFBG484` / `Logos2 / PG2L50H / FBG484 / -6`
-- m2_active_input_audit: 活动 `ip_core/ddr3/ddr3.idf` 为 `PG2L100H`、生成器 `2022.2-SP6.4`；canonical FDC/RCF 为 `ip_core/ddr3/pnr/ddr_test.fdc` 与 `ip_core/ddr3/pnr/ddr3.rcf`；`ip_core/ddr_test.fdc` 是旧外层参考，不能直接升格。项目自有 `scripts/build.tcl` 与 `scripts/check_build.ps1` 也仍按 `PG2L100H`，待 50H 资产落地后再修正。
-- m2_legacy_50h_audit: `ip_backup/20250108100125/ddr3/ddr3.idf` 为 `PG2L50H`，但生成器是 `2022.2-SP6.1`；仅可作为参数/硬宏差异 oracle，禁止直接恢复或复制到活动输入。
-- m2_a_staging: `2026-08-30` 使用 `scripts/regenerate_ip.ps1` 在 `build/ipgen/pg2l50h` 调用 SP6.4 build 146967，目标 `Logos2/PG2L50H/FBG484/-6`，结果 `0 error(s), 0 warning(s)`；canonical IDF SHA-256 保持 `6CB70BF0954100B4797197A47F20496AD74945995E12B30FA040870EE3366C47`。
-- m2_b1_derived_parameter: PDS SP6.4 `ui.tcl` 定义 `DEVICE_100H_EN` 为隐藏派生参数，`PG2L100H/HX=true`、`PG2L50H=false`；直接 `-device` 覆盖旧 100H IDF 会错误保留 `true` 并生成 PPLL `FALSE/CLKOUTF` 分支，已明确禁止。
-- m2_b1_seed_regeneration: 活动 100H IDF 与 SP6.1 50H seed 的参数仅 `DEVICE_100H_EN` 不同；更新后的 `scripts/regenerate_ip.ps1` 先验证 seed 参数一致，再由 SP6.4 build 146967 重生成，结果 `DEVICE_100H_EN=false`、PPLL `TRUE/CLKOUT4`、`0 error(s), 0 warning(s)`，canonical 哈希保持不变。
-- m2_b1_diff: 正确 PG2L50H staging 的 DDR PHY slice、wrapper、FDC、仿真 filelist 与 IDF 均不同；wrapper 端口 `21 → 26`，新增 `ref_clk_p/n`、`pll_lock`、`ddrphy_cpd_lock`、`ddr_init_done`；FDC 有 28 项 pin 差异。
+- hardware_target: `RK3568_MES2L100H` / `PG2L100H-6IFBG484` / `Logos2 / PG2L100H / FBG484 / -6`
+- m2_active_input_audit: 活动 `ip_core/ddr3/ddr3.idf` 为 `PG2L100H`、生成器 `2022.2-SP6.4`；canonical FDC/RCF 为 `ip_core/ddr3/pnr/ddr_test.fdc` 与 `ip_core/ddr3/pnr/ddr3.rcf`；`ip_core/ddr_test.fdc` 是旧外层参考，不能直接升格。项目自有 `scripts/build.tcl` 与 `scripts/check_build.ps1` 当前也按 `PG2L100H`，仍需完成板级和产物核验。
+- m2_legacy_50h_audit: `ip_backup/20250108100125/ddr3/ddr3.idf` 为 `PG2L50H`，但生成器是 `2022.2-SP6.1`；它是旧产物，仅可作为参数/硬宏差异 oracle，禁止恢复、复制、生成或升格到活动输入。
+- m2_a_staging: `2026-08-30` 曾使用旧 `scripts/regenerate_ip.ps1` 在 `build/ipgen/pg2l50h` 调用 SP6.4 build 146967 生成 `Logos2/PG2L50H/FBG484/-6` staging，结果 `0 error(s), 0 warning(s)`；这是历史错误假设下的旧产物，脚本现已硬阻断，canonical IDF 未被替换。
+- m2_b1_derived_parameter: PDS SP6.4 `ui.tcl` 定义 `DEVICE_100H_EN` 为隐藏派生参数，`PG2L100H/HX=true`、`PG2L50H=false`；直接 `-device` 覆盖旧 100H IDF 会错误保留 `true` 并生成不一致分支，故 50H override 和生成路径已明确禁止。
+- m2_b1_seed_regeneration: 活动 100H IDF 与 SP6.1 旧 50H seed 的历史参数比较仅发现 `DEVICE_100H_EN` 不同；旧脚本曾由 SP6.4 build 146967 生成 50H staging，该结果只作迁移阻断证据，现不得继续执行或升格。
+- m2_b1_diff: 历史 50H staging 与当前 100H 资产的 DDR PHY slice、wrapper、FDC、仿真 filelist 与 IDF 均不同；wrapper 端口 `21 → 26`，新增 `ref_clk_p/n`、`pll_lock`、`ddrphy_cpd_lock`、`ddr_init_done`，FDC 有 28 项 pin 差异。这些差异用于 PG2L100H 复核，不指导生成 50H。
 - m2_status: seed_parameter_validation_and_sp6_4_staging_verified_pending_board_evidence_and_canonical_promotion
 - m2_gate: 取得原理图/BOM并锁定板级 DDR3 颗粒/组织/PCB 参数 → 审核 28 项 FDC pin 差异及 wrapper/PHY/filelist/IDF → 升格 canonical → 重跑 CI-6 → 清空 `build/` 完成七阶段与器件交叉检查 → 重审 D3-0-R，获审后才可进入 D3-A。M2-B1 未授权 canonical 替换、D3-A 或烧录。
 - d3_0_read_only_review: `2026-08-30` 已确认活动 IP 为 `ddr3_test/ddr3_test/ip_core/ddr3/ddr3.v` 的 `module ddr3`；公开端口包含 `ddr_init_done`、`core_clk` 和自定义 AXI-like AW/W/AR/R 接口。`test_ddr.v` 的物理 board wrapper 实例名 `I_ips_ddr_top` 必须保持不变。
-- d3_0_status: legacy_contract_review_complete; PG2L50H IP/FDC/RCF regeneration and D3-A re-review required
+- d3_0_status: legacy_contract_review_complete; PG2L100H IP/FDC/RCF verification_or_regeneration_and_D3-A_re-review_required
 - d3_0_handshake_contract: 写地址以 `axi_awvalid && axi_awready` 接受，写数据接受由 `axi_wready` 指示，核心返回 `axi_wusero_id`/`axi_wusero_last`；读请求以 `axi_arvalid && axi_arready` 接受，核心用 `axi_rvalid`/`axi_rlast` 返回且没有 `axi_rready`。D3-A 按该非标准 AXI-like 契约实现；若 IP 重生成后语义、地址单位或层级变化则停止并重新审核。
 - d3_0_boundary: 只更新文档和评审事实；D3-0 不修改 RTL、活动 IP、FDC/RCF 或构建脚本。
-- d3_0_r_port_map: 提交 `2fd7c51` 新增 `D3A_PORT_MAP.md`，提交 `a5d1785` 的 CI-6 进一步静态交叉核对 core/wrapper/document；该契约属于旧 IP 事实，PG2L50H 重生成后必须重新运行门禁并审核，D3-A 之前不得修改厂商 IP 或物理端口。
+- d3_0_r_port_map: 提交 `2fd7c51` 新增 `D3A_PORT_MAP.md`，提交 `a5d1785` 的 CI-6 进一步静态交叉核对 core/wrapper/document；该契约属于旧 IP 事实，PG2L100H IP 核验或重生成后必须重新运行门禁并审核，D3-A 之前不得修改厂商 IP 或物理端口。
 - provisional_build_entry: `ddr3_test/ddr3_test/scripts/run.ps1`
 - build_definition: `ddr3_test/ddr3_test/scripts/build.tcl`
 - build_gate: `ddr3_test/ddr3_test/scripts/check_build.ps1`
@@ -352,7 +360,7 @@
 - transaction_contract: 16 个单 beat 写读比较 pair；控制器地址 `0x0..0x78`、步长 8；每 pair timeout 4096 周期；整次 run timeout 131072 周期。
 - result_contract: 稳定公开 `test_done`、`test_failed`、`failure_code`、`error_count`、`completed_pairs`，并提供首错地址/期望值/实际值等首错信息。
 - ownership_boundary: 厂商 `ip_core/ddr3/**` 保持原样；新增项目自有 RTL 必须遵循根目录 VSCS。
-- next_step: M2-B1 已确认隐藏派生参数语义并生成正确 50H staging；先依据原理图/BOM审核 28 项 FDC pin 差异和新增 wrapper 状态端口，再决定 canonical 升格。升格后重新核对握手、地址单位、端口和 `I_ips_ddr_top` 层级；重新审核 D3-A 后才可按 D3-A → D3-B → D3-C 实现项目自有 RTL
+- next_step: M2-B1 的旧 50H staging 只保留为历史差异证据，不能升格。先依据原理图/BOM审核 28 项 FDC pin 差异和新增 wrapper 状态端口，再在 PG2L100H 目标下核验或重生成 IP/FDC/RCF；100H staging 通过后重新核对握手、地址单位、端口和 `I_ips_ddr_top` 层级，重新审核 D3-A 后才可按 D3-A → D3-B → D3-C 实现项目自有 RTL。
 
 ## DDR3 IP 示例
 
@@ -372,16 +380,16 @@
 - project_path: `pcie_dma_test_100h/pcie_dma_test.pds`
 - constraint_path: `pcie_dma_test_100h/fdc/pcie_dma_test.fdc`
 - evidence_path: `pcie_dma_test_100h/place_route/pcie_dma_test_timing_summary_after_hold_fix.txt`
-- evidence_gap: 活动 `pcie_test.idf`、build/PDS/gate 与产物已统一为 PG2L50H；S2-A 保留历史动态 PASS，当前 S2-A/S2-B 静态门禁通过。当前动态复验因仓库外许可证 checkout 失败返回 4，未产生新 PASS；真实 RC/EP、DMA、板级证据和后级网表/SDF 仍缺失。
+- evidence_gap: 项目自有 build/PDS/gate 已按 PG2L100H 管理，但活动 `pcie_test.idf` 仍错误带有 PG2L50H metadata，旧 50H 产物只作历史证据且一致性门禁应失败；S2-A 保留历史动态 PASS，当前 S2-A/S2-B 静态门禁通过。当前动态复验因仓库外许可证 checkout 失败返回 4，未产生新 PASS；真实 RC/EP、DMA、板级证据和 PG2L100H 后级网表/SDF 仍缺失。
 - responsibility: 集成 PCIe x2 IP、DMA、RAM/FIFO 与 UART2APB 管理路径。
 - build_entry: `pcie_dma_test_100h/scripts/run.ps1`
 - build_definition: `pcie_dma_test_100h/scripts/build.tcl`
 - build_gate: `pcie_dma_test_100h/scripts/check_build.ps1`
 - h2a_read_only_evidence: `2026-08-30`；顶层端口为 x2 `rxn/rxp/txn/txp`、差分 `ref_clk_p/n`、`perst_n`、`button_rst_n` 和两枚 LED；FDC 映射 refclk `F6/E6`、PERST# `M16`、button reset `M15`、LED `M17/J16`。
 - h2a_status: completed_read_only_evidence_matrix; H2-B 仍待板级资料和审核
-- h2a_constraint_gaps: FDC 未提供 lane 极性、板级拓扑、I/O delay 或 SCBV；`pcie_test.idf` metadata、build/PDS/gate 与新产物已与实物目标 `Logos2 / PG2L50H / FBG484 / -6` 一致，HSSTLP 资源为 PDS 模板指定的 `HSSTLP_292_612`。
+- h2a_constraint_gaps: FDC 未提供 lane 极性、板级拓扑、I/O delay 或 SCBV；当前目标为 `Logos2 / PG2L100H / FBG484 / -6`，但 `pcie_test.idf` metadata 仍为旧 PG2L50H，HSSTLP 资源和新产物需重新按 100H 核验。
 - h2a_uart_gap: UART2APB 使用隐式 `rxd/txd` 网络，当前 `rxd` 被绑 0；该功能缺口不因 PDS/STA 成功而关闭。
-- h2a_boundary: 器件型号已获用户审核；活动 PCIe IDF 不需仅因型号重生成。M1 已修改项目自有 build/gate，并依据 PDS 模板迁移 HSSTLP 资源后重建生成物；RTL/FDC 其余内容仍受 UART 与板级证据审核约束。
+- h2a_boundary: 器件型号已获用户审核；活动 PCIe IDF 仍需重新生成/核验为 PG2L100H。旧 M1 build/gate、HSSTLP 资源和生成物只作历史证据；RTL/FDC 其余内容仍受 UART 与板级证据审核约束。
 - s2a_status: historical_controlled_dynamic_smoke_pass_retained; current_static_gate_passed; current_dynamic_revalidation_blocked_external_license_checkout_exit_4; no_new_test_pass
 - s2a_assets: `tb/tb_pcie_dma_test.sv` 实例化真实 `pcie_dma_test`，全局复位实例名为厂商要求的 `GRS_INST`；`tb/pcie_test_smoke_model.sv` 只替代生成 PCIe IP 边界，两个时序过程恰好使用两个 `always_ff`；`sim/behav.f` 复用 `scripts/pds_sources.f` 的 37 个 canonical HDL，并单独补入仿真所需 `ipcore/pcie_test/rtl/ips2l_pcie_apb_cross_v1_0.v`。`scripts/pds_sources.f` 不修改，因为该源在实现侧由 IDF 管理。
 - s2a_log_contract: 每次动态运行使用随机 32 位小写十六进制 `SIM_RUN_ID`；DO 通过 `echo` 将 marker 写入 transcript，并为本次运行创建独立 work。PowerShell 只接受同一 run id marker 恰好一次且 `TEST PASS` 恰好一次，任一失败由 `$fatal` 或非零退出传播。
@@ -541,26 +549,26 @@
 - evidence: 2026-09-03 Questa Sim-64 2021.1 为 0 error/0 warning、日志唯一 TEST PASS、仿真至 4194 ns。
 - boundary: TB 数组仅以 opaque token 建模双槽，PCIe 输出仅为规范化 MWR；不证明 vendor DDR3/PCIe IP、PCIe ACK/主机接收、RK3568 DMA、真实链路或板级时序。
 
-## main OV5640→PG2L50H canonical DDR3→PCIe 流水顶层
+## main OV5640→旧 50H 文件名行为切片：DDR3→PCIe 流水顶层
 
 - implementation_status: behavior_verified_canonical_ddr_to_async_pcie_tx_boundary
 - code_path: `main_ov5640_pcie/rtl/ov5640_dvp_rgb565_pg2l50h_pcie_pipeline.sv`
 - test_path: `main_ov5640_pcie/tb/tb_ov5640_pg2l50h_ddr3_pcie_loopback.sv`
 - script_path: `main_ov5640_pcie/scripts/run_m3b_ov5640_pg2l50h_ddr3_pcie_loopback.ps1`
-- behavior_path: OV5640 DVP→CDC staging→双槽 allocation/write record→canonical AW/W adapter→公开端口 DDR 模型→canonical AR/R adapter→frame scheduler/readout gate→`core_clk`/`pclk_div2` 异步 mailbox→native/camera 仲裁→未修改 vendor MWR TX。
+- behavior_path: 旧 50H 文件名行为切片，OV5640 DVP→CDC staging→双槽 allocation/write record→待 PG2L100H 复核的 AW/W adapter→公开端口 DDR 模型→AR/R adapter→frame scheduler/readout gate→`core_clk`/`pclk_div2` 异步 mailbox→native/camera 仲裁→未修改 vendor MWR TX。
 - metadata_contract: DDR record 第 5 byte 保存 `keep/last/frame_end/protocol_error`，且 `WSTRB[4]=1`；读适配器从相同 bit 位置恢复 sideband，使控制记录和 partial payload 语义跨 DDR 存储边界保留。
 - evidence: 2026-09-04 Questa Sim-64 2021.1 为 0 error/0 warning、日志唯一 `TEST PASS`、仿真至 1086 ns；覆盖 canonical AW/W→AR/R、异步 mailbox、双源仲裁和 vendor MWR TX 的两组 TLP header/data，以及 `ddr_read_port_fault_pulse=0` 的正常链路。
 - retained_regressions: 旧 806 ns 同时钟 canonical 边界、双槽数组模型 4194 ns、canonical MWR32 TX 隔离 136 ns、同域 TX 请求仲裁专项/集成 265/205 ns、mailbox 专项 2296 ns、CDC 仲裁集成 385 ns、完整 TX top adapter 专项 385 ns。
 - boundary: 未实例化或解密 DDR core。该 1086 ns 流水回归本身未串接完整 TX top；独立 adapter 专项只覆盖请求到 AXIS 输出，不能与本回归拼接外推为真实 DDR3 IP、正式地址单位/物理槽范围、placed-design payload max-delay/bus-skew、CDC/RDC/STA、产品顶层、LTSSM/串行链路、RK3568 主机内存或板级闭环。
 
-## main OV5640→PG2L50H canonical DDR3→完整 PCIe TX top 流水顶层
+## main OV5640→旧 50H 文件名行为切片：DDR3→完整 PCIe TX top 流水顶层
 
 - implementation_status: behavior_verified_single_tb_canonical_ddr_to_complete_tx_top_boundary
 - code_path: `main_ov5640_pcie/rtl/ov5640_dvp_rgb565_pg2l50h_pcie_tx_top_pipeline.sv`
 - test_path: `main_ov5640_pcie/tb/tb_ov5640_pg2l50h_ddr3_pcie_tx_top_pipeline.sv`
 - script_path: `main_ov5640_pcie/scripts/run_m3b_ov5640_pg2l50h_ddr3_pcie_tx_top.ps1`
 - clock_domains: `cam_pclk/cam_rst_n` 采集域、`io_clk/io_rst_n` canonical DDR 与请求策略域、`pcie_clk/pcie_rst_n` 完整 TX top 域；TX adapter 的 camera 源域绑定 `io_clk`，三域独立复位。
-- responsibility: 组合 `ov5640_dvp_rgb565_pg2l50h_pcie_pipeline` 与 `rgb565_pg2l50h_pcie_tx_top_adapter`，在单一 wrapper 中把 DVP→canonical DDR AW/W→AR/R→异步 mailbox→完整 `ips2l_pcie_dma_tx_top` AXIS2 MWR 行为串联起来。
+- responsibility: 旧 50H 文件名行为切片，组合 `ov5640_dvp_rgb565_pg2l50h_pcie_pipeline` 与 `rgb565_pg2l50h_pcie_tx_top_adapter`，在单一 wrapper 中把 DVP→待 PG2L100H 复核的 DDR AW/W→AR/R→异步 mailbox→完整 `ips2l_pcie_dma_tx_top` AXIS2 MWR 行为串联起来；不构成 50H 平台批准。
 - admission_contract: 仅当 `req_keep=4'hf`、`req_length=10'd1`、`req_protocol_error=0` 且 `cross_4kb_boundary=0` 时向 TX adapter 发布 camera MWR32 请求。
 - fail_stop_contract: 非法请求不传给 adapter、不获得 ACK、不自动重放；请求保持使路径停住，首次命中产生一个 `tx_policy_fault_pulse`，`tx_policy_fault_sticky` 保持到 `io_rst_n`，恢复要求 camera/IO/PCIe 协调复位。
 - completion_contract: `frame_done_pulse` 只表示 DDR 记录读出/请求路径接受，不表示完整 TX top 已发完 TLP，更不表示 PCIe 链路或 RK3568 主机内存完成。
@@ -568,7 +576,7 @@
 - boundary: DDR 仍是 TB canonical 端口行为模型，PCIe 仍止于完整 TX top 的 AXIS 输出；不覆盖加密 DDR core、正式地址单位/物理槽、placed-design CDC/RDC/STA、LTSSM、串行链路、RK3568 DMA/缓存一致性、主机完成协议、产品顶层或板级闭环。
 ## PCIe Endpoint AXIS 边界（2026-09-04）
 
-- 项目自有实现：`main_ov5640_pcie/rtl/rgb565_pg2l50h_pcie_endpoint_axis_boundary.sv`。
+- 项目自有实现：旧 50H 文件名行为切片 `main_ov5640_pcie/rtl/rgb565_pg2l50h_pcie_endpoint_axis_boundary.sv`；必须在 PG2L100H Endpoint/IP 下复核。
 - 接入合同：`docs/MAIN_OV5640_PCIE_ENDPOINT_INTEGRATION_CONTRACT.md`，冻结时钟/复位所有权、AXIS 方向、配置来源和 camera-only 关断规则。
 - 接口事实来自 `pcie_test.v`/`pango_pcie_top.v`：Endpoint 产生 `pclk_div2/core_rst_n`，输出三路 AXIS ready，接收项目 valid/data/last/user；AXIS2 为 MWR。
 - camera-only 边界关闭 native、MRD、CPLD、BAR-read 和 restart；bus/device、最大读请求和最大 payload 从产品 Endpoint 配置侧输入。

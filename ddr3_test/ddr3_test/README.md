@@ -1,5 +1,11 @@
 # DDR3 bring-up 实现基线
 
+## 当前平台基线
+
+当前平台为 `RK3568_MES2L100H`（FPGA + ARM），目标器件为
+`PG2L100H-6IFBG484`，PDS 目标为 `Logos2 / PG2L100H / FBG484 / -6`。
+本 README 中的 PG2L50H 重生成内容属于已作废的历史迁移方案，不得作为当前输入或验收依据。
+
 ## 当前定位
 
 外层历史工程只引用 DDR3 IP，没有明确产品顶层。本目录的新脚本暂以 IP 自带当前版 `test_ddr` 作为板级 bring-up 顶层，用于建立可重复实现基线；它不是最终产品顶层。
@@ -7,7 +13,7 @@
 当前配置：
 
 - PDS 版本：`2022.2-SP6.4`
-- 实际器件：`PG2L50H-6IFBG484`；最终 PDS 目标：`Logos2 / PG2L50H / FBG484 / -6`
+- 实际器件：`PG2L100H-6IFBG484`；当前 PDS 目标：`Logos2 / PG2L100H / FBG484 / -6`
 - DDR3 IP：Controller + PHY，x16、2 个 DQS、目标 1066 MT/s，当前配置约 1050 MT/s
 - 示例顶层：`ip_core/ddr3/example_design/rtl/test_ddr.v`
 - 厂商 IP：只通过 `ip_core/ddr3/ddr3.idf` 展开
@@ -16,19 +22,13 @@
 
 板级资料收集入口见 [DDR3 Bring-up 板级证据清单](doc/BOARD_EVIDENCE.md)。
 
-当前活动 DDR3 IDF/FDC 仍为 PG2L100H，只能作为历史基线。外层旧 `ip_core/ddr_test.fdc` 包含 PG2L50H 硬宏位置，可作为迁移差异证据，但来自旧流程，不能直接升格为 canonical 输入；必须用 SP6.4 重生成 50H IP/FDC/RCF。
+当前活动 DDR3 IDF/FDC 均面向 PG2L100H，但生成版本和板级参数仍需核验。外层旧 `ip_core/ddr_test.fdc` 中的 50H 硬宏位置只作历史差异证据，不能直接升格为 canonical 输入；应在 PG2L100H 目标下用 SP6.4 核验或重生成 IP/FDC/RCF。
 
-## M2-A staging 重生成
+## M2-A PG2L100H staging 核验
 
-使用项目自有入口把活动 DDR3 IP 复制到忽略目录并为 PG2L50H 重生成：
+仓库中的 `scripts/regenerate_ip.ps1` 是已硬阻断的旧 50H 探针，仅保留历史审计价值，不得执行，也不提供可复制的调用方式。当前若需核验或重生成 DDR3 IP，必须在完成板级参数审核后，使用 SP6.4 IP Compiler 以 `Logos2 / PG2L100H / FBG484 / -6` 建立新的独立 staging；先比较参数、wrapper、FDC/RCF 和仿真资产，再决定是否原子升格为 canonical 输入。
 
-```powershell
-powershell -ExecutionPolicy Bypass -File .\scripts\regenerate_ip.ps1
-```
-
-默认输出为 `build/ipgen/pg2l50h`，日志为 `build/logs/ipgen-pg2l50h.log`。脚本以大小写敏感的参数名和值多重集验证 SP6.1 50H seed 与活动 IDF 除隐藏器件参数外一致，再由 SP6.4 重生成；随后检查 IDF header、`DEVICE_100H_EN=false`、50H PPLL 分支和关键 wrapper/FDC/RCF/sim 资产，并验证 canonical `ddr3.idf` 的 SHA-256 在生成前后不变。执行说明见 [M2-A DDR3 PG2L50H IP 重生成](doc/M2_IP_REGENERATION.md)，参数源码与差异矩阵见 [M2-B1 参数与差异审计](doc/M2B1_PARAMETER_AND_DIFF_AUDIT.md)。
-
-当前 staging probe 已成功生成 PG2L50H header、`DEVICE_100H_EN=false` 和 50H PPLL 分支。wrapper 新增 `ref_clk_p/ref_clk_n` 及三个状态输出，FDC 有 28 项管脚差异并使用 `DDRPHY_CPD_297_4`。因此 M2-B1 只证明“参数语义已关闭且可正确重生成”，不代表 canonical IP、板级参数或位流已获批准。
+历史探针的输出目录名、header、隐藏参数和 PPLL 差异只说明旧 50H 迁移实验，不代表当前 PG2L100H IP、板级参数或位流已获批准。当前核验原则见 [M2 DDR3 PG2L100H IP 核验](doc/M2_IP_REGENERATION.md)，参数与差异范围见 [M2-B1 参数与差异审计](doc/M2B1_PARAMETER_AND_DIFF_AUDIT.md)。
 
 ## 构建
 
@@ -92,7 +92,7 @@ baseline 放行不会把结果标记为发布候选。
 | `test_ddr.sbit` | 3,791,112 |
 | `test_ddr.bin` | 3,789,476 |
 
-这些 PG2L100H 结果与实际 PG2L50H 不一致，所有 STA 数值、网表、SDF 和位流均仅为历史证据。严格 gate 实测返回非零；显式 baseline 返回 0 也不得用于实际板卡验收。
+这些历史 PG2L100H 结果尚未完成当前版本/板级参数复核，所有 STA 数值、网表、SDF 和位流均仅为历史证据。严格 gate 实测返回非零；显式 baseline 返回 0 也不得直接用于当前板卡验收。
 
 当前仿真状态：本机尚未发现 ModelSim/QuestaSim，行为级、综合后、PNR 后功能和 PNR 后时序仿真均未运行。
 
@@ -131,4 +131,4 @@ D2 是文档决策批次，没有修改 RTL、TB、IDF、FDC 或 RCF。D3 功能
 - 用户接口是 Pango 定制的 AXI-like 端口，而不是完整 AXI4：写地址用 `axi_awvalid & axi_awready`，写数据完成由 core 输出 `axi_wready` 表示；`axi_wusero_id`、`axi_wusero_last` 为返回标记。读地址用 `axi_arvalid & axi_arready`，读数据由 `axi_rvalid`/`axi_rlast` 返回，接口没有 `axi_rready`。
 - 当前示例控制器把写 outstanding 计数与 `axi_wready` 接受次数比较，把读请求计数与 `axi_rvalid` 返回次数比较；D3-A 必须将这些事实转换为有限 BIST 的明确握手/超时契约，不得假设标准 `AWREADY/WREADY/BVALID/ARREADY/RREADY` 语义。
 
-器件迁移优先于 D3-A。先用 SP6.4 重生成 PG2L50H DDR3 IP/FDC/RCF并重跑 CI-6；只有端口、地址、`axi_wready` 和 `I_ips_ddr_top` 契约保持成立且用户重新审核后，才允许新增 `ddr3_bringup_top.sv`、`ddr3_finite_bist.sv`。本次器件迁移批准不等同于 D3-A 编码授权。
+器件版本与板级参数核验优先于 D3-A。先在 PG2L100H 目标下完成 DDR3 IP/FDC/RCF 核验并重跑 CI-6；只有端口、地址、`axi_wready` 和 `I_ips_ddr_top` 契约保持成立且用户重新审核后，才允许新增 `ddr3_bringup_top.sv`、`ddr3_finite_bist.sv`。版本核验通过不等同于 D3-A 编码授权。

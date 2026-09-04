@@ -76,10 +76,10 @@ function Invoke-PdsBuild {
         started_utc = (Get-Date).ToUniversalTime().ToString('o')
         completed_utc = $null
         target = [ordered]@{
-            board = 'RK3568+PG2L50H100H'
-            fpga = 'PG2L50H-6IFBG484'
+            board = 'RK3568_MES2L100H'
+            fpga = 'PG2L100H-6IFBG484'
             pds_family = 'Logos2'
-            pds_device = 'PG2L50H'
+            pds_device = 'PG2L100H'
             pds_package = 'FBG484'
             pds_speedgrade = '-6'
         }

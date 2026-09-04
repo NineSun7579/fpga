@@ -2,6 +2,10 @@
 
 更新日期：2026-09-04
 
+## 当前平台说明
+
+当前平台为 `RK3568_MES2L100H / PG2L100H-6IFBG484`。本合同中带 `PG2L50H` 的模块名、脚本名和动态结果均属于旧 50H 假设下的行为切片，不能直接证明 100H DDR3/PCIe 适配。
+
 ## 范围
 
 本合同只冻结 M3-A 内部 128-bit 图像字到后续 DDR3 帧缓存、PCIe DMA 输入之间的职责边界和待决接口字段。它不修改厂商 IP、PCIe/DDR3 RTL、FDC/RCF 或物理管脚，也不把 `parallel_driver` 作为实现来源。
@@ -105,7 +109,7 @@ byte enable，因此当前只有 `req_keep=4'hf` 可无损映射；`req_keep=0` 
 `0x1000`。Questa Sim-64 2021.1 编译 `0 error/0 warning`、唯一 `TEST PASS`，仿真至
 `125 ns`；bridge 独立字段保持回归为 `76 ns`。
 
-## PG2L50H canonical MWR32 TX 动态证据
+## 旧 PG2L50H 文件名行为切片：canonical MWR32 TX 动态证据
 
 `tb_rgb565_pg2l50h_mwr32_tx_integration` 将项目自有 bridge 直接连接到未修改的
 `ips2l_pcie_dma_mwr_tx_ctrl`，并固定 `i_user_define_data_flag=1`。2026-09-03 的 Questa
@@ -235,7 +239,7 @@ slot0 token `0..2` 和 slot1 token `64..65`，随后按提交顺序回送 PCIe�
 PG2L50H DDR3/PCIe IP，不证明真实地址单位、初始化/校准、读口时序、TLP、DMA、链路训练、
 RK3568 主机内存写入或板级时序。
 
-## PG2L50H canonical DDR3 读写应用边界
+## 旧 PG2L50H 文件名行为切片：canonical DDR3 读写应用边界
 
 `rgb565_pg2l50h_ddr3_write_adapter` 已按生成 example 的非标准写协议实现单 outstanding：init 同步
 完成后预锁存一条记录，保持 AW 到 `axi_awready`，再保持 data/strobe 到 `axi_wready`；上游只在
@@ -261,7 +265,7 @@ MWR32 request/ack 边界。端到端 TB 再实例化未修改的 PG2L50H MWR TX 
 静默冒充官方地址单位。真实集成仍需匹配当前 IP 版本的用户手册、加密 core 动态验证和板级地址
 范围；PCIe 侧仍需完整 DMA 顶层请求仲裁、partial keep 策略、链路和 RK3568 主机证据。
 
-## PG2L50H PCIe TX 双请求源仲裁边界
+## 旧 PG2L50H 文件名行为切片：PCIe TX 双请求源仲裁边界
 
 canonical DMA controller 以同一组 `req_length/req_addr/req_data` 配合 MWR32、MWR64、MRD32、
 MRD64 四类请求驱动 TX top，因此 camera MWR32 不能只与 native MWR32 做组合 OR 或单信号 mux。

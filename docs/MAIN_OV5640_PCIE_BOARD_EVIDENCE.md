@@ -2,6 +2,11 @@
 
 更新日期：2026-09-04
 
+## 当前平台选择
+
+本文件引用的 RK 手册文件名同时包含 `MES2L50H_100H`，但当前平台已明确选择
+`RK3568_MES2L100H`，FPGA 为 `PG2L100H-6IFBG484`。文件名中的 50H 不是当前器件选择。
+
 ## 一手资料登记
 
 | 资料 | 外部文件位置 | 版本/页数 | SHA-256 | 仓库边界 |
@@ -15,7 +20,7 @@
 
 | 类别 | 当前事实 | 来源 | 状态 |
 |---|---|---|---|
-| FPGA 目标 | 板卡系列支持 `PG2L50H-6IFBG484 / PG2L100H-6IFBG484`；本工程实物目标由 owner 确认为 `PG2L50H-6IFBG484` | RK 手册 PDF 第 4、7 页；owner 器件确认 | 已确认 |
+| FPGA 目标 | 板卡系列支持 `PG2L50H-6IFBG484 / PG2L100H-6IFBG484`；本工程当前目标由 owner 确认为 `PG2L100H-6IFBG484` | RK 手册 PDF 第 4、7 页；owner 器件确认 | 已确认 |
 | PCIe 结构 | `main` 有 PCIe x2 Endpoint/DMA 基础 | `pcie_dma_test_100h/hdl/pcie_dma_test.v` | 已确认 |
 | OV5640 | `main` 尚无产品级 OV5640 RTL/顶层 | `main` 文件树 | 已确认 |
 | RK↔FPGA 总线 | RK3568 与 FPGA 之间连接 PCIe、FSPI、I2C0 和部分 GPIO | RK 手册 PDF 第 4、26–27 页 | 已确认 |
@@ -42,7 +47,7 @@
 
 - 板卡准确硬件版本、完整原理图/BOM/网表，以及实际焊接 FPGA 与 DDR3 的可归档身份记录。
 - PCIe PERST#/CLKREQ#/WAKE# 的独立连接、有效电平、上电/释放时序、AC 耦合与实板链路协商结果。
-- 当前 PG2L50H DDR3 IP 的生成配置、匹配版本用户手册、地址单位、初始化、AW/W/AR/R 和 RLAST/RVALID 正式语义。
+- 当前 PG2L100H DDR3 IP 的生成配置、匹配版本用户手册、地址单位、初始化、AW/W/AR/R 和 RLAST/RVALID 正式语义。
 - 完整 PCIe DMA/TX 产品顶层接入点、请求仲裁后的 full bundle、partial DWORD byte enable、ACK/发送完成/错误/中断语义。
 - RK3568 OS、设备树与驱动合同：BAR/iATU、DMA 缓冲、IOMMU/SMMU、缓存一致性、目标地址、槽所有权、完成通知和错误恢复。
 - 外置 OV5640 模组准确料号、24-pin 排线/连接器实际定义、FPGA 接入连接器和具体管脚；当前位置明确保持“暂定”。
