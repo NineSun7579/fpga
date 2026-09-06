@@ -1,19 +1,19 @@
 //****************************************Copyright (c)***********************************//
-//Ô­×Ó¸çÔÚÏß½ÌÑ§Æ½Ì¨£ºwww.yuanzige.com
-//¼¼ÊõÖ§³Ö£ºwww.openedv.com
-//ÌÔ±¦µêÆÌ£ºhttp://openedv.taobao.com
-//¹Ø×¢Î¢ĞÅ¹«ÖÚÆ½Ì¨Î¢ĞÅºÅ£º"ÕıµãÔ­×Ó"£¬Ãâ·Ñ»ñÈ¡ZYNQ & FPGA & STM32 & LINUX×ÊÁÏ¡£
-//°æÈ¨ËùÓĞ£¬µÁ°æ±Ø¾¿¡£
-//Copyright(C) ÕıµãÔ­×Ó 2018-2028
+//åŸå­å“¥åœ¨çº¿æ•™å­¦å¹³å°ï¼šwww.yuanzige.com
+//æŠ€æœ¯æ”¯æŒï¼šwww.openedv.com
+//æ·˜å®åº—é“ºï¼šhttp://openedv.taobao.com
+//å…³æ³¨å¾®ä¿¡å…¬ä¼—å¹³å°å¾®ä¿¡å·ï¼š"æ­£ç‚¹åŸå­"ï¼Œå…è´¹è·å–ZYNQ & FPGA & STM32 & LINUXèµ„æ–™ã€‚
+//ç‰ˆæƒæ‰€æœ‰ï¼Œç›—ç‰ˆå¿…ç©¶ã€‚
+//Copyright(C) æ­£ç‚¹åŸå­ 2018-2028
 //All rights reserved
 //----------------------------------------------------------------------------------------
 // File name:           cmos_capture_data
 // Last modified Date:  2020/05/04 9:19:08
 // Last Version:        V1.0
-// Descriptions:       ÉãÏñÍ·²É¼¯Ä£¿é
+// Descriptions:       æ‘„åƒå¤´é‡‡é›†æ¨¡å—
 //                      
 //----------------------------------------------------------------------------------------
-// Created by:          ÕıµãÔ­×Ó
+// Created by:          æ­£ç‚¹åŸå­
 // Created date:        2019/05/04 9:19:08
 // Version:             V1.0
 // Descriptions:        The original version
@@ -21,54 +21,54 @@
 //----------------------------------------------------------------------------------------
 //****************************************************************************************//
 module cmos_capture_data(
-    input                 rst_n            ,  //¸´Î»ĞÅºÅ    
-    //ÉãÏñÍ·½Ó¿Ú                           
-    input                 cam_pclk         ,  //cmos Êı¾İÏñËØÊ±ÖÓ
-    input                 cam_vsync        ,  //cmos ³¡Í¬²½ĞÅºÅ
-    input                 cam_href         ,  //cmos ĞĞÍ¬²½ĞÅºÅ
+    input                 rst_n            ,  //å¤ä½ä¿¡å·    
+    //æ‘„åƒå¤´æ¥å£                           
+    input                 cam_pclk         ,  //cmos æ•°æ®åƒç´ æ—¶é’Ÿ
+    input                 cam_vsync        ,  //cmos åœºåŒæ­¥ä¿¡å·
+    input                 cam_href         ,  //cmos è¡ŒåŒæ­¥ä¿¡å·
     input  [7:0]          cam_data         ,                      
-    //ÓÃ»§½Ó¿Ú                              
-    output                cmos_frame_vsync ,  //Ö¡ÓĞĞ§ĞÅºÅ    
-    output                cmos_frame_href  ,  //ĞĞÓĞĞ§ĞÅºÅ
-    output                cmos_frame_valid ,  //Êı¾İÓĞĞ§Ê¹ÄÜĞÅºÅ
-    output       [15:0]   cmos_frame_data     //ÓĞĞ§Êı¾İ        
+    //ç”¨æˆ·æ¥å£                              
+    output                cmos_frame_vsync ,  //å¸§æœ‰æ•ˆä¿¡å·    
+    output                cmos_frame_href  ,  //è¡Œæœ‰æ•ˆä¿¡å·
+    output                cmos_frame_valid ,  //æ•°æ®æœ‰æ•ˆä½¿èƒ½ä¿¡å·
+    output       [15:0]   cmos_frame_data     //æœ‰æ•ˆæ•°æ®        
     );
 
-//¼Ä´æÆ÷È«²¿ÅäÖÃÍê³Éºó£¬ÏÈµÈ´ı10Ö¡Êı¾İ
-//´ı¼Ä´æÆ÷ÅäÖÃÉúĞ§ºóÔÙ¿ªÊ¼²É¼¯Í¼Ïñ
-parameter  WAIT_FRAME = 4'd10    ;            //¼Ä´æÆ÷Êı¾İÎÈ¶¨µÈ´ıµÄÖ¡¸öÊı            
+//å¯„å­˜å™¨å…¨éƒ¨é…ç½®å®Œæˆåï¼Œå…ˆç­‰å¾…10å¸§æ•°æ®
+//å¾…å¯„å­˜å™¨é…ç½®ç”Ÿæ•ˆåå†å¼€å§‹é‡‡é›†å›¾åƒ
+parameter  WAIT_FRAME = 4'd10    ;            //å¯„å­˜å™¨æ•°æ®ç¨³å®šç­‰å¾…çš„å¸§ä¸ªæ•°            
 							     
 //reg define                     
 reg             cam_vsync_d0     ;
 reg             cam_vsync_d1     ;
 reg             cam_href_d0      ;
 reg             cam_href_d1      ;
-reg    [3:0]    cmos_ps_cnt      ;            //µÈ´ıÖ¡ÊıÎÈ¶¨¼ÆÊıÆ÷
+reg    [3:0]    cmos_ps_cnt      ;            //ç­‰å¾…å¸§æ•°ç¨³å®šè®¡æ•°å™¨
 reg    [7:0]    cam_data_d0      ;            
-reg    [15:0]   cmos_data_t      ;            //ÓÃÓÚ8Î»×ª16Î»µÄÁÙÊ±¼Ä´æÆ÷
-reg             byte_flag        ;            //16Î»RGBÊı¾İ×ª»»Íê³ÉµÄ±êÖ¾ĞÅºÅ
+reg    [15:0]   cmos_data_t      ;            //ç”¨äº8ä½è½¬16ä½çš„ä¸´æ—¶å¯„å­˜å™¨
+reg             byte_flag        ;            //16ä½RGBæ•°æ®è½¬æ¢å®Œæˆçš„æ ‡å¿—ä¿¡å·
 reg             byte_flag_d0     ;
-reg             frame_val_flag   ;            //Ö¡ÓĞĞ§µÄ±êÖ¾ 
+reg             frame_val_flag   ;            //å¸§æœ‰æ•ˆçš„æ ‡å¿— 
 
-wire            pos_vsync        ;            //²ÉÊäÈë³¡Í¬²½ĞÅºÅµÄÉÏÉıÑØ
+wire            pos_vsync        ;            //é‡‡è¾“å…¥åœºåŒæ­¥ä¿¡å·çš„ä¸Šå‡æ²¿
 
 //*****************************************************
 //**                    main code
 //*****************************************************
 
-//²ÉÊäÈë³¡Í¬²½ĞÅºÅµÄÉÏÉıÑØ
+//é‡‡è¾“å…¥åœºåŒæ­¥ä¿¡å·çš„ä¸Šå‡æ²¿
 assign pos_vsync = (~cam_vsync_d1) & cam_vsync_d0; 
 
-//Êä³öÖ¡ÓĞĞ§ĞÅºÅ
+//è¾“å‡ºå¸§æœ‰æ•ˆä¿¡å·
 assign  cmos_frame_vsync = frame_val_flag  ?  cam_vsync_d1  :  1'b0; 
 
-//Êä³öĞĞÓĞĞ§ĞÅºÅ
+//è¾“å‡ºè¡Œæœ‰æ•ˆä¿¡å·
 assign  cmos_frame_href  = frame_val_flag  ?  cam_href_d1   :  1'b0; 
 
-//Êä³öÊı¾İÊ¹ÄÜÓĞĞ§ĞÅºÅ
+//è¾“å‡ºæ•°æ®ä½¿èƒ½æœ‰æ•ˆä¿¡å·
 assign  cmos_frame_valid = frame_val_flag  ?  byte_flag_d0  :  1'b0; 
 
-//Êä³öÊı¾İ
+//è¾“å‡ºæ•°æ®
 assign  cmos_frame_data  = frame_val_flag  ?  cmos_data_t   :  1'b0; 
        
 always @(posedge cam_pclk or negedge rst_n) begin
@@ -86,7 +86,7 @@ always @(posedge cam_pclk or negedge rst_n) begin
     end
 end
 
-//¶ÔÖ¡Êı½øĞĞ¼ÆÊı
+//å¯¹å¸§æ•°è¿›è¡Œè®¡æ•°
 always @(posedge cam_pclk or negedge rst_n) begin
     if(!rst_n)
         cmos_ps_cnt <= 4'd0;
@@ -94,7 +94,7 @@ always @(posedge cam_pclk or negedge rst_n) begin
         cmos_ps_cnt <= cmos_ps_cnt + 4'd1;
 end
 
-//Ö¡ÓĞĞ§±êÖ¾
+//å¸§æœ‰æ•ˆæ ‡å¿—
 always @(posedge cam_pclk or negedge rst_n) begin
     if(!rst_n)
         frame_val_flag <= 1'b0;
@@ -103,7 +103,7 @@ always @(posedge cam_pclk or negedge rst_n) begin
     else;    
 end            
 
-//8Î»Êı¾İ×ª16Î»RGB565Êı¾İ        
+//8ä½æ•°æ®è½¬16ä½RGB565æ•°æ®        
 always @(posedge cam_pclk or negedge rst_n) begin
     if(!rst_n) begin
         cmos_data_t <= 16'd0;
@@ -123,7 +123,7 @@ always @(posedge cam_pclk or negedge rst_n) begin
     end    
 end        
 
-//²úÉúÊä³öÊı¾İÓĞĞ§ĞÅºÅ(cmos_frame_valid)
+//äº§ç”Ÿè¾“å‡ºæ•°æ®æœ‰æ•ˆä¿¡å·(cmos_frame_valid)
 always @(posedge cam_pclk or negedge rst_n) begin
     if(!rst_n)
         byte_flag_d0 <= 1'b0;

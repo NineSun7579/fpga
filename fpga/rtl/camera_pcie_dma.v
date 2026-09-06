@@ -18,7 +18,23 @@ module camera_pcie_dma (
     input  [15:0] rd_fifo_data,
     output        rd_fifo_rd_en,
     output        bar0_rd_clk_en,
-    output [11:0] bar0_rd_addr
+    output [11:0] bar0_rd_addr,
+    input         dbg_cam_init_done,
+    input         dbg_cam_frame_valid,
+    input         dbg_camera_pixel_valid,
+    input         dbg_cam_pclk,
+    input         dbg_cam_href,
+    input         dbg_cam_vsync,
+    input  [7:0]  dbg_cam_data,
+    input         dbg_wr_fifo_empty,
+    input         dbg_wr_fifo_full,
+    input         dbg_cam_bridge_empty,
+    input         dbg_cam_bridge_full,
+    input         dbg_ddr_init_done,
+    input         dbg_ddr_write_active,
+    input         dbg_frame_ready,
+    input         dbg_ddr_read_valid,
+    input         dbg_rd_fifo_wr_en
 );
     wire pclk;
     wire pclk_div2;
@@ -81,6 +97,41 @@ module camera_pcie_dma (
     reg frame_word_valid;
     reg [22:0] ref_led_cnt;
     reg [26:0] pclk_led_cnt;
+
+    wire        dbg_drck;
+    wire        dbg_hub_tdi;
+    wire        dbg_capt;
+    wire        dbg_shift;
+    wire [14:0] dbg_conf_sel;
+    wire [4:0]  dbg_id;
+    wire [14:0] dbg_hub_tdo;
+    wire [63:0] dbg_data;
+
+    assign dbg_data = {
+        35'd0,
+        dbg_cam_pclk,
+        dbg_cam_data,
+        dbg_cam_vsync,
+        dbg_cam_href,
+        dbg_cam_frame_valid,
+        dbg_camera_pixel_valid,
+        dbg_cam_init_done,
+        dbg_wr_fifo_empty,
+        dbg_wr_fifo_full,
+        dbg_cam_bridge_empty,
+        dbg_cam_bridge_full,
+        dbg_ddr_init_done,
+        dbg_ddr_write_active,
+        dbg_frame_ready,
+        dbg_ddr_read_valid,
+        dbg_rd_fifo_wr_en,
+        rd_fifo_empty,
+        rd_fifo_rd_en,
+        frame_word_valid,
+        dma_bar0_en,
+        pcie_axis_master_tvalid,
+        pcie_axis_master_tready
+    };
 
     assign rd_clk = pclk_div2;
     assign rd_rst_n = core_rst_n;
@@ -216,6 +267,32 @@ module camera_pcie_dma (
         .o_cross_4kb_boundary(), .o_bar0_rd_clk_en(dma_bar0_en),
         .o_bar0_rd_addr(dma_bar0_addr), .i_bar0_rd_data(frame_word)
     );
+
+    Jtag_Hub u_debug_jtag_hub (
+        .resetn_i(button_rst_n),
+        .drck_o(dbg_drck),
+        .hub_tdi(dbg_hub_tdi),
+        .capt_o(dbg_capt),
+        .shift_o(dbg_shift),
+        .conf_sel(dbg_conf_sel),
+        .id_o(dbg_id),
+        .hub_tdo(dbg_hub_tdo)
+    );
+
+    DebugCore u_debug_core (
+        .hub_tdi(dbg_hub_tdi),
+        .hub_tdo(dbg_hub_tdo[0]),
+        .id_i(dbg_id),
+        .capt_i(dbg_capt),
+        .shift_i(dbg_shift),
+        .conf_sel(dbg_conf_sel[0]),
+        .drck_in(dbg_drck),
+        .clk(pclk),
+        .resetn_i(core_rst_n),
+        .data_i(dbg_data),
+        .trig0_i(dbg_cam_href)
+    );
+
     assign pcie_apb_sel = 1'b0;
     assign pcie_apb_strb = 4'd0;
     assign pcie_apb_addr = 16'd0;

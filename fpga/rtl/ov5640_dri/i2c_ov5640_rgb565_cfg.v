@@ -1,19 +1,19 @@
 //****************************************Copyright (c)***********************************//
-//Ô­×Ó¸çÔÚÏß½ÌÑ§Æ½Ì¨£ºwww.yuanzige.com
-//¼¼ÊõÖ§³Ö£ºwww.openedv.com
-//ÌÔ±¦µêÆÌ£ºhttp://openedv.taobao.com
-//¹Ø×¢Î¢ĞÅ¹«ÖÚÆ½Ì¨Î¢ĞÅºÅ£º"ÕıµãÔ­×Ó"£¬Ãâ·Ñ»ñÈ¡ZYNQ & FPGA & STM32 & LINUX×ÊÁÏ¡£
-//°æÈ¨ËùÓĞ£¬µÁ°æ±Ø¾¿¡£
-//Copyright(C) ÕıµãÔ­×Ó 2018-2028
+//åŸå­å“¥åœ¨çº¿æ•™å­¦å¹³å°ï¼šwww.yuanzige.com
+//æŠ€æœ¯æ”¯æŒï¼šwww.openedv.com
+//æ·˜å®åº—é“ºï¼šhttp://openedv.taobao.com
+//å…³æ³¨å¾®ä¿¡å…¬ä¼—å¹³å°å¾®ä¿¡å·ï¼š"æ­£ç‚¹åŸå­"ï¼Œå…è´¹è·å–ZYNQ & FPGA & STM32 & LINUXèµ„æ–™ã€‚
+//ç‰ˆæƒæ‰€æœ‰ï¼Œç›—ç‰ˆå¿…ç©¶ã€‚
+//Copyright(C) æ­£ç‚¹åŸå­ 2018-2028
 //All rights reserved
 //----------------------------------------------------------------------------------------
 // File name:           i2c_ov5640_rgb565_cfg
 // Last modified Date:  2020/05/04 9:19:08
 // Last Version:        V1.0
-// Descriptions:        iicÅäÖÃ
+// Descriptions:        iicé…ç½®
 //                      
 //----------------------------------------------------------------------------------------
-// Created by:          ÕıµãÔ­×Ó
+// Created by:          æ­£ç‚¹åŸå­
 // Created date:        2019/05/04 9:19:08
 // Version:             V1.0
 // Descriptions:        The original version
@@ -23,34 +23,34 @@
 
 module i2c_ov5640_rgb565_cfg
    (  
-    input                clk      ,     //Ê±ÖÓĞÅºÅ
-    input                rst_n    ,     //¸´Î»ĞÅºÅ£¬µÍµçÆ½ÓĞĞ§
+    input                clk      ,     //æ—¶é’Ÿä¿¡å·
+    input                rst_n    ,     //å¤ä½ä¿¡å·ï¼Œä½ç”µå¹³æœ‰æ•ˆ
     
-    input        [7:0]   i2c_data_r,    //I2C¶Á³öµÄÊı¾İ
-    input                i2c_done ,     //I2C¼Ä´æÆ÷ÅäÖÃÍê³ÉĞÅºÅ
+    input        [7:0]   i2c_data_r,    //I2Cè¯»å‡ºçš„æ•°æ®
+    input                i2c_done ,     //I2Cå¯„å­˜å™¨é…ç½®å®Œæˆä¿¡å·
     input        [12:0]  cmos_h_pixel ,
     input        [12:0]  cmos_v_pixel ,
-    input        [12:0]  total_h_pixel, //Ë®Æ½×ÜÏñËØ´óĞ¡
-    input        [12:0]  total_v_pixel, //´¹Ö±×ÜÏñËØ´óĞ¡
-    output  reg          i2c_exec ,     //I2C´¥·¢Ö´ĞĞĞÅºÅ   
-    output  reg  [23:0]  i2c_data ,     //I2CÒªÅäÖÃµÄµØÖ·ÓëÊı¾İ(¸ß16Î»µØÖ·,µÍ8Î»Êı¾İ)
-    output  reg          i2c_rh_wl,     //I2C¶ÁĞ´¿ØÖÆĞÅºÅ
-    output  reg          init_done      //³õÊ¼»¯Íê³ÉĞÅºÅ
+    input        [12:0]  total_h_pixel, //æ°´å¹³æ€»åƒç´ å¤§å°
+    input        [12:0]  total_v_pixel, //å‚ç›´æ€»åƒç´ å¤§å°
+    output  reg          i2c_exec ,     //I2Cè§¦å‘æ‰§è¡Œä¿¡å·   
+    output  reg  [23:0]  i2c_data ,     //I2Cè¦é…ç½®çš„åœ°å€ä¸æ•°æ®(é«˜16ä½åœ°å€,ä½8ä½æ•°æ®)
+    output  reg          i2c_rh_wl,     //I2Cè¯»å†™æ§åˆ¶ä¿¡å·
+    output  reg          init_done      //åˆå§‹åŒ–å®Œæˆä¿¡å·
     );
 
 //parameter define
-localparam  REG_NUM = 8'd250  ;       //×Ü¹²ĞèÒªÅäÖÃµÄ¼Ä´æÆ÷¸öÊı
+localparam  REG_NUM = 8'd250  ;       //æ€»å…±éœ€è¦é…ç½®çš„å¯„å­˜å™¨ä¸ªæ•°
 
 //reg define
-reg   [12:0]   start_init_cnt;        //µÈ´ıÑÓÊ±¼ÆÊıÆ÷
-reg    [7:0]   init_reg_cnt  ;        //¼Ä´æÆ÷ÅäÖÃ¸öÊı¼ÆÊıÆ÷
+reg   [12:0]   start_init_cnt;        //ç­‰å¾…å»¶æ—¶è®¡æ•°å™¨
+reg    [7:0]   init_reg_cnt  ;        //å¯„å­˜å™¨é…ç½®ä¸ªæ•°è®¡æ•°å™¨
 
 //*****************************************************
 //**                    main code
 //*****************************************************
 
-//clkÊ±ÖÓÅäÖÃ³É250khz,ÖÜÆÚÎª4us 5000*4us = 20ms
-//OV5640ÉÏµçµ½¿ªÊ¼ÅäÖÃIICÖÁÉÙµÈ´ı20ms
+//clkæ—¶é’Ÿé…ç½®æˆ250khz,å‘¨æœŸä¸º4us 5000*4us = 20ms
+//OV5640ä¸Šç”µåˆ°å¼€å§‹é…ç½®IICè‡³å°‘ç­‰å¾…20ms
 always @(posedge clk or negedge rst_n) begin
     if(!rst_n)
         start_init_cnt <= 13'b0;
@@ -59,7 +59,7 @@ always @(posedge clk or negedge rst_n) begin
     end
 end
 
-//¼Ä´æÆ÷ÅäÖÃ¸öÊı¼ÆÊı    
+//å¯„å­˜å™¨é…ç½®ä¸ªæ•°è®¡æ•°    
 always @(posedge clk or negedge rst_n) begin
     if(!rst_n)
         init_reg_cnt <= 8'd0;
@@ -67,7 +67,7 @@ always @(posedge clk or negedge rst_n) begin
         init_reg_cnt <= init_reg_cnt + 8'b1;
 end
 
-//i2c´¥·¢Ö´ĞĞĞÅºÅ   
+//i2cè§¦å‘æ‰§è¡Œä¿¡å·   
 always @(posedge clk or negedge rst_n) begin
     if(!rst_n)
         i2c_exec <= 1'b0;
@@ -79,7 +79,7 @@ always @(posedge clk or negedge rst_n) begin
         i2c_exec <= 1'b0;
 end 
 
-//ÅäÖÃI2C¶ÁĞ´¿ØÖÆĞÅºÅ
+//é…ç½®I2Cè¯»å†™æ§åˆ¶ä¿¡å·
 always @(posedge clk or negedge rst_n) begin
     if(!rst_n)
         i2c_rh_wl <= 1'b1;
@@ -87,7 +87,7 @@ always @(posedge clk or negedge rst_n) begin
         i2c_rh_wl <= 1'b0;  
 end
 
-//³õÊ¼»¯Íê³ÉĞÅºÅ
+//åˆå§‹åŒ–å®Œæˆä¿¡å·
 always @(posedge clk or negedge rst_n) begin
     if(!rst_n)
         init_done <= 1'b0;
@@ -95,25 +95,25 @@ always @(posedge clk or negedge rst_n) begin
         init_done <= 1'b1;  
 end
 
-//ÅäÖÃ¼Ä´æÆ÷µØÖ·ÓëÊı¾İ
+//é…ç½®å¯„å­˜å™¨åœ°å€ä¸æ•°æ®
 always @(posedge clk or negedge rst_n) begin
     if(!rst_n)
         i2c_data <= 24'b0;
     else begin
         case(init_reg_cnt)
-            //ÏÈ¶Ô¼Ä´æÆ÷½øĞĞÈí¼ş¸´Î»£¬Ê¹¼Ä´æÆ÷»Ö¸´³õÊ¼Öµ
-            //¼Ä´æÆ÷Èí¼ş¸´Î»ºó£¬ĞèÒªÑÓÊ±1ms²ÅÄÜÅäÖÃÆäËü¼Ä´æÆ÷
+            //å…ˆå¯¹å¯„å­˜å™¨è¿›è¡Œè½¯ä»¶å¤ä½ï¼Œä½¿å¯„å­˜å™¨æ¢å¤åˆå§‹å€¼
+            //å¯„å­˜å™¨è½¯ä»¶å¤ä½åï¼Œéœ€è¦å»¶æ—¶1msæ‰èƒ½é…ç½®å…¶å®ƒå¯„å­˜å™¨
             8'd0  : i2c_data <= {16'h300a,8'h0}; //
             8'd1  : i2c_data <= {16'h300b,8'h0}; //
-            8'd2  : i2c_data <= {16'h3008,8'h82}; //Bit[7]:¸´Î» Bit[6]:µçÔ´ĞİÃß
-            8'd3  : i2c_data <= {16'h3008,8'h02}; //Õı³£¹¤×÷Ä£Ê½
+            8'd2  : i2c_data <= {16'h3008,8'h82}; //Bit[7]:å¤ä½ Bit[6]:ç”µæºä¼‘çœ 
+            8'd3  : i2c_data <= {16'h3008,8'h02}; //æ­£å¸¸å·¥ä½œæ¨¡å¼
             8'd4  : i2c_data <= {16'h3103,8'h02}; //Bit[1]:1 PLL Clock
-            //Òı½ÅÊäÈë/Êä³ö¿ØÖÆ FREX/VSYNC/HREF/PCLK/D[9:6]
+            //å¼•è„šè¾“å…¥/è¾“å‡ºæ§åˆ¶ FREX/VSYNC/HREF/PCLK/D[9:6]
             8'd5  : i2c_data <= {8'h30,8'h17,8'hff};
-            //Òı½ÅÊäÈë/Êä³ö¿ØÖÆ D[5:0]/GPIO1/GPIO0 
+            //å¼•è„šè¾“å…¥/è¾“å‡ºæ§åˆ¶ D[5:0]/GPIO1/GPIO0 
             8'd6  : i2c_data <= {16'h3018,8'hff};
-            8'd7  : i2c_data <= {16'h3037,8'h13}; //PLL·ÖÆµ¿ØÖÆ
-            8'd8  : i2c_data <= {16'h3108,8'h01}; //ÏµÍ³¸ù·ÖÆµÆ÷
+            8'd7  : i2c_data <= {16'h3037,8'h13}; //PLLåˆ†é¢‘æ§åˆ¶
+            8'd8  : i2c_data <= {16'h3108,8'h01}; //ç³»ç»Ÿæ ¹åˆ†é¢‘å™¨
             8'd9  : i2c_data <= {16'h3630,8'h36};
             8'd10 : i2c_data <= {16'h3631,8'h0e};
             8'd11 : i2c_data <= {16'h3632,8'he2};
@@ -129,15 +129,15 @@ always @(posedge clk or negedge rst_n) begin
             8'd21 : i2c_data <= {16'h3906,8'h10};
             8'd22 : i2c_data <= {16'h3901,8'h0a};
             8'd23 : i2c_data <= {16'h3731,8'h12};
-            8'd24 : i2c_data <= {16'h3600,8'h08}; //VCM¿ØÖÆ,ÓÃÓÚ×Ô¶¯¾Û½¹
-            8'd25 : i2c_data <= {16'h3601,8'h33}; //VCM¿ØÖÆ,ÓÃÓÚ×Ô¶¯¾Û½¹
-            8'd26 : i2c_data <= {16'h302d,8'h60}; //ÏµÍ³¿ØÖÆ
+            8'd24 : i2c_data <= {16'h3600,8'h08}; //VCMæ§åˆ¶,ç”¨äºè‡ªåŠ¨èšç„¦
+            8'd25 : i2c_data <= {16'h3601,8'h33}; //VCMæ§åˆ¶,ç”¨äºè‡ªåŠ¨èšç„¦
+            8'd26 : i2c_data <= {16'h302d,8'h60}; //ç³»ç»Ÿæ§åˆ¶
             8'd27 : i2c_data <= {16'h3620,8'h52};
             8'd28 : i2c_data <= {16'h371b,8'h20};
             8'd29 : i2c_data <= {16'h471c,8'h50};
-            8'd30 : i2c_data <= {16'h3a13,8'h43}; //AEC(×Ô¶¯ÆØ¹â¿ØÖÆ)
-            8'd31 : i2c_data <= {16'h3a18,8'h00}; //AEC ÔöÒæÉÏÏŞ
-            8'd32 : i2c_data <= {16'h3a19,8'hf8}; //AEC ÔöÒæÉÏÏŞ
+            8'd30 : i2c_data <= {16'h3a13,8'h43}; //AEC(è‡ªåŠ¨æ›å…‰æ§åˆ¶)
+            8'd31 : i2c_data <= {16'h3a18,8'h00}; //AEC å¢ç›Šä¸Šé™
+            8'd32 : i2c_data <= {16'h3a19,8'hf8}; //AEC å¢ç›Šä¸Šé™
             8'd33 : i2c_data <= {16'h3635,8'h13};
             8'd34 : i2c_data <= {16'h3636,8'h03};
             8'd35 : i2c_data <= {16'h3634,8'h40};
@@ -145,31 +145,31 @@ always @(posedge clk or negedge rst_n) begin
             8'd37 : i2c_data <= {16'h3c01,8'h34};
             8'd38 : i2c_data <= {16'h3c04,8'h28};
             8'd39 : i2c_data <= {16'h3c05,8'h98};
-            8'd40 : i2c_data <= {16'h3c06,8'h00}; //light meter 1 ãĞÖµ[15:8]
-            8'd41 : i2c_data <= {16'h3c07,8'h08}; //light meter 1 ãĞÖµ[7:0]
-            8'd42 : i2c_data <= {16'h3c08,8'h00}; //light meter 2 ãĞÖµ[15:8]
-            8'd43 : i2c_data <= {16'h3c09,8'h1c}; //light meter 2 ãĞÖµ[7:0]
+            8'd40 : i2c_data <= {16'h3c06,8'h00}; //light meter 1 é˜ˆå€¼[15:8]
+            8'd41 : i2c_data <= {16'h3c07,8'h08}; //light meter 1 é˜ˆå€¼[7:0]
+            8'd42 : i2c_data <= {16'h3c08,8'h00}; //light meter 2 é˜ˆå€¼[15:8]
+            8'd43 : i2c_data <= {16'h3c09,8'h1c}; //light meter 2 é˜ˆå€¼[7:0]
             8'd44 : i2c_data <= {16'h3c0a,8'h9c}; //sample number[15:8]
             8'd45 : i2c_data <= {16'h3c0b,8'h40}; //sample number[7:0]
             8'd46 : i2c_data <= {16'h3810,8'h00}; //Timing Hoffset[11:8]
             8'd47 : i2c_data <= {16'h3811,8'h10}; //Timing Hoffset[7:0]
             8'd48 : i2c_data <= {16'h3812,8'h00}; //Timing Voffset[10:8]
             8'd49 : i2c_data <= {16'h3708,8'h64};
-            8'd50 : i2c_data <= {16'h4001,8'h02}; //BLC(ºÚµçÆ½Ğ£×¼)²¹³¥ÆğÊ¼ĞĞºÅ
-            8'd51 : i2c_data <= {16'h4005,8'h1a}; //BLC(ºÚµçÆ½Ğ£×¼)²¹³¥Ê¼ÖÕ¸üĞÂ
-            8'd52 : i2c_data <= {16'h3000,8'h00}; //ÏµÍ³¿é¸´Î»¿ØÖÆ
-            8'd53 : i2c_data <= {16'h3004,8'hff}; //Ê±ÖÓÊ¹ÄÜ¿ØÖÆ
-            8'd54 : i2c_data <= {16'h4300,8'h61}; //¸ñÊ½¿ØÖÆ RGB565
+            8'd50 : i2c_data <= {16'h4001,8'h02}; //BLC(é»‘ç”µå¹³æ ¡å‡†)è¡¥å¿èµ·å§‹è¡Œå·
+            8'd51 : i2c_data <= {16'h4005,8'h1a}; //BLC(é»‘ç”µå¹³æ ¡å‡†)è¡¥å¿å§‹ç»ˆæ›´æ–°
+            8'd52 : i2c_data <= {16'h3000,8'h00}; //ç³»ç»Ÿå—å¤ä½æ§åˆ¶
+            8'd53 : i2c_data <= {16'h3004,8'hff}; //æ—¶é’Ÿä½¿èƒ½æ§åˆ¶
+            8'd54 : i2c_data <= {16'h4300,8'h61}; //æ ¼å¼æ§åˆ¶ RGB565
             8'd55 : i2c_data <= {16'h501f,8'h01}; //ISP RGB
             8'd56 : i2c_data <= {16'h440e,8'h00};
-            8'd57 : i2c_data <= {16'h5000,8'ha7}; //ISP¿ØÖÆ
-            8'd58 : i2c_data <= {16'h3a0f,8'h30}; //AEC¿ØÖÆ;stable range in high
-            8'd59 : i2c_data <= {16'h3a10,8'h28}; //AEC¿ØÖÆ;stable range in low
-            8'd60 : i2c_data <= {16'h3a1b,8'h30}; //AEC¿ØÖÆ;stable range out high
-            8'd61 : i2c_data <= {16'h3a1e,8'h26}; //AEC¿ØÖÆ;stable range out low
-            8'd62 : i2c_data <= {16'h3a11,8'h60}; //AEC¿ØÖÆ; fast zone high
-            8'd63 : i2c_data <= {16'h3a1f,8'h14}; //AEC¿ØÖÆ; fast zone low
-            //LENC(¾µÍ·Ğ£Õı)¿ØÖÆ 16'h5800~16'h583d
+            8'd57 : i2c_data <= {16'h5000,8'ha7}; //ISPæ§åˆ¶
+            8'd58 : i2c_data <= {16'h3a0f,8'h30}; //AECæ§åˆ¶;stable range in high
+            8'd59 : i2c_data <= {16'h3a10,8'h28}; //AECæ§åˆ¶;stable range in low
+            8'd60 : i2c_data <= {16'h3a1b,8'h30}; //AECæ§åˆ¶;stable range out high
+            8'd61 : i2c_data <= {16'h3a1e,8'h26}; //AECæ§åˆ¶;stable range out low
+            8'd62 : i2c_data <= {16'h3a11,8'h60}; //AECæ§åˆ¶; fast zone high
+            8'd63 : i2c_data <= {16'h3a1f,8'h14}; //AECæ§åˆ¶; fast zone low
+            //LENC(é•œå¤´æ ¡æ­£)æ§åˆ¶ 16'h5800~16'h583d
             8'd64 : i2c_data <= {16'h5800,8'h23}; 
             8'd65 : i2c_data <= {16'h5801,8'h14};
             8'd66 : i2c_data <= {16'h5802,8'h0f};
@@ -232,7 +232,7 @@ always @(posedge clk or negedge rst_n) begin
             8'd123: i2c_data <= {16'h583b,8'h28};
             8'd124: i2c_data <= {16'h583c,8'h42};
             8'd125: i2c_data <= {16'h583d,8'hce};
-            //AWB(×Ô¶¯°×Æ½ºâ¿ØÖÆ) 16'h5180~16'h519e
+            //AWB(è‡ªåŠ¨ç™½å¹³è¡¡æ§åˆ¶) 16'h5180~16'h519e
             8'd126: i2c_data <= {16'h5180,8'hff};
             8'd127: i2c_data <= {16'h5181,8'hf2};
             8'd128: i2c_data <= {16'h5182,8'h00};
@@ -264,7 +264,7 @@ always @(posedge clk or negedge rst_n) begin
             8'd154: i2c_data <= {16'h519c,8'h06};
             8'd155: i2c_data <= {16'h519d,8'h82};
             8'd156: i2c_data <= {16'h519e,8'h38};
-            //Gamma(Ù¤Âí)¿ØÖÆ 16'h5480~16'h5490
+            //Gamma(ä¼½é©¬)æ§åˆ¶ 16'h5480~16'h5490
             8'd157: i2c_data <= {16'h5480,8'h01}; 
             8'd158: i2c_data <= {16'h5481,8'h08};
             8'd159: i2c_data <= {16'h5482,8'h14};
@@ -282,7 +282,7 @@ always @(posedge clk or negedge rst_n) begin
             8'd171: i2c_data <= {16'h548e,8'hdd};
             8'd172: i2c_data <= {16'h548f,8'hea};
             8'd173: i2c_data <= {16'h5490,8'h1d};
-            //CMX(²ÊÉ«¾ØÕó¿ØÖÆ) 16'h5381~16'h538b
+            //CMX(å½©è‰²çŸ©é˜µæ§åˆ¶) 16'h5381~16'h538b
             8'd174: i2c_data <= {16'h5381,8'h1e};
             8'd175: i2c_data <= {16'h5382,8'h5b};
             8'd176: i2c_data <= {16'h5383,8'h08};
@@ -294,7 +294,7 @@ always @(posedge clk or negedge rst_n) begin
             8'd182: i2c_data <= {16'h5389,8'h10};
             8'd183: i2c_data <= {16'h538a,8'h01};
             8'd184: i2c_data <= {16'h538b,8'h98};
-            //SDE(ÌØÊâÊıÂëĞ§¹û)¿ØÖÆ 16'h5580~16'h558b
+            //SDE(ç‰¹æ®Šæ•°ç æ•ˆæœ)æ§åˆ¶ 16'h5580~16'h558b
             8'd185: i2c_data <= {16'h5580,8'h06};
             8'd186: i2c_data <= {16'h5583,8'h40};
             8'd187: i2c_data <= {16'h5584,8'h10};
@@ -302,7 +302,7 @@ always @(posedge clk or negedge rst_n) begin
             8'd189: i2c_data <= {16'h558a,8'h00};
             8'd190: i2c_data <= {16'h558b,8'hf8};
             8'd191: i2c_data <= {16'h501d,8'h40}; //ISP MISC
-            //CIP(ÑÕÉ«²åÖµ)¿ØÖÆ (16'h5300~16'h530c)
+            //CIP(é¢œè‰²æ’å€¼)æ§åˆ¶ (16'h5300~16'h530c)
             8'd192: i2c_data <= {16'h5300,8'h08};
             8'd193: i2c_data <= {16'h5301,8'h30};
             8'd194: i2c_data <= {16'h5302,8'h10};
@@ -316,11 +316,12 @@ always @(posedge clk or negedge rst_n) begin
             8'd202: i2c_data <= {16'h530b,8'h04};
             8'd203: i2c_data <= {16'h530c,8'h06};
             8'd204: i2c_data <= {16'h5025,8'h00};
-            //ÏµÍ³Ê±ÖÓ·ÖÆµ Bit[7:4]:ÏµÍ³Ê±ÖÓ·ÖÆµ input clock =24Mhz, PCLK = 48Mhz
+            // The OV5640 module crystal is 24 MHz. These PLL and DVP
+            // divider settings generate the camera-side PCLK.
             8'd205: i2c_data <= {16'h3035,8'h11}; 
-            8'd206: i2c_data <= {16'h3036,8'h3c}; //PLL±¶Æµ
+            8'd206: i2c_data <= {16'h3036,8'h3c}; // PLL multiplier for 24 MHz input
             8'd207: i2c_data <= {16'h3c07,8'h08};
-            //Ê±Ğò¿ØÖÆ 16'h3800~16'h3821
+            //æ—¶åºæ§åˆ¶ 16'h3800~16'h3821
             8'd208: i2c_data <= {16'h3820,8'h46};
             8'd209: i2c_data <= {16'h3821,8'h01};
             8'd210: i2c_data <= {16'h3814,8'h31};
@@ -333,22 +334,22 @@ always @(posedge clk or negedge rst_n) begin
             8'd217: i2c_data <= {16'h3805,8'h3f};
             8'd218: i2c_data <= {16'h3806,8'h07};
             8'd219: i2c_data <= {16'h3807,8'h9b};
-            //ÉèÖÃÊä³öÏñËØ¸öÊı
-            //DVP Êä³öË®Æ½ÏñËØµãÊı¸ß4Î»
+            //è®¾ç½®è¾“å‡ºåƒç´ ä¸ªæ•°
+            //DVP è¾“å‡ºæ°´å¹³åƒç´ ç‚¹æ•°é«˜4ä½
             8'd220: i2c_data <= {16'h3808,{4'd0,cmos_h_pixel[11:8]}};
-            //DVP Êä³öË®Æ½ÏñËØµãÊıµÍ8Î»
+            //DVP è¾“å‡ºæ°´å¹³åƒç´ ç‚¹æ•°ä½8ä½
             8'd221: i2c_data <= {16'h3809,cmos_h_pixel[7:0]};
-            //DVP Êä³ö´¹Ö±ÏñËØµãÊı¸ß3Î»
+            //DVP è¾“å‡ºå‚ç›´åƒç´ ç‚¹æ•°é«˜3ä½
             8'd222: i2c_data <= {16'h380a,{5'd0,cmos_v_pixel[10:8]}};
-            //DVP Êä³ö´¹Ö±ÏñËØµãÊıµÍ8Î»
+            //DVP è¾“å‡ºå‚ç›´åƒç´ ç‚¹æ•°ä½8ä½
             8'd223: i2c_data <= {16'h380b,cmos_v_pixel[7:0]};
-            //Ë®Æ½×ÜÏñËØ´óĞ¡¸ß5Î»
+            //æ°´å¹³æ€»åƒç´ å¤§å°é«˜5ä½
             8'd224: i2c_data <= {16'h380c,{3'd0,total_h_pixel[12:8]}};
-            //Ë®Æ½×ÜÏñËØ´óĞ¡µÍ8Î» 
+            //æ°´å¹³æ€»åƒç´ å¤§å°ä½8ä½ 
             8'd225: i2c_data <= {16'h380d,total_h_pixel[7:0]};
-            //´¹Ö±×ÜÏñËØ´óĞ¡¸ß5Î» 
+            //å‚ç›´æ€»åƒç´ å¤§å°é«˜5ä½ 
             8'd226: i2c_data <= {16'h380e,{3'd0,total_v_pixel[12:8]}};
-            //´¹Ö±×ÜÏñËØ´óĞ¡µÍ8Î»     
+            //å‚ç›´æ€»åƒç´ å¤§å°ä½8ä½     
             8'd227: i2c_data <= {16'h380f,total_v_pixel[7:0]};
             8'd228: i2c_data <= {16'h3813,8'h06};
             8'd229: i2c_data <= {16'h3618,8'h00};
@@ -359,23 +360,23 @@ always @(posedge clk or negedge rst_n) begin
             8'd234: i2c_data <= {16'h3a03,8'h10}; //60Hz max exposure
             8'd235: i2c_data <= {16'h3a14,8'h17}; //50Hz max exposure
             8'd236: i2c_data <= {16'h3a15,8'h10}; //50Hz max exposure
-            8'd237: i2c_data <= {16'h4004,8'h02}; //BLC(±³¹â) 2 lines
+            8'd237: i2c_data <= {16'h4004,8'h02}; //BLC(èƒŒå…‰) 2 lines
             8'd238: i2c_data <= {16'h4713,8'h03}; //JPEG mode 3
-            8'd239: i2c_data <= {16'h4407,8'h04}; //Á¿»¯±ê¶È
+            8'd239: i2c_data <= {16'h4407,8'h04}; //é‡åŒ–æ ‡åº¦
             8'd240: i2c_data <= {16'h460c,8'h22};     
-            8'd241: i2c_data <= {16'h4837,8'h22}; //DVP CLK divider
-            8'd242: i2c_data <= {16'h3824,8'h02}; //DVP CLK divider
-            8'd243: i2c_data <= {16'h5001,8'ha3}; //ISP ¿ØÖÆ
-            8'd244: i2c_data <= {16'h3b07,8'h0a}; //Ö¡ÆØ¹âÄ£Ê½  
-            //²ÊÌõ²âÊÔÊ¹ÄÜ 
-            8'd245: i2c_data <= {16'h503d,8'h00}; //8'h00:Õı³£Ä£Ê½ 8'h80:²ÊÌõÏÔÊ¾
-            //²âÊÔÉÁ¹âµÆ¹¦ÄÜ
+            8'd241: i2c_data <= {16'h4837,8'h22}; // DVP clock divider
+            8'd242: i2c_data <= {16'h3824,8'h02}; // DVP clock divider
+            8'd243: i2c_data <= {16'h5001,8'ha3}; //ISP æ§åˆ¶
+            8'd244: i2c_data <= {16'h3b07,8'h0a}; //å¸§æ›å…‰æ¨¡å¼  
+            //å½©æ¡æµ‹è¯•ä½¿èƒ½ 
+            8'd245: i2c_data <= {16'h503d,8'h80}; //8'h00:æ­£å¸¸æ¨¡å¼ 8'h80:å½©æ¡æ˜¾ç¤º
+            //æµ‹è¯•é—ªå…‰ç¯åŠŸèƒ½
             8'd246: i2c_data <= {16'h3016,8'h02};
             8'd247: i2c_data <= {16'h301c,8'h02};
-            8'd248: i2c_data <= {16'h3019,8'h02}; //´ò¿ªÉÁ¹âµÆ
-            8'd249: i2c_data <= {16'h3019,8'h00}; //¹Ø±ÕÉÁ¹âµÆ
-            //Ö»¶Á´æ´¢Æ÷,·ÀÖ¹ÔÚcaseÖĞÃ»ÓĞÁĞ¾ÙµÄÇé¿ö£¬Ö®Ç°µÄ¼Ä´æÆ÷±»ÖØ¸´¸ÄĞ´
-            default : i2c_data <= {16'h300a,8'h00}; //Æ÷¼şID¸ß8Î»
+            8'd248: i2c_data <= {16'h3019,8'h02}; //æ‰“å¼€é—ªå…‰ç¯
+            8'd249: i2c_data <= {16'h3019,8'h00}; //å…³é—­é—ªå…‰ç¯
+            //åªè¯»å­˜å‚¨å™¨,é˜²æ­¢åœ¨caseä¸­æ²¡æœ‰åˆ—ä¸¾çš„æƒ…å†µï¼Œä¹‹å‰çš„å¯„å­˜å™¨è¢«é‡å¤æ”¹å†™
+            default : i2c_data <= {16'h300a,8'h00}; //å™¨ä»¶IDé«˜8ä½
         endcase
     end
 end

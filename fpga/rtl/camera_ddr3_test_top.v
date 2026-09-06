@@ -48,7 +48,8 @@ module camera_ddr3_test_top (
     wire [15:0] cam_frame_data;
 
     ov5640_dri #(
-        // The target DDR3/PLL IPs use a 25 MHz reference clock.
+        // sys_clk is the FPGA-side 25 MHz clock used by the I2C driver.
+        // The OV5640 module uses its own 24 MHz crystal for the camera PLL.
         .CLK_FREQ         (27'd25_000_000)
     ) u_ov5640_dri (
         .clk              (sys_clk),
@@ -61,9 +62,9 @@ module camera_ddr3_test_top (
         .cam_pwdn         (cam_pwdn),
         .cam_scl          (cam_scl),
         .cam_sda          (cam_sda),
-        .cmos_h_pixel     (13'd640),
-        .cmos_v_pixel     (13'd480),
-        .total_h_pixel    (13'd1650),
+        .cmos_h_pixel     (13'd640),    //horizon pixel
+        .cmos_v_pixel     (13'd480),    //vertical pixel
+        .total_h_pixel    (13'd1650),   //FPS = PCLK / (total_h_pixel * total_v_pixel)
         .total_v_pixel    (13'd750),
         .capture_start    (cam_init_done),
         .cam_init_done    (cam_init_done),
@@ -125,8 +126,8 @@ module camera_ddr3_test_top (
     wire [3:0]   debug_rst_state;
     wire [3:0]   debug_cpd_state;
 
-    localparam FRAME_WORDS = 19'd153600;
-    localparam FRAME_BYTES = 28'd614400;
+    localparam FRAME_WORDS = 19'd153600;    // width * height / 2
+    localparam FRAME_BYTES = 28'd614400;    // width * height * 2
 
     wire [255:0] wr_fifo_data;
     wire         wr_fifo_empty;
@@ -429,7 +430,23 @@ module camera_ddr3_test_top (
         .rd_fifo_data           (rd_fifo_data),
         .rd_fifo_rd_en          (rd_fifo_rd_en),
         .bar0_rd_clk_en         (pcie_bar0_rd_en),
-        .bar0_rd_addr           (pcie_bar0_rd_addr)
+         .bar0_rd_addr           (pcie_bar0_rd_addr),
+         .dbg_cam_init_done      (cam_init_done),
+         .dbg_cam_frame_valid    (cam_frame_valid),
+         .dbg_camera_pixel_valid (camera_pixel_valid),
+         .dbg_cam_pclk           (cam_pclk),
+         .dbg_cam_href           (cam_href),
+         .dbg_cam_vsync          (cam_vsync),
+         .dbg_cam_data           (cam_data),
+         .dbg_wr_fifo_empty      (wr_fifo_empty),
+         .dbg_wr_fifo_full       (wr_fifo_full),
+         .dbg_cam_bridge_empty   (cam_bridge_empty),
+         .dbg_cam_bridge_full    (cam_bridge_full),
+         .dbg_ddr_init_done      (ddr_init_done),
+         .dbg_ddr_write_active   (ddr_write_active),
+         .dbg_frame_ready        (frame_ready),
+         .dbg_ddr_read_valid     (ddr_read_valid),
+         .dbg_rd_fifo_wr_en      (rd_fifo_wr_en)
     );
 
 endmodule
