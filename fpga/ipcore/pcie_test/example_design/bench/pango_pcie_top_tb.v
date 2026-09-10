@@ -714,6 +714,12 @@ begin
                                                        pango_pcie_top_tb.u_pango_pcie_top_ep.u_ips2l_pcie_dma.u_ips2l_pcie_dma_rx_top.u_ips2l_pcie_dma_tlp_rcv.tlp_rx_sum);
 end
 
+initial
+begin
+    force pango_pcie_top_tb.u_pango_pcie_top_ep.u_ips2l_pcie_wrap.U_IPS2L_PCIE_TOP.U_IPS2L_HSSTLP_PCIE_SOFT_PHY.lx_rxdct_out_d = 4'hf;
+    force pango_pcie_top_tb.u_pango_pcie_top_rc.u_ips2l_pcie_wrap.U_IPS2L_PCIE_TOP.U_IPS2L_HSSTLP_PCIE_SOFT_PHY.lx_rxdct_out_d = 4'hf;
+end
+
 task    rc_apb_write;
         input [15:0]    addr;
         input [31:0]    wdata;

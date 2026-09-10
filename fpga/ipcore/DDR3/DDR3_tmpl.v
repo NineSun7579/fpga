@@ -6,7 +6,7 @@
 //   * Change the signal names in the port associations
 
 
-DDR3 the_instance_name (
+ddr3 the_instance_name (
   .resetn(resetn),                                      // input
   .core_clk(core_clk),                                  // output
   .pll_lock(pll_lock),                                  // output

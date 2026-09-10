@@ -43,10 +43,10 @@ module pcie_test
     input           [1:0]           rxp                 ,
     output  wire    [1:0]           txn                 ,
     output  wire    [1:0]           txp                 ,
+    input           [1:0]           pcs_nearend_loop    ,
+    input           [1:0]           pma_nearend_ploop   ,
+    input           [1:0]           pma_nearend_sloop   ,
 
-    input           [3:0]           pcs_nearend_loop    ,
-    input           [3:0]           pma_nearend_ploop   ,
-    input           [3:0]           pma_nearend_sloop   ,
     //AXIS master interface
     output  wire                    axis_master_tvalid  ,
     input                           axis_master_tready  ,
@@ -76,6 +76,15 @@ module pcie_test
     input                           axis_slave2_tuser   ,
 
     output  wire                    pm_xtlh_block_tlp   ,     //ask about the processing latency
+
+    //msi
+    input           [4:0]           ven_msi_vector      ,
+    input           [(32*1)-1:0]    cfg_msi_pending     ,
+    output  wire                    cfg_msi_en          ,
+
+    input                           ven_msi_req         ,
+    input           [2:0]           ven_msi_tc          ,
+    output  wire                    ven_msi_grant       ,
 
     output  wire                    cfg_send_cor_err_mux ,
     output  wire                    cfg_send_nf_err_mux  ,
@@ -133,7 +142,7 @@ module pcie_test
     localparam               DIAG_CTRL_BUS_B2               = "NORMAL";
     `endif
 
-    localparam               MSI_CAP_DISABLE                = "TRUE";
+    localparam               MSI_CAP_DISABLE                = "FALSE";
 
     localparam               MSIX_CAP_DISABLE               = "TRUE";
 
@@ -153,27 +162,23 @@ module pcie_test
 
     localparam               SCRAMBLE_DISABLE               = 1'b0;   //@IPC bool
 
-    localparam               AUTO_LANE_FLIP_CTRL_EN         = 1'b0;   //@IPC bool
+    localparam               AUTO_LANE_FLIP_CTRL_EN         = 1'b1;   //@IPC bool
 
     localparam               NUM_OF_LANES                   = 5'b1   ;   //@IPC bool
 
-    localparam               CPL_TIMEOUT_DISABLE_SUPPORT    = 1'b0   ;   //@IPC enum 1'b0,1'b1
-
-    localparam               CPL_TIMEOUT_RANGE              = 4'hf   ;   //@IPC enum 4'h0,4'h1,4'h2,4'h3,4'h6,4'h7,4'he,4'hf
-
-    localparam               MAX_PAYLOAD_SIZE               = 3'd3   ;   //@IPC enum 3'd0,3'd1,3'd2,3'd3
+    localparam               MAX_PAYLOAD_SIZE               = 3'd1   ;   //@IPC enum 3'd0,3'd1,3'd2,3'd3
 
     localparam               INT_DISABLE                    = 1'b1;   //@IPC bool
 
-    localparam               MSI_ENABLE                     = 1'b0;   //@IPC bool
+    localparam               MSI_ENABLE                     = 1'b1;   //@IPC bool
 
-    localparam               MSI_64_BIT_ADDR_CAP            = 1'b0;   //@IPC bool
+    localparam               MSI_64_BIT_ADDR_CAP            = 1'b1;   //@IPC bool
 
-    localparam               MSI_MULTIPLE_MSG_CAP           = 3'd0   ;   //@IPC enum 3'd0,3'd1,3'd2,3'd3,3'd4,3'd5
+    localparam               MSI_MULTIPLE_MSG_CAP           = 3'd2   ;   //@IPC enum 3'd0,3'd1,3'd2,3'd3,3'd4,3'd5
 
     localparam               PVM_SUPPORT                    = 1'b0    ;   //@IPC bool
 
-    localparam               CAP_POINTER                    = 8'h70    ;
+    localparam               CAP_POINTER                    = 8'h50    ;
 
     localparam               PCIE_CAP_NEXT_PTR              = 8'h00    ;
 
@@ -201,23 +206,23 @@ module pcie_test
 
     localparam               BAR0_ENABLED                   = 1'b1    ;   //@IPC bool
 
-    localparam               BAR0_MASK                      = 31'h7fff   ; //@IPC string
+    localparam               BAR0_MASK                      = 31'hfff   ; //@IPC string
 
     localparam               BAR1_MEM_IO                    = 1'b0   ;   //@IPC enum 1'b0,1'b1
 
-    localparam               BAR1_ENABLED                   = 1'b0    ;   //@IPC bool
+    localparam               BAR1_ENABLED                   = 1'b1    ;   //@IPC bool
 
-    localparam               BAR1_MASK                      = 31'h0   ; //@IPC string
+    localparam               BAR1_MASK                      = 31'h7ff   ; //@IPC string
 
     localparam               BAR2_PREFETCH                  = 1'b0   ;   //@IPC enum 1'b0,1'b1
 
-    localparam               BAR2_TYPE                      = 2'd0   ;   //@IPC enum 2'd0,2'd2
+    localparam               BAR2_TYPE                      = 2'd2   ;   //@IPC enum 2'd0,2'd2
 
     localparam               BAR2_MEM_IO                    = 1'b0   ;   //@IPC enum 1'b0,1'b1
 
-    localparam               BAR2_ENABLED                   = 1'b0    ;   //@IPC bool
+    localparam               BAR2_ENABLED                   = 1'b1    ;   //@IPC bool
 
-    localparam               BAR2_MASK                      = 31'h0   ; //@IPC string
+    localparam               BAR2_MASK                      = 31'h7ff   ; //@IPC string
 
     localparam               BAR3_MEM_IO                    = 1'b0   ;   //@IPC enum 1'b0,1'b1
 
@@ -255,11 +260,7 @@ module pcie_test
 
     localparam               ECRC_CHECK_EN                  = 1'b1     ;  //@IPC bool
 
-    localparam               ECRC_CHECK_CAP                 = 1'b1     ;  //@IPC bool
-
     localparam               ECRC_GEN_EN                    = 1'b0     ;  //@IPC bool
-
-    localparam               ECRC_GEN_CAP                   = 1'b0     ;  //@IPC bool
 
     localparam               EXT_TAG_EN                     = 1'b1     ;  //@IPC bool
 
@@ -305,33 +306,12 @@ module pcie_test
     localparam              RESBAR_BAR2_MAX_SUPP_SIZE       = 20'hf_ffff        ;
     localparam              RESBAR_BAR2_INIT_SIZE           = 5'h0              ;
 
-    localparam               UPCONFIGURE_SUPPORT            = 1'b1     ;  //@IPC bool
+    localparam              CPLQ_MANAGEMENT_ENABLE          = 1'b1     ;  //@IPC bool
 
-
-wire    l0_txn  ;
-wire    l0_txp  ;
-wire    l1_txn  ;
-wire    l1_txp  ;
-wire    l2_txn  ;
-wire    l2_txp  ;
-wire    l3_txn  ;
-wire    l3_txp  ;
-wire    l0_rxn  ;
-wire    l0_rxp  ;
-wire    l1_rxn  ;
-wire    l1_rxp  ;
-wire    l2_rxn  ;
-wire    l2_rxp  ;
-wire    l3_rxn  ;
-wire    l3_rxp  ;
-
+    localparam              UPCONFIGURE_SUPPORT            = 1'b1     ;  //@IPC bool
 
 localparam  integer     HSST_LANE_NUM = 2   ;
 
-assign  {l3_rxn,l2_rxn,l1_rxn,l0_rxn} = {2'b0,rxn};
-assign  {l3_rxp,l2_rxp,l1_rxp,l0_rxp} = {2'b0,rxp};
-assign  txn = {l1_txn,l0_txn};
-assign  txp = {l1_txp,l0_txp};
 `ifdef IPS2L_PCIE_SPEEDUP_SIM
     initial
     $display("HSST_X2_LANE MODE!");
@@ -368,22 +348,6 @@ wire                  intc_grt_mux        ;
 wire                  intd_grt_mux        ;
 
 assign sys_int = 1'b0;
-
-//msi
-wire  [4:0]           ven_msi_vector      ;
-wire  [(32*1)-1:0]    cfg_msi_pending     ;
-wire                  cfg_msi_en          ;
-
-assign ven_msi_vector   = 5'b0;
-assign cfg_msi_pending  = 32'b0;
-
-//msi
-wire                  ven_msi_req         ;
-wire  [2:0]           ven_msi_tc          ;
-wire                  ven_msi_grant       ;
-
-assign ven_msi_req      = 1'b0;
-assign ven_msi_tc       = 3'b0;
 
 // MSI-X interface
 wire  [63:0]          msix_addr           ;
@@ -461,7 +425,7 @@ wire  [11:0]          xadm_cpld_cdts            ;
 
 
 //-------------------------------PCIE IP WRAP include PHY
-ips2l_pcie_top_v1_2c #(
+ips2l_pcie_top_v1_8 #(
     .DEVICE_TYPE                    (DEVICE_TYPE                    ),
     .DIAG_CTRL_BUS_B2               (DIAG_CTRL_BUS_B2               ),      // "NORMAL" "FAST_LINK_MODE"
     .BAR_RESIZABLE                  (BAR_RESIZABLE                  ),      // 0: no resizable bar, 1: bar0 resizable, 2: bar1 resizable, 3: bar0-1 resizable, ... 56: bar3-bar5 resizable;  Please do not set more than 3 resizable bars at the same   time  Default value is 21 which is 6'b010101
@@ -484,8 +448,6 @@ ips2l_pcie_top_v1_2c #(
     .SCRAMBLE_DISABLE               (SCRAMBLE_DISABLE               ),
     .AUTO_LANE_FLIP_CTRL_EN         (AUTO_LANE_FLIP_CTRL_EN         ),
     .NUM_OF_LANES                   (NUM_OF_LANES                   ),
-    .CPL_TIMEOUT_DISABLE_SUPPORT    (CPL_TIMEOUT_DISABLE_SUPPORT    ),
-    .CPL_TIMEOUT_RANGE              (CPL_TIMEOUT_RANGE              ),
     .MAX_PAYLOAD_SIZE               (MAX_PAYLOAD_SIZE               ),
     .INT_DISABLE                    (INT_DISABLE                    ),
     .PVM_SUPPORT                    (PVM_SUPPORT                    ),
@@ -534,9 +496,7 @@ ips2l_pcie_top_v1_2c #(
     .TARGET_LINK_SPEED              (TARGET_LINK_SPEED              ),
 
     .ECRC_CHECK_EN                  (ECRC_CHECK_EN                  ),
-    .ECRC_CHECK_CAP                 (ECRC_CHECK_CAP                 ),
     .ECRC_GEN_EN                    (ECRC_GEN_EN                    ),
-    .ECRC_GEN_CAP                   (ECRC_GEN_CAP                   ),
     .EXT_TAG_EN                     (EXT_TAG_EN                     ),
     .EXT_TAG_SUPP                   (EXT_TAG_SUPP                   ),
     .PCIE_CAP_RCB                   (PCIE_CAP_RCB                   ),
@@ -559,6 +519,7 @@ ips2l_pcie_top_v1_2c #(
     .RESBAR_BAR1_INIT_SIZE          (RESBAR_BAR1_INIT_SIZE          ),
     .RESBAR_BAR2_MAX_SUPP_SIZE      (RESBAR_BAR2_MAX_SUPP_SIZE      ),
     .RESBAR_BAR2_INIT_SIZE          (RESBAR_BAR2_INIT_SIZE          ),
+    .CPLQ_MANAGEMENT_ENABLE         (CPLQ_MANAGEMENT_ENABLE         ),
     .UPCONFIGURE_SUPPORT            (UPCONFIGURE_SUPPORT            )
 ) U_IPS2L_PCIE_TOP (
     .i_button_rstn                  (button_rst_n                   ),
@@ -580,22 +541,10 @@ ips2l_pcie_top_v1_2c #(
     .o_apb_rdy                      (p_rdy                          ),
     .o_apb_rdata                    (p_rdata                        ),
     //diff signals
-    .o_lane0_txn                    (l0_txn                         ),
-    .o_lane0_txp                    (l0_txp                         ),
-    .o_lane1_txn                    (l1_txn                         ),
-    .o_lane1_txp                    (l1_txp                         ),
-    .o_lane2_txn                    (l2_txn                         ),
-    .o_lane2_txp                    (l2_txp                         ),
-    .o_lane3_txn                    (l3_txn                         ),
-    .o_lane3_txp                    (l3_txp                         ),
-    .i_lane0_rxn                    (l0_rxn                         ),
-    .i_lane0_rxp                    (l0_rxp                         ),
-    .i_lane1_rxn                    (l1_rxn                         ),
-    .i_lane1_rxp                    (l1_rxp                         ),
-    .i_lane2_rxn                    (l2_rxn                         ),
-    .i_lane2_rxp                    (l2_rxp                         ),
-    .i_lane3_rxn                    (l3_rxn                         ),
-    .i_lane3_rxp                    (l3_rxp                         ),
+    .o_txn_lane                     (txn                            ),
+    .o_txp_lane                     (txp                            ),
+    .i_rxn_lane                     (rxn                            ),
+    .i_rxp_lane                     (rxp                            ),
     .i_refckn                       (ref_clk_n                      ),
     .i_refckp                       (ref_clk_p                      ),
     .i_pcs_nearend_loop             (pcs_nearend_loop               ),

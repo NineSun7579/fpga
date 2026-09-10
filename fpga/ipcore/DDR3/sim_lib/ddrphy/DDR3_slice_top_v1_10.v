@@ -9,7 +9,7 @@
 //History: v1.0                                                      
 ////////////////////////////////////////////////////////////////     
 `timescale 1ns/1ps                                                   
-module   DDR3_slice_top_v1_10 #( 
+module   ddr3_slice_top_v1_10 #( 
   parameter real CLKIN_FREQ       = 50.0, 
   parameter   PPLL_BANDWIDTH      = "OPTIMIZED",
   parameter   [1:0] DDR_TYPE      = 2'b00 ,  //2'b00:DDR3  2'b01:DDR2  2'b10:LPDDR 

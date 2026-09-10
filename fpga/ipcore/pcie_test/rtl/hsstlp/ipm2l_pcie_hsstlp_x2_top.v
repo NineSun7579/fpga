@@ -1,5 +1,3 @@
-// Created by IP Generator (Version 2021.1-SP4.1 build 75525)
-
 
 ///////////////////////////////////////////////////////////////////////////////
 //
@@ -256,22 +254,32 @@ localparam CH0_RXPMA_RTERM = 5;
 localparam CH1_RXPMA_RTERM = 5;
 localparam CH2_RXPMA_RTERM = 6;
 localparam CH3_RXPMA_RTERM = 6;
+
+localparam CH0_RX_EQ_EN = "TRUE";
+localparam CH1_RX_EQ_EN = "TRUE";
+localparam CH2_RX_EQ_EN = "TRUE";
+localparam CH3_RX_EQ_EN = "TRUE";
+
 localparam CH0_PRE_CURSOR_EN = "FALSE";
 localparam CH1_PRE_CURSOR_EN = "FALSE";
 localparam CH2_PRE_CURSOR_EN = "FALSE";
 localparam CH3_PRE_CURSOR_EN = "FALSE";
+
 localparam CH0_POST_CURSOR_EN = "TRUE";
 localparam CH1_POST_CURSOR_EN = "TRUE";
 localparam CH2_POST_CURSOR_EN = "FALSE";
 localparam CH3_POST_CURSOR_EN = "FALSE";
+
 localparam CH0_PRE_CURSOR_EMPHASIS = 0;
 localparam CH1_PRE_CURSOR_EMPHASIS = 0;
 localparam CH2_PRE_CURSOR_EMPHASIS = 0;
 localparam CH3_PRE_CURSOR_EMPHASIS = 0;
+
 localparam CH0_POST_CURSOR_EMPHASIS = 12;
 localparam CH1_POST_CURSOR_EMPHASIS = 12;
 localparam CH2_POST_CURSOR_EMPHASIS = 0;
 localparam CH3_POST_CURSOR_EMPHASIS = 0;
+
 localparam CH0_POST1_CURSOR_EMPHASIS = 19;
 localparam CH1_POST1_CURSOR_EMPHASIS = 19;
 localparam CH2_POST1_CURSOR_EMPHASIS = 0;
@@ -327,6 +335,7 @@ localparam PCIE_CLK_MODE_EN_3 = "FALSE";
 //renamed parameters
 //CHx_TDATA_WIDTH_TYPE: "8bit_only", "10bit_only", "8b10b_8bit", "16bit_only", "20bit_only", "8b10b_16bit", "32bit_only", "40bit_only", "8b10b_32bit"
 //CHx_RDATA_WIDTH_TYPE: "8bit_only", "10bit_only", "8b10b_8bit", "16bit_only", "20bit_only", "8b10b_16bit", "32bit_only", "40bit_only", "8b10b_32bit"
+
 localparam           CH0_TDATA_WIDTH_TYPE          = ((CH0_TX_ENCODER=="Bypassed")&&(CH0_TDATA_WIDTH==8)) ? "8bit_only" :
                                                      ((CH0_TX_ENCODER=="Bypassed")&&(CH0_TDATA_WIDTH==10)) ? "10bit_only" :
                                                      ((CH0_TX_ENCODER=="Bypassed")&&(CH0_TDATA_WIDTH==16)) ? "16bit_only" :
@@ -596,6 +605,14 @@ localparam           PMA_CH0_REG_CDR_LOCK_TIMER    = (CH0_PROTOCOL=="PCIEx1" || 
 localparam           PMA_CH1_REG_CDR_LOCK_TIMER    = (CH1_PROTOCOL=="PCIEx1" || CH1_PROTOCOL=="PCIEx2" || CH1_PROTOCOL=="PCIEx4") ? "1_2U" : "25_6U";
 localparam           PMA_CH2_REG_CDR_LOCK_TIMER    = (CH2_PROTOCOL=="PCIEx1" || CH2_PROTOCOL=="PCIEx2" || CH2_PROTOCOL=="PCIEx4") ? "1_2U" : "25_6U";
 localparam           PMA_CH3_REG_CDR_LOCK_TIMER    = (CH3_PROTOCOL=="PCIEx1" || CH3_PROTOCOL=="PCIEx2" || CH3_PROTOCOL=="PCIEx4") ? "1_2U" : "25_6U";
+localparam           PMA_CH0_REG_RX_EQ1_OFF        = CH0_RX_EQ_EN=="TRUE" ? "FALSE" : "TRUE";
+localparam           PMA_CH1_REG_RX_EQ1_OFF        = CH1_RX_EQ_EN=="TRUE" ? "FALSE" : "TRUE";
+localparam           PMA_CH2_REG_RX_EQ1_OFF        = CH2_RX_EQ_EN=="TRUE" ? "FALSE" : "TRUE";
+localparam           PMA_CH3_REG_RX_EQ1_OFF        = CH3_RX_EQ_EN=="TRUE" ? "FALSE" : "TRUE";
+localparam           PMA_CH0_REG_RX_EQ2_OFF        = CH0_RX_EQ_EN=="TRUE" ? "FALSE" : "TRUE";
+localparam           PMA_CH1_REG_RX_EQ2_OFF        = CH1_RX_EQ_EN=="TRUE" ? "FALSE" : "TRUE";
+localparam           PMA_CH2_REG_RX_EQ2_OFF        = CH2_RX_EQ_EN=="TRUE" ? "FALSE" : "TRUE";
+localparam           PMA_CH3_REG_RX_EQ2_OFF        = CH3_RX_EQ_EN=="TRUE" ? "FALSE" : "TRUE";
 localparam           PMA_CH0_REG_PD_PRE            = CH0_PRE_CURSOR_EN=="TRUE" ? "FALSE" : "TRUE";
 localparam           PMA_CH1_REG_PD_PRE            = CH1_PRE_CURSOR_EN=="TRUE" ? "FALSE" : "TRUE";
 localparam           PMA_CH2_REG_PD_PRE            = CH2_PRE_CURSOR_EN=="TRUE" ? "FALSE" : "TRUE";
@@ -2200,6 +2217,8 @@ ipm2l_hsstlp_wrapper_v1_6 #(
     .PMA_CH0_REG_PRBS_CHK_WIDTH_SEL    (PMA_CH0_REG_PRBS_CHK_WIDTH_SEL      ),//"8BIT" "10BIT" "16BIT" "20BIT"
     .PMA_CH0_REG_RX_SIGDET_VTH         (PMA_CH0_REG_RX_SIGDET_VTH           ),// SIGNAL DETECT VTH SELECT:45MV,54MV,63MV,72MV
     .PMA_CH0_REG_RX_DATAPATH_PD_EN     (PMA_CH0_REG_RX_DATAPATH_PD_EN       ),//TRUE,FALSE;
+    .PMA_CH0_REG_RX_EQ1_OFF            (PMA_CH0_REG_RX_EQ1_OFF              ),//TRUE,FALSE;
+    .PMA_CH0_REG_RX_EQ2_OFF            (PMA_CH0_REG_RX_EQ2_OFF              ),//TRUE,FALSE;
     .PMA_CH1_REG_TX_BUSWIDTH           (PMA_CH1_TXDATA_WIDTH                ),// 8_BIT:2'b00, 10_BIT:2'b01, 16_BIT:2'b10, 20_BIT:2'b11 
     .PMA_CH1_REG_TX_BUSWIDTH_OW        (PMA_CH1_REG_TX_BUSWIDTH_OW          ),// TRUE:PMA_REG_TX_BUSWIDTH is active; FALSE: port pma_tx_buswidth is active
     .PMA_CH1_REG_RX_BUSWIDTH           (PMA_CH1_SIPO_BIT_SETTING            ),// 8_BIT:2'b00, 10_BIT:2'b01, 16_BIT:2'b10, 20_BIT:2'b11    
@@ -2225,6 +2244,8 @@ ipm2l_hsstlp_wrapper_v1_6 #(
     .PMA_CH1_REG_PRBS_CHK_WIDTH_SEL    (PMA_CH1_REG_PRBS_CHK_WIDTH_SEL      ),//"8BIT" "10BIT" "16BIT" "20BIT"
     .PMA_CH1_REG_RX_SIGDET_VTH         (PMA_CH1_REG_RX_SIGDET_VTH           ),// SIGNAL DETECT VTH SELECT:45MV,54MV,63MV,72MV
     .PMA_CH1_REG_RX_DATAPATH_PD_EN     (PMA_CH1_REG_RX_DATAPATH_PD_EN       ),//TRUE,FALSE;
+    .PMA_CH1_REG_RX_EQ1_OFF            (PMA_CH1_REG_RX_EQ1_OFF              ),//TRUE,FALSE;
+    .PMA_CH1_REG_RX_EQ2_OFF            (PMA_CH1_REG_RX_EQ2_OFF              ),//TRUE,FALSE;
     .PMA_CH2_REG_TX_BUSWIDTH           (PMA_CH2_TXDATA_WIDTH                ),// 8_BIT:2'b00, 10_BIT:2'b01, 16_BIT:2'b10, 20_BIT:2'b11 
     .PMA_CH2_REG_TX_BUSWIDTH_OW        (PMA_CH2_REG_TX_BUSWIDTH_OW          ),// TRUE:PMA_REG_TX_BUSWIDTH is active; FALSE: port pma_tx_buswidth is active
     .PMA_CH2_REG_RX_BUSWIDTH           (PMA_CH2_SIPO_BIT_SETTING            ),// 8_BIT:2'b00, 10_BIT:2'b01, 16_BIT:2'b10, 20_BIT:2'b11    
@@ -2250,6 +2271,8 @@ ipm2l_hsstlp_wrapper_v1_6 #(
     .PMA_CH2_REG_PRBS_CHK_WIDTH_SEL    (PMA_CH2_REG_PRBS_CHK_WIDTH_SEL      ),//"8BIT" "10BIT" "16BIT" "20BIT"
     .PMA_CH2_REG_RX_SIGDET_VTH         (PMA_CH2_REG_RX_SIGDET_VTH           ),// SIGNAL DETECT VTH SELECT:45MV,54MV,63MV,72MV
     .PMA_CH2_REG_RX_DATAPATH_PD_EN     (PMA_CH2_REG_RX_DATAPATH_PD_EN       ),//TRUE,FALSE;
+    .PMA_CH2_REG_RX_EQ1_OFF            (PMA_CH2_REG_RX_EQ1_OFF              ),//TRUE,FALSE;
+    .PMA_CH2_REG_RX_EQ2_OFF            (PMA_CH2_REG_RX_EQ2_OFF              ),//TRUE,FALSE;
     .PMA_CH3_REG_TX_BUSWIDTH           (PMA_CH3_TXDATA_WIDTH                ),// 8_BIT:2'b00, 10_BIT:2'b01, 16_BIT:2'b10, 20_BIT:2'b11 
     .PMA_CH3_REG_TX_BUSWIDTH_OW        (PMA_CH3_REG_TX_BUSWIDTH_OW          ),// TRUE:PMA_REG_TX_BUSWIDTH is active; FALSE: port pma_tx_buswidth is active
     .PMA_CH3_REG_RX_BUSWIDTH           (PMA_CH3_SIPO_BIT_SETTING            ),// 8_BIT:2'b00, 10_BIT:2'b01, 16_BIT:2'b10, 20_BIT:2'b11    
@@ -2275,6 +2298,8 @@ ipm2l_hsstlp_wrapper_v1_6 #(
     .PMA_CH3_REG_PRBS_CHK_WIDTH_SEL    (PMA_CH3_REG_PRBS_CHK_WIDTH_SEL      ),//"8BIT" "10BIT" "16BIT" "20BIT"
     .PMA_CH3_REG_RX_SIGDET_VTH         (PMA_CH3_REG_RX_SIGDET_VTH           ),// SIGNAL DETECT VTH SELECT:45MV,54MV,63MV,72MV
     .PMA_CH3_REG_RX_DATAPATH_PD_EN     (PMA_CH3_REG_RX_DATAPATH_PD_EN       ),//TRUE,FALSE;
+    .PMA_CH3_REG_RX_EQ1_OFF            (PMA_CH3_REG_RX_EQ1_OFF              ),//TRUE,FALSE;
+    .PMA_CH3_REG_RX_EQ2_OFF            (PMA_CH3_REG_RX_EQ2_OFF              ),//TRUE,FALSE;
     //PLL
     .PMA_PLL0_PARM_PLL_POWERUP         (PMA_PLL0_PARM_PLL_POWERUP           ),// ON: PLL0 enable, OFF: PLL0 disable
     .PMA_PLL0_REG_PLL_LOCKDET_MODE     (PMA_PLL0_REG_PLL_LOCKDET_MODE       ),// lock mode 

@@ -5,8 +5,8 @@
 `timescale 1ns/1ns
 module pgr_uart_top_32bit
 #(
-    parameter CLK_DIV_P     = 16'd72    ,
-    parameter FIFO_D        = 1024      ,
+    parameter CLK_FREQ      = 8'd50        ,
+    parameter FIFO_D        = 16'd1024      ,
     parameter WORD_LEN      = 2'b11     ,
     parameter PARITY_EN     = 1'b0      ,
     parameter PARITY_TYPE   = 1'b0      ,
@@ -26,7 +26,10 @@ module pgr_uart_top_32bit
     input               rx_fifo_rd_data_req,
 
     output              txd,
-    input               rxd
+    input               rxd,
+
+    output              rx_chk_err,
+    output              rx_overrun
 );
 
 wire            clk_en;
@@ -39,11 +42,14 @@ wire            rx_fifo_wr_data_req;
 wire    [7:0]   rx_fifo_wr_data;
 wire            rx_fifo_wr_data_valid;
 
-pgr_clk_gen_32bit u_pgr_clk_gen(
+
+pgr_clk_gen_32bit
+#(
+    .CLK_FREQ                   (CLK_FREQ                       )
+)
+u_pgr_clk_gen(
     .clk                        (clk                            ),
     .rst_n                      (rst_n                          ),
-
-    .clk_div                    (CLK_DIV_P                      ), // 115200 for 50MHz
     .clk_en                     (clk_en                         )
 );
 
@@ -113,8 +119,8 @@ pgr_uart_rx_32bit u_pgr_uart_rx(
     .uart_parity_type           (PARITY_TYPE                    ),
     .uart_mode                  (MODE                           ),
 
-    .rx_chk_err                 (                               ),
-    .rx_overrun                 (                               ),
+    .rx_overrun                 (rx_overrun                     ),
+    .rx_chk_err                 (rx_chk_err                     ),
 
     .rxd_in                     (rxd                            )
 );

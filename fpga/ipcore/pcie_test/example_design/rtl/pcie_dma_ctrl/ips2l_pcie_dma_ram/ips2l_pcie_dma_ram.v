@@ -47,7 +47,7 @@ localparam WR_BYTE_EN = 1 ; // @IPC bool
 
 localparam BYTE_SIZE = 8 ; // @IPC enum 8,9
 
-localparam WR_ADDR_WIDTH = 12 ; // @IPC int 9,20
+localparam WR_ADDR_WIDTH = 10 ; // @IPC int 9,20
 
 localparam WR_DATA_WIDTH = 128 ; // @IPC int 1,1152
 
@@ -57,7 +57,7 @@ localparam WR_CLK_EN = 0 ; // @IPC bool
 
 localparam WR_ADDR_STROBE_EN = 0 ; // @IPC bool
 
-localparam RD_ADDR_WIDTH = 12 ; // @IPC int 9,20
+localparam RD_ADDR_WIDTH = 10 ; // @IPC int 9,20
 
 localparam RD_DATA_WIDTH = 128 ; // @IPC int 1,1152
 

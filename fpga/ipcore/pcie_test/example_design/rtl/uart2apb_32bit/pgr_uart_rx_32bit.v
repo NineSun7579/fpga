@@ -27,9 +27,8 @@ reg     [1:0]   rxd_d;
 reg     [2:0]   rxd_tmp;
 reg             rxd_r1;
 reg             rxd_r2;
-wire            rxd;
+reg             rxd;
 wire            rxd_neg;
-reg             in_cyc;
 reg     [3:0]   rx_cnt;
 reg     [2:0]   cnt;
 reg     [8:0]   rx_data;
@@ -39,8 +38,28 @@ wire    [7:0]   rx_word_revise;
 wire            rx_over;
 wire            rx_chk;
 wire            rx_err;
-wire            rx_sample;
 reg             rx_req;
+reg     [2:0]   cnt_judge;
+wire            cnt_down;
+reg in_cyc;
+
+always @(posedge clk or negedge rst_n)
+begin
+    if(~rst_n)
+        cnt_judge <= 3'b0;
+    else if(clk_en)
+    begin
+        if(cnt_down)
+            cnt_judge <= 3'b0;
+        else
+        begin
+            if(in_cyc)
+            cnt_judge <= cnt_judge + rxd_r2;
+        else
+            cnt_judge <= 3'b0;
+        end
+    end
+end
 
 always @(posedge clk or negedge rst_n)
 begin
@@ -79,8 +98,24 @@ begin
         rxd_r2 <= rxd_r1;
 end
 
-assign rxd = rxd_r2;
-assign rxd_neg = rxd_r2 & ~rxd_r1;
+//assign rxd = rxd_r2;
+
+always@(posedge clk or negedge rst_n)
+begin
+    if(~rst_n)
+        rxd <= 1'b0;
+    else if(cnt_down)
+    begin
+        if(cnt_judge < 3'd3)
+            rxd <= 1'b0;
+        else
+            rxd <= 1'b1;
+    end
+end
+
+assign rxd_neg = rxd_r2 & (~rxd_r1);
+
+reg rx_sample;
 
 always @(posedge clk or negedge rst_n)
 begin
@@ -98,7 +133,7 @@ end
 assign rx_over = rx_cnt == rx_len_left;
 
 assign cnt_down = cnt == 3'd5;
-assign rx_sample = cnt == 3'd2;
+//assign rx_sample = cnt == 3'd2;
 
 always @(posedge clk or negedge rst_n)
 begin
@@ -112,6 +147,19 @@ begin
             cnt <= 3'b0;
         else
             cnt <= cnt + 3'b1;
+    end
+end
+
+always@(posedge clk or negedge rst_n)
+begin
+    if(~rst_n)
+        rx_sample <= 1'b0;
+    else
+    begin
+        if(cnt_down)
+            rx_sample <= 1'b1;
+        else
+            rx_sample <=1'b0;
     end
 end
 
@@ -174,15 +222,15 @@ begin
         rx_req <= 1'b0;
 end
 
-assign rx_fifo_wr_data_req = rx_req && rx_fifo_wr_data_valid && ~rx_err;
+assign rx_fifo_wr_data_req = rx_req && rx_fifo_wr_data_valid && (~rx_err);
 
-assign rx_fifo_wr_data = uart_mode ? rx_word_revise : (rx_word_temp >> (rx_len_left - {2'b00,~uart_parity_en}));
+assign rx_fifo_wr_data = uart_mode ? rx_word_revise : (rx_word_temp >> (rx_len_left - {2'b00,(~uart_parity_en)}));
 
 always @(posedge clk or negedge rst_n)
 begin
     if(~rst_n)
         rx_overrun <= 1'b0;
-    else if(rx_req && ~rx_fifo_wr_data_valid)
+    else if(rx_req && (~rx_fifo_wr_data_valid))
         rx_overrun <= 1'b1;
     else
         rx_overrun <= 1'b0;
@@ -196,7 +244,7 @@ begin
         rx_chk_err <= rx_err;
 end
 
-assign rx_err = uart_parity_en ? rx_chk ^ uart_parity_type : 1'b0;
+assign rx_err = uart_parity_en ? (rx_chk ^ uart_parity_type) : 1'b0;
 assign rx_chk = ^rx_data;
 
 endmodule //pgr_uart_rx

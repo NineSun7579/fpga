@@ -291,7 +291,7 @@ assign rate_done = rate_done_s & ~rate_done_s_r1;
 
 generate
     if(HSST_LANE_NUM == 1)
-    begin
+    begin: PLL_X1
         wire clk_250;
         wire clk_125;
         wire clk_62_5;

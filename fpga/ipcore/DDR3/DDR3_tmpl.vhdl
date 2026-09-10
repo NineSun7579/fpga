@@ -6,7 +6,7 @@
 --   * Change the net names in the port map.
 
 
-COMPONENT DDR3
+COMPONENT ddr3
   PORT (
     resetn : IN STD_LOGIC;
     core_clk : OUT STD_LOGIC;
@@ -97,7 +97,7 @@ COMPONENT DDR3
 END COMPONENT;
 
 
-the_instance_name : DDR3
+the_instance_name : ddr3
   PORT MAP (
     resetn => resetn,
     core_clk => core_clk,

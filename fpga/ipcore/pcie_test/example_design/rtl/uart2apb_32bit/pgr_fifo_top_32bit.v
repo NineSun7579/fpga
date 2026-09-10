@@ -5,7 +5,7 @@
 `timescale 1ns/1ns
 module pgr_fifo_top_32bit
 #(
-    parameter D = 1024
+    parameter D = 16'd1024
 )
 (
     input               clk,
@@ -20,31 +20,24 @@ module pgr_fifo_top_32bit
     output              rd_valid
 );
 
-localparam DEVICE = "PG30"; //"PG30" "MAX10"
+pgr_prefetch_fifo
+#(
+    .D                  (D                  ), //should be 2^N
+    .W                  (8                  ),
+    .TYPE               ("Distributed"      )  // "Distributed" or "DRM"
+)
+u_prefetch_fifo(
+    .clk                (clk                ),
+    .rst_n              (rst_n              ),
 
-generate
-if(DEVICE == "PG30")
-begin:FIFO_PG30
-    pgr_prefetch_fifo
-    #(
-        .D                  (D                  ), //should be 2^N
-        .W                  (8                  ),
-        .TYPE               ("Distributed"              )  // "Distributed" or "DRM"
-    )
-    u_prefetch_fifo(
-        .clk                (clk                ),
-        .rst_n              (rst_n              ),
+    .data_in_valid      (wr_req             ),
+    .data_in            (wr_data            ),
+    .data_in_ready      (wr_ready           ),
 
-        .data_in_valid      (wr_req             ),
-        .data_in            (wr_data            ),
-        .data_in_ready      (wr_ready           ),
-
-        .data_out_ready     (rd_req             ),
-        .data_out           (rd_data            ),
-        .data_out_valid     (rd_valid           )
-    );
-end
-endgenerate
+    .data_out_ready     (rd_req             ),
+    .data_out           (rd_data            ),
+    .data_out_valid     (rd_valid           )
+);
 
 endmodule //fifo
 

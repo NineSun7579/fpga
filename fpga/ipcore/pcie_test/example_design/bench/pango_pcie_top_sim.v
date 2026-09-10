@@ -253,22 +253,33 @@ end
 
 
 //----------------------------------------------------------uart2apb ----------------------------------------------------------
-pgr_uart2apb_top_32bit #(
-    .CLK_DIV_P              (16'd145            )
-)
-u_uart2apb_top(
-    .clk                    (ref_clk            ),
-    .rst_n                  (ref_core_rst_n     ),
-    .txd                    (txd                ),
-    .rxd                    (rxd                ),
-    .p_sel                  (uart_p_sel         ),
-    .p_strb                 (uart_p_strb        ),
-    .p_addr                 (uart_p_addr        ),
-    .p_wdata                (uart_p_wdata       ),
-    .p_ce                   (uart_p_ce          ),
-    .p_we                   (uart_p_we          ),
-    .p_rdy                  (uart_p_rdy         ),
-    .p_rdata                (uart_p_rdata       )
+pgr_uart2apb_top_32bit u_uart2apb_top(
+    .i_clk        (ref_clk            ), // input
+    .i_rst_n      (ref_core_rst_n     ), // input
+    //apb enable
+    .o_p_sel      (uart_p_sel         ), // output
+    .o_p_strb     (uart_p_strb        ), // output  [SW-1:0]
+    .o_p_addr     (uart_p_addr        ), // output  [AW-1:0]
+    .o_p_wdata    (uart_p_wdata       ), // output  [DW-1:0]
+    .o_p_enable   (uart_p_ce          ), // output
+    .o_p_we       (uart_p_we          ), // output
+    .i_p_ready    (uart_p_rdy         ), // input
+    .i_p_rdata    (uart_p_rdata       ), // input   [DW-1:0]
+    .i_apb_en     (1'b1               ), // input
+    .i_strb_en    (1'b1               ), // input
+    //uart
+    .o_uart_txd   (txd                ), // output
+    .i_uart_rxd   (rxd                ), // input
+    //just for debug
+    .rx_overrun   (                   ), // output
+    .rx_chk_err   (                   ), // output
+    //apb bypass
+    .o_uart_txvld (                   ), // output
+    .i_uart_txreq (1'd0               ), // input
+    .i_uart_txdata(8'd0               ), // input   [7:0]
+    .i_uart_rxreq (1'd0               ), // input
+    .o_uart_rxdata(                   ), // output  [7:0]
+    .o_uart_rxvld (                   )  // output
 );
 
 //----------------------------------------------------------apb mux----------------------------------------------------------
@@ -440,7 +451,7 @@ endgenerate
 
 //----------------------------------------------------------   pcie wrap  ----------------------------------------------------------
 //pcie wrap : HSSTLP : 0x0000~6000 PCIe BASE ADDR : 0x7000
-ips2l_pcie_wrap_v1_2c_sim
+ips2l_pcie_wrap_v1_8_sim
 
 #(
     .APP_DEV_NUM                (APP_DEV_NUM            ),      // set device_number
@@ -476,9 +487,11 @@ u_ips2l_pcie_wrap
     .rxp                        (rxp                    ),      //input   [3:0]
     .txn                        (txn                    ),      //output  [3:0]
     .txp                        (txp                    ),      //output  [3:0]
-    .pcs_nearend_loop           ({4{1'b0}}              ),      //input
-    .pma_nearend_ploop          ({4{1'b0}}              ),      //input
-    .pma_nearend_sloop          ({4{1'b0}}              ),      //input
+    
+    .pcs_nearend_loop           ({2{1'b0}}              ),      //input
+    .pma_nearend_ploop          ({2{1'b0}}              ),      //input
+    .pma_nearend_sloop          ({2{1'b0}}              ),      //input
+    
     //AXIS master interface
     .axis_master_tvalid         (axis_master_tvalid     ),      //output
     .axis_master_tready         (axis_master_tready     ),      //input
@@ -508,6 +521,15 @@ u_ips2l_pcie_wrap
     .axis_slave2_tuser          (axis_slave2_tuser      ),      //input
      
     .pm_xtlh_block_tlp          (                       ),      //output
+    
+    //msi
+    .ven_msi_vector             (5'b0                   ),      //input   [4:0]
+    .cfg_msi_pending            (32'b0                  ),      //input   [(32*1)-1:0]
+    .cfg_msi_en                 (                       ),      //output
+    
+    .ven_msi_req                (1'b0                   ),      //input
+    .ven_msi_tc                 (3'b0                   ),      //input   [2:0]
+    .ven_msi_grant              (                       ),      //output
     
     .cfg_send_cor_err_mux       (                       ),      //output
     .cfg_send_nf_err_mux        (                       ),      //output
