@@ -284,7 +284,7 @@ assign compl_status     = 3'b0;
 assign bcm              = 1'b0;
 assign byte_cnt         = {cpld_length,2'b0};
 //third DW
-assign low_addr         = is_first_cpl ? {cpld_addr[4:0],2'b0} : 7'b0;
+assign low_addr         = is_first_cpl ? {cpld_addr[6:2],2'b0} : 7'b0;
 assign cpld_header_tx   = {fmt,tlp_type,1'b0,tc,1'b0,attr[2],1'b0,th,td,ep,attr[1:0],at,cpld_length_tx};
 
 //mwr_tx

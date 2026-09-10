@@ -15,7 +15,7 @@
 module ips2l_pcie_dma #(
     parameter                           DEVICE_TYPE = 3'd0      ,   //3'd0:EP,3'd1:Legacy EP,3'd4:RC
     parameter   integer                 AXIS_SLAVE_NUM = 3      ,
-    parameter                           ADDR_WIDTH  = 4'd12
+    parameter                           ADDR_WIDTH  = 4'd10
 
 )(
     input                               clk                     ,            //gen1:62.5MHz,gen2:125MHz
@@ -163,6 +163,50 @@ wire        [63:0]              dma_check_result;
 //                    dbg_bus_mrd_tx, //86:43
 //                    dbg_bus_rx_ctrl //42:0
 //                    };
+wire        [7:0]               cfg_pbus_num;
+wire        [4:0]               cfg_pbus_dev_num;
+wire        [2:0]               cfg_max_rd_req_size_reg;
+wire        [2:0]               cfg_max_payload_size_reg;
+ips2l_pcie_reg #(
+    .SIG_WIDTH                  (4'd8                       )
+)
+u_cfg_pbus_num_reg
+(
+    .clk                        (clk                        ),
+    .sig                        (i_cfg_pbus_num             ),
+    .sig_reg                    (cfg_pbus_num               )
+);
+
+ips2l_pcie_reg #(
+    .SIG_WIDTH                  (3'd5                       )
+)
+u_cfg_pbus_dev_num_reg
+(
+    .clk                        (clk                        ),
+    .sig                        (i_cfg_pbus_dev_num         ),
+    .sig_reg                    (cfg_pbus_dev_num           )
+);
+
+ips2l_pcie_reg #(
+    .SIG_WIDTH                  (2'd3                       )
+)
+u_max_rd_req_size_reg
+(
+    .clk                        (clk                        ),
+    .sig                        (i_cfg_max_rd_req_size      ),
+    .sig_reg                    (cfg_max_rd_req_size_reg    )
+);
+
+ips2l_pcie_reg #(
+    .SIG_WIDTH                  (2'd3                       )
+)
+u_max_payload_size_reg
+(
+    .clk                        (clk                        ),
+    .sig                        (i_cfg_max_payload_size     ),
+    .sig_reg                    (cfg_max_payload_size_reg   )
+);
+
 
 ips2l_pcie_dma_rx_top #(
     .DEVICE_TYPE                (DEVICE_TYPE                ),  //3'd0:EP,3'd1:Legacy EP,3'd4:RC
@@ -172,7 +216,7 @@ u_ips2l_pcie_dma_rx_top
 (
     .clk                        (clk                        ),  //gen1:62.5MHz,gen2:125MHz
     .rst_n                      (rst_n                      ),
-    .i_cfg_max_rd_req_size      (i_cfg_max_rd_req_size      ),  //input [2:0]
+    .i_cfg_max_rd_req_size      (cfg_max_rd_req_size_reg    ),  //input [2:0]
     //**********************************************************************
     //axis master interface
     .i_axis_master_tvld         (i_axis_master_tvld         ),
@@ -278,10 +322,10 @@ u_ips2l_pcie_dma_tx_top
 (
     .clk                        (clk                        ),  //gen1:62.5MHz,gen2:125MHz
     .rst_n                      (rst_n                      ),
-    .i_cfg_pbus_num             (i_cfg_pbus_num             ),  //input [7:0]
-    .i_cfg_pbus_dev_num         (i_cfg_pbus_dev_num         ),  //input [4:0]
-    .i_cfg_max_rd_req_size      (i_cfg_max_rd_req_size      ),  //input [2:0]
-    .i_cfg_max_payload_size     (i_cfg_max_payload_size     ),  //input [2:0]
+    .i_cfg_pbus_num             (cfg_pbus_num               ),  //input [7:0]
+    .i_cfg_pbus_dev_num         (cfg_pbus_dev_num           ),  //input [4:0]
+    .i_cfg_max_rd_req_size      (cfg_max_rd_req_size_reg    ),  //input [2:0]
+    .i_cfg_max_payload_size     (cfg_max_payload_size_reg   ),  //input [2:0]
     //**********************************************************************
     //axis_slave0 interface
     .i_axis_slave0_trdy         (dma_axis_slave0_trdy       ),

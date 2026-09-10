@@ -743,7 +743,7 @@ begin
    else if ( cnt >= TH_1S )
       heart_beat_led <= ~heart_beat_led;
 end
-DDR3 #(
+ddr3 #(
     .MEM_ROW_WIDTH              (MEM_ROW_WIDTH                ),
     .MEM_COLUMN_WIDTH           (MEM_COLUMN_WIDTH             ),
     .MEM_BANK_WIDTH             (MEM_BANK_WIDTH               ),

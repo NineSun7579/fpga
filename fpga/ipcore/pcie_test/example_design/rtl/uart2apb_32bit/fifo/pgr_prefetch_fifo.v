@@ -50,7 +50,7 @@ assign rst = ~rst_n;
 
 //
 localparam DEPTH = (D < 16) ? 16 : D;
-assign rd_en = ~empty & (~data_out_valid | data_out_ready);
+assign rd_en = ~empty & data_out_ready;
 assign data_out_valid = fifo_vld;
 always@(posedge clk or negedge rst_n)
 begin
@@ -58,7 +58,7 @@ begin
         fifo_vld <= 1'b0;
     else if (rd_en)
         fifo_vld <= 1'b1;
-    else if (data_out_ready)
+    else
         fifo_vld <= 1'b0;
 end
 

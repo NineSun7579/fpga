@@ -57,6 +57,12 @@ COMPONENT pcie_test
     axis_slave2_tlast : IN STD_LOGIC;
     axis_slave2_tuser : IN STD_LOGIC;
     pm_xtlh_block_tlp : OUT STD_LOGIC;
+    ven_msi_req : IN STD_LOGIC;
+    ven_msi_tc : IN STD_LOGIC_VECTOR(2 DOWNTO 0);
+    ven_msi_vector : IN STD_LOGIC_VECTOR(4 DOWNTO 0);
+    ven_msi_grant : OUT STD_LOGIC;
+    cfg_msi_pending : IN STD_LOGIC_VECTOR(31 DOWNTO 0);
+    cfg_msi_en : OUT STD_LOGIC;
     cfg_send_cor_err_mux : OUT STD_LOGIC;
     cfg_send_nf_err_mux : OUT STD_LOGIC;
     cfg_send_f_err_mux : OUT STD_LOGIC;
@@ -145,6 +151,12 @@ the_instance_name : pcie_test
     axis_slave2_tlast => axis_slave2_tlast,
     axis_slave2_tuser => axis_slave2_tuser,
     pm_xtlh_block_tlp => pm_xtlh_block_tlp,
+    ven_msi_req => ven_msi_req,
+    ven_msi_tc => ven_msi_tc,
+    ven_msi_vector => ven_msi_vector,
+    ven_msi_grant => ven_msi_grant,
+    cfg_msi_pending => cfg_msi_pending,
+    cfg_msi_en => cfg_msi_en,
     cfg_send_cor_err_mux => cfg_send_cor_err_mux,
     cfg_send_nf_err_mux => cfg_send_nf_err_mux,
     cfg_send_f_err_mux => cfg_send_f_err_mux,

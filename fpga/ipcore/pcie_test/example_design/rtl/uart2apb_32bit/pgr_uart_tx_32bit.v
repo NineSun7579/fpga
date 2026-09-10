@@ -105,7 +105,7 @@ end
 endgenerate     //MSBF 2 LSBF
 
 assign tx_data_temp = uart_mode ? (tx_data_revise >> (3 - uart_word_len)) : tx_data;
-assign tx_parity = uart_parity_en ? (uart_parity_type ? ~(^tx_data_purn) : ^tx_data_purn) : 1'b1;
+assign tx_parity = uart_parity_en ? (uart_parity_type ? (~(^tx_data_purn)) : (^tx_data_purn)) : 1'b1;
 
 always @(*)
 begin
@@ -145,8 +145,20 @@ begin
         2'b00 : tx_frame = {6'h3f,tx_parity,tx_data_temp[4:0],1'b0};
         2'b01 : tx_frame = {5'h1f,tx_parity,tx_data_temp[5:0],1'b0};
         2'b10 : tx_frame = {4'hf,tx_parity,tx_data_temp[6:0],1'b0};
-        2'b11 : tx_frame = {3'h7,tx_parity,tx_data_temp,1'b0};
+        2'b11 : tx_frame = {2'h3,tx_parity,tx_data_temp,1'b0};
     endcase
+end
+
+reg valid_temp;
+
+always@(posedge clk or negedge rst_n)
+begin
+   if(~rst_n)
+        valid_temp <= 1'b0;
+   else if(tx_fifo_rd_data_valid)
+        valid_temp <= 1'b1;
+    else if(tx_over && clken)
+        valid_temp <= 1'b0;
 end
 
 always @(posedge clk or negedge rst_n)
@@ -161,9 +173,9 @@ begin
     begin
         if(tx_over)
         begin
-            shift_reg <= tx_fifo_rd_data_valid ? tx_frame : 12'hfff;
+            shift_reg <= valid_temp ? tx_frame : 12'hfff;
             tx_cnt <= 4'b0;
-            tx_req <= tx_fifo_rd_data_valid;
+            tx_req <= 1;
         end
         else //if(in_cyc)
         begin

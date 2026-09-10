@@ -1,0 +1,23 @@
+== 1. 生成 golden (640x360, directed) ==
+图像 640x360 case=directed seed=7
+色化命中: gray=183904 red=18335 yellow=10533 green=17628
+边缘像素: 144983/228404
+golden 输出 -> C:\Users\NineSun\Desktop\ov56401\sim\preprocess\golden
+== 2. 编译 ==
+== 3. 回归 ==
+--- tb_rgb2gray gray ---
+>>> PASS: tb_rgb2gray gray
+--- tb_colorize color ---
+>>> PASS: tb_colorize color
+--- tb_sobel_edge sobel ---
+>>> PASS: tb_sobel_edge sobel
+--- tb_preprocess_top mode0 ---
+>>> FAIL: tb_preprocess_top mode0 (见 log_tb_preprocess_top_mode0.txt)
+--- tb_preprocess_top bypass ---
+>>> PASS: tb_preprocess_top bypass
+--- tb_button_debounce btn ---
+>>> PASS: tb_button_debounce btn
+--- tb_prep_regs regs ---
+>>> PASS: tb_prep_regs regs
+== 回归结果: PASS=6 FAIL=1 ==
+存在失败 ✗

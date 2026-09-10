@@ -9,7 +9,7 @@
 //History: v1.0
 ////////////////////////////////////////////////////////////////
 `timescale 1ns/1ps
-module  DDR3_ddrphy_top  #(
+module  ddr3_ddrphy_top  #(
 
   parameter         MEM_TYPE     =  "DDR3"   ,
  
@@ -185,7 +185,7 @@ localparam [0:0] DDR3_DLL      = 1'b1;
 localparam [0:0] DDR3_TM       = 1'b0;
 localparam [0:0] DDR3_RBT      = 1'b0;
 
-localparam [3:0] DDR3_CL       = 4'd6;
+localparam [3:0] DDR3_CL       = 4'd4;
 
 localparam [1:0] DDR3_BL       = 2'b00;
 localparam [15:0] MR0_DDR3     = {3'b000, DDR3_PPD, DDR3_WR, DDR3_DLL, DDR3_TM, DDR3_CL[3:1], DDR3_RBT, DDR3_CL[0], DDR3_BL};
@@ -208,7 +208,7 @@ localparam [1:0] DDR3_RTT_WR   = 2'b00;
 localparam [0:0] DDR3_SRT      = 1'b0;
 localparam [0:0] DDR3_ASR      = 1'b0;
 
-localparam [2:0] DDR3_CWL      = 6 - 5;
+localparam [2:0] DDR3_CWL      = 5 - 5;
 
 localparam [2:0] DDR3_PASR     = 3'b000;
 localparam [15:0] MR2_DDR3     = {5'b00000, DDR3_RTT_WR, 1'b0, DDR3_SRT, DDR3_ASR, DDR3_CWL, DDR3_PASR};
@@ -799,7 +799,7 @@ ips2l_rst_sync_v1_3 #(
     .sig_synced                 (wrcal_position_dyn_adj_syn   )
 );
 
- DDR3_slice_top_v1_10 #(
+ ddr3_slice_top_v1_10 #(
     .CLKIN_FREQ                 (CLKIN_FREQ                   ), 
     .PPLL_BANDWIDTH             (PPLL_BANDWIDTH               ),
     .DDR_TYPE                   (DDR_TYPE                     ),

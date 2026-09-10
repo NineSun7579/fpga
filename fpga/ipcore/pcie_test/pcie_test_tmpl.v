@@ -56,6 +56,12 @@ pcie_test the_instance_name (
   .axis_slave2_tlast(axis_slave2_tlast),                    // input
   .axis_slave2_tuser(axis_slave2_tuser),                    // input
   .pm_xtlh_block_tlp(pm_xtlh_block_tlp),                    // output
+  .ven_msi_req(ven_msi_req),                                // input
+  .ven_msi_tc(ven_msi_tc),                                  // input [2:0]
+  .ven_msi_vector(ven_msi_vector),                          // input [4:0]
+  .ven_msi_grant(ven_msi_grant),                            // output
+  .cfg_msi_pending(cfg_msi_pending),                        // input [31:0]
+  .cfg_msi_en(cfg_msi_en),                                  // output
   .cfg_send_cor_err_mux(cfg_send_cor_err_mux),              // output
   .cfg_send_nf_err_mux(cfg_send_nf_err_mux),                // output
   .cfg_send_f_err_mux(cfg_send_f_err_mux),                  // output

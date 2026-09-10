@@ -540,7 +540,7 @@ always@(posedge clk or negedge rst_n)
 begin
     if(!rst_n)
         o_apb_prdy <= 1'b0;
-    else if(i_apb_psel && ~i_apb_penable && !o_apb_prdy)
+    else if(i_apb_psel && i_apb_penable && !o_apb_prdy)
         o_apb_prdy <= 1'b1;
     else
         o_apb_prdy <= 1'b0;

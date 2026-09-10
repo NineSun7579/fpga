@@ -1,6 +1,6 @@
 --/example_design                       //设计实例包含的文件
   -- /bench                             //_top.v和_top_tb.v
-     -- ips2l_pcie_wrap_v1_2c_sim.v     //用于仿真对接的IP顶层文件，包含一个用于对接的PCIe IP块
+     -- ips2l_pcie_wrap_v1_8_sim.v      //用于仿真对接的IP顶层文件，包含一个用于对接的PCIe IP块
      -- pango_pcie_top.v                //PCIe IP Example Design顶层文件，包含pcie IP和其他外围模块
      -- pango_pcie_top_sim.v            //用于仿真对接的PCIe IP Example Design顶层文件，包含仿真对接的PCIe IP和其他外围模块
      -- pango_pcie_top_tb.v             //PCIe IP Example Design顶层仿真文件，为PCIe IP Example Design顶层文件提供时钟驱动和配置
@@ -22,12 +22,12 @@
   -- /ips2l_pcie_apb_cross_v1_0.v       //APB接口跨时钟域模块
   -- /ips2l_pcie_apb_mux_v1_0.v         //APB接口片选模块
   -- /ips2l_apb2dbi_v1_1.v              //APB接口转DBI接口模块
-  -- /ips2l_pcie_cfg_init_v1_2b.v       //PCIe配置空间寄存器初始化模块
-  -- /ips2l_pcie_hard_ctrl_v1_2b.v      //Pango PCIe模块
+  -- /ips2l_pcie_cfg_init_v1_7.v        //PCIe配置空间寄存器初始化模块
+  -- /ips2l_pcie_hard_ctrl_v1_8.v       //Pango PCIe模块
   -- /ips2l_pcie_pll_v1_0.v             //PCIe pll模块
   -- /ips2l_pcie_seio_intf_v1_2.v       //SEIO接口处理模块
-  -- /ips2l_pcie_soft_phy_v1_2c.v       //Pango Soft Phy模块
-  -- /ips2l_pcie_top_v1_2c.v            //Pango PCIe IP顶层文件
+  -- /ips2l_pcie_soft_phy_v1_3.v        //Pango Soft Phy模块
+  -- /ips2l_pcie_top_v1_8.v             //Pango PCIe IP顶层文件
   $instname.v                           //用户例化的PCIe IP封装文件
 --/sim                                  //simulation目录
   -- /example_design                    //仿真运行的.do文件及filelist

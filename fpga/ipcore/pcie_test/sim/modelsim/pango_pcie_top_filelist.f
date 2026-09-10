@@ -1,7 +1,6 @@
-+define+IPS2L_PCIE_SPEEDUP_SIM
-+define+IPM_HSST_SPEEDUP_SIM
-+define+DWC_DISABLE_CDC_METHOD_REPORTING
-//+define+RAM_OUTPUT_MUX_DISABLE
++incdir+../../rtl/external_ram/rcv_data_ram/rtl
++incdir+../../rtl/external_ram/rcv_header_ram/rtl
++incdir+../../rtl/external_ram/retry_data_ram/rtl
 ../../rtl/external_ram/rcv_data_ram/rtl/ipm2l_sdpram_v1_0_rcv_data_ram.v
 ../../rtl/external_ram/rcv_header_ram/rtl/ipm2l_sdpram_v1_0_rcv_header_ram.v
 ../../rtl/external_ram/retry_data_ram/rtl/ipm2l_spram_v1_0_retry_data_ram.v
@@ -41,13 +40,13 @@
 ../../rtl/hsst_pipe/hsstl_rst4mcrsw_v1_0.v
 ../../rtl/hsst_pipe/ips_hsst_rst_sync_v1_0.v
 
-../../rtl/ips2l_pcie_hard_ctrl_v1_2b.v
+../../rtl/ips2l_pcie_hard_ctrl_v1_8.v
 ../../rtl/ips2l_pcie_apb_cross_v1_0.v
 ../../rtl/ips2l_pcie_apb_mux_v1_0.v
 ../../rtl/ips2l_pcie_apb2dbi_v1_1.v
-../../rtl/ips2l_pcie_soft_phy_v1_2c.v
-../../rtl/ips2l_pcie_cfg_init_v1_2b.v
-../../rtl/ips2l_pcie_top_v1_2c.v
+../../rtl/ips2l_pcie_soft_phy_v1_3.v
+../../rtl/ips2l_pcie_cfg_init_v1_7.v
+../../rtl/ips2l_pcie_top_v1_8.v
 ../../rtl/ips2l_pcie_pll_v1_0.v
 ../../rtl/ips2l_pcie_seio_intf_v1_2.v
 
@@ -57,7 +56,7 @@
 ../../example_design/bench/pango_pcie_top_tb.v
 ../../example_design/bench/pango_pcie_top.v
 ../../example_design/bench/pango_pcie_top_sim.v
-../../example_design/bench/ips2l_pcie_wrap_v1_2c_sim.v
+../../example_design/bench/ips2l_pcie_wrap_v1_8_sim.v
 
 ../../example_design/rtl/uart2apb_32bit/pgr_apb_ctr_32bit.v
 ../../example_design/rtl/uart2apb_32bit/pgr_apb_mif_32bit.v
@@ -68,6 +67,7 @@
 ../../example_design/rtl/uart2apb_32bit/pgr_uart_rx_32bit.v
 ../../example_design/rtl/uart2apb_32bit/pgr_uart_top_32bit.v
 ../../example_design/rtl/uart2apb_32bit/pgr_uart_tx_32bit.v
+../../example_design/rtl/uart2apb_32bit/rstn_sync_32bit.v
 ../../example_design/rtl/uart2apb_32bit/fifo/pgm_distributed_fifo_ctr_v1_0.v
 ../../example_design/rtl/uart2apb_32bit/fifo/pgm_distributed_fifo_v1_1.v
 ../../example_design/rtl/uart2apb_32bit/fifo/pgm_distributed_sdpram_v1_1.v
@@ -95,11 +95,13 @@
 ../../example_design/rtl/pcie_dma_ctrl/ips2l_pcie_dma_tx_mwr_rd_ctrl.v
 ../../example_design/rtl/pcie_dma_ctrl/ips2l_pcie_dma_rd_ctrl.v
 ../../example_design/rtl/pcie_dma_ctrl/pgs_pciex4_prefetch_fifo_v1_2.v
+../../example_design/rtl/pcie_dma_ctrl/ips2l_pcie_reg.v
 ../../example_design/rtl/pcie_dma_ctrl/fifo/pgs_pciex4_fifo_v1_2.v
 ../../example_design/rtl/pcie_dma_ctrl/fifo/pgs_pciex4_fifo_ctrl.v
 ../../example_design/rtl/pcie_dma_ctrl/fifo/ipm_distributed_sdpram_v1_2_distributed_fifo.v
 
 //dma_ram
++incdir+../../example_design/rtl/pcie_dma_ctrl/ips2l_pcie_dma_ram/rtl
 ../../example_design/rtl/pcie_dma_ctrl/ipm_distributed_sdpram_v1_2.v
 ../../example_design/rtl/pcie_dma_ctrl/ips2l_pcie_dma_ram/ips2l_pcie_dma_ram.v
 ../../example_design/rtl/pcie_dma_ctrl/ips2l_pcie_dma_ram/rtl/ipm2l_sdpram_v1_1_ips2l_pcie_dma_ram.v
