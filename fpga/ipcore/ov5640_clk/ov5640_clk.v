@@ -36,9 +36,9 @@ module ov5640_clk (
     
     localparam integer STATIC_RATIOI    = 1; //@IPC int 1,80
     
-    localparam integer STATIC_RATIOM    = 2; //@IPC int 1,128 
+    localparam integer STATIC_RATIOM    = 2; //@IPC int 1,128 [48M 2026-09-13] clkin=25MHz F=48 M=2 -> VCO=2400MHz 
     
-    localparam real    STATIC_RATIO0    = 24.0; //@IPC int 1.0000,128.0000 
+    localparam real    STATIC_RATIO0    = 24.0; //@IPC int 1.0000,128.0000 [48M-REVERT] clkout0=1200/24/2=25MHz 
         
     localparam integer STATIC_RATIO1    = 8; //@IPC int 1,128 
     
@@ -52,11 +52,11 @@ module ov5640_clk (
     
     localparam integer STATIC_RATIO6    = 24; //@IPC int 1,128 
     
-    localparam real    STATIC_RATIOF    = 24.0; //@IPC int 1.0000,128.0000 
+    localparam real    STATIC_RATIOF    = 24.0; //@IPC int 1.0000,128.0000 [48M-REVERT] VCO=25*24*2=1200MHz proven 
         
     localparam integer STATIC_RATIOPHY  = 1; //@IPC int 1,128 
     
-    localparam integer STATIC_DUTY0     = 24; //@IPC int 2,255
+    localparam integer STATIC_DUTY0     = 24; //@IPC int 2,255 [48M-REVERT] 50pct
     
     localparam integer STATIC_DUTY1     = 8; //@IPC int 2,255
     

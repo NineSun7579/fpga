@@ -1,0 +1,3 @@
+cfg_help cfg_set_cable_property
+cfg_help cfg_jtag_flash_scan_device
+cfg_help cfg_set_options

@@ -2,10 +2,10 @@
 ###================================  Clocks ========================================###
     ###==== OV5640 Clocks
     create_clock -name {free_clk} [get_ports {free_clk}] -period {40.000} -waveform {0.000 20.000}
-    create_generated_clock -name {clk_50m} -source [get_ports {free_clk}] [get_nets {ov5640_clk.clkout0}] -master_clock [get_clocks {free_clk}] -multiply_by {2} -divide_by {1}
-    create_generated_clock -name {clk_150m} -source [get_ports {free_clk}] [get_nets {ov5640_clk.clkout1}] -master_clock [get_clocks {free_clk}] -multiply_by {6} -divide_by {1}
-    create_generated_clock -name {clk_10m} -source [get_ports {free_clk}] [get_nets {ov5640_clk.clkout2}] -master_clock [get_clocks {free_clk}] -multiply_by {2} -divide_by {5}
-    create_generated_clock -name {npu_clk_gated} -source [get_pins {npu_cdc_top.u_bufgce_npu.CLKIN}] [get_pins {npu_cdc_top.u_bufgce_npu.CLKOUT}] -master_clock [get_clocks {clk_150m}] -add
+    # [CLKFIX]  -source [get_ports {free_clk}] [get_nets {ov5640_clk.clkout0}] -master_clock [get_clocks {free_clk}]
+    # [CLKFIX]  -source [get_ports {free_clk}] [get_nets {ov5640_clk.clkout1}] -master_clock [get_clocks {free_clk}] -multiply_by {6} -divide_by {1}
+    # [CLKFIX]  -source [get_ports {free_clk}] [get_nets {ov5640_clk.clkout2}] -master_clock [get_clocks {free_clk}] -multiply_by {2} -divide_by {5}
+    # [NO_NPU 2026-09-12] create_generated_clock -name {npu_clk_gated} -source [get_pins {npu_cdc_top.u_bufgce_npu.CLKIN}] [get_pins {npu_cdc_top.u_bufgce_npu.CLKOUT}] -master_clock [get_clocks {clk_150m}] -add
 
     create_clock -name {cmos1_pclk} [get_ports {cmos1_pclk}] -period {13.158} -waveform {0.000 6.579}
     #create_clock -name {cmos2_pclk} [get_ports {cmos2_pclk}] -period {11.900} -waveform {0.000 5.950}
@@ -44,10 +44,10 @@
 
 ###================================ ASYNCHRONOUS Clocks ========================================###
     ###==== OV5640 Clocks
-    set_clock_groups -name clk_50m -asynchronous -group [get_clocks {clk_50m}]
-    set_clock_groups -name clk_150m -asynchronous -group [get_clocks {clk_150m}]
-    set_clock_groups -name npu_clk_gated -asynchronous -group [get_clocks {npu_clk_gated}]
-    set_clock_groups -name clk_10m -asynchronous -group [get_clocks {clk_10m}]
+    # [CLKFIX]  -asynchronous -group [get_clocks {clk_50m}]
+    # [CLKFIX]  -asynchronous -group [get_clocks {clk_150m}]
+    # [NO_NPU 2026-09-12] set_clock_groups -name npu_clk_gated -asynchronous -group [get_clocks {npu_clk_gated}]
+    # [CLKFIX]  -asynchronous -group [get_clocks {clk_10m}]
 
     set_clock_groups -name cmos1_pclk -asynchronous -group [get_clocks cmos1_pclk]
     #set_clock_groups -name cmos2_pclk -asynchronous -group [get_clocks {cmos2_pclk}]

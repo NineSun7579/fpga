@@ -4,7 +4,7 @@ module ov5640 #(
     //I2C
     parameter   SLAVE_ADDR = 7'h3c   ,  //I2C从机地址
     parameter   BIT_CTRL   = 1'b1           , //OV5640的字节地址为16位  0:8位 1:16位
-    parameter   CLK_FREQ   = 26'd50_000_000, //模块输入的时钟频率
+    parameter   CLK_FREQ   = 26'd25_000_000, //[CLKFIX] clk_50m = free_clk 25MHz, //模块输入的时钟频率
     parameter   I2C_FREQ   = 18'd250_000,    //IIC_SCL的时钟频率
 
     //摄像
@@ -36,7 +36,10 @@ module ov5640 #(
     output                     video_vsync        /*synthesis PAP_MARK_DEBUG="1"*/,  //帧有效信号    
     output                     video_hsync        /*synthesis PAP_MARK_DEBUG="1"*/,  //行有效信号  //没用
     output                     video_valid        /*synthesis PAP_MARK_DEBUG="1"*/,  //8bit转16bit数据有效使能信号
-    output [DATA_WIDTH-1:0]    video_data         /*synthesis PAP_MARK_DEBUG="1"*/   //有效数据   
+    output [DATA_WIDTH-1:0]    video_data         /*synthesis PAP_MARK_DEBUG="1"*/,  //有效数据
+    output reg [31:0]         dbg_i2c_status     ,  //[31:16]NACK ops [15:8]ID_H [7:0]ID_L
+    output reg [31:0]         dbg_pclk_cnt          ,//free-running pclk counter
+    output reg [31:0]         dbg_sys_status        //[31:16]exec_cnt [5]sda [4]scl [1]lock [0]rst_n
 
     // //用户接口                              
     // output                      cmos_frame_vsync ,  //帧有效信号    
@@ -94,6 +97,7 @@ wire            i2c_exec        ;   //I2C触发信号
 wire   [23:0]   i2c_data        ;   //I2C写地址+数据
 wire            i2c_rh_wl       ;   //I2C读写控制信号
 wire            cam_init_done   ;   //摄像头出初始化完成信号 
+wire            i2c_ack         ;   //[DBG] 0:acked 1:nacked摄像头出初始化完成信号 
 
 
 
@@ -119,7 +123,7 @@ i2c_dri(
     .i2c_data_w (i2c_data[7:0]),  //I2C要写的数据
     .i2c_data_r (i2c_data_r),  //I2C读出的数据
     .i2c_done   (i2c_done  ),  //I2C一次操作完成
-    .i2c_ack    (),            //I2C应答标志 0:应答 1:未应答
+    .i2c_ack    (i2c_ack)     ,            //I2C应答标志 0:应答 1:未应答
     .scl        (cam_scl   ),  //I2C的SCL时钟信号
     .sda        (cam_sda   ),  //I2C的SDA信号
                                        
@@ -160,6 +164,36 @@ ov5640_i2c_rgb565_cfg(
 //     cam_data_r  <= cam_data;
 // end
 
+
+// [DBG] SCCB health: latch first two read bytes (OV5640 ID 0x56,0x40) + NACK op count
+reg [3:0] dbg_rd_cnt;
+always @(posedge dri_clk or negedge rst_n) begin
+    if(!rst_n) begin
+        dbg_rd_cnt     <= 4'd0;
+        dbg_i2c_status <= 32'd0;
+    end
+    else if(i2c_done) begin
+        if(i2c_ack) dbg_i2c_status[31:16] <= dbg_i2c_status[31:16] + 16'd1;
+        if(i2c_rh_wl && (dbg_rd_cnt < 4'd2)) begin
+            dbg_rd_cnt <= dbg_rd_cnt + 4'd1;
+            if(dbg_rd_cnt == 4'd0) dbg_i2c_status[15:8] <= i2c_data_r;
+            else                   dbg_i2c_status[7:0]  <= i2c_data_r;
+        end
+    end
+end
+
+// [DBG] pclk activity counter (pclk domain, read twice to check delta)
+always @(posedge cam_pclk) dbg_pclk_cnt <= dbg_pclk_cnt + 32'd1;
+// [DBG] i2c transaction counter + bus level snapshot
+wire dbg_sda_lvl = cam_sda;
+wire dbg_scl_lvl = cam_scl;
+reg [15:0] dbg_exec_cnt;
+always @(posedge dri_clk or negedge rst_n) begin
+    if(!rst_n) dbg_exec_cnt <= 16'd0;
+    else if(i2c_exec) dbg_exec_cnt <= dbg_exec_cnt + 16'd1;
+end
+always @(posedge dri_clk) dbg_sys_status <= {dbg_exec_cnt, 2'b00, dbg_sda_lvl, dbg_scl_lvl,
+                                            1'b0, cam_rst_n};
 
 cmos_capture #(
     .DATA_WIDTH(DATA_WIDTH)

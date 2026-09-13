@@ -1,4 +1,4 @@
-##### Written on 2026/09/09 07:51:04 ###############################
+##### Written on 2026/09/13 13:10:26 ###############################
 
 
 ##### INFO ##################################################
@@ -18,7 +18,7 @@ Constraint File(s) :
 
 ##### SUMMARY ######################################################
 
-Found 0 error(s), 11 critical warning(s), 6 warning(s), out of 591 constraint(s)
+Found 0 error(s), 11 critical warning(s), 7 warning(s), out of 585 constraint(s)
 
 
 Inapplicable constraints(except overwritten constraints):
@@ -57,18 +57,24 @@ define_attribute {p:cmos1_pclk} {PAP_IO_LOC} {T18}
 define_attribute {p:cmos1_vsync} {PAP_IO_LOC} {W17}
 	C: ConstraintEditor-2002: [C:/Users/NineSun/Desktop/ov56401/source/constraints/ov5640.fdc(line number: 80)] | Port cmos1_vsync has been placed at location W17, whose type is share pin.
 
+define_attribute {p:button_rst_n} {PAP_IO_NONE} {TRUE}
+	W: ConstraintEditor-4031: [C:/Users/NineSun/Desktop/ov56401/source/constraints/pcie.fdc(line number: 19)] BUS_KEEPER attribute have been defined already, current attribute PAP_IO_PULLUP will overwrite the old attribute PAP_IO_NONE.
+
 define_attribute {p:button_rst_n} {PAP_IO_LOC} {M15}
 	C: ConstraintEditor-2002: [C:/Users/NineSun/Desktop/ov56401/source/constraints/pcie.fdc(line number: 16)] | Port button_rst_n has been placed at location M15, whose type is share pin.
 
 define_attribute {p:perst_n} {PAP_IO_LOC} {M16}
-	C: ConstraintEditor-2002: [C:/Users/NineSun/Desktop/ov56401/source/constraints/pcie.fdc(line number: 38)] | Port perst_n has been placed at location M16, whose type is share pin.
+	C: ConstraintEditor-2002: [C:/Users/NineSun/Desktop/ov56401/source/constraints/pcie.fdc(line number: 39)] | Port perst_n has been placed at location M16, whose type is share pin.
 
 
 Constraints with issues:
 ********************************************
 
-get_pins -hier *npu_to_core_cdc_bridge*
-	W: Timing-4116: The pattern '*npu_to_core_cdc_bridge*' in command 'get_pins -hier *npu_to_core_cdc_bridge*' match more than 3000 objects, please check your pattern.
+get_clocks free_clk
+	C: SDC-2017: Nothing implicitly matched 'free_clk'.
+
+get_clocks cmos1_pclk
+	C: SDC-2017: Nothing implicitly matched 'cmos1_pclk'.
 
 
 Issues without commands:

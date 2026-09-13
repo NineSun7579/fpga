@@ -4,6 +4,7 @@
  `define USE_OV5640
 //`define USE_HDMI
 
+
 module top #(
     parameter   MSI_NUM = 5,
     parameter   AXI_ID_LEN      = 4, 
@@ -96,9 +97,6 @@ module top #(
 
     wire clk_50m, clk_150m, clk_10m, locked;
 
-    wire npu_clk, npu_rst;
-    assign npu_clk = clk_150m;
-    assign npu_rst = !locked;
 
 ///////////////////////////// AXI wires between crossbar and DDR3 ///////////////////////////
 wire [27:0]                 ddr_axi_awaddr     /* synthesis PAP_MARK_DEBUG="true" */;
@@ -456,10 +454,8 @@ assign ddr_axi_bid    = ddr_axi_bid_int;
     wire [MSI_NUM-2 : 0]      msi_req       ;
     wire [MSI_NUM-2 : 0]      msi_grant     ;
 
-    wire npu_msi_req, npu_msi_grant;
 
-    assign msi_req = {1'd0, npu_msi_req, cam_irq};
-    assign npu_msi_grant = msi_grant[2];
+    assign msi_req = {1'd0, 1'b0, 2'b00}; //[MSIFIX 2026-09-13] freerun: xdma_req stuck high = MSI storm, camera MSI off
 
 pcie_fifo #(
     .MSI_NUM(MSI_NUM)
@@ -538,11 +534,14 @@ pcie_fifo(
 ov5640_clk ov5640_clk(
   .clkout2(clk_10m),
   .clkout1(clk_150m),      // output 150M
-  .clkout0(clk_50m),      // output 50M
+  .clkout0(),             //[CLKFIX] PLL bypassed - proven working path
 
   .lock(locked),          // output
   .clkin1(free_clk)         // input
 );
+
+//[CLKFIX] i2c domain runs on free_clk directly (25MHz)
+assign clk_50m = free_clk;
 
 ///////////////////////////// AXI-Lite wires for ovreg ///////////////////////////
 wire [31:0]                 ovreg_axil_awaddr   ;
@@ -562,6 +561,34 @@ wire [31:0]                 ovreg_axil_rdata    ;
 wire [1:0]                  ovreg_axil_rresp    ;
 wire                        ovreg_axil_rvalid   ;
 wire                        ovreg_axil_rready   ;
+
+// --- CAM segment (decoder m0, addr[8]=0: 0x2000_0000~0x2000_00FF -> ov5640_reg) ---
+wire                        cam_axil_awvalid, cam_axil_awready;
+wire [31:0]                 cam_axil_awaddr;
+wire                        cam_axil_wvalid, cam_axil_wready;
+wire [31:0]                 cam_axil_wdata;
+wire [3:0]                  cam_axil_wstrb;
+wire                        cam_axil_bvalid, cam_axil_bready;
+wire [1:0]                  cam_axil_bresp;
+wire                        cam_axil_arvalid, cam_axil_arready;
+wire [31:0]                 cam_axil_araddr;
+wire                        cam_axil_rvalid, cam_axil_rready;
+wire [31:0]                 cam_axil_rdata;
+wire [1:0]                  cam_axil_rresp;
+
+// --- PREP segment (decoder m1, addr[8]=1: 0x2000_0100~0x2000_01FF -> prep_regs) ---
+wire                        prep_axil_awvalid, prep_axil_awready;
+wire [31:0]                 prep_axil_awaddr;
+wire                        prep_axil_wvalid, prep_axil_wready;
+wire [31:0]                 prep_axil_wdata;
+wire [3:0]                  prep_axil_wstrb;
+wire                        prep_axil_bvalid, prep_axil_bready;
+wire [1:0]                  prep_axil_bresp;
+wire                        prep_axil_arvalid, prep_axil_arready;
+wire [31:0]                 prep_axil_araddr;
+wire                        prep_axil_rvalid, prep_axil_rready;
+wire [31:0]                 prep_axil_rdata;
+wire [1:0]                  prep_axil_rresp;
 
 ///////////////////////////// ovreg_axi signals ///////////////////////////
 wire [AXI_ID_M_LEN-1:0]     ovreg_axi_awid     ;
@@ -696,16 +723,161 @@ wire                        cam_cmd_valid   /*synthesis PAP_MARK_DEBUG="1"*/;
 wire                        cam_cmd_ready   /*synthesis PAP_MARK_DEBUG="1"*/;
 
 wire [AXI_DATA_LEN-1 : 0]   cam_s_data      /*synthesis PAP_MARK_DEBUG="1"*/;
+// preprocess tap (camera raw stream -> preprocess -> processed write)
+wire [AXI_DATA_LEN-1 : 0]   cam_tap_data    ;
+wire                        cam_tap_data_valid;
+wire                        cam_tap_data_last ;
+wire                        cam_tap_data_ready;
 wire                        cam_s_data_valid/*synthesis PAP_MARK_DEBUG="1"*/;
 wire                        cam_s_data_last /*synthesis PAP_MARK_DEBUG="1"*/;
 wire                        cam_s_data_ready/*synthesis PAP_MARK_DEBUG="1"*/;
 
 wire [1 : 0]                cam_irq;     
 
+// --- AXI-Lite address decoder: splits M01 window by addr[8] ---
+//   addr[8]=0 -> ov5640_reg segment (CAM regs)
+//   addr[8]=1 -> prep_regs segment  (PREP/INJ regs, doc +0x100~0x17C)
+ovreg_axil_decode ovreg_axil_decode_u (
+    .clk        (axi_clk),
+    .rst        (axi_rst),
+    .s_awvalid  (ovreg_axil_awvalid),
+    .s_awready  (ovreg_axil_awready),
+    .s_awaddr   (ovreg_axil_awaddr),
+    .s_wvalid   (ovreg_axil_wvalid),
+    .s_wready   (ovreg_axil_wready),
+    .s_wdata    (ovreg_axil_wdata),
+    .s_wstrb    (ovreg_axil_wstrb),
+    .s_bvalid   (ovreg_axil_bvalid),
+    .s_bready   (ovreg_axil_bready),
+    .s_bresp    (ovreg_axil_bresp),
+    .s_arvalid  (ovreg_axil_arvalid),
+    .s_arready  (ovreg_axil_arready),
+    .s_araddr   (ovreg_axil_araddr),
+    .s_rvalid   (ovreg_axil_rvalid),
+    .s_rready   (ovreg_axil_rready),
+    .s_rdata    (ovreg_axil_rdata),
+    .s_rresp    (ovreg_axil_rresp),
+    .m0_awvalid (cam_axil_awvalid),
+    .m0_awready (cam_axil_awready),
+    .m0_awaddr  (cam_axil_awaddr),
+    .m0_wvalid  (cam_axil_wvalid),
+    .m0_wready  (cam_axil_wready),
+    .m0_wdata   (cam_axil_wdata),
+    .m0_wstrb   (cam_axil_wstrb),
+    .m0_bvalid  (cam_axil_bvalid),
+    .m0_bready  (cam_axil_bready),
+    .m0_bresp   (cam_axil_bresp),
+    .m0_arvalid (cam_axil_arvalid),
+    .m0_arready (cam_axil_arready),
+    .m0_araddr  (cam_axil_araddr),
+    .m0_rvalid  (cam_axil_rvalid),
+    .m0_rready  (cam_axil_rready),
+    .m0_rdata   (cam_axil_rdata),
+    .m0_rresp   (cam_axil_rresp),
+    .m1_awvalid (prep_axil_awvalid),
+    .m1_awready (prep_axil_awready),
+    .m1_awaddr  (prep_axil_awaddr),
+    .m1_wvalid  (prep_axil_wvalid),
+    .m1_wready  (prep_axil_wready),
+    .m1_wdata   (prep_axil_wdata),
+    .m1_wstrb   (prep_axil_wstrb),
+    .m1_bvalid  (prep_axil_bvalid),
+    .m1_bready  (prep_axil_bready),
+    .m1_bresp   (prep_axil_bresp),
+    .m1_arvalid (prep_axil_arvalid),
+    .m1_arready (prep_axil_arready),
+    .m1_araddr  (prep_axil_araddr),
+    .m1_rvalid  (prep_axil_rvalid),
+    .m1_rready  (prep_axil_rready),
+    .m1_rdata   (prep_axil_rdata),
+    .m1_rresp   (prep_axil_rresp)
+);
+
+// --- prep datapath wiring ---
+wire                        prep_bypass_w;
+wire [1:0]                  prep_mode_w;
+wire [11:0]                 prep_img_width_w;
+wire [7:0]                  prep_thr_sat_w, prep_thr_hue_w, prep_thr_val_w, prep_thr_low_w;
+wire [10:0]                 prep_thr_edge_w;
+wire [7:0]                  prep_lane_roi_top_w, prep_lane_roi_bot_w, prep_lane_row_thr_w, prep_lane_dash_thr_w;
+wire [7:0]                  prep_frame_cnt;
+wire [15:0]                 inj_addr_w, inj_len_w, inj_fid_w;
+wire                        inj_start_w, inj_done_clr_w;
+wire [3:0]                  btn_sticky_w, btn_sticky_clr_w, led_ctrl_w;
+wire [31:0]                 ts0_w, ts1_w, ts2_w, ts3_w;
+
+// --- PREP/INJ registers (doc +0x100~0x17C). Register stage only: datapath
+//     inputs tied to defaults until the preprocess pipeline is integrated.
+prep_regs #(.TICK_DIV(50)) prep_regs_u (
+    .clk              (axi_clk),
+    .rst_n            (~axi_rst),
+    .s_axi_awvalid    (prep_axil_awvalid),
+    .s_axi_awready    (prep_axil_awready),
+    .s_axi_awaddr     (prep_axil_awaddr),
+    .s_axi_wvalid     (prep_axil_wvalid),
+    .s_axi_wready     (prep_axil_wready),
+    .s_axi_wdata      (prep_axil_wdata),
+    .s_axi_wstrb      (prep_axil_wstrb),
+    .s_axi_bvalid     (prep_axil_bvalid),
+    .s_axi_bready     (prep_axil_bready),
+    .s_axi_bresp      (prep_axil_bresp),
+    .s_axi_arvalid    (prep_axil_arvalid),
+    .s_axi_arready    (prep_axil_arready),
+    .s_axi_araddr     (prep_axil_araddr),
+    .s_axi_rvalid     (prep_axil_rvalid),
+    .s_axi_rready     (prep_axil_rready),
+    .s_axi_rdata      (prep_axil_rdata),
+    .s_axi_rresp      (prep_axil_rresp),
+    .prep_bypass      (prep_bypass_w),
+    .prep_mode        (prep_mode_w),
+    .prep_img_width   (prep_img_width_w),
+    .prep_thr_sat     (prep_thr_sat_w),
+    .prep_thr_hue     (prep_thr_hue_w),
+    .prep_thr_val     (prep_thr_val_w),
+    .prep_thr_low     (prep_thr_low_w),
+    .prep_thr_edge    (prep_thr_edge_w),
+    .prep_lane_roi_top(prep_lane_roi_top_w),
+    .prep_lane_roi_bot(prep_lane_roi_bot_w),
+    .prep_lane_row_thr(prep_lane_row_thr_w),
+    .prep_lane_dash_thr(prep_lane_dash_thr_w),
+    .inj_addr         (),
+    .inj_len          (),
+    .inj_frame_id     (),
+    .inj_start        (),
+    .inj_done_clr     (),
+    .inj_busy         (1'b0),
+    .inj_done         (1'b0),
+    .inj_done_fid     (16'd0),
+    .pipe_frame_sync  (prep_out_frame_start),
+    .pipe_fifo_afull  (1'b0),
+    .npu_busy         (1'b0),
+    .out_frame_cnt    (prep_frame_cnt),
+    .btn_toggle_evt   (4'd0),
+    .btn_level_sync   (4'd0),
+    .btn_sticky       (),
+    .btn_sticky_clr   (),
+    .led_ctrl         (),
+    .lane_left_type   (lane_left_type_w),
+    .lane_right_type  (lane_right_type_w),
+    .lane_left_valid  (lane_left_valid_w),
+    .lane_right_valid (lane_right_valid_w),
+    .lane_frame_upd   (lane_frame_upd_w),
+    .ts_cap_pulse     (1'b0),
+    .ts_prep_pulse    (1'b0),
+    .ts_npu_pulse     (1'b0),
+    .ts_dma_pulse     (1'b0),
+    .ts_value0        (),
+    .ts_value1        (),
+    .ts_value2        (),
+    .ts_value3        ()
+);
+
 `ifdef USE_OV5640
 ov5640_top ov5640_top(
     .clk_50m       (clk_50m)        ,
-    .clk_50m_rst_n (locked & button_rst_n)        ,
+    .clk_50m_rst_n (1'b1)                       , //[CLKFIX] proven //[RSTFIX 2026-09-13] button_rst_n floating-low on this board
+    .dbg_locked    (locked)         ,
+    .dbg_btn_rst_n (button_rst_n)   ,
         
     .cam_pclk (cmos1_pclk )             ,  
     .cam_vsync(cmos1_vsync)             ,  
@@ -718,27 +890,27 @@ ov5640_top ov5640_top(
 
 
     
-    .s_axi_awvalid(ovreg_axil_awvalid)        ,
-    .s_axi_awready(ovreg_axil_awready)        ,
-    .s_axi_awaddr (ovreg_axil_awaddr )        ,
+    .s_axi_awvalid(cam_axil_awvalid)        ,
+    .s_axi_awready(cam_axil_awready)        ,
+    .s_axi_awaddr (cam_axil_awaddr )        ,
 
-    .s_axi_wvalid (ovreg_axil_wvalid)         ,
-    .s_axi_wready (ovreg_axil_wready)         ,
-    .s_axi_wdata  (ovreg_axil_wdata )         ,
-    .s_axi_wstrb  (ovreg_axil_wstrb )         ,
+    .s_axi_wvalid (cam_axil_wvalid)         ,
+    .s_axi_wready (cam_axil_wready)         ,
+    .s_axi_wdata  (cam_axil_wdata )         ,
+    .s_axi_wstrb  (cam_axil_wstrb )         ,
 
-    .s_axi_bvalid (ovreg_axil_bvalid)         ,
-    .s_axi_bready (ovreg_axil_bready)         ,
-    .s_axi_bresp  (ovreg_axil_bresp )         ,
+    .s_axi_bvalid (cam_axil_bvalid)         ,
+    .s_axi_bready (cam_axil_bready)         ,
+    .s_axi_bresp  (cam_axil_bresp )         ,
 
-    .s_axi_arvalid(ovreg_axil_arvalid)        ,
-    .s_axi_arready(ovreg_axil_arready)        ,
-    .s_axi_araddr (ovreg_axil_araddr )        ,
+    .s_axi_arvalid(cam_axil_arvalid)        ,
+    .s_axi_arready(cam_axil_arready)        ,
+    .s_axi_araddr (cam_axil_araddr )        ,
 
-    .s_axi_rvalid (ovreg_axil_rvalid )        ,
-    .s_axi_rready (ovreg_axil_rready )        ,
-    .s_axi_rdata  (ovreg_axil_rdata  )        ,
-    .s_axi_rresp  (ovreg_axil_rresp  )        ,
+    .s_axi_rvalid (cam_axil_rvalid )        ,
+    .s_axi_rready (cam_axil_rready )        ,
+    .s_axi_rdata  (cam_axil_rdata  )        ,
+    .s_axi_rresp  (cam_axil_rresp  )        ,
 
 
 
@@ -750,10 +922,10 @@ ov5640_top ov5640_top(
     .cam_cmd_valid(cam_cmd_valid)  ,
     .cam_cmd_ready(cam_cmd_ready)  ,
 
-    .cam_s_data      (cam_s_data      ),
-    .cam_s_data_valid(cam_s_data_valid),
-    .cam_s_data_last (cam_s_data_last ),
-    .cam_s_data_ready(cam_s_data_ready),
+    .cam_s_data      (cam_tap_data      ),
+    .cam_s_data_valid(cam_tap_data_valid),
+    .cam_s_data_last (cam_tap_data_last ),
+    .cam_s_data_ready(cam_tap_data_ready),
 
     //DMA?
     .xdma_clk (pcie_clk) ,
@@ -790,27 +962,27 @@ hdmi_top hdmi_top(
 
 
     //摄像头控制寄存器
-    .s_axi_awvalid(ovreg_axil_awvalid)        ,
-    .s_axi_awready(ovreg_axil_awready)        ,
-    .s_axi_awaddr (ovreg_axil_awaddr )        ,
+    .s_axi_awvalid(cam_axil_awvalid)        ,
+    .s_axi_awready(cam_axil_awready)        ,
+    .s_axi_awaddr (cam_axil_awaddr )        ,
 
-    .s_axi_wvalid (ovreg_axil_wvalid)         ,
-    .s_axi_wready (ovreg_axil_wready)         ,
-    .s_axi_wdata  (ovreg_axil_wdata )         ,
-    .s_axi_wstrb  (ovreg_axil_wstrb )         ,
+    .s_axi_wvalid (cam_axil_wvalid)         ,
+    .s_axi_wready (cam_axil_wready)         ,
+    .s_axi_wdata  (cam_axil_wdata )         ,
+    .s_axi_wstrb  (cam_axil_wstrb )         ,
 
-    .s_axi_bvalid (ovreg_axil_bvalid)         ,
-    .s_axi_bready (ovreg_axil_bready)         ,
-    .s_axi_bresp  (ovreg_axil_bresp )         ,
+    .s_axi_bvalid (cam_axil_bvalid)         ,
+    .s_axi_bready (cam_axil_bready)         ,
+    .s_axi_bresp  (cam_axil_bresp )         ,
 
-    .s_axi_arvalid(ovreg_axil_arvalid)        ,
-    .s_axi_arready(ovreg_axil_arready)        ,
-    .s_axi_araddr (ovreg_axil_araddr )        ,
+    .s_axi_arvalid(cam_axil_arvalid)        ,
+    .s_axi_arready(cam_axil_arready)        ,
+    .s_axi_araddr (cam_axil_araddr )        ,
 
-    .s_axi_rvalid (ovreg_axil_rvalid )        ,
-    .s_axi_rready (ovreg_axil_rready )        ,
-    .s_axi_rdata  (ovreg_axil_rdata  )        ,
-    .s_axi_rresp  (ovreg_axil_rresp  )        ,
+    .s_axi_rvalid (cam_axil_rvalid )        ,
+    .s_axi_rready (cam_axil_rready )        ,
+    .s_axi_rdata  (cam_axil_rdata  )        ,
+    .s_axi_rresp  (cam_axil_rresp  )        ,
 
 
 
@@ -822,10 +994,10 @@ hdmi_top hdmi_top(
     .cam_cmd_valid(cam_cmd_valid)  ,
     .cam_cmd_ready(cam_cmd_ready)  ,
 
-    .cam_s_data      (cam_s_data      ),
-    .cam_s_data_valid(cam_s_data_valid),
-    .cam_s_data_last (cam_s_data_last ),
-    .cam_s_data_ready(cam_s_data_ready),
+    .cam_s_data      (cam_tap_data      ),
+    .cam_s_data_valid(cam_tap_data_valid),
+    .cam_s_data_last (cam_tap_data_last ),
+    .cam_s_data_ready(cam_tap_data_ready),
 
     //DMA?
     .xdma_clk (pcie_clk) ,
@@ -895,6 +1067,208 @@ ov5640_axi_dma_write(
 	.m_axi_bvalid  (ov5640_axi_bvalid  ),
 	.m_axi_bready  (ov5640_axi_bready  )
 );
+// ===================== preprocess datapath (PREP, batch-2) =====================
+reg [7:0] prep_frame_cnt;
+always @(posedge axi_clk) begin
+    if (axi_rst)
+        prep_frame_cnt <= 8'd0;
+    else if (prep_out_frame_start)
+        prep_frame_cnt <= prep_frame_cnt + 8'd1;
+end
+// camera raw stream -> cam_prep_link (tap) -> preprocess_top -> processed
+// write engine (second axi_dma_write, crossbar S03 write channel)
+wire [AXI_DATA_LEN-1:0] prep_wr_data;
+wire                    prep_wr_valid;
+wire                    prep_wr_ready;
+wire                    prep_wr_cmd_valid;
+wire                    prep_wr_cmd_ready;
+wire [31:0]             prep_wr_cmd_addr;
+wire [31:0]             prep_wr_cmd_len;
+wire [15:0]             prep_pp_data;
+wire                    prep_pp_valid;
+wire                    prep_pp_ready;
+wire                    prep_pp_fsync;
+wire [15:0]             prep_out_data;
+wire                    prep_out_valid;
+wire                    prep_out_ready;
+wire                    prep_out_fsync;
+wire                    prep_out_frame_start;
+wire                    prep_edge_valid;
+wire                    prep_edge_bit;
+wire [7:0]              prep_edge_center;
+wire                    prep_cid_valid;
+wire [1:0]              prep_cid;
+wire [1:0]              lane_left_type_w, lane_right_type_w;
+wire                    lane_left_valid_w, lane_right_valid_w, lane_frame_upd_w;
+
+// [OptionB 2026-09-12] WIP pixel-path disabled: recover 53006-reg verified netlist (DOC v1.1 3.3). Phase-2: recalibrate cam_prep_link TB then restore.
+// cam_prep_link #(
+//     .FRAME_H (720),
+//     .BUFFER0 (32'h0A00_0000),
+//     .BUFFER1 (32'h0A1C_2000)
+// ) cam_prep_link_u (
+//     .clk            (axi_clk),
+//     .rst            (axi_rst),
+//     .img_width      (prep_img_width_w),
+//     .bypass_mode    (prep_bypass_w),
+//     .mode           (prep_mode_w),
+//     .cam_data       (cam_tap_data),
+//     .cam_valid      (cam_tap_data_valid),
+//     .cam_ready      (cam_tap_data_ready),
+//     .cam_frame_sync (cam_cmd_valid),
+//     .raw_data       (cam_s_data),
+//     .raw_valid      (cam_s_data_valid),
+//     .raw_ready      (cam_s_data_ready),
+//     .pp_data        (prep_pp_data),
+//     .pp_valid       (prep_pp_valid),
+//     .pp_ready       (prep_pp_ready),
+//     .pp_frame_sync  (prep_pp_fsync),
+//     .out_data       (prep_out_data),
+//     .out_valid      (prep_out_valid),
+//     .out_ready      (prep_out_ready),
+//     .out_frame_sync (prep_out_fsync),
+//     .wr_cmd_valid   (prep_wr_cmd_valid),
+//     .wr_cmd_ready   (prep_wr_cmd_ready),
+//     .wr_cmd_addr    (prep_wr_cmd_addr),
+//     .wr_cmd_len     (prep_wr_cmd_len),
+//     .wr_data        (prep_wr_data),
+//     .wr_valid       (prep_wr_valid),
+//     .wr_ready       (prep_wr_ready)
+// );
+
+// [OptionB 2026-09-12] WIP pixel-path disabled: recover 53006-reg verified netlist (DOC v1.1 3.3). Phase-2: recalibrate cam_prep_link TB then restore.
+// preprocess_top #(
+//     .MAX_WIDTH   (1920),
+//     .FIFO_DEPTH  (512)
+// ) preprocess_top_u (
+//     .clk            (axi_clk),
+//     .rst_n          (~axi_rst),
+//     .s_rgb565       (prep_pp_data),
+//     .s_valid        (prep_pp_valid),
+//     .s_ready        (prep_pp_ready),
+//     .s_frame_sync   (prep_pp_fsync),
+//     .m_ready        (prep_out_ready),
+//     .m_rgb565       (prep_out_data),
+//     .m_valid        (prep_out_valid),
+//     .m_frame_sync   (prep_out_fsync),
+//     .reg_bypass     (prep_bypass_w),
+//     .reg_mode       (prep_mode_w),
+//     .reg_img_width  (prep_img_width_w),
+//     .reg_thr_sat    (prep_thr_sat_w),
+//     .reg_thr_hue    (prep_thr_hue_w),
+//     .reg_thr_val    (prep_thr_val_w),
+//     .reg_thr_low    (prep_thr_low_w),
+//     .reg_thr_edge   (prep_thr_edge_w),
+//     .out_frame_start(prep_out_frame_start),
+//     .edge_stream_valid (prep_edge_valid),
+//     .edge_stream_edge  (prep_edge_bit),
+//     .edge_stream_center(prep_edge_center),
+//     .color_id_valid (prep_cid_valid),
+//     .color_id       (prep_cid)
+// );
+
+// [OptionB 2026-09-12] WIP pixel-path disabled: recover 53006-reg verified netlist (DOC v1.1 3.3). Phase-2: recalibrate cam_prep_link TB then restore.
+// lane_detect #(
+//     .MAX_WIDTH(1920)
+// ) lane_detect_u (
+//     .clk        (axi_clk),
+//     .rst_n      (~axi_rst),
+//     .img_width  (prep_img_width_w),
+//     .img_height (12'd720),
+//     .roi_top_pct(prep_lane_roi_top_w),
+//     .roi_bot_pct(prep_lane_roi_bot_w),
+//     .row_thr    (prep_lane_row_thr_w),
+//     .dash_thr   (prep_lane_dash_thr_w),
+//     .s_center   (prep_edge_center),
+//     .s_edge     (prep_edge_bit),
+//     .s_valid    (prep_edge_valid),
+//     .s_frame_sync(prep_out_frame_start),
+//     .m_left_type (lane_left_type_w),
+//     .m_right_type(lane_right_type_w),
+//     .m_left_valid (lane_left_valid_w),
+//     .m_right_valid(lane_right_valid_w),
+//     .m_frame_upd  (lane_frame_upd_w)
+// );
+
+
+// ===== [2026-09-12] RAW camera path restored =====
+// OptionB commented out cam_prep_link but left cam_s_data undriven, so the
+// camera never wrote DDR -> no frames / no MSI. ov5640_top already emits a
+// complete raw AXI-stream write request, so wire it straight to the raw write
+// engine. The preprocess tap is intentionally NOT used (its TB still fails and
+// its dummy-inject can back-pressure/stall the camera).
+assign cam_s_data         = cam_tap_data;
+assign cam_s_data_valid   = cam_tap_data_valid;
+assign cam_s_data_last    = cam_tap_data_last;
+assign cam_tap_data_ready = cam_s_data_ready;
+
+// preprocess datapath disabled: keep the processed-frame write engine idle
+assign prep_wr_cmd_valid = 1'b0;
+assign prep_wr_cmd_addr  = 32'b0;
+assign prep_wr_cmd_len   = 32'b0;
+assign prep_wr_data      = 128'b0;
+assign prep_wr_valid     = 1'b0;
+
+// processed-frame write engine (second write master -> crossbar S03 AW/W/B)
+wire [AXI_ID_LEN-1:0]   prep2_axi_awid;
+wire [31:0]             prep2_axi_awaddr;
+wire [3:0]              prep2_axi_awlen;
+wire [2:0]              prep2_axi_awsize;
+wire [1:0]              prep2_axi_awburst;
+wire                    prep2_axi_awlock;
+wire [3:0]              prep2_axi_awcache;
+wire [2:0]              prep2_axi_awprot;
+wire                    prep2_axi_awvalid;
+wire                    prep2_axi_awready;
+wire [AXI_DATA_LEN-1:0] prep2_axi_wdata;
+wire [AXI_STRB_LEN-1:0] prep2_axi_wstrb;
+wire                    prep2_axi_wlast;
+wire                    prep2_axi_wvalid;
+wire                    prep2_axi_wready;
+wire [AXI_ID_LEN-1:0]   prep2_axi_bid;
+wire [1:0]              prep2_axi_bresp;
+wire                    prep2_axi_bvalid;
+wire                    prep2_axi_bready;
+
+axi_dma_write #(
+    .BURST_LEN  (BURST_LEN),
+    .ID_WIDTH   (AXI_ID_LEN),
+    .DATA_WIDTH (AXI_DATA_LEN)
+) prep_axi_dma_write(
+    .clk(axi_clk),
+    .rst(axi_rst),
+    .cmd_valid (prep_wr_cmd_valid),
+    .cmd_addr  (prep_wr_cmd_addr),
+    .cmd_len   (prep_wr_cmd_len),
+    .cmd_id    (4'b0111),
+    .cmd_ready (prep_wr_cmd_ready),
+    .data_in       (prep_wr_data),
+    .data_in_keep  ({AXI_STRB_LEN{1'b1}}),
+    .data_in_valid (prep_wr_valid),
+    .data_in_last  (),
+    .data_in_ready (prep_wr_ready),
+    .m_axi_awid    (prep2_axi_awid),
+    .m_axi_awaddr  (prep2_axi_awaddr),
+    .m_axi_awlen   (prep2_axi_awlen),
+    .m_axi_awsize  (prep2_axi_awsize),
+    .m_axi_awburst (prep2_axi_awburst),
+    .m_axi_awlock  (prep2_axi_awlock),
+    .m_axi_awcache (prep2_axi_awcache),
+    .m_axi_awprot  (prep2_axi_awprot),
+    .m_axi_awvalid (prep2_axi_awvalid),
+    .m_axi_awready (prep2_axi_awready),
+    .m_axi_wdata   (prep2_axi_wdata),
+    .m_axi_wstrb   (prep2_axi_wstrb),
+    .m_axi_wlast   (prep2_axi_wlast),
+    .m_axi_wvalid  (prep2_axi_wvalid),
+    .m_axi_wready  (prep2_axi_wready),
+    .m_axi_bid     (prep2_axi_bid),
+    .m_axi_bresp   (prep2_axi_bresp),
+    .m_axi_bvalid  (prep2_axi_bvalid),
+    .m_axi_bready  (prep2_axi_bready)
+);
+// =================== preprocess datapath end ===================
+
 
 /////////////////////////////////////////////////////////////////////////////////////////////
 wire [AXI_ID_LEN-1:0]   npu_reg_axi_awid    /*synthesis PAP_MARK_DEBUG="1"*/;
@@ -917,197 +1291,16 @@ wire [1:0]              npu_reg_axi_bresp   /*synthesis PAP_MARK_DEBUG="1"*/;
 wire                    npu_reg_axi_bvalid  /*synthesis PAP_MARK_DEBUG="1"*/;
 wire                    npu_reg_axi_bready  /*synthesis PAP_MARK_DEBUG="1"*/;
 
-wire                    npu_req        ;
-wire                    npu_req_receive;
 
 
 
 
 
-    //CMD_S2MM CMDMM2S接口
-    //in的输入
-    wire [AXI_DATA_LEN-1 : 0]    cdc_s_data_0      ;
-    wire                         cdc_s_valid_0     ;
-    wire                         cdc_s_last_0      ;
-    wire                         cdc_s_ready_0     ; 
-
-    wire [AXI_ADDR_WIDTH-1 : 0]  cdc_s_cmd_addr_0  ;
-    wire [AXI_ADDR_WIDTH-1 : 0]  cdc_s_cmd_len_0   ;
-    wire                         cdc_s_cmd_valid_0 ;
-    wire                         cdc_s_cmd_ready_0 ;
-    //1
-    wire [AXI_DATA_LEN-1 : 0]    cdc_s_data_1      ;
-    wire                         cdc_s_valid_1     ;
-    wire                         cdc_s_last_1      ;
-    wire                         cdc_s_ready_1     ;
-
-    wire [AXI_ADDR_WIDTH-1 : 0]  cdc_s_cmd_addr_1  ;
-    wire [AXI_ADDR_WIDTH-1 : 0]  cdc_s_cmd_len_1   ;
-    wire                         cdc_s_cmd_valid_1 ;
-    wire                         cdc_s_cmd_ready_1 ;
-
-    //2
-    wire [AXI_DATA_LEN-1 : 0]    cdc_s_data_2      ;
-    wire                         cdc_s_valid_2     ;
-    wire                         cdc_s_last_2      ;
-    wire                         cdc_s_ready_2     ;
-
-    wire [AXI_ADDR_WIDTH-1 : 0]  cdc_s_cmd_addr_2  ;
-    wire [AXI_ADDR_WIDTH-1 : 0]  cdc_s_cmd_len_2   ;
-    wire                         cdc_s_cmd_valid_2 ;
-    wire                         cdc_s_cmd_ready_2 ;
-
-    //3
-    wire [AXI_DATA_LEN-1 : 0]    cdc_s_data_3      ;
-    wire                         cdc_s_valid_3     ;
-    wire                         cdc_s_last_3      ;
-    wire                         cdc_s_ready_3     ; 
-
-    wire [AXI_ADDR_WIDTH-1 : 0]  cdc_s_cmd_addr_3  ;
-    wire [AXI_ADDR_WIDTH-1 : 0]  cdc_s_cmd_len_3   ;
-    wire                         cdc_s_cmd_valid_3 ;
-    wire                         cdc_s_cmd_ready_3 ;
-
-    //4
-    wire [AXI_DATA_LEN-1 : 0]    cdc_s_data_4      ;
-    wire                         cdc_s_valid_4     ;
-    wire                         cdc_s_last_4      ;
-    wire                         cdc_s_ready_4     ; 
-
-    wire [AXI_ADDR_WIDTH-1 : 0]  cdc_s_cmd_addr_4  ;
-    wire [AXI_ADDR_WIDTH-1 : 0]  cdc_s_cmd_len_4   ;
-    wire                         cdc_s_cmd_valid_4 ;
-    wire                         cdc_s_cmd_ready_4 ;
-
-    //out的输出
-    wire [AXI_DATA_LEN-1 : 0]    cdc_out_m_data      ;
-    wire                         cdc_out_m_last      ;
-    wire                         cdc_out_m_valid     ;
-    wire                         cdc_out_m_ready     ; 
-
-    wire [AXI_ADDR_WIDTH-1 : 0]  cdc_out_m_cmd_addr  ;
-    wire [AXI_ADDR_WIDTH-1 : 0]  cdc_out_m_cmd_len   ;
-    wire                         cdc_out_m_cmd_valid ;
-    wire                         cdc_out_m_cmd_ready ;
     
 
 
-npu_cdc_top npu_cdc_top(
-
-    .npu_clk(npu_clk),
-    .npu_rst(npu_rst),
- 
-    .axi_clk(axi_clk),
-    .axi_rst(axi_rst),
-    ///////////// NPU_CTL ///////////////////////////////////
-    // AXI 写地址通道 (AW)
-    .s_axi_awaddr (npu_reg_axi_awaddr ),
-    .s_axi_awlen  (npu_reg_axi_awlen  ),    // 突发长度，支持 AXI4
-    .s_axi_awsize (npu_reg_axi_awsize ),   // 突发大小
-    .s_axi_awburst(npu_reg_axi_awburst),  // 突发类型
-    .s_axi_awvalid(npu_reg_axi_awvalid),
-    .s_axi_awready(npu_reg_axi_awready),
-    // AXI 写数据通道 (W)
-    .s_axi_wdata (npu_reg_axi_wdata ),
-    .s_axi_wstrb (npu_reg_axi_wstrb ),    // 字节掩码
-    .s_axi_wlast (npu_reg_axi_wlast ),    // 突发的最后一个数据标志
-    .s_axi_wvalid(npu_reg_axi_wvalid),
-    .s_axi_wready(npu_reg_axi_wready),
-    // AXI 写响应通道 (B)
-    .s_axi_bresp (npu_reg_axi_bresp ), 
-    .s_axi_bvalid(npu_reg_axi_bvalid),
-    .s_axi_bready(npu_reg_axi_bready),
-
-    .npu_req        (npu_req        ) , 
-    .npu_req_receive(npu_req_receive) ,   
-
-    ///////////// NPU_TOP ///////////////////////////////////
-    //CMD_S2MM CMDMM2S接口
-    // in的输入 0
-    .cdc_s_data_0       ( cdc_s_data_0        ),
-    .cdc_s_valid_0      ( cdc_s_valid_0       ),
-    .cdc_s_last_0       ( cdc_s_last_0        ),
-    .cdc_s_ready_0      ( cdc_s_ready_0       ),
-    .cdc_s_cmd_addr_0   ( cdc_s_cmd_addr_0    ),
-    .cdc_s_cmd_len_0    ( cdc_s_cmd_len_0     ),
-    .cdc_s_cmd_valid_0  ( cdc_s_cmd_valid_0   ),
-    .cdc_s_cmd_ready_0  ( cdc_s_cmd_ready_0   ),
-
-    // in的输入 1
-    .cdc_s_data_1       ( cdc_s_data_1        ),
-    .cdc_s_valid_1      ( cdc_s_valid_1       ),
-    .cdc_s_last_1       ( cdc_s_last_1        ),
-    .cdc_s_ready_1      ( cdc_s_ready_1       ),
-    .cdc_s_cmd_addr_1   ( cdc_s_cmd_addr_1    ),
-    .cdc_s_cmd_len_1    ( cdc_s_cmd_len_1     ),
-    .cdc_s_cmd_valid_1  ( cdc_s_cmd_valid_1   ),
-    .cdc_s_cmd_ready_1  ( cdc_s_cmd_ready_1   ),
-
-    // in的输入 2
-    .cdc_s_data_2       ( cdc_s_data_2        ),
-    .cdc_s_valid_2      ( cdc_s_valid_2       ),
-    .cdc_s_last_2       ( cdc_s_last_2        ),
-    .cdc_s_ready_2      ( cdc_s_ready_2       ),
-    .cdc_s_cmd_addr_2   ( cdc_s_cmd_addr_2    ),
-    .cdc_s_cmd_len_2    ( cdc_s_cmd_len_2     ),
-    .cdc_s_cmd_valid_2  ( cdc_s_cmd_valid_2   ),
-    .cdc_s_cmd_ready_2  ( cdc_s_cmd_ready_2   ),
-
-    // in的输入 3
-    .cdc_s_data_3       ( cdc_s_data_3        ),
-    .cdc_s_valid_3      ( cdc_s_valid_3       ),
-    .cdc_s_last_3       ( cdc_s_last_3        ),
-    .cdc_s_ready_3      ( cdc_s_ready_3       ),
-    .cdc_s_cmd_addr_3   ( cdc_s_cmd_addr_3    ),
-    .cdc_s_cmd_len_3    ( cdc_s_cmd_len_3     ),
-    .cdc_s_cmd_valid_3  ( cdc_s_cmd_valid_3   ),
-    .cdc_s_cmd_ready_3  ( cdc_s_cmd_ready_3   ),
-
-    // in的输入 4
-    .cdc_s_data_4       ( cdc_s_data_4        ),
-    .cdc_s_valid_4      ( cdc_s_valid_4       ),
-    .cdc_s_last_4       ( cdc_s_last_4        ),
-    .cdc_s_ready_4      ( cdc_s_ready_4       ),
-    .cdc_s_cmd_addr_4   ( cdc_s_cmd_addr_4    ),
-    .cdc_s_cmd_len_4    ( cdc_s_cmd_len_4     ),
-    .cdc_s_cmd_valid_4  ( cdc_s_cmd_valid_4   ),
-    .cdc_s_cmd_ready_4  ( cdc_s_cmd_ready_4   ),
-
-    // out的输出
-    .cdc_out_m_data       ( cdc_out_m_data        ),
-    .cdc_out_m_last       ( cdc_out_m_last        ),
-    .cdc_out_m_valid      ( cdc_out_m_valid       ),
-    .cdc_out_m_ready      ( cdc_out_m_ready       ),
-    .cdc_out_m_cmd_addr   ( cdc_out_m_cmd_addr    ),
-    .cdc_out_m_cmd_len    ( cdc_out_m_cmd_len     ),
-    .cdc_out_m_cmd_valid  ( cdc_out_m_cmd_valid   ),
-    .cdc_out_m_cmd_ready  ( cdc_out_m_cmd_ready   )
-
-);
 
 
-// ips2l_rst_sync_v1_3 #(
-//     .DATA_WIDTH (1),
-//     .DFT_VALUE  (1'b0)
-// ) 
-// npu_req_cdc (
-//     .clk        (pcie_clk),         // 目标时钟：慢时钟
-//     .rst_n      (!pcie_rst),
-//     .sig_async  (npu_req),          // 来源：NPU拉高的请求
-//     .sig_synced (npu_msi_req)   // 结果：安全进入 PCIe 域
-// );
-
-
-// ips2l_rst_sync_v1_3 #(
-//     .DATA_WIDTH (1),
-//     .DFT_VALUE  (1'b0)
-// ) 
-// npu_grant_cdc (
-//     .clk        (npu_clk),         // 目标时钟：慢时钟
-//     .rst_n      (!npu_rst),
-//     .sig_async  (npu_msi_grant),          // 来源：NPU拉高的请求
-//     .sig_synced (npu_req_receive)   // 结果：安全进入 PCIe 域
-// );
 
 
 
@@ -1150,78 +1343,6 @@ npu_cdc_top npu_cdc_top(
     wire                        npu_s0_axi_rvalid  ;
     wire                        npu_s0_axi_rready  ;
 
-    axi_dma #(
-        .BURST_LEN  (BURST_LEN)   ,
-	    .ID_WIDTH   (AXI_ID_LEN)  ,
-	    .DATA_WIDTH (AXI_DATA_LEN)
-    )
-    npu_s0_out_axi_dma(
-    	.clk(axi_clk)                   ,
-	    .rst(axi_rst)                   ,
- 
-  
-        .write_cmd_valid(cdc_out_m_cmd_valid)            ,
-        .write_cmd_ready(cdc_out_m_cmd_ready)            ,
-        .write_cmd_addr (cdc_out_m_cmd_addr )            ,
-        .write_cmd_len  (cdc_out_m_cmd_len  )            ,
-        .write_cmd_id   (4'b0010            )            ,
-
-        .data_in        (cdc_out_m_data      )            ,
-        .data_in_keep   ({AXI_STRB_LEN{1'b1}})            ,
-        .data_in_valid  (cdc_out_m_valid     )            ,
-        .data_in_last   (cdc_out_m_last      )            ,
-        .data_in_ready  (cdc_out_m_ready     )            ,	
-
-        //trans data in
-        .read_cmd_valid (cdc_s_cmd_valid_0   )            ,
-        .read_cmd_addr  (cdc_s_cmd_addr_0    )            ,
-        .read_cmd_len   (cdc_s_cmd_len_0     )            ,
-        .read_cmd_id    (4'b0010             )            ,
-        .read_cmd_ready (cdc_s_cmd_ready_0   )            ,
-
-        .data_out       (cdc_s_data_0        )            ,
-        .data_out_valid (cdc_s_valid_0       )            ,
-        .data_out_last  (cdc_s_last_0        )            ,
-        .data_out_ready (cdc_s_ready_0       )            ,
-
-
-        .m_axi_awid   (npu_out_axi_awid   ) ,
-        .m_axi_awaddr (npu_out_axi_awaddr ) ,
-        .m_axi_awlen  (npu_out_axi_awlen  ) ,
-        .m_axi_awsize (npu_out_axi_awsize ) ,
-        .m_axi_awburst(npu_out_axi_awburst) ,
-        .m_axi_awlock (npu_out_axi_awlock ) ,
-        .m_axi_awcache(npu_out_axi_awcache) ,
-        .m_axi_awprot (npu_out_axi_awprot ) ,
-        .m_axi_awvalid(npu_out_axi_awvalid) ,
-        .m_axi_awready(npu_out_axi_awready) ,
-        .m_axi_wdata  (npu_out_axi_wdata  ) ,
-        .m_axi_wstrb  (npu_out_axi_wstrb  ) ,
-        .m_axi_wlast  (npu_out_axi_wlast  ) ,
-        .m_axi_wvalid (npu_out_axi_wvalid ) ,
-        .m_axi_wready (npu_out_axi_wready ) ,
-        .m_axi_bid    (npu_out_axi_bid    ) ,
-        .m_axi_bresp  (npu_out_axi_bresp  ) ,
-        .m_axi_bvalid (npu_out_axi_bvalid ) ,
-        .m_axi_bready (npu_out_axi_bready ) ,	
-
-        .m_axi_arid   (npu_s0_axi_arid    ) ,
-        .m_axi_araddr (npu_s0_axi_araddr  ) ,
-        .m_axi_arlen  (npu_s0_axi_arlen   ) ,
-        .m_axi_arsize (npu_s0_axi_arsize  ) ,
-        .m_axi_arburst(npu_s0_axi_arburst ) ,
-        .m_axi_arlock (npu_s0_axi_arlock  ) ,
-        .m_axi_arcache(npu_s0_axi_arcache ) ,
-        .m_axi_arprot (npu_s0_axi_arprot  ) ,
-        .m_axi_arvalid(npu_s0_axi_arvalid ) ,
-        .m_axi_arready(npu_s0_axi_arready ) ,
-        .m_axi_rid    (npu_s0_axi_rid     ) ,
-        .m_axi_rdata  (npu_s0_axi_rdata   ) ,
-        .m_axi_rresp  (npu_s0_axi_rresp   ) ,
-        .m_axi_rlast  (npu_s0_axi_rlast   ) ,
-        .m_axi_rvalid (npu_s0_axi_rvalid  ) ,
-        .m_axi_rready (npu_s0_axi_rready  )  
-    );
 
     wire    [AXI_ID_LEN-1:0]    npu_s1_axi_arid    ;
     wire    [31:0]              npu_s1_axi_araddr  ;
@@ -1241,47 +1362,6 @@ npu_cdc_top npu_cdc_top(
     wire                        npu_s1_axi_rready  ;
 
 
-    axi_dma_read #(
-        .BURST_LEN  (BURST_LEN)   ,
-	    .ID_WIDTH   (AXI_ID_LEN)  ,
-	    .DATA_WIDTH (AXI_DATA_LEN)
-	)
-	npu_s1_axi_dma_read(
-	    .clk(axi_clk)                   ,
-	    .rst(axi_rst)                   ,
-	
-	    //cmd interface
-	    .cmd_valid	(cdc_s_cmd_valid_1   )            ,
-	    .cmd_addr	(cdc_s_cmd_addr_1    )            ,
-	    .cmd_len	(cdc_s_cmd_len_1     )            ,
-	    .cmd_id     (4'b0011             )            ,
-	    .cmd_ready	(cdc_s_cmd_ready_1   )            ,
-    
-	    //trans data in    
-	    .data_out      (cdc_s_data_1        )            ,
-	    .data_out_valid(cdc_s_valid_1       )            ,
-	    .data_out_last (cdc_s_last_1        )            ,
-	    .data_out_ready(cdc_s_ready_1       )            ,
-
-	    //axi r
-        .m_axi_arid   (npu_s1_axi_arid    ) ,
-        .m_axi_araddr (npu_s1_axi_araddr  ) ,
-        .m_axi_arlen  (npu_s1_axi_arlen   ) ,
-        .m_axi_arsize (npu_s1_axi_arsize  ) ,
-        .m_axi_arburst(npu_s1_axi_arburst ) ,
-        .m_axi_arlock (npu_s1_axi_arlock  ) ,
-        .m_axi_arcache(npu_s1_axi_arcache ) ,
-        .m_axi_arprot (npu_s1_axi_arprot  ) ,
-        .m_axi_arvalid(npu_s1_axi_arvalid ) ,
-        .m_axi_arready(npu_s1_axi_arready ) ,
-        .m_axi_rid    (npu_s1_axi_rid     ) ,
-        .m_axi_rdata  (npu_s1_axi_rdata   ) ,
-        .m_axi_rresp  (npu_s1_axi_rresp   ) ,
-        .m_axi_rlast  (npu_s1_axi_rlast   ) ,
-        .m_axi_rvalid (npu_s1_axi_rvalid  ) ,
-        .m_axi_rready (npu_s1_axi_rready  )  
-
-    );
 
 
 
@@ -1304,47 +1384,6 @@ npu_cdc_top npu_cdc_top(
     wire                        npu_s2_axi_rready  ;
 
 
-    axi_dma_read #(
-        .BURST_LEN  (BURST_LEN)   ,
-	    .ID_WIDTH   (AXI_ID_LEN)  ,
-	    .DATA_WIDTH (AXI_DATA_LEN)
-	)
-	npu_s2_axi_dma_read(
-	    .clk(axi_clk)                   ,
-	    .rst(axi_rst)                   ,
-	
-	    //cmd interface
-	    .cmd_valid	(cdc_s_cmd_valid_2   )            ,
-	    .cmd_addr	(cdc_s_cmd_addr_2    )            ,
-	    .cmd_len	(cdc_s_cmd_len_2     )            ,
-	    .cmd_id     (4'b0100             )            ,
-	    .cmd_ready	(cdc_s_cmd_ready_2   )            ,
-    
-	    //trans data in    
-	    .data_out      (cdc_s_data_2        )            ,
-	    .data_out_valid(cdc_s_valid_2       )            ,
-	    .data_out_last (cdc_s_last_2        )            ,
-	    .data_out_ready(cdc_s_ready_2       )            ,
-
-	    //axi r
-        .m_axi_arid   (npu_s2_axi_arid    ) ,
-        .m_axi_araddr (npu_s2_axi_araddr  ) ,
-        .m_axi_arlen  (npu_s2_axi_arlen   ) ,
-        .m_axi_arsize (npu_s2_axi_arsize  ) ,
-        .m_axi_arburst(npu_s2_axi_arburst ) ,
-        .m_axi_arlock (npu_s2_axi_arlock  ) ,
-        .m_axi_arcache(npu_s2_axi_arcache ) ,
-        .m_axi_arprot (npu_s2_axi_arprot  ) ,
-        .m_axi_arvalid(npu_s2_axi_arvalid ) ,
-        .m_axi_arready(npu_s2_axi_arready ) ,
-        .m_axi_rid    (npu_s2_axi_rid     ) ,
-        .m_axi_rdata  (npu_s2_axi_rdata   ) ,
-        .m_axi_rresp  (npu_s2_axi_rresp   ) ,
-        .m_axi_rlast  (npu_s2_axi_rlast   ) ,
-        .m_axi_rvalid (npu_s2_axi_rvalid  ) ,
-        .m_axi_rready (npu_s2_axi_rready  )  
-
-    );
 
 
 
@@ -1367,47 +1406,6 @@ npu_cdc_top npu_cdc_top(
     wire                        npu_s3_axi_rready  ;
 
 
-    axi_dma_read #(
-        .BURST_LEN  (BURST_LEN)   ,
-	    .ID_WIDTH   (AXI_ID_LEN)  ,
-	    .DATA_WIDTH (AXI_DATA_LEN)
-	)
-	npu_s3_axi_dma_read(
-	    .clk(axi_clk)                   ,
-	    .rst(axi_rst)                   ,
-	
-	    //cmd interface
-	    .cmd_valid	(cdc_s_cmd_valid_3   )            ,
-	    .cmd_addr	(cdc_s_cmd_addr_3    )            ,
-	    .cmd_len	(cdc_s_cmd_len_3     )            ,
-	    .cmd_id     (4'b0101             )            ,
-	    .cmd_ready	(cdc_s_cmd_ready_3   )            ,
-    
-	    //trans data in    
-	    .data_out      (cdc_s_data_3        )            ,
-	    .data_out_valid(cdc_s_valid_3       )            ,
-	    .data_out_last (cdc_s_last_3        )            ,
-	    .data_out_ready(cdc_s_ready_3       )            ,
-
-	    //axi r
-        .m_axi_arid   (npu_s3_axi_arid    ) ,
-        .m_axi_araddr (npu_s3_axi_araddr  ) ,
-        .m_axi_arlen  (npu_s3_axi_arlen   ) ,
-        .m_axi_arsize (npu_s3_axi_arsize  ) ,
-        .m_axi_arburst(npu_s3_axi_arburst ) ,
-        .m_axi_arlock (npu_s3_axi_arlock  ) ,
-        .m_axi_arcache(npu_s3_axi_arcache ) ,
-        .m_axi_arprot (npu_s3_axi_arprot  ) ,
-        .m_axi_arvalid(npu_s3_axi_arvalid ) ,
-        .m_axi_arready(npu_s3_axi_arready ) ,
-        .m_axi_rid    (npu_s3_axi_rid     ) ,
-        .m_axi_rdata  (npu_s3_axi_rdata   ) ,
-        .m_axi_rresp  (npu_s3_axi_rresp   ) ,
-        .m_axi_rlast  (npu_s3_axi_rlast   ) ,
-        .m_axi_rvalid (npu_s3_axi_rvalid  ) ,
-        .m_axi_rready (npu_s3_axi_rready  )  
-
-    );
 
 
 
@@ -1430,47 +1428,41 @@ npu_cdc_top npu_cdc_top(
     wire                        npu_s4_axi_rready  ;
 
 
-    axi_dma_read #(
-        .BURST_LEN  (BURST_LEN)   ,
-	    .ID_WIDTH   (AXI_ID_LEN)  ,
-	    .DATA_WIDTH (AXI_DATA_LEN)
-	)
-	npu_s4_axi_dma_read(
-	    .clk(axi_clk)                   ,
-	    .rst(axi_rst)                   ,
-	
-	    //cmd interface
-	    .cmd_valid	(cdc_s_cmd_valid_4   )            ,
-	    .cmd_addr	(cdc_s_cmd_addr_4    )            ,
-	    .cmd_len	(cdc_s_cmd_len_4     )            ,
-	    .cmd_id     (4'b0110             )            ,
-	    .cmd_ready	(cdc_s_cmd_ready_4   )            ,
-    
-	    //trans data in    
-	    .data_out      (cdc_s_data_4        )            ,
-	    .data_out_valid(cdc_s_valid_4       )            ,
-	    .data_out_last (cdc_s_last_4        )            ,
-	    .data_out_ready(cdc_s_ready_4       )            ,
-
-	    //axi r
-        .m_axi_arid   (npu_s4_axi_arid    ) ,
-        .m_axi_araddr (npu_s4_axi_araddr  ) ,
-        .m_axi_arlen  (npu_s4_axi_arlen   ) ,
-        .m_axi_arsize (npu_s4_axi_arsize  ) ,
-        .m_axi_arburst(npu_s4_axi_arburst ) ,
-        .m_axi_arlock (npu_s4_axi_arlock  ) ,
-        .m_axi_arcache(npu_s4_axi_arcache ) ,
-        .m_axi_arprot (npu_s4_axi_arprot  ) ,
-        .m_axi_arvalid(npu_s4_axi_arvalid ) ,
-        .m_axi_arready(npu_s4_axi_arready ) ,
-        .m_axi_rid    (npu_s4_axi_rid     ) ,
-        .m_axi_rdata  (npu_s4_axi_rdata   ) ,
-        .m_axi_rresp  (npu_s4_axi_rresp   ) ,
-        .m_axi_rlast  (npu_s4_axi_rlast   ) ,
-        .m_axi_rvalid (npu_s4_axi_rvalid  ) ,
-        .m_axi_rready (npu_s4_axi_rready  )  
-
-    );
+// ===== NPU removed: tie off crossbar-facing NPU ports =====
+// S02 write (npu_out) + S02 read (npu_s0)
+assign npu_out_axi_awvalid = 1'b0;
+assign npu_out_axi_wvalid  = 1'b0;
+assign npu_out_axi_bready  = 1'b1;
+assign npu_s0_axi_arvalid  = 1'b0;
+assign npu_s0_axi_rready   = 1'b1;
+// S03 read (npu_s1) ; S03 write (prep2) stays active
+assign npu_s1_axi_arvalid  = 1'b0;
+assign npu_s1_axi_rready   = 1'b1;
+// S04/S05/S06 read (npu_s2/s3/s4)
+assign npu_s2_axi_arvalid  = 1'b0;
+assign npu_s2_axi_rready   = 1'b1;
+assign npu_s3_axi_arvalid  = 1'b0;
+assign npu_s3_axi_rready   = 1'b1;
+assign npu_s4_axi_arvalid  = 1'b0;
+assign npu_s4_axi_rready   = 1'b1;
+// M02 (NPU register window) response inputs
+assign npu_reg_axi_awready = 1'b1;
+assign npu_reg_axi_wready  = 1'b1;
+assign npu_reg_axi_bid     = {AXI_ID_LEN{1'b0}};
+assign npu_reg_axi_bresp   = 2'b00;
+assign npu_reg_axi_bvalid  = 1'b0;
+wire   [AXI_ID_LEN-1:0]   npu_reg_axi_rid;
+wire   [AXI_DATA_LEN-1:0] npu_reg_axi_rdata;
+wire   [1:0]              npu_reg_axi_rresp;
+wire                      npu_reg_axi_rlast;
+wire                      npu_reg_axi_rvalid;
+wire                      npu_reg_axi_arready;
+assign npu_reg_axi_arready = 1'b1;
+assign npu_reg_axi_rid     = {AXI_ID_LEN{1'b0}};
+assign npu_reg_axi_rdata   = {AXI_DATA_LEN{1'b0}};
+assign npu_reg_axi_rresp   = 2'b00;
+assign npu_reg_axi_rlast   = 1'b0;
+assign npu_reg_axi_rvalid  = 1'b0;
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 axi_crossbar_7x3 #(
@@ -1480,7 +1472,7 @@ axi_crossbar_7x3 #(
     // 读 DDR: 允许 PCIE(S00) 和 NPU所有通道(S02-S06)。禁止 Camera(S01)
     .M00_CONNECT_READ  (7'b1111101), 
     // 写 DDR: 允许 PCIE(S00), Camera(S01), NPU_S0(S02)。禁止 NPU_S1~S4(S03-S06)
-    .M00_CONNECT_WRITE (7'b0000111),
+    .M00_CONNECT_WRITE (7'b0001111),  // +S03: preprocess processed-frame write
     
     // M01 (OV5640 控制寄存器) 的访问权限：
     // 只有 PCIE (S00) 可以读写，彻底切断其他高速通道的干扰
@@ -1634,29 +1626,29 @@ axi_crossbar_7x3
     .s02_axi_rready (npu_s0_axi_rready  ),
     .s02_axi_ruser  (),
 
-    .s03_axi_awid(),
-    .s03_axi_awaddr(),
-    .s03_axi_awlen(),
-    .s03_axi_awsize(),
-    .s03_axi_awburst(),
-    .s03_axi_awlock(),
-    .s03_axi_awcache(),
-    .s03_axi_awprot(),
-    .s03_axi_awqos(),
-    .s03_axi_awuser(),
-    .s03_axi_awvalid(),
-    .s03_axi_awready(),
-    .s03_axi_wdata(),
-    .s03_axi_wstrb(),
-    .s03_axi_wlast(),
-    .s03_axi_wuser(),
-    .s03_axi_wvalid(),
-    .s03_axi_wready(),
-    .s03_axi_bid(),
-    .s03_axi_bresp(),
-    .s03_axi_buser(),
-    .s03_axi_bvalid(),
-    .s03_axi_bready(),
+    .s03_axi_awid   (prep2_axi_awid   ),
+    .s03_axi_awaddr (prep2_axi_awaddr ),
+    .s03_axi_awlen  (prep2_axi_awlen  ),
+    .s03_axi_awsize (prep2_axi_awsize ),
+    .s03_axi_awburst(prep2_axi_awburst),
+    .s03_axi_awlock (prep2_axi_awlock ),
+    .s03_axi_awcache(prep2_axi_awcache),
+    .s03_axi_awprot (prep2_axi_awprot ),
+    .s03_axi_awqos  (4'd0),
+    .s03_axi_awuser (),
+    .s03_axi_awvalid(prep2_axi_awvalid),
+    .s03_axi_awready(prep2_axi_awready),
+    .s03_axi_wdata  (prep2_axi_wdata ),
+    .s03_axi_wstrb  (prep2_axi_wstrb ),
+    .s03_axi_wlast  (prep2_axi_wlast ),
+    .s03_axi_wuser  (),
+    .s03_axi_wvalid (prep2_axi_wvalid),
+    .s03_axi_wready (prep2_axi_wready),
+    .s03_axi_bid    (prep2_axi_bid   ),
+    .s03_axi_bresp  (prep2_axi_bresp ),
+    .s03_axi_buser  (),
+    .s03_axi_bvalid (prep2_axi_bvalid),
+    .s03_axi_bready (prep2_axi_bready),
     .s03_axi_arid   (npu_s1_axi_arid    ),
     .s03_axi_araddr (npu_s1_axi_araddr  ),
     .s03_axi_arlen  (npu_s1_axi_arlen   ),

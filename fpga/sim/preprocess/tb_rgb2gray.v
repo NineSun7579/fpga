@@ -19,6 +19,7 @@ module tb_rgb2gray;
     integer           W = 64, H = 36, N;
     integer           sent = 0, cnt = 0, err = 0;
     integer           stall;
+    integer           fd_out;          // HW 实际输出记录 -> golden/hw_out_gray.mem
     reg               s_valid = 1'b0;
     reg  [15:0]       s_rgb = 16'd0;
     wire [7:0]        m_gray;
@@ -36,6 +37,7 @@ module tb_rgb2gray;
         if (!$value$plusargs("H=%d", H)) H = 36;
         $readmemh("golden/img.mem",       img);
         $readmemh("golden/exp_gray.mem",  expg);
+        fd_out = $fopen("golden/hw_out_gray.mem", "w");
         N = W * H;
         repeat (8) @(posedge clk);
         rst_n = 1'b1;
@@ -58,6 +60,7 @@ module tb_rgb2gray;
     // 比对
     always @(posedge clk) begin
         if (rst_n && m_valid) begin
+            $fwrite(fd_out, "%h\n", m_gray);
             if (m_gray !== expg[cnt]) begin
                 if (err < 10)
                     $display("[RGB2GRAY][ERR] idx=%0d got=%02h exp=%02h", cnt, m_gray, expg[cnt]);
@@ -79,12 +82,14 @@ module tb_rgb2gray;
             $display("[RGB2GRAY] TB_PASS  pixels=%0d", cnt);
         else
             $display("[RGB2GRAY] TB_FAIL  out=%0d/%0d err=%0d", cnt, N, err);
+        $fclose(fd_out);
         $finish;
     end
 
     initial begin
         #200_000_000;
         $display("[RGB2GRAY] TB_FAIL  超时");
+        $fclose(fd_out);
         $finish;
     end
 

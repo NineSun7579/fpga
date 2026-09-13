@@ -33,7 +33,14 @@ module ov5640_reg #(
     output reg [AXI_ADDR_WIDTH-1 : 0] cam_addr_1            ,
     output reg [AXI_ADDR_WIDTH-1 : 0] cam_addr_2            ,        
     output reg [1 : 0]                xdma_ack              ,
-    output reg                        cam_en                
+    output reg                        cam_en                        ,
+    input  [31:0]                     dbg_cam_words         ,
+    input  [31:0]                     dbg_vsyncs        ,
+    input  [1:0]                      dbg_xdma_req        ,
+    input  [31:0]                     dbg_i2c_status      ,
+    input  [31:0]                     dbg_pclk_cnt        ,
+    input  [31:0]                     dbg_sys_status      ,
+    input  [31:0]                     dbg_clk_status
 );
 
 //寄存器地址
@@ -41,6 +48,13 @@ localparam REG_ACK       = BASE_ADDR + 32'h00;
 localparam REG_CAM_EN    = BASE_ADDR + 32'h40;
 localparam REG_CAM_ADDR_1= BASE_ADDR + 32'h80;
 localparam REG_CAM_ADDR_2= BASE_ADDR + 32'hc0;
+localparam REG_DBG_CAM_WORDS = BASE_ADDR + 32'h30;
+localparam REG_DBG_VSYNCS    = BASE_ADDR + 32'h34;
+localparam REG_DBG_XDMA_REQ  = BASE_ADDR + 32'h38;
+localparam REG_DBG_I2C_ID    = BASE_ADDR + 32'h3c;
+localparam REG_DBG_PCLK_CNT  = BASE_ADDR + 32'h44;
+localparam REG_DBG_SYS       = BASE_ADDR + 32'h48;
+localparam REG_DBG_CLK       = BASE_ADDR + 32'h4c;
 
     reg bvalid        ;
     reg data_out_valid;
@@ -133,6 +147,13 @@ localparam REG_CAM_ADDR_2= BASE_ADDR + 32'hc0;
                     REG_CAM_EN:     rdata <= {{AXI_ADDR_WIDTH-1{1'b0}}, cam_en};
                     REG_CAM_ADDR_1: rdata <= cam_addr_1;
                     REG_CAM_ADDR_2: rdata <= cam_addr_2;
+                    REG_DBG_CAM_WORDS: rdata <= dbg_cam_words;
+                    REG_DBG_VSYNCS:    rdata <= dbg_vsyncs;
+                    REG_DBG_XDMA_REQ:  rdata <= {{(AXI_ADDR_WIDTH-2){1'b0}}, dbg_xdma_req};
+                    REG_DBG_I2C_ID:    rdata <= dbg_i2c_status;
+                    REG_DBG_PCLK_CNT:  rdata <= dbg_pclk_cnt;
+                    REG_DBG_SYS:       rdata <= dbg_sys_status;
+                    REG_DBG_CLK:       rdata <= dbg_clk_status;
                     default:        rdata <= {AXI_ADDR_WIDTH{1'b1}}; // 读到非法地址返回特殊标记，方便 debug
                 endcase
             end

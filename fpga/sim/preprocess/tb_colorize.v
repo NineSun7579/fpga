@@ -21,6 +21,7 @@ module tb_colorize;
     integer           sent = 0, cnt = 0, err = 0;
     integer           hit_gray = 0, hit_red = 0, hit_yel = 0, hit_grn = 0;
     integer           stall;
+    integer           fd_rgb, fd_id;   // HW 实际输出记录 -> golden/hw_out_{color,id}.mem
     reg               s_valid = 1'b0;
     reg  [15:0]       s_rgb = 16'd0;
     wire [7:0]        gray;
@@ -54,6 +55,8 @@ module tb_colorize;
         $readmemh("golden/exp_gray.mem",  expg);
         $readmemh("golden/exp_color.mem", expc);
         $readmemh("golden/exp_id.mem",    expid);
+        fd_rgb = $fopen("golden/hw_out_color.mem", "w");
+        fd_id  = $fopen("golden/hw_out_id.mem", "w");
         N = W * H;
         repeat (8) @(posedge clk);
         rst_n = 1'b1;
@@ -79,6 +82,10 @@ module tb_colorize;
                              cnt, c_rgb, c_id, expc[cnt], expid[cnt]);
                 err = err + 1;
             end
+            $fwrite(fd_rgb, "%04h
+", c_rgb);
+            $fwrite(fd_id,  "%02h
+", c_id);
             if (c_rgb === 16'bx) begin
                 $display("[COLOR][ERR] X 传播 idx=%0d", cnt);
                 err = err + 1;
@@ -99,6 +106,7 @@ module tb_colorize;
         repeat (8) @(posedge clk);
         $display("[COLOR] 覆盖: gray=%0d red=%0d yellow=%0d green=%0d",
                  hit_gray, hit_red, hit_yel, hit_grn);
+        $fclose(fd_rgb); $fclose(fd_id);
         if (hit_red == 0 || hit_yel == 0 || hit_grn == 0) begin
             $display("[COLOR] TB_FAIL  功能覆盖点未命中(三标准色必须全命中)");
         end else if (cnt == N && err == 0)

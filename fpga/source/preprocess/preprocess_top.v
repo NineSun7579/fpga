@@ -53,8 +53,8 @@ module preprocess_top #(
     wire [15:0] rgb_d1;
 
     rgb2gray u_gray (
-        .clk, .rst_n,
-        .s_rgb565, .s_valid,
+        .clk(clk), .rst_n(rst_n),
+        .s_rgb565(s_rgb565), .s_valid(s_valid),
         .m_gray(gray), .m_valid(gray_valid), .m_rgb565_d(rgb_d1)
     );
 
@@ -67,7 +67,7 @@ module preprocess_top #(
     reg         c_id_valid_d;
 
     colorize u_color (
-        .clk, .rst_n,
+        .clk(clk), .rst_n(rst_n),
         .thr_sat(reg_thr_sat), .thr_hue(reg_thr_hue),
         .thr_val(reg_thr_val), .thr_low(reg_thr_low),
         .s_rgb565(rgb_d1), .s_gray(gray), .s_valid(gray_valid),
@@ -83,14 +83,14 @@ module preprocess_top #(
     wire        a_valid;
 
     sobel_edge #(.MAX_WIDTH(MAX_WIDTH)) u_sobel (
-        .clk, .rst_n,
+        .clk(clk), .rst_n(rst_n),
         .img_width(reg_img_width), .thr_edge(reg_thr_edge),
         .s_gray(gray), .s_valid(gray_valid), .s_frame_sync(s_frame_sync),
         .m_edge(edge_flag), .m_center(edge_center), .m_valid(edge_valid)
     );
 
     align16 #(.MAX_WIDTH(MAX_WIDTH)) u_align (
-        .clk, .rst_n,
+        .clk(clk), .rst_n(rst_n),
         .img_width(reg_img_width),
         .s_pix(c_rgb), .s_valid(c_valid), .s_frame_sync(s_frame_sync),
         .m_pix(a_rgb), .m_valid(a_valid)
@@ -160,7 +160,7 @@ module preprocess_top #(
     wire        fifo_rd   = m_ready;
 
     prep_sync_fifo #(.DW(16), .DEPTH(FIFO_DEPTH), .AFULL(FIFO_DEPTH-32)) u_ofifo (
-        .clk, .rst_n,
+        .clk(clk), .rst_n(rst_n),
         .wr_en(fifo_wr), .wr_data(fifo_wdat),
         .rd_en(fifo_rd),
         .rd_data(m_rgb565),

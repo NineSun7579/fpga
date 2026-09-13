@@ -1,0 +1,3 @@
+cfg_set_cable_property -clock 5
+cfg_scan_chain
+cfg_jtag_flash_scan_device

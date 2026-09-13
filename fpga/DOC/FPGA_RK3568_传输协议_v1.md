@@ -1,6 +1,9 @@
 # FPGA ↔ RK3568 传输协议 v1.0
 
-状态: 定稿 v1.0 (2026-09-09) ｜ 决策权全部在 RK3568 (主机), FPGA 为执行端
+状态: **v1.1 (2026-09-11)** ｜ 决策权全部在 RK3568 (主机), FPGA 为执行端
+v1.1 变更: §3 寄存器表增加"实现状态"列并区分"已实现/待集成"; 新增 §3.0 当前比特流
+已实现寄存器总表(含 BAR1 参考 DMA 描述符)与 §3.2 寄存器经 DMA 的访问方法;
+主机驱动按"选项 1"(传输层走真实 RTL 协议 + 通道抽象, PREP 后端由 stub 转正式)实现。
 配套 RTL: `source/preprocess/prep_regs.v` (寄存器扩展), `source/preprocess/*` (预处理 IP)
 
 ## 1. 系统角色
@@ -32,7 +35,46 @@
 
 魔数约定: 权重区头 4 字节 = 0xF0F0F0F0 (RK3568 写入; FPGA 侧校验权重版本)。
 
-## 3. 寄存器扩展 (BAR 0x2000_0000, 已实现于 prep_regs.v)
+## 3.0 当前比特流已实现寄存器总表 (主机驱动以此为准)
+
+两类访问通道:
+- **BAR1 DMA 描述符寄存器** (直写, 只写): 传输层原语, 所有数据搬运的入口。
+- **AXI 地址窗寄存器** (经 DMA 间接访问): 把 0x1E0 设为目标 AXI 地址即可读写。
+
+| 访问方式 | 寄存器 | 偏移/AXI 地址 | 说明 | 状态 |
+|---|---|---|---|---|
+| BAR1 描述符 | CMD | BAR1+0x100 | [9:0]每次TLP的DW数 [16]=1用64位主机地址 [24]=0读主机/1写主机 | 已实现 |
+| BAR1 描述符 | HOST_ADDR_L | BAR1+0x110 | 主机缓冲低 32 位 (写入触发传输) | 已实现 |
+| BAR1 描述符 | HOST_ADDR_H | BAR1+0x120 | 主机缓冲高 32 位 ([16]=1 时有效) | 已实现 |
+| BAR1 描述符 | FPGA_AXI_ADDR | BAR1+0x1E0 | **FPGA 侧 AXI 总线地址** (非 BAR 偏移) | 已实现 |
+| BAR1 描述符 | TOTAL_LEN | BAR1+0x200 | 传输总字节数 (16B 对齐分拍) | 已实现 |
+| AXI 窗 | XDMA_ACK | 0x2000_0000+0x00 | 写 bit[1:0]=帧完成应答 (自清) | 已实现 |
+| AXI 窗 | CAM_EN | 0x2000_0000+0x40 | 写 bit0 启动相机写 DDR | 已实现 |
+| AXI 窗 | CAM_ADDR_1/2 | 0x2000_0000+0x80/0xC0 | 相机帧乒乓缓冲基址 | 已实现 |
+| AXI 窗 | PREP_CTRL | 0x2000_0000+0x100 | 见 §3 (读写回读) | **已实现(寄存器级)** |
+| AXI 窗 | PREP_THR/SIZE/LANE/INJ_*/BUTTON/LED/LANE_RESULT/TS | +0x104~0x17C | 同上 | **已实现(寄存器级)** |
+| AXI 窗 | NPU 寄存器 | 0x4000_0000~ | 指令队列/层数 | 已实现 |
+
+注意:
+1. AXI 窗寄存器的值放 16 字节 DMA 传输的 **byte0~3 (小端)**; 读回同理。reg 均为 16 字节对齐。
+2. PREP/INJ 寄存器当前为**寄存器级实现**: 读写回读位精确 (sim 11/11 验证), 但阈值/注入
+   的**图像功能**要等第二阶段像素通路集成 (preprocess_top tap 进 ddr_fifo16_r 读侧) 才生效
+   —— 主机可先验证寄存器契约, 不要期望写 THR 立刻改变图像。
+3. BAR0/BAR2 MMIO 直读是内部 RAM 窗口 (非寄存器), 不要用作状态回读。
+
+## 3.1 推荐点亮流程 (与 DOC/RK3568_新比特流点亮指南.md 同源)
+
+```
+0) 枚举: 0755:0755, Gen2 x2, BAR 8K/4K/4K
+1) DDR 回环自检: 主机→FPGA 写 16B 到 0x0B000000, 再 FPGA→主机推回比对
+2) 写 CAM_ADDR_1/2 (0x2000_0080/0xC0, 值如 0x0A000000/0x0A1C2000, 两笔各16B)
+3) 写 CAM_EN=1 (0x2000_0040)
+4) 等 MSI(bit0/1=帧完成缓冲号) 或轮询
+5) 推帧: 0x1E0=帧地址, 0x200=0x1C2000, 主机缓冲, CMD=[24]=1
+6) 写 XDMA_ACK 应答 (0x2000_0000+0x00)
+```
+
+## 3.2 寄存器扩展 (BAR 0x2000_0000, 已实现于 prep_regs.v 并已接入 top.v M01 窗口)
 
 | 偏移 | 名称 | 属性 | 位定义 |
 |---|---|---|---|
@@ -103,3 +145,47 @@ RK3568                          FPGA
 - 灰度 = BT.601 整数近似 Y=(77R+150G+29B)>>8, 5/6→8bit 高位复制。
 - 帧同步: 处理图首像素跟随 vsync; 帧尾补 1 个哑像素 (Sobel 上游契约, 见模块头)。
 - FRAME_ID 32 位循环; 主机校验 INJ_STATUS[31:16] 防乱序。
+
+
+## 3.3 板级验证状态 (2026-09-12 凌晨, bitstream_2026-09-11 + 板端实测)
+
+### 通道验证结果 (RK3568 实测)
+
+| 通道/功能 | 状态 | 证据 |
+|---|---|---|
+| 相机→DDR→PCIe→主机 (CH0 数据面, op_type=1) | **PASS** | viewer 30.1~30.2fps 连续数小时; DDR 读回相机帧数据 (3900/4096 非零) |
+| 相机寄存器配置 (CAM_ADDR_1/2, CAM_EN, op0→M01) | **PASS** | 16B DMA 写 byte0~3, 主机任意配置相机缓冲地址生效 (0x0B000000 实测) |
+| PREP_CTRL (+0x100) / LED_CTRL (+0x150) 写读回环 | **PASS** | 写读位精确 (0x1E / 0x05) |
+| BUTTON_STATUS (+0x140) 读 | PASS | 0 (无按键, 合理) |
+| PREP_THR (+0x104) / SIZE / LANE | **BLOCKED** | 见下 "prep_regs 写通道 RTL corner"; 修复前主机无法验证 |
+| GPIO / PWM ioctl (RK 本机经驱动) | **PASS** | dmesg 确认 GPIO0 置高 + PWM ch0 使能 |
+| host→DDR 大数据面 (op_type=0 → M00, 回环自检 0x0B000000) | **FAIL(未通)** | 全新状态首笔即无完成 MSI; NPU 权重/指令上传通道被阻塞, 需 ILA 定位 pcie_dma 读请求方路径 |
+| NPU 结果读取 (GET_NPU, 内核 read_npu, op1←M00) | 未测(依赖推理) | 通路与 CH0 同构, 数据面已证可用 |
+
+### 运维关键发现 (每次上电/烧录必须遵守)
+
+1. **JTAG 易失性烧录 (cfg_program) 后, FPGA PCIe 核复位, 必须做 PERST 复位 + PCIe 重扫, 否则一切总线主控 DMA 静默死锁** (MMIO 正常, 极具迷惑性):
+   ```bash
+   echo 0 > /sys/class/gpio/gpio144/value; sleep 0.3; echo 1 > /sys/class/gpio/gpio144/value
+   echo 1 > /sys/bus/pci/devices/0002:21:00.0/remove; sleep 1; echo 1 > /sys/bus/pci/rescan
+   ```
+   之后才能 insmod。参考栈 run_car_qt.sh 每次先跑 reset_pcie.sh 即同一原理。
+2. **cdt_js 服务器一次会话后即失效**: 每次烧录前 `taskkill /F /IM cdt_js.exe` + 全新端口启动。
+3. **任一 DMA ioctl 超时后, 驱动 g_dma_flag 残留 1 (只有 vector0 中断能清), 后续全部 DMA 在 idle 检查 800ms 超时** → 必须 `rmmod; insmod`。
+4. **驱动信号量缺陷**: PCI_MAP_ADDR_CMD 重复分配走 `return -EBUSY` 不做 up(&_sem) → 之后所有 ioctl 永久阻塞 (dmesg 刷 "pango_cdev_read interruptible")。缓冲每模块生命周期只能 alloc 一次。
+5. 相机 DDR 双缓冲由 CAM_ADDR_1/2 指定 (实测 0x0 / 0x003F4800 均可), 帧尺寸 0x1C2000 (1280x720 RGB565)。
+
+### 已定位未修的 RTL 缺陷
+
+- **prep_regs.v AW/W 两段锁存背靠背失步**: `wr_fire` 清 aw_seen/w_seen 与下一笔 W 的接受脉冲同拍竞争 (非阻塞赋值顺序), 上游 axi_to_axi_lite 连续流 4 个 word 写 (一次 16B DMA) 时丢写/错位, 且之后该模块读通道退化为全 0 (复位默认值也读不到)。ModelSim tb_ovreg_axil_decode 未覆盖背靠背写入。修法: 把 `if (wr_fire) aw_seen/w_seen <= 0` 移到 accept 语句之前 (accept 后写覆盖), 并补背靠背 TB 用例。
+- **op_type=0 → M00 (DDR) 不完成**: 与尺寸/地址无关 (16B/4KB/64KB, 0x01000000/0x0B000000 全试), 全新状态首笔即挂。怀疑 pcie_dma 引擎 host-read 请求方/completion 路径缺陷。viewer 只用 op1 不受影响。
+- crossbar 译码窗口 (实测): M00=DDR3 0x0~0x1FFFFFFF, M01=寄存器 0x2000_0000~0x3FFFFFFF, M02=NPU 0x4000_0000~0x5FFFFFFF; addr[8]=1 段为 prep_regs (0x2000_0100~)。
+
+
+### prep_regs 写通道缺陷修复状态 (2026-09-12 07:20)
+
+- **缺陷已复现于仿真**: tb_ovreg_axil_decode.v 新增 `axi_wr_stream4` 背靠背用例 (复现 axi_to_axi_lite 把 16B DMA 拆成 4 个连续 AXI-Lite 写), 原始代码下 THR/LANE 读回错乱, 与板级 K/L 变体现象一致。
+- **源码已改 (v2, 未出比特流)**: prep_regs.v AW/W 接受逻辑改 if/else 互斥 (`if (wr_fire) seen<=0; else if(...) accept`), 消除同拍竞争。间隔写场景 tb_prep_regs/tb_ovreg 全 PASS。
+- **b2b 用例仍未全绿**: 残余问题在 TB 的 BFM (等待 AW/W ready 同拍, 与 v2 独立握手不匹配), 需要独立通道 BFM 才能真验。板级读通道退化 (K/L/M 全零) 的完整机理待波形确认。
+- **决定**: 当前板载比特流不变 (display/DDR读/CAM配置/间隔寄存器写全部已验证), prep_regs v2 + 新 TB 留源码, 白天团队用独立 BFM 闭环后重出比特流。
+- 主机侧临时规避: 写 PREP 寄存器每笔间隔 >1 个寄存器写周期 (当前 C 库/驱动路径天然满足), 不要对 0x2000_0100 块做背靠背 16B 连写。

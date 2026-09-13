@@ -351,9 +351,9 @@ module ov5640_i2c_rgb565_cfg #(
                 8'd204: i2c_data <= {16'h5025,8'h00};
                 //Ê±ÖÓ¿ØÖÆ Bit[7:4]:ÏµÍ³Ê±ÖÓÔ´ input clock =24Mhz, PCLK = 48Mhz
                 8'd205: i2c_data <= {16'h3035,8'h11};
-                // 8'd206: i2c_data <= {16'h3036,8'h3c}; //PLLÅäÖÃ 48MHZ
+                8'd206: i2c_data <= {16'h3036,8'h3c}; //PLLÅäÖÃ 48MHZ
                 // 8'd206: i2c_data <= {16'h3036,8'h5A}; //PLLÅäÖÃ 72MHZ
-                8'd206: i2c_data <= {16'h3036,8'h5F};    //PLLÅäÖÃ 76MHZ
+                //8'd206: i2c_data <= {16'h3036,8'h5F};    //PLLÅäÖÃ 76MHZ
                 // 8'd206: i2c_data <= {16'h3036,8'h64};    //PLLÅäÖÃ 80MHZ
                 8'd207: i2c_data <= {16'h3c07,8'h08};
                 //·Ö±æÂÊÉèÖÃ 16'h3800~16'h3821
