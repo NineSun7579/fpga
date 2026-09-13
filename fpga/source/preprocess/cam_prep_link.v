@@ -75,26 +75,53 @@ module cam_prep_link #(
     reg         ilast;                          // current word is frame's last
     reg         iinject;                        // tail dummy pixel pending
     reg [16:0]  in_word_cnt;
+    reg [16:0]  rd_word_cnt;                 // [EDGE-TAP] popped-word counter (read side)
 
     wire [16:0] frame_words_m1 = (img_width * FRAME_H) / 8 - 1'b1;
     wire        iemit_last     = ibusy && (icnt == 3'd7) && pp_ready;
 
-    assign cam_ready = !ibusy && !iinject && raw_ready;
+    // [EDGE-TAP 2026-09-13] 128-bit word FIFO absorbs camera word bursts so the
+    // 8-pixel emitter always unpacks a STABLE copy (a word landing mid-emission
+    // would reset icnt and corrupt the unpack). The camera is never back-pressured.
+    wire [127:0] wf_data;
+    wire         wf_valid;
+    wire         wf_full;   // near-full: gate the write so the
+                             // circular pointers can never wrap past
+                             // each other (analysis: occupancy ~10 max)
+    reg          wf_rd;
+    // 128b x 32 = 4096 FF (emitter is ~15x faster than the camera word rate)
+    prep_sync_fifo #(.DW(128), .DEPTH(32), .AFULL(24)) u_wfifo (
+        .clk(clk), .rst_n(~rst),   // [EDGE-TAP] note: `rst` here is ACTIVE HIGH
+        .wr_en(cam_valid && !wf_full), .wr_data(cam_data),
+        .rd_en(wf_rd), .rd_data(wf_data), .rd_valid(wf_valid),
+        .prog_full(wf_full), .cnt()
+    );
+
+    assign cam_ready = 1'b1;   // [EDGE-TAP] never back-pressure the camera
 
     assign pp_data       = iinject ? 16'd0 : pix_shreg[15:0];
     assign pp_valid      = ibusy || iinject;
-    assign pp_frame_sync = cam_frame_sync;
+    // [EDGE-TAP] frame sync must come from the POP side, not from cam_frame_sync:
+    // the pixel stream is delayed by the FIFO, so the camera-side pulse would
+    // land mid-stream and make sobel reset inside a frame. Assert on the cycle
+    // the first word of a frame is popped -> exactly one cycle before pixel 0.
+    wire pp_pop  = !ibusy && !iinject && wf_valid;
+    wire rd_wrap = (rd_word_cnt == frame_words_m1);
+    assign pp_frame_sync = pp_pop && (rd_word_cnt == 17'd0);
 
-    assign raw_data  = word_hold;
-    assign raw_valid = ibusy && (icnt == 3'd7); // single handshake at last pixel
+    assign raw_data  = cam_data;
+    assign raw_valid = cam_valid; // single handshake at last pixel
 
     always @(posedge clk) begin
         if (rst) begin
             ibusy <= 1'b0; icnt <= 3'd0; iinject <= 1'b0; ilast <= 1'b0;
             in_word_cnt <= 17'd0;
+            rd_word_cnt <= 17'd0;
             word_hold <= 128'd0; pix_shreg <= 128'd0;
+            wf_rd <= 1'b0;
         end
         else begin
+            wf_rd <= 1'b0;                  // default: no pop
             // pixel emission
             if (ibusy && pp_ready) begin
                 pix_shreg <= {16'd0, pix_shreg[127:16]};
@@ -108,18 +135,22 @@ module cam_prep_link #(
             // schedule dummy after frame's last word fully emitted
             if (ilast && iemit_last)
                 iinject <= 1'b1;
-            // word accept
-            if (cam_valid && cam_ready) begin
-                word_hold <= cam_data;
-                pix_shreg <= cam_data;
+            // [EDGE-TAP] pop one word from the FIFO when the emitter is idle
+            if (!ibusy && !iinject && wf_valid) begin
+                word_hold <= wf_data;
+                pix_shreg <= wf_data;
+                wf_rd     <= 1'b1;      // pop it
+                // [EDGE-TAP] self-wrapping pop counter: must NOT be reset by the
+                // camera-side frame pulse (FIFO backlog would misalign it).
+                rd_word_cnt <= rd_wrap ? 17'd0 : (rd_word_cnt + 17'd1);
                 ibusy     <= 1'b1;
                 icnt      <= 3'd0;
-                ilast     <= (in_word_cnt == frame_words_m1);
+                ilast     <= (rd_word_cnt == frame_words_m1);
             end
             // per-frame word counter
             if (cam_frame_sync)
                 in_word_cnt <= 17'd0;
-            else if (cam_valid && cam_ready)
+            else if (cam_valid)
                 in_word_cnt <= in_word_cnt + 17'd1;
         end
     end
@@ -127,8 +158,9 @@ module cam_prep_link #(
     //----------------------------------------
     // expected processed pixels/words per frame
     //----------------------------------------
-    wire [31:0] frame_pixels = bypass_mode ? (img_width * FRAME_H)
-                                           : ((img_width - 2) * (FRAME_H - 2));
+    // [EDGE-INT] sobel/align16 now emit full W x H (no edge judgement outside frame), so expected pixel count
+    // equals the source, not the cropped (W-2)*(H-2).
+    wire [31:0] frame_pixels = img_width * FRAME_H;
     wire [31:0] frame_words  = (frame_pixels + 7) >> 3;
     wire [31:0] frame_bytes  = frame_words << 4;
 
@@ -143,7 +175,7 @@ module cam_prep_link #(
     reg          ping_sel;
     reg          flush_pend;                    // partial word to flush
 
-    wire frame_end = oactive && (opix == frame_pixels);
+    wire frame_end = oactive && (opix >= frame_pixels);  // [EDGE-INT] >= tolerant compare
 
     // accept beats only inside a frame; during flush hold off (protect word)
     assign out_ready = oactive && !flush_pend &&

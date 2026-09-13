@@ -22,12 +22,16 @@
 #include <unistd.h>
 #include <sys/ioctl.h>
 #include <sys/mman.h>
+#include <csignal>
+#include <cerrno>
 
 #define IMG_W 640
 #define IMG_H 480
 #define FRAME_BYTES (IMG_W * IMG_H * 2)
 #define CAM_ADDR_1 0x00800000u
 #define CAM_ADDR_2 0x00A00000u
+#define EDGE_ADDR_1 0x0A000000u   // [EDGE] prep2 write ping  (cam_prep_link BUFFER0)
+#define EDGE_ADDR_2 0x0A100000u   // [EDGE] prep2 write pong  (cam_prep_link BUFFER1)
 #define REG_BASE   0x20000000u
 #define R_ACK      (REG_BASE + 0x00)
 #define R_WORDS    (REG_BASE + 0x30)
@@ -38,6 +42,8 @@
 #define R_PCLK     (REG_BASE + 0x44)
 #define R_ADDR1    (REG_BASE + 0x80)
 #define R_ADDR2    (REG_BASE + 0xC0)
+#define R_PREP_CTRL (0x20000100u)   // [EDGE] prep_regs +0x100: [0]bypass [2:1]mode [3]edge_en [4]color_en
+#define R_PREP_STAT (0x20000130u)   // [EDGE] +0x130: [15:8] out_frame_cnt, [1] fifo near-full
 
 struct DmaOp {
     uint32_t current_len, offset_addr, cmd, ddr3_addr, total_length;
@@ -61,20 +67,39 @@ public:
         if (tx_ == MAP_FAILED || rx_ == MAP_FAILED) { err_ = "mmap failed"; return false; }
         return true;
     }
+    // [TIMEOUT] Every ioctl is wrapped in a SIGALRM watchdog. The FPGA register
+    // window (M01) can wedge and then an ioctl never returns; without this the
+    // grabber thread would hang forever and the screen would stay blank.
+    static void alarmHandler(int) { timeoutHit_ = true; }
+    static volatile sig_atomic_t timeoutHit_;
+
+    bool ioctlTmo(int cmd, DmaOp *op, unsigned sec) {
+        timeoutHit_ = false;
+        struct sigaction sa{}, old{};
+        sa.sa_handler = &PangoDev::alarmHandler;
+        sigaction(SIGALRM, &sa, &old);
+        alarm(sec);
+        int r = ioctl(fd_, cmd, op);
+        alarm(0);
+        sigaction(SIGALRM, &old, nullptr);
+        if (timeoutHit_) { err_ = "ioctl timeout"; return false; }
+        return r == 0;
+    }
+
     bool regWrite(uint32_t addr, uint32_t val) {
         memcpy(tx_, &val, 4);
         DmaOp op{}; op.offset_addr = 0; op.ddr3_addr = addr; op.total_length = 16;
-        return ioctl(fd_, H2F_CMD, &op) == 0;
+        return ioctlTmo(H2F_CMD, &op, 3);
     }
     bool regRead(uint32_t addr, uint32_t &val) {
         DmaOp op{}; op.offset_addr = 0; op.ddr3_addr = addr; op.total_length = 16;
-        if (ioctl(fd_, F2H_CMD, &op) != 0) return false;
+        if (!ioctlTmo(F2H_CMD, &op, 3)) return false;
         memcpy(&val, rx_, 4);
         return true;
     }
     bool ddrRead(uint32_t addr, uint32_t len, void *out) {
         DmaOp op{}; op.offset_addr = 0; op.ddr3_addr = addr; op.total_length = len;
-        if (ioctl(fd_, F2H_CMD, &op) != 0) return false;
+        if (!ioctlTmo(F2H_CMD, &op, 4)) return false;
         memcpy(out, rx_, len);
         return true;
     }
@@ -85,6 +110,8 @@ private:
     uint8_t *tx_ = nullptr, *rx_ = nullptr;
 };
 
+volatile sig_atomic_t PangoDev::timeoutHit_ = 0;
+
 // ---------------- 采集线程 ----------------
 class Grabber : public QThread {
     Q_OBJECT
@@ -94,6 +121,10 @@ public:
     void stop() { run_ = false; wait(3000); }
     void setByteSwap(bool on) { QMutexLocker l(&m_); swapB_ = on; }
     void setPaused(bool on)   { paused_ = on; }
+    // [EDGE] request a one-shot write of the prep mode register
+    // [RAW] E only switches which DDR buffer is read (no register write)
+    void requestEdge()  { edgeWrite_ = true;  }
+    void requestRaw()   { edgeWrite_ = false; }
     void setRBSwap(bool on)   { QMutexLocker l(&m_); swapC_ = on; }
 
 signals:
@@ -107,7 +138,7 @@ protected:
         uint32_t rb = 0;
         dev_->regWrite(R_ADDR1, CAM_ADDR_1);
         dev_->regRead(R_ADDR1, rb);
-        QString st = (rb == CAM_ADDR_1) ? "reg-OK; " : "reg-FAIL; ";
+        QString st = (rb == CAM_ADDR_1) ? "reg-OK; " : "reg-warn; ";
         uint32_t id = 0;
         dev_->regRead(R_I2C_ID, id);
         uint32_t idh = (id >> 8) & 0xFF, idl = id & 0xFF, nack = id >> 16;
@@ -131,9 +162,16 @@ protected:
         // DDR 块读(M00)与 ACK 写(M01 写通道)全天验证稳定 → 固定节拍轮流读两缓冲+读后即 ACK。
         int buf = 0;
         while (run_) {
-            uint32_t addr = (buf == 0) ? CAM_ADDR_1 : CAM_ADDR_2;
+            uint32_t addr;
+            if (edgeWrite_) addr = (buf == 0) ? EDGE_ADDR_1 : EDGE_ADDR_2;
+            else            addr = (buf == 0) ? CAM_ADDR_1 : CAM_ADDR_2;
             if (!dev_->ddrRead(addr, FRAME_BYTES, cur->data())) { msleep(10); continue; }
-            // [FREERUN] engine free-runs, no ACK needed (no M01 traffic in hot loop)
+            // [ACK] Release the buffer we just consumed.
+            //   ACK-flow-control bitstreams (the plain RAW camera design) STOP WRITING
+            //   once both ping-pong buffers are pending, so the host must ACK every
+            //   frame or the picture freezes after two frames.
+            //   Free-running bitstreams simply ignore xdma_ack, so this is safe for both.
+            dev_->regWrite(R_ACK, 1u << buf);
             if (paused_) { std::swap(cur, nxt); buf ^= 1; msleep(25); continue; }
             QImage im(reinterpret_cast<const uchar *>(cur->constData()), IMG_W, IMG_H,
                       IMG_W * 2, QImage::Format_RGB16);
@@ -154,6 +192,8 @@ private:
     std::atomic_bool run_{true};
     bool swapB_ = false, swapC_ = false;
     std::atomic_bool paused_{false};
+    std::atomic_bool edgeWrite_{false};   // [RAW] default: unprocessed camera image
+    std::atomic_bool edgePending_{false}; // [RAW] no prep-register write at all
     QMutex m_;
 };
 
@@ -173,6 +213,8 @@ public:
     void toggleRB()   { rs_ = !rs_; g_->setRBSwap(rs_); }
     void toggleFull() { full_ = !full_; full_ ? showFullScreen() : showNormal(); }
     void togglePause() { paused_ = !paused_; g_->setPaused(paused_); }
+    // [EDGE] true = show Sobel edge stream, false = show RAW camera
+    void toggleEdge() { edgeOn_ = !edgeOn_; edgeOn_ ? g_->requestEdge() : g_->requestRaw(); }
     void toggleScale() { smooth_ = !smooth_; }
     bool smoothScale() const { return smooth_; }
     bool paused() const { return paused_; }
@@ -191,6 +233,7 @@ protected:
         case Qt::Key_P: case Qt::Key_Space: togglePause(); break;
         case Qt::Key_S: toggleScale(); break;
         case Qt::Key_H: help_ = !help_; break;
+        case Qt::Key_E: toggleEdge(); break;
         default: break;
         }
     }
@@ -200,6 +243,7 @@ private:
     QLabel *label_;
     Grabber *g_;
     bool full_ = false, bs_ = false, rs_ = false, paused_ = false, smooth_ = false, help_ = false;
+    bool edgeOn_ = false;  // [RAW] default: unprocessed camera image
 };
 
 int main(int argc, char **argv) {
@@ -219,6 +263,7 @@ int main(int argc, char **argv) {
         "  S         平滑缩放 切换\n"
         "  B         字节序 切换\n"
         "  C         红蓝交换 切换\n"
+        "  E         切换缓冲区(RAW/处理)\n"
         "  H         显示 / 隐藏本帮助\n"
         "\n"
         "按 H 关闭帮助";
@@ -238,7 +283,7 @@ int main(int argc, char **argv) {
                 p.drawText(r.adjusted(16, 12, -16, -12), Qt::AlignTop | Qt::AlignLeft, helpText);
             }
             view->label()->setPixmap(pm);
-            view->setWindowTitle(QString("camview  %1 fps%2  [F]ull [P]ause [S]cale [B]yte [C]RB [H]elp [Q]uit")
+            view->setWindowTitle(QString("camview  %1 fps%2  [E]dge [F]ull [P]ause [S]cale [B]yte [C]RB [H]elp [Q]uit")
                                      .arg(fps, 0, 'f', 1)
                                      .arg(view->paused() ? "  PAUSED" : ""));
         });

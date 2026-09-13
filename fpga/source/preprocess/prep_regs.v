@@ -89,7 +89,12 @@ module prep_regs #(
     output wire [31:0]                   ts_value0,
     output wire [31:0]                   ts_value1,
     output wire [31:0]                   ts_value2,
-    output wire [31:0]                   ts_value3
+    output wire [31:0]                   ts_value3,
+    // ---- [EDGE-DBG] read-only debug counters ----
+    input  wire [31:0]                   dbg_pp_beats,
+    input  wire [31:0]                   dbg_prep_aw,
+    input  wire [31:0]                   dbg_prep_w,
+    input  wire [31:0]                   dbg_prep_b
 );
 
     //------------------------------------------------------------------
@@ -114,8 +119,8 @@ module prep_regs #(
     localparam [7:0]  D_THR_SAT  = 8'd96;
     localparam [7:0]  D_THR_HUE  = 8'd64;
     localparam [7:0]  D_THR_VAL  = 8'd160;
-    localparam [11:0] D_WIDTH    = 12'd1280;
-    localparam [11:0] D_HEIGHT   = 12'd720;
+    localparam [11:0] D_WIDTH    = 12'd640;   // [EDGE 2026-09-13] VGA
+    localparam [11:0] D_HEIGHT   = 12'd480;   // [EDGE 2026-09-13] VGA
 
     assign prep_bypass    = r_bypass;
     // 色化关 -> 强制灰度; 边缘关 -> 强制仅色化; 都开 -> 主机模式选择
@@ -183,7 +188,7 @@ module prep_regs #(
 
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
-            r_bypass <= 1'b0; r_mode <= 2'd0; r_edge_en <= 1'b1; r_color_en <= 1'b1;
+            r_bypass <= 1'b0; r_mode <= 2'd3; r_edge_en <= 1'b1; r_color_en <= 1'b1;  // [EDGE] default = pure edge view
             r_thr_edge <= D_THR_EDGE; r_thr_sat <= D_THR_SAT;
             r_thr_hue  <= D_THR_HUE;  r_thr_val  <= D_THR_VAL;
             r_img_width <= D_WIDTH;   r_img_height <= D_HEIGHT;
@@ -294,6 +299,11 @@ module prep_regs #(
             8'h60: rdata_mux = {lane_frame_upd, lane_left_valid, lane_right_valid,
                                 2'b00, lane_right_type, lane_left_type};
             8'h70: rdata_mux = r_ts0;
+            // [EDGE-DBG] link observability counters
+            8'h80: rdata_mux = dbg_pp_beats;
+            8'h84: rdata_mux = dbg_prep_aw;
+            8'h88: rdata_mux = dbg_prep_w;
+            8'h8C: rdata_mux = dbg_prep_b;
             8'h74: rdata_mux = r_ts1;
             8'h78: rdata_mux = r_ts2;
             8'h7C: rdata_mux = r_ts3;
