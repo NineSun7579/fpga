@@ -23,25 +23,29 @@ module align16 #(
 
     reg [21:0]  pix_cnt;
     reg [AW-1:0] col;
+    reg [11:0]  row;                      // [EDGE-INT]
     wire [11:0] w_m1   = img_width - 12'd1;
     wire        col_wr = (col >= w_m1[AW-1:0]);
     // 与 sobel_edge.v 完全一致的 fire 条件 (含中心列内部判定)
     wire [AW-1:0] ccol   = (col >= 2) ? (col - 2'd2) : (col + w_m1[AW-1:0] - 1'd1);
-    wire        ready  = (pix_cnt >= (2*img_width + 12'd3))
-                       && (ccol >= 2'd1) && (ccol <= w_m1[AW-1:0] - 1'b1);
+    // [EDGE-INT] same structure as sobel_edge: always-on, full W x H
+    wire        ready  = 1'b1;
 
     reg [15:0] w00,w01,w02, w10,w11,w12, w20,w21,w22;
 
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             col     <= 0;
+            row     <= 0;
             pix_cnt <= 0;
             {w00,w01,w02,w10,w11,w12,w20,w21,w22} <= 144'd0;
         end else if (s_frame_sync) begin
             col     <= 0;
+            row     <= 0;
             pix_cnt <= 0;
         end else if (s_valid) begin
             col     <= col_wr ? {AW{1'b0}} : col + 1'b1;
+            row     <= col_wr ? (row + 12'd1) : row;
             pix_cnt <= pix_cnt + 1'b1;
             // 与 sobel_edge.v 严格同构 (最新列进右端)
             w00<=w01; w01<=w02; w02<=line0[col];
@@ -64,8 +68,8 @@ module align16 #(
         end else if (s_frame_sync) begin
             m_valid <= 1'b0;
         end else begin
-            m_valid <= s_valid && ready;
-            if (s_valid && ready)
+            m_valid <= s_valid;                    // [EDGE-INT] 1:1 full frame
+            if (s_valid)
                 m_pix <= w11;
         end
     end

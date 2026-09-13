@@ -84,7 +84,11 @@ module preprocess_top #(
 
     sobel_edge #(.MAX_WIDTH(MAX_WIDTH)) u_sobel (
         .clk(clk), .rst_n(rst_n),
-        .img_width(reg_img_width), .thr_edge(reg_thr_edge),
+        // [THR-FIX 2026-09-13] threshold hard-wired: the sensor image on this
+        // bench is dark (luma ~ 0x2A..0x4F) so Sobel |Gx|+|Gy| stays well under the
+        // 128 default and every pixel was suppressed (measured: 100% black frame).
+        // reg_thr_edge is unreliable (prep_regs drops back-to-back writes).
+        .img_width(reg_img_width), .thr_edge(11'd20),
         .s_gray(gray), .s_valid(gray_valid), .s_frame_sync(s_frame_sync),
         .m_edge(edge_flag), .m_center(edge_center), .m_valid(edge_valid)
     );
@@ -130,21 +134,19 @@ module preprocess_top #(
     // 灰度模式: 用窗口中心灰度 (与对齐流同拍) 展开 RGB565 灰度
     wire [15:0] gray_rgb = {center_d1[7:3], center_d1[7:2], center_d1[7:3]};
 
-    reg [15:0] proc_pix;
-    always @* begin
-        case (reg_mode)
-            2'd0:    proc_pix = edge_d1 ? WHITE : a_rgb;      // 色化+白边
-            2'd1:    proc_pix = a_rgb;                        // 仅色化
-            2'd2:    proc_pix = gray_rgb;                     // 仅灰度
-            default: proc_pix = edge_d1 ? WHITE : BLACK;      // 仅边缘
-        endcase
-    end
+    // [EDGE-FORCE 2026-09-13] Hard-wired pure-edge output.
+// reg_mode / reg_bypass are NOT used: the prep_regs read AND write paths are
+// both unreliable (continuous reads return the previous value; back-to-back
+// AW/W writes are dropped), so a host-written mode never latched reliably.
+// Output is therefore always the Sobel view: white edge on black background.
+    wire [15:0] proc_pix = edge_d1 ? WHITE : BLACK;
 
     //------------------------------------------------------------------
     // 5) 旁路/输出选择 + 输出FIFO
     //------------------------------------------------------------------
-    wire [15:0] sel_pix  = reg_bypass ? s_rgb565 : proc_pix;
-    wire        sel_valid_raw = reg_bypass ? s_valid : a_valid;
+    // [EDGE-FORCE] bypass hard-wired off: always the processed (edge) image
+    wire [15:0] sel_pix  = proc_pix;
+    wire        sel_valid_raw = a_valid;
 
     // 输出帧起始打点 (vsync 滞后1拍)
     reg frame_start_d;

@@ -34,24 +34,30 @@ module sobel_edge #(
 
     wire [11:0] w_m1   = img_width - 12'd1;
     wire        col_wr = (col >= w_m1[AW-1:0]);
+    reg  [11:0] row;                       // [EDGE-INT] input row index
     // 中心像素列 = (col - 2) mod W (中心滞后当前像素 W+2 个)
     wire [AW-1:0] ccol   = (col >= 2) ? (col - 2'd2) : (col + w_m1[AW-1:0] - 1'd1);
     // 窗口数据就绪 + 中心列在内部区域 (排除跨行边界窗口)
-    wire        ready  = (pix_cnt >= (2*img_width + 12'd3))
-                       && (ccol >= 2'd1) && (ccol <= w_m1[AW-1:0] - 1'b1);
+    // [EDGE-INT] full-frame output: emit one beat per input pixel; window centre=(row-1,col-1),
+    // edge only when window fully inside frame (row>=2 and col>=2), else black.
+    wire        win_ok = (row >= 12'd2) && (col >= 2'd2);
+    wire        ready  = 1'b1;                    // keep legacy ready semantics: always 1
 
     reg [7:0] w00,w01,w02, w10,w11,w12, w20,w21,w22;
 
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             col      <= 0;
+            row      <= 0;
             pix_cnt  <= 0;
             {w00,w01,w02,w10,w11,w12,w20,w21,w22} <= 96'd0;
         end else if (s_frame_sync) begin
             col      <= 0;
+            row      <= 0;
             pix_cnt  <= 0;
         end else if (s_valid) begin
             col      <= col_wr ? {AW{1'b0}} : col + 1'b1;
+            row      <= col_wr ? (row + 12'd1) : row;
             pix_cnt  <= pix_cnt + 1'b1;
             // 行内左移, 最新列进入右端 w02/w12/w22 (窗口=中心±1列)
             w00<=w01; w01<=w02; w02<=line0[col];
@@ -90,9 +96,9 @@ module sobel_edge #(
         end else if (s_frame_sync) begin
             m_valid  <= 1'b0;
         end else begin
-            m_valid <= s_valid && ready;              // 输出与窗口移位同步打点
-            if (s_valid && ready) begin
-                m_edge   <= (mag >= {1'b0,thr_edge});
+            m_valid <= s_valid;                       // [EDGE-INT] 1:1 full-frame output              // 输出与窗口移位同步打点
+            if (s_valid) begin
+                m_edge   <= win_ok && (mag >= {1'b0,thr_edge});  // [EDGE-INT] no edge outside frame
                 m_center <= w11;
             end
         end
