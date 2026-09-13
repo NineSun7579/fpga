@@ -22,12 +22,16 @@ module tb_button_debounce;
     );
 
     integer err = 0;
+    integer fd_out;   // HW toggle dump -> golden/hw_out_btn.mem
     integer toggle_cnt = 0;
 
     // toggle 计数 (应为每电平迁移恰好 1 次)
     always @(posedge clk) begin
-        if (rst_n && btn_toggle)
+        if (rst_n && btn_toggle) begin
             toggle_cnt = toggle_cnt + 1;
+            $fwrite(fd_out, "%0d_%0d
+", $time, btn_level);
+        end
     end
 
     task press(input integer hold_cycles);
@@ -49,6 +53,7 @@ module tb_button_debounce;
     endtask
 
     initial begin
+        fd_out = $fopen("golden/hw_out_btn.mem", "w");
         repeat (10) @(posedge clk);
         rst_n = 1'b1;
         repeat (10) @(posedge clk);
@@ -89,6 +94,7 @@ module tb_button_debounce;
             $display("[BTN][ERR] 应累计2次toggle: %0d", toggle_cnt); err = err + 1;
         end
 
+        $fclose(fd_out);
         if (err == 0)
             $display("[BTN] TB_PASS");
         else

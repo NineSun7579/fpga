@@ -10,14 +10,14 @@ module ov5640_top #(
     //I2C
     parameter   SLAVE_ADDR = 7'h3c   ,  //I2C从机地址
     parameter   BIT_CTRL   = 1'b1           , //OV5640的字节地址为16位  0:8位 1:16位
-    parameter   CLK_FREQ   = 26'd50_000_000, //模块输入的时钟频率
+    parameter   CLK_FREQ   = 26'd25_000_000, //[CLKFIX] clk_50m = free_clk 25MHz, //模块输入的时钟频率
     parameter   I2C_FREQ   = 18'd250_000,    //IIC_SCL的时钟频率
 
     //摄像
-    parameter  H_CMOS_DISP = 11'd1280  , //CMOS分辨率--行
-    parameter  V_CMOS_DISP = 11'd720   , //CMOS分辨率--列	
-    parameter  TOTAL_H_PIXEL = 12'd2570, //水平总像素大小 (28.58帧)
-    parameter  TOTAL_V_PIXEL = 12'd980 , //垂直总像素大小 (28.58帧)
+    parameter  H_CMOS_DISP = 11'd640   , //CMOS分辨率--行
+    parameter  V_CMOS_DISP = 11'd480   , //CMOS分辨率--列	
+    parameter  TOTAL_H_PIXEL = 12'd1896, //水平总像素大小 (28.58帧)
+    parameter  TOTAL_V_PIXEL = 12'd984 , //垂直总像素大小 (28.58帧)
     parameter  CAM_DATA_LEN  = H_CMOS_DISP * V_CMOS_DISP * DATA_WIDTH/8 / 16, //1280*720 * 2 /16
 
     //摄像头输出控制基地址
@@ -28,6 +28,8 @@ module ov5640_top #(
 )(
     // input         pl_clk                ,  //总时钟
     input         clk_50m               ,
+    input         dbg_locked            ,
+    input         dbg_btn_rst_n         ,
     input         clk_50m_rst_n         ,
     //摄像头接口
     input         cam_pclk              ,  //cmos 数据像素时钟
@@ -213,7 +215,10 @@ module ov5640_top #(
         .video_vsync        (video_vsync),  //帧有效信号    
         .video_hsync        (video_hsync),  //行有效信号
         .video_valid        (video_valid),  //数据有效使能信号
-        .video_data         (video_data )   //有效数据   
+        .video_data         (video_data ),  //有效数据
+        .dbg_i2c_status     (dbg_i2c_status),
+        .dbg_pclk_cnt       (dbg_pclk_cnt ),
+        .dbg_sys_status     (dbg_sys_status)
     
     );
 
@@ -225,6 +230,10 @@ module ov5640_top #(
     wire [AXI_ADDR_WIDTH-1 : 0] cam_addr_2/*synthesis PAP_MARK_DEBUG="1"*/;
 
     wire [1 : 0]  xdma_req  ;  
+    wire [31:0]   dbg_i2c_status;
+    wire [31:0]   dbg_pclk_cnt;
+    wire [31:0]   dbg_sys_status;
+    reg  [31:0]   dbg_clk_status;
     wire [1 : 0]  xdma_ack  ; 
     ov5640_ddr #(
         .DATA_WIDTH(DATA_WIDTH),
@@ -265,7 +274,27 @@ module ov5640_top #(
 
 
 
+
+    // [DBG] camera activity counters (read via ov5640_reg +0x30/+0x34)
+    reg [31:0] dbg_cam_words;
+    always @(posedge video_clk) begin
+        if (video_rst) dbg_cam_words <= 32'd0;
+        else if (cam_s_data_valid) dbg_cam_words <= dbg_cam_words + 32'd1;
+    end
+    reg [31:0] dbg_vsyncs;
+    reg [2:0]  dbg_vs_ff;
+    always @(posedge video_clk) dbg_vs_ff <= {dbg_vs_ff[1:0], video_vsync};
+    always @(posedge video_clk) begin
+        if (video_rst) dbg_vsyncs <= 32'd0;
+        else if (dbg_vs_ff[2:1] == 2'b01) dbg_vsyncs <= dbg_vsyncs + 32'd1;
+    end
+
+// [DBG] clk_50m activity counter + lock/button snapshot (sampled in video_clk)
+reg [15:0] dbg_clk50_cnt;
+always @(posedge clk_50m) dbg_clk50_cnt <= dbg_clk50_cnt + 16'd1;
+always @(posedge video_clk) dbg_clk_status <= {dbg_clk50_cnt, dbg_locked, dbg_btn_rst_n};
     ov5640_reg #(
+
         .BASE_ADDR(BASE_ADDR),
         .AXI_ADDR_WIDTH(AXI_ADDR_WIDTH)
     ) 
@@ -298,7 +327,14 @@ module ov5640_top #(
         .xdma_ack              (xdma_ack     ),
         .cam_en                (cam_en       ),
         .cam_addr_1            (cam_addr_1   ), 
-        .cam_addr_2            (cam_addr_2   )
+        .cam_addr_2            (cam_addr_2   ),
+        .dbg_cam_words         (dbg_cam_words),
+        .dbg_vsyncs            (dbg_vsyncs   ),
+        .dbg_xdma_req          (xdma_req     ),
+        .dbg_i2c_status        (dbg_i2c_status),
+        .dbg_pclk_cnt          (dbg_pclk_cnt ),
+        .dbg_sys_status        (dbg_sys_status),
+        .dbg_clk_status        (dbg_clk_status)
     );
 
 

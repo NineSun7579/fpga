@@ -107,6 +107,8 @@ module tb_prep_regs;
             arvalid = 1'b0;
             while (!rvalid) @(posedge clk);
             d = rdata;
+            $fwrite(fd_out, "%08h
+", d);
             rready = 1'b1;
             @(posedge clk);
             rready = 1'b0;
@@ -114,6 +116,7 @@ module tb_prep_regs;
     endtask
 
     integer err = 0;
+    integer fd_out;   // HW readback dump -> golden/hw_out_regs.mem
     reg [31:0] rd;
     reg inj_start_seen = 1'b0, inj_start_now0 = 1'b0, inj_clr_seen = 1'b0;
     reg saw_start = 1'b0;
@@ -145,6 +148,7 @@ module tb_prep_regs;
     localparam BASE = 32'h0000_0000;   // 偏移即全地址 (低8位译码)
 
     initial begin
+        fd_out = $fopen("golden/hw_out_regs.mem", "w");
         repeat (10) @(posedge clk);
         rst_n = 1'b1;
         repeat (5) @(posedge clk);
@@ -260,6 +264,7 @@ module tb_prep_regs;
         axi_rd(BASE + 32'h100, rd);
         chk(rd[3:0], 4'b0110, "读后状态");
 
+        $fclose(fd_out);
         if (err == 0)
             $display("[REGS] TB_PASS");
         else

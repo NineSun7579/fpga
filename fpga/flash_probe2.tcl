@@ -1,0 +1,2 @@
+cfg_set_cable_property -freq 2
+cfg_jtag_flash_scan_device

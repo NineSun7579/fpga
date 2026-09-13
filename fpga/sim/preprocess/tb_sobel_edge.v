@@ -20,6 +20,7 @@ module tb_sobel_edge;
     integer           W = 64, H = 36, N, NOUT;
     integer           sent = 0, cnt = 0, err = 0, hit_edge = 0;
     integer           stall;
+    integer           fd_edge, fd_center;   // HW output dump -> golden/hw_out_{edge,center}.mem
     reg               s_valid = 1'b0;
     reg  [7:0]        s_gray = 8'd0;
     reg               s_frame_sync = 1'b0;
@@ -40,6 +41,8 @@ module tb_sobel_edge;
         $readmemh("golden/exp_gray.mem",  gray_in);
         $readmemh("golden/exp_center.mem", expc);
         $readmemh("golden/exp_edge.mem",   expe);
+        fd_edge   = $fopen("golden/hw_out_edge.mem", "w");
+        fd_center = $fopen("golden/hw_out_center.mem", "w");
         N    = W * H;
         NOUT = (W - 2) * (H - 2);
         repeat (8) @(posedge clk);
@@ -77,6 +80,10 @@ module tb_sobel_edge;
                 end
                 err = err + 1;
             end
+            $fwrite(fd_edge,   "%01h
+", m_edge);
+            $fwrite(fd_center, "%02h
+", m_center);
             if (m_edge) hit_edge = hit_edge + 1;
             cnt = cnt + 1;
         end
@@ -87,6 +94,7 @@ module tb_sobel_edge;
         wait (sent == N + 1);
         repeat (8) @(posedge clk);
         $display("[SOBEL] 覆盖: 边缘命中=%0d/%0d", hit_edge, cnt);
+        $fclose(fd_edge); $fclose(fd_center);
         if (cnt == NOUT && err == 0)
             $display("[SOBEL] TB_PASS  outputs=%0d", cnt);
         else

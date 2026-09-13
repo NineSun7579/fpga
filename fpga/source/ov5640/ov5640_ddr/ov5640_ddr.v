@@ -46,7 +46,7 @@ ov5640_ddr_w_en(
     .axi_clk       (axi_clk        ),
     .axi_rst       (axi_rst        ),
 
-    .axi_cam_en    (axi_cam_en & (~(&xdma_req))),
+    .axi_cam_en    (axi_cam_en),                  //[FREERUN 2026-09-13] no stall: continuous overwrite A1/A2
 
     .s_data        (s_data         ),
     .s_data_valid  (s_data_valid   ),

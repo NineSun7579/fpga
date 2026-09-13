@@ -154,13 +154,14 @@ module prep_regs #(
             aw_addr       <= 0;
         end else begin
             s_axi_awready <= 1'b0;
-            // !bvalid 守卫: 响应未完成前不接受新地址 (防主机保持valid导致重触发)
-            if (~s_axi_awready && s_axi_awvalid && !s_axi_bvalid) begin
+            // if/else 互斥: fire 消费当前对时不接受新 AW, 避免同拍竞争
+            // (板级 K/L 实测: 连续写流下同拍清 seen/置 seen 会双次执行或错位)
+            if (wr_fire) aw_seen <= 1'b0;
+            else if (~s_axi_awready && s_axi_awvalid && !s_axi_bvalid && !aw_seen) begin
                 s_axi_awready <= 1'b1;
                 aw_addr       <= s_axi_awaddr;
                 aw_seen       <= 1'b1;
             end
-            if (wr_fire) aw_seen <= 1'b0;
         end
     end
 
@@ -170,11 +171,11 @@ module prep_regs #(
             w_seen       <= 1'b0;
         end else begin
             s_axi_wready <= 1'b0;
-            if (~s_axi_wready && s_axi_wvalid && !s_axi_bvalid) begin
+            if (wr_fire) w_seen <= 1'b0;
+            else if (~s_axi_wready && s_axi_wvalid && !s_axi_bvalid && !w_seen) begin
                 s_axi_wready <= 1'b1;
                 w_seen       <= 1'b1;
             end
-            if (wr_fire) w_seen <= 1'b0;
         end
     end
 

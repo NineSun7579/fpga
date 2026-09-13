@@ -18,6 +18,7 @@ module tb_preprocess_top;
     reg  [15:0]       expm [0:MAXPIX-1];
 
     integer           W = 64, H = 36, N, NOUT, MODE = 0;
+    integer           fd_out;   // HW output dump -> golden/hw_out_{bypass,top_modeN}.mem
     integer           sent = 0, cnt = 0, err = 0;
     reg               s_valid = 1'b0;
     reg  [15:0]       s_rgb = 16'd0;
@@ -59,7 +60,10 @@ module tb_preprocess_top;
         if (!$value$plusargs("W=%d",    W))    W = 64;
         if (!$value$plusargs("H=%d",    H))    H = 36;
         if (!$value$plusargs("MODE=%d", MODE)) MODE = 0;
+        r_mode = MODE % 4;                   // mode mux follows plusarg (was: stuck at 0)
         $readmemh("golden/img.mem", img);
+        if (MODE == 9) fd_out = $fopen("golden/hw_out_bypass.mem", "w");
+        else           fd_out = $fopen($sformatf("golden/hw_out_top_mode%0d.mem", MODE), "w");
         if (MODE == 9) begin
             r_bypass = 1'b1;                          // 旁路模式必须切到 RAW 直通
             $readmemh("golden/exp_bypass.mem", expm);
@@ -128,6 +132,8 @@ module tb_preprocess_top;
                              MODE, cnt, m_rgb, expm[cnt]);
                 err = err + 1;
             end
+            $fwrite(fd_out, "%04h
+", m_rgb);
             if (m_rgb === 16'bx) begin
                 $display("[TOP][ERR] X 传播 idx=%0d", cnt);
                 err = err + 1;
@@ -141,6 +147,7 @@ module tb_preprocess_top;
         wait (sent >= ((MODE == 9) ? N : N + 1));
         wait (cnt == NOUT);              // 等 FIFO 全部排空再判定
         repeat (16) @(posedge clk);
+        $fclose(fd_out);
         $display("[TOP] mode=%0d 输出=%0d/%0d err=%0d 反压拍=%0d",
                  MODE, cnt, NOUT, err, stall_cnt);
         if (cnt == NOUT && err == 0 && stall_cnt > 0)
