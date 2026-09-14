@@ -1,0 +1,12 @@
+from rknn.api import RKNN
+import sys
+ONNX = '/mnt/c/Users/NineSun/Desktop/ov56401/control_model/yolo26n_std.onnx'
+OUT  = '/mnt/c/Users/NineSun/Desktop/ov56401/control_model/yolo26n_std_opt0.rknn'
+DS   = '/mnt/c/Users/NineSun/Desktop/ov56401/calib_png/dataset_linux.txt'
+rknn = RKNN(verbose=False)
+rknn.config(mean_values=[[0,0,0]], std_values=[[255,255,255]],
+            target_platform='rk3568', optimization_level=0)
+if rknn.load_onnx(model=ONNX) != 0: sys.exit(1)
+if rknn.build(do_quantization=True, dataset=DS) != 0: sys.exit(1)
+if rknn.export_rknn(OUT) != 0: sys.exit(1)
+print('OPT0 CONVERT OK')
