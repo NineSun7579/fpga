@@ -38,6 +38,15 @@ module ov5640_ddr #(
     wire                     m_hsync     /*synthesis PAP_MARK_DEBUG="1"*/;
     wire                     m_vsync     /*synthesis PAP_MARK_DEBUG="1"*/;
 
+    // [FRTAG 2026-09-14] frame-tag plumbing: the packer stream is detoured through
+    // w_* and the ctrl can substitute one counter beat during its DATA_TAG state.
+    wire [AXI_DATA_WIDTH-1 : 0] w_data  ;
+    wire                        w_valid ;
+    wire                        w_last  ;
+    wire                        w_ready ;
+    wire                        tag_active;
+    wire [AXI_DATA_WIDTH-1 : 0] tag_data  ;
+
 
 ov5640_ddr_w_en #(
     .DATA_WIDTH(DATA_WIDTH)
@@ -78,17 +87,28 @@ ov5640_ddr_w(
     .s_hsync        (m_hsync        ),
     .s_vsync        (m_vsync        ),
 
-    .axi_data       (axi_data       ),
-    .axi_data_valid (axi_data_valid ),
-    .axi_data_last  (axi_data_last  ), 
-    .axi_data_ready (axi_data_ready )
+    .axi_data       (w_data         ),
+    .axi_data_valid (w_valid        ),
+    .axi_data_last  (w_last         ),
+    .axi_data_ready (w_ready        )
 );
+
+    // [FRTAG 2026-09-14] frame-tag stream mux: while the ctrl runs its DATA_TAG
+    // state it replaces the (idle) camera stream with one AXI_DATA_WIDTH beat
+    // carrying the 32-bit frame counter for the second 16-byte command. The
+    // camera stream is stalled (not dropped) for those few cycles; its FIFO
+    // absorbs the pause. Frame-path behaviour is otherwise bit-identical.
+    assign axi_data       = tag_active ? tag_data : w_data;
+    assign axi_data_valid = tag_active ? 1'b1    : w_valid;
+    assign axi_data_last  = w_last;
+    assign w_ready        = axi_data_ready & ~tag_active;
 
 
 
 ov5640_ddr_w_ctrl #(
     .AXI_ADDR_WIDTH(AXI_ADDR_WIDTH),
     .AXI_LEN_WIDTH (AXI_LEN_WIDTH ),
+    .AXI_DATA_WIDTH(AXI_DATA_WIDTH),
     .CAM_DATA_LEN  (CAM_DATA_LEN  )  //1280*720*3/16
 )
 ov5640_ddr_w_ctrl(
@@ -97,18 +117,22 @@ ov5640_ddr_w_ctrl(
 
     .cam_data_addr_1(cam_data_addr_1),
     .cam_data_addr_2(cam_data_addr_2),
-    .cam_data_len   (cam_data_len   ), //以16字节为单位
+    .cam_data_len   (cam_data_len   ),
     
     .s_vsync        (m_vsync        ),
 
-    .axi_data_valid (axi_data_valid ),
-    .axi_data_last  (axi_data_last  ), 
-    .axi_data_ready (axi_data_ready ),
+    .axi_data_valid (w_valid        ),
+    .axi_data_last  (w_last         ),
+    .axi_data_ready (w_ready        ),
 
     .axi_cmd_addr   (axi_cmd_addr   ),
     .axi_cmd_len    (axi_cmd_len    ),
     .axi_cmd_valid  (axi_cmd_valid  ),
     .axi_cmd_ready  (axi_cmd_ready  ),
+
+    .tag_active     (tag_active     ),
+    .tag_data       (tag_data       ),
+    .tag_ready      (axi_data_ready ),
 
     .xdma_req       (xdma_req       ),
     .xdma_ack       (xdma_ack       )
