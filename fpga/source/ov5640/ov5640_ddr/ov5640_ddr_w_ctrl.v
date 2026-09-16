@@ -1,4 +1,4 @@
-//·¢ËÍCMDÃüÁî
+//ï¿½ï¿½ï¿½ï¿½CMDï¿½ï¿½ï¿½ï¿½
 module ov5640_ddr_w_ctrl #(
     parameter AXI_ADDR_WIDTH = 32,
     parameter AXI_LEN_WIDTH  = 32,
@@ -10,7 +10,7 @@ module ov5640_ddr_w_ctrl #(
 
     input  [AXI_ADDR_WIDTH-1 : 0]      cam_data_addr_1,
     input  [AXI_ADDR_WIDTH-1 : 0]      cam_data_addr_2,
-    input  [$clog2(CAM_DATA_LEN) : 0]  cam_data_len   , //ÒÔ16×Ö½ÚÎªµ¥Î»
+    input  [$clog2(CAM_DATA_LEN) : 0]  cam_data_len   , //ï¿½ï¿½16ï¿½Ö½ï¿½Îªï¿½ï¿½Î»
     
     input          s_vsync        ,
 
@@ -29,11 +29,11 @@ module ov5640_ddr_w_ctrl #(
     // [FRTAG 2026-09-14] frame-tag injection. After each frame's last stream beat the
     // FSM issues a SECOND 16-byte AXI command writing a 32-bit frame counter to
     // frame_base + CAM_DATA_LEN*16. The wrapper (ov5640_ddr.v) muxes tag_data onto
-    // the data stream while tag_active is high. Purely additive: the main frame
-    // path is never blocked (watchdog aborts the tag on any stall).
+    // the data stream while tag_active is high. The transaction must complete:
+    // aborting it would leave a pending frame with no new tag for the host.
     output                           tag_active     ,
     output [AXI_DATA_WIDTH-1 : 0]    tag_data       ,
-    input                            tag_ready      
+    input                            tag_ready
 );
 
     localparam IDLE      = 3'b001;
@@ -50,9 +50,7 @@ module ov5640_ddr_w_ctrl #(
     reg                          vsync_pending;
     reg  [AXI_ADDR_WIDTH-1 : 0]  frame_base;
     reg  [31 : 0]                frame_cnt;
-    reg  [19 : 0]                tag_wdog;
     wire [AXI_ADDR_WIDTH-1 : 0]  tag_addr;
-    wire                         tag_timeout;
     wire                         tag_fire;
 
     reg [1 : 0] axi_vsync_ff/*synthesis PAP_MARK_DEBUG="1"*/;
@@ -62,7 +60,7 @@ module ov5640_ddr_w_ctrl #(
     reg [AXI_ADDR_WIDTH-1 : 0] cmd_addr;
 
 
-    //×´Ì¬»ú
+    //×´Ì¬ï¿½ï¿½
     always @(posedge axi_clk) begin
         if(axi_rst)begin
             curr_state <= IDLE;
@@ -102,15 +100,12 @@ module ov5640_ddr_w_ctrl #(
                 if(axi_cmd_ready & axi_cmd_valid)begin
                     next_state = DATA_TAG;
                 end
-                else if(tag_timeout)begin
-                    next_state = IDLE;                  // [FRTAG] abort, keep the main path alive
-                end
                 else begin
                     next_state = ADDR_TAG;
                 end
             end
             DATA_TAG: begin
-                if(tag_fire | tag_timeout)begin
+                if(tag_fire)begin
                     next_state = IDLE;
                 end
                 else begin
@@ -183,9 +178,6 @@ module ov5640_ddr_w_ctrl #(
             else if(axi_cmd_valid & axi_cmd_ready)begin
                 axi_cmd_valid <= 1'b0;
             end
-            else if((curr_state == ADDR_TAG) && tag_timeout)begin
-                axi_cmd_valid <= 1'b0;      // [FRTAG] watchdog abort, never block the main path
-            end
         end
     end
 
@@ -228,26 +220,13 @@ module ov5640_ddr_w_ctrl #(
         end
     end
 
-    always @(posedge axi_clk) begin
-        if(axi_rst)begin
-            tag_wdog <= 20'd0;
-        end
-        else if((curr_state == ADDR_TAG) || (curr_state == DATA_TAG))begin
-            tag_wdog <= tag_wdog + 20'd1;
-        end
-        else begin
-            tag_wdog <= 20'd0;
-        end
-    end
-
-    assign tag_timeout = &tag_wdog;                       // ~1M cycles, then abort
     assign tag_active  = (curr_state == DATA_TAG);
     assign tag_data    = {{(AXI_DATA_WIDTH-32){1'b0}}, frame_cnt};
     assign tag_fire    = tag_active & tag_ready;
     // ---------------------------------------------------------------------------
 
 
-    //XDMAÆ¹ÅÒÇëÇó
+    //XDMAÆ¹ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
     reg [1 : 0] s_xdma_req;
     always @(posedge axi_clk) begin
         if(axi_rst)begin

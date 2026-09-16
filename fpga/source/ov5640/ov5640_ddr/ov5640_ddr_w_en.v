@@ -5,6 +5,7 @@ module ov5640_ddr_w_en #(
     input          axi_rst      ,
 
     input          axi_cam_en   ,
+    input  [1:0]   frame_pending,
 
     input  [DATA_WIDTH-1 : 0]  s_data       ,
     input                      s_data_valid ,
@@ -38,7 +39,7 @@ end
 always @(*) begin
     case (curr_state)
         IDLE: begin
-            if(s_vsync_rise & axi_cam_en) begin
+            if(s_vsync_rise & axi_cam_en & ~(|frame_pending)) begin
                 next_state = DATA;
             end
             else begin
@@ -47,7 +48,7 @@ always @(*) begin
         end 
         DATA: begin
             if(s_vsync_rise) begin
-                if(axi_cam_en) begin
+                if(axi_cam_en & ~(|frame_pending)) begin
                     next_state = DATA;
                 end
                 else begin
@@ -85,6 +86,8 @@ end
 assign m_data       = s_data;
 assign m_data_valid = s_data_valid & (curr_state == DATA);
 
-assign m_vsync = s_vsync_rise & axi_cam_en;
+// A completed frame owns its DDR buffer until the host acknowledges it.
+// Drop whole sensor frames at VSYNC boundaries while one frame is pending.
+assign m_vsync = s_vsync_rise & axi_cam_en & ~(|frame_pending);
     
 endmodule

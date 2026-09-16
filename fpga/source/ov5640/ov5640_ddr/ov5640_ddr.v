@@ -8,11 +8,11 @@ module ov5640_ddr #(
 )(
     input          axi_clk        ,
     input          axi_rst        , 
-    input          axi_cam_en     ,      //ÉãÏñÍ·Æô¶¯ÐÅºÅ
+    input          axi_cam_en     ,      //ï¿½ï¿½ï¿½ï¿½Í·ï¿½ï¿½ï¿½ï¿½ï¿½Åºï¿½
 
     input  [AXI_ADDR_WIDTH-1 : 0]      cam_data_addr_1,
     input  [AXI_ADDR_WIDTH-1 : 0]      cam_data_addr_2,
-    input  [$clog2(CAM_DATA_LEN) : 0]  cam_data_len   , //ÒÔ16×Ö½ÚÎªµ¥Î»
+    input  [$clog2(CAM_DATA_LEN) : 0]  cam_data_len   , //ï¿½ï¿½16ï¿½Ö½ï¿½Îªï¿½ï¿½Î»
 
     input  [DATA_WIDTH-1 : 0]  s_data         /*synthesis PAP_MARK_DEBUG="1"*/,
     input                      s_data_valid   /*synthesis PAP_MARK_DEBUG="1"*/,
@@ -55,7 +55,8 @@ ov5640_ddr_w_en(
     .axi_clk       (axi_clk        ),
     .axi_rst       (axi_rst        ),
 
-    .axi_cam_en    (axi_cam_en),                  //[FREERUN 2026-09-13] no stall: continuous overwrite A1/A2
+    .axi_cam_en    (axi_cam_en),
+    .frame_pending (xdma_req),
 
     .s_data        (s_data         ),
     .s_data_valid  (s_data_valid   ),
@@ -80,7 +81,7 @@ ov5640_ddr_w(
     .axi_clk        (axi_clk        ),
     .axi_rst        (axi_rst        ),
 
-    .data_len       (cam_data_len   ), //ÒÔ16×Ö½ÚÎªµ¥Î»
+    .data_len       (cam_data_len   ), //ï¿½ï¿½16ï¿½Ö½ï¿½Îªï¿½ï¿½Î»
 
     .s_data         (m_data         ),
     .s_data_valid   (m_data_valid   ),

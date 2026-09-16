@@ -30,6 +30,8 @@
 #define FRAME_BYTES (IMG_W * IMG_H * 2)
 #define CAM_ADDR_1 0x00800000u
 #define CAM_ADDR_2 0x00A00000u
+#define TAG_ADDR_1 (CAM_ADDR_1 + FRAME_BYTES)
+#define TAG_ADDR_2 (CAM_ADDR_2 + FRAME_BYTES)
 #define EDGE_ADDR_1 0x0A000000u   // [EDGE] prep2 write ping  (cam_prep_link BUFFER0)
 #define EDGE_ADDR_2 0x0A100000u   // [EDGE] prep2 write pong  (cam_prep_link BUFFER1)
 #define REG_BASE   0x20000000u
@@ -103,6 +105,12 @@ public:
         memcpy(out, rx_, len);
         return true;
     }
+    bool readTag(uint32_t addr, uint32_t &val) {
+        uint8_t raw[16] = {0};
+        if (!ddrRead(addr, sizeof(raw), raw)) return false;
+        memcpy(&val, raw, sizeof(val));
+        return true;
+    }
     const char *lastErr() const { return err_; }
 private:
     const char *err_ = "ok";
@@ -150,6 +158,9 @@ protected:
         dev_->regWrite(R_ADDR1, CAM_ADDR_1);
         dev_->regWrite(R_ADDR2, CAM_ADDR_2);
         dev_->regWrite(R_ACK, 3);
+        uint32_t seen[2] = {0, 0};
+        dev_->readTag(TAG_ADDR_1, seen[0]);
+        dev_->readTag(TAG_ADDR_2, seen[1]);
         dev_->regWrite(R_CAM_EN, 1);
 
         QByteArray bufA(FRAME_BYTES, 0), bufB(FRAME_BYTES, 0);
@@ -160,8 +171,19 @@ protected:
         // [FIX 2026-09-13] 热循环不读任何寄存器: 大量 M01 读会把 FPGA 读通道楔死
         // (楔死后不再 ACK → 引擎两帧后停写 → 画面冻结在 A1/A2 旧帧来回切)。
         // DDR 块读(M00)与 ACK 写(M01 写通道)全天验证稳定 → 固定节拍轮流读两缓冲+读后即 ACK。
-        int buf = 0;
         while (run_) {
+            uint32_t tag[2];
+            if (!dev_->readTag(TAG_ADDR_1, tag[0]) ||
+                !dev_->readTag(TAG_ADDR_2, tag[1])) {
+                msleep(10);
+                continue;
+            }
+            bool changed0 = tag[0] != seen[0];
+            bool changed1 = tag[1] != seen[1];
+            if (!changed0 && !changed1) { msleep(4); continue; }
+            int buf = changed0 && !changed1 ? 0 :
+                      changed1 && !changed0 ? 1 :
+                      ((int32_t)(tag[0] - tag[1]) > 0 ? 0 : 1);
             uint32_t addr;
             if (edgeWrite_) addr = (buf == 0) ? EDGE_ADDR_1 : EDGE_ADDR_2;
             else            addr = (buf == 0) ? CAM_ADDR_1 : CAM_ADDR_2;
@@ -171,20 +193,25 @@ protected:
             //   once both ping-pong buffers are pending, so the host must ACK every
             //   frame or the picture freezes after two frames.
             //   Free-running bitstreams simply ignore xdma_ack, so this is safe for both.
-            dev_->regWrite(R_ACK, 1u << buf);
-            if (paused_) { std::swap(cur, nxt); buf ^= 1; msleep(25); continue; }
+            if (!dev_->regWrite(R_ACK, 1u << buf)) { msleep(10); continue; }
+            seen[buf] = tag[buf];
+            if (paused_) { std::swap(cur, nxt); continue; }
+            bool sb, sc; { QMutexLocker l(&m_); sb = swapB_; sc = swapC_; }
+            if (sb) {
+                char *raw = cur->data();
+                for (int i = 0; i < FRAME_BYTES; i += 2) {
+                    char t = raw[i]; raw[i] = raw[i + 1]; raw[i + 1] = t;
+                }
+            }
             QImage im(reinterpret_cast<const uchar *>(cur->constData()), IMG_W, IMG_H,
                       IMG_W * 2, QImage::Format_RGB16);
-            bool sb, sc; { QMutexLocker l(&m_); sb = swapB_; sc = swapC_; }
             QImage out = sc ? im.convertToFormat(QImage::Format_RGB32).rgbSwapped()
-                            : (sb ? im.rgbSwapped() : im.copy());
+                            : im.copy();
             frames++;
             double el = t0.elapsed() / 1000.0;
             if (el >= 0.5) { fps = frames / el; frames = 0; t0.restart(); }
             emit frameReady(out, fps);
             std::swap(cur, nxt);
-            buf ^= 1;
-            msleep(25);   // ~40fps 节拍, 与相机帧率匹配, 降低读写碰撞撕裂概率
         }
     }
 private:
