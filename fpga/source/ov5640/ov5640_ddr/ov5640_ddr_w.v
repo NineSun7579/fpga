@@ -7,17 +7,23 @@ module ov5640_ddr_w #(
     input          axi_clk        ,
     input          axi_rst        ,
 
-    input  [$clog2(CAM_DATA_LEN) : 0]  data_len       /*synthesis PAP_MARK_DEBUG="1"*/, //以16字节为单位
+    input  [$clog2(CAM_DATA_LEN) : 0]  data_len       /*synthesis PAP_MARK_DEBUG="1"*/, //锟斤拷16锟街斤拷为锟斤拷位
 
     input  [DATA_WIDTH-1 :0]       s_data       ,
     input                          s_data_valid ,
     input                          s_vsync      ,
-    input                          s_hsync      ,       //没用
+    input                          s_hsync      ,       //没锟斤拷
 
     output [AXI_DATA_WIDTH-1 : 0]  axi_data       /*synthesis PAP_MARK_DEBUG="1"*/,
     output                         axi_data_valid /*synthesis PAP_MARK_DEBUG="1"*/,
     output                         axi_data_last  /*synthesis PAP_MARK_DEBUG="1"*/, 
-    input                          axi_data_ready /*synthesis PAP_MARK_DEBUG="1"*/  
+    input                          axi_data_ready /*synthesis PAP_MARK_DEBUG="1"*/,
+    output [31:0]                  dbg_axi_cnt,
+    output [31:0]                  dbg_axi_num  ,
+    // [ZDIAG 2026-09-18] per-frame zero-beat accounting, latched at VSYNC so
+    // it can be read reliably once streaming stops.
+    output [31:0]                  dbg_zdin     ,  // wr_en && din==0
+    output [31:0]                  dbg_zout         // fifo_we && fifo_wd==0
 );
 
 
@@ -203,6 +209,9 @@ endgenerate
     // end
 
 
+    // The distributed FIFO is first-word fall-through with OUTPUT_REG=0:
+    // dout already addresses the current head, and rd_en advances it only
+    // after the AXI consumer accepts that word.
     assign rd_en = axi_data_valid & axi_data_ready;
     assign axi_data_last = (axi_cnt == axi_num);
     assign axi_data = dout;
@@ -213,8 +222,12 @@ endgenerate
 
         wire [AXI_DATA_WIDTH-1 : 0] dout_drm;
         wire                        empty_drm/*synthesis PAP_MARK_DEBUG="1"*/;  
-        wire                        almost_full;   
-        wire rd_en_drm = !(almost_full | empty_drm);
+        wire                        almost_full_drm;
+        wire                        almost_full_out;
+        // Do not drain the DRM FIFO unless both stages can accept the word.
+        // Without almost_full_out the output FIFO fills during AXI stalls and
+        // DRM words are silently dropped -> periodic 128-bit stripes.
+        wire rd_en_drm = !(almost_full_drm | empty_drm | almost_full_out);
         ov5640_ddr_fifo_DRM ov5640_ddr_fifo_DRM (
           .clk(axi_clk),                      // input
           .rst(axi_rst),                      // input
@@ -226,7 +239,7 @@ endgenerate
           .rd_data(dout_drm),              // output [127:0]
           .rd_empty(empty_drm),            // output
 
-          .almost_full(),      // output
+          .almost_full(almost_full_drm),      // output
           .almost_empty()     // output
         );
 
@@ -241,16 +254,26 @@ endgenerate
         //     end
         // end
 
+        // DRM rd_data is valid one cycle after rd_en. Delay only the write
+        // enable; dout_drm is aligned with wr_en_drm on that following cycle.
         reg wr_en_drm;
         always @(posedge axi_clk) begin
-            wr_en_drm <= rd_en_drm;
+            if (axi_rst) begin
+                wr_en_drm <= 1'b0;
+            end
+            else begin
+                wr_en_drm <= rd_en_drm;
+            end
         end
+
+        wire                     fifo_we  = wr_en_drm;
+        wire [AXI_DATA_WIDTH-1:0] fifo_wd = dout_drm;
 
         ov5640_ddr_fifo ov5640_ddr_fifo (
           .clk(axi_clk),                      // input
           .rst(axi_rst),                      // input
-          .wr_en  (wr_en_drm),                  // input
-          .wr_data(dout_drm ),              // input [127:0]
+          .wr_en  (fifo_we ),                  // input
+          .wr_data(fifo_wd ),              // input [127:0]
           .full(),              // output
           
 
@@ -258,7 +281,7 @@ endgenerate
           .rd_data(dout),              // output [127:0]
           .empty(empty),            // output
 
-          .almost_full(almost_full),      // output
+          .almost_full(almost_full_out),      // output
           .almost_empty()     // output
         );
 
@@ -267,4 +290,31 @@ endgenerate
 
 
     
+    assign dbg_axi_cnt = axi_cnt;
+    assign dbg_axi_num = axi_num;
+
+    // [ZDIAG 2026-09-18] zero-beat accounting for the stripe hunt.
+    reg [31:0] zdin_cnt, zout_cnt;
+    reg [31:0] zdin_lat, zout_lat;
+    always @(posedge axi_clk) begin
+        if (axi_rst) begin
+            zdin_cnt <= 32'd0;
+            zout_cnt <= 32'd0;
+            zdin_lat <= 32'd0;
+            zout_lat <= 32'd0;
+        end
+        else begin
+            if (wr_en   && (din      == {32{1'b0}})) zdin_cnt <= zdin_cnt + 32'd1;
+            if (fifo_we && (fifo_wd  == {AXI_DATA_WIDTH{1'b0}})) zout_cnt <= zout_cnt + 32'd1;
+            if (s_vsync) begin
+                zdin_lat <= zdin_cnt;
+                zout_lat <= zout_cnt;
+                zdin_cnt <= 32'd0;
+                zout_cnt <= 32'd0;
+            end
+        end
+    end
+    assign dbg_zdin = zdin_lat;
+    assign dbg_zout = zout_lat;
+
 endmodule

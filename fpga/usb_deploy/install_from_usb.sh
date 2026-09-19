@@ -17,6 +17,8 @@ echo "== 1. 复制源码 =="
 mkdir -p "$DEST"
 if [ -d "$HERE/camview" ]; then
     cp -f "$HERE/camview/main.cpp" "$HERE/camview/camview.pro" "$DEST/"
+    cp -f "$HERE/camview/run_camview.sh" /root/ov5640/run_camview.sh
+    chmod +x /root/ov5640/run_camview.sh
 else
     # 脚本与源码同目录时的兜底
     cp -f "$HERE/main.cpp" "$HERE/camview.pro" "$DEST/" 2>/dev/null || true

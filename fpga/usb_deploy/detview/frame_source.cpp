@@ -5,13 +5,19 @@ volatile sig_atomic_t PangoDev::timeoutHit_ = 0;
 bool FrameSource::initCamera(QString &err) {
     dev_ = new PangoDev;
     if (!dev_->open()) { err = QString("FATAL: ") + dev_->lastErr(); return false; }
-    uint32_t rb = 0;
+    dev_->regWrite(R_CAM_EN, 0);
+    msleep(60);
     dev_->regWrite(R_ADDR1, CAM_ADDR_1);
-    dev_->regRead(R_ADDR1, rb);              // one-shot self check only, not in hot loop
-    if (rb != CAM_ADDR_1) err = "reg-warn ";
-    else                  err = "reg-OK ";
+    err = "TAG-ACK ";
     dev_->regWrite(R_ADDR2, CAM_ADDR_2);
     dev_->regWrite(R_ACK, 3);
+    bool ok1 = false, ok2 = false;
+    last1_ = readTag(prep::TAG_ADDR_1, ok1);
+    last2_ = readTag(prep::TAG_ADDR_2, ok2);
+    if (!ok1) last1_ = 0;
+    if (!ok2) last2_ = 0;
+    expectedBuf_ = last1_ == last2_ ? 0 :
+                   ((int32_t)(last1_ - last2_) > 0 ? 1 : 0);
     dev_->regWrite(R_CAM_EN, 1);
     return true;
 }
@@ -41,12 +47,20 @@ void FrameSource::tickFps() {
 // was captured (img is a detached RGB888 copy with the byte/RB swap flags applied).
 bool FrameSource::cycle(QImage &img, quint32 &fid) {
     bool ok1 = true, ok2 = true;
-    uint32_t c1 = readTag(prep::TAG_ADDR_1, ok1);
-    uint32_t c2 = readTag(prep::TAG_ADDR_2, ok2);
-    if (!ok1 || !ok2) { msleep(20); return false; }   // transient DMA error
+    uint32_t c1 = last1_, c2 = last2_;
+    if (mode_ == Mode::TAG) {
+        uint32_t tagAddr = expectedBuf_ == 0 ? prep::TAG_ADDR_1 : prep::TAG_ADDR_2;
+        uint32_t c = readTag(tagAddr, ok1);
+        if (expectedBuf_ == 0) c1 = c; else c2 = c;
+        if (!ok1) { msleep(20); return false; }
+    } else {
+        c1 = readTag(prep::TAG_ADDR_1, ok1);
+        c2 = readTag(prep::TAG_ADDR_2, ok2);
+        if (!ok1 || !ok2) { msleep(20); return false; }
+    }
 
     if (mode_ == Mode::PROBE) {
-        if (c1 != 0 || c2 != 0) {
+        if (c1 != last1_ || c2 != last2_) {
             mode_ = Mode::TAG;
             QMutexLocker l(&m_); syncMode_ = "TAG-SYNC";
             emit statusMsg("TAG-SYNC (frame counters alive)");
@@ -62,13 +76,16 @@ bool FrameSource::cycle(QImage &img, quint32 &fid) {
 
     if (mode_ == Mode::TAG) {
         if (c1 == last1_ && c2 == last2_) { msleep(4); return false; }  // no new frame
-        // argmax counter = freshest COMPLETE frame; the buffer being written
-        // right now always holds max-1, so we can never race the writer.
-        int buf = (c1 >= c2) ? 0 : 1;
+        int buf = expectedBuf_;
+        if ((buf == 0 ? c1 : c2) == (buf == 0 ? last1_ : last2_)) {
+            msleep(10);
+            return false;
+        }
         if (!readFrame(buf, rawA_)) { msleep(10); return false; }
         last1_ = c1; last2_ = c2;
         fid = (buf == 0) ? c1 : c2;
         dev_->regWrite(R_ACK, 1u << buf);   // release for flow-controlled bitstreams
+        expectedBuf_ ^= 1;
     } else { // STBL
         bool got = false;
         for (int attempt = 0; attempt < 2 && !got; ++attempt) {

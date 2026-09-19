@@ -14,9 +14,7 @@ module ov5640_ddr_w_ctrl #(
     
     input          s_vsync        ,
 
-    input          axi_data_valid ,
-    input          axi_data_last  , 
-    input          axi_data_ready ,
+    input          dma_done       ,  // [LEDGER 2026-09-19] DMA transaction-done pulse (authoritative beat ledger)
 
     output [AXI_ADDR_WIDTH-1 : 0]  axi_cmd_addr   /*synthesis PAP_MARK_DEBUG="1"*/,
     output [AXI_LEN_WIDTH-1 : 0]   axi_cmd_len    /*synthesis PAP_MARK_DEBUG="1"*/,
@@ -33,7 +31,11 @@ module ov5640_ddr_w_ctrl #(
     // aborting it would leave a pending frame with no new tag for the host.
     output                           tag_active     ,
     output [AXI_DATA_WIDTH-1 : 0]    tag_data       ,
-    input                            tag_ready
+    input                            tag_ready,
+    output [31:0]                    dbg_state,
+    output                           engine_busy,     // [IDLEGATE 2026-09-19] FSM not IDLE (frame or tag in flight)
+    output [31:0]                    dbg_last_cnt,
+    output [31:0]                    dbg_wd_cnt
 );
 
     localparam IDLE      = 3'b001;
@@ -44,7 +46,11 @@ module ov5640_ddr_w_ctrl #(
     localparam DATA_TAG  = 3'b101;
 
     reg [2 : 0] curr_state/*synthesis PAP_MARK_DEBUG="1"*/;
+    // [LEDGER 2026-09-19] both the frame command and the 16B tag command pulse
+    // dma_done; only the frame command's completion may advance frame state.
+    wire frame_done = dma_done && (curr_state == DATA);
     reg [2 : 0] next_state;
+    wire wd_expire;
 
     // [FRTAG 2026-09-14] frame-tag declarations (forward, before first use)
     reg                          vsync_pending;
@@ -84,13 +90,19 @@ module ov5640_ddr_w_ctrl #(
                 if(axi_cmd_ready & axi_cmd_valid)begin
                     next_state = DATA;
                 end
+                else if(wd_expire)begin
+                    next_state = IDLE;      // [WD2] cmd_ready stuck -> retry
+                end
                 else begin
                     next_state = ADDR;
                 end
             end
             DATA: begin
-                if(axi_data_valid & axi_data_ready & axi_data_last)begin
+                if(frame_done)begin
                     next_state = ADDR_TAG;              // [FRTAG] frame complete, go write the tag
+                end
+                else if(wd_expire)begin
+                    next_state = IDLE;                  // [FIX] retry next vsync
                 end
                 else begin
                     next_state = DATA;
@@ -100,12 +112,15 @@ module ov5640_ddr_w_ctrl #(
                 if(axi_cmd_ready & axi_cmd_valid)begin
                     next_state = DATA_TAG;
                 end
+                else if(wd_expire)begin
+                    next_state = IDLE;                  // [FIX]
+                end
                 else begin
                     next_state = ADDR_TAG;
                 end
             end
             DATA_TAG: begin
-                if(tag_fire)begin
+                if(tag_fire || wd_expire)begin
                     next_state = IDLE;
                 end
                 else begin
@@ -143,7 +158,7 @@ module ov5640_ddr_w_ctrl #(
             w_ping <= 1'b0;
         end
         else begin
-            if(axi_data_valid & axi_data_ready & axi_data_last)begin
+            if(frame_done)begin
                 w_ping <= ~w_ping;
             end
         end
@@ -172,7 +187,7 @@ module ov5640_ddr_w_ctrl #(
             if((curr_state == IDLE) && vsync_pending)begin
                 axi_cmd_valid <= 1'b1;
             end
-            else if((curr_state == DATA) && axi_data_valid && axi_data_ready && axi_data_last)begin
+            else if(frame_done)begin
                 axi_cmd_valid <= 1'b1;      // [FRTAG] frame done -> present the tag command
             end
             else if(axi_cmd_valid & axi_cmd_ready)begin
@@ -215,7 +230,7 @@ module ov5640_ddr_w_ctrl #(
         if(axi_rst)begin
             frame_cnt <= 32'd0;
         end
-        else if((curr_state == DATA) && axi_data_valid && axi_data_ready && axi_data_last)begin
+        else if(frame_done)begin
             frame_cnt <= frame_cnt + 32'd1;
         end
     end
@@ -233,7 +248,7 @@ module ov5640_ddr_w_ctrl #(
             s_xdma_req <= 2'b0;
         end
         else begin
-            if(axi_data_valid & axi_data_ready & axi_data_last)begin
+            if(frame_done)begin
                 if(w_ping)begin
                     s_xdma_req[1] <= 1'b1;
                 end
@@ -253,6 +268,35 @@ module ov5640_ddr_w_ctrl #(
     end
 
     assign xdma_req = s_xdma_req;
+    assign dbg_state = {29'd0, curr_state};
+    assign engine_busy = (curr_state != IDLE);
+
+    // [FIX 2026-09-18] frame-write watchdog: a frame that does not complete
+    // (lost/short camera stream) used to wedge this FSM in DATA forever. Bail
+    // back to IDLE after ~0.16 s and retry on the next vsync.
+    reg [31:0] wd_cnt;
+    // [WDFIX 2026-09-19] reset the budget on every state CHANGE, not only in
+    // IDLE: a frame that burns the budget in DATA (slow DMA close with the B
+    // path dead) used to make the immediately following ADDR_TAG/DATA_TAG
+    // expire instantly, silently skipping the frame-tag write.
+    reg [2:0] wd_prev_state;
+    always @(posedge axi_clk) begin
+        if(axi_rst) wd_prev_state <= IDLE;
+        else        wd_prev_state <= curr_state;
+    end
+    always @(posedge axi_clk) begin
+        if(axi_rst || (curr_state == IDLE) || (curr_state != wd_prev_state)) wd_cnt <= 32'd0;
+        else if(wd_cnt != 32'hffffffff)     wd_cnt <= wd_cnt + 32'd1;
+    end
+    assign wd_expire = (wd_cnt >= 32'd20_000_000);
+    assign dbg_wd_cnt = wd_cnt;
+
+    reg [31:0] last_cnt;
+    always @(posedge axi_clk) begin
+        if(axi_rst) last_cnt <= 32'd0;
+        else if(frame_done) last_cnt <= last_cnt + 32'd1;
+    end
+    assign dbg_last_cnt = last_cnt;
 
 
 

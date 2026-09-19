@@ -8,6 +8,7 @@ module ov5640_ddr #(
 )(
     input          axi_clk        ,
     input          axi_rst        , 
+    input          dma_done       ,  // [LEDGER 2026-09-19] DMA transaction-done pulse
     input          axi_cam_en     ,      //����ͷ�����ź�
 
     input  [AXI_ADDR_WIDTH-1 : 0]      cam_data_addr_1,
@@ -30,6 +31,13 @@ module ov5640_ddr #(
     input                          axi_cmd_ready  /*synthesis PAP_MARK_DEBUG="1"*/,
 
     output [1 : 0]   xdma_req       ,
+    output [31:0]    dbg_axi_cnt    ,
+    output [31:0]    dbg_axi_num    ,
+    output [31:0]    dbg_zdin       ,
+    output [31:0]    dbg_zout       ,
+    output [31:0]    dbg_state      ,
+    output [31:0]    dbg_last_cnt   ,
+    output [31:0]    dbg_wd_cnt     ,
     input  [1 : 0]   xdma_ack        
 );
 
@@ -46,12 +54,14 @@ module ov5640_ddr #(
     wire                        w_ready ;
     wire                        tag_active;
     wire [AXI_DATA_WIDTH-1 : 0] tag_data  ;
+    wire                    engine_busy;   // [IDLEGATE 2026-09-19]
 
 
 ov5640_ddr_w_en #(
     .DATA_WIDTH(DATA_WIDTH)
 )
 ov5640_ddr_w_en(
+    .engine_busy   (engine_busy   ),   // [IDLEGATE 2026-09-19] gate admission on write-engine idle
     .axi_clk       (axi_clk        ),
     .axi_rst       (axi_rst        ),
 
@@ -91,7 +101,11 @@ ov5640_ddr_w(
     .axi_data       (w_data         ),
     .axi_data_valid (w_valid        ),
     .axi_data_last  (w_last         ),
-    .axi_data_ready (w_ready        )
+    .axi_data_ready (w_ready        ),
+    .dbg_axi_cnt    (dbg_axi_cnt    ),
+    .dbg_axi_num    (dbg_axi_num    ),
+    .dbg_zdin       (dbg_zdin       ),
+    .dbg_zout       (dbg_zout       )
 );
 
     // [FRTAG 2026-09-14] frame-tag stream mux: while the ctrl runs its DATA_TAG
@@ -122,9 +136,7 @@ ov5640_ddr_w_ctrl(
     
     .s_vsync        (m_vsync        ),
 
-    .axi_data_valid (w_valid        ),
-    .axi_data_last  (w_last         ),
-    .axi_data_ready (w_ready        ),
+    .dma_done       (dma_done       ),  // [LEDGER 2026-09-19]
 
     .axi_cmd_addr   (axi_cmd_addr   ),
     .axi_cmd_len    (axi_cmd_len    ),
@@ -135,6 +147,10 @@ ov5640_ddr_w_ctrl(
     .tag_data       (tag_data       ),
     .tag_ready      (axi_data_ready ),
 
+    .engine_busy    (engine_busy    ),
+    .dbg_state      (dbg_state      ),
+    .dbg_last_cnt   (dbg_last_cnt   ),
+    .dbg_wd_cnt     (dbg_wd_cnt     ),
     .xdma_req       (xdma_req       ),
     .xdma_ack       (xdma_ack       )
 );

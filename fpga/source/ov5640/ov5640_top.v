@@ -1,5 +1,5 @@
 module ov5640_top #(
-    //DVPÊä³öµÄÎ»¿í
+    //DVPï¿½ï¿½ï¿½ï¿½ï¿½Î»ï¿½ï¿½
     parameter DATA_WIDTH = 16,
 
     //AXI
@@ -8,41 +8,53 @@ module ov5640_top #(
     parameter AXI_DATA_WIDTH = 128,
 
     //I2C
-    parameter   SLAVE_ADDR = 7'h3c   ,  //I2C´Ó»úµØÖ·
-    parameter   BIT_CTRL   = 1'b1           , //OV5640µÄ×Ö½ÚµØÖ·Îª16Î»  0:8Î» 1:16Î»
-    parameter   CLK_FREQ   = 26'd25_000_000, //[CLKFIX] clk_50m = free_clk 25MHz, //Ä£¿éÊäÈëµÄÊ±ÖÓÆµÂÊ
-    parameter   I2C_FREQ   = 18'd250_000,    //IIC_SCLµÄÊ±ÖÓÆµÂÊ
+    parameter   SLAVE_ADDR = 7'h3c   ,  //I2Cï¿½Ó»ï¿½ï¿½ï¿½Ö·
+    parameter   BIT_CTRL   = 1'b1           , //OV5640ï¿½ï¿½ï¿½Ö½Úµï¿½Ö·Îª16Î»  0:8Î» 1:16Î»
+    parameter   CLK_FREQ   = 26'd25_000_000, //[CLKFIX] clk_50m = free_clk 25MHz, //Ä£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½Æµï¿½ï¿½
+    parameter   I2C_FREQ   = 18'd250_000,    //IIC_SCLï¿½ï¿½Ê±ï¿½ï¿½Æµï¿½ï¿½
 
-    //ÉãÏñ
-    parameter  H_CMOS_DISP = 11'd640   , //CMOS·Ö±æÂÊ--ÐÐ
-    parameter  V_CMOS_DISP = 11'd480   , //CMOS·Ö±æÂÊ--ÁÐ	
-    parameter  TOTAL_H_PIXEL = 12'd1896, //Ë®Æ½×ÜÏñËØ´óÐ¡ (28.58Ö¡)
-    parameter  TOTAL_V_PIXEL = 12'd984 , //´¹Ö±×ÜÏñËØ´óÐ¡ (28.58Ö¡)
+    //ï¿½ï¿½ï¿½ï¿½
+    parameter  H_CMOS_DISP = 11'd640    , //CMOSï¿½Ö±ï¿½ï¿½ï¿½--ï¿½ï¿½
+    parameter  V_CMOS_DISP = 11'd480    , //CMOSï¿½Ö±ï¿½ï¿½ï¿½--ï¿½ï¿½	
+    parameter  TOTAL_H_PIXEL = 12'd1896, //Ë®Æ½ï¿½ï¿½ï¿½ï¿½ï¿½Ø´ï¿½Ð¡ (28.58Ö¡)
+    parameter  TOTAL_V_PIXEL = 12'd984 , // [56M/30fps]ï¿½ï¿½Ö±ï¿½ï¿½ï¿½ï¿½ï¿½Ø´ï¿½Ð¡ (28.58Ö¡)
     parameter  CAM_DATA_LEN  = H_CMOS_DISP * V_CMOS_DISP * DATA_WIDTH/8 / 16, //1280*720 * 2 /16
 
-    //ÉãÏñÍ·Êä³ö¿ØÖÆ»ùµØÖ·
+    //ï¿½ï¿½ï¿½ï¿½Í·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Æ»ï¿½ï¿½ï¿½Ö·
     parameter BASE_ADDR = 32'h2000_0000,
+    parameter [31:0] CAM_ADDR_1_DEF = 32'h0080_0000,
+    parameter [31:0] CAM_ADDR_2_DEF = 32'h00A0_0000,
+    parameter        CAM_EN_DEF     = 1'b1,
 
-    //°å¿¨Éè±¸
+    //ï¿½å¿¨ï¿½è±¸
+    //IODELAY step for DVP sampling phase (0..255)
+    parameter [7:0] IODELAY_STEP = 8'd40,
+
     parameter DEVICE = "PG"
 )(
-    // input         pl_clk                ,  //×ÜÊ±ÖÓ
+    // input         pl_clk                ,  //ï¿½ï¿½Ê±ï¿½ï¿½
     input         clk_50m               ,
     input         dbg_locked            ,
     input         dbg_btn_rst_n         ,
+    input         dbg_axi_awvalid       ,
+    input         dbg_axi_awready       ,
+    input         dbg_axi_wvalid        ,
+    input         dbg_axi_wready        ,
+    input         dbg_axi_bvalid        ,
+    input         dbg_axi_bready        ,
     input         clk_50m_rst_n         ,
-    //ÉãÏñÍ·½Ó¿Ú
-    input         cam_pclk              ,  //cmos Êý¾ÝÏñËØÊ±ÖÓ
-    input         cam_vsync             ,  //cmos ³¡Í¬²½ÐÅ
-    input         cam_href              ,  //cmos ÐÐÍ¬²½ÐÅ
-    input [7 : 0] cam_data              ,  //cmos Êý¾Ý
-    output        cam_rst_n             ,  //cmos ¸´Î»ÐÅºÅ£¬µÍµçÆ½ÓÐÐ§
-    output        cam_pwdn              ,  //µçÔ´ÐÝÃßÄ£Ê½Ñ¡Ôñ 0£ºÕý³£Ä£ 1£ºµçÔ´ÐÝÃßÄ£
+    //ï¿½ï¿½ï¿½ï¿½Í·ï¿½Ó¿ï¿½
+    input         cam_pclk              ,  //cmos ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½
+    input         cam_vsync             ,  //cmos ï¿½ï¿½Í¬ï¿½ï¿½ï¿½ï¿½
+    input         cam_href              ,  //cmos ï¿½ï¿½Í¬ï¿½ï¿½ï¿½ï¿½
+    input [7 : 0] cam_data              ,  //cmos ï¿½ï¿½ï¿½ï¿½
+    output        cam_rst_n             ,  //cmos ï¿½ï¿½Î»ï¿½ÅºÅ£ï¿½ï¿½Íµï¿½Æ½ï¿½ï¿½Ð§
+    output        cam_pwdn              ,  //ï¿½ï¿½Ô´ï¿½ï¿½ï¿½ï¿½Ä£Ê½Ñ¡ï¿½ï¿½ 0ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä£ 1ï¿½ï¿½ï¿½ï¿½Ô´ï¿½ï¿½ï¿½ï¿½Ä£
     output        cam_scl               ,  //cmos SCCB_SCL
     inout         cam_sda               ,  //cmos SCCB_SDA   
 
 
-    //ÉãÏñÍ·¿ØÖÆ¼Ä´æÆ÷
+    //ï¿½ï¿½ï¿½ï¿½Í·ï¿½ï¿½ï¿½Æ¼Ä´ï¿½ï¿½ï¿½
     input                             s_axi_awvalid         /*synthesis PAP_MARK_DEBUG="1"*/,
     output                            s_axi_awready         /*synthesis PAP_MARK_DEBUG="1"*/,
     input  [AXI_ADDR_WIDTH-1 : 0]     s_axi_awaddr          /*synthesis PAP_MARK_DEBUG="1"*/,
@@ -67,9 +79,10 @@ module ov5640_top #(
 
 
 
-    //ÉãÏñÍ·AXI_streamÊý¾Ý
+    //ï¿½ï¿½ï¿½ï¿½Í·AXI_streamï¿½ï¿½ï¿½ï¿½
     input                          video_clk      /*synthesis PAP_MARK_DEBUG="1"*/,
     input                          video_rst      /*synthesis PAP_MARK_DEBUG="1"*/,
+    input                         cam_dma_done   ,  // [LEDGER 2026-09-19] DMA transaction-done pulse
     output [AXI_ADDR_WIDTH-1 : 0]  cam_cmd_addr    /*synthesis PAP_MARK_DEBUG="1"*/,
     output [AXI_LEN_WIDTH-1 : 0]   cam_cmd_len     /*synthesis PAP_MARK_DEBUG="1"*/,
     output                         cam_cmd_valid   /*synthesis PAP_MARK_DEBUG="1"*/,
@@ -80,7 +93,7 @@ module ov5640_top #(
     output                        cam_s_data_last  /*synthesis PAP_MARK_DEBUG="1"*/,
     input                         cam_s_data_ready /*synthesis PAP_MARK_DEBUG="1"*/,
 
-    //ÇëÇóDMAÀ´°áÔËÊý¾Ý
+    //ï¿½ï¿½ï¿½ï¿½DMAï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
     input                         xdma_clk  ,
     output  [1 : 0]               xdma_irq   /*synthesis PAP_MARK_DEBUG="1"*/
 
@@ -120,18 +133,23 @@ module ov5640_top #(
     wire                    video_hsync ;
     wire                    video_valid ;
     wire [DATA_WIDTH-1 : 0] video_data  ;
+    wire [31:0]   dbg_i2c_status;
+    wire [31:0]   dbg_pclk_cnt;
+    wire [31:0]   dbg_sys_status;
+    wire [31:0]   dbg_href_raw;
+    wire [31:0]   dbg_vsync_raw;
 
-// ---------------- ÐÂÔöÐÞ¸ÄÇøÓò£ºÊ¹ÓÃ GTP_IODELAY_E2 ½øÐÐ¾«Ï¸ÑÓ³Ùµ÷Õû ----------------
+// ---------------- ï¿½ï¿½ï¿½ï¿½ï¿½Þ¸ï¿½ï¿½ï¿½ï¿½ï¿½Ê¹ï¿½ï¿½ GTP_IODELAY_E2 ï¿½ï¿½ï¿½Ð¾ï¿½Ï¸ï¿½Ó³Ùµï¿½ï¿½ï¿½ ----------------
     
-    // ÉùÃ÷¾­¹ýÑÓ³Ùµ÷ÕûºóµÄÐÅºÅ
+    // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ó³Ùµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Åºï¿½
     wire         cam_vsync_dly;
     wire         cam_href_dly;
     wire [7 : 0] cam_data_dly;
     
-    // ÉèÖÃÑÓ³Ù²½½øÖµ (0~255)
-    localparam IODELAY_STEP = 8'd40;
+    // ï¿½ï¿½ï¿½ï¿½ï¿½Ó³Ù²ï¿½ï¿½ï¿½Öµ (0~255)
+    // IODELAY_STEP is a header parameter now (overridable per instance)
 
-    // --- ¿ØÖÆÐÅºÅÑÓ³ÙÀý»¯ ---
+    // --- ï¿½ï¿½ï¿½ï¿½ï¿½Åºï¿½ï¿½Ó³ï¿½ï¿½ï¿½ï¿½ï¿½ ---
     GTP_IODELAY_E2 #(
         .DELAY_STEP_VALUE(IODELAY_STEP),
         .DELAY_STEP_SEL("PARAMETER"),
@@ -156,7 +174,7 @@ module ov5640_top #(
         .DELAY_STEP (8'b0)  
     );
 
-    // --- Êý¾ÝÐÅºÅ(cam_data)ÑÓ³ÙÀý»¯ ---
+    // --- ï¿½ï¿½ï¿½ï¿½ï¿½Åºï¿½(cam_data)ï¿½Ó³ï¿½ï¿½ï¿½ï¿½ï¿½ ---
     genvar i;
     generate
         for (i = 0; i < 8; i = i + 1) begin : cam_data_iodelay
@@ -173,52 +191,54 @@ module ov5640_top #(
             );
         end
     endgenerate
-// ---------------- ÐÂÔöÐÞ¸ÄÇøÓò ½áÊø ----------------
+// ---------------- ï¿½ï¿½ï¿½ï¿½ï¿½Þ¸ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ----------------
 
 
     ov5640 #(
-        //DVPÊý¾Ý
+        //DVPï¿½ï¿½ï¿½ï¿½
         .DATA_WIDTH(DATA_WIDTH),
         //I2C
-        .SLAVE_ADDR(SLAVE_ADDR)   ,      //I2C´Ó»úµØÖ·
-        .BIT_CTRL  (BIT_CTRL)     ,      //OV5640µÄ×Ö½ÚµØÖ·Îª16Î»  0:8Î» 1:16Î»
-        .CLK_FREQ  (CLK_FREQ)     ,      //Ä£¿éÊäÈëµÄÊ±ÖÓÆµÂÊ
-        .I2C_FREQ  (I2C_FREQ)     ,      //IIC_SCLµÄÊ±ÖÓÆµÂÊ
+        .SLAVE_ADDR(SLAVE_ADDR)   ,      //I2Cï¿½Ó»ï¿½ï¿½ï¿½Ö·
+        .BIT_CTRL  (BIT_CTRL)     ,      //OV5640ï¿½ï¿½ï¿½Ö½Úµï¿½Ö·Îª16Î»  0:8Î» 1:16Î»
+        .CLK_FREQ  (CLK_FREQ)     ,      //Ä£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½Æµï¿½ï¿½
+        .I2C_FREQ  (I2C_FREQ)     ,      //IIC_SCLï¿½ï¿½Ê±ï¿½ï¿½Æµï¿½ï¿½
 
-        //ÉãÏñ
-        .H_CMOS_DISP(H_CMOS_DISP), //CMOS·Ö±æÂÊ--ÐÐ
-        .V_CMOS_DISP(V_CMOS_DISP), //CMOS·Ö±æÂÊ--ÁÐ	
-        .TOTAL_H_PIXEL(TOTAL_H_PIXEL), //Ë®Æ½×ÜÏñËØ´óÐ¡
-        .TOTAL_V_PIXEL(TOTAL_V_PIXEL), //´¹Ö±×ÜÏñËØ´óÐ¡
+        //ï¿½ï¿½ï¿½ï¿½
+        .H_CMOS_DISP(H_CMOS_DISP), //CMOSï¿½Ö±ï¿½ï¿½ï¿½--ï¿½ï¿½
+        .V_CMOS_DISP(V_CMOS_DISP), //CMOSï¿½Ö±ï¿½ï¿½ï¿½--ï¿½ï¿½	
+        .TOTAL_H_PIXEL(TOTAL_H_PIXEL), //Ë®Æ½ï¿½ï¿½ï¿½ï¿½ï¿½Ø´ï¿½Ð¡
+        .TOTAL_V_PIXEL(TOTAL_V_PIXEL), //ï¿½ï¿½Ö±ï¿½ï¿½ï¿½ï¿½ï¿½Ø´ï¿½Ð¡
 
-        //°å¿¨Éè±¸
+        //ï¿½å¿¨ï¿½è±¸
         .DEVICE(DEVICE)
     )
     ov5640(
-        .clk_50m            (clk_50m      ),  // i2cµÄ²Î¿¼Ê±ÖÓClock
+        .clk_50m            (clk_50m      ),  // i2cï¿½Ä²Î¿ï¿½Ê±ï¿½ï¿½Clock
         .rst_n              (clk_50m_rst_n),  // Asynchronous reset active low
 
         .ov_rst_n           (ov_rst_n ),
-        .cam_pclk           (cam_pclk ),  //cmos Êý¾ÝÏñËØÊ±ÖÓ
-        // Ê¹ÓÃ¾­¹ýÑÓ³Ù´¦ÀíµÄÐÅºÅÌæ»»Ô­Ê¼¹Ü½ÅÐÅºÅ
-        .cam_vsync          (cam_vsync_dly),  //cmos ³¡Í¬²½ÐÅºÅ 
-        .cam_href           (cam_href_dly ),  //cmos ÐÐÍ¬²½ÐÅºÅ
-        .cam_data           (cam_data_dly ),  //cmos Êý¾Ý
+        .cam_pclk           (cam_pclk ),  //cmos ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½
+        // Ê¹ï¿½Ã¾ï¿½ï¿½ï¿½ï¿½Ó³Ù´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Åºï¿½ï¿½æ»»Ô­Ê¼ï¿½Ü½ï¿½ï¿½Åºï¿½
+        .cam_vsync          (cam_vsync_dly),  //cmos ï¿½ï¿½Í¬ï¿½ï¿½ï¿½Åºï¿½ 
+        .cam_href           (cam_href_dly ),  //cmos ï¿½ï¿½Í¬ï¿½ï¿½ï¿½Åºï¿½
+        .cam_data           (cam_data_dly ),  //cmos ï¿½ï¿½ï¿½ï¿½
         
-        .cam_rst_n          (cam_rst_n),  //cmos ¸´Î»ÐÅºÅ£¬µÍµçÆ½ÓÐÐ§
-        .cam_pwdn           (cam_pwdn ),  //µçÔ´ÐÝÃßÄ£Ê½Ñ¡Ôñ 0£ºÕý³£Ä£Ê½ 1£ºµçÔ´ÐÝÃßÄ£Ê½
-        .cam_scl            (cam_scl  ),  //cmos SCCB_SCLÏß
-        .cam_sda            (cam_sda  ),  //cmos SCCB_SDAÏß     
+        .cam_rst_n          (cam_rst_n),  //cmos ï¿½ï¿½Î»ï¿½ÅºÅ£ï¿½ï¿½Íµï¿½Æ½ï¿½ï¿½Ð§
+        .cam_pwdn           (cam_pwdn ),  //ï¿½ï¿½Ô´ï¿½ï¿½ï¿½ï¿½Ä£Ê½Ñ¡ï¿½ï¿½ 0ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä£Ê½ 1ï¿½ï¿½ï¿½ï¿½Ô´ï¿½ï¿½ï¿½ï¿½Ä£Ê½
+        .cam_scl            (cam_scl  ),  //cmos SCCB_SCLï¿½ï¿½
+        .cam_sda            (cam_sda  ),  //cmos SCCB_SDAï¿½ï¿½     
 
-        .video_clk          (video_clk  ),  // ÕûºÏºóµÄRGBÄÃÈ¡Ê±ÖÓ
+        .video_clk          (video_clk  ),  // ï¿½ï¿½ï¿½Ïºï¿½ï¿½RGBï¿½ï¿½È¡Ê±ï¿½ï¿½
         .video_rst          (video_rst  ),
-        .video_vsync        (video_vsync),  //Ö¡ÓÐÐ§ÐÅºÅ    
-        .video_hsync        (video_hsync),  //ÐÐÓÐÐ§ÐÅºÅ
-        .video_valid        (video_valid),  //Êý¾ÝÓÐÐ§Ê¹ÄÜÐÅºÅ
-        .video_data         (video_data ),  //ÓÐÐ§Êý¾Ý
+        .video_vsync        (video_vsync),  //Ö¡ï¿½ï¿½Ð§ï¿½Åºï¿½    
+        .video_hsync        (video_hsync),  //ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+        .video_valid        (video_valid),  //ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§Ê¹ï¿½ï¿½ï¿½Åºï¿½
+        .video_data         (video_data ),  //ï¿½ï¿½Ð§ï¿½ï¿½ï¿½ï¿½
         .dbg_i2c_status     (dbg_i2c_status),
         .dbg_pclk_cnt       (dbg_pclk_cnt ),
-        .dbg_sys_status     (dbg_sys_status)
+        .dbg_sys_status     (dbg_sys_status),
+        .dbg_href_raw       (dbg_href_raw  ),
+        .dbg_vsync_raw      (dbg_vsync_raw )
     
     );
 
@@ -228,11 +248,22 @@ module ov5640_top #(
     wire                        cam_en    /*synthesis PAP_MARK_DEBUG="1"*/;
     wire [AXI_ADDR_WIDTH-1 : 0] cam_addr_1/*synthesis PAP_MARK_DEBUG="1"*/;
     wire [AXI_ADDR_WIDTH-1 : 0] cam_addr_2/*synthesis PAP_MARK_DEBUG="1"*/;
-
     wire [1 : 0]  xdma_req  ;  
-    wire [31:0]   dbg_i2c_status;
-    wire [31:0]   dbg_pclk_cnt;
-    wire [31:0]   dbg_sys_status;
+    reg  [31:0]   dbg_beat_cnt;
+    reg  [31:0]   dbg_beat_last;
+    reg  [31:0]   dbg_cmd_cnt;
+wire [31:0]   dbg_axi_cnt;
+wire [31:0]   dbg_axi_num;
+wire [31:0]   dbg_zdin;
+wire [31:0]   dbg_zout;
+    wire [31:0]   dbg_state;
+    wire [31:0]   dbg_last_cnt;
+    wire [31:0]   dbg_wd_cnt;
+    reg  [15:0]   dbg_axi_sticky;
+    reg  [15:0]   dbg_b_cnt;
+    reg  [15:0]   dbg_aw_cnt;
+    reg  [15:0]   dbg_w_cnt;
+    wire [15:0]   dbg_axi_stat;
     reg  [31:0]   dbg_clk_status;
     wire [1 : 0]  xdma_ack  ; 
     ov5640_ddr #(
@@ -248,16 +279,17 @@ module ov5640_top #(
         .axi_rst        (video_rst), 
 
         .axi_cam_en     (cam_en    ),
+        .dma_done       (cam_dma_done),  // [LEDGER 2026-09-19]
         .cam_data_addr_1(cam_addr_1),
         .cam_data_addr_2(cam_addr_2),
-        .cam_data_len   (CAM_DATA_LEN), //ÒÔ16×Ö½ÚÎªµ¥Î»
+        .cam_data_len   (CAM_DATA_LEN), //ï¿½ï¿½16ï¿½Ö½ï¿½Îªï¿½ï¿½Î»
 
         .s_data         (video_data ),
         .s_data_valid   (video_valid),
         .s_hsync        (video_hsync),
         .s_vsync        (video_vsync),
 
-        //AXIÐ­ÒéµÄ
+        //AXIÐ­ï¿½ï¿½ï¿½
         .axi_data       (cam_s_data      ),
         .axi_data_valid (cam_s_data_valid),
         .axi_data_last  (cam_s_data_last ), 
@@ -268,6 +300,13 @@ module ov5640_top #(
         .axi_cmd_valid  (cam_cmd_valid ),
         .axi_cmd_ready  (cam_cmd_ready ),
 
+        .dbg_axi_cnt    (dbg_axi_cnt   ),
+        .dbg_axi_num    (dbg_axi_num   ),
+        .dbg_zdin       (dbg_zdin      ),
+        .dbg_zout       (dbg_zout      ),
+        .dbg_state      (dbg_state     ),
+        .dbg_last_cnt   (dbg_last_cnt  ),
+        .dbg_wd_cnt     (dbg_wd_cnt    ),
         .xdma_req       (xdma_req      ),
         .xdma_ack       (xdma_ack      ) 
     );
@@ -288,6 +327,69 @@ module ov5640_top #(
         if (video_rst) dbg_vsyncs <= 32'd0;
         else if (dbg_vs_ff[2:1] == 2'b01) dbg_vsyncs <= dbg_vsyncs + 32'd1;
     end
+    // [DBG] href (hsync) activity counter -> ov5640_reg +0x50
+    reg [31:0] dbg_hsyncs;
+    reg [2:0]  dbg_hs_ff;
+    always @(posedge video_clk) dbg_hs_ff <= {dbg_hs_ff[1:0], video_hsync};
+    always @(posedge video_clk) begin
+        if (video_rst) dbg_hsyncs <= 32'd0;
+        else if (dbg_hs_ff[2:1] == 2'b01) dbg_hsyncs <= dbg_hsyncs + 32'd1;
+    end
+    // [DIAG] AXI beat accounting: how many beats does the engine actually see
+    // per camera frame? If this != CAM_DATA_LEN the write FSM deadlocks.
+    reg [2:0] dbg_fs_ff;
+    always @(posedge video_clk) dbg_fs_ff <= {dbg_fs_ff[1:0], video_vsync};
+    wire dbg_frame_edge = (dbg_fs_ff[2:1] == 2'b01);
+    always @(posedge video_clk) begin
+        if (video_rst) begin
+            dbg_beat_cnt  <= 32'd0;
+            dbg_beat_last <= 32'd0;
+        end
+        else if (dbg_frame_edge) begin
+            dbg_beat_last <= dbg_beat_cnt;
+            dbg_beat_cnt  <= 32'd0;
+        end
+        else if (cam_s_data_valid & cam_s_data_ready) begin
+            dbg_beat_cnt <= dbg_beat_cnt + 32'd1;
+        end
+    end
+    // [DIAG] AXI write handshake visibility (which stage ever happened?)
+    // [DIAG2] numeric handshake counters (sticky only says "ever", not "how many")
+    always @(posedge video_clk) begin
+        if (video_rst) begin
+            dbg_b_cnt  <= 16'd0;
+            dbg_aw_cnt <= 16'd0;
+            dbg_w_cnt  <= 16'd0;
+        end
+        else begin
+            if (dbg_axi_bvalid & dbg_axi_bready) dbg_b_cnt  <= dbg_b_cnt  + 16'd1;
+            if (dbg_axi_awvalid & dbg_axi_awready) dbg_aw_cnt <= dbg_aw_cnt + 16'd1;
+            if (dbg_axi_wvalid & dbg_axi_wready)  dbg_w_cnt  <= dbg_w_cnt  + 16'd1;
+        end
+    end
+    assign dbg_axi_stat = {5'd0,
+        dbg_axi_bready, dbg_axi_bvalid,
+        (cam_s_data_valid & cam_s_data_ready),
+        cam_s_data_ready, cam_s_data_valid,
+        (dbg_axi_wvalid & dbg_axi_wready), dbg_axi_wready, dbg_axi_wvalid,
+        (dbg_axi_awvalid & dbg_axi_awready), dbg_axi_awready, dbg_axi_awvalid};
+    always @(posedge video_clk) begin
+        if (video_rst) dbg_axi_sticky <= 16'd0;
+        else           dbg_axi_sticky <= dbg_axi_sticky | dbg_axi_stat;
+    end
+    // [DIAG] frame commands issued by ov5640_ddr_w_ctrl (idle->addr transitions)
+    reg dbg_cmd_d;
+    always @(posedge video_clk) begin
+        if (video_rst) begin
+            dbg_cmd_d   <= 1'b0;
+            dbg_cmd_cnt <= 32'd0;
+        end
+        else begin
+            dbg_cmd_d <= cam_cmd_valid;
+            if (cam_cmd_valid & ~dbg_cmd_d)
+                dbg_cmd_cnt <= dbg_cmd_cnt + 32'd1;
+        end
+    end
 
 // [DBG] clk_50m activity counter + lock/button snapshot (sampled in video_clk)
 reg [15:0] dbg_clk50_cnt;
@@ -296,6 +398,9 @@ always @(posedge video_clk) dbg_clk_status <= {dbg_clk50_cnt, dbg_locked, dbg_bt
     ov5640_reg #(
 
         .BASE_ADDR(BASE_ADDR),
+        .CAM_ADDR_1_DEF(CAM_ADDR_1_DEF),
+        .CAM_ADDR_2_DEF(CAM_ADDR_2_DEF),
+        .CAM_EN_DEF   (CAM_EN_DEF   ),
         .AXI_ADDR_WIDTH(AXI_ADDR_WIDTH)
     ) 
     ov5640_reg(
@@ -330,28 +435,46 @@ always @(posedge video_clk) dbg_clk_status <= {dbg_clk50_cnt, dbg_locked, dbg_bt
         .cam_addr_2            (cam_addr_2   ),
         .dbg_cam_words         (dbg_cam_words),
         .dbg_vsyncs            (dbg_vsyncs   ),
+        .dbg_hsyncs            (dbg_hsyncs   ),
         .dbg_xdma_req          (xdma_req     ),
         .dbg_i2c_status        (dbg_i2c_status),
         .dbg_pclk_cnt          (dbg_pclk_cnt ),
         .dbg_sys_status        (dbg_sys_status),
+        .dbg_href_raw          (dbg_href_raw ),
+        .dbg_beat_cnt          (dbg_beat_cnt ),
+        .dbg_axi_sticky        (dbg_axi_sticky),
+        .dbg_b_cnt             (dbg_b_cnt     ),
+        .dbg_aw_cnt            (dbg_aw_cnt    ),
+        .dbg_w_cnt             (dbg_w_cnt     ),
+    .dbg_axi_cnt           (dbg_axi_cnt   ),
+    .dbg_axi_num           (dbg_axi_num   ),
+    .dbg_zdin              (dbg_zdin      ),
+    .dbg_zout              (dbg_zout      ),
+        .dbg_state             (dbg_state     ),
+        .dbg_last_cnt          (dbg_last_cnt  ),
+        .dbg_wd_cnt            (dbg_wd_cnt    ),
+        .dbg_axi_stat          (dbg_axi_stat  ),
+        .dbg_beat_last         (dbg_beat_last),
+        .dbg_cmd_cnt           (dbg_cmd_cnt  ),
+        .dbg_vsync_raw         (dbg_vsync_raw),
         .dbg_clk_status        (dbg_clk_status)
     );
 
 
 
 
-    // RGBµÄÄÃÈ¡Ê±ÖÓvideo_clk µ½ xdmaÊ±ÖÓÓò
+    // RGBï¿½ï¿½ï¿½ï¿½È¡Ê±ï¿½ï¿½video_clk ï¿½ï¿½ xdmaÊ±ï¿½ï¿½ï¿½ï¿½
     pipe_cdc #(
-        .DATA_WIDTH   (2), // ¡¾ºËÐÄÐÞ¸Ä¡¿¿É×ÔÓÉÅäÖÃµÄÊý¾ÝÎ»¿í
-        .DEST_SYNC_FF (4), // Ä¿±êÊ±ÖÓÓòÍ¬²½´¥·¢Æ÷¼¶Êý (·¶Î§: 2-10)
-        .INIT_SYNC_FF (0), // ·ÂÕæÓëÉÏµç³õÊ¼Öµ (0»ò1)
-        .SRC_INPUT_REG(1)  // Ô´Ê±ÖÓÓòÊäÈëÊÇ·ñÏÈ´òÒ»ÅÄ¼Ä´æ (0=·ñ, 1=ÊÇ)
+        .DATA_WIDTH   (2), // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Þ¸Ä¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ãµï¿½ï¿½ï¿½ï¿½ï¿½Î»ï¿½ï¿½
+        .DEST_SYNC_FF (4), // Ä¿ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½Í¬ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ (ï¿½ï¿½Î§: 2-10)
+        .INIT_SYNC_FF (0), // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ïµï¿½ï¿½Ê¼Öµ (0ï¿½ï¿½1)
+        .SRC_INPUT_REG(1)  // Ô´Ê±ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ç·ï¿½ï¿½È´ï¿½Ò»ï¿½Ä¼Ä´ï¿½ (0=ï¿½ï¿½, 1=ï¿½ï¿½)
     )
     pipe_cdc(
-        .src_clk(video_clk),  // Ô´Ê±ÖÓ
-        .src_in(xdma_req),   // ¿çÓòÇ°µÄ¶à±ÈÌØ×ÜÏß
-        .dest_clk(xdma_clk), // Ä¿±êÊ±ÖÓ
-        .dest_out(xdma_irq)  // ¿çÓòºóµÄ°²È«¶à±ÈÌØ×ÜÏß
+        .src_clk(video_clk),  // Ô´Ê±ï¿½ï¿½
+        .src_in(xdma_req),   // ï¿½ï¿½ï¿½ï¿½Ç°ï¿½Ä¶ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .dest_clk(xdma_clk), // Ä¿ï¿½ï¿½Ê±ï¿½ï¿½
+        .dest_out(xdma_irq)  // ï¿½ï¿½ï¿½ï¿½ï¿½Ä°ï¿½È«ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
     );
 
 

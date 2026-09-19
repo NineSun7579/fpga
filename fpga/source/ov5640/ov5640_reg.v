@@ -1,6 +1,9 @@
 //ov5640дʹ�ܿ��ƺ�д��ַ����
 module ov5640_reg #(
     parameter BASE_ADDR = 32'h2000_0000,
+    parameter [31:0] CAM_ADDR_1_DEF = 32'h0080_0000,
+    parameter [31:0] CAM_ADDR_2_DEF = 32'h00A0_0000,
+    parameter        CAM_EN_DEF     = 1'b1,
     // parameter AXI_REG_WIDTH = 32,
     parameter AXI_ADDR_WIDTH = 32
 ) (
@@ -36,6 +39,24 @@ module ov5640_reg #(
     output reg                        cam_en                        ,
     input  [31:0]                     dbg_cam_words         ,
     input  [31:0]                     dbg_vsyncs        ,
+    input  [31:0]                     dbg_hsyncs        ,
+    input  [31:0]                     dbg_href_raw      ,
+    input  [31:0]                     dbg_vsync_raw     ,
+    input  [31:0]                     dbg_beat_cnt      ,
+    input  [31:0]                     dbg_beat_last     ,
+    input  [31:0]                     dbg_cmd_cnt       ,
+    input  [31:0]                     dbg_axi_sticky    ,
+    input  [31:0]                     dbg_axi_stat      ,
+    input  [31:0]                     dbg_b_cnt         ,
+    input  [31:0]                     dbg_aw_cnt        ,
+    input  [31:0]                     dbg_w_cnt         ,
+    input  [31:0]                     dbg_axi_cnt       ,
+    input  [31:0]                     dbg_zdin          ,
+    input  [31:0]                     dbg_zout          ,
+    input  [31:0]                     dbg_axi_num       ,
+    input  [31:0]                     dbg_state         ,
+    input  [31:0]                     dbg_last_cnt      ,
+    input  [31:0]                     dbg_wd_cnt        ,
     input  [1:0]                      dbg_xdma_req        ,
     input  [31:0]                     dbg_i2c_status      ,
     input  [31:0]                     dbg_pclk_cnt        ,
@@ -48,13 +69,24 @@ localparam REG_ACK       = BASE_ADDR + 32'h00;
 localparam REG_CAM_EN    = BASE_ADDR + 32'h40;
 localparam REG_CAM_ADDR_1= BASE_ADDR + 32'h80;
 localparam REG_CAM_ADDR_2= BASE_ADDR + 32'hc0;
+// [PROBE 2026-09-18] every offset is 16-byte aligned: the PCIe M01 read
+// path ignores addr[3:0], so only *0 offsets are individually readable.
+localparam REG_DBG_PCLK_CNT  = BASE_ADDR + 32'h10;
+localparam REG_DBG_VSYNCS    = BASE_ADDR + 32'h20;
 localparam REG_DBG_CAM_WORDS = BASE_ADDR + 32'h30;
-localparam REG_DBG_VSYNCS    = BASE_ADDR + 32'h34;
-localparam REG_DBG_XDMA_REQ  = BASE_ADDR + 32'h38;
-localparam REG_DBG_I2C_ID    = BASE_ADDR + 32'h3c;
-localparam REG_DBG_PCLK_CNT  = BASE_ADDR + 32'h44;
-localparam REG_DBG_SYS       = BASE_ADDR + 32'h48;
-localparam REG_DBG_CLK       = BASE_ADDR + 32'h4c;
+localparam REG_DBG_AXI_STICKY= BASE_ADDR + 32'h50;
+localparam REG_DBG_I2C_ID    = BASE_ADDR + 32'h60;
+localparam REG_DBG_SYS       = BASE_ADDR + 32'h70;
+localparam REG_DBG_HREF_RAW  = BASE_ADDR + 32'h90;
+localparam REG_DBG_BEAT_CNT  = BASE_ADDR + 32'ha0;
+localparam REG_DBG_BEAT_LAST = BASE_ADDR + 32'hf0;
+localparam REG_DBG_XDMA_REQ  = BASE_ADDR + 32'hb0;
+localparam REG_DBG_VSYNC_RAW = BASE_ADDR + 32'he0;
+localparam REG_DBG_AXI_NOW   = BASE_ADDR + 32'hd0;
+// [ZDIAG 2026-09-18] 0x50/0x90 repurposed from the old axi_sticky/href_raw
+// probes (kept inside the addr[9:8]=00 CAM1 segment; 0x100+ routes to prep).
+localparam REG_DBG_ZDIN      = BASE_ADDR + 32'h50;
+localparam REG_DBG_ZOUT      = BASE_ADDR + 32'h90;
 
     reg bvalid        ;
     reg data_out_valid;
@@ -78,7 +110,7 @@ localparam REG_DBG_CLK       = BASE_ADDR + 32'h4c;
     //����ͷʹ��
     always @(posedge clk) begin
         if(rst)begin
-            cam_en <= 1'b1;
+            cam_en <= CAM_EN_DEF;
         end
         else if((s_axi_awvalid & s_axi_awready) && (s_axi_wvalid & s_axi_wready) && (s_axi_awaddr == REG_CAM_EN))begin
             cam_en <= s_axi_wdata[0];
@@ -88,7 +120,7 @@ localparam REG_DBG_CLK       = BASE_ADDR + 32'h4c;
     //ͼƬ��ַ1
     always @(posedge clk) begin
         if(rst)begin
-            cam_addr_1 <= 32'h0080_0000;
+            cam_addr_1 <= CAM_ADDR_1_DEF;
         end
         else if((s_axi_awvalid & s_axi_awready) && (s_axi_wvalid & s_axi_wready) && (s_axi_awaddr == REG_CAM_ADDR_1))begin
             cam_addr_1 <= s_axi_wdata;
@@ -98,7 +130,7 @@ localparam REG_DBG_CLK       = BASE_ADDR + 32'h4c;
     //ͼƬ��ַ2
     always @(posedge clk) begin
         if(rst)begin
-            cam_addr_2 <= 32'h00A0_0000;
+            cam_addr_2 <= CAM_ADDR_2_DEF;
         end
         else if((s_axi_awvalid & s_axi_awready) && (s_axi_wvalid & s_axi_wready) && (s_axi_awaddr == REG_CAM_ADDR_2))begin
             cam_addr_2 <= s_axi_wdata;
@@ -161,11 +193,16 @@ localparam REG_DBG_CLK       = BASE_ADDR + 32'h4c;
                     REG_CAM_ADDR_2: rdata <= cam_addr_2;
                     REG_DBG_CAM_WORDS: rdata <= dbg_cam_words;
                     REG_DBG_VSYNCS:    rdata <= dbg_vsyncs;
+                    REG_DBG_ZDIN:      rdata <= dbg_zdin;
+                    REG_DBG_ZOUT:      rdata <= dbg_zout;
+                    REG_DBG_BEAT_CNT:  rdata <= dbg_beat_cnt;
+                    REG_DBG_BEAT_LAST: rdata <= dbg_last_cnt;
                     REG_DBG_XDMA_REQ:  rdata <= {{(AXI_ADDR_WIDTH-2){1'b0}}, dbg_xdma_req};
-                    REG_DBG_I2C_ID:    rdata <= dbg_i2c_status;
+                    REG_DBG_VSYNC_RAW: rdata <= dbg_vsync_raw;
+                    REG_DBG_I2C_ID:    rdata <= {dbg_wd_cnt[7:0], dbg_state[7:0], dbg_cmd_cnt[15:0]};
                     REG_DBG_PCLK_CNT:  rdata <= dbg_pclk_cnt;
-                    REG_DBG_SYS:       rdata <= dbg_sys_status;
-                    REG_DBG_CLK:       rdata <= dbg_clk_status;
+                    REG_DBG_SYS:       rdata <= {dbg_b_cnt[15:0], dbg_aw_cnt[15:0]};
+                    REG_DBG_AXI_NOW:   rdata <= dbg_axi_num;
                     default:        rdata <= {AXI_ADDR_WIDTH{1'b1}}; // �����Ƿ���ַ���������ǣ����� debug
                 endcase
             end

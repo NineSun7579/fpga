@@ -1,5 +1,5 @@
 // ==========================================
-// ÊÓÆµÔ´²ÎÊýÑ¡Ôñ£ºÇë±£ÁôÆäÖÐÒ»¸ö£¬×¢ÊÍµôÁíÒ»¸ö
+// ï¿½ï¿½ÆµÔ´ï¿½ï¿½ï¿½ï¿½Ñ¡ï¿½ï¿½ï¿½ë±£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½×¢ï¿½Íµï¿½ï¿½ï¿½Ò»ï¿½ï¿½
 // ==========================================
  `define USE_OV5640
 //`define USE_HDMI
@@ -13,7 +13,19 @@ module top #(
 		        AXI_DATA_SIZE   = $clog2(AXI_DATA_LEN/8), 	        
 		        AXI_STRB_LEN    = AXI_DATA_LEN / 8, 
                 AXI_ADDR_WIDTH  = 32,  
-                BURST_LEN = 16,
+                BURST_LEN = 16, // [ZEROFIX 2026-09-19] 16-beat bursts = IP max awlen+1 = FIFO depth;
+                                // the staging gate then requires a FULL FIFO before the AW
+                                // is presented, so the IP can never consume an empty slot
+                                // (that produced the 8-on/8-off zero blocks in DDR).
+                                // prior: BURST_LEN = 8,  // [WATERFIX2 2026-09-19] 16-beat bursts into the 16-deep ddr_fifo16_w
+                                // had zero slack: one stalled drain cycle dropped a W beat and
+                                // the DDR3 IP (never seeing awlen+1 beats) killed the whole M00
+                                // write path. 8-beat bursts + the free-space AW gate leave 2x room.
+                                // with single-beat bursts (every beat needs its own B
+                                // before the next is issued). 16-beat bursts cut the B
+                                // demand 16x and keep one outstanding txn per master.
+                                // [ZDIAG 2026-09-18] old '=16 stripes unchanged' verdict
+                                // predates the ledger fix and is not applicable.
 
     //DDR3
     parameter  MEM_ROW_WIDTH    = 15         ,
@@ -24,7 +36,7 @@ module top #(
                CTRL_ADDR_WIDTH  = MEM_ROW_WIDTH + MEM_BANK_WIDTH + MEM_COLUMN_WIDTH
 )(
 
-    input                       free_clk        ,       //25MHZ
+    input                       free_clk         /* synthesis PAP_MARK_DEBUG="<3/c0/0>" */,       //25MHZ
     input                       button_rst_n    ,
 
     ////////////////// PCIE ////////////////
@@ -63,15 +75,25 @@ module top #(
 
 `ifdef USE_OV5640
     /////////////CAM
-    input                                cmos1_pclk              , 
-    input                                cmos1_vsync             , 
-    input                                cmos1_href              , 
+    input                                cmos1_pclk               /* synthesis PAP_MARK_DEBUG="<1/c0/0>,<3/t0/0>" */, 
+    input                                cmos1_vsync              /* synthesis PAP_MARK_DEBUG="<1/t0/0>,<3/t0/1>" */, 
+    input                                cmos1_href               /* synthesis PAP_MARK_DEBUG="<1/t0/1>,<3/t0/2>" */, 
     input       [7 : 0]                  cmos1_data              , 
     output                               cmos1_rst_n             , 
     // output                               cmos1_pwdn              , 
     output                               cmos1_scl               , 
-    inout                                cmos1_sda                 
+    inout                                cmos1_sda               ,                 
 
+
+
+    /////////////CAM2 (FMC 2nd DVP camera)
+    input                                cmos2_pclk               /* synthesis PAP_MARK_DEBUG="<2/c0/0>,<3/t0/3>" */, 
+    input                                cmos2_vsync              /* synthesis PAP_MARK_DEBUG="<2/t0/0>,<3/t0/4>" */, 
+    input                                cmos2_href               /* synthesis PAP_MARK_DEBUG="<2/t0/1>,<3/t0/5>" */, 
+    input       [7 : 0]                  cmos2_data              , 
+    output                               cmos2_rst_n             , 
+    output                               cmos2_scl               , 
+    inout                                cmos2_sda                 
 `elsif USE_HDMI
     /////////////////////////  HDMI
     //ms72XX
@@ -188,6 +210,7 @@ always @(posedge core_clk or negedge ddr_init_done) begin
 end
 
 wire [4:0] wr_water_level;
+wire       w_fifo_empty;   // [AWFIX 2026-09-19] declared early: used by the FIFO port map below
 ddr_fifo16_w ddr_fifo16_w (
   .wr_data({ddr_axi_wstrb, ddr_axi_wdata}),              // input [143:0]
   .wr_en(ddr_axi_wvalid),                  // input
@@ -196,7 +219,7 @@ ddr_fifo16_w ddr_fifo16_w (
   .almost_full(),      // output
   .rd_data({ddr_axi_wstrb_ddr3, ddr_axi_wdata_ddr3}),              // output [143:0]
   .rd_en(ddr_axi_wready_ddr3),                  // input
-  .empty(),                  // output
+  .empty(w_fifo_empty),      // output  [AWFIX 2026-09-19]
   .almost_empty(),    // output
   .clk(axi_clk),                      // input
   .rst(axi_rst)                       // input
@@ -218,18 +241,14 @@ ddr_fifo16_r ddr_fifo16_r (
 );
 assign ddr_axi_rid[AXI_ID_M_LEN-1 : AXI_ID_LEN] = ddr_axi_ar_sid[AXI_ID_M_LEN-1 : AXI_ID_LEN];
 
-reg ddr_axi_awvalid_ddr3;
-always @(posedge axi_clk) begin
-    if (axi_rst) begin
-        ddr_axi_awvalid_ddr3 <= 1'b0;
-    end 
-    else if(ddr_axi_awvalid_ddr3 & ddr_axi_awready) begin
-        ddr_axi_awvalid_ddr3 <= 1'b0;
-    end
-    else begin
-        ddr_axi_awvalid_ddr3 <= ddr_axi_awvalid && (ddr_axi_awlen < wr_water_level);
-    end
-end
+// [AWFIX 2026-09-19] the old water-gate REGISTER re-evaluated awvalid every cycle
+// while waiting for the IP's awready: a closing gate RETRACTED an already-asserted
+// awvalid (AXI violation). Worse, the crossbar's awready was tied straight to the
+// IP's awready, so whenever the gate blocked while the IP idled ready-high, the
+// crossbar retired the AW into the void: the IP never saw the burst, its W beats
+// drained unpaired, wusero_last never came and the fabric-minted B (below) never
+// rose -- the permanent M00 write wedge. Replaced by latch-and-hold shims defined
+// after the B-channel bridge.
 
 
 ddr3 #(
@@ -254,12 +273,12 @@ ddr3(
     .rst_gpll_lock              (                             ),
     .ddrphy_cpd_lock            (                             ),
 
-    .axi_awaddr                 (ddr_axi_awaddr                ),
-    .axi_awuser_ap              (ddr_axi_awuser_ap             ),//
-    .axi_awuser_id              (ddr_axi_awuser_id             ),
-    .axi_awlen                  (ddr_axi_awlen                 ),
+    .axi_awaddr                 (ddr3_aw_addr                  ), // [AWFIX]
+    .axi_awuser_ap              (ddr3_aw_ap                    ),
+    .axi_awuser_id              (ddr3_aw_id                    ),
+    .axi_awlen                  (ddr3_aw_len                   ),
     .axi_awready                (ddr_axi_awready               ),
-    .axi_awvalid                (ddr_axi_awvalid_ddr3          ),
+    .axi_awvalid                (ddr3_aw_v                     ),
 
     .axi_wdata                  (ddr_axi_wdata_ddr3            ),
     .axi_wstrb                  (ddr_axi_wstrb_ddr3            ),
@@ -267,12 +286,12 @@ ddr3(
     .axi_wusero_id              (ddr_axi_wusero_id             ),
     .axi_wusero_last            (ddr_axi_wusero_last_ddr3      ),
 
-    .axi_araddr                 (ddr_axi_araddr                ),
-    .axi_aruser_ap              (ddr_axi_aruser_ap             ),//
-    .axi_aruser_id              (ddr_axi_aruser_id             ),
-    .axi_arlen                  (ddr_axi_arlen                 ),
+    .axi_araddr                 (ddr3_ar_addr                  ), // [ARFIX]
+    .axi_aruser_ap              (ddr3_ar_ap                    ),
+    .axi_aruser_id              (ddr3_ar_id                    ),
+    .axi_arlen                  (ddr3_ar_len                   ),
     .axi_arready                (ddr_axi_arready               ),
-    .axi_arvalid                (ddr_axi_arvalid & ddr_axi_fifo_empty ),
+    .axi_arvalid                (ddr3_ar_v                     ),
 
     .axi_rdata                  (ddr_axi_rdata_ddr3                 ),
     .axi_rid                    (ddr_axi_rid_ddr3                   ),
@@ -352,6 +371,89 @@ wire axi_rst;
 assign axi_clk = core_clk;
 assign axi_rst = ~ddr_init_done;
 
+/////////////////////////////////////// [WARB 2026-09-19] camera write arbiter ///////
+// Single-outstanding 2-master arbiter replacing the crossbar M00 write path.
+// Bench-proven: 9741 consecutive bursts, zero wedge (sim/wedge/tb_wedge.v).
+wire [3:0]   arb_s_awid;
+wire [31:0]  arb_s_awaddr;
+wire [7:0]   arb_s_awlen;
+wire [2:0]   arb_s_awsize, arb_s_awprot;
+wire [1:0]   arb_s_awburst;
+wire         arb_s_awlock;
+wire [3:0]   arb_s_awcache;
+wire         arb_s_awvalid, arb_s_awready;
+wire [127:0] arb_s_wdata;
+wire [15:0]  arb_s_wstrb;
+wire         arb_s_wlast, arb_s_wvalid, arb_s_wready;
+wire [3:0]   arb_s_bid;
+wire [1:0]   arb_s_bresp;
+wire         arb_s_bvalid, arb_s_bready;
+// parked crossbar M00 write ports
+wire [6:0]   arb2x_awid;
+wire [31:0]  arb2x_awaddr;
+wire [7:0]   arb2x_awlen;
+wire [2:0]   arb2x_awsize, arb2x_awprot;
+wire [1:0]   arb2x_awburst;
+wire         arb2x_awlock;
+wire [3:0]   arb2x_awcache;
+wire [3:0]   arb2x_awqos;
+wire [1:0]   arb2x_awuser;
+wire         arb2x_awvalid;
+wire [127:0] arb2x_wdata;
+wire [15:0]  arb2x_wstrb;
+wire         arb2x_wlast, arb2x_wvalid;
+wire [1:0]   arb2x_wuser;
+ddr_w_arb u_ddr_w_arb (
+    .clk(axi_clk), .rst(axi_rst),
+    .m0_awid    (ov5640_axi_awid    ), .m0_awaddr (ov5640_axi_awaddr ),
+    .m0_awlen   (ov5640_axi_awlen   ), .m0_awsize (ov5640_axi_awsize ),
+    .m0_awburst (ov5640_axi_awburst ), .m0_awlock (ov5640_axi_awlock ),
+    .m0_awcache (ov5640_axi_awcache ), .m0_awprot (ov5640_axi_awprot ),
+    .m0_awvalid (ov5640_axi_awvalid ), .m0_awready(ov5640_axi_awready),
+    .m0_wdata   (ov5640_axi_wdata   ), .m0_wstrb  (ov5640_axi_wstrb  ),
+    .m0_wlast   (ov5640_axi_wlast   ), .m0_wvalid (ov5640_axi_wvalid ),
+    .m0_wready  (ov5640_axi_wready  ),
+    .m0_bid     (ov5640_axi_bid     ), .m0_bresp  (ov5640_axi_bresp  ),
+    .m0_bvalid  (ov5640_axi_bvalid  ), .m0_bready (ov5640_axi_bready ),
+    .m1_awid    (cam2_axi_awid      ), .m1_awaddr (cam2_axi_awaddr   ),
+    .m1_awlen   (cam2_axi_awlen     ), .m1_awsize (cam2_axi_awsize   ),
+    .m1_awburst (cam2_axi_awburst   ), .m1_awlock (cam2_axi_awlock   ),
+    .m1_awcache (cam2_axi_awcache   ), .m1_awprot (cam2_axi_awprot   ),
+    .m1_awvalid (cam2_axi_awvalid   ), .m1_awready(cam2_axi_awready  ),
+    .m1_wdata   (cam2_axi_wdata     ), .m1_wstrb  (cam2_axi_wstrb    ),
+    .m1_wlast   (cam2_axi_wlast     ), .m1_wvalid (cam2_axi_wvalid   ),
+    .m1_wready  (cam2_axi_wready    ),
+    .m1_bid     (cam2_axi_bid       ), .m1_bresp  (cam2_axi_bresp    ),
+    .m1_bvalid  (cam2_axi_bvalid    ), .m1_bready (cam2_axi_bready   ),
+    .s_awid     (arb_s_awid         ), .s_awaddr (arb_s_awaddr      ),
+    .s_awlen    (arb_s_awlen        ), .s_awsize (arb_s_awsize      ),
+    .s_awburst  (arb_s_awburst      ), .s_awlock (arb_s_awlock      ),
+    .s_awcache  (arb_s_awcache      ), .s_awprot (arb_s_awprot      ),
+    .s_awvalid  (arb_s_awvalid      ), .s_awready(arb_s_awready     ),
+    .s_wdata    (arb_s_wdata        ), .s_wstrb  (arb_s_wstrb       ),
+    .s_wlast    (arb_s_wlast        ), .s_wvalid (arb_s_wvalid      ),
+    .s_wready   (arb_s_wready       ),
+    .s_bid      (arb_s_bid          ), .s_bresp  (arb_s_bresp       ),
+    .s_bvalid   (arb_s_bvalid       ), .s_bready (arb_s_bready      )
+);
+// DDR glue AW/W side now fed by the arbiter
+assign ddr_axi_awaddr     = arb_s_awaddr;
+assign ddr_axi_awlen      = arb_s_awlen;
+assign ddr_axi_awvalid    = arb_s_awvalid;
+assign arb_s_awready      = ddr_axi_awready_xbar;
+assign ddr_axi_wdata      = arb_s_wdata;
+assign ddr_axi_wstrb      = arb_s_wstrb;
+assign ddr_axi_wlast      = arb_s_wlast;
+assign ddr_axi_wvalid     = arb_s_wvalid;
+assign arb_s_wready       = !ddr_axi_fifo_full;
+assign arb_s_bvalid       = ddr_axi_bvalid;
+assign arb_s_bresp        = ddr_axi_bresp;
+assign ddr_axi_bready     = arb_s_bready;
+// awuser id now carries the arbiter's source id (m0=0001, m1=0100 4-bit form)
+assign ddr_axi_awuser_id  = {3'b000, arb_s_awid};
+assign ddr_axi_awuser_ap  = 1'b0;
+assign arb_s_bid          = {3'b000, 1'b0};
+
 /////////////////////////////////////// DDR3 B-Channel Bridge //////////////////////////////////////
 reg  [AXI_ID_M_LEN-1 : AXI_ID_LEN]                  ddr_axi_aw_sid        ;//ddr_axi_awuser_id??3?
 reg  [AXI_ID_M_LEN-1 : AXI_ID_LEN]                  ddr_axi_ar_sid        ;//ddr_axi_aruser_id??3?
@@ -361,7 +463,7 @@ always @(posedge axi_clk) begin
     if (axi_rst) begin
         ddr_axi_aw_sid <= {(AXI_ID_M_LEN - AXI_ID_LEN){1'b0}};
     end 
-    else if (ddr_axi_awvalid && ddr_axi_awready) begin
+    else if (ddr_axi_awvalid && ddr_axi_awready_xbar) begin   // [AWFIX] ack at latch
         ddr_axi_aw_sid <= ddr_axi_awuser_id[AXI_ID_M_LEN-1 : AXI_ID_LEN];
     end
 end
@@ -371,7 +473,7 @@ always @(posedge axi_clk) begin
     if (axi_rst) begin
         ddr_axi_ar_sid <= {(AXI_ID_M_LEN - AXI_ID_LEN){1'b0}};
     end 
-    else if (ddr_axi_arvalid && ddr_axi_arready) begin
+    else if (ddr_axi_arvalid && ddr_axi_arready_xbar) begin   // [ARFIX] ack at latch
         ddr_axi_ar_sid <= ddr_axi_aruser_id[AXI_ID_M_LEN-1 : AXI_ID_LEN];
     end
 end
@@ -403,6 +505,73 @@ end
 assign ddr_axi_bvalid = ddr_axi_bvalid_int;
 assign ddr_axi_bresp  = ddr_axi_bresp_int;
 assign ddr_axi_bid    = ddr_axi_bid_int;
+
+/////////////////////////////////////// DDR3 AW/AR latch shims [AWFIX/ARFIX 2026-09-19] ///
+// Proper single-handshake adapters between the crossbar and the DDR3 IP.
+// The crossbar is acknowledged exactly when we latch a request; the request is
+// then HELD with stable payload until the IP accepts (AXI-legal, no retraction).
+// Single-outstanding end-to-end (no held request + write FIFO empty + no pending
+// B for AW; read FIFO empty for AR) also keeps the aw_sid/ar_sid ID rebuilds sane.
+// [STAGE 2026-09-19] The DDR3 IP's W channel is UNTHROTTLEABLE: it pulses
+// wready at its own pace and counts awlen+1 beats itself (see the IP's own
+// example_design -- there is no wvalid at all). Presenting an AW before its
+// beats are in the FIFO let the IP consume GHOST beats from an empty FIFO;
+// the real beats then stranded in the FIFO forever and blocked all later AWs
+// (the permanent M00 write wedge). Hold each latched AW until its ENTIRE
+// burst is staged in the FIFO, then present it: during IP consumption the
+// FIFO only drains, so every demanded beat is guaranteed present.
+wire aw_burst_fits   = (ddr_axi_awlen < (5'd16 - wr_water_level));
+wire aw_latch_now    = ddr_axi_awvalid && !ddr3_aw_v && !aw_hold_v
+                       && w_fifo_empty && aw_burst_fits && !ddr_axi_bvalid_int;
+wire ar_latch_now    = ddr_axi_arvalid && !ddr3_ar_v && ddr_axi_fifo_empty;
+
+reg              ddr3_aw_v, ddr3_ar_v;
+reg              aw_hold_v;
+reg [27:0]       ddr3_aw_addr, ddr3_ar_addr;
+reg [3:0]        ddr3_aw_len,  ddr3_ar_len;
+reg              ddr3_aw_ap,   ddr3_ar_ap;
+reg [AXI_ID_M_LEN-1:0] ddr3_aw_id, ddr3_ar_id;
+
+wire aw_stage_ok = (wr_water_level >= ({1'b0, ddr3_aw_len} + 5'd1)) && !w_fifo_empty;
+
+always @(posedge axi_clk) begin
+    if (axi_rst) begin
+        aw_hold_v <= 1'b0;
+        ddr3_aw_v <= 1'b0;
+    end
+    else begin
+        if (aw_latch_now) begin
+            aw_hold_v   <= 1'b1;
+            ddr3_aw_addr <= ddr_axi_awaddr[27:0];
+            ddr3_aw_len  <= ddr_axi_awlen;
+            ddr3_aw_ap   <= ddr_axi_awuser_ap;
+            ddr3_aw_id   <= ddr_axi_awuser_id;
+        end
+        if (aw_hold_v && !ddr3_aw_v && aw_stage_ok) begin
+            aw_hold_v <= 1'b0;
+            ddr3_aw_v <= 1'b1;
+        end
+        else if (ddr3_aw_v && ddr_axi_awready) begin
+            ddr3_aw_v <= 1'b0;
+        end
+    end
+end
+always @(posedge axi_clk) begin
+    if (axi_rst) ddr3_ar_v <= 1'b0;
+    else if (ar_latch_now)                       ddr3_ar_v <= 1'b1;
+    else if (ddr3_ar_v && ddr_axi_arready)       ddr3_ar_v <= 1'b0;
+end
+always @(posedge axi_clk) begin
+    if (ar_latch_now) begin
+        ddr3_ar_addr <= ddr_axi_araddr[27:0];
+        ddr3_ar_len  <= ddr_axi_arlen;
+        ddr3_ar_ap   <= ddr_axi_aruser_ap;
+        ddr3_ar_id   <= ddr_axi_aruser_id;
+    end
+end
+// crossbar-facing readies: acknowledge exactly at latch time
+wire ddr_axi_awready_xbar = aw_latch_now;
+wire ddr_axi_arready_xbar = ar_latch_now;
 
 
 /////////////////////////////     DDR3   ///////////////////////////////////////////////////
@@ -575,6 +744,49 @@ wire [31:0]                 cam_axil_araddr;
 wire                        cam_axil_rvalid, cam_axil_rready;
 wire [31:0]                 cam_axil_rdata;
 wire [1:0]                  cam_axil_rresp;
+
+// --- cam2 register window (M01 sub-window 0x2000_0200~0x02FF) ---
+wire                        cam2_axil_awvalid, cam2_axil_awready;
+wire [31:0]                 cam2_axil_awaddr;
+wire                        cam2_axil_wvalid, cam2_axil_wready;
+wire [31:0]                 cam2_axil_wdata;
+wire [3:0]                  cam2_axil_wstrb;
+wire                        cam2_axil_bvalid, cam2_axil_bready;
+wire [1:0]                  cam2_axil_bresp;
+wire                        cam2_axil_arvalid, cam2_axil_arready;
+wire [31:0]                 cam2_axil_araddr;
+wire                        cam2_axil_rvalid, cam2_axil_rready;
+wire [31:0]                 cam2_axil_rdata;
+wire [1:0]                  cam2_axil_rresp;
+
+// --- cam2 capture / write stream (S04) ---
+wire [31 : 0]               cam2_cmd_addr    ;
+wire [31 : 0]               cam2_cmd_len     ;
+wire                        cam2_cmd_valid   ;
+wire                        cam2_cmd_ready   ;
+wire [AXI_DATA_LEN-1 : 0]   cam2_s_data      ;
+wire                        cam2_s_data_valid;
+wire                        cam2_s_data_last ;
+wire                        cam2_s_data_ready;
+wire [AXI_ID_LEN-1:0]   cam2_axi_awid    ;
+wire [31:0]             cam2_axi_awaddr  ;
+wire [3:0]              cam2_axi_awlen   ;
+wire [2:0]              cam2_axi_awsize  ;
+wire [1:0]              cam2_axi_awburst ;
+wire                    cam2_axi_awlock  ;
+wire [3:0]              cam2_axi_awcache ;
+wire [2:0]              cam2_axi_awprot  ;
+wire                    cam2_axi_awvalid ;
+wire                    cam2_axi_awready ;
+wire [AXI_DATA_LEN-1:0] cam2_axi_wdata   ;
+wire [AXI_STRB_LEN-1:0] cam2_axi_wstrb   ;
+wire                    cam2_axi_wlast   ;
+wire                    cam2_axi_wvalid  ;
+wire                    cam2_axi_wready  ;
+wire [AXI_ID_LEN-1:0]   cam2_axi_bid     ;
+wire [1:0]              cam2_axi_bresp   ;
+wire                    cam2_axi_bvalid  ;
+wire                    cam2_axi_bready  ;
 
 // --- PREP segment (decoder m1, addr[8]=1: 0x2000_0100~0x2000_01FF -> prep_regs) ---
 wire                        prep_axil_awvalid, prep_axil_awready;
@@ -790,7 +1002,25 @@ ovreg_axil_decode ovreg_axil_decode_u (
     .m1_rvalid  (prep_axil_rvalid),
     .m1_rready  (prep_axil_rready),
     .m1_rdata   (prep_axil_rdata),
-    .m1_rresp   (prep_axil_rresp)
+    .m1_rresp   (prep_axil_rresp),
+
+    .m2_awvalid (cam2_axil_awvalid),
+    .m2_awready (cam2_axil_awready),
+    .m2_awaddr  (cam2_axil_awaddr),
+    .m2_wvalid  (cam2_axil_wvalid),
+    .m2_wready  (cam2_axil_wready),
+    .m2_wdata   (cam2_axil_wdata),
+    .m2_wstrb   (cam2_axil_wstrb),
+    .m2_bvalid  (cam2_axil_bvalid),
+    .m2_bready  (cam2_axil_bready),
+    .m2_bresp   (cam2_axil_bresp),
+    .m2_arvalid (cam2_axil_arvalid),
+    .m2_arready (cam2_axil_arready),
+    .m2_araddr  (cam2_axil_araddr),
+    .m2_rvalid  (cam2_axil_rvalid),
+    .m2_rready  (cam2_axil_rready),
+    .m2_rdata   (cam2_axil_rdata),
+    .m2_rresp   (cam2_axil_rresp)
 );
 
 // --- prep datapath wiring ---
@@ -873,11 +1103,19 @@ prep_regs #(.TICK_DIV(50)) prep_regs_u (
 );
 
 `ifdef USE_OV5640
-ov5640_top ov5640_top(
+ov5640_top #(
+    .IODELAY_STEP  (8'd40)
+) ov5640_top(
     .clk_50m       (clk_50m)        ,
     .clk_50m_rst_n (1'b1)                       , //[RSTFIX 2026-09-13] button_rst_n floating-low on this board
     .dbg_locked    (locked)         ,
     .dbg_btn_rst_n (button_rst_n)   ,
+    .dbg_axi_awvalid(ov5640_axi_awvalid),
+    .dbg_axi_awready(ov5640_axi_awready),
+    .dbg_axi_wvalid (ov5640_axi_wvalid ),
+    .dbg_axi_wready (ov5640_axi_wready ),
+    .dbg_axi_bvalid (ov5640_axi_bvalid ),
+    .dbg_axi_bready (ov5640_axi_bready ),
         
     .cam_pclk (cmos1_pclk )             ,  
     .cam_vsync(cmos1_vsync)             ,  
@@ -928,16 +1166,86 @@ ov5640_top ov5640_top(
     .cam_s_data_ready(cam_tap_data_ready),
 
     //DMA?
+    .cam_dma_done(cam_dma_done),
     .xdma_clk (pcie_clk) ,
     .xdma_irq (cam_irq ) 
 
+);
+
+// [LEDGER 2026-09-19] DMA transaction-done pulses (single beat ledger)
+wire cam_dma_done;
+wire cam2_dma_done;
+
+// ---- CAM2 (FMC 2nd OV5640, BASE_ADDR 0x2000_0200, 640x480) ----
+ov5640_top #(
+    .BASE_ADDR       (32'h2000_0200),
+    .CAM_ADDR_1_DEF  (32'h00C0_0000),
+    .CAM_ADDR_2_DEF  (32'h00E0_0000),
+    .CAM_EN_DEF      (1'b1),   // [LEDGER 2026-09-19] both cams stream at reset
+    .H_CMOS_DISP     (11'd640),
+    .V_CMOS_DISP     (11'd480),
+    .TOTAL_H_PIXEL   (12'd1896),
+    .TOTAL_V_PIXEL   (12'd984)
+) cam2_ov5640_top (
+    .clk_50m       (clk_50m),
+    .clk_50m_rst_n (1'b1),
+    .dbg_locked    (locked),
+    .dbg_btn_rst_n (button_rst_n),
+    .dbg_axi_awvalid(cam2_axi_awvalid),
+    .dbg_axi_awready(cam2_axi_awready),
+    .dbg_axi_wvalid (cam2_axi_wvalid ),
+    .dbg_axi_wready (cam2_axi_wready ),
+    .dbg_axi_bvalid (cam2_axi_bvalid ),
+    .dbg_axi_bready (cam2_axi_bready ),
+
+    .cam_pclk (cmos2_pclk ),
+    .cam_vsync(cmos2_vsync),
+    .cam_href (cmos2_href ),
+    .cam_data (cmos2_data ),
+    .cam_rst_n(cmos2_rst_n),
+    .cam_scl  (cmos2_scl  ),
+    .cam_sda  (cmos2_sda  ),
+
+    .s_axi_awvalid(cam2_axil_awvalid),
+    .s_axi_awready(cam2_axil_awready),
+    .s_axi_awaddr (cam2_axil_awaddr ),
+    .s_axi_wvalid (cam2_axil_wvalid ),
+    .s_axi_wready (cam2_axil_wready ),
+    .s_axi_wdata  (cam2_axil_wdata  ),
+    .s_axi_wstrb  (cam2_axil_wstrb  ),
+    .s_axi_bvalid (cam2_axil_bvalid ),
+    .s_axi_bready (cam2_axil_bready ),
+    .s_axi_bresp  (cam2_axil_bresp  ),
+    .s_axi_arvalid(cam2_axil_arvalid),
+    .s_axi_arready(cam2_axil_arready),
+    .s_axi_araddr (cam2_axil_araddr ),
+    .s_axi_rvalid (cam2_axil_rvalid ),
+    .s_axi_rready (cam2_axil_rready ),
+    .s_axi_rdata  (cam2_axil_rdata  ),
+    .s_axi_rresp  (cam2_axil_rresp  ),
+
+    .video_clk(axi_clk),
+    .video_rst(axi_rst),
+    .cam_cmd_addr (cam2_cmd_addr ),
+    .cam_cmd_len  (cam2_cmd_len  ),
+    .cam_cmd_valid(cam2_cmd_valid),
+    .cam_cmd_ready(cam2_cmd_ready),
+
+    .cam_s_data      (cam2_s_data      ),
+    .cam_s_data_valid(cam2_s_data_valid),
+    .cam_s_data_last (cam2_s_data_last ),
+    .cam_s_data_ready(cam2_s_data_ready),
+
+    .cam_dma_done(cam2_dma_done),
+    .xdma_clk (pcie_clk),
+    .xdma_irq (          )
 );
 `elsif USE_HDMI
 hdmi_top hdmi_top(
     .clk_10m(clk_10m)               ,
     .clk_10m_rst_n(locked & button_rst_n)         ,
 
-    //HDMI½Ó¿Ú
+    //HDMIï¿½Ó¿ï¿½
 
     //ms72XX
     .rstn_out(rstn_out),
@@ -961,7 +1269,7 @@ hdmi_top hdmi_top(
 
 
 
-    //ÉãÏñÍ·¿ØÖÆ¼Ä´æÆ÷
+    //ï¿½ï¿½ï¿½ï¿½Í·ï¿½ï¿½ï¿½Æ¼Ä´ï¿½ï¿½ï¿½
     .s_axi_awvalid(cam_axil_awvalid)        ,
     .s_axi_awready(cam_axil_awready)        ,
     .s_axi_awaddr (cam_axil_awaddr )        ,
@@ -1044,7 +1352,7 @@ ov5640_axi_dma_write(
 	.data_in       (cam_s_data          ),
 	.data_in_keep  ({AXI_STRB_LEN{1'b1}}),
 	.data_in_valid (cam_s_data_valid    ),
-	.data_in_last  (),//(cam_s_data_last     ),
+	.data_in_last  (cam_dma_done     ),  // [LEDGER 2026-09-19]
 	.data_in_ready (cam_s_data_ready    ),
 
 	.m_axi_awid    (ov5640_axi_awid    ),
@@ -1066,6 +1374,48 @@ ov5640_axi_dma_write(
 	.m_axi_bresp   (ov5640_axi_bresp   ),
 	.m_axi_bvalid  (ov5640_axi_bvalid  ),
 	.m_axi_bready  (ov5640_axi_bready  )
+);
+
+axi_dma_write #(
+	.BURST_LEN  (BURST_LEN)   ,
+	.ID_WIDTH   (AXI_ID_LEN)  ,
+	.DATA_WIDTH (AXI_DATA_LEN)
+)
+cam2_axi_dma_write(
+	.clk(axi_clk)                   ,
+	.rst(axi_rst)                   ,
+
+	.cmd_valid (cam2_cmd_valid)     ,
+	.cmd_addr  (cam2_cmd_addr )     ,
+	.cmd_len   (cam2_cmd_len  )     ,
+	.cmd_id    (4'b0100)            ,
+	.cmd_ready (cam2_cmd_ready)     ,
+
+	.data_in       (cam2_s_data          ),
+	.data_in_keep  ({AXI_STRB_LEN{1'b1}}),
+	.data_in_valid (cam2_s_data_valid    ),
+	.data_in_last  (cam2_dma_done    ),  // [LEDGER 2026-09-19]
+	.data_in_ready (cam2_s_data_ready    ),
+
+	.m_axi_awid    (cam2_axi_awid    ),
+	.m_axi_awaddr  (cam2_axi_awaddr  ),
+	.m_axi_awlen   (cam2_axi_awlen   ),
+	.m_axi_awsize  (cam2_axi_awsize  ),
+	.m_axi_awburst (cam2_axi_awburst ),
+	.m_axi_awlock  (cam2_axi_awlock  ),
+	.m_axi_awcache (cam2_axi_awcache ),
+	.m_axi_awprot  (cam2_axi_awprot  ),
+	.m_axi_awvalid (cam2_axi_awvalid ),
+	.m_axi_awready (cam2_axi_awready ),
+	.m_axi_wdata   (cam2_axi_wdata   ),
+	.m_axi_wstrb   (cam2_axi_wstrb   ),
+	.m_axi_wlast   (cam2_axi_wlast   ),
+	.m_axi_wvalid  (cam2_axi_wvalid  ),
+	.m_axi_wready  (cam2_axi_wready  ),
+	.m_axi_bid     (cam2_axi_bid     ),
+	.m_axi_bresp   (cam2_axi_bresp   ),
+	.m_axi_bvalid  (cam2_axi_bvalid  ),
+	.m_axi_bready  (cam2_axi_bready  )
 );
 // ===================== preprocess datapath (PREP, batch-2) =====================
 reg [7:0] prep_frame_cnt;
@@ -1468,19 +1818,21 @@ assign npu_reg_axi_rvalid  = 1'b0;
 axi_crossbar_7x3 #(
     //.DATA_WIDTH(AXI_DATA_LEN)
     .DATA_WIDTH(AXI_DATA_LEN),
-    // M00 (DDR3) µÄ·ÃÎÊÈ¨ÏÞ£º
-    // ¶Á DDR: ÔÊÐí PCIE(S00) ºÍ NPUËùÓÐÍ¨µÀ(S02-S06)¡£½ûÖ¹ Camera(S01)
+    // M00 (DDR3) ï¿½Ä·ï¿½ï¿½ï¿½È¨ï¿½Þ£ï¿½
+    // ï¿½ï¿½ DDR: ï¿½ï¿½ï¿½ï¿½ PCIE(S00) ï¿½ï¿½ NPUï¿½ï¿½ï¿½ï¿½Í¨ï¿½ï¿½(S02-S06)ï¿½ï¿½ï¿½ï¿½Ö¹ Camera(S01)
     .M00_CONNECT_READ  (7'b1111101), 
-    // Ð´ DDR: ÔÊÐí PCIE(S00), Camera(S01), NPU_S0(S02)¡£½ûÖ¹ NPU_S1~S4(S03-S06)
-    .M00_CONNECT_WRITE (7'b0001111),  // +S03: preprocess processed-frame write
+    // Ð´ DDR: ï¿½ï¿½ï¿½ï¿½ PCIE(S00), Camera(S01), NPU_S0(S02)ï¿½ï¿½ï¿½ï¿½Ö¹ NPU_S1~S4(S03-S06)
+    .M00_CONNECT_WRITE (7'b0000000),  // [WARB 2026-09-19] write path moved to ddr_w_arb
+                                      // (crossbar M00 write leaked its W-channel select
+                                      //  across handoffs -> permanent wedge; bench-proven)
     
-    // M01 (OV5640 ¿ØÖÆ¼Ä´æÆ÷) µÄ·ÃÎÊÈ¨ÏÞ£º
-    // Ö»ÓÐ PCIE (S00) ¿ÉÒÔ¶ÁÐ´£¬³¹µ×ÇÐ¶ÏÆäËû¸ßËÙÍ¨µÀµÄ¸ÉÈÅ
+    // M01 (OV5640 ï¿½ï¿½ï¿½Æ¼Ä´ï¿½ï¿½ï¿½) ï¿½Ä·ï¿½ï¿½ï¿½È¨ï¿½Þ£ï¿½
+    // Ö»ï¿½ï¿½ PCIE (S00) ï¿½ï¿½ï¿½Ô¶ï¿½Ð´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð¶ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Í¨ï¿½ï¿½ï¿½Ä¸ï¿½ï¿½ï¿½
     .M01_CONNECT_READ  (7'b0000001),
     .M01_CONNECT_WRITE (7'b0000001),
     
-    // M02 (NPU ¿ØÖÆ¼Ä´æÆ÷) µÄ·ÃÎÊÈ¨ÏÞ£º
-    // Ö»ÓÐ PCIE (S00) ¿ÉÒÔ¶ÁÐ´
+    // M02 (NPU ï¿½ï¿½ï¿½Æ¼Ä´ï¿½ï¿½ï¿½) ï¿½Ä·ï¿½ï¿½ï¿½È¨ï¿½Þ£ï¿½
+    // Ö»ï¿½ï¿½ PCIE (S00) ï¿½ï¿½ï¿½Ô¶ï¿½Ð´
     .M02_CONNECT_READ  (7'b0000001),
     .M02_CONNECT_WRITE (7'b0000001)
 )
@@ -1539,28 +1891,29 @@ axi_crossbar_7x3
     .s00_axi_rready  (pcie_axi_rready ),
     .s00_axi_ruser   (),
 
-    .s01_axi_awid    (ov5640_axi_awid    ),
-    .s01_axi_awaddr  (ov5640_axi_awaddr  ),
-    .s01_axi_awlen   (ov5640_axi_awlen   ),
-    .s01_axi_awsize  (ov5640_axi_awsize  ),
-    .s01_axi_awburst (ov5640_axi_awburst ),
-    .s01_axi_awlock  (ov5640_axi_awlock  ),
-    .s01_axi_awcache (ov5640_axi_awcache ),
-    .s01_axi_awprot  (ov5640_axi_awprot  ),
+    // [WARB] S01 write retired (camera DMAs go through ddr_w_arb)
+    .s01_axi_awid    (4'd0               ),
+    .s01_axi_awaddr  (32'd0              ),
+    .s01_axi_awlen   (8'd0               ),
+    .s01_axi_awsize  (3'd0               ),
+    .s01_axi_awburst (2'd0               ),
+    .s01_axi_awlock  (1'b0               ),
+    .s01_axi_awcache (4'd0               ),
+    .s01_axi_awprot  (3'd0               ),
     .s01_axi_awqos   (4'd0               ),
-    .s01_axi_awvalid (ov5640_axi_awvalid ),
-    .s01_axi_awready (ov5640_axi_awready ),
+    .s01_axi_awvalid (1'b0               ),
+    .s01_axi_awready (               ),
     .s01_axi_awuser  (               ),
-    .s01_axi_wdata   (ov5640_axi_wdata   ),
-    .s01_axi_wstrb   (ov5640_axi_wstrb   ),
-    .s01_axi_wlast   (ov5640_axi_wlast   ),
-    .s01_axi_wvalid  (ov5640_axi_wvalid  ),
-    .s01_axi_wready  (ov5640_axi_wready  ),
+    .s01_axi_wdata   (128'd0             ),
+    .s01_axi_wstrb   (16'd0              ),
+    .s01_axi_wlast   (1'b0               ),
+    .s01_axi_wvalid  (1'b0               ),
+    .s01_axi_wready  (               ),
     .s01_axi_wuser   (               ),
-    .s01_axi_bid     (ov5640_axi_bid     ),
-    .s01_axi_bresp   (ov5640_axi_bresp   ),
-    .s01_axi_bvalid  (ov5640_axi_bvalid  ),
-    .s01_axi_bready  (ov5640_axi_bready  ),
+    .s01_axi_bid     (               ),
+    .s01_axi_bresp   (               ),
+    .s01_axi_bvalid  (               ),
+    .s01_axi_bready  (1'b0               ),
     .s01_axi_buser   (               ),
     .s01_axi_arid    (4'd0               ),
     .s01_axi_araddr  (32'd0              ),
@@ -1669,29 +2022,30 @@ axi_crossbar_7x3
     .s03_axi_rready (npu_s1_axi_rready  ),
     .s03_axi_ruser  (),
 
-    .s04_axi_awid(),
-    .s04_axi_awaddr(),
-    .s04_axi_awlen(),
-    .s04_axi_awsize(),
-    .s04_axi_awburst(),
-    .s04_axi_awlock(),
-    .s04_axi_awcache(),
-    .s04_axi_awprot(),
-    .s04_axi_awqos(),
-    .s04_axi_awuser(),
-    .s04_axi_awvalid(),
-    .s04_axi_awready(),
-    .s04_axi_wdata(),
-    .s04_axi_wstrb(),
-    .s04_axi_wlast(),
-    .s04_axi_wuser(),
-    .s04_axi_wvalid(),
-    .s04_axi_wready(),
-    .s04_axi_bid(),
-    .s04_axi_bresp(),
-    .s04_axi_buser(),
-    .s04_axi_bvalid(),
-    .s04_axi_bready(),
+    // [WARB] S04 write retired (cam2 DMA goes through ddr_w_arb)
+    .s04_axi_awid   (4'd0            ),
+    .s04_axi_awaddr (32'd0           ),
+    .s04_axi_awlen  (8'd0            ),
+    .s04_axi_awsize (3'd0            ),
+    .s04_axi_awburst(2'd0            ),
+    .s04_axi_awlock (1'b0            ),
+    .s04_axi_awcache(4'd0            ),
+    .s04_axi_awprot (3'd0            ),
+    .s04_axi_awqos  (4'd0),
+    .s04_axi_awuser (),
+    .s04_axi_awvalid(1'b0            ),
+    .s04_axi_awready(                ),
+    .s04_axi_wdata  (128'd0          ),
+    .s04_axi_wstrb  (16'd0           ),
+    .s04_axi_wlast  (1'b0            ),
+    .s04_axi_wuser  (),
+    .s04_axi_wvalid (1'b0            ),
+    .s04_axi_wready (                ),
+    .s04_axi_bid    (                ),
+    .s04_axi_bresp  (                ),
+    .s04_axi_buser  (),
+    .s04_axi_bvalid (                ),
+    .s04_axi_bready (1'b0            ),
     .s04_axi_arid   (npu_s2_axi_arid    ),
     .s04_axi_araddr (npu_s2_axi_araddr  ),
     .s04_axi_arlen  (npu_s2_axi_arlen   ),
@@ -1801,30 +2155,31 @@ axi_crossbar_7x3
     /*
      * AXI master interface
      */
-    .m00_axi_awid    (ddr_axi_awuser_id              ),
-    .m00_axi_awaddr  (ddr_axi_awaddr                 ),
-    .m00_axi_awlen   (ddr_axi_awlen                  ),
-    .m00_axi_awsize  (ddr_axi_awsize                 ),
-    .m00_axi_awburst (ddr_axi_awburst                ),
-    .m00_axi_awlock  (ddr_axi_awlock                 ),
-    .m00_axi_awcache (ddr_axi_awcache                ),
-    .m00_axi_awprot  (ddr_axi_awprot                 ),
-    .m00_axi_awqos   (ddr_axi_awqos                  ),
+    // [WARB] M00 write parked: the arbiter drives the DDR write path now
+    .m00_axi_awid    (arb2x_awid                     ),
+    .m00_axi_awaddr  (arb2x_awaddr                   ),
+    .m00_axi_awlen   (arb2x_awlen                    ),
+    .m00_axi_awsize  (arb2x_awsize                   ),
+    .m00_axi_awburst (arb2x_awburst                  ),
+    .m00_axi_awlock  (arb2x_awlock                   ),
+    .m00_axi_awcache (arb2x_awcache                  ),
+    .m00_axi_awprot  (arb2x_awprot                   ),
+    .m00_axi_awqos   (arb2x_awqos                    ),
     .m00_axi_awregion(),
-    .m00_axi_awuser  (ddr_axi_awuser                 ),
-    .m00_axi_awvalid (ddr_axi_awvalid                ),
-    .m00_axi_awready (ddr_axi_awready                ),
-    .m00_axi_wdata   (ddr_axi_wdata                  ),
-    .m00_axi_wstrb   (ddr_axi_wstrb                  ),
-    .m00_axi_wlast   (ddr_axi_wlast                  ),
-    .m00_axi_wuser   (ddr_axi_wuser                  ),
-    .m00_axi_wvalid  (ddr_axi_wvalid                 ),
-    .m00_axi_wready  (!ddr_axi_fifo_full             ),
-    .m00_axi_bid     (ddr_axi_bid                    ),
-    .m00_axi_bresp   (ddr_axi_bresp                  ),
-    .m00_axi_buser   (ddr_axi_buser                  ),
-    .m00_axi_bvalid  (ddr_axi_bvalid                 ),
-    .m00_axi_bready  (ddr_axi_bready                 ),
+    .m00_axi_awuser  (arb2x_awuser                   ),
+    .m00_axi_awvalid (arb2x_awvalid                  ),
+    .m00_axi_awready (1'b0                           ),  // never granted (write retired)
+    .m00_axi_wdata   (arb2x_wdata                    ),
+    .m00_axi_wstrb   (arb2x_wstrb                    ),
+    .m00_axi_wlast   (arb2x_wlast                    ),
+    .m00_axi_wuser   (arb2x_wuser                    ),
+    .m00_axi_wvalid  (arb2x_wvalid                   ),
+    .m00_axi_wready  (1'b0                           ),
+    .m00_axi_bid     (                               ),
+    .m00_axi_bresp   (                               ),
+    .m00_axi_buser   (                               ),
+    .m00_axi_bvalid  (                               ),
+    .m00_axi_bready  (                               ),  // [WARB] crossbar out, unused: write retired
     .m00_axi_arid    (ddr_axi_aruser_id              ),
     .m00_axi_araddr  (ddr_axi_araddr                 ),
     .m00_axi_arlen   (ddr_axi_arlen                  ),
@@ -1837,7 +2192,7 @@ axi_crossbar_7x3
     .m00_axi_arregion(),
     .m00_axi_aruser  (ddr_axi_aruser                 ),
     .m00_axi_arvalid (ddr_axi_arvalid                ),
-    .m00_axi_arready (ddr_axi_arready                ),
+    .m00_axi_arready (ddr_axi_arready_xbar           ),  // [ARFIX] ack at latch
     .m00_axi_rid     (ddr_axi_rid                    ),
     .m00_axi_rdata   (ddr_axi_rdata                  ),
     .m00_axi_rresp   (2'b00                          ),

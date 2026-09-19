@@ -81,46 +81,31 @@ module ov5640_cdc #(
 
 
 
-    wire rd_en_vhsync, empty_vhsync;
-    assign rd_en_vhsync  = !empty_vhsync;
+    // [FIX 2026-09-18] The original code pushed {vsync,href} through a FIFO whose
+    // write-enable was `(|vhsync_in) | s_valid`. That never records the LOW phase
+    // of hsync/vsync, so the read side saw a scrambled, glitchy sync stream
+    // (measured vsync at ~6x the true frame rate). The spurious vsync resets
+    // ov5640_ddr_w axi_cnt mid-frame, so axi_data_last never fired, no frame ever
+    // completed and the write engine streamed garbage forever.
+    //
+    // vsync/hsync are slow single-bit levels here (a vsync pulse spans thousands of
+    // cam_pclk cycles, far more than 2 video_clk cycles), so a plain 2-stage
+    // synchroniser is both simpler and correct. The pixel data keeps using the
+    // asynchronous FIFO below; only the sync levels change.
+    reg [1:0] vsync_sync, hsync_sync;
+    always @(posedge video_clk) begin
+        if (video_rst) begin
+            vsync_sync <= 2'b0;
+            hsync_sync <= 2'b0;
+        end
+        else begin
+            vsync_sync <= {vsync_sync[0], s_vsync};
+            hsync_sync <= {hsync_sync[0], s_hsync};
+        end
+    end
 
-    wire [1 : 0] vhsync_in = {s_vsync, s_hsync};
-    wire [1 : 0] vhsync_out;
-    wire wr_en_vhsync;
-    assign wr_en_vhsync = (|vhsync_in) | s_valid;
-    ov5640_vhsync ov5640_vhsync (
-      
-      .wr_clk(cam_clk),                // input
-      .wr_rst(cam_rst),                // input
-      .wr_en(wr_en_vhsync),             // input
-      .wr_data(vhsync_in),              // input [1:0]
-      .full(),                    // output
-      .almost_full(),      // output
-
-
-      .rd_clk(video_clk),                // input
-      .rd_rst(video_rst),                // input
-      .rd_en(rd_en_vhsync),                  // input
-      .rd_data(vhsync_out),              // output [1:0]
-      .empty(empty_vhsync),                  // output
-      .almost_empty()     // output
-
-    );
-
-    // reg vsync_d, hsync_d;
-    // always @(posedge video_clk) begin
-    //     hsync_d <= vhsync_out[0];
-    //     vsync_d <= vhsync_out[1];
-    // end
-
-    // reg vsync_dd, hsync_dd;
-    // always @(posedge video_clk) begin
-    //     hsync_dd <= hsync_d;
-    //     vsync_dd <= vsync_d;
-    // end
-
-    assign video_hsync = vhsync_out[0];
-    assign video_vsync = vhsync_out[1];
+    assign video_hsync = hsync_sync[1];
+    assign video_vsync = vsync_sync[1];
 
 
 

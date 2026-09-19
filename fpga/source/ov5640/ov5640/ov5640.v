@@ -1,53 +1,69 @@
 module ov5640 #(
-    //DVPÊä³öµÄÎ»¿í
+    //DVPï¿½ï¿½ï¿½ï¿½ï¿½Î»ï¿½ï¿½
     parameter   DATA_WIDTH = 16,
     //I2C
-    parameter   SLAVE_ADDR = 7'h3c   ,  //I2C´Ó»úµØÖ·
-    parameter   BIT_CTRL   = 1'b1           , //OV5640µÄ×Ö½ÚµØÖ·Îª16Î»  0:8Î» 1:16Î»
-    parameter   CLK_FREQ   = 26'd25_000_000, //[CLKFIX] clk_50m = free_clk 25MHz, //Ä£¿éÊäÈëµÄÊ±ÖÓÆµÂÊ
-    parameter   I2C_FREQ   = 18'd250_000,    //IIC_SCLµÄÊ±ÖÓÆµÂÊ
+    parameter   SLAVE_ADDR = 7'h3c   ,  //I2Cï¿½Ó»ï¿½ï¿½ï¿½Ö·
+    parameter   BIT_CTRL   = 1'b1           , //OV5640ï¿½ï¿½ï¿½Ö½Úµï¿½Ö·Îª16Î»  0:8Î» 1:16Î»
+    parameter   CLK_FREQ   = 26'd25_000_000, //[CLKFIX] clk_50m = free_clk 25MHz, //Ä£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½Æµï¿½ï¿½
+    parameter   I2C_FREQ   = 18'd250_000,    //IIC_SCLï¿½ï¿½Ê±ï¿½ï¿½Æµï¿½ï¿½
 
-    //ÉãÏñ
-    parameter  H_CMOS_DISP = 11'd1280  , //CMOS·Ö±æÂÊ--ÐÐ
-    parameter  V_CMOS_DISP = 11'd720   , //CMOS·Ö±æÂÊ--ÁÐ	
-    parameter  TOTAL_H_PIXEL = 12'd2570, //Ë®Æ½×ÜÏñËØ´óÐ¡
-    parameter  TOTAL_V_PIXEL = 12'd980 , //´¹Ö±×ÜÏñËØ´óÐ¡
-    //°å¿¨Éè±¸
+    //ï¿½ï¿½ï¿½ï¿½
+    parameter  H_CMOS_DISP = 11'd1280  , //CMOSï¿½Ö±ï¿½ï¿½ï¿½--ï¿½ï¿½
+    parameter  V_CMOS_DISP = 11'd720   , //CMOSï¿½Ö±ï¿½ï¿½ï¿½--ï¿½ï¿½	
+    parameter  TOTAL_H_PIXEL = 12'd2570, //Ë®Æ½ï¿½ï¿½ï¿½ï¿½ï¿½Ø´ï¿½Ð¡
+    parameter  TOTAL_V_PIXEL = 12'd980 , //ï¿½ï¿½Ö±ï¿½ï¿½ï¿½ï¿½ï¿½Ø´ï¿½Ð¡
+    //ï¿½å¿¨ï¿½è±¸
     parameter DEVICE = "PG"
 )(
     
 
-	input              clk_50m            ,  // Clock i2cµÄ²Î¿¼Ê±ÖÓ
+	input              clk_50m            ,  // Clock i2cï¿½Ä²Î¿ï¿½Ê±ï¿½ï¿½
 	input              rst_n              ,  // Asynchronous reset active low
 
-    output             ov_rst_n           /*synthesis PAP_MARK_DEBUG="1"*/,  //SCCBÅäÖÃÍê³É
+    output             ov_rst_n           /*synthesis PAP_MARK_DEBUG="1"*/,  //SCCBï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 
-	input              cam_pclk           /*synthesis PAP_MARK_DEBUG="1"*/,  //cmos Êý¾ÝÏñËØÊ±ÖÓ
-    input              cam_vsync          /*synthesis PAP_MARK_DEBUG="1"*/,  //cmos ³¡Í¬²½ÐÅºÅ
-    input              cam_href           /*synthesis PAP_MARK_DEBUG="1"*/,  //cmos ÐÐÍ¬²½ÐÅºÅ
-    input   [7:0]      cam_data           /*synthesis PAP_MARK_DEBUG="1"*/,  //cmos Êý¾Ý
-    output             cam_rst_n          /*synthesis PAP_MARK_DEBUG="1"*/,  //cmos ¸´Î»ÐÅºÅ£¬µÍµçÆ½ÓÐÐ§
-    output             cam_pwdn           /*synthesis PAP_MARK_DEBUG="1"*/,  //µçÔ´ÐÝÃßÄ£Ê½Ñ¡Ôñ 0£ºÕý³£Ä£Ê½ 1£ºµçÔ´ÐÝÃßÄ£Ê½
-    output             cam_scl            /*synthesis PAP_MARK_DEBUG="1"*/,  //cmos SCCB_SCLÏß
-    inout              cam_sda            /*synthesis PAP_MARK_DEBUG="1"*/,  //cmos SCCB_SDAÏß    
+	input              cam_pclk           /*synthesis PAP_MARK_DEBUG="1"*/,  //cmos ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½
+    input              cam_vsync          /*synthesis PAP_MARK_DEBUG="1"*/,  //cmos ï¿½ï¿½Í¬ï¿½ï¿½ï¿½Åºï¿½
+    input              cam_href           /*synthesis PAP_MARK_DEBUG="1"*/,  //cmos ï¿½ï¿½Í¬ï¿½ï¿½ï¿½Åºï¿½
+    input   [7:0]      cam_data           /*synthesis PAP_MARK_DEBUG="1"*/,  //cmos ï¿½ï¿½ï¿½ï¿½
+    output             cam_rst_n          /*synthesis PAP_MARK_DEBUG="1"*/,  //cmos ï¿½ï¿½Î»ï¿½ÅºÅ£ï¿½ï¿½Íµï¿½Æ½ï¿½ï¿½Ð§
+    output             cam_pwdn           /*synthesis PAP_MARK_DEBUG="1"*/,  //ï¿½ï¿½Ô´ï¿½ï¿½ï¿½ï¿½Ä£Ê½Ñ¡ï¿½ï¿½ 0ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä£Ê½ 1ï¿½ï¿½ï¿½ï¿½Ô´ï¿½ï¿½ï¿½ï¿½Ä£Ê½
+    output             cam_scl            /*synthesis PAP_MARK_DEBUG="1"*/,  //cmos SCCB_SCLï¿½ï¿½
+    inout              cam_sda            /*synthesis PAP_MARK_DEBUG="1"*/,  //cmos SCCB_SDAï¿½ï¿½    
 
-    input                      video_clk          ,  // ¶Á³öÉãÏñÍ·Êý¾ÝÊ±ÖÓ
+    input                      video_clk          ,  // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Í·ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½
     input                      video_rst          ,
-    output                     video_vsync        /*synthesis PAP_MARK_DEBUG="1"*/,  //Ö¡ÓÐÐ§ÐÅºÅ    
-    output                     video_hsync        /*synthesis PAP_MARK_DEBUG="1"*/,  //ÐÐÓÐÐ§ÐÅºÅ  //Ã»ÓÃ
-    output                     video_valid        /*synthesis PAP_MARK_DEBUG="1"*/,  //8bit×ª16bitÊý¾ÝÓÐÐ§Ê¹ÄÜÐÅºÅ
-    output [DATA_WIDTH-1:0]    video_data         /*synthesis PAP_MARK_DEBUG="1"*/,  //ÓÐÐ§Êý¾Ý
+    output                     video_vsync        /*synthesis PAP_MARK_DEBUG="1"*/,  //Ö¡ï¿½ï¿½Ð§ï¿½Åºï¿½    
+    output                     video_hsync        /*synthesis PAP_MARK_DEBUG="1"*/,  //ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½  //Ã»ï¿½ï¿½
+    output                     video_valid        /*synthesis PAP_MARK_DEBUG="1"*/,  //8bit×ª16bitï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§Ê¹ï¿½ï¿½ï¿½Åºï¿½
+    output [DATA_WIDTH-1:0]    video_data         /*synthesis PAP_MARK_DEBUG="1"*/,  //ï¿½ï¿½Ð§ï¿½ï¿½ï¿½ï¿½
     output reg [31:0]         dbg_i2c_status     ,  //[31:16]NACK ops [15:8]ID_H [7:0]ID_L
     output reg [31:0]         dbg_pclk_cnt          ,//free-running pclk counter
-    output reg [31:0]         dbg_sys_status        //[31:16]exec_cnt [5]sda [4]scl [1]lock [0]rst_n
+    output reg [31:0]         dbg_sys_status        ,//[31:16]exec_cnt [5]sda [4]scl [1]lock [0]rst_n
+    output reg [31:0]         dbg_href_raw          ,//raw cam_href rising edges (cam_pclk domain)
+    output reg [31:0]         dbg_vsync_raw          //raw cam_vsync rising edges (cam_pclk domain)
 
-    // //ÓÃ»§½Ó¿Ú                              
-    // output                      cmos_frame_vsync ,  //Ö¡ÓÐÐ§ÐÅºÅ    
-    // output                      cmos_frame_href  ,  //ÐÐÓÐÐ§ÐÅºÅ    //Ã»ÓÃ
-    // output                      cmos_frame_valid ,  //8bit×ª16bitÊý¾ÝÓÐÐ§Ê¹ÄÜÐÅºÅ
-    // output  [DATA_WIDTH-1 : 0]  cmos_frame_data     //ÓÐÐ§Êý¾Ý        
+    // //ï¿½Ã»ï¿½ï¿½Ó¿ï¿½                              
+    // output                      cmos_frame_vsync ,  //Ö¡ï¿½ï¿½Ð§ï¿½Åºï¿½    
+    // output                      cmos_frame_href  ,  //ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½    //Ã»ï¿½ï¿½
+    // output                      cmos_frame_valid ,  //8bit×ª16bitï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§Ê¹ï¿½ï¿½ï¿½Åºï¿½
+    // output  [DATA_WIDTH-1 : 0]  cmos_frame_data     //ï¿½ï¿½Ð§ï¿½ï¿½ï¿½ï¿½        
 	
 );
+
+wire            i2c_dri_clk;
+wire            i2c_done;
+wire   [7:0]    i2c_data_r;
+wire            i2c_exec;
+wire   [23:0]   i2c_data;
+wire            i2c_rh_wl;
+wire            cam_init_done;
+wire            i2c_ack;
+wire            dri_clk;
+wire                    cmos_frame_vsync;
+wire                    cmos_frame_href;
+wire                    cmos_frame_valid;
+wire [DATA_WIDTH-1 : 0] cmos_frame_data;
 
 // wire cam_pclk_bufg/*synthesis PAP_MARK_DEBUG="1"*/;
 // GTP_CLKBUFG u_pclk_bufg (
@@ -56,24 +72,24 @@ module ov5640 #(
 // );
 
 //=========================================================
-// ¶¥²ã¼«¼ò¸´Î»¿ØÖÆ£ºÖ»¹ÜÇ° 5ms µÄÎïÀíËÀËø
-// 50MHz Ê±ÖÓÏÂ£¬5ms = 250,000 ¸öÖÜÆÚ
+// ï¿½ï¿½ï¿½ã¼«ï¿½ï¿½Î»ï¿½ï¿½ï¿½Æ£ï¿½Ö»ï¿½ï¿½Ç° 5ms ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+// 50MHz Ê±ï¿½ï¿½ï¿½Â£ï¿½5ms = 250,000 ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 //=========================================================
-reg [$clog2(CLK_FREQ/1000*7) : 0] power_on_cnt; // 18Î»×ã¹»´æ 250,000
+reg [$clog2(CLK_FREQ/1000*7) : 0] power_on_cnt; // 18Î»ï¿½ã¹»ï¿½ï¿½ 250,000
 reg                               i2c_start_en;
 
 always @(posedge clk_50m or negedge rst_n) begin
     if (!rst_n) begin
         power_on_cnt  <= 18'd0;
-        i2c_start_en  <= 1'b0; // Ç¿ÐÐ°´×¡µ×²ãµÄ I2C Ä£¿é
+        i2c_start_en  <= 1'b0; // Ç¿ï¿½Ð°ï¿½×¡ï¿½×²ï¿½ï¿½ I2C Ä£ï¿½ï¿½
     end 
     else begin
         if (power_on_cnt < CLK_FREQ/1000*7) begin 
             power_on_cnt <= power_on_cnt + 1'b1;
         end 
         else begin
-            // 5ms µ½ÁË£¡Í¬Ê±ËÉÊÖ£¡
-            i2c_start_en  <= 1'b1; // I2C Ä£¿éËÕÐÑ£¬¿ªÊ¼½ÓÁ¦ÅÜËü×Ô¼ºµÄ 20ms
+            // 5ms ï¿½ï¿½ï¿½Ë£ï¿½Í¬Ê±ï¿½ï¿½ï¿½Ö£ï¿½
+            i2c_start_en  <= 1'b1; // I2C Ä£ï¿½ï¿½ï¿½ï¿½ï¿½Ñ£ï¿½ï¿½ï¿½Ê¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ô¼ï¿½ï¿½ï¿½ 20ms
         end
     end
 end
@@ -81,7 +97,7 @@ end
 assign cam_rst_n = i2c_start_en;
 assign cam_pwdn  = 1'b0;
 
-//SCCBÅäÖÃÍê³É²Å×¥È¡ÉãÏñÍ·
+//SCCBï¿½ï¿½ï¿½ï¿½ï¿½ï¿½É²ï¿½×¥È¡ï¿½ï¿½ï¿½ï¿½Í·
 assign ov_rst_n = rst_n & cam_init_done;
 
 
@@ -89,73 +105,63 @@ assign ov_rst_n = rst_n & cam_init_done;
 
 
 
-wire            rst_n           ; 
-wire            i2c_dri_clk     ;   //I2C²Ù×÷Ê±ÖÓ
-wire            i2c_done        ;   //I2C¶ÁÐ´Íê³ÉÐÅºÅ
-wire   [7:0]    i2c_data_r      ;   //I2C¶Áµ½µÄÊý¾Ý
-wire            i2c_exec        ;   //I2C´¥·¢ÐÅºÅ
-wire   [23:0]   i2c_data        ;   //I2CÐ´µØÖ·+Êý¾Ý
-wire            i2c_rh_wl       ;   //I2C¶ÁÐ´¿ØÖÆÐÅºÅ
-wire            cam_init_done   ;   //ÉãÏñÍ·³ö³õÊ¼»¯Íê³ÉÐÅºÅ 
-wire            i2c_ack         ;   //[DBG] 0:acked 1:nackedÉãÏñÍ·³ö³õÊ¼»¯Íê³ÉÐÅºÅ 
+// declarations moved above first use for ModelSim compatibility
 
 
 
 
 
-
-wire            dri_clk     ;
 
 i2c_dri #(
-    .SLAVE_ADDR(SLAVE_ADDR), //I2C´Ó»úµØÖ·
-    .CLK_FREQ  (CLK_FREQ  ), //Ä£¿éÊäÈëµÄÊ±ÖÓÆµÂÊ
-    .I2C_FREQ  (I2C_FREQ  )  //IIC_SCLµÄÊ±ÖÓÆµÂÊ
+    .SLAVE_ADDR(SLAVE_ADDR), //I2Cï¿½Ó»ï¿½ï¿½ï¿½Ö·
+    .CLK_FREQ  (CLK_FREQ  ), //Ä£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½Æµï¿½ï¿½
+    .I2C_FREQ  (I2C_FREQ  )  //IIC_SCLï¿½ï¿½Ê±ï¿½ï¿½Æµï¿½ï¿½
 )
 i2c_dri(                                                            
     .clk  (clk_50m)  ,    
     .rst_n(rst_n)    ,   
                                          
     //i2c interface                      
-    .i2c_exec   (i2c_exec  ),  //I2C´¥·¢Ö´ÐÐÐÅºÅ
-    .bit_ctrl   (BIT_CTRL  ),  //×ÖµØÖ·Î»¿ØÖÆ(16b/8b)
-    .i2c_rh_wl  (i2c_rh_wl ),  //I2C¶ÁÐ´¿ØÖÆÐÅºÅ
-    .i2c_addr   (i2c_data[23:8]),  //I2CÆ÷¼þÄÚµØÖ·
-    .i2c_data_w (i2c_data[7:0]),  //I2CÒªÐ´µÄÊý¾Ý
-    .i2c_data_r (i2c_data_r),  //I2C¶Á³öµÄÊý¾Ý
-    .i2c_done   (i2c_done  ),  //I2CÒ»´Î²Ù×÷Íê³É
-    .i2c_ack    (i2c_ack)     ,            //I2CÓ¦´ð±êÖ¾ 0:Ó¦´ð 1:Î´Ó¦´ð
-    .scl        (cam_scl   ),  //I2CµÄSCLÊ±ÖÓÐÅºÅ
-    .sda        (cam_sda   ),  //I2CµÄSDAÐÅºÅ
+    .i2c_exec   (i2c_exec  ),  //I2Cï¿½ï¿½ï¿½ï¿½Ö´ï¿½ï¿½ï¿½Åºï¿½
+    .bit_ctrl   (BIT_CTRL  ),  //ï¿½Öµï¿½Ö·Î»ï¿½ï¿½ï¿½ï¿½(16b/8b)
+    .i2c_rh_wl  (i2c_rh_wl ),  //I2Cï¿½ï¿½Ð´ï¿½ï¿½ï¿½ï¿½ï¿½Åºï¿½
+    .i2c_addr   (i2c_data[23:8]),  //I2Cï¿½ï¿½ï¿½ï¿½ï¿½Úµï¿½Ö·
+    .i2c_data_w (i2c_data[7:0]),  //I2CÒªÐ´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    .i2c_data_r (i2c_data_r),  //I2Cï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    .i2c_done   (i2c_done  ),  //I2CÒ»ï¿½Î²ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    .i2c_ack    (i2c_ack)     ,            //I2CÓ¦ï¿½ï¿½ï¿½Ö¾ 0:Ó¦ï¿½ï¿½ 1:Î´Ó¦ï¿½ï¿½
+    .scl        (cam_scl   ),  //I2Cï¿½ï¿½SCLÊ±ï¿½ï¿½ï¿½Åºï¿½
+    .sda        (cam_sda   ),  //I2Cï¿½ï¿½SDAï¿½Åºï¿½
                                        
     //user interface                   
-    .dri_clk(dri_clk)       //Çý¶¯I2C²Ù×÷µÄÇý¶¯Ê±ÖÓ
+    .dri_clk(dri_clk)       //ï¿½ï¿½ï¿½ï¿½I2Cï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½
 );
 
 
 
 ov5640_i2c_rgb565_cfg #(
-    .I2C_FREQ  (I2C_FREQ  )  //IIC_SCLµÄÊ±ÖÓÆµÂÊ
+    .I2C_FREQ  (I2C_FREQ  )  //IIC_SCLï¿½ï¿½Ê±ï¿½ï¿½Æµï¿½ï¿½
 )
 ov5640_i2c_rgb565_cfg(  
-    .clk(dri_clk)    ,     //Ê±ÖÓÐÅºÅ SCLµÄ4±¶Æµ
-    .rst_n(rst_n & i2c_start_en)    ,     //¸´Î»ÐÅºÅ£¬µÍµçÆ½ÓÐÐ§
+    .clk(dri_clk)    ,     //Ê±ï¿½ï¿½ï¿½Åºï¿½ SCLï¿½ï¿½4ï¿½ï¿½Æµ
+    .rst_n(rst_n & i2c_start_en)    ,     //ï¿½ï¿½Î»ï¿½ÅºÅ£ï¿½ï¿½Íµï¿½Æ½ï¿½ï¿½Ð§
     
-    .i2c_data_r   (i2c_data_r),  //I2C¶Á³öµÄÊý¾Ý   
-    .i2c_done     (i2c_done),    //I2C¼Ä´æÆ÷ÅäÖÃÍê³ÉÐÅºÅ 
+    .i2c_data_r   (i2c_data_r),  //I2Cï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½   
+    .i2c_done     (i2c_done),    //I2Cï¿½Ä´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Åºï¿½ 
     .cmos_h_pixel (H_CMOS_DISP),
     .cmos_v_pixel (V_CMOS_DISP),
-    .total_h_pixel(TOTAL_H_PIXEL), //Ë®Æ½×ÜÏñËØ´óÐ¡
-    .total_v_pixel(TOTAL_V_PIXEL),  //´¹Ö±×ÜÏñËØ´óÐ¡
-    .i2c_exec     (i2c_exec),     //I2C´¥·¢Ö´ÐÐÐÅºÅ   
-    .i2c_data     (i2c_data),     //I2CÒªÅäÖÃµÄµØÖ·ÓëÊý¾Ý(¸ß16Î»µØÖ·,µÍ8Î»Êý¾Ý)
-    .i2c_rh_wl    (i2c_rh_wl),     //I2C¶ÁÐ´¿ØÖÆÐÅºÅ
-    .init_done    (cam_init_done) //³õÊ¼»¯Íê³ÉÐÅºÅ
+    .total_h_pixel(TOTAL_H_PIXEL), //Ë®Æ½ï¿½ï¿½ï¿½ï¿½ï¿½Ø´ï¿½Ð¡
+    .total_v_pixel(TOTAL_V_PIXEL),  //ï¿½ï¿½Ö±ï¿½ï¿½ï¿½ï¿½ï¿½Ø´ï¿½Ð¡
+    .i2c_exec     (i2c_exec),     //I2Cï¿½ï¿½ï¿½ï¿½Ö´ï¿½ï¿½ï¿½Åºï¿½   
+    .i2c_data     (i2c_data),     //I2CÒªï¿½ï¿½ï¿½ÃµÄµï¿½Ö·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½(ï¿½ï¿½16Î»ï¿½ï¿½Ö·,ï¿½ï¿½8Î»ï¿½ï¿½ï¿½ï¿½)
+    .i2c_rh_wl    (i2c_rh_wl),     //I2Cï¿½ï¿½Ð´ï¿½ï¿½ï¿½ï¿½ï¿½Åºï¿½
+    .init_done    (cam_init_done) //ï¿½ï¿½Ê¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Åºï¿½
 );
 
 
 
 
-// // ÔÚ hdmi_loop.v ÖÐÌí¼ÓµÚÒ»¼¶¼Ä´æÆ÷
+// // ï¿½ï¿½ hdmi_loop.v ï¿½ï¿½ï¿½ï¿½ï¿½Óµï¿½Ò»ï¿½ï¿½ï¿½Ä´ï¿½ï¿½ï¿½
 // (* IOB = "TRUE" *)reg         cam_vsync_r, cam_href_r;
 // (* IOB = "TRUE" *)reg [7:0]   cam_data_r;
 // always @(posedge cam_pclk) begin 
@@ -184,6 +190,12 @@ end
 
 // [DBG] pclk activity counter (pclk domain, read twice to check delta)
 always @(posedge cam_pclk) dbg_pclk_cnt <= dbg_pclk_cnt + 32'd1;
+// [PROBE] raw DVP pin edge counters (independent of the CDC FIFO)
+reg [2:0] dbg_hr_ff, dbg_vr_ff;
+always @(posedge cam_pclk) dbg_hr_ff <= {dbg_hr_ff[1:0], cam_href};
+always @(posedge cam_pclk) dbg_vr_ff <= {dbg_vr_ff[1:0], cam_vsync};
+always @(posedge cam_pclk) if (dbg_hr_ff[2:1] == 2'b01) dbg_href_raw  <= dbg_href_raw  + 32'd1;
+always @(posedge cam_pclk) if (dbg_vr_ff[2:1] == 2'b01) dbg_vsync_raw <= dbg_vsync_raw + 32'd1;
 // [DBG] i2c transaction counter + bus level snapshot
 wire dbg_sda_lvl = cam_sda;
 wire dbg_scl_lvl = cam_scl;
@@ -199,33 +211,28 @@ cmos_capture #(
     .DATA_WIDTH(DATA_WIDTH)
 )
 cmos_capture(
-    .rst_n (ov_rst_n)           ,  //¸´Î»ÐÅºÅ    
-    //ÉãÏñÍ·½Ó¿Ú                           
-    .cam_pclk   (cam_pclk) ,   //cmos Êý¾ÝÏñËØÊ±ÖÓ
-    .cam_vsync  (cam_vsync),  //cmos ³¡Í¬²½ÐÅºÅ
-    .cam_href   (cam_href) ,  //cmos ÐÐÍ¬²½ÐÅºÅ
+    .rst_n (ov_rst_n)           ,  //ï¿½ï¿½Î»ï¿½Åºï¿½    
+    //ï¿½ï¿½ï¿½ï¿½Í·ï¿½Ó¿ï¿½                           
+    .cam_pclk   (cam_pclk) ,   //cmos ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½
+    .cam_vsync  (cam_vsync),  //cmos ï¿½ï¿½Í¬ï¿½ï¿½ï¿½Åºï¿½
+    .cam_href   (cam_href) ,  //cmos ï¿½ï¿½Í¬ï¿½ï¿½ï¿½Åºï¿½
     .cam_data   (cam_data) ,                       
-    //ÓÃ»§½Ó¿Ú                              
-    .cmos_frame_vsync(cmos_frame_vsync),  //Ö¡ÓÐÐ§ÐÅºÅ    
-    .cmos_frame_href (cmos_frame_href ),  //ÐÐÓÐÐ§ÐÅºÅ
-    .cmos_frame_valid(cmos_frame_valid),  //Êý¾ÝÓÐÐ§Ê¹ÄÜÐÅºÅ
-    .cmos_frame_data (cmos_frame_data )   //ÓÐÐ§Êý¾Ý        
+    //ï¿½Ã»ï¿½ï¿½Ó¿ï¿½                              
+    .cmos_frame_vsync(cmos_frame_vsync),  //Ö¡ï¿½ï¿½Ð§ï¿½Åºï¿½    
+    .cmos_frame_href (cmos_frame_href ),  //ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+    .cmos_frame_valid(cmos_frame_valid),  //ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§Ê¹ï¿½ï¿½ï¿½Åºï¿½
+    .cmos_frame_data (cmos_frame_data )   //ï¿½ï¿½Ð§ï¿½ï¿½ï¿½ï¿½        
 );
 
 
 
 
-wire                    cmos_frame_vsync /*synthesis PAP_MARK_DEBUG="1"*/;
-wire                    cmos_frame_href  /*synthesis PAP_MARK_DEBUG="1"*/;
-wire                    cmos_frame_valid /*synthesis PAP_MARK_DEBUG="1"*/;
-wire [DATA_WIDTH-1 : 0] cmos_frame_data  /*synthesis PAP_MARK_DEBUG="1"*/;
-
 // wire [23:0]             cmos_frame_datas;
 
 // assign cmos_frame_datas = {
-//     cmos_frame_data[15:11], cmos_frame_data[15:13], // R: 5Î» + ¸ß3Î»
-//     cmos_frame_data[10:5] , cmos_frame_data[10:9] , // G: 6Î» + ¸ß2Î»
-//     cmos_frame_data[4:0]  , cmos_frame_data[4:2]    // B: 5Î» + ¸ß3Î»
+//     cmos_frame_data[15:11], cmos_frame_data[15:13], // R: 5Î» + ï¿½ï¿½3Î»
+//     cmos_frame_data[10:5] , cmos_frame_data[10:9] , // G: 6Î» + ï¿½ï¿½2Î»
+//     cmos_frame_data[4:0]  , cmos_frame_data[4:2]    // B: 5Î» + ï¿½ï¿½3Î»
 // };
 
 

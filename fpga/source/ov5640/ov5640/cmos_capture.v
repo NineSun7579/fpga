@@ -1,30 +1,33 @@
-//DVP½ÓÊÕ
+//DVPï¿½ï¿½ï¿½ï¿½
 module cmos_capture #(
     parameter DATA_WIDTH = 16,
               DELAY = DATA_WIDTH/8
 )(
-    input                 rst_n            ,  //¸´Î»ÐÅºÅ    
-    //ÉãÏñÍ·½Ó¿Ú                           
-    input                 cam_pclk         ,  //cmos Êý¾ÝÏñËØÊ±ÖÓ
-    input                 cam_vsync        ,  //cmos ³¡Í¬²½ÐÅºÅ
-    input                 cam_href         ,  //cmos ÐÐÍ¬²½ÐÅºÅ
+    input                 rst_n            ,  //ï¿½ï¿½Î»ï¿½Åºï¿½    
+    //ï¿½ï¿½ï¿½ï¿½Í·ï¿½Ó¿ï¿½                           
+    input                 cam_pclk         ,  //cmos ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½
+    input                 cam_vsync        ,  //cmos ï¿½ï¿½Í¬ï¿½ï¿½ï¿½Åºï¿½
+    input                 cam_href         ,  //cmos ï¿½ï¿½Í¬ï¿½ï¿½ï¿½Åºï¿½
     input  [7:0]          cam_data         ,                      
-    //ÓÃ»§½Ó¿Ú                              
-    output                      cmos_frame_vsync ,  //Ö¡ÓÐÐ§ÐÅºÅ    
-    output                      cmos_frame_href  ,  //ÐÐÓÐÐ§ÐÅºÅ
-    output                      cmos_frame_valid ,  //8bit×ª16bitÊý¾ÝÓÐÐ§Ê¹ÄÜÐÅºÅ
-    output  [DATA_WIDTH-1 : 0]  cmos_frame_data     //ÓÐÐ§Êý¾Ý        
+    //ï¿½Ã»ï¿½ï¿½Ó¿ï¿½                              
+    output                      cmos_frame_vsync ,  //Ö¡ï¿½ï¿½Ð§ï¿½Åºï¿½    
+    output                      cmos_frame_href  ,  //ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+    output                      cmos_frame_valid ,  //8bit×ª16bitï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§Ê¹ï¿½ï¿½ï¿½Åºï¿½
+    output  [DATA_WIDTH-1 : 0]  cmos_frame_data     //ï¿½ï¿½Ð§ï¿½ï¿½ï¿½ï¿½        
 );
 
 
-    wire            pos_vsync        ; 
+    wire            pos_vsync        ;
+    reg    [DATA_WIDTH-1 : 0] cmos_data_t;
+    reg [DATA_WIDTH-1-8 : 0] cam_data_temp;
+    reg [1 : 0] temp_cnt;
 
-    //¼Ä´æÆ÷È«²¿ÅäÖÃÍê³Éºó£¬ÏÈµÈ´ý10Ö¡Êý¾Ý
-    //´ý¼Ä´æÆ÷ÅäÖÃÉúÐ§ºóÔÙ¿ªÊ¼²É¼¯Í¼Ïñ
-    parameter  WAIT_FRAME = 4'd10    ;            //¼Ä´æÆ÷Êý¾ÝÎÈ¶¨µÈ´ýµÄÖ¡¸öÊý 
+    //ï¿½Ä´ï¿½ï¿½ï¿½È«ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Éºï¿½ï¿½ÈµÈ´ï¿½10Ö¡ï¿½ï¿½ï¿½ï¿½
+    //ï¿½ï¿½ï¿½Ä´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§ï¿½ï¿½ï¿½Ù¿ï¿½Ê¼ï¿½É¼ï¿½Í¼ï¿½ï¿½
+    parameter  WAIT_FRAME = 4'd10    ;            //ï¿½Ä´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½È¶ï¿½ï¿½È´ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ 
     
-    //¶ÔÖ¡Êý½øÐÐ¼ÆÊý
-    reg    [3:0]    cmos_ps_cnt      ;            //µÈ´ýÖ¡ÊýÎÈ¶¨¼ÆÊýÆ÷
+    //ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½Ð¼ï¿½ï¿½ï¿½
+    reg    [3:0]    cmos_ps_cnt      ;            //ï¿½È´ï¿½Ö¡ï¿½ï¿½ï¿½È¶ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
     always @(posedge cam_pclk or negedge rst_n) begin
         if(!rst_n)
             cmos_ps_cnt <= 4'd0;
@@ -32,8 +35,8 @@ module cmos_capture #(
             cmos_ps_cnt <= cmos_ps_cnt + 4'd1;
     end
 
-    //Ö¡ÓÐÐ§±êÖ¾
-    reg             frame_val_flag   ;            //Ö¡ÓÐÐ§µÄ±êÖ¾ 
+    //Ö¡ï¿½ï¿½Ð§ï¿½ï¿½Ö¾
+    reg             frame_val_flag   ;            //Ö¡ï¿½ï¿½Ð§ï¿½Ä±ï¿½Ö¾ 
     always @(posedge cam_pclk or negedge rst_n) begin
         if(!rst_n)
             frame_val_flag <= 1'b0;
@@ -46,7 +49,7 @@ module cmos_capture #(
     //*****************************************************
     //**                    main code
     //*****************************************************
-    /////////////////Æ´½ÓÑÓ³Ù///////////
+    /////////////////Æ´ï¿½ï¿½ï¿½Ó³ï¿½///////////
     reg [DELAY-1 : 0] cam_vsync_d, cam_href_d;
     always @(posedge cam_pclk or negedge rst_n) begin
         if(!rst_n) begin
@@ -76,8 +79,7 @@ module cmos_capture #(
 
 
 
-    reg    [DATA_WIDTH-1 : 0]   cmos_data_t      ;            //ÓÃÓÚ8Î»×ªDATA_WIDTHÎ»µÄÁÙÊ±¼Ä´æÆ÷
-    //8Î»Êý¾Ý×ª16Î»RGB565Êý¾Ý        
+    //8Î»ï¿½ï¿½ï¿½ï¿½×ª16Î»RGB565ï¿½ï¿½ï¿½ï¿½        
     always @(posedge cam_pclk or negedge rst_n) begin
         if(!rst_n) begin
             cmos_data_t <= {DATA_WIDTH{1'b0}};
@@ -87,7 +89,6 @@ module cmos_capture #(
         end
     end
 
-    reg [DATA_WIDTH-1-8 : 0] cam_data_temp;
     always @(posedge cam_pclk or negedge rst_n) begin
         if(!rst_n) begin
             cam_data_temp <= {DATA_WIDTH-8{1'b0}};
@@ -100,7 +101,6 @@ module cmos_capture #(
         end
     end
 
-    reg [1 : 0] temp_cnt;
     always @(posedge cam_pclk or negedge rst_n) begin
         if(!rst_n) begin
             temp_cnt <= 2'd0;
@@ -120,7 +120,7 @@ module cmos_capture #(
 
 
     reg valid_flag;
-    //²úÉúÊä³öÊý¾ÝÓÐÐ§ÐÅºÅ(cmos_frame_valid)
+    //ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½(cmos_frame_valid)
     always @(posedge cam_pclk or negedge rst_n) begin
         if(!rst_n) begin
             valid_flag <= 1'b0;
@@ -134,21 +134,21 @@ module cmos_capture #(
     end 
 
 
-    //²ÉÊäÈë³¡Í¬²½ÐÅºÅµÄÉÏÉýÑØ           
+    //ï¿½ï¿½ï¿½ï¿½ï¿½ë³¡Í¬ï¿½ï¿½ï¿½ÅºÅµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½           
     assign pos_vsync = (~cam_vsync_d[DELAY-1]) & cam_vsync_d[DELAY-1-1]; 
 
-    //Êä³öÖ¡ÓÐÐ§ÐÅºÅ
+    //ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½Ð§ï¿½Åºï¿½
     assign  cmos_frame_vsync = frame_val_flag  ?  cam_vsync_d[DELAY-1]  :  1'b0; 
 
-    //Êä³öÐÐÓÐÐ§ÐÅºÅ
+    //ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
     // assign  cmos_frame_href  = frame_val_flag  ?  cam_href_d[DELAY-1] & (~cam_href_up) :  1'b0; 
     assign  cmos_frame_href  = frame_val_flag  ?  cam_href_d[DELAY-1] :  1'b0; 
 
 
-    //Êä³öÊý¾ÝÊ¹ÄÜÓÐÐ§ÐÅºÅ
+    //ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¹ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
     assign  cmos_frame_valid = frame_val_flag  ?  valid_flag  :  1'b0; 
 
-    //Êä³öÊý¾Ý
+    //ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
     assign  cmos_frame_data  = frame_val_flag  ?  cmos_data_t  :  1'b0; 
 
 

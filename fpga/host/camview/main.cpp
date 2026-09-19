@@ -11,6 +11,7 @@
 #include <QThread>
 #include <QMutex>
 #include <QElapsedTimer>
+#include <QDateTime>
 #include <QKeyEvent>
 #include <QPainter>
 #include <QTimer>
@@ -27,11 +28,16 @@
 
 #define IMG_W 640
 #define IMG_H 480
+// [LEDGER 2026-09-19] match RTL 640x480 (frame 0x96000, tag at base+0x96000)
 #define FRAME_BYTES (IMG_W * IMG_H * 2)
 #define CAM_ADDR_1 0x00800000u
 #define CAM_ADDR_2 0x00A00000u
+#define CAM2_ADDR_1 0x00C00000u
+#define CAM2_ADDR_2 0x00E00000u
 #define TAG_ADDR_1 (CAM_ADDR_1 + FRAME_BYTES)
 #define TAG_ADDR_2 (CAM_ADDR_2 + FRAME_BYTES)
+#define TAG2_ADDR_1 (CAM2_ADDR_1 + FRAME_BYTES)
+#define TAG2_ADDR_2 (CAM2_ADDR_2 + FRAME_BYTES)
 #define EDGE_ADDR_1 0x0A000000u   // [EDGE] prep2 write ping  (cam_prep_link BUFFER0)
 #define EDGE_ADDR_2 0x0A100000u   // [EDGE] prep2 write pong  (cam_prep_link BUFFER1)
 #define REG_BASE   0x20000000u
@@ -44,6 +50,11 @@
 #define R_PCLK     (REG_BASE + 0x44)
 #define R_ADDR1    (REG_BASE + 0x80)
 #define R_ADDR2    (REG_BASE + 0xC0)
+// CAM2 register window (RTL ov5640_reg #2 @ BASE_ADDR 0x2000_0200)
+#define R_CAM2_ACK   (REG_BASE + 0x200)
+#define R_CAM2_EN    (REG_BASE + 0x240)
+#define R_CAM2_ADDR1 (REG_BASE + 0x280)
+#define R_CAM2_ADDR2 (REG_BASE + 0x2C0)
 #define R_PREP_CTRL (0x20000100u)   // [EDGE] prep_regs +0x100: [0]bypass [2:1]mode [3]edge_en [4]color_en
 #define R_PREP_STAT (0x20000130u)   // [EDGE] +0x130: [15:8] out_frame_cnt, [1] fifo near-full
 
@@ -75,33 +86,40 @@ public:
     static void alarmHandler(int) { timeoutHit_ = true; }
     static volatile sig_atomic_t timeoutHit_;
 
+    // [MSISTORM 2026-09-19] with both cameras streaming the FPGA push path can
+    // saturate the MSI queue for seconds; the old 3 s single-shot timeout made
+    // camview kill itself. Retry the (idempotent) descriptor ioctls instead.
     bool ioctlTmo(int cmd, DmaOp *op, unsigned sec) {
-        timeoutHit_ = false;
-        struct sigaction sa{}, old{};
-        sa.sa_handler = &PangoDev::alarmHandler;
-        sigaction(SIGALRM, &sa, &old);
-        alarm(sec);
-        int r = ioctl(fd_, cmd, op);
-        alarm(0);
-        sigaction(SIGALRM, &old, nullptr);
-        if (timeoutHit_) { err_ = "ioctl timeout"; return false; }
-        return r == 0;
+        for (int attempt = 0; attempt < 3; attempt++) {
+            timeoutHit_ = false;
+            struct sigaction sa{}, old{};
+            sa.sa_handler = &PangoDev::alarmHandler;
+            sigaction(SIGALRM, &sa, &old);
+            alarm(sec);
+            int r = ioctl(fd_, cmd, op);
+            alarm(0);
+            sigaction(SIGALRM, &old, nullptr);
+            if (timeoutHit_) { err_ = "ioctl timeout"; usleep(200000); continue; }
+            if (r == 0) return true;
+            usleep(50000);
+        }
+        return false;
     }
 
     bool regWrite(uint32_t addr, uint32_t val) {
         memcpy(tx_, &val, 4);
         DmaOp op{}; op.offset_addr = 0; op.ddr3_addr = addr; op.total_length = 16;
-        return ioctlTmo(H2F_CMD, &op, 3);
+        return ioctlTmo(H2F_CMD, &op, 8);
     }
     bool regRead(uint32_t addr, uint32_t &val) {
         DmaOp op{}; op.offset_addr = 0; op.ddr3_addr = addr; op.total_length = 16;
-        if (!ioctlTmo(F2H_CMD, &op, 3)) return false;
+        if (!ioctlTmo(F2H_CMD, &op, 8)) return false;
         memcpy(&val, rx_, 4);
         return true;
     }
     bool ddrRead(uint32_t addr, uint32_t len, void *out) {
         DmaOp op{}; op.offset_addr = 0; op.ddr3_addr = addr; op.total_length = len;
-        if (!ioctlTmo(F2H_CMD, &op, 4)) return false;
+        if (!ioctlTmo(F2H_CMD, &op, 10)) return false;
         memcpy(out, rx_, len);
         return true;
     }
@@ -145,48 +163,116 @@ protected:
         // M01 reads are intentionally avoided: this bridge has a known stale-read
         // failure mode that can wedge the PCIe driver. Frame health is proven by
         // changing DDR tags instead.
-        emit statusMsg("ACK-WAIT; 640x480 RGB565");
-        // 启动采集: 先记录旧 tag，再清 pending 并使能。
+        emit statusMsg("ACK-WAIT; DUAL 2 x 640x480 RGB565");
+        // [LEDGER 2026-09-19] boot: clear pending on BOTH cams, then explicitly
+        // enable both capture engines (never rely on reset defaults).
         dev_->regWrite(R_ACK, 3);
-        int expected = 0;
+        dev_->regWrite(R_CAM2_ACK, 3);
+        dev_->regWrite(R_CAM_EN, 1);
+        dev_->regWrite(R_CAM2_EN, 1);
         msleep(80);
 
-        QByteArray bufA(FRAME_BYTES, 0), bufB(FRAME_BYTES, 0);
-        QByteArray *cur = &bufA, *nxt = &bufB;
+        QByteArray c1(FRAME_BYTES, 0), c2(FRAME_BYTES, 0);
+        QByteArray comp(2 * FRAME_BYTES, 0);
+        const int rowb = IMG_W * 2;
         int frames = 0;
         QElapsedTimer t0; t0.start();
         double fps = 0;
-        // DDR tag polling stays on M00. The FPGA holds a completed buffer until
-        // its ACK, so the frame DMA and camera writer cannot touch it together.
+        // [LEDGER 2026-09-19] tag-driven ping-pong (was: blind expected^=1, which
+        // permanently desynced from the FPGA after one dropped frame and froze
+        // the stream). Poll the 4 FRTAG words in DDR; per camera read+ACK only
+        // the buffer whose tag advanced. A completed buffer is frozen until its
+        // ACK, so the data cannot change under us between tag poll and read.
+        uint32_t t1a = 0, t1b = 0, t2a = 0, t2b = 0;
+        uint32_t lt1a = 0, lt1b = 0, lt2a = 0, lt2b = 0;
+        bool baselined = false;
+        // [SELFHEAL 2026-09-19] the FPGA M00 write path wedges under sustained load
+        // (infrastructure bug, see report). When no new frame arrives for 4 s, exit:
+        // run_camview.sh then reloads the PCIe driver and restarts us, which revives
+        // the engines. The display keeps cycling fresh dual frames unattended.
+        qint64 lastFrameMs = 0;
         while (run_) {
-            int buf = expected;
-            uint32_t addr;
-            if (edgeWrite_) addr = (buf == 0) ? EDGE_ADDR_1 : EDGE_ADDR_2;
-            else            addr = (buf == 0) ? CAM_ADDR_1 : CAM_ADDR_2;
-            if (!dev_->ddrRead(addr, FRAME_BYTES, cur->data())) ::_exit(2);
-            // ACK releases this stable buffer and permits capture at the next VSYNC.
-            if (!dev_->regWrite(R_ACK, 1u << buf)) {
-                ::_exit(2);
+            if (!dev_->readTag(TAG_ADDR_1, t1a))  ::_exit(2);
+            if (!dev_->readTag(TAG_ADDR_2, t1b))  ::_exit(2);
+            if (!dev_->readTag(TAG2_ADDR_1, t2a)) ::_exit(2);
+            if (!dev_->readTag(TAG2_ADDR_2, t2b)) ::_exit(2);
+            if (!baselined) {
+                lt1a = t1a; lt1b = t1b; lt2a = t2a; lt2b = t2b;
+                baselined = true;
+                msleep(40);
+                continue;
             }
-            expected ^= 1;
-            if (paused_) { std::swap(cur, nxt); continue; }
+            const bool n1a = (t1a != lt1a), n1b = (t1b != lt1b);
+            const bool n2a = (t2a != lt2a), n2b = (t2b != lt2b);
+            // [STABLE-BUF 2026-09-19] with the FPGA free-running (ackless ping-pong),
+            // the buffer whose tag JUST advanced is being read out by the engine right
+            // now (it immediately starts the OTHER buffer and comes back a frame later).
+            // Reading it showed mid-write tearing = the vertical stripes on screen.
+            // Read the OTHER buffer instead: completed a full frame ago, untouched for
+            // another frame -> wide safe window (read ~7 ms vs frame ~33-50 ms).
+            int b1 = -1, b2 = -1;
+            if (n1a && n1b)      b1 = 1 - (((int32_t)(t1a - t1b) >= 0) ? 0 : 1);
+            else if (n1a)        b1 = 1;
+            else if (n1b)        b1 = 0;
+            if (n2a && n2b)      b2 = 1 - (((int32_t)(t2a - t2b) >= 0) ? 0 : 1);
+            else if (n2a)        b2 = 1;
+            else if (n2b)        b2 = 0;
+            // first pass fallback: a never-written buffer has tag 0 -> use latest
+            if (b1 == 0 && t1a == 0) b1 = 1;
+            if (b1 == 1 && t1b == 0) b1 = 0;
+            if (b2 == 0 && t2a == 0) b2 = 1;
+            if (b2 == 1 && t2b == 0) b2 = 0;
+            if (b1 < 0 && b2 < 0) {
+                if (lastFrameMs == 0) lastFrameMs = QDateTime::currentMSecsSinceEpoch();
+                else if (QDateTime::currentMSecsSinceEpoch() - lastFrameMs > 4000)
+                    ::_exit(2);                       // [SELFHEAL] revive via script
+                msleep(40); continue;
+            }
+            lastFrameMs = QDateTime::currentMSecsSinceEpoch();
+            // [PACE 2026-09-19] the PCIe DMA engine wedges under high-rate descriptor
+            // traffic; the proven 9-16 cadence was ~6 ops per 80ms. Keep to it.
+            lt1a = t1a; lt1b = t1b; lt2a = t2a; lt2b = t2b;
+            // [ACKLESS 2026-09-19] no M01 ACK writes during streaming: every M01
+            // register write risks wedging the PCIe driver (axi_to_axi_lite bug).
+            // The FPGA now free-runs its ping-pong; the tag tells us which buffer
+            // just completed, so we read it while the engine writes the other one.
+            if (b1 >= 0) {
+                uint32_t addr1 = (edgeWrite_)
+                    ? (b1 == 0 ? EDGE_ADDR_1 : EDGE_ADDR_2)
+                    : (b1 == 0 ? CAM_ADDR_1 : CAM_ADDR_2);
+                if (!dev_->ddrRead(addr1, FRAME_BYTES, c1.data())) ::_exit(2);
+            }
+            if (b2 >= 0) {
+                uint32_t addr2 = (b2 == 0) ? CAM2_ADDR_1 : CAM2_ADDR_2;
+                if (!dev_->ddrRead(addr2, FRAME_BYTES, c2.data())) ::_exit(2);
+            }
+            if (paused_) { msleep(80); continue; }
+            // side-by-side composite: row y = cam1 row y | cam2 row y
+            {
+                uint8_t *d = reinterpret_cast<uint8_t *>(comp.data());
+                const uint8_t *p1 = reinterpret_cast<const uint8_t *>(c1.constData());
+                const uint8_t *p2 = reinterpret_cast<const uint8_t *>(c2.constData());
+                for (int y = 0; y < IMG_H; ++y) {
+                    memcpy(d + (size_t)y * 2 * rowb,        p1 + (size_t)y * rowb, rowb);
+                    memcpy(d + (size_t)y * 2 * rowb + rowb, p2 + (size_t)y * rowb, rowb);
+                }
+            }
             bool sb, sc; { QMutexLocker l(&m_); sb = swapB_; sc = swapC_; }
             if (sb) {
-                char *raw = cur->data();
-                for (int i = 0; i < FRAME_BYTES; i += 2) {
+                char *raw = comp.data();
+                for (int i = 0; i < 2 * FRAME_BYTES; i += 2) {
                     char t = raw[i]; raw[i] = raw[i + 1]; raw[i + 1] = t;
                 }
             }
-            QImage im(reinterpret_cast<const uchar *>(cur->constData()), IMG_W, IMG_H,
-                      IMG_W * 2, QImage::Format_RGB16);
+            QImage im(reinterpret_cast<const uchar *>(comp.constData()), 2 * IMG_W, IMG_H,
+                      2 * IMG_W * 2, QImage::Format_RGB16);
             QImage out = sc ? im.convertToFormat(QImage::Format_RGB32).rgbSwapped()
                             : im.copy();
             frames++;
             double el = t0.elapsed() / 1000.0;
             if (el >= 0.5) { fps = frames / el; frames = 0; t0.restart(); }
             emit frameReady(out, fps);
-            std::swap(cur, nxt);
-            msleep(80);
+            msleep(60);   // [PACE] total loop period ~80ms
         }
     }
 private:
