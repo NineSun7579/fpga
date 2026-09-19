@@ -82,7 +82,8 @@ struct ModelInfo {
 
 static QVector<ModelInfo> scanModels() {
     QVector<ModelInfo> list;
-    const QStringList dirs = {"/root/npu", "/root/npu/yolo11n", "/root/models/yolo26_rk3568"};
+    const QStringList dirs = {"/root/npu", "/root/npu/yolo11n", "/root/models/yolo26_rk3568",
+                              "/root/npu/tt100k"};
     for (const QString &d : dirs) {
         QDir dir(d);
         const QStringList files = dir.entryList(QStringList() << "*.rknn", QDir::Files, QDir::Name);
@@ -90,7 +91,18 @@ static QVector<ModelInfo> scanModels() {
             ModelInfo mi;
             mi.path = dir.absoluteFilePath(f);
             const QString lower = f.toLower();
-            if (lower.contains("yolo11n") && lower.startsWith("det")) {
+            if (lower.contains("tt100k")) {
+                mi.classes = QStringList() << "非机动车" << "机动车" << "靠右侧行驶" << "人行横道"
+                                           << "禁止掉头" << "禁止机动车驶入" << "禁止鸣喇叭"
+                                           << "禁止右转" << "禁止左转" << "禁止货车驶入"
+                                           << "减速让行" << "限高4.5m" << "限速20" << "限速30"
+                                           << "限速40" << "限速50" << "限速60" << "限速70"
+                                           << "限速80" << "限速100" << "限速120" << "限质20t"
+                                           << "禁止驶入" << "停车让行" << "十字路口" << "施工"
+                                           << "注意儿童" << "注意行人" << "注意合流";
+                mi.nc = 29;
+                mi.xyxy = false;
+            } else if (lower.contains("yolo11n") && lower.startsWith("det")) {
                 mi.classes = QStringList() << "person"
                                            << "vehicle"
                                            << "traffic_light"
@@ -511,40 +523,41 @@ private:
         int clsRows = 0, clsN = 0, clsRowOffset = 0;
         bool e2e = false;
         int e2eN = 0;
-        int fourChSeen = 0;
 
+        // pass 1: locate the e2e [N,6] tensor, the 4-row box tensor, or a fused box+cls tensor
         for (size_t i = 0; i < outs.size(); i++) {
-            const uint32_t nDims = attrs[i].n_dims;
+            if (attrs[i].n_dims != 3)
+                continue;
             const float *data = (const float *)outs[i].buf;
-            if (nDims == 3 && attrs[i].dims[2] == 6) {
+            if (attrs[i].dims[2] == 6) {
                 e2e = true;
                 e2eN = attrs[i].dims[1];
                 boxData = data;
-                continue;
-            }
-            if (nDims == 3 && attrs[i].dims[1] == 4) {
-                if (fourChSeen == 0) {
-                    boxData = data;
-                    boxN = attrs[i].dims[2];
-                    fourChSeen = 1;
-                } else {
-                    clsTensor = data;
-                    clsRows = 4;
-                    clsN = attrs[i].dims[2];
-                    clsRowOffset = 0;
-                }
-            } else if (nDims == 3 && attrs[i].dims[1] > 4) {
+            } else if (attrs[i].dims[1] == 4 && !boxData) {
+                boxData = data;
+                boxN = attrs[i].dims[2];
+            } else if (attrs[i].dims[1] > 4) {
                 combined = data;
                 combinedC = attrs[i].dims[1];
                 combinedN = attrs[i].dims[2];
-            } else if (nDims == 3) {
+            }
+        }
+        // pass 2: separate scores tensor sharing the anchor count (any class count)
+        if (!e2e && boxData) {
+            for (size_t i = 0; i < outs.size(); i++) {
+                if (attrs[i].n_dims != 3)
+                    continue;
+                const float *data = (const float *)outs[i].buf;
+                if (data == boxData || (int)attrs[i].dims[2] != boxN)
+                    continue;
                 clsTensor = data;
                 clsRows = attrs[i].dims[1];
                 clsN = attrs[i].dims[2];
                 clsRowOffset = 0;
+                break;
             }
         }
-        if (!e2e && combined && combinedC > 4) {
+        if (!e2e && !clsTensor && combined && combinedC > 4) {
             boxData = combined;
             boxN = combinedN;
             clsTensor = combined;
@@ -772,7 +785,7 @@ public:
         m_status = new QLabel("starting...", this);
         root->addWidget(m_status);
         m_helpLabel = new QLabel(
-            "快捷键:  1-8 切换模型 | C 切换框格式(cxcywh/xyxy) | V 切换相机(L/R/Both) | "
+            "快捷键:  1-9 切换模型 | C 切换框格式(cxcywh/xyxy) | V 切换相机(L/R/Both) | "
             "+/- 置信度 | S 截屏 | P/空格 暂停 | F 全屏 | H 帮助 | Q/Esc 退出",
             this);
         m_helpLabel->setStyleSheet("background:#111; color:#0f0; font:13px monospace; padding:4px;");
@@ -810,10 +823,15 @@ public:
         m_infer->stop();
     }
 
+    void setModelIndex(int index) {
+        if (index >= 0 && index < m_models.size())
+            m_combo->setCurrentIndex(index);
+    }
+
 protected:
     void keyPressEvent(QKeyEvent *e) override {
         const int k = e->key();
-        if (k >= Qt::Key_1 && k <= Qt::Key_8) {
+        if (k >= Qt::Key_1 && k <= Qt::Key_9) {
             const int idx = k - Qt::Key_1;
             if (idx < m_models.size())
                 m_combo->setCurrentIndex(idx);
@@ -944,6 +962,23 @@ int main(int argc, char **argv) {
     qRegisterMetaType<QVector<Detection>>("QVector<Detection>");
     const QVector<ModelInfo> models = scanModels();
     MainWindow w(models);
+    const QStringList args = app.arguments();
+    const int ai = args.indexOf("--model-index");
+    if (ai >= 0 && ai + 1 < args.size()) {
+        const int idx = args[ai + 1].toInt();
+        if (idx >= 0 && idx < models.size())
+            w.setModelIndex(idx);
+    } else {
+        const int si = args.indexOf("--model");
+        if (si >= 0 && si + 1 < args.size()) {
+            for (int i = 0; i < models.size(); i++) {
+                if (models[i].path.contains(args[si + 1], Qt::CaseInsensitive)) {
+                    w.setModelIndex(i);
+                    break;
+                }
+            }
+        }
+    }
     w.show();
     return app.exec();
 }
