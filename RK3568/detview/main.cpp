@@ -10,10 +10,12 @@
 #include <QFileInfo>
 #include <QHBoxLayout>
 #include <QImage>
+#include <QKeyEvent>
 #include <QLabel>
 #include <QMutex>
 #include <QPainter>
 #include <QPushButton>
+#include <QSlider>
 #include <QThread>
 #include <QVBoxLayout>
 #include <QWaitCondition>
@@ -39,6 +41,8 @@ static const int IMG_H = 480;
 static const size_t FRAME_BYTES = (size_t)IMG_W * IMG_H * 2;
 static const uint32_t CAM_ADDR_1 = 0x00800000u;
 static const uint32_t CAM_ADDR_2 = 0x00A00000u;
+static const uint32_t CAM_B_ADDR_1 = 0x00C00000u;
+static const uint32_t CAM_B_ADDR_2 = 0x00E00000u;
 static const uint32_t REG_BASE = 0x20000000u;
 static const uint32_t R_ACK = REG_BASE + 0x00;
 static const uint32_t R_I2C_ID = REG_BASE + 0x3C;
@@ -72,23 +76,45 @@ Q_DECLARE_METATYPE(QVector<Detection>)
 struct ModelInfo {
     QString path;
     QStringList classes;
+    int nc = 1;
+    bool xyxy = false;
 };
 
 static QVector<ModelInfo> scanModels() {
     QVector<ModelInfo> list;
-    const QStringList dirs = {"/root/npu", "/root/models/yolo26_rk3568"};
+    const QStringList dirs = {"/root/npu", "/root/npu/yolo11n", "/root/models/yolo26_rk3568"};
     for (const QString &d : dirs) {
         QDir dir(d);
         const QStringList files = dir.entryList(QStringList() << "*.rknn", QDir::Files, QDir::Name);
         for (const QString &f : files) {
             ModelInfo mi;
             mi.path = dir.absoluteFilePath(f);
-            if (f.contains("zebra"))
+            const QString lower = f.toLower();
+            if (lower.contains("yolo11n") && lower.startsWith("det")) {
+                mi.classes = QStringList() << "person"
+                                           << "vehicle"
+                                           << "traffic_light"
+                                           << "traffic_sign";
+                mi.nc = 4;
+                mi.xyxy = false;
+            } else if (lower.contains("yolo11n") && lower.startsWith("seg")) {
+                mi.classes = QStringList() << "crosswalk"
+                                           << "lane_solid"
+                                           << "lane_dashed"
+                                           << "stop_line"
+                                           << "arrow"
+                                           << "road_marking";
+                mi.nc = 6;
+                mi.xyxy = false;
+            } else if (lower.contains("zebra")) {
                 mi.classes = QStringList() << "zebra"
                                            << "vehicle"
                                            << "person";
-            else
+                mi.nc = 3;
+            } else {
                 mi.classes = QStringList() << "vehicle";
+                mi.nc = 1;
+            }
             list.append(mi);
         }
     }
@@ -200,9 +226,11 @@ class CameraThread : public QThread {
     Q_OBJECT
 public:
     void stop() { m_stop = true; }
+    void setMode(int mode) { m_mode = mode; }
+    void setPaused(bool paused) { m_paused = paused; }
 
 signals:
-    void frameReady(QImage img, double fps);
+    void frameReady(QImage display, QImage infer, double fps);
     void statusMsg(QString s);
 
 protected:
@@ -229,31 +257,64 @@ protected:
         dev.regWrite(R_ACK, 3);
         dev.regWrite(R_CAM_EN, 1);
 
-        QByteArray raw(FRAME_BYTES, 0);
-        QByteArray rgb(IMG_W * IMG_H * 3, 0);
+        QByteArray rawA(FRAME_BYTES, 0), rawB(FRAME_BYTES, 0);
+        QByteArray rgbA(IMG_W * IMG_H * 3, 0), rgbB(IMG_W * IMG_H * 3, 0);
         int buf = 0;
         int frames = 0;
         double fps = 0;
         QElapsedTimer timer;
         timer.start();
         while (!m_stop) {
-            const uint32_t addr = (buf == 0) ? CAM_ADDR_1 : CAM_ADDR_2;
-            if (!dev.ddrRead(addr, FRAME_BYTES, raw.data())) {
-                msleep(10);
+            const int mode = m_mode.load();
+            if (mode == 0 || mode == 2) {
+                const uint32_t addr = (buf == 0) ? CAM_ADDR_1 : CAM_ADDR_2;
+                if (!dev.ddrRead(addr, FRAME_BYTES, rawA.data())) {
+                    msleep(10);
+                    continue;
+                }
+                dev.regWrite(R_ACK, 1u << buf);
+                rgb565ToRgb888((const uint8_t *)rawA.constData(), IMG_W * IMG_H,
+                               (uint8_t *)rgbA.data());
+            }
+            if (mode == 1 || mode == 2) {
+                const uint32_t addrB = (buf == 0) ? CAM_B_ADDR_1 : CAM_B_ADDR_2;
+                dev.ddrRead(addrB, FRAME_BYTES, rawB.data());
+                rgb565ToRgb888((const uint8_t *)rawB.constData(), IMG_W * IMG_H,
+                               (uint8_t *)rgbB.data());
+            }
+            QImage left((const uchar *)rgbA.constData(), IMG_W, IMG_H, IMG_W * 3,
+                        QImage::Format_RGB888);
+            QImage right((const uchar *)rgbB.constData(), IMG_W, IMG_H, IMG_W * 3,
+                         QImage::Format_RGB888);
+            QImage display;
+            QImage infer;
+            if (mode == 2) {
+                display = QImage(2 * IMG_W, IMG_H, QImage::Format_RGB888);
+                QPainter painter(&display);
+                painter.drawImage(0, 0, left);
+                painter.drawImage(IMG_W, 0, right);
+                painter.end();
+                infer = left;
+            } else if (mode == 1) {
+                display = right;
+                infer = right;
+            } else {
+                display = left;
+                infer = left;
+            }
+            frames++;
+            if (m_paused.load()) {
+                buf ^= 1;
+                msleep(25);
                 continue;
             }
-            dev.regWrite(R_ACK, 1u << buf);
-            rgb565ToRgb888((const uint8_t *)raw.constData(), IMG_W * IMG_H, (uint8_t *)rgb.data());
-            QImage img((const uchar *)rgb.constData(), IMG_W, IMG_H, IMG_W * 3,
-                       QImage::Format_RGB888);
-            frames++;
             const double el = timer.elapsed() / 1000.0;
             if (el >= 0.5) {
                 fps = frames / el;
                 frames = 0;
                 timer.restart();
             }
-            emit frameReady(img.copy(), fps);
+            emit frameReady(display.copy(), infer.copy(), fps);
             buf ^= 1;
             msleep(25);
         }
@@ -273,6 +334,8 @@ private:
         }
     }
     std::atomic<bool> m_stop{false};
+    std::atomic<int> m_mode{2};
+    std::atomic<bool> m_paused{false};
 };
 
 class InferenceThread : public QThread {
@@ -286,12 +349,17 @@ public:
         m_hasPending = true;
         m_cond.wakeOne();
     }
-    void setModel(const QString &path) {
+    void setModel(const ModelInfo &info) {
         QMutexLocker lock(&m_mutex);
-        m_modelPath = path;
+        m_model = info;
         m_modelChanged = true;
         m_cond.wakeOne();
     }
+    void setFormat(bool xyxy) {
+        QMutexLocker lock(&m_mutex);
+        m_xyxy = xyxy;
+    }
+    void setConf(float c) { m_conf.store(c); }
     void stop() {
         m_stop = true;
         m_cond.wakeOne();
@@ -312,7 +380,7 @@ protected:
             if (m_stop)
                 break;
             const bool reload = m_modelChanged;
-            const QString path = m_modelPath;
+            const ModelInfo info = m_model;
             QImage frame;
             if (m_hasPending) {
                 frame = m_pending;
@@ -326,9 +394,9 @@ protected:
                     rknn_destroy(m_ctx);
                     m_ctx = 0;
                 }
-                QFile file(path);
+                QFile file(info.path);
                 if (!file.open(QIODevice::ReadOnly)) {
-                    emit modelLoaded(path, false, "open failed");
+                    emit modelLoaded(info.path, false, "open failed");
                     continue;
                 }
                 modelBuf = file.readAll();
@@ -336,16 +404,18 @@ protected:
                 int ret = rknn_init(&m_ctx, modelBuf.data(), (uint32_t)modelBuf.size(), 0, nullptr);
                 if (ret != 0) {
                     m_ctx = 0;
-                    emit modelLoaded(path, false, QString("rknn_init %1").arg(ret));
+                    emit modelLoaded(info.path, false, QString("rknn_init %1").arg(ret));
                     continue;
                 }
                 rknn_input_output_num ioNum;
                 memset(&ioNum, 0, sizeof(ioNum));
                 if (rknn_query(m_ctx, RKNN_QUERY_IN_OUT_NUM, &ioNum, sizeof(ioNum)) != 0) {
-                    emit modelLoaded(path, false, "query failed");
+                    emit modelLoaded(info.path, false, "query failed");
                     continue;
                 }
                 m_nOutput = ioNum.n_output;
+                m_nc = info.nc;
+                m_xyxy = info.xyxy;
                 QString shapes;
                 for (uint32_t i = 0; i < m_nOutput && i < 4; i++) {
                     rknn_tensor_attr attr;
@@ -358,7 +428,7 @@ protected:
                         shapes += "] ";
                     }
                 }
-                emit modelLoaded(path, true, shapes.trimmed());
+                emit modelLoaded(info.path, true, shapes.trimmed());
             }
             if (!frame.isNull() && m_ctx)
                 runOnce(frame);
@@ -430,16 +500,18 @@ private:
     QVector<Detection> decode(const std::vector<rknn_output> &outs,
                               const std::vector<rknn_tensor_attr> &attrs) {
         QVector<Detection> dets;
+        const float confThresh = m_conf.load();
         if (outs.empty())
             return dets;
         const float *boxData = nullptr;
         int boxN = 0;
         const float *combined = nullptr;
         int combinedC = 0, combinedN = 0;
-        std::vector<const float *> clsData;
-        std::vector<int> clsN;
+        const float *clsTensor = nullptr;
+        int clsRows = 0, clsN = 0, clsRowOffset = 0;
         bool e2e = false;
         int e2eN = 0;
+        int fourChSeen = 0;
 
         for (size_t i = 0; i < outs.size(); i++) {
             const uint32_t nDims = attrs[i].n_dims;
@@ -451,29 +523,39 @@ private:
                 continue;
             }
             if (nDims == 3 && attrs[i].dims[1] == 4) {
-                boxData = data;
-                boxN = attrs[i].dims[2];
+                if (fourChSeen == 0) {
+                    boxData = data;
+                    boxN = attrs[i].dims[2];
+                    fourChSeen = 1;
+                } else {
+                    clsTensor = data;
+                    clsRows = 4;
+                    clsN = attrs[i].dims[2];
+                    clsRowOffset = 0;
+                }
             } else if (nDims == 3 && attrs[i].dims[1] > 4) {
                 combined = data;
                 combinedC = attrs[i].dims[1];
                 combinedN = attrs[i].dims[2];
             } else if (nDims == 3) {
-                clsData.push_back(data);
-                clsN.push_back(attrs[i].dims[2]);
+                clsTensor = data;
+                clsRows = attrs[i].dims[1];
+                clsN = attrs[i].dims[2];
+                clsRowOffset = 0;
             }
         }
         if (!e2e && combined && combinedC > 4) {
             boxData = combined;
             boxN = combinedN;
-            clsData.clear();
-            clsN.clear();
-            clsData.push_back(combined + (size_t)4 * combinedN);
-            clsN.push_back(combinedN);
+            clsTensor = combined;
+            clsRows = combinedC - 4;
+            clsN = combinedN;
+            clsRowOffset = 4;
         }
         if (e2e && boxData) {
             for (int i = 0; i < e2eN; i++) {
                 const float *r = boxData + (size_t)i * 6;
-                if (r[4] < CONF_THRESH)
+                if (r[4] < confThresh)
                     continue;
                 Detection d;
                 d.x1 = r[0];
@@ -486,16 +568,18 @@ private:
             }
             return dets;
         }
-        if (!boxData || boxN <= 0 || clsData.empty())
+        if (!boxData || boxN <= 0 || !clsTensor || clsRows <= 0)
             return dets;
+
+        const int nClasses = std::min(clsRows, m_nc > 0 ? m_nc : clsRows);
 
         bool sigmoid = false;
         {
-            const float *c0 = clsData[0];
             float mx = -1e9f, mn = 1e9f;
-            for (int i = 0; i < clsN[0] && i < 1000; i++) {
-                mx = std::max(mx, c0[i]);
-                mn = std::min(mn, c0[i]);
+            for (int i = 0; i < clsN && i < 1000; i++) {
+                const float v = clsTensor[(size_t)clsRowOffset * clsN + i];
+                mx = std::max(mx, v);
+                mn = std::min(mn, v);
             }
             sigmoid = (mx > 1.5f || mn < -0.5f);
         }
@@ -508,24 +592,34 @@ private:
         for (int i = 0; i < boxN; i++) {
             float best = -1.0f;
             int bestCls = -1;
-            for (size_t k = 0; k < clsData.size(); k++) {
-                if (i >= clsN[k])
-                    continue;
-                float s = clsData[k][(size_t)i];
+            for (int c = 0; c < nClasses; c++) {
+                float s = clsTensor[(size_t)(clsRowOffset + c) * clsN + i];
                 if (sigmoid)
                     s = sigmoidf(s);
                 if (s > best) {
                     best = s;
-                    bestCls = (int)k;
+                    bestCls = c;
                 }
             }
-            if (best < CONF_THRESH || bestCls < 0)
+            if (best < confThresh || bestCls < 0)
                 continue;
-            const float cx = boxData[i];
-            const float cy = boxData[boxN + i];
-            const float w = boxData[2 * boxN + i];
-            const float h = boxData[3 * boxN + i];
-            cands.push_back({best, cx - w / 2, cy - h / 2, cx + w / 2, cy + h / 2, bestCls});
+            const float a0 = boxData[i];
+            const float a1 = boxData[boxN + i];
+            const float a2 = boxData[2 * boxN + i];
+            const float a3 = boxData[3 * boxN + i];
+            float x1, y1, x2, y2;
+            if (m_xyxy) {
+                x1 = a0;
+                y1 = a1;
+                x2 = a2;
+                y2 = a3;
+            } else {
+                x1 = a0 - a2 / 2;
+                y1 = a1 - a3 / 2;
+                x2 = a0 + a2 / 2;
+                y2 = a1 + a3 / 2;
+            }
+            cands.push_back({best, x1, y1, x2, y2, bestCls});
         }
         std::sort(cands.begin(), cands.end(),
                   [](const Cand &a, const Cand &b) { return a.score > b.score; });
@@ -560,7 +654,10 @@ private:
     QImage m_pending;
     bool m_hasPending = false;
     bool m_modelChanged = false;
-    QString m_modelPath;
+    ModelInfo m_model;
+    int m_nc = 1;
+    bool m_xyxy = false;
+    std::atomic<float> m_conf{0.25f};
     std::atomic<bool> m_stop{false};
     rknn_context m_ctx = 0;
     uint32_t m_nOutput = 0;
@@ -599,13 +696,12 @@ protected:
         const QRect target((width() - scaled.width()) / 2, (height() - scaled.height()) / 2,
                            scaled.width(), scaled.height());
         p.drawImage(target, m_frame);
-        const double sx = target.width() / (double)MODEL_W;
-        const double sy = target.height() / (double)IMG_H;
+        const double s = target.width() / (double)m_frame.width();
         for (const Detection &d : m_dets) {
-            const double x1 = d.x1 * sx;
-            const double x2 = d.x2 * sx;
-            const double y1 = (d.y1 - 80.0) * sy;
-            const double y2 = (d.y2 - 80.0) * sy;
+            const double x1 = d.x1 * s;
+            const double x2 = d.x2 * s;
+            const double y1 = (d.y1 - 80.0) * s;
+            const double y2 = (d.y2 - 80.0) * s;
             if (y2 < 0 || y1 > target.height())
                 continue;
             const QRectF r(target.left() + x1, target.top() + std::max(0.0, y1),
@@ -644,9 +740,29 @@ public:
             m_combo->addItem(QFileInfo(models[i].path).fileName(), i);
         m_camLabel = new QLabel("cam: -- fps", this);
         m_inferLabel = new QLabel("infer: -- ms / -- fps   dets: --", this);
+        m_fmtCombo = new QComboBox(this);
+        m_fmtCombo->addItem("cxcywh");
+        m_fmtCombo->addItem("xyxy");
+        m_camCombo = new QComboBox(this);
+        m_camCombo->addItem("L");
+        m_camCombo->addItem("R");
+        m_camCombo->addItem("Both");
+        m_camCombo->setCurrentIndex(2);
+        m_confSlider = new QSlider(Qt::Horizontal, this);
+        m_confSlider->setRange(5, 95);
+        m_confSlider->setValue(25);
+        m_confSlider->setFixedWidth(150);
+        m_confSlider->setToolTip("置信度阈值");
+        m_confLabel = new QLabel("Conf 0.25", this);
         m_shotBtn = new QPushButton("截屏", this);
         bar->addWidget(new QLabel("Model:", this));
         bar->addWidget(m_combo, 1);
+        bar->addWidget(new QLabel("Box:", this));
+        bar->addWidget(m_fmtCombo);
+        bar->addWidget(new QLabel("Cam:", this));
+        bar->addWidget(m_camCombo);
+        bar->addWidget(m_confLabel);
+        bar->addWidget(m_confSlider);
         bar->addWidget(m_camLabel);
         bar->addWidget(m_inferLabel);
         bar->addWidget(m_shotBtn);
@@ -655,6 +771,15 @@ public:
         root->addWidget(m_video, 1);
         m_status = new QLabel("starting...", this);
         root->addWidget(m_status);
+        m_helpLabel = new QLabel(
+            "快捷键:  1-8 切换模型 | C 切换框格式(cxcywh/xyxy) | V 切换相机(L/R/Both) | "
+            "+/- 置信度 | S 截屏 | P/空格 暂停 | F 全屏 | H 帮助 | Q/Esc 退出",
+            this);
+        m_helpLabel->setStyleSheet("background:#111; color:#0f0; font:13px monospace; padding:4px;");
+        m_helpLabel->setWordWrap(true);
+        m_helpLabel->setVisible(false);
+        root->addWidget(m_helpLabel);
+        setFocusPolicy(Qt::StrongFocus);
 
         m_camera = new CameraThread();
         m_infer = new InferenceThread();
@@ -666,11 +791,16 @@ public:
         connect(m_infer, &InferenceThread::modelLoaded, this, &MainWindow::onModelLoaded);
         connect(m_combo, QOverload<int>::of(&QComboBox::currentIndexChanged), this,
                 &MainWindow::onModelChanged);
+        connect(m_camCombo, QOverload<int>::of(&QComboBox::currentIndexChanged), this,
+                &MainWindow::onCamChanged);
+        connect(m_fmtCombo, QOverload<int>::of(&QComboBox::currentIndexChanged), this,
+                &MainWindow::onFormatChanged);
+        connect(m_confSlider, &QSlider::valueChanged, this, &MainWindow::onConfChanged);
         connect(m_shotBtn, &QPushButton::clicked, this, &MainWindow::onScreenshot);
         m_infer->start();
         m_camera->start();
         if (!models.isEmpty())
-            m_infer->setModel(models[0].path);
+            onModelChanged(0);
         setWindowTitle("detview - OV5640 + RKNN");
         resize(1280, 800);
     }
@@ -680,12 +810,62 @@ public:
         m_infer->stop();
     }
 
-private slots:
-    void onFrame(QImage img, double fps) {
-        m_video->setFrame(img);
-        m_camLabel->setText(QString("cam: %1 fps").arg(fps, 0, 'f', 1));
-        m_infer->submit(img);
+protected:
+    void keyPressEvent(QKeyEvent *e) override {
+        const int k = e->key();
+        if (k >= Qt::Key_1 && k <= Qt::Key_8) {
+            const int idx = k - Qt::Key_1;
+            if (idx < m_models.size())
+                m_combo->setCurrentIndex(idx);
+            return;
+        }
+        switch (k) {
+        case Qt::Key_Q:
+        case Qt::Key_Escape:
+            close();
+            break;
+        case Qt::Key_F:
+            m_full = !m_full;
+            m_full ? showFullScreen() : showNormal();
+            break;
+        case Qt::Key_S:
+            onScreenshot();
+            break;
+        case Qt::Key_C:
+            m_fmtCombo->setCurrentIndex((m_fmtCombo->currentIndex() + 1) % 2);
+            break;
+        case Qt::Key_V:
+            m_camCombo->setCurrentIndex((m_camCombo->currentIndex() + 1) % 3);
+            break;
+        case Qt::Key_P:
+        case Qt::Key_Space:
+            m_paused = !m_paused;
+            m_camera->setPaused(m_paused);
+            m_status->setText(m_paused ? "已暂停 (P/空格 继续)" : "运行中");
+            break;
+        case Qt::Key_Minus:
+        case Qt::Key_Underscore:
+            m_confSlider->setValue(std::max(5, m_confSlider->value() - 5));
+            break;
+        case Qt::Key_Equal:
+        case Qt::Key_Plus:
+            m_confSlider->setValue(std::min(95, m_confSlider->value() + 5));
+            break;
+        case Qt::Key_H:
+            m_helpLabel->setVisible(!m_helpLabel->isVisible());
+            break;
+        default:
+            QWidget::keyPressEvent(e);
+        }
     }
+
+private slots:
+    void onFrame(QImage display, QImage infer, double fps) {
+        m_video->setFrame(display);
+        m_camLabel->setText(QString("cam: %1 fps").arg(fps, 0, 'f', 1));
+        m_infer->submit(infer);
+    }
+    void onCamChanged(int index) { m_camera->setMode(index); }
     void onDets(QVector<Detection> dets, double fps, double ms) {
         m_video->setDetections(dets, m_classes);
         m_inferLabel->setText(QString("infer: %1 ms / %2 fps   dets: %3")
@@ -704,8 +884,17 @@ private slots:
             return;
         m_classes = m_models[index].classes;
         m_video->setDetections({}, m_classes);
-        m_infer->setModel(m_models[index].path);
+        m_fmtCombo->blockSignals(true);
+        m_fmtCombo->setCurrentIndex(m_models[index].xyxy ? 1 : 0);
+        m_fmtCombo->blockSignals(false);
+        m_infer->setModel(m_models[index]);
+        m_infer->setFormat(m_models[index].xyxy);
         setWindowTitle(QString("detview - %1").arg(QFileInfo(m_models[index].path).fileName()));
+    }
+    void onFormatChanged(int index) { m_infer->setFormat(index == 1); }
+    void onConfChanged(int value) {
+        m_confLabel->setText(QString("Conf %1").arg(value / 100.0, 0, 'f', 2));
+        m_infer->setConf(value / 100.0f);
     }
     void onScreenshot() {
         const QPixmap pm = m_video->grab();
@@ -734,9 +923,16 @@ private:
     QVector<ModelInfo> m_models;
     QStringList m_classes;
     QComboBox *m_combo = nullptr;
+    QComboBox *m_fmtCombo = nullptr;
+    QComboBox *m_camCombo = nullptr;
+    QSlider *m_confSlider = nullptr;
+    QLabel *m_confLabel = nullptr;
     QLabel *m_camLabel = nullptr;
     QLabel *m_inferLabel = nullptr;
     QLabel *m_status = nullptr;
+    QLabel *m_helpLabel = nullptr;
+    bool m_full = false;
+    bool m_paused = false;
     QPushButton *m_shotBtn = nullptr;
     VideoWidget *m_video = nullptr;
     CameraThread *m_camera = nullptr;
