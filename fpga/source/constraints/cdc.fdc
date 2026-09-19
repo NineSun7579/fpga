@@ -24,7 +24,7 @@
 
 
 set_false_path -through [get_pins -hier *ov5640_cdc*]
-set_false_path -through [get_pins -hier *npu_to_core_cdc_bridge*]
+# [NO_NPU-48M] set_false_path -through [get_pins -hier *npu_to_core_cdc_bridge*]
 #set_false_path -through [get_pins -hier *axis_async_fifo_cmd*]
 #set_false_path -through [get_pins -hier *axis_async_fifo_data*]
 #set_false_path -through [get_pins -hier *pipe_cdc*]
@@ -70,3 +70,4 @@ set_false_path -through [get_pins -hier *npu_to_core_cdc_bridge*]
 # [CLKFIX 2026-09-13] i2c domain now runs on free_clk; dbg counters are async
 set_clock_groups -name i2c_free_clk -asynchronous -group [get_clocks free_clk]
 set_clock_groups -name dbg_pclk -asynchronous -group [get_clocks cmos1_pclk]
+set_clock_groups -name dbg_pclk2 -asynchronous -group [get_clocks cmos2_pclk]

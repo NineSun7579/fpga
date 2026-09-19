@@ -1,10 +1,8 @@
 // frame_source.h -- camera grabber with tear-free buffer selection.
 //
 // [FRTAG] bitstream: the FPGA writes a 32-bit frame counter right after each
-// frame in DDR (prep::TAG_ADDR_1/2). The engine alternates ping/pong, so the
-// buffer currently being WRITTEN always has counter (max-1) and the buffer
-// with the LARGEST counter is a complete, stable frame. Reading argmax only
-// => read/write never touch the same buffer => tearing is impossible.
+// frame in DDR (prep::TAG_ADDR_1/2), then holds that buffer until host ACK.
+// A changed tag therefore identifies a complete frame with exclusive ownership.
 //
 // Old bitstream fallback ("STBL"): counters stay 0 -> double-read stability
 // check: a frame is shown only if two consecutive full reads are identical
@@ -77,6 +75,7 @@ private:
 
     Mode mode_ = Mode::PROBE;
     uint32_t last1_ = 0, last2_ = 0;
+    int expectedBuf_ = 0;
     int probeCycles_ = 0;
     int stblBuf_ = 0;
 

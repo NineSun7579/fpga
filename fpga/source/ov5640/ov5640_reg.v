@@ -1,6 +1,9 @@
-//ov5640Ð´Ê¹ÄÜ¿ØÖÆºÍÐ´µØÖ·¿ØÖÆ
+//ov5640Ð´Ê¹ï¿½Ü¿ï¿½ï¿½Æºï¿½Ð´ï¿½ï¿½Ö·ï¿½ï¿½ï¿½ï¿½
 module ov5640_reg #(
     parameter BASE_ADDR = 32'h2000_0000,
+    parameter [31:0] CAM_ADDR_1_DEF = 32'h0080_0000,
+    parameter [31:0] CAM_ADDR_2_DEF = 32'h00A0_0000,
+    parameter        CAM_EN_DEF     = 1'b1,
     // parameter AXI_REG_WIDTH = 32,
     parameter AXI_ADDR_WIDTH = 32
 ) (
@@ -36,6 +39,24 @@ module ov5640_reg #(
     output reg                        cam_en                        ,
     input  [31:0]                     dbg_cam_words         ,
     input  [31:0]                     dbg_vsyncs        ,
+    input  [31:0]                     dbg_hsyncs        ,
+    input  [31:0]                     dbg_href_raw      ,
+    input  [31:0]                     dbg_vsync_raw     ,
+    input  [31:0]                     dbg_beat_cnt      ,
+    input  [31:0]                     dbg_beat_last     ,
+    input  [31:0]                     dbg_cmd_cnt       ,
+    input  [31:0]                     dbg_axi_sticky    ,
+    input  [31:0]                     dbg_axi_stat      ,
+    input  [31:0]                     dbg_b_cnt         ,
+    input  [31:0]                     dbg_aw_cnt        ,
+    input  [31:0]                     dbg_w_cnt         ,
+    input  [31:0]                     dbg_axi_cnt       ,
+    input  [31:0]                     dbg_zdin          ,
+    input  [31:0]                     dbg_zout          ,
+    input  [31:0]                     dbg_axi_num       ,
+    input  [31:0]                     dbg_state         ,
+    input  [31:0]                     dbg_last_cnt      ,
+    input  [31:0]                     dbg_wd_cnt        ,
     input  [1:0]                      dbg_xdma_req        ,
     input  [31:0]                     dbg_i2c_status      ,
     input  [31:0]                     dbg_pclk_cnt        ,
@@ -43,18 +64,29 @@ module ov5640_reg #(
     input  [31:0]                     dbg_clk_status
 );
 
-//¼Ä´æÆ÷µØÖ·
+//ï¿½Ä´ï¿½ï¿½ï¿½ï¿½ï¿½Ö·
 localparam REG_ACK       = BASE_ADDR + 32'h00;
 localparam REG_CAM_EN    = BASE_ADDR + 32'h40;
 localparam REG_CAM_ADDR_1= BASE_ADDR + 32'h80;
 localparam REG_CAM_ADDR_2= BASE_ADDR + 32'hc0;
+// [PROBE 2026-09-18] every offset is 16-byte aligned: the PCIe M01 read
+// path ignores addr[3:0], so only *0 offsets are individually readable.
+localparam REG_DBG_PCLK_CNT  = BASE_ADDR + 32'h10;
+localparam REG_DBG_VSYNCS    = BASE_ADDR + 32'h20;
 localparam REG_DBG_CAM_WORDS = BASE_ADDR + 32'h30;
-localparam REG_DBG_VSYNCS    = BASE_ADDR + 32'h34;
-localparam REG_DBG_XDMA_REQ  = BASE_ADDR + 32'h38;
-localparam REG_DBG_I2C_ID    = BASE_ADDR + 32'h3c;
-localparam REG_DBG_PCLK_CNT  = BASE_ADDR + 32'h44;
-localparam REG_DBG_SYS       = BASE_ADDR + 32'h48;
-localparam REG_DBG_CLK       = BASE_ADDR + 32'h4c;
+localparam REG_DBG_AXI_STICKY= BASE_ADDR + 32'h50;
+localparam REG_DBG_I2C_ID    = BASE_ADDR + 32'h60;
+localparam REG_DBG_SYS       = BASE_ADDR + 32'h70;
+localparam REG_DBG_HREF_RAW  = BASE_ADDR + 32'h90;
+localparam REG_DBG_BEAT_CNT  = BASE_ADDR + 32'ha0;
+localparam REG_DBG_BEAT_LAST = BASE_ADDR + 32'hf0;
+localparam REG_DBG_XDMA_REQ  = BASE_ADDR + 32'hb0;
+localparam REG_DBG_VSYNC_RAW = BASE_ADDR + 32'he0;
+localparam REG_DBG_AXI_NOW   = BASE_ADDR + 32'hd0;
+// [ZDIAG 2026-09-18] 0x50/0x90 repurposed from the old axi_sticky/href_raw
+// probes (kept inside the addr[9:8]=00 CAM1 segment; 0x100+ routes to prep).
+localparam REG_DBG_ZDIN      = BASE_ADDR + 32'h50;
+localparam REG_DBG_ZOUT      = BASE_ADDR + 32'h90;
 
     reg bvalid        ;
     reg data_out_valid;
@@ -62,9 +94,12 @@ localparam REG_DBG_CLK       = BASE_ADDR + 32'h4c;
     reg rvalid;
     reg [AXI_ADDR_WIDTH-1 : 0] rdata ;
 
-    //XDAMÓ¦´ð
+    //XDAMÓ¦ï¿½ï¿½
     always @(posedge clk) begin
-        if((s_axi_awvalid & s_axi_awready) && (s_axi_wvalid & s_axi_wready) && (s_axi_awaddr == REG_ACK))begin
+        if(rst)begin
+            xdma_ack <= 2'b0;
+        end
+        else if((s_axi_awvalid & s_axi_awready) && (s_axi_wvalid & s_axi_wready) && (s_axi_awaddr == REG_ACK))begin
             xdma_ack <= s_axi_wdata[1 : 0];
         end
         else begin
@@ -72,28 +107,37 @@ localparam REG_DBG_CLK       = BASE_ADDR + 32'h4c;
         end
     end
 
-    //ÉãÏñÍ·Ê¹ÄÜ
+    //ï¿½ï¿½ï¿½ï¿½Í·Ê¹ï¿½ï¿½
     always @(posedge clk) begin
-        if((s_axi_awvalid & s_axi_awready) && (s_axi_wvalid & s_axi_wready) && (s_axi_awaddr == REG_CAM_EN))begin
+        if(rst)begin
+            cam_en <= CAM_EN_DEF;
+        end
+        else if((s_axi_awvalid & s_axi_awready) && (s_axi_wvalid & s_axi_wready) && (s_axi_awaddr == REG_CAM_EN))begin
             cam_en <= s_axi_wdata[0];
         end
     end
 
-    //Í¼Æ¬µØÖ·1
+    //Í¼Æ¬ï¿½ï¿½Ö·1
     always @(posedge clk) begin
-        if((s_axi_awvalid & s_axi_awready) && (s_axi_wvalid & s_axi_wready) && (s_axi_awaddr == REG_CAM_ADDR_1))begin
+        if(rst)begin
+            cam_addr_1 <= CAM_ADDR_1_DEF;
+        end
+        else if((s_axi_awvalid & s_axi_awready) && (s_axi_wvalid & s_axi_wready) && (s_axi_awaddr == REG_CAM_ADDR_1))begin
             cam_addr_1 <= s_axi_wdata;
         end
     end
 
-    //Í¼Æ¬µØÖ·2
+    //Í¼Æ¬ï¿½ï¿½Ö·2
     always @(posedge clk) begin
-        if((s_axi_awvalid & s_axi_awready) && (s_axi_wvalid & s_axi_wready) && (s_axi_awaddr == REG_CAM_ADDR_2))begin
+        if(rst)begin
+            cam_addr_2 <= CAM_ADDR_2_DEF;
+        end
+        else if((s_axi_awvalid & s_axi_awready) && (s_axi_wvalid & s_axi_wready) && (s_axi_awaddr == REG_CAM_ADDR_2))begin
             cam_addr_2 <= s_axi_wdata;
         end
     end
 
-    //ÒòÎª¾ÍÒ»¸ö¶Á¼Ä´æÆ÷£¬ËùÒÔÕâÀï¾ÍÃ»ÓÐÅÐ¶Ï¶ÁµØÖ·
+    //ï¿½ï¿½Îªï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½ï¿½Ä´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ã»ï¿½ï¿½ï¿½Ð¶Ï¶ï¿½ï¿½ï¿½Ö·
     reg r_state;
     always @(posedge clk) begin
         if(rst)begin
@@ -124,11 +168,11 @@ localparam REG_DBG_CLK       = BASE_ADDR + 32'h4c;
     end
 
 
-    // Ôö¼ÓÒ»¸öÔÝ´æ¶ÁµØÖ·µÄ¼Ä´æÆ÷
+    // ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½Ý´ï¿½ï¿½ï¿½ï¿½Ö·ï¿½Ä¼Ä´ï¿½ï¿½ï¿½
     reg [AXI_ADDR_WIDTH-1:0] raddr_reg;
     always @(posedge clk) begin
         if (s_axi_arvalid & s_axi_arready) begin
-            raddr_reg <= s_axi_araddr; // ÎÕÊÖ³É¹¦Ë²¼ä£¬Ëø´æÖ÷»ú·¢À´µÄ¶ÁµØÖ·
+            raddr_reg <= s_axi_araddr; // ï¿½ï¿½ï¿½Ö³É¹ï¿½Ë²ï¿½ä£¬ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä¶ï¿½ï¿½ï¿½Ö·
         end
     end
 
@@ -136,12 +180,12 @@ localparam REG_DBG_CLK       = BASE_ADDR + 32'h4c;
     always @(posedge clk) begin
         if(rst)begin
             rvalid <= 1'b0;
-            rdata  <= {AXI_ADDR_WIDTH{1'b0}}; // ×¢Òâ£ºrdata Î»¿íÓ¦¸ÃÊÇ 32£¬²»ÊÇ 1
+            rdata  <= {AXI_ADDR_WIDTH{1'b0}}; // ×¢ï¿½â£ºrdata Î»ï¿½ï¿½Ó¦ï¿½ï¿½ï¿½ï¿½ 32ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ 1
         end
         else begin
             if(data_out_valid) begin
                 rvalid <= 1'b1;
-                // ¸ù¾Ý¸Õ²ÅËø´æµÄ¶ÁµØÖ·£¬·µ»Ø¶ÔÓ¦¼Ä´æÆ÷µÄÕæÊµÖµ
+                // ï¿½ï¿½ï¿½Ý¸Õ²ï¿½ï¿½ï¿½ï¿½ï¿½Ä¶ï¿½ï¿½ï¿½Ö·ï¿½ï¿½ï¿½ï¿½ï¿½Ø¶ï¿½Ó¦ï¿½Ä´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ÊµÖµ
                 case(raddr_reg)
                     REG_ACK:        rdata <= {{AXI_ADDR_WIDTH-2{1'b0}}, xdma_ack};
                     REG_CAM_EN:     rdata <= {{AXI_ADDR_WIDTH-1{1'b0}}, cam_en};
@@ -149,17 +193,22 @@ localparam REG_DBG_CLK       = BASE_ADDR + 32'h4c;
                     REG_CAM_ADDR_2: rdata <= cam_addr_2;
                     REG_DBG_CAM_WORDS: rdata <= dbg_cam_words;
                     REG_DBG_VSYNCS:    rdata <= dbg_vsyncs;
+                    REG_DBG_ZDIN:      rdata <= dbg_zdin;
+                    REG_DBG_ZOUT:      rdata <= dbg_zout;
+                    REG_DBG_BEAT_CNT:  rdata <= dbg_beat_cnt;
+                    REG_DBG_BEAT_LAST: rdata <= dbg_last_cnt;
                     REG_DBG_XDMA_REQ:  rdata <= {{(AXI_ADDR_WIDTH-2){1'b0}}, dbg_xdma_req};
-                    REG_DBG_I2C_ID:    rdata <= dbg_i2c_status;
+                    REG_DBG_VSYNC_RAW: rdata <= dbg_vsync_raw;
+                    REG_DBG_I2C_ID:    rdata <= {dbg_wd_cnt[7:0], dbg_state[7:0], dbg_cmd_cnt[15:0]};
                     REG_DBG_PCLK_CNT:  rdata <= dbg_pclk_cnt;
-                    REG_DBG_SYS:       rdata <= dbg_sys_status;
-                    REG_DBG_CLK:       rdata <= dbg_clk_status;
-                    default:        rdata <= {AXI_ADDR_WIDTH{1'b1}}; // ¶Áµ½·Ç·¨µØÖ··µ»ØÌØÊâ±ê¼Ç£¬·½±ã debug
+                    REG_DBG_SYS:       rdata <= {dbg_b_cnt[15:0], dbg_aw_cnt[15:0]};
+                    REG_DBG_AXI_NOW:   rdata <= dbg_axi_num;
+                    default:        rdata <= {AXI_ADDR_WIDTH{1'b1}}; // ï¿½ï¿½ï¿½ï¿½ï¿½Ç·ï¿½ï¿½ï¿½Ö·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ç£ï¿½ï¿½ï¿½ï¿½ï¿½ debug
                 endcase
             end
             else if(s_axi_rvalid & s_axi_rready)begin
                 rvalid <= 1'b0;
-                // rdata ±£³Ö²»±ä¼´¿É£¬Ö±µ½ÏÂÒ»´Î¶ÁÇëÇó
+                // rdata ï¿½ï¿½ï¿½Ö²ï¿½ï¿½ä¼´ï¿½É£ï¿½Ö±ï¿½ï¿½ï¿½ï¿½Ò»ï¿½Î¶ï¿½ï¿½ï¿½ï¿½ï¿½
             end
         end
     end

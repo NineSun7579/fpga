@@ -49,6 +49,12 @@ module axi_dma_write
 
 localparam AXI_BURST_SIZE = $clog2(KEEP_WIDTH); //log2(DATA_WIDTH / 8)
 
+// [WD 2026-09-18] transmit watchdog state
+reg        abort_r;
+reg [23:0] wd_cnt;
+wire       w_progress;
+wire       abort_done;
+
 wire [DATA_WIDTH - 1:0] 		t_m_axi_wdata;	
 wire [KEEP_WIDTH - 1:0]  		t_m_axi_wstrb;	
 wire         					t_m_axi_wlast;	
@@ -90,6 +96,9 @@ always @(posedge clk) begin
 		if((m_axi_awvalid == 1'b1) && (m_axi_awready == 1'b1))begin
 			len <= len - (m_axi_awlen + 1'b1);
 		end
+		else if(abort_done == 1'b1)begin
+			len <= 32'd0;       // [WD]
+		end
 	end
 end
 always @(posedge clk)begin
@@ -103,6 +112,9 @@ always @(posedge clk)begin
 		else begin
 			if((m_axi_bready == 1'b1) && (m_axi_bvalid == 1'b1) && (len == 32'd0))begin
 				trans <= 1'b0;
+			end
+			else if(abort_done == 1'b1)begin
+				trans <= 1'b0;      // [WD] release the stuck transaction
 			end
 		end
 	end
@@ -145,6 +157,9 @@ always@(posedge clk)begin
 			if((m_axi_bvalid == 1'b1) && (m_axi_bready == 1'b1))begin
 				burst_trans <= 1'b0;
 			end
+			else if(abort_done == 1'b1)begin
+				burst_trans <= 1'b0;   // [WD2] force-release; B may never arrive
+			end
 		end
 	end
 end
@@ -157,7 +172,7 @@ always @(posedge clk)begin
 			m_axi_awvalid <= 1'b0;
 		end
 		else begin
-			if((burst_trans == 1'b0) && (len != 32'd0))begin
+			if((burst_trans == 1'b0) && (len != 32'd0) && (abort_r == 1'b0))begin
 				m_axi_awvalid <= 1'b1;
 			end
 		end
@@ -193,6 +208,63 @@ always@ (posedge clk)begin
 	end
 end
 
+// [WD 2026-09-18] ------------------------------------------------------------------
+// The DVP stream can deliver fewer 128-bit beats than CAM_DATA_LEN (CDC FIFO
+// overflow drops pixels and cannot back-pressure the sensor). A frame's AXI
+// burst then never completes: trans sticks at 1, cmd_ready stays low and the
+// frame FSM deadlocks forever (measured: state=ADDR, axi_cnt=0, 0 frames).
+//
+// Recovery: if there is no W-beat progress for ~0.17 s while a write is in
+// flight, close the open burst with dummy beats. AXI forbids cancelling an
+// accepted AW, so we must still supply awlen beats; we just no longer consume
+// real camera data. After the B response is absorbed, trans/len clear and the
+// next frame's command is accepted again (only the bad frame is lost).
+assign w_progress = (t_m_axi_wvalid == 1'b1) && (t_m_axi_wready == 1'b1);
+
+always @(posedge clk) begin
+	if((rst == 1'b1) || (trans == 1'b0) || (abort_r == 1'b1) || (w_progress == 1'b1))
+		wd_cnt <= 24'd0;
+	else if(wd_cnt != 24'hFFFFFF)
+		wd_cnt <= wd_cnt + 24'd1;
+end
+
+// [BFAST 2026-09-19] the DDR write port can stop returning B responses
+// (see [WD2]; re-observed 09-19: b_cnt ~26 total while aw_cnt ~60k).
+// Waiting the full 0.17 s watchdog once every command's beats are out
+// capped the camera path at ~5 fps. Give B a few microseconds after the
+// last beat, then force the close via the abort path; a late B is still
+// absorbed by the w_done/bready logic.
+reg [9:0] bwait_cnt;
+// (w_done intentionally not referenced: it is declared further below and
+// act_burst_len==0 && burst_trans already means every beat is out, B pending)
+wire all_beats_out = (len == 32'd0) && (act_burst_len == 8'd0) && burst_trans;
+always @(posedge clk) begin
+	if((rst == 1'b1) || (trans == 1'b0) || (all_beats_out == 1'b0) || (abort_r == 1'b1))
+		bwait_cnt <= 10'd0;
+	else if(bwait_cnt != 10'h3FF)
+		bwait_cnt <= bwait_cnt + 10'd1;
+end
+always @(posedge clk) begin
+	if(rst == 1'b1)
+		abort_r <= 1'b0;
+	// [BFAST2 2026-09-19] bwait fast-close DISABLED: B latency under DDR contention
+	// can legitimately exceed the 10us grace; force-closing mid-flight corrupted
+	// the crossbar/DDR transaction stream and killed M00 writes within seconds.
+	// Fall back to the long send-watchdog only.
+	else if((abort_r == 1'b0) && (trans == 1'b1) && (wd_cnt == 24'hFFFFFF))
+		abort_r <= 1'b1;
+	else if(abort_done == 1'b1)
+		abort_r <= 1'b0;
+end
+
+// [WD2 2026-09-18] burst_trans is only cleared by the B response, which is
+// exactly what never arrives in the wedge case (cam2: bvalid never asserted).
+// Requiring burst_trans==0 made abort_done unreachable -> no recovery.
+// All W beats for the open burst are out once act_burst_len hits 0, so that
+// is the correct release point; burst_trans is force-cleared below.
+assign abort_done = abort_r && (act_burst_len == 8'd0);
+// ---------------------------------------------------------------------------------
+
 stream_pipe #(
   .DATA_WIDTH 	(DATA_WIDTH+1+KEEP_WIDTH)	
 ) stream_pipe_3(
@@ -206,11 +278,13 @@ stream_pipe #(
   .reset            (rst)
 );
 
-assign data_in_ready = t_m_axi_wready  && act_burst_len > 8'd0;
-assign t_m_axi_wvalid  = data_in_valid && act_burst_len > 8'd0;
-assign t_m_axi_wdata   = data_in;
-assign t_m_axi_wlast   = act_burst_len == 8'd1;
-assign t_m_axi_wstrb   = data_in_keep;
+assign data_in_ready = abort_r ? 1'b0
+                               : (t_m_axi_wready && act_burst_len > 8'd0);
+assign t_m_axi_wvalid  = abort_r ? (act_burst_len > 8'd0)
+                                 : (data_in_valid && act_burst_len > 8'd0);
+assign t_m_axi_wdata   = abort_r ? {DATA_WIDTH{1'b0}} : data_in;
+assign t_m_axi_wlast   = (act_burst_len == 8'd1);
+assign t_m_axi_wstrb   = abort_r ? {KEEP_WIDTH{1'b1}} : data_in_keep;
 
 //b
 reg w_done;
@@ -231,12 +305,22 @@ always @(posedge clk) begin
 end
 assign m_axi_bready = w_done;
 
+// [LEDGER 2026-09-19] single-ledger completion: pulse exactly once per
+// command on the trans 1->0 fall. Covers the normal close (B absorbed,
+// len==0) AND both watchdog abort paths; the old B-gated expression never
+// pulsed when a B response was lost, wedging the frame FSM in DATA forever.
+reg trans_q;
+always @(posedge clk) begin
+	if(rst == 1'b1) trans_q <= 1'b0;
+	else            trans_q <= trans;
+end
+
 always @(posedge clk ) begin
 	if(rst == 1'b1)begin
 		data_in_last <= 1'b0;
 	end
 	else begin
-		data_in_last <= (m_axi_bvalid == 1'b1) && (m_axi_bready == 1'b1) && (len == 32'd0);
+		data_in_last <= trans_q && (trans == 1'b0);
 	end
 end
 
