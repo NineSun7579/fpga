@@ -30,7 +30,14 @@ module ov5640_top #(
     //IODELAY step for DVP sampling phase (0..255)
     parameter [7:0] IODELAY_STEP = 8'd40,
 
-    parameter DEVICE = "PG"
+    parameter DEVICE = "PG",
+
+    // [VIP 2026-09-20] cam1 RGB565 median filtering.
+    //   MEDIAN_EN=0 -> the stream is bypassed bit-exactly (cam2 default)
+    //   MEDIAN_EN=1 -> 3x3 median independently on R/G/B, with replicated
+    //                  image boundaries and one pixel accepted per clock.
+    parameter        MEDIAN_EN      = 1'b0,
+    parameter [2:0]  MEDIAN_RSVD    = 3'd0
 )(
     // input         pl_clk                ,  //��ʱ��
     input         clk_50m               ,
@@ -242,6 +249,45 @@ module ov5640_top #(
     
     );
 
+    // ------------- VIP: RGB565 3x3 median filter, cam1 only -------------
+    // Taps the 16-bit RGB565 stream produced by the capture block and hands it to
+    // the DDR write packer. The module owns 2 line buffers (~2 lines of latency),
+    // re-times vsync and drops the camera tail dummy beat, so ov5640_ddr still sees
+    // exactly W*H pixels per frame. MEDIAN_EN=0 selects a pure wire bypass, so a
+    // camera without filtering keeps its original timing and uses no BRAM.
+    wire                    sh_video_valid;
+    wire [DATA_WIDTH-1 : 0] sh_video_data ;
+    wire                    sh_video_vsync;
+
+    generate
+        if (MEDIAN_EN) begin : g_median
+            vip #(
+                .W       (H_CMOS_DISP),
+                .H       (V_CMOS_DISP),
+                .STRIDE  (1024),
+                .AW      (10),
+                // Keep the retimed frame marker separate from data without
+                // creating a large producer/consumer backlog at frame end.
+                .GAP_LEN (8)
+            ) u_vip (
+                .clk       (video_clk      ),
+                .rst       (video_rst      ),
+                .en        (1'b1           ),
+                .strength  (MEDIAN_RSVD    ),
+                .in_valid  (video_valid    ),
+                .in_pixel  (video_data     ),
+                .in_vsync  (video_vsync    ),
+                .out_valid (sh_video_valid ),
+                .out_pixel (sh_video_data  ),
+                .out_vsync (sh_video_vsync )
+            );
+        end
+        else begin : g_bypass
+            assign sh_video_valid = video_valid;
+            assign sh_video_data  = video_data ;
+            assign sh_video_vsync = video_vsync;
+        end
+    endgenerate
 
     // wire video_rst = !locked;
 
@@ -284,10 +330,10 @@ wire [31:0]   dbg_zout;
         .cam_data_addr_2(cam_addr_2),
         .cam_data_len   (CAM_DATA_LEN), //��16�ֽ�Ϊ��λ
 
-        .s_data         (video_data ),
-        .s_data_valid   (video_valid),
+        .s_data         (sh_video_data ),
+        .s_data_valid   (sh_video_valid),
         .s_hsync        (video_hsync),
-        .s_vsync        (video_vsync),
+        .s_vsync        (sh_video_vsync),
 
         //AXIЭ���
         .axi_data       (cam_s_data      ),

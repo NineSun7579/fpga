@@ -20,7 +20,7 @@ try:
 except Exception:
     pass
 
-PORT, BAUD = 'COM9', 1500000
+PORT, BAUD = 'COM5', 1500000   # [DEBUGPORT] board console moved to the CH340 debug port
 HERE = os.path.dirname(os.path.abspath(__file__))
 SRC = os.path.join(HERE, 'host', 'camview', 'main.cpp')
 DST = '/root/ov5640/camview/main.cpp'

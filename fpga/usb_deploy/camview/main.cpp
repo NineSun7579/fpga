@@ -50,6 +50,7 @@
 #define R_PCLK     (REG_BASE + 0x44)
 #define R_ADDR1    (REG_BASE + 0x80)
 #define R_ADDR2    (REG_BASE + 0xC0)
+#define R_SHARP    (REG_BASE + 0xD0)   // [SHARP] [0]en [3:1]strength(2..6)
 // CAM2 register window (RTL ov5640_reg #2 @ BASE_ADDR 0x2000_0200)
 #define R_CAM2_ACK   (REG_BASE + 0x200)
 #define R_CAM2_EN    (REG_BASE + 0x240)
@@ -152,6 +153,12 @@ public:
     void requestEdge()  { edgeWrite_ = true;  }
     void requestRaw()   { edgeWrite_ = false; }
     void setRBSwap(bool on)   { QMutexLocker l(&m_); swapC_ = on; }
+    void setSharp(bool on, int strength) {   // [SHARP] runtime control
+        QMutexLocker l(&m_);
+        sharpOn_ = on;
+        sharpStr_ = (strength < 2) ? 2 : ((strength > 6) ? 6 : strength);
+        sharpDirty_ = true;
+    }
 
 signals:
     void frameReady(const QImage &img, double fps);
@@ -192,6 +199,10 @@ protected:
         // the engines. The display keeps cycling fresh dual frames unattended.
         qint64 lastFrameMs = 0;
         while (run_) {
+            if (sharpDirty_) {                       // [SHARP] apply once
+                sharpDirty_ = false;
+                dev_->regWrite(R_SHARP, (sharpOn_ ? 1u : 0u) | ((uint32_t)sharpStr_ << 1));
+            }
             if (!dev_->readTag(TAG_ADDR_1, t1a))  ::_exit(2);
             if (!dev_->readTag(TAG_ADDR_2, t1b))  ::_exit(2);
             if (!dev_->readTag(TAG2_ADDR_1, t2a)) ::_exit(2);
@@ -279,6 +290,9 @@ private:
     PangoDev *dev_;
     std::atomic_bool run_{true};
     bool swapB_ = false, swapC_ = false;
+    bool sharpOn_ = false;
+    int  sharpStr_ = 3;
+    bool sharpDirty_ = false;
     std::atomic_bool paused_{false};
     std::atomic_bool edgeWrite_{false};   // [RAW] default: unprocessed camera image
     std::atomic_bool edgePending_{false}; // [RAW] no prep-register write at all
@@ -305,6 +319,11 @@ public:
     // [EDGE] true = show Sobel edge stream, false = show RAW camera
     void toggleEdge() { edgeOn_ = !edgeOn_; edgeOn_ ? g_->requestEdge() : g_->requestRaw(); }
     void toggleScale() { smooth_ = !smooth_; }
+    void toggleSharp() { sharpOn_ = !sharpOn_; g_->setSharp(sharpOn_, sharpStr_); }
+    void sharpUp()   { if (sharpStr_ > 2) { sharpStr_--; g_->setSharp(sharpOn_, sharpStr_); } }
+    void sharpDown() { if (sharpStr_ < 6) { sharpStr_++; g_->setSharp(sharpOn_, sharpStr_); } }
+    bool sharpOn() const { return sharpOn_; }
+    int  sharpStrength() const { return sharpStr_; }
     bool smoothScale() const { return smooth_; }
     bool paused() const { return paused_; }
 
@@ -323,6 +342,9 @@ protected:
         case Qt::Key_S: toggleScale(); break;
         case Qt::Key_H: help_ = !help_; break;
         case Qt::Key_E: toggleEdge(); break;
+        case Qt::Key_R: toggleSharp(); break;      // [SHARP] on/off
+        case Qt::Key_Plus: case Qt::Key_Equal: sharpUp(); break;
+        case Qt::Key_Minus: sharpDown(); break;
         default: break;
         }
     }
@@ -333,6 +355,8 @@ private:
     Grabber *g_;
     bool full_ = false, bs_ = false, rs_ = false, paused_ = false, smooth_ = false, help_ = false;
     bool edgeOn_ = false;  // [RAW] default: unprocessed camera image
+    bool sharpOn_ = false; // [SHARP] default off
+    int  sharpStr_ = 3;
 };
 
 int main(int argc, char **argv) {
@@ -353,6 +377,10 @@ int main(int argc, char **argv) {
         "  B         字节序 切换\n"
         "  C         红蓝交换 切换\n"
         "  E         切换缓冲区(RAW/处理)\n"
+        "  R         锐化 开/关 (cam1)
+"
+        "  +/-       锐化强度 2..6
+"
         "  H         显示 / 隐藏本帮助\n"
         "\n"
         "按 H 关闭帮助";
@@ -372,11 +400,13 @@ int main(int argc, char **argv) {
                 p.drawText(r.adjusted(16, 12, -16, -12), Qt::AlignTop | Qt::AlignLeft, helpText);
             }
             view->label()->setPixmap(pm);
-            view->setWindowTitle(QString("camview  %1 fps%2  byte=%3 rb=%4  [B]yte [C]RB [F]ull [P]ause [H]elp [Q]uit")
+            view->setWindowTitle(QString("camview  %1 fps  sharp=%5/%6%2  byte=%3 rb=%4  [B]yte [C]RB [F]ull [P]ause [R]harp [H]elp [Q]uit")
                                      .arg(fps, 0, 'f', 1)
                                      .arg(view->paused() ? "  PAUSED" : "")
                                      .arg(view->byteSwapped() ? 1 : 0)
-                                     .arg(view->rbSwapped() ? 1 : 0));
+                                     .arg(view->rbSwapped() ? 1 : 0)
+                                     .arg(view->sharpOn() ? 1 : 0)
+                                     .arg(view->sharpStrength()));
         });
     QObject::connect(grabber, &Grabber::statusMsg, view, [&app, view](const QString &s) {
         view->label()->setText(s);

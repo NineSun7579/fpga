@@ -1104,7 +1104,9 @@ prep_regs #(.TICK_DIV(50)) prep_regs_u (
 
 `ifdef USE_OV5640
 ov5640_top #(
-    .IODELAY_STEP  (8'd40)
+    .IODELAY_STEP  (8'd40),
+    .MEDIAN_EN     (1'b1)        , // [MEDIAN] cam1/left path only; cam2 remains raw
+    .MEDIAN_RSVD   (3'd0)
 ) ov5640_top(
     .clk_50m       (clk_50m)        ,
     .clk_50m_rst_n (1'b1)                       , //[RSTFIX 2026-09-13] button_rst_n floating-low on this board
@@ -1181,7 +1183,7 @@ ov5640_top #(
     .BASE_ADDR       (32'h2000_0200),
     .CAM_ADDR_1_DEF  (32'h00C0_0000),
     .CAM_ADDR_2_DEF  (32'h00E0_0000),
-    .CAM_EN_DEF      (1'b1),   // [LEDGER 2026-09-19] both cams stream at reset
+    .CAM_EN_DEF      (1'b1),   // [DUALCAM] keep both camera engines enabled
     .H_CMOS_DISP     (11'd640),
     .V_CMOS_DISP     (11'd480),
     .TOTAL_H_PIXEL   (12'd1896),

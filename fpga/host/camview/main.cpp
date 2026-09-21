@@ -164,13 +164,11 @@ protected:
         // failure mode that can wedge the PCIe driver. Frame health is proven by
         // changing DDR tags instead.
         emit statusMsg("ACK-WAIT; DUAL 2 x 640x480 RGB565");
-        // [LEDGER 2026-09-19] boot: clear pending on BOTH cams, then explicitly
-        // enable both capture engines (never rely on reset defaults).
-        dev_->regWrite(R_ACK, 3);
-        dev_->regWrite(R_CAM2_ACK, 3);
-        dev_->regWrite(R_CAM_EN, 1);
-        dev_->regWrite(R_CAM2_EN, 1);
-        msleep(80);
+        // The FPGA bitstream defaults both camera engines enabled.  Do not
+        // touch the M01 register window here: its AXI-Lite bridge can block a
+        // PCIe ioctl and leave the driver in ACK-WAIT before the first tag is
+        // read.  Streaming is tag-driven and needs no startup register write.
+        msleep(200);
 
         QByteArray c1(FRAME_BYTES, 0), c2(FRAME_BYTES, 0);
         QByteArray comp(2 * FRAME_BYTES, 0);
@@ -204,19 +202,18 @@ protected:
             }
             const bool n1a = (t1a != lt1a), n1b = (t1b != lt1b);
             const bool n2a = (t2a != lt2a), n2b = (t2b != lt2b);
-            // [STABLE-BUF 2026-09-19] with the FPGA free-running (ackless ping-pong),
-            // the buffer whose tag JUST advanced is being read out by the engine right
-            // now (it immediately starts the OTHER buffer and comes back a frame later).
-            // Reading it showed mid-write tearing = the vertical stripes on screen.
-            // Read the OTHER buffer instead: completed a full frame ago, untouched for
-            // another frame -> wide safe window (read ~7 ms vs frame ~33-50 ms).
+            // [STABLE-BUF] The tag is written after the frame command completes;
+            // the tagged buffer is complete and the FPGA has switched to the
+            // other ping-pong buffer. Read the tagged buffer. Selecting the
+            // other buffer reads the one currently being written and creates
+            // periodic vertical stripes.
             int b1 = -1, b2 = -1;
-            if (n1a && n1b)      b1 = 1 - (((int32_t)(t1a - t1b) >= 0) ? 0 : 1);
-            else if (n1a)        b1 = 1;
-            else if (n1b)        b1 = 0;
-            if (n2a && n2b)      b2 = 1 - (((int32_t)(t2a - t2b) >= 0) ? 0 : 1);
-            else if (n2a)        b2 = 1;
-            else if (n2b)        b2 = 0;
+            if (n1a && n1b)      b1 = ((int32_t)(t1a - t1b) >= 0) ? 0 : 1;
+            else if (n1a)        b1 = 0;
+            else if (n1b)        b1 = 1;
+            if (n2a && n2b)      b2 = ((int32_t)(t2a - t2b) >= 0) ? 0 : 1;
+            else if (n2a)        b2 = 0;
+            else if (n2b)        b2 = 1;
             // first pass fallback: a never-written buffer has tag 0 -> use latest
             if (b1 == 0 && t1a == 0) b1 = 1;
             if (b1 == 1 && t1b == 0) b1 = 0;
