@@ -4,7 +4,7 @@
 """
 import serial, sys, time, base64, hashlib, math
 
-PORT = 'COM9'
+PORT = 'COM5'
 BAUD = 1500000
 CHUNK = 1400
 NL = b'\n'

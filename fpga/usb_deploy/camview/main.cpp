@@ -283,7 +283,7 @@ protected:
             double el = t0.elapsed() / 1000.0;
             if (el >= 0.5) { fps = frames / el; frames = 0; t0.restart(); }
             emit frameReady(out, fps);
-            msleep(60);   // [PACE] total loop period ~80ms
+             msleep(1);    // no artificial frame-rate cap
         }
     }
 private:
@@ -377,10 +377,8 @@ int main(int argc, char **argv) {
         "  B         字节序 切换\n"
         "  C         红蓝交换 切换\n"
         "  E         切换缓冲区(RAW/处理)\n"
-        "  R         锐化 开/关 (cam1)
-"
-        "  +/-       锐化强度 2..6
-"
+        "  R         锐化 开/关 (cam1)\n"
+        "  +/-       锐化强度 2..6\n"
         "  H         显示 / 隐藏本帮助\n"
         "\n"
         "按 H 关闭帮助";

@@ -5,7 +5,7 @@
 """
 import serial, sys, time
 
-PORT = 'COM9'
+PORT = 'COM5'
 BAUD = 1500000
 
 def open_port():

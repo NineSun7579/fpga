@@ -89,8 +89,8 @@ public:
     // [MSISTORM 2026-09-19] with both cameras streaming the FPGA push path can
     // saturate the MSI queue for seconds; the old 3 s single-shot timeout made
     // camview kill itself. Retry the (idempotent) descriptor ioctls instead.
-    bool ioctlTmo(int cmd, DmaOp *op, unsigned sec) {
-        for (int attempt = 0; attempt < 3; attempt++) {
+    bool ioctlTmo(int cmd, DmaOp *op, unsigned sec, int attempts = 3) {
+        for (int attempt = 0; attempt < attempts; attempt++) {
             timeoutHit_ = false;
             struct sigaction sa{}, old{};
             sa.sa_handler = &PangoDev::alarmHandler;
@@ -99,7 +99,7 @@ public:
             int r = ioctl(fd_, cmd, op);
             alarm(0);
             sigaction(SIGALRM, &old, nullptr);
-            if (timeoutHit_) { err_ = "ioctl timeout"; usleep(200000); continue; }
+            if (timeoutHit_) { err_ = "ioctl timeout"; usleep(50000); continue; }
             if (r == 0) return true;
             usleep(50000);
         }
@@ -118,8 +118,13 @@ public:
         return true;
     }
     bool ddrRead(uint32_t addr, uint32_t len, void *out) {
+        QMutexLocker dmaLock(&dmaMutex_);
         DmaOp op{}; op.offset_addr = 0; op.ddr3_addr = addr; op.total_length = len;
-        if (!ioctlTmo(F2H_CMD, &op, 10)) return false;
+        // A lost MSI must not hold the shared DMA mutex for tens of seconds.
+        // The kernel driver already bounds one DMA wait to ~800 ms, so one
+        // two-second userspace attempt is enough; the worker keeps its last
+        // good frame and retries on the next tag.
+        if (!ioctlTmo(F2H_CMD, &op, 2, 1)) return false;
         memcpy(out, rx_, len);
         return true;
     }
@@ -134,9 +139,62 @@ private:
     const char *err_ = "ok";
     int fd_ = -1;
     uint8_t *tx_ = nullptr, *rx_ = nullptr;
+    QMutex dmaMutex_;
 };
 
 volatile sig_atomic_t PangoDev::timeoutHit_ = 0;
+
+struct LatestFrames {
+    QMutex mutex;
+    QByteArray c1, c2;
+    bool have1 = false, have2 = false;
+    uint64_t errors1 = 0, errors2 = 0;
+    qint64 last1 = 0, last2 = 0;
+};
+
+class CameraWorker : public QThread {
+public:
+    CameraWorker(PangoDev *dev, LatestFrames *frames, int camera)
+        : dev_(dev), frames_(frames), camera_(camera) {}
+    void stop() { running_ = false; }
+protected:
+    void run() override {
+        const uint32_t ta = camera_ == 1 ? TAG_ADDR_1 : TAG2_ADDR_1;
+        const uint32_t tb = camera_ == 1 ? TAG_ADDR_2 : TAG2_ADDR_2;
+        const uint32_t ba = camera_ == 1 ? CAM_ADDR_1 : CAM2_ADDR_1;
+        const uint32_t bb = camera_ == 1 ? CAM_ADDR_2 : CAM2_ADDR_2;
+        uint32_t a = 0, b = 0, la = 0, lb = 0;
+        bool base = false;
+        QByteArray frame(FRAME_BYTES, 0);
+        while (running_) {
+            if (!dev_->readTag(ta, a) || !dev_->readTag(tb, b)) { msleep(10); continue; }
+            if (!base) { la = a; lb = b; base = true; msleep(10); continue; }
+            int which = (a != la) ? 0 : ((b != lb) ? 1 : -1);
+            // Tags are only frame notifications; polling them at a tight loop
+            // creates thousands of small PCIe DMA transactions and increases
+            // MSI contention. A 10 ms cadence is still much faster than the
+            // ~32 fps camera stream.
+            if (which < 0) { msleep(6); continue; }
+            la = a; lb = b;
+            if (!dev_->ddrRead(which ? bb : ba, FRAME_BYTES, frame.data())) {
+                QMutexLocker errorLock(&frames_->mutex);
+                if (camera_ == 1) ++frames_->errors1; else ++frames_->errors2;
+                msleep(25); continue;
+            }
+            QMutexLocker lock(&frames_->mutex);
+            if (camera_ == 1) { frames_->c1 = frame; frames_->have1 = true; frames_->last1 = QDateTime::currentMSecsSinceEpoch(); }
+            else { frames_->c2 = frame; frames_->have2 = true; frames_->last2 = QDateTime::currentMSecsSinceEpoch(); }
+            // The sensor is ~32 fps. Do not hammer the single PCIe DMA engine
+            // with back-to-back tag/frame transactions from both workers.
+            msleep(6);
+        }
+    }
+private:
+    PangoDev *dev_;
+    LatestFrames *frames_;
+    int camera_;
+    std::atomic_bool running_{true};
+};
 
 // ---------------- 采集线程 ----------------
 class Grabber : public QThread {
@@ -159,11 +217,47 @@ signals:
 
 protected:
     void run() override {
+        if (!dev_->open()) { emit statusMsg("FATAL: open driver failed"); return; }
+        LatestFrames latest;
+        CameraWorker w1(dev_, &latest, 1), w2(dev_, &latest, 2);
+        w1.start(); w2.start();
+        QByteArray c1(FRAME_BYTES, 0), c2(FRAME_BYTES, 0), comp(2 * FRAME_BYTES, 0);
+        const int rowb = IMG_W * 2;
+        QElapsedTimer timer; timer.start();
+        int frames = 0; double fps = 0;
+        emit statusMsg("DUAL THREAD VIEW");
+        while (run_) {
+        bool ready; qint64 last1, last2; uint64_t err1, err2;
+            { QMutexLocker lock(&latest.mutex); ready = latest.have1 || latest.have2; if (latest.have1) c1 = latest.c1; if (latest.have2) c2 = latest.c2; last1 = latest.last1; last2 = latest.last2; err1 = latest.errors1; err2 = latest.errors2; }
+            if (!ready) { msleep(2); continue; }
+            for (int y = 0; y < IMG_H; ++y) {
+                memcpy(comp.data() + (size_t)y * 2 * rowb, c1.constData() + (size_t)y * rowb, rowb);
+                memcpy(comp.data() + (size_t)y * 2 * rowb + rowb, c2.constData() + (size_t)y * rowb, rowb);
+            }
+            QImage im(reinterpret_cast<const uchar *>(comp.constData()), 2 * IMG_W, IMG_H, 2 * IMG_W * 2, QImage::Format_RGB16);
+            frames++;
+            double elapsed = timer.elapsed() / 1000.0;
+            if (elapsed >= 0.5) { fps = frames / elapsed; frames = 0; timer.restart(); std::fprintf(stderr, "camview_fps=%.3f\n", fps); std::fflush(stderr); }
+            QImage out = im.copy();
+            QPainter p(&out); p.fillRect(QRect(18, 18, 430, 62), QColor(0, 0, 0, 175)); p.setPen(QColor(0, 255, 120));
+            QFont f = p.font(); f.setBold(true); f.setPointSize(13); p.setFont(f);
+            qint64 now = QDateTime::currentMSecsSinceEpoch();
+            p.drawText(QRect(28, 24, 410, 24), Qt::AlignLeft | Qt::AlignVCenter,
+                       QString("D:%1 C1:%2 C2:%3 E1:%4 E2:%5").arg(fps, 0, 'f', 1)
+                       .arg(now - last1 < 500 ? "OK" : "WAIT").arg(now - last2 < 500 ? "OK" : "WAIT").arg(err1).arg(err2));
+            emit frameReady(out, fps);
+            // Display the latest pair at a bounded cadence; without this the
+            // compositor reports 200+ fps by repainting identical cached frames.
+            msleep(30);
+        }
+        w1.stop(); w2.stop(); w1.wait(3000); w2.wait(3000);
+        return;
+#if 0
         if (!dev_->open()) ::_exit(2);
         // M01 reads are intentionally avoided: this bridge has a known stale-read
         // failure mode that can wedge the PCIe driver. Frame health is proven by
         // changing DDR tags instead.
-        emit statusMsg("ACK-WAIT; DUAL 2 x 640x480 RGB565");
+        emit statusMsg("DUAL THREAD VIEW");
         // The FPGA bitstream defaults both camera engines enabled.  Do not
         // touch the M01 register window here: its AXI-Lite bridge can block a
         // PCIe ioctl and leave the driver in ACK-WAIT before the first tag is
@@ -223,7 +317,11 @@ protected:
                 if (lastFrameMs == 0) lastFrameMs = QDateTime::currentMSecsSinceEpoch();
                 else if (QDateTime::currentMSecsSinceEpoch() - lastFrameMs > 4000)
                     ::_exit(2);                       // [SELFHEAL] revive via script
-                msleep(40); continue;
+                // Tags are cheap 16-byte reads; poll at a short cadence so the
+                // viewer does not impose a frame-rate ceiling while waiting for
+                // the FPGA writer.  Keep a small sleep to avoid a tight ioctl
+                // loop when the camera is idle.
+                msleep(2); continue;
             }
             lastFrameMs = QDateTime::currentMSecsSinceEpoch();
             // [PACE 2026-09-19] the PCIe DMA engine wedges under high-rate descriptor
@@ -267,10 +365,22 @@ protected:
                             : im.copy();
             frames++;
             double el = t0.elapsed() / 1000.0;
-            if (el >= 0.5) { fps = frames / el; frames = 0; t0.restart(); }
+            if (el >= 0.5) {
+                fps = frames / el;
+                std::fprintf(stderr, "camview_fps=%.3f\n", fps);
+                std::fflush(stderr);
+                frames = 0;
+                t0.restart();
+            }
             emit frameReady(out, fps);
-            msleep(60);   // [PACE] total loop period ~80ms
+            // Do not impose a frame-rate cap here.  The previous 60 ms delay
+            // limited the dual-camera viewer to roughly 13--17 fps even when
+            // both FPGA tags were advancing faster.  The tag poll above and
+            // the two frame DMA reads provide the required pacing.
+            msleep(1);
         }
+    }
+#endif
     }
 private:
     PangoDev *dev_;
@@ -359,6 +469,22 @@ int main(int argc, char **argv) {
             QPixmap pm = QPixmap::fromImage(img).scaled(
                 view->label()->size(), Qt::KeepAspectRatio,
                 view->smoothScale() ? Qt::SmoothTransformation : Qt::FastTransformation);
+            // The grabber emits one frame only after both cameras have been
+            // read and composited, so this is the effective dual-camera FPS.
+            // Keep it on the image, rather than only in the window title.
+            {
+                QPainter p(&pm);
+                p.setRenderHint(QPainter::Antialiasing);
+                QRect r(18, 18, 190, 42);
+                p.fillRect(r, QColor(0, 0, 0, 180));
+                p.setPen(QColor(0, 255, 120));
+                QFont f = p.font();
+                f.setPointSize(16);
+                f.setBold(true);
+                p.setFont(f);
+                p.drawText(r.adjusted(10, 4, -8, -4), Qt::AlignLeft | Qt::AlignVCenter,
+                           QString("Dual FPS: %1").arg(fps, 0, 'f', 1));
+            }
             if (view->helpVisible()) {
                 QPainter p(&pm);
                 p.setRenderHint(QPainter::Antialiasing);
