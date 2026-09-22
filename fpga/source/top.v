@@ -1105,7 +1105,7 @@ prep_regs #(.TICK_DIV(50)) prep_regs_u (
 `ifdef USE_OV5640
 ov5640_top #(
     .IODELAY_STEP  (8'd40),
-    .MEDIAN_EN     (1'b1)        , // [MEDIAN] cam1/left path only; cam2 remains raw
+    .MEDIAN_EN     (1'b0)        , // [MEDIAN] cam1/left path only; cam2 remains raw
     .MEDIAN_RSVD   (3'd0)
 ) ov5640_top(
     .clk_50m       (clk_50m)        ,
