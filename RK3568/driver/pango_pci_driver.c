@@ -43,28 +43,6 @@ static atomic_t g_npu_done = ATOMIC_INIT(0);    // NPU已完成的总次数（�
 // MSI中断全局变量
 msi_info_t g_msi;
 
-/*
- * A lost MSI used to leave g_dma_flag==1 forever.  Every later DMA ioctl then
- * waited for the permanently-owned DMA slot until its timeout, which made the
- * dual-camera viewer stall both cameras.  The FPGA has only one DMA engine, so
- * recovery must release the software slot and discard stale queued events; the
- * next ioctl will re-program a complete descriptor.
- */
-static void pango_dma_timeout_recover(const char *kind)
-{
-    printk(KERN_WARNING "pango_dma: %s timeout, releasing stale DMA state "
-           "(dma=%d cam=%d done=%d ack=%d)\n",
-           kind,
-           atomic_read(&g_dma_flag), atomic_read(&g_cam_flag),
-           atomic_read(&g_cam_done), atomic_read(&g_ack_num));
-    atomic_set(&g_dma_flag, 0);
-    /* Preserve camera completion queues when an ordinary host DMA loses its
-     * MSI. A camera MSI may arrive independently; clearing these counters here
-     * silently drops the next frame. Only release the timed-out DMA owner. */
-    wake_up_interruptible(&g_msi.queue);
-}
-
-
 struct file_operations pango_cdev_fops = {
 	.owner   = THIS_MODULE,
 	.llseek  = pango_cdev_llseek,
@@ -569,7 +547,6 @@ long pango_cdev_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 		                                            atomic_cmpxchg(&g_dma_flag, 0, 1) == 0, 
                                             msecs_to_jiffies(120));
             if (ret_r == 0) {
-                pango_dma_timeout_recover("DMA_READ_MSI");
 		    printk(KERN_ERR "PCI_DMA_READ Error: Timeout waiting for DMA engine idle [g_dma_flag=%d, g_cam_flag=%d, g_cam_done=%d, g_ack_num=%d]\n",
 		           atomic_read(&g_dma_flag), atomic_read(&g_cam_flag), atomic_read(&g_cam_done), atomic_read(&g_ack_num));
 		    up(&pci_pango->_sem);
@@ -582,13 +559,16 @@ long pango_cdev_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 		}
 
 
-			spin_lock(&dma_info.addr_r.lock);
 			//内核里面的dma_operation更新
 			size_t head_size_r = offsetof(DMA_OPERATION, data);
             // 拷贝参数，速度极快，且允许缺页休眠
             if (copy_from_user(&dma_operation, (DMA_OPERATION*)arg, head_size_r)) {
+                atomic_cmpxchg(&g_dma_flag, 1, 0);
+                wake_up_interruptible(&g_msi.queue);
+                up(&pci_pango->_sem);
                 return -EFAULT;
             }
+			spin_lock(&dma_info.addr_r.lock);
 
 			// TLP 长度 = min(total_length, MAX_TRANSFER_SIZE)
 			// 后续 DMA 引擎直接用 o_req_length 作为传输 DW 数
@@ -609,13 +589,12 @@ long pango_cdev_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
             set_dma_addr(&temp_dma_addr_r, pci_pango);
 
 			// 最后写 TOTAL_LENGTH，触发控制器开始自动分chunk循环
+			int old_r = atomic_read(&g_msi.count);
 			set_total_length(dma_operation.total_length, pci_pango);
 			// 写 CMD_REG 启动 DMA
 			set_dma_w_r(dma_info.cmd.value, pci_pango);
 			spin_unlock(&dma_info.addr_r.lock);
 
-
-			int old_r = atomic_read(&g_msi.count);
 
 		    // 进程在这里休眠，直到以下两个条件之一发生：
 		    // 1. 中断计数器改变
@@ -629,6 +608,9 @@ long pango_cdev_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 		               atomic_read(&g_msi.count), atomic_read(&g_dma_flag), atomic_read(&g_cam_flag), atomic_read(&g_cam_done), atomic_read(&g_ack_num));
 		        up(&pci_pango->_sem);
 		        return -ETIMEDOUT;
+		    } else if (ret_r < 0) {
+		        up(&pci_pango->_sem);
+		        return -ERESTARTSYS;
 		    }
 		break;
 
@@ -641,7 +623,6 @@ long pango_cdev_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 		                                            atomic_cmpxchg(&g_dma_flag, 0, 1) == 0, 
 		                                            msecs_to_jiffies(800));
             if (ret_w == 0) {
-                pango_dma_timeout_recover("DMA_WRITE_IDLE");
 		    printk(KERN_ERR "PCI_DMA_WRITE Error: Timeout waiting for DMA engine idle [g_dma_flag=%d, g_cam_flag=%d, g_cam_done=%d, g_ack_num=%d]\n",
 		           atomic_read(&g_dma_flag), atomic_read(&g_cam_flag), atomic_read(&g_cam_done), atomic_read(&g_ack_num));
 		    up(&pci_pango->_sem);
@@ -653,13 +634,16 @@ long pango_cdev_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 		    return -ERESTARTSYS;
 		}
 
-			spin_lock(&dma_info.addr_w.lock);
 			//内核里面的dma_operation更新
 			size_t head_size_w = offsetof(DMA_OPERATION, data);
             // 拷贝参数，速度极快，且允许缺页休眠
             if (copy_from_user(&dma_operation, (DMA_OPERATION*)arg, head_size_w)) {
+                atomic_cmpxchg(&g_dma_flag, 1, 0);
+                wake_up_interruptible(&g_msi.queue);
+                up(&pci_pango->_sem);
                 return -EFAULT;
             }
+			spin_lock(&dma_info.addr_w.lock);
 			// spin_lock(&dma_info.addr_w.lock);
 			dma_info.cmd.data.op_type = 1;										/* DMA写操作，DMA将数据写入到内核 */
 			// TLP 长度 = min(total_length, MAX_TRANSFER_SIZE)
@@ -674,11 +658,10 @@ long pango_cdev_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 			// set_dma_addr(&dma_info.addr_w, pci_pango);						//内核实际物理地址告诉DMA
 
 			// 最后写 TOTAL_LENGTH，触发控制器开始自动分chunk循环
+			int old_w = atomic_read(&g_msi.count);
 			set_total_length(dma_operation.total_length, pci_pango);
 			set_dma_w_r(dma_info.cmd.value, pci_pango);						//将配置写入DMA的 cmd_reg
 			spin_unlock(&dma_info.addr_w.lock);
-
-			int old_w = atomic_read(&g_msi.count);
 
 		    // 进程在这里休眠，直到以下两个条件之一发生：
 		    // 1. 中断计数器改变（说明 pango_irq_handler 被执行了，FPGA发了中断）
@@ -688,11 +671,13 @@ long pango_cdev_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 				msecs_to_jiffies(120));
 			
             if (ret_w == 0) {
-                pango_dma_timeout_recover("DMA_WRITE_MSI");
 		        printk(KERN_ERR "PCI_DMA_WRITE Error: Timeout waiting for MSI interrupt [g_msi.count=%d, g_dma_flag=%d, g_cam_flag=%d, g_cam_done=%d, g_ack_num=%d]\n",
 		               atomic_read(&g_msi.count), atomic_read(&g_dma_flag), atomic_read(&g_cam_flag), atomic_read(&g_cam_done), atomic_read(&g_ack_num));
 		        up(&pci_pango->_sem);
 		        return -ETIMEDOUT;
+		    } else if (ret_w < 0) {
+		        up(&pci_pango->_sem);
+		        return -ERESTARTSYS;
 		    }
 		break;
 		// 内核态 往 CPU写数据 （MMP下废弃）
