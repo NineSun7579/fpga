@@ -1,0 +1,50 @@
+"""Read-only source audit and isolated DDR capture; never programs FPGA/SCCB."""
+import sys, os, json, hashlib, shlex, time
+from pathlib import Path
+import paramiko
+
+ROOT = Path(__file__).resolve().parents[1]
+OUT = ROOT / 'tp' / 'cam2_evidence_84mhz'
+OUT.mkdir(parents=True, exist_ok=True)
+sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+c = paramiko.SSHClient()
+c.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+c.connect('192.168.10.241', username='linaro', password='123456', allow_agent=False, look_for_keys=False, timeout=15)
+sftp = c.open_sftp()
+
+def sh(cmd, check=True):
+    i,o,e = c.exec_command('sudo -S -p "" bash -c ' + shlex.quote(cmd), timeout=90)
+    i.write('123456\n'); i.flush()
+    out = o.read().decode('utf-8','replace'); err = e.read().decode('utf-8','replace')
+    rc = o.channel.recv_exit_status()
+    text = '$ '+cmd+'\n'+out+err+'\nRC='+str(rc)+'\n'
+    print(text, flush=True)
+    with (OUT / 'session.log').open('a', encoding='utf-8') as f: f.write(text)
+    if check and rc: raise RuntimeError('Remote command failed')
+    return out
+
+def pull_root(src, name):
+    tmp = '/tmp/cam2_evidence_' + name
+    sh('cp '+shlex.quote(src)+' '+shlex.quote(tmp)+' && chmod 644 '+shlex.quote(tmp))
+    sftp.get(tmp, str(OUT / name))
+
+def shot(name):
+    tmp='/tmp/cam2_evidence_'+name+'.png'
+    sh('DISPLAY=:0 XAUTHORITY=/var/run/lightdm/root/:0 /root/ov5640/qshot/qshot '+tmp+' 900')
+    sftp.get(tmp,str(OUT / (name+'.png')))
+
+try:
+    if sys.argv[1] == 'audit':
+        sh('date -Is; ps -eo pid,ppid,comm,args; ls -l /sys/bus/pci/devices/0002:21:00.0/driver; find /root/ov5640 -maxdepth 3 -name main.cpp -o -name camview -o -name run_camview.sh')
+        pull_root('/root/ov5640/run_camview.sh','run_camview.sh')
+        sh('for p in $(pidof camview); do readlink /proc/$p/exe; sha256sum /proc/$p/exe; done')
+        shot('before')
+    elif sys.argv[1] == 'sources':
+        pull_root('/root/ov5640/camview/main.cpp','board_main.cpp')
+        pull_root('/root/ov5640/camview/camview','board_camview')
+        local=(ROOT/'host/camview/main.cpp').read_bytes()
+        (OUT/'local_main.cpp').write_bytes(local)
+        print('SOURCE_EQUAL',local==(OUT/'board_main.cpp').read_bytes())
+        sh('stat /root/ov5640/camview/main.cpp /root/ov5640/camview/camview; sha256sum /root/ov5640/camview/main.cpp /root/ov5640/camview/camview; file /root/ov5640/camview/camview')
+finally:
+    sftp.close(); c.close()

@@ -8,6 +8,9 @@ module ov5640_ddr #(
 )(
     input          axi_clk        ,
     input          axi_rst        , 
+    input          dma_abort,
+    output         dma_abort_req,
+    output [15:0] axi_data_available,
     input          dma_done       ,  // [LEDGER 2026-09-19] DMA transaction-done pulse
     input          axi_cam_en     ,      //����ͷ�����ź�
 
@@ -31,6 +34,9 @@ module ov5640_ddr #(
     input                          axi_cmd_ready  /*synthesis PAP_MARK_DEBUG="1"*/,
 
     output [1 : 0]   xdma_req       ,
+    output reg [31:0] dbg_fault_snapshot,
+    output [31:0] dbg_reject_counts,
+    output reg [31:0] dbg_input_pixels,
     output [31:0]    dbg_axi_cnt    ,
     output [31:0]    dbg_axi_num    ,
     output [31:0]    dbg_zdin       ,
@@ -38,7 +44,8 @@ module ov5640_ddr #(
     output [31:0]    dbg_state      ,
     output [31:0]    dbg_last_cnt   ,
     output [31:0]    dbg_wd_cnt     ,
-    input  [1 : 0]   xdma_ack        
+    input  [1 : 0]   xdma_ack        ,
+    output [AXI_ADDR_WIDTH-1:0] prev_frame_base  // [VKFS] previous frame's ping-pong bank
 );
 
     wire [DATA_WIDTH-1 : 0]  m_data      /*synthesis PAP_MARK_DEBUG="1"*/;
@@ -49,19 +56,95 @@ module ov5640_ddr #(
     // [FRTAG 2026-09-14] frame-tag plumbing: the packer stream is detoured through
     // w_* and the ctrl can substitute one counter beat during its DATA_TAG state.
     wire [AXI_DATA_WIDTH-1 : 0] w_data  ;
+    wire [15:0] w_available;
     wire                        w_valid ;
     wire                        w_last  ;
     wire                        w_ready ;
+    wire                        frame_active;
     wire                        tag_active;
     wire [AXI_DATA_WIDTH-1 : 0] tag_data  ;
     wire                    engine_busy;   // [IDLEGATE 2026-09-19]
+    wire                    w_ping_o;
 
+
+// Capture validity belongs to the admitted SOF, never to a DMA timeout.
+// Flush only on DMA retirement (all external W/B obligations are finished).
+reg [2:0] flush_count;
+wire capture_flush = (flush_count != 0);
+reg capture_open, capture_bad;
+reg [31:0] pixel_count, pixel_limit;
+reg raw_vsync_q;
+wire raw_sof = s_vsync && !raw_vsync_q;
+wire capture_overflow;
+wire capture_complete = capture_open && (pixel_count == pixel_limit);
+wire frame_good = capture_complete && !capture_bad && !capture_overflow;
+wire capture_stop = capture_flush || capture_bad || capture_complete;
+assign dma_abort_req = capture_bad;
+// Read-only evidence, retained across local flush. First source fault wins.
+// Snapshot [31]=overflow, [30]=short, [29]=DMA abort without source fault,
+// [28]=tag phase, [27:0]=accepted pixel count at that event.
+reg [15:0] diag_overflows, diag_shorts;
+reg [31:0] diag_input_count;
+wire diag_short = raw_sof && !capture_complete;
+wire diag_fault = capture_open && !capture_flush && !capture_bad &&
+                  !m_vsync && (capture_overflow || diag_short);
+assign dbg_reject_counts = {diag_overflows, diag_shorts};
+always @(posedge axi_clk) begin
+    if(axi_rst) begin
+        dbg_fault_snapshot <= 0;
+        diag_overflows <= 0;
+        diag_shorts <= 0;
+        diag_input_count <= 0;
+        dbg_input_pixels <= 0;
+    end else begin
+        // Count every offered pixel, independently of admission/quota/flush.
+        if(raw_sof) begin
+            dbg_input_pixels <= diag_input_count;
+            diag_input_count <= s_data_valid ? 1 : 0;
+        end else if(s_data_valid) diag_input_count <= diag_input_count + 1'b1;
+        if(diag_fault) begin
+            dbg_fault_snapshot <= {capture_overflow, diag_short, 1'b0,
+                                   !frame_active, pixel_count[27:0]};
+            if(capture_overflow) diag_overflows <= diag_overflows + 1'b1;
+            if(diag_short) diag_shorts <= diag_shorts + 1'b1;
+        end else if(dma_abort && !capture_bad) begin
+            dbg_fault_snapshot <= {2'b00, 1'b1, !frame_active, pixel_count[27:0]};
+        end
+    end
+end
+always @(posedge axi_clk) begin
+    if(axi_rst) begin
+        flush_count <= 4;
+        raw_vsync_q <= 0;
+    end else begin
+        raw_vsync_q <= s_vsync;
+        if(dma_abort || (dma_done && (!frame_active || !frame_good))) flush_count <= 4;
+        else if(capture_flush) flush_count <= flush_count - 1'b1;
+    end
+end
+always @(posedge axi_clk) begin
+    if(axi_rst || capture_flush) begin
+        capture_open <= 0;
+        capture_bad <= 0;
+        pixel_count <= 0;
+        pixel_limit <= 0;
+    end else if(m_vsync) begin
+        capture_open <= 1;
+        capture_bad <= (cam_data_len == 0);
+        pixel_count <= 0;
+        pixel_limit <= (cam_data_len * AXI_DATA_WIDTH) / DATA_WIDTH;
+    end else if(capture_open) begin
+        if(m_data_valid) pixel_count <= pixel_count + 1'b1;
+        if(capture_overflow || (raw_sof && !capture_complete)) capture_bad <= 1;
+    end
+end
 
 ov5640_ddr_w_en #(
     .DATA_WIDTH(DATA_WIDTH)
 )
 ov5640_ddr_w_en(
-    .engine_busy   (engine_busy   ),   // [IDLEGATE 2026-09-19] gate admission on write-engine idle
+    .capture_stop  (capture_stop),
+    .engine_busy   (engine_busy | capture_flush),   // [IDLEGATE 2026-09-19] gate admission on write-engine idle
     .axi_clk       (axi_clk        ),
     .axi_rst       (axi_rst        ),
 
@@ -91,6 +174,9 @@ ov5640_ddr_w(
     .axi_clk        (axi_clk        ),
     .axi_rst        (axi_rst        ),
 
+    .capture_flush (capture_flush),
+    .capture_overflow(capture_overflow),
+    .axi_data_available(w_available),
     .data_len       (cam_data_len   ), //��16�ֽ�Ϊ��λ
 
     .s_data         (m_data         ),
@@ -108,15 +194,14 @@ ov5640_ddr_w(
     .dbg_zout       (dbg_zout       )
 );
 
-    // [FRTAG 2026-09-14] frame-tag stream mux: while the ctrl runs its DATA_TAG
-    // state it replaces the (idle) camera stream with one AXI_DATA_WIDTH beat
-    // carrying the 32-bit frame counter for the second 16-byte command. The
-    // camera stream is stalled (not dropped) for those few cycles; its FIFO
-    // absorbs the pause. Frame-path behaviour is otherwise bit-identical.
+    // Only DATA may consume camera FIFO words. DATA_TAG presents one tag
+    // beat; WAIT_TAG_DONE presents no data and retains engine ownership.
+    assign axi_data_available = tag_active ? 16'd1 : (frame_active ? w_available : 16'd0);
     assign axi_data       = tag_active ? tag_data : w_data;
-    assign axi_data_valid = tag_active ? 1'b1    : w_valid;
+    assign axi_data_valid = tag_active | (frame_active & w_valid);
     assign axi_data_last  = w_last;
-    assign w_ready        = axi_data_ready & ~tag_active;
+    assign w_ready        = axi_data_ready & frame_active;
+
 
 
 
@@ -136,6 +221,8 @@ ov5640_ddr_w_ctrl(
     
     .s_vsync        (m_vsync        ),
 
+    .dma_abort      (dma_abort),
+    .frame_good     (frame_good),
     .dma_done       (dma_done       ),  // [LEDGER 2026-09-19]
 
     .axi_cmd_addr   (axi_cmd_addr   ),
@@ -143,11 +230,13 @@ ov5640_ddr_w_ctrl(
     .axi_cmd_valid  (axi_cmd_valid  ),
     .axi_cmd_ready  (axi_cmd_ready  ),
 
+    .frame_active   (frame_active   ),
     .tag_active     (tag_active     ),
     .tag_data       (tag_data       ),
     .tag_ready      (axi_data_ready ),
 
     .engine_busy    (engine_busy    ),
+    .w_ping_o       (w_ping_o       ),
     .dbg_state      (dbg_state      ),
     .dbg_last_cnt   (dbg_last_cnt   ),
     .dbg_wd_cnt     (dbg_wd_cnt     ),
@@ -157,4 +246,7 @@ ov5640_ddr_w_ctrl(
 
 
     
+    // [VKFS 2026-09-25] prev frame base = the bank NOT currently being written
+    assign prev_frame_base = w_ping_o ? cam_data_addr_1 : cam_data_addr_2;
+
 endmodule

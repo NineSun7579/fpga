@@ -1,0 +1,39 @@
+"""Restart viewer after FPGA programming, capture two screenshots, compare ROIs."""
+import json
+import subprocess
+import sys
+import time
+from pathlib import Path
+from PIL import Image, ImageChops
+
+root=Path(__file__).resolve().parents[1]
+def run(args):
+    subprocess.run(args,cwd=root,check=True)
+
+run([sys.executable,'tools/sshx.py',
+     'echo 1 > /sys/bus/pci/rescan; sleep 4; insmod /root/ov5640/pango_pci_driver.ko || exit 1; '
+     'rm -f /tmp/camview.lock; setsid nohup /root/ov5640/run_camview.sh > /tmp/cam3_validation_viewer.log 2>&1 < /dev/null & sleep 15',
+     '--sudo','--tries','2','--timeout','40'])
+grab=Path(r'C:\Users\NineSun\AppData\Local\Temp\opencode\grab2.py')
+stamp=time.strftime('%Y%m%d_%H%M%S')
+names=[f'cam3_verify_{stamp}_{suffix}' for suffix in ('a','b')]
+run([sys.executable,str(grab),names[0]])
+time.sleep(7)
+run([sys.executable,str(grab),names[1]])
+run([sys.executable,'tools/deploy_camview.py','status'])
+images=[Image.open(root/(n+'.png')).convert('RGB') for n in names]
+assert images[0].size==images[1].size
+results={'screenshots':[n+'.png' for n in names],'size':images[0].size,'regions':{}}
+# Current 1000x562 display renders the 1920x480 composite at y=156..406.
+# Exclude the status overlay; check all three camera regions independently.
+assert images[0].size==(1000,562), 'Display geometry changed; inspect and update ROIs'
+for camera,box in enumerate([(0,200,333,405),(333,200,666,405),(666,200,999,405)],1):
+    crops=[im.crop(box) for im in images]
+    diff=ImageChops.difference(*crops)
+    results['regions'][str(camera)]={'box':box,
+        'changed_pixels_gt8':sum(max(p)>8 for p in diff.getdata()),
+        'nonblack_pixels_b':sum(max(p)>8 for p in crops[1].getdata())}
+out=root/(f'cam3_verify_{stamp}.json')
+out.write_bytes(json.dumps(results,indent=2).encode('ascii'))
+print(json.dumps(results,indent=2))
+print('Pixel changes establish updates only; inspect screenshots for valid camera content.')

@@ -1,5 +1,7 @@
 module axi_dma_write
 	#(
+		parameter WAIT_FOR_DATA = 0, // camera source supplies stored beat credits
+		parameter WD_LIMIT = 24'hFFFFFF,
 		parameter 		BURST_LEN 	= 8		,
 		parameter       ID_WIDTH  	= 4		,
 		parameter       DATA_WIDTH 	= 128	,
@@ -15,6 +17,10 @@ module axi_dma_write
 	input 			[31:0] 				cmd_len			,
 	input			[ID_WIDTH - 1:0]    cmd_id          ,
 	output reg  	    				cmd_ready		,
+
+	input [15:0] data_in_available, // complete beats already stored upstream
+	input abort_req, // sticky source fault, held until retirement
+    output reg data_in_abort, // failed command, all AXI obligations retired
 
 	//trans data in
 	input 			[DATA_WIDTH - 1:0]  data_in      	,
@@ -89,7 +95,10 @@ always @(posedge clk) begin
 end
 
 always @(posedge clk) begin 
-	if((cmd_ready == 1'b1) && (cmd_valid == 1'b1))begin
+	if(rst == 1'b1)begin
+		len <= 32'd0;
+	end
+	else if((cmd_ready == 1'b1) && (cmd_valid == 1'b1))begin
 		len <= cmd_len[31:AXI_BURST_SIZE] + (|cmd_len[AXI_BURST_SIZE - 1:0]);
 	end
 	else begin
@@ -97,7 +106,7 @@ always @(posedge clk) begin
 			len <= len - (m_axi_awlen + 1'b1);
 		end
 		else if(abort_done == 1'b1)begin
-			len <= 32'd0;       // [WD]
+			len <= 32'd0;       // Discard only unissued remainder after real B.
 		end
 	end
 end
@@ -114,7 +123,7 @@ always @(posedge clk)begin
 				trans <= 1'b0;
 			end
 			else if(abort_done == 1'b1)begin
-				trans <= 1'b0;      // [WD] release the stuck transaction
+				trans <= 1'b0;      // Aborted burst has completed external W and B.
 			end
 		end
 	end
@@ -143,6 +152,17 @@ end
 
 reg burst_trans;
 assign burst_len     = len > BURST_LEN ? BURST_LEN : len;
+// Do not reserve the shared DDR owner while waiting for future pixels.
+// Once advertised, AW remains irrevocable even if an abort arrives.
+wire source_burst_ready = !WAIT_FOR_DATA ||
+                         (data_in_valid && data_in_available >= max_burst_len);
+wire waiting_source = WAIT_FOR_DATA && trans && !burst_trans &&
+                      !m_axi_awvalid && (len != 0) && !source_burst_ready;
+reg [15:0] available_q;
+always @(posedge clk) begin
+    if(rst) available_q <= 0;
+    else available_q <= data_in_available;
+end
 assign max_burst_len = (((addr & 12'hfff) + (burst_len << AXI_BURST_SIZE )) >> 12)  != 0 ? (13'h1000 - (addr & 12'hfff)) >> AXI_BURST_SIZE : burst_len;
 always@(posedge clk)begin
 	if(rst == 1'b1)begin
@@ -157,9 +177,6 @@ always@(posedge clk)begin
 			if((m_axi_bvalid == 1'b1) && (m_axi_bready == 1'b1))begin
 				burst_trans <= 1'b0;
 			end
-			else if(abort_done == 1'b1)begin
-				burst_trans <= 1'b0;   // [WD2] force-release; B may never arrive
-			end
 		end
 	end
 end
@@ -172,7 +189,7 @@ always @(posedge clk)begin
 			m_axi_awvalid <= 1'b0;
 		end
 		else begin
-			if((burst_trans == 1'b0) && (len != 32'd0) && (abort_r == 1'b0))begin
+			if((trans == 1'b1) && (burst_trans == 1'b0) && (len != 32'd0) && (abort_r == 1'b0) && !abort_req && source_burst_ready)begin
 				m_axi_awvalid <= 1'b1;
 			end
 		end
@@ -180,10 +197,10 @@ always @(posedge clk)begin
 end
 
 always @(posedge clk)begin
-	m_axi_awlen <= max_burst_len - 8'd1;
+	if(!m_axi_awvalid) m_axi_awlen <= max_burst_len - 8'd1;
 end
 always @(posedge clk)begin
-	m_axi_awaddr <= addr;
+	if(!m_axi_awvalid) m_axi_awaddr <= addr;
 end
 always @(posedge clk) begin 
 	if((cmd_ready == 1'b1) && (cmd_valid == 1'b1))begin
@@ -222,47 +239,38 @@ end
 assign w_progress = (t_m_axi_wvalid == 1'b1) && (t_m_axi_wready == 1'b1);
 
 always @(posedge clk) begin
-	if((rst == 1'b1) || (trans == 1'b0) || (abort_r == 1'b1) || (w_progress == 1'b1))
+    if(rst || abort_r) wd_cnt <= 0;
+    else if(waiting_source) begin
+        if(data_in_available != available_q) wd_cnt <= 0;
+        else if(wd_cnt != 24'hFFFFFF) wd_cnt <= wd_cnt + 1'b1;
+    end
+    else if((rst == 1'b1) || (burst_trans == 1'b0) || (abort_r == 1'b1) || (w_progress == 1'b1) || data_in_valid || !t_m_axi_wready)
 		wd_cnt <= 24'd0;
 	else if(wd_cnt != 24'hFFFFFF)
 		wd_cnt <= wd_cnt + 24'd1;
 end
 
-// [BFAST 2026-09-19] the DDR write port can stop returning B responses
-// (see [WD2]; re-observed 09-19: b_cnt ~26 total while aw_cnt ~60k).
-// Waiting the full 0.17 s watchdog once every command's beats are out
-// capped the camera path at ~5 fps. Give B a few microseconds after the
-// last beat, then force the close via the abort path; a late B is still
-// absorbed by the w_done/bready logic.
-reg [9:0] bwait_cnt;
-// (w_done intentionally not referenced: it is declared further below and
-// act_burst_len==0 && burst_trans already means every beat is out, B pending)
-wire all_beats_out = (len == 32'd0) && (act_burst_len == 8'd0) && burst_trans;
+// Timeout may fill an accepted burst, but cannot cancel an advertised AW
+// or fabricate completion. Waiting AW and waiting B retain their ledger.
 always @(posedge clk) begin
-	if((rst == 1'b1) || (trans == 1'b0) || (all_beats_out == 1'b0) || (abort_r == 1'b1))
-		bwait_cnt <= 10'd0;
-	else if(bwait_cnt != 10'h3FF)
-		bwait_cnt <= bwait_cnt + 10'd1;
-end
-always @(posedge clk) begin
-	if(rst == 1'b1)
-		abort_r <= 1'b0;
-	// [BFAST2 2026-09-19] bwait fast-close DISABLED: B latency under DDR contention
-	// can legitimately exceed the 10us grace; force-closing mid-flight corrupted
-	// the crossbar/DDR transaction stream and killed M00 writes within seconds.
-	// Fall back to the long send-watchdog only.
-	else if((abort_r == 1'b0) && (trans == 1'b1) && (wd_cnt == 24'hFFFFFF))
-		abort_r <= 1'b1;
-	else if(abort_done == 1'b1)
-		abort_r <= 1'b0;
+    if(rst == 1'b1)
+        abort_r <= 1'b0;
+    else if(abort_done == 1'b1)
+        abort_r <= 1'b0;
+    else if(trans && abort_req)
+        abort_r <= 1'b1;
+    else if(waiting_source && (wd_cnt == WD_LIMIT))
+        abort_r <= 1'b1; // no AW exists: retire locally without owning DDR
+    else if(!abort_r && burst_trans && (act_burst_len != 0)
+            && !data_in_valid && t_m_axi_wready && !w_progress && (wd_cnt == WD_LIMIT))
+        abort_r <= 1'b1;
 end
 
-// [WD2 2026-09-18] burst_trans is only cleared by the B response, which is
-// exactly what never arrives in the wedge case (cam2: bvalid never asserted).
-// Requiring burst_trans==0 made abort_done unreachable -> no recovery.
-// All W beats for the open burst are out once act_burst_len hits 0, so that
-// is the correct release point; burst_trans is force-cleared below.
-assign abort_done = abort_r && (act_burst_len == 8'd0);
+// BREADY is asserted only after the external final W handshake below.
+wire b_fire = m_axi_bvalid && m_axi_bready;
+wire failed = abort_r || abort_req || (b_fire && m_axi_bresp[1]);
+assign abort_done = trans && failed &&
+                    (b_fire || (abort_r && !burst_trans && !m_axi_awvalid));
 // ---------------------------------------------------------------------------------
 
 stream_pipe #(
@@ -284,7 +292,7 @@ assign t_m_axi_wvalid  = abort_r ? (act_burst_len > 8'd0)
                                  : (data_in_valid && act_burst_len > 8'd0);
 assign t_m_axi_wdata   = abort_r ? {DATA_WIDTH{1'b0}} : data_in;
 assign t_m_axi_wlast   = (act_burst_len == 8'd1);
-assign t_m_axi_wstrb   = abort_r ? {KEEP_WIDTH{1'b1}} : data_in_keep;
+assign t_m_axi_wstrb   = abort_r ? {KEEP_WIDTH{1'b0}} : data_in_keep;
 
 //b
 reg w_done;
@@ -293,7 +301,7 @@ always @(posedge clk) begin
 		w_done <= 1'b0;
 	end
 	else begin
-		if((t_m_axi_wvalid == 1'b1) && (t_m_axi_wready == 1'b1) && (t_m_axi_wlast == 1'b1)) begin
+		if((m_axi_wvalid == 1'b1) && (m_axi_wready == 1'b1) && (m_axi_wlast == 1'b1)) begin
 			w_done <= 1'b1;
 		end
 		else begin
@@ -305,23 +313,15 @@ always @(posedge clk) begin
 end
 assign m_axi_bready = w_done;
 
-// [LEDGER 2026-09-19] single-ledger completion: pulse exactly once per
-// command on the trans 1->0 fall. Covers the normal close (B absorbed,
-// len==0) AND both watchdog abort paths; the old B-gated expression never
-// pulsed when a B response was lost, wedging the frame FSM in DATA forever.
-reg trans_q;
+// Success and failure are mutually exclusive and follow real external B.
 always @(posedge clk) begin
-	if(rst == 1'b1) trans_q <= 1'b0;
-	else            trans_q <= trans;
+    if(rst) begin
+        data_in_last <= 1'b0;
+        data_in_abort <= 1'b0;
+    end else begin
+        data_in_last <= trans && b_fire && (len == 0) && !failed;
+        data_in_abort <= abort_done;
+    end
 end
 
-always @(posedge clk ) begin
-	if(rst == 1'b1)begin
-		data_in_last <= 1'b0;
-	end
-	else begin
-		data_in_last <= trans_q && (trans == 1'b0);
-	end
-end
-
-endmodule 
+endmodule

@@ -6,6 +6,10 @@ module ov5640_ddr_w #(
 )(
     input          axi_clk        ,
     input          axi_rst        ,
+    input          capture_flush,
+    output         capture_overflow,
+    output [15:0] axi_data_available,
+
 
     input  [$clog2(CAM_DATA_LEN) : 0]  data_len       /*synthesis PAP_MARK_DEBUG="1"*/, //��16�ֽ�Ϊ��λ
 
@@ -29,6 +33,8 @@ module ov5640_ddr_w #(
 
 
 
+    wire local_rst = axi_rst | capture_flush;
+    wire out_full;
     reg             wr_en;
     reg  [31 : 0]   din  ;
     wire            rd_en;
@@ -41,7 +47,7 @@ module ov5640_ddr_w #(
 
     reg [1 : 0] cnt;
     always @(posedge axi_clk) begin
-        if(axi_rst)begin
+        if(local_rst)begin
             cnt <= 2'd0;
         end
         else if(s_data_valid)begin
@@ -88,7 +94,7 @@ generate
         end
 
         always @(posedge axi_clk) begin
-            if(axi_rst)begin
+            if(local_rst)begin
                 wr_en <= 1'b0;
             end
             else if(s_data_valid & (cnt != 2'b00))begin
@@ -119,7 +125,7 @@ generate
         end
 
         always @(posedge axi_clk) begin
-            if(axi_rst)begin
+            if(local_rst)begin
                 wr_en <= 1'b0;
             end
             else if(s_data_valid & cnt[0])begin
@@ -150,7 +156,7 @@ generate
 
 
         always @(posedge axi_clk) begin
-            if(axi_rst)begin
+            if(local_rst)begin
                 wr_en <= 1'b0;
             end
             else if(s_data_valid & &cnt)begin
@@ -173,7 +179,7 @@ endgenerate
         reg [$clog2(CAM_DATA_LEN) : 0] axi_cnt/*synthesis PAP_MARK_DEBUG="1"*/;
 
         always @(posedge axi_clk) begin
-            if(axi_rst)begin
+            if(local_rst)begin
                 axi_num <= 20'd0;
             end
             else begin
@@ -182,7 +188,7 @@ endgenerate
         end
 
         always @(posedge axi_clk) begin
-            if(axi_rst)begin
+            if(local_rst)begin
                 axi_cnt <= 20'd0;
             end
             else if(s_vsync)begin
@@ -215,7 +221,7 @@ endgenerate
     assign rd_en = axi_data_valid & axi_data_ready;
     assign axi_data_last = (axi_cnt == axi_num);
     assign axi_data = dout;
-    assign axi_data_valid = !empty;
+    assign axi_data_valid = !empty && !local_rst;
 
 
 
@@ -227,10 +233,10 @@ endgenerate
         // Do not drain the DRM FIFO unless both stages can accept the word.
         // Without almost_full_out the output FIFO fills during AXI stalls and
         // DRM words are silently dropped -> periodic 128-bit stripes.
-        wire rd_en_drm = !(almost_full_drm | empty_drm | almost_full_out);
+        wire rd_en_drm = !(empty_drm | almost_full_out | local_rst);
         ov5640_ddr_fifo_DRM ov5640_ddr_fifo_DRM (
           .clk(axi_clk),                      // input
-          .rst(axi_rst),                      // input
+          .rst(local_rst),                      // input
           .wr_en(wr_en),                  // input
           .wr_data(din),              // input [31:0]
           .wr_full(full),              // output
@@ -258,7 +264,7 @@ endgenerate
         // enable; dout_drm is aligned with wr_en_drm on that following cycle.
         reg wr_en_drm;
         always @(posedge axi_clk) begin
-            if (axi_rst) begin
+            if (local_rst) begin
                 wr_en_drm <= 1'b0;
             end
             else begin
@@ -271,10 +277,10 @@ endgenerate
 
         ov5640_ddr_fifo ov5640_ddr_fifo (
           .clk(axi_clk),                      // input
-          .rst(axi_rst),                      // input
+          .rst(local_rst),                      // input
           .wr_en  (fifo_we ),                  // input
           .wr_data(fifo_wd ),              // input [127:0]
-          .full(),              // output
+          .full(out_full),              // output
           
 
           .rd_en(rd_en),                  // input
@@ -290,6 +296,24 @@ endgenerate
 
 
     
+    // Stored credits span BOTH existing FIFOs and the DRM read pipeline.
+    // Count accepted 32-bit writes minus consumed AXI words; no new storage.
+    // Counting only the 16-deep output FIFO would deadlock at almost_full=15
+    // when the input is sparse and no DRM read is pending to fill slot 16.
+    localparam CREDIT_WORDS_PER_BEAT = AXI_DATA_WIDTH / 32;
+    reg [12:0] stored_words;
+    always @(posedge axi_clk) begin
+        if(local_rst) stored_words <= 0;
+        else case ({(wr_en && !full), rd_en})
+            2'b10: stored_words <= stored_words + 1'b1;
+            2'b01: stored_words <= stored_words - CREDIT_WORDS_PER_BEAT;
+            2'b11: stored_words <= stored_words - (CREDIT_WORDS_PER_BEAT-1);
+            default: stored_words <= stored_words;
+        endcase
+    end
+    assign axi_data_available = local_rst ? 16'd0 :
+                                stored_words / CREDIT_WORDS_PER_BEAT;
+    assign capture_overflow = !local_rst && ((wr_en && full) || (fifo_we && out_full));
     assign dbg_axi_cnt = axi_cnt;
     assign dbg_axi_num = axi_num;
 

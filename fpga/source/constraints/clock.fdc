@@ -9,10 +9,12 @@
 
     create_clock -name {cmos1_pclk} [get_ports {cmos1_pclk}] -period {11.905} -waveform {0.000 5.952}
     create_clock -name {cmos2_pclk} [get_ports {cmos2_pclk}] -period {11.905} -waveform {0.000 5.952}
+    create_clock -name {cmos3_pclk} [get_ports {cmos3_pclk}] -period {20.833} -waveform {0.000 10.416}
     #create_clock -name {pix_clk_in} [get_ports {pixclk_in}] -period {6.670} -waveform {0.000 3.335}
 
     set_clock_uncertainty {0.002} [get_clocks {cmos1_pclk}]  -setup -hold
     set_clock_uncertainty {0.002} [get_clocks {cmos2_pclk}]  -setup -hold
+    set_clock_uncertainty {0.002} [get_clocks {cmos3_pclk}]  -setup -hold
     ###==== END Clocks
 
     ###==== DDR3 Clocks
@@ -51,6 +53,7 @@
 
     set_clock_groups -name cmos1_pclk -asynchronous -group [get_clocks cmos1_pclk]
     set_clock_groups -name cmos2_pclk -asynchronous -group [get_clocks {cmos2_pclk}]
+    set_clock_groups -name cmos3_pclk -asynchronous -group [get_clocks {cmos3_pclk}]
     #set_clock_groups -name pix_clk_in -asynchronous -group [get_clocks {pix_clk_in}]
     ###==== END Clocks
 

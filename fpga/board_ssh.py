@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""board_ssh.py -- RK3568 board access over the LAPTOP hotspot (192.168.137.x).
+"""board_ssh.py -- RK3568 board access over the LAN (192.168.10.x).
 SSH linaro/linaro; helper CLI used by the deploy/verify steps.
+Note: the board IP changed from 192.168.137.4 to 192.168.10.241; update
+HOST below whenever the DHCP lease changes.
 
 Usage:
   python board_ssh.py run "<shell command>"
@@ -10,8 +12,8 @@ Usage:
 """
 import sys, paramiko
 
-HOST = '192.168.137.4'
-USER, PW = 'linaro', 'linaro'
+HOST = '192.168.10.241'
+USER, PW = 'linaro', '123456'
 
 
 def connect():

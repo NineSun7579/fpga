@@ -1,0 +1,95 @@
+# CDC pixel inflation investigation and repair candidate — 2026-09-27
+
+The production tree now removes a demonstrably overbroad timing exception and adds stage diagnostics. The real FIFO model reproduces the **exact 1,290,240-pixel signature under an explicitly injected empty-flag fault**. Normal zero-delay RTL does not reproduce the hardware fault. The hardware cause and removal of the stripes remain unconfirmed until the main session builds and tests this change. No PDS process, programming, or board access was performed by this subagent.
+
+## Evidence and interpretation
+
+`tp/burst_credit_evidence/registers.json` records cam1 +0x30 = 1,290,240, cam2 approximately 1.03–1.09 million, cam3 = 307,200. The unchanged downstream counter measures valid cycles between SOF edges, after the FIR; it is not counting DDR beats or handshakes. The current configuration bypasses median and KF. `cam_fir3` registers valid once, without holding or stretching it.
+
+The actual `ov5640_cdc_fifo` is an asynchronous 1024 × 16 DRM FIFO with output register disabled. Its binary and Gray pointers are **11 bits**, including the wrap bit. Its read controller increments on `r_en && !rempty`, and computes the next empty flag by equality of the next read pointer and synchronized write pointer. The wrapper reads whenever `!empty` and registers that read enable for one cycle. The configured vendor simulation confirms that this one-cycle valid delay aligns the actual data, including isolated pixels, row boundaries, and repeated pointer wraps.
+
+If empty is missed once while the reader is caught up, the next read pointer advances beyond the writer. Equality is then not reached again until the 11-bit pointer wraps. In a quiet interval this produces **2048 extra valid reads**, including stale/unwritten RAM data. A testbench force on the internal empty register for one read edge reproduces this mechanism without editing any IP.
+
+`1,290,240 - 307,200 = 983,040 = 480 × 2048`.
+
+`baseline_cdc.log` demonstrates the unmodified wrapper conserving all 307,200 pixels. `injected_cdc.log` demonstrates the unmodified wrapper producing 1,290,240 outputs from the same 307,200 inputs with 480 empty faults. `fixed_injected.log` shows that the new diagnostics report this divergence correctly; the diagnostics deliberately do not suppress, clip, or repair injected data-path faults.
+
+**Injection limitation:** the signature bench uses extended horizontal blanking to isolate a complete erroneous pointer lap after each row. It is a mechanism reproduction, not a simulation of the measured board failure or a claim that the board misses empty exactly at that testbench point. Separate normal tests use the real 1896-clock row length. Fault timing, concurrent writes, and full flag interaction can change the resulting counts, so cam2's variable totals are not independently explained by this test.
+
+## Confirmed constraint defect and production changes
+
+`source/constraints/cdc.fdc` contained:
+
+```tcl
+set_false_path -through [get_pins -hier *ov5640_cdc*]
+```
+
+The **123854 sources.zip contains this exact exception**. `project_kf/synthesize/run.log` reports Timing-4116 and 5016 matched objects, explicitly including D/Q and clock pins of `asyn_rempty` and `video_valid_r`. This cuts same-clock pointer arithmetic, empty calculation, RAM/valid paths and synchronization stages, not merely asynchronous crossings. Consequently the original timing pass cannot establish CDC internal timing closure. See `constraint_evidence.txt` for captured line references.
+
+Changes made:
+
+* Removed that whole-hierarchy exception. Existing `clock.fdc` asynchronous clock groups remain in effect and still isolate camera clocks from `ddrphy_sysclk`; all frequencies are unchanged. Same-domain FIFO paths must now be timed.
+* Removed three redundant group commands from `cdc.fdc` that PDS had ignored because their clocks were not yet created (SDC-2027). The corresponding valid groups already exist after clock creation in `clock.fdc`.
+* Added an explicit reset to the CDC output-valid register. Normal post-reset data timing is unchanged.
+* Added source input/drop snapshots, output-valid snapshots and a sequence number to `ov5640_cdc.v`, routed through `ov5640.v` and `ov5640_top.v` into four unused aligned read addresses in `ov5640_reg.v`.
+
+The diagnostics use a stable source-frame snapshot, two data stages and a three-stage notification toggle. The output snapshot is taken on the synchronized SOF and published with the source snapshot after the notification arrives. Normal sensor blanking allows the last row's FIFO tail to drain before SOF. Reads do not change acquisition or DMA behavior. The diagnostic counters are 32-bit modulo counters; source data is held for a frame, and the reader is assumed to run normally. A stopped read clock spanning multiple frames is not a lossless event-log use case.
+
+The five edited production files have exact pre-edit `.cdc_pixel.bak` backups. `patch_cdc_diag.py` uses Python bytes replacement, validates unique anchors, and refuses to overwrite backups. All original non-ASCII lines are preserved. `cdc_pixel_source.diff` is a review artifact, not a source rewrite input.
+
+`protected_before.json` plus `check_integration.py` verify every vendor/IP file and all other RTL are byte-identical, including `top.v`, DMA credit gating, DDR bad-frame rejection, real-B retirement and sensor PLL configuration. No vendor IP or project file was edited. The new logic is diagnostic registers/counters, with no new memory; its resource/timing cost has not been synthesized.
+
+## Read-only register map for the main session
+
+Offsets are relative to each existing camera base (cam1 0x20000000, cam2 0x20000200, cam3 0x20000400).
+
+| Offset | Name | Meaning |
+|---|---|---|
+| +0x04 | `dbg_cdc_input` | Source-domain `s_valid` count before FIFO full gating, previous complete SOF interval |
+| +0x08 | `dbg_cdc_output` | `video_valid` count after the actual FIFO, before FIR, same normal frame interval |
+| +0x0C | `dbg_cdc_drop` | Source `s_valid && full` cycles in that interval |
+| +0x14 | `dbg_cdc_seq` | Source SOF snapshot sequence; increments once per observed source SOF |
+| +0x30 | Existing `dbg_input_pixels` | Unchanged downstream post-FIR count; this snapshot is independently updated |
+
+Read +0x14, then +0x04/+0x08/+0x0C, then +0x14 again; retry if sequence changed. Ignore startup/partial snapshots (wait until sequence >=2). The +0x30 snapshot is independent and can straddle a different frame while software reads, so compare stable steady-state values or repeated samples.
+
+Expected steady state: input = output = +0x30 = 307,200, drop = 0. Source >307,200 puts the anomaly before the FIFO; source =307,200 and output inflated localizes it to FIFO/read-valid; output =307,200 and +0x30 inflated localizes it after CDC. Drop >0 exposes upstream FIFO loss that the downstream packer's own overflow counter does not measure. Existing +0x00/+0xA0 fault/rejection evidence is unchanged.
+
+These offsets require ordinary **32-bit reads at the exact byte offsets**, not rounding them to the legacy 0x10 spacing. Existing ACK, delay and enable writes are unchanged; no new write behavior was introduced.
+
+## Verification completed
+
+| Test | Result |
+|---|---|
+| Original wrapper + actual vendor FIFO, 640×480 | input/output 307200, every pixel matches |
+| Original wrapper, injected empty fault per row | input 307200, output 1290240, excess 983040 |
+| Diagnostic wrapper, nominal | input/output 307200, drop 0, sequence 2 |
+| Diagnostic wrapper, injected fault | snapshot input 307200, output 1290240, drop 0, sequence 2 |
+| Full-flag injection and next-frame recovery | 100 offered / 80 output / 20 dropped; next interval 20 / 20 / 0; all accepted pixels exact |
+| CDC real row spacing, PCLK 84 and 48 MHz | 307200 exact outputs and pixel matches in both |
+| Full capture → falling-edge registers → actual CDC FIFO → FIR, 84 MHz | 2 frames, 614400 offered/captured/CDC/FIR pixels, exact pixel/FIR reference match |
+| Same full front end, 84 MHz with phase 2.731 ns | Same exact result |
+| Same full front end, 48 MHz with phase 1.813 ns | Same exact result |
+| Register bench | Four new reads match; existing fault/count reads and ACK/delay/enable writes pass |
+| Compilation and byte audit | Modified wrappers/registers and dependencies compile; protected files unchanged |
+
+All front-end tests use video_clk = 131.25 MHz. Full capture tests retain production's ten-frame startup discard, use 640×480 RGB565, 1896 PCLK per row and vertical blanking for 984 rows; short frame-marker setup adds a small number of extra clocks, so these tests do not measure FPS. DVP electrical delays, analog sampling/metastability and routed timing are not modeled. The I2C configuration/filter wrapper is compiled but the front-end simulation begins at DVP signals and exercises the actual capture module; it does not run the sensor initialization or analog IODELAY model.
+
+`suite_summary.log` audits PASS/no-fatal status across all retained final simulation logs. `audit_integration.log` records the final protected-file, backup, GBK-line, constraint, compilation and register checks.
+
+The first full-front-end elaboration attempted to override the body-local `WAIT_FRAME` parameter and was rejected by ModelSim. The final bench uses the unchanged production startup sequence and all listed full-front-end cases pass.
+
+`inspect_existing_sdf.py` is an additional read-only exploration of existing `project_kf/generate_netlist` artifacts. Its partial same-clock cone estimate reports no setup failure in the three empty-flag cones. It is not a complete STA engine (it does not establish hold, Gray-bus skew, missing arc coverage or sensitization), and **does not confirm a routed timing failure**. The broad exception is demonstrably wrong, but the specific physical failure still needs correct STA and stage measurements. Do not treat the fault-injection success as timing proof.
+
+Reproduction from this directory:
+
+```powershell
+python run_suite.py
+python check_integration.py
+```
+
+Selected front-end reruns: `python run_suite.py frontend84 frontend84_phase frontend48`. Each simulation must contain its PASS marker and no fatal/error; the runner checks these instead of relying only on simulator exit status. `check_integration.py` generates the isolated `tb_cdc_regs.sv` from the existing register regression. Do not rerun the one-shot production patch on an already patched tree.
+
+## Remaining work outside this subagent's authorization
+
+The main session must rebuild with the corrected constraints, inspect **same-clock FIFO paths** rather than rely only on summary WNS, and retain the corrected constraints if new violations are exposed. Clock-group exceptions still do not establish physical Gray-bus skew bounds; those require a proper implementation timing/CDC audit. After programming, read the new stage snapshots and compare actual captured pixels/stripes. This task intentionally performed no PDS, bitstream generation, programming or board operation. It does not claim that the hardware image defect is already fixed.

@@ -19,6 +19,7 @@ module axi_dma 	#(
     input     [DATA_WIDTH - 1:0]  data_in                           ,
     input     [KEEP_WIDTH - 1:0]  data_in_keep                      ,
     input                         data_in_valid                     ,
+    output                        data_in_abort,
     output                        data_in_last                      ,
     output                        data_in_ready                     ,	
     //trans data in
@@ -80,6 +81,9 @@ module axi_dma 	#(
         .DATA_WIDTH (DATA_WIDTH),
         .KEEP_WIDTH (KEEP_WIDTH)	
     ) axi_dma_write_inst(
+    .data_in_available(16'd0),
+    .abort_req(1'b0),
+    .data_in_abort(data_in_abort),
     .clk            (clk),    // Clock
     .rst            (rst),    // Synchronous reset active high
     

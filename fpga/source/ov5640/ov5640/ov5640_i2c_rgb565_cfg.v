@@ -1,6 +1,7 @@
 // [24M-XCLK] Official 24MHz XCLK profile: PCLK=84MHz; HTS/VTS=1896/984 640x480@30fps.
 //SCCB ov5640�Ĵ�������ģ��
 module ov5640_i2c_rgb565_cfg #(
+      parameter [7:0] SENSOR_PLL_MULT = 8'h54,
       parameter   I2C_FREQ   = 18'd250_000     //IIC_SCLʱ��Ƶ��
 )
 (  
@@ -326,7 +327,7 @@ module ov5640_i2c_rgb565_cfg #(
                 8'd206: i2c_data <= {16'h530c,8'h06};
                 8'd207: i2c_data <= {16'h5025,8'h00};
                 8'd208: i2c_data <= {16'h3035,8'h11}; // [56M] sysdiv=3 -> PCLK=56MHz
-                8'd209: i2c_data <= {16'h3036,8'h3C}; //PLL���� 48MHZ
+                8'd209: i2c_data <= {16'h3036,SENSOR_PLL_MULT}; //PLL���� 48MHZ
                 8'd210: i2c_data <= {16'h3c07,8'h08};
                 8'd211: i2c_data <= {16'h3820,8'h46};
                 8'd212: i2c_data <= {16'h3821,8'h01};

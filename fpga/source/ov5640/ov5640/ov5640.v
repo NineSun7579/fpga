@@ -1,5 +1,6 @@
 module ov5640 #(
     //DVP�����λ��
+    parameter [7:0] SENSOR_PLL_MULT = 8'h54,
     parameter   DATA_WIDTH = 16,
     //I2C
     parameter   SLAVE_ADDR = 7'h3c   ,  //I2C�ӻ���ַ
@@ -13,6 +14,7 @@ module ov5640 #(
     parameter  TOTAL_H_PIXEL = 12'd2570, //ˮƽ�����ش�С
     parameter  TOTAL_V_PIXEL = 12'd980 , //��ֱ�����ش�С
     //�忨�豸
+    parameter integer VSYNC_STABLE_CYCLES = 0,
     parameter DEVICE = "PG"
 )(
     
@@ -41,7 +43,20 @@ module ov5640 #(
     output reg [31:0]         dbg_pclk_cnt          ,//free-running pclk counter
     output reg [31:0]         dbg_sys_status        ,//[31:16]exec_cnt [5]sda [4]scl [1]lock [0]rst_n
     output reg [31:0]         dbg_href_raw          ,//raw cam_href rising edges (cam_pclk domain)
-    output reg [31:0]         dbg_vsync_raw          //raw cam_vsync rising edges (cam_pclk domain)
+    output reg [31:0]         dbg_vsync_raw          ,//raw cam_vsync rising edges (cam_pclk domain)
+
+    // [PT 2026-09-26] host SCCB passthrough (handshake on dri_clk)
+    output [31:0] dbg_cdc_input,
+    output [31:0] dbg_cdc_output,
+    output [31:0] dbg_cdc_drop,
+    output [31:0] dbg_cdc_seq,
+    input                     pt_req_toggle         ,
+    input                     pt_rw                 ,
+    input  [15:0]             pt_addr               ,
+    input  [ 7:0]             pt_wdata              ,
+    output [ 7:0]             pt_rdata              ,
+    output                    pt_ack                ,
+    output                    pt_done_toggle
 
     // //�û��ӿ�                              
     // output                      cmos_frame_vsync ,  //֡��Ч�ź�    
@@ -57,6 +72,9 @@ wire   [7:0]    i2c_data_r;
 wire            i2c_exec;
 wire   [23:0]   i2c_data;
 wire            i2c_rh_wl;
+wire            cfg_exec;
+wire   [23:0]   cfg_data;
+wire            cfg_rh_wl;
 wire            cam_init_done;
 wire            i2c_ack;
 wire            dri_clk;
@@ -140,6 +158,7 @@ i2c_dri(
 
 
 ov5640_i2c_rgb565_cfg #(
+    .SENSOR_PLL_MULT(SENSOR_PLL_MULT),
     .I2C_FREQ  (I2C_FREQ  )  //IIC_SCL��ʱ��Ƶ��
 )
 ov5640_i2c_rgb565_cfg(  
@@ -152,9 +171,9 @@ ov5640_i2c_rgb565_cfg(
     .cmos_v_pixel (V_CMOS_DISP),
     .total_h_pixel(TOTAL_H_PIXEL), //ˮƽ�����ش�С
     .total_v_pixel(TOTAL_V_PIXEL),  //��ֱ�����ش�С
-    .i2c_exec     (i2c_exec),     //I2C����ִ���ź�   
-    .i2c_data     (i2c_data),     //I2CҪ���õĵ�ַ������(��16λ��ַ,��8λ����)
-    .i2c_rh_wl    (i2c_rh_wl),     //I2C��д�����ź�
+    .i2c_exec     (cfg_exec),     //I2C����ִ���ź�   
+    .i2c_data     (cfg_data),     //I2CҪ���õĵ�ַ������(��16λ��ַ,��8λ����)
+    .i2c_rh_wl    (cfg_rh_wl),     //I2C��д�����ź�
     .init_done    (cam_init_done) //��ʼ������ź�
 );
 
@@ -172,6 +191,13 @@ ov5640_i2c_rgb565_cfg(
 
 
 // [DBG] SCCB health: latch first two read bytes (OV5640 ID 0x56,0x40) + NACK op count
+// [PT 2026-09-26] latch read/write at transaction start: i2c_rh_wl flips to 0
+// at init_reg_cnt==2 during the 2nd read, so sampling it at i2c_done missed ID_L.
+reg i2c_was_read;
+always @(posedge dri_clk or negedge rst_n) begin
+    if(!rst_n)        i2c_was_read <= 1'b0;
+    else if(i2c_exec) i2c_was_read <= i2c_rh_wl;
+end
 reg [3:0] dbg_rd_cnt;
 always @(posedge dri_clk or negedge rst_n) begin
     if(!rst_n) begin
@@ -180,7 +206,7 @@ always @(posedge dri_clk or negedge rst_n) begin
     end
     else if(i2c_done) begin
         if(i2c_ack) dbg_i2c_status[31:16] <= dbg_i2c_status[31:16] + 16'd1;
-        if(i2c_rh_wl && (dbg_rd_cnt < 4'd2)) begin
+        if(i2c_was_read && (dbg_rd_cnt < 4'd2)) begin
             dbg_rd_cnt <= dbg_rd_cnt + 4'd1;
             if(dbg_rd_cnt == 4'd0) dbg_i2c_status[15:8] <= i2c_data_r;
             else                   dbg_i2c_status[7:0]  <= i2c_data_r;
@@ -206,6 +232,88 @@ always @(posedge dri_clk or negedge rst_n) begin
 end
 always @(posedge dri_clk) dbg_sys_status <= {dbg_exec_cnt, 2'b00, dbg_sda_lvl, dbg_scl_lvl,
                                             1'b0, cam_rst_n};
+// PT_FSM_BEGIN
+// [PT 2026-09-26] host SCCB passthrough FSM (dri_clk domain). After sensor
+// init completes, a host command issues exactly one transaction on the shared
+// master; cfg_* is the autonomous init table. Results are handed back with a
+// done-toggle (data held stable; CDC to video_clk lives in ov5640_top).
+reg         pt_req_s1, pt_req_s2, pt_req_s3;
+always @(posedge dri_clk or negedge rst_n) begin
+    if(!rst_n) {pt_req_s1, pt_req_s2, pt_req_s3} <= 3'b0;
+    else       {pt_req_s1, pt_req_s2, pt_req_s3} <= {pt_req_toggle, pt_req_s1, pt_req_s2};
+end
+wire pt_req_pulse = pt_req_s2 ^ pt_req_s3;
+
+reg  pt_pending;
+reg  pt_busy;
+wire pt_take = pt_pending & cam_init_done & ~pt_busy;
+always @(posedge dri_clk or negedge rst_n) begin
+    if(!rst_n)          pt_pending <= 1'b0;
+    else if(pt_req_pulse) pt_pending <= 1'b1;
+    else if(pt_take)      pt_pending <= 1'b0;
+end
+always @(posedge dri_clk or negedge rst_n) begin
+    if(!rst_n)        pt_busy <= 1'b0;
+    else if(pt_take)  pt_busy <= 1'b1;
+    else if(i2c_done) pt_busy <= 1'b0;
+end
+
+assign i2c_exec  = cfg_exec | pt_take;
+assign i2c_data  = pt_take ? {pt_addr, pt_wdata} : cfg_data;
+assign i2c_rh_wl = pt_take ? pt_rw : cfg_rh_wl;
+
+reg [7:0] pt_rdata_r;
+reg       pt_ack_r;
+reg       pt_done_toggle_r;
+always @(posedge dri_clk or negedge rst_n) begin
+    if(!rst_n) begin
+        pt_rdata_r       <= 8'd0;
+        pt_ack_r         <= 1'b0;
+        pt_done_toggle_r <= 1'b0;
+    end
+    else if(i2c_done && pt_busy) begin
+        pt_rdata_r       <= i2c_data_r;
+        pt_ack_r         <= i2c_ack;
+        pt_done_toggle_r <= ~pt_done_toggle_r;
+    end
+end
+assign pt_rdata       = pt_rdata_r;
+assign pt_ack         = pt_ack_r;
+assign pt_done_toggle = pt_done_toggle_r;
+// PT_FSM_END
+
+// VSYNC_FILTER_BEGIN
+// 0: combinational bypass. N>0: accept only N consecutive opposite samples.
+// Both edges are delayed by N PCLK samples (64/84 MHz = 0.762 us).
+// Raw diagnostics above intentionally remain upstream. HREF/data are untouched.
+// Requires real VSYNC pulses and edge-to-active-video blanking to exceed N
+// samples plus the existing capture latency. No timeout or synthetic frames.
+wire capture_vsync;
+generate
+    if (VSYNC_STABLE_CYCLES == 0) begin : g_vsync_bypass
+        assign capture_vsync = cam_vsync;
+    end else begin : g_vsync_filter
+        localparam COUNT_W = (VSYNC_STABLE_CYCLES <= 1) ? 1 :
+                             $clog2(VSYNC_STABLE_CYCLES);
+        reg [COUNT_W-1:0] stable_count;
+        reg stable_vsync;
+        assign capture_vsync = stable_vsync;
+        always @(posedge cam_pclk or negedge ov_rst_n) begin
+            if (!ov_rst_n) begin
+                stable_count <= {COUNT_W{1'b0}};
+                stable_vsync <= 1'b0;
+            end else if (cam_vsync == stable_vsync) begin
+                stable_count <= {COUNT_W{1'b0}};
+            end else if (stable_count == VSYNC_STABLE_CYCLES - 1) begin
+                stable_count <= {COUNT_W{1'b0}};
+                stable_vsync <= cam_vsync;
+            end else begin
+                stable_count <= stable_count + 1'b1;
+            end
+        end
+    end
+endgenerate
+// VSYNC_FILTER_END
 
 cmos_capture #(
     .DATA_WIDTH(DATA_WIDTH)
@@ -214,7 +322,7 @@ cmos_capture(
     .rst_n (ov_rst_n)           ,  //��λ�ź�    
     //����ͷ�ӿ�                           
     .cam_pclk   (cam_pclk) ,   //cmos ��������ʱ��
-    .cam_vsync  (cam_vsync),  //cmos ��ͬ���ź�
+    .cam_vsync  (capture_vsync),  //cmos ��ͬ���ź�
     .cam_href   (cam_href) ,  //cmos ��ͬ���ź�
     .cam_data   (cam_data) ,                       
     //�û��ӿ�                              
@@ -256,6 +364,10 @@ ov5640_cdc #(
     .DEVICE(DEVICE)
 )
 ov5640_cdc(
+    .dbg_cdc_input(dbg_cdc_input),
+    .dbg_cdc_output(dbg_cdc_output),
+    .dbg_cdc_drop(dbg_cdc_drop),
+    .dbg_cdc_seq(dbg_cdc_seq),
     .cam_clk(cam_pclk),
     .cam_rst(!cam_rst_n),
 

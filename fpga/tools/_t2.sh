@@ -1,0 +1,20 @@
+echo __HELLO__
+pkill -f run_camview.sh 2>/dev/null
+pkill -x camview 2>/dev/null
+sleep 2
+timeout 20 rmmod pango_pci_driver
+echo "rmmod rc=$?"
+echo 1 > /sys/bus/pci/rescan
+sleep 3
+insmod /root/ov5640/pango_pci_driver.ko
+echo "insmod rc=$?"
+sleep 3
+python3 /tmp/mir2.py 2>&1
+echo ---restart-camview---
+rm -f /tmp/camview.lock
+setsid nohup /root/ov5640/run_camview.sh > /dev/null 2>&1 < /dev/null &
+sleep 13
+echo -n 'camview procs: '
+ps aux | grep -a './camview' | grep -v grep | wc -l
+tail -2 /root/ov5640/camview_fps.log
+echo __OK__

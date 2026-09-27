@@ -1,0 +1,12 @@
++define+IPSXE_FIR_SPEEDUP_SIM
+../../FIR.v
+../../rtl/ipsxe_fir_core_v1_2_FIR.v
+../../sim_lib/modelsim/ipsxe_fir_core_v1_2_simvpAll.vp
+../../rtl/ipsxe_fir_data_pipeline/ipsxe_fir_distributed_shiftregister.v
+../../rtl/ipsxe_fir_data_pipeline/ipsxe_fir_distributed_sdpram.v
+../../rtl/ipsxe_fir_data_pipeline/ipsxe_fir_data_pipeline.v
+../../example_design/rtl/ipsxe_fir_onboard_top.v
+../../example_design/rtl/ipsxe_fir_frame_gen.v
+../../example_design/rtl/ipsxe_fir_frame_chk.v
+../../example_design/rtl/ipsxe_fir_cross_sync.v
+../../example_design/bench/ipsxe_fir_onboard_top_tb.v

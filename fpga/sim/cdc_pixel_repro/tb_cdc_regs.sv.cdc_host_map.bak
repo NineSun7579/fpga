@@ -1,0 +1,44 @@
+`timescale 1ns/1ps
+module tb_cdc_regs;
+reg clk=0; always #5 clk=~clk;
+reg rst=1,av=0,wv=0,rv=0;
+reg [31:0] wa=0,wd=0,ra=0;
+wire ar,wr,rr,rvalid; wire [31:0] rd; wire [1:0] ack;
+wire en; wire [7:0] delay_step;
+ov5640_reg dut(.clk(clk),.rst(rst),
+ .s_axi_awvalid(av),.s_axi_awready(ar),.s_axi_awaddr(wa),
+ .s_axi_wvalid(wv),.s_axi_wready(wr),.s_axi_wdata(wd),.s_axi_wstrb(4'hf),
+ .s_axi_bvalid(),.s_axi_bready(1'b1),.s_axi_bresp(),
+ .s_axi_arvalid(rv),.s_axi_arready(rr),.s_axi_araddr(ra),
+ .s_axi_rvalid(rvalid),.s_axi_rready(1'b1),.s_axi_rdata(rd),.s_axi_rresp(),
+ .xdma_ack(ack),.cam_en(en),.dly_step(delay_step),
+ .dbg_fault_snapshot(32'h80006123),.dbg_reject_counts(32'h12345678),
+ .dbg_cdc_input(32'd307200),.dbg_cdc_output(32'd1290240),
+ .dbg_cdc_drop(32'd7),.dbg_cdc_seq(32'd123),
+ .dbg_input_pixels(32'd307200),.dbg_vsync_widths(32'h00020003),
+ .dbg_last_cnt(32'd42),.dbg_sys_status(32'h420d));
+task read_check(input [31:0] offset,input [31:0] expected);
+begin
+ @(negedge clk);ra=32'h20000000+offset;rv=1;
+ @(negedge clk);rv=0;
+ wait(rvalid);#1;if(rd!==expected)$fatal(1,"register %h got %h expected %h",offset,rd,expected);
+ repeat(2)@(negedge clk);
+end endtask
+task write_reg(input [31:0] offset,input [31:0] value);
+begin
+ @(negedge clk);wa=32'h20000000+offset;wd=value;av=1;wv=1;
+ @(negedge clk);av=0;wv=0;
+end endtask
+initial begin
+ repeat(4)@(negedge clk);rst=0;
+ read_check(4,307200);read_check(8,1290240);read_check(12,7);read_check(20,123);
+ read_check(0,32'h80006123);read_check('h30,307200);
+ read_check('h50,32'h00020003);read_check('ha0,32'h12345678);
+ read_check('hd0,32'h420d);read_check('hf0,42);
+ write_reg(0,3);if(ack!==3)$fatal(1,"ACK writes changed");
+ write_reg('h30,17);if(delay_step!==17)$fatal(1,"delay writes changed");
+ write_reg('h40,0);if(en!==0)$fatal(1,"enable writes changed");
+ $display("PASS REJECTION REGISTERS actual read case; ACK/delay/enable writes preserved");$finish;
+end
+initial begin #10000;$fatal(1,"register test timeout");end
+endmodule

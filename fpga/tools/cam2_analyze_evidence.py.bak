@@ -1,0 +1,19 @@
+"""Offline raw decode and seam statistics; no deployed code is changed."""
+from pathlib import Path
+import json, hashlib
+import numpy as np
+from PIL import Image
+out=Path(__file__).resolve().parents[1]/'tp/cam2_evidence_84mhz'
+results=[]
+for f in sorted(out.glob('*.rgb565')):
+    a=np.frombuffer(f.read_bytes(),dtype='<u2').reshape(480,640)
+    rgb=np.stack([((a>>11)&31)*255//31,((a>>5)&63)*255//63,(a&31)*255//31],axis=-1).astype('uint8')
+    Image.fromarray(rgb).save(f.with_suffix('.png'))
+    diff=np.abs(np.diff(rgb.astype(float),axis=1)).mean(axis=(0,2))
+    top=(np.argsort(diff)[-8:][::-1]+1).tolist()
+    rec=dict(file=f.name,largest_column_boundaries=top,boundary_errors=[float(diff[x-1]) for x in top],median_boundary_error=float(np.median(diff)),wrap_same_row=float(np.abs(rgb[:,-1].astype(float)-rgb[:,0]).mean()),wrap_next_row=float(np.abs(rgb[:-1,-1].astype(float)-rgb[1:,0]).mean()))
+    results.append(rec)
+(out/'analysis.json').write_text(json.dumps(results,indent=2))
+print(json.dumps(results,indent=2))
+manifest={f.name:hashlib.sha256(f.read_bytes()).hexdigest() for f in out.iterdir() if f.is_file() and f.name!='sha256.json'}
+(out/'sha256.json').write_text(json.dumps(manifest,indent=2))

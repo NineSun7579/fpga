@@ -1,0 +1,35 @@
+--/example_design                                   // 设计实例包含的文件
+    -- /bench                                       // FIR IP Example Design Testbench
+        -- ipsxe_fir_onboard_tb.v                   // Example Design 顶层仿真文件
+    -- /rtl                                         // FIR IP Example Design中IP以外的代码文件
+        -- ipsxe_fir_onboard_top.v                  // Example Design 顶层模块
+        -- ipsxe_fir_frame_gen.v                    // Example Design 激励产生模块
+--/pnr                                              // 综合布局布线工程
+    -- /example_design                              // FIR IP Example Design的综合布局布线工程文件及约束文件
+        -- ipsxe_fir_onboard_top.pds                // Example Design PDS工程文件
+        -- ipsxe_fir_onboard_top.fdc                // Example Design PDS约束文件
+    -- /core_only                                   // FIR IP Core Only的综合布局布线工程文件及约束文件
+        -- ipsxe_fir_core_only.pds                  // Core Only PDS工程文件
+        -- ipsxe_fir_core_only.fdc                  // Core Only PDS约束文件
+        -- ipsxe_fir_core_only.v                    // Core Only PDS顶层文件
+--/rtl                                              // FIR IP Core包含的代码文件
+    -- /ipsxe_fir_data_pipeline                     // FIR IP调用的分布式RAM移位寄存器文件夹
+    -- /synplify                                    // FIR IP Core加密代码文件夹，包含的代码文件仅用于综合
+--/sim                                              // Example Design simulation目录
+    --modelsim                                      // ModelSim仿真运行的.do文件及filelist
+        -- ipsxe_fir_onboard_top_sim.do             // 用于Example Design仿真运行的.do文件
+        -- ipsxe_fir_onboard_top_filelist.f         // 用于Example Design仿真的filelist，被ipsxe_fir_onboard_top_sim.do调用
+        -- ipsxe_fir_onboard_top_wave.do            // 用于Example Design仿真运行的波形加载.do文件，被ipsxe_fir_onboard_top_sim.do调用
+        -- sim.bat                                  // 用于Example Design运行ipsxe_fir_onboard_top_sim.do的脚本
+    --cmodel                                        // C语言编写的IP模型文件
+        -- lib_ipsxe_fir_v1_0.so                    // Linux系统下编译用到的动态链接库
+        -- lib_ipsxe_fir_v1_0.lib                   // Windows系统下编译用到的动态链接库
+        -- ipsxe_fir_wrapper_tb.c                   // C模型仿真顶层文件
+        -- ipsxe_fir_def_v1_0.h                     // C模型头文件
+--/sim_lib                                          // FIR IP Core加密代码文件夹，包含的代码文件仅用于仿真
+  -- /modelsim                                      // 适用于ModelSim 10.2c和VCS 2020.03sp2的IP Core加密代码 _sim.vp
+--generate.log                                      // IP生成日志信息
+--$instname.idf                                     // IP的.idf文件，其中$instname是用户输入的例化名
+--$instname.v                                       // IP的wrapper文件，其中$instname是用户输入的例化名
+--$instname_tmpl.v                                  // IP wrapper的verilog例化文件，方便用户使用，其中$instname是用户输入的例化名
+--$instname_tmpl.vhdl                               // IP wrapper的vhdl例化文件，方便用户使用，其中$instname是用户输入的例化名

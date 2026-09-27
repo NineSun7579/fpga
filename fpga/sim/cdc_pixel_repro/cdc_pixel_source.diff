@@ -1,0 +1,201 @@
+--- source\constraints\cdc.fdc.bak
++++ source\constraints\cdc.fdc
+@@ -23,7 +23,10 @@
+ 
+ 
+ 
+-set_false_path -through [get_pins -hier *ov5640_cdc*]
++# [CDC_PIXEL 2026-09-27] Do not false-path an entire FIFO hierarchy.
++# This cut same-clock pointer/empty/data/valid paths and hid their timing.
++# clock.fdc already separates the camera clocks from ddrphy_sysclk.
++# Keep all intra-domain FIFO paths timed; vendor IP remains unchanged.
+ # [NO_NPU-48M] set_false_path -through [get_pins -hier *npu_to_core_cdc_bridge*]
+ #set_false_path -through [get_pins -hier *axis_async_fifo_cmd*]
+ #set_false_path -through [get_pins -hier *axis_async_fifo_data*]
+@@ -68,6 +71,6 @@
+               -to   [get_cells -hierarchical *wr_ptr_gray_sync1_reg*] \
+               6.666
+ # [CLKFIX 2026-09-13] i2c domain now runs on free_clk; dbg counters are async
+-set_clock_groups -name i2c_free_clk -asynchronous -group [get_clocks free_clk]
+-set_clock_groups -name dbg_pclk -asynchronous -group [get_clocks cmos1_pclk]
+-set_clock_groups -name dbg_pclk2 -asynchronous -group [get_clocks cmos2_pclk]
++# [CDC_PIXEL] Group free_clk is declared after create_clock in clock.fdc.
++# [CDC_PIXEL] Group cmos1_pclk is declared after create_clock in clock.fdc.
++# [CDC_PIXEL] Group cmos2_pclk is declared after create_clock in clock.fdc.
+--- source\ov5640\ov5640\ov5640_cdc.v.bak
++++ source\ov5640\ov5640\ov5640_cdc.v
+@@ -4,6 +4,11 @@
+     parameter DEVICE = "PG"
+ )
+ (
++    // [CDC_PIXEL] Read-only per-frame snapshots, all in video_clk domain.
++    output reg [31:0] dbg_cdc_input,
++    output reg [31:0] dbg_cdc_output,
++    output reg [31:0] dbg_cdc_drop,
++    output reg [31:0] dbg_cdc_seq,
+     input         cam_clk    /*synthesis PAP_MARK_DEBUG="1"*/,          //???????
+     input         cam_rst    /*synthesis PAP_MARK_DEBUG="1"*/,
+ 
+@@ -145,7 +150,8 @@
+ 
+     reg video_valid_r;
+     always @(posedge video_clk) begin
+-        video_valid_r <= rd_en;
++        if (video_rst) video_valid_r <= 1'b0;
++        else video_valid_r <= rd_en;
+     end
+     assign video_valid = video_valid_r;
+     ov5640_cdc_fifo ov5640_cdc_fifo (
+@@ -200,4 +206,70 @@
+     // end
+ 
+ 
++
++    // Diagnostic-only source snapshot: data is held for a complete frame.
++    // Two data stages precede the three-stage toggle notification. This is
++    // a bundled-data transfer, not a live asynchronous binary counter read.
++    reg src_vs_q, src_toggle;
++    reg [31:0] src_count, src_drop, src_seq;
++    reg [95:0] src_snapshot;
++    always @(posedge cam_clk or posedge cam_rst) begin
++        if (cam_rst) begin
++            src_vs_q <= 0;
++            src_toggle <= 0;
++            src_count <= 0;
++            src_drop <= 0;
++            src_seq <= 0;
++            src_snapshot <= 0;
++        end else begin
++            src_vs_q <= s_vsync;
++            if (s_vsync && !src_vs_q) begin
++                src_snapshot <= {src_seq + 32'd1, src_drop, src_count};
++                src_toggle <= ~src_toggle;
++                src_seq <= src_seq + 1'b1;
++                src_count <= {31'd0, s_valid};
++                src_drop <= {31'd0, (s_valid && full)};
++            end else begin
++                if (s_valid) src_count <= src_count + 1'b1;
++                if (s_valid && full) src_drop <= src_drop + 1'b1;
++            end
++        end
++    end
++
++    reg [95:0] snapshot_s1, snapshot_s2;
++    reg [2:0] toggle_sync;
++    reg toggle_seen, out_vs_q;
++    reg [31:0] out_count, out_snapshot;
++    always @(posedge video_clk) begin
++        if (video_rst) begin
++            snapshot_s1 <= 0;
++            snapshot_s2 <= 0;
++            toggle_sync <= 0;
++            toggle_seen <= 0;
++            out_vs_q <= 0;
++            out_count <= 0;
++            out_snapshot <= 0;
++            dbg_cdc_input <= 0;
++            dbg_cdc_output <= 0;
++            dbg_cdc_drop <= 0;
++            dbg_cdc_seq <= 0;
++        end else begin
++            snapshot_s1 <= src_snapshot;
++            snapshot_s2 <= snapshot_s1;
++            toggle_sync <= {toggle_sync[1:0], src_toggle};
++            out_vs_q <= video_vsync;
++            if (video_vsync && !out_vs_q) begin
++                out_snapshot <= out_count;
++                out_count <= {31'd0, video_valid};
++            end else if (video_valid) out_count <= out_count + 1'b1;
++            if (toggle_sync[2] != toggle_seen) begin
++                toggle_seen <= toggle_sync[2];
++                dbg_cdc_input <= snapshot_s2[31:0];
++                dbg_cdc_drop <= snapshot_s2[63:32];
++                dbg_cdc_seq <= snapshot_s2[95:64];
++                dbg_cdc_output <= out_snapshot;
++            end
++        end
++    end
++
+ endmodule--- source\ov5640\ov5640\ov5640.v.bak
++++ source\ov5640\ov5640\ov5640.v
+@@ -46,6 +46,10 @@
+     output reg [31:0]         dbg_vsync_raw          ,//raw cam_vsync rising edges (cam_pclk domain)
+ 
+     // [PT 2026-09-26] host SCCB passthrough (handshake on dri_clk)
++    output [31:0] dbg_cdc_input,
++    output [31:0] dbg_cdc_output,
++    output [31:0] dbg_cdc_drop,
++    output [31:0] dbg_cdc_seq,
+     input                     pt_req_toggle         ,
+     input                     pt_rw                 ,
+     input  [15:0]             pt_addr               ,
+@@ -360,6 +364,10 @@
+     .DEVICE(DEVICE)
+ )
+ ov5640_cdc(
++    .dbg_cdc_input(dbg_cdc_input),
++    .dbg_cdc_output(dbg_cdc_output),
++    .dbg_cdc_drop(dbg_cdc_drop),
++    .dbg_cdc_seq(dbg_cdc_seq),
+     .cam_clk(cam_pclk),
+     .cam_rst(!cam_rst_n),
+ 
+--- source\ov5640\ov5640_top.v.bak
++++ source\ov5640\ov5640_top.v
+@@ -171,6 +171,10 @@
+     wire                    video_hsync ;
+     wire                    video_valid ;
+     wire [DATA_WIDTH-1 : 0] video_data  ;
++    wire [31:0] dbg_cdc_input;
++    wire [31:0] dbg_cdc_output;
++    wire [31:0] dbg_cdc_drop;
++    wire [31:0] dbg_cdc_seq;
+     wire [31:0]   dbg_i2c_status;
+     wire [31:0]   dbg_pclk_cnt;
+     wire [31:0]   dbg_sys_status;
+@@ -308,6 +312,10 @@
+         .video_hsync        (video_hsync),  //锟斤拷锟斤拷效锟脚猴拷
+         .video_valid        (video_valid),  //锟斤拷锟斤拷锟斤拷效使锟斤拷锟脚猴拷
+         .video_data         (video_data ),  //锟斤拷效锟斤拷锟斤拷
++    .dbg_cdc_input(dbg_cdc_input),
++    .dbg_cdc_output(dbg_cdc_output),
++    .dbg_cdc_drop(dbg_cdc_drop),
++    .dbg_cdc_seq(dbg_cdc_seq),
+         .dbg_i2c_status     (dbg_i2c_status),
+         .dbg_pclk_cnt       (dbg_pclk_cnt ),
+         .dbg_sys_status     (dbg_sys_status),
+@@ -675,6 +683,10 @@
+         .dly_step              (reg_dly_step ),
+         .cam_addr_1            (cam_addr_1   ), 
+         .cam_addr_2            (cam_addr_2   ),
++    .dbg_cdc_input(dbg_cdc_input),
++    .dbg_cdc_output(dbg_cdc_output),
++    .dbg_cdc_drop(dbg_cdc_drop),
++    .dbg_cdc_seq(dbg_cdc_seq),
+         .dbg_fault_snapshot    (diag_fault_snapshot),
+         .dbg_reject_counts     (diag_reject_counts),
+         .dbg_input_pixels      (diag_input_pixels),
+--- source\ov5640\ov5640_reg.v.bak
++++ source\ov5640\ov5640_reg.v
+@@ -39,6 +39,10 @@
+     output reg [1 : 0]                xdma_ack              ,
+     output reg                        cam_en                        ,
+     output reg [7:0]                  dly_step                      ,
++    input [31:0] dbg_cdc_input,
++    input [31:0] dbg_cdc_output,
++    input [31:0] dbg_cdc_drop,
++    input [31:0] dbg_cdc_seq,
+     input [31:0] dbg_fault_snapshot,
+     input [31:0] dbg_reject_counts,
+     input [31:0] dbg_input_pixels,
+@@ -263,6 +267,10 @@
+ 
+ 
+ 
++                    BASE_ADDR + 32'h04: rdata <= dbg_cdc_input;
++                    BASE_ADDR + 32'h08: rdata <= dbg_cdc_output;
++                    BASE_ADDR + 32'h0c: rdata <= dbg_cdc_drop;
++                    BASE_ADDR + 32'h14: rdata <= dbg_cdc_seq;
+                     REG_DBG_CAM_WORDS: rdata <= dbg_input_pixels;
+                     REG_DBG_VSYNCS:    rdata <= dbg_vsyncs;
+                     REG_DBG_ZDIN:      rdata <= dbg_vsync_widths;

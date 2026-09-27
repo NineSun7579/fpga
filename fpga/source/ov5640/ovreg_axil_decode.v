@@ -92,45 +92,84 @@ module ovreg_axil_decode #(
     input          m2_rvalid,
     output         m2_rready,
     input  [31:0]  m2_rdata,
-    input   [1:0]  m2_rresp
+    input   [1:0]  m2_rresp,
+
+    // downstream slave 3 : ov5640_reg segment (CAM3, 0x2000_0400~0x04FF)
+    //   selected by addr[ADDR_SEL_LSB+3 : ADDR_SEL_LSB+2] == 01
+    output         m3_awvalid,
+    input          m3_awready,
+    output [31:0]  m3_awaddr,
+    output         m3_wvalid,
+    input          m3_wready,
+    output [31:0]  m3_wdata,
+    output [3:0]   m3_wstrb,
+    input          m3_bvalid,
+    output         m3_bready,
+    input   [1:0]  m3_bresp,
+    output         m3_arvalid,
+    input          m3_arready,
+    output [31:0]  m3_araddr,
+    input          m3_rvalid,
+    output         m3_rready,
+    input  [31:0]  m3_rdata,
+    input   [1:0]  m3_rresp
 );
 
     // address select, captured at handshake
-    reg [1:0] aw_sel;
+    // [CAM3] 4-bit: {addr[ADDR_SEL_LSB+3:LSB+2] (page, CAM3 when 01),
+    //                addr[ADDR_SEL_LSB+1:LSB]   (segment within page)}
+    reg [3:0] aw_sel;
     always @(posedge clk) begin
         if (rst)
-            aw_sel <= 2'b00;
+            aw_sel <= 4'b0000;
         else if (s_awvalid && s_awready)
-            aw_sel <= s_awaddr[ADDR_SEL_LSB+1 : ADDR_SEL_LSB];
+            aw_sel <= {s_awaddr[ADDR_SEL_LSB+3 : ADDR_SEL_LSB+2],
+                       s_awaddr[ADDR_SEL_LSB+1 : ADDR_SEL_LSB]};
     end
 
-    reg [1:0] ar_sel;
+    // CDC host diagnostics: four unused, 16-byte aligned reads per 0x200 stride.
+    wire cdc_read = (s_araddr[31:11] == (32'h20000000 >> 11)) &&
+                   (s_araddr[10:9] < 3) &&
+                   ((s_araddr[8:0] == 9'h190) || (s_araddr[8:0] == 9'h1a0) ||
+                    (s_araddr[8:0] == 9'h1b0) || (s_araddr[8:0] == 9'h1c0));
+    wire [3:0] ar_route = cdc_read ? {1'b0, s_araddr[10:9], 1'b0} :
+                         s_araddr[ADDR_SEL_LSB+3 : ADDR_SEL_LSB];
+    reg [3:0] ar_sel;
     always @(posedge clk) begin
         if (rst)
-            ar_sel <= 2'b00;
+            ar_sel <= 4'b0000;
         else if (s_arvalid && s_arready)
-            ar_sel <= s_araddr[ADDR_SEL_LSB+1 : ADDR_SEL_LSB];
+            ar_sel <= ar_route;
     end
 
     // steering value for the current AW/W pair; falls back to the live address
     // while AW is pending
-    wire [1:0] aw_sel_live = s_awvalid ? s_awaddr[ADDR_SEL_LSB+1 : ADDR_SEL_LSB] : aw_sel;
-    wire [1:0] ar_sel_live = s_arvalid ? s_araddr[ADDR_SEL_LSB+1 : ADDR_SEL_LSB] : ar_sel;
+    wire [3:0] aw_sel_live = s_awvalid ? {s_awaddr[ADDR_SEL_LSB+3 : ADDR_SEL_LSB+2],
+                                          s_awaddr[ADDR_SEL_LSB+1 : ADDR_SEL_LSB]} : aw_sel;
+    wire [3:0] ar_sel_live = s_arvalid ? ar_route : ar_sel;
 
-    // per-slave select strobes (sel==11 falls back to m1 = legacy prep routing)
-    wire aw_m0 = (aw_sel_live == 2'b00);
-    wire aw_m2 = (aw_sel_live == 2'b10);
-    wire aw_m1 = ~aw_m0 & ~aw_m2;
-    wire ar_m0 = (ar_sel_live == 2'b00);
-    wire ar_m2 = (ar_sel_live == 2'b10);
-    wire ar_m1 = ~ar_m0 & ~ar_m2;
+    wire aw_page3 = (aw_sel_live[3:2] == 2'b01);   // CAM3 page  (0x2000_0400+)
+    wire ar_page3 = (ar_sel_live[3:2] == 2'b01);
 
-    wire b_m0 = (aw_sel == 2'b00);
-    wire b_m2 = (aw_sel == 2'b10);
-    wire b_m1 = ~b_m0 & ~b_m2;
-    wire r_m0 = (ar_sel == 2'b00);
-    wire r_m2 = (ar_sel == 2'b10);
-    wire r_m1 = ~r_m0 & ~r_m2;
+    // per-slave select strobes (CAM3 page has priority; sel==11 within page 0
+    // falls back to m1 = legacy prep routing)
+    wire aw_m3 = aw_page3;
+    wire aw_m0 = ~aw_m3 & (aw_sel_live[1:0] == 2'b00);
+    wire aw_m2 = ~aw_m3 & (aw_sel_live[1:0] == 2'b10);
+    wire aw_m1 = ~aw_m3 & ~aw_m0 & ~aw_m2;
+    wire ar_m3 = ar_page3;
+    wire ar_m0 = ~ar_m3 & (ar_sel_live[1:0] == 2'b00);
+    wire ar_m2 = ~ar_m3 & (ar_sel_live[1:0] == 2'b10);
+    wire ar_m1 = ~ar_m3 & ~ar_m0 & ~ar_m2;
+
+    wire b_m3 = (aw_sel[3:2] == 2'b01);
+    wire b_m0 = ~b_m3 & (aw_sel[1:0] == 2'b00);
+    wire b_m2 = ~b_m3 & (aw_sel[1:0] == 2'b10);
+    wire b_m1 = ~b_m3 & ~b_m0 & ~b_m2;
+    wire r_m3 = (ar_sel[3:2] == 2'b01);
+    wire r_m0 = ~r_m3 & (ar_sel[1:0] == 2'b00);
+    wire r_m2 = ~r_m3 & (ar_sel[1:0] == 2'b10);
+    wire r_m1 = ~r_m3 & ~r_m0 & ~r_m2;
 
     //----------------------------------------
     // AW channel
@@ -138,10 +177,12 @@ module ovreg_axil_decode #(
     assign m0_awvalid = s_awvalid & aw_m0;
     assign m1_awvalid = s_awvalid & aw_m1;
     assign m2_awvalid = s_awvalid & aw_m2;
-    assign s_awready  = aw_m0 ? m0_awready : (aw_m2 ? m2_awready : m1_awready);
+    assign m3_awvalid = s_awvalid & aw_m3;
+    assign s_awready  = aw_m3 ? m3_awready : aw_m0 ? m0_awready : (aw_m2 ? m2_awready : m1_awready);
     assign m0_awaddr  = s_awaddr;
     assign m1_awaddr  = s_awaddr;
     assign m2_awaddr  = s_awaddr;
+    assign m3_awaddr  = s_awaddr;
 
     //----------------------------------------
     // W channel : follow the AW steering (single outstanding AXI-Lite write)
@@ -149,13 +190,16 @@ module ovreg_axil_decode #(
     assign m0_wvalid = s_wvalid & aw_m0;
     assign m1_wvalid = s_wvalid & aw_m1;
     assign m2_wvalid = s_wvalid & aw_m2;
-    assign s_wready  = aw_m0 ? m0_wready : (aw_m2 ? m2_wready : m1_wready);
+    assign m3_wvalid = s_wvalid & aw_m3;
+    assign s_wready  = aw_m3 ? m3_wready : aw_m0 ? m0_wready : (aw_m2 ? m2_wready : m1_wready);
     assign m0_wdata  = s_wdata;
     assign m1_wdata  = s_wdata;
     assign m2_wdata  = s_wdata;
+    assign m3_wdata  = s_wdata;
     assign m0_wstrb  = s_wstrb;
     assign m1_wstrb  = s_wstrb;
     assign m2_wstrb  = s_wstrb;
+    assign m3_wstrb  = s_wstrb;
 
     //----------------------------------------
     // B channel : route by the AW select captured for this write
@@ -163,8 +207,9 @@ module ovreg_axil_decode #(
     assign m0_bready = s_bready & b_m0;
     assign m1_bready = s_bready & b_m1;
     assign m2_bready = s_bready & b_m2;
-    assign s_bvalid  = b_m0 ? m0_bvalid : (b_m2 ? m2_bvalid : m1_bvalid);
-    assign s_bresp   = b_m0 ? m0_bresp  : (b_m2 ? m2_bresp  : m1_bresp);
+    assign m3_bready = s_bready & b_m3;
+    assign s_bvalid  = b_m3 ? m3_bvalid : b_m0 ? m0_bvalid : (b_m2 ? m2_bvalid : m1_bvalid);
+    assign s_bresp   = b_m3 ? m3_bresp  : b_m0 ? m0_bresp  : (b_m2 ? m2_bresp  : m1_bresp);
 
     //----------------------------------------
     // AR channel
@@ -172,10 +217,12 @@ module ovreg_axil_decode #(
     assign m0_arvalid = s_arvalid & ar_m0;
     assign m1_arvalid = s_arvalid & ar_m1;
     assign m2_arvalid = s_arvalid & ar_m2;
-    assign s_arready  = ar_m0 ? m0_arready : (ar_m2 ? m2_arready : m1_arready);
+    assign m3_arvalid = s_arvalid & ar_m3;
+    assign s_arready  = ar_m3 ? m3_arready : ar_m0 ? m0_arready : (ar_m2 ? m2_arready : m1_arready);
     assign m0_araddr  = s_araddr;
     assign m1_araddr  = s_araddr;
     assign m2_araddr  = s_araddr;
+    assign m3_araddr  = s_araddr;
 
     //----------------------------------------
     // R channel : route by the AR select captured for this read
@@ -183,8 +230,9 @@ module ovreg_axil_decode #(
     assign m0_rready = s_rready & r_m0;
     assign m1_rready = s_rready & r_m1;
     assign m2_rready = s_rready & r_m2;
-    assign s_rvalid  = r_m0 ? m0_rvalid : (r_m2 ? m2_rvalid : m1_rvalid);
-    assign s_rdata   = r_m0 ? m0_rdata  : (r_m2 ? m2_rdata  : m1_rdata);
-    assign s_rresp   = r_m0 ? m0_rresp  : (r_m2 ? m2_rresp  : m1_rresp);
+    assign m3_rready = s_rready & r_m3;
+    assign s_rvalid  = r_m3 ? m3_rvalid : r_m0 ? m0_rvalid : (r_m2 ? m2_rvalid : m1_rvalid);
+    assign s_rdata   = r_m3 ? m3_rdata  : r_m0 ? m0_rdata  : (r_m2 ? m2_rdata  : m1_rdata);
+    assign s_rresp   = r_m3 ? m3_rresp  : r_m0 ? m0_rresp  : (r_m2 ? m2_rresp  : m1_rresp);
 
 endmodule

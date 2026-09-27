@@ -93,7 +93,16 @@ module top #(
     input       [7 : 0]                  cmos2_data              , 
     output                               cmos2_rst_n             , 
     output                               cmos2_scl               , 
-    inout                                cmos2_sda                 
+    inout                                cmos2_sda                 , 
+
+    // ---- CAM3 (FMC 3rd OV5640) ----
+    input                                cmos3_pclk               , 
+    input                                cmos3_vsync              , 
+    input                                cmos3_href               , 
+    input       [7 : 0]                  cmos3_data              , 
+    output                               cmos3_rst_n             , 
+    output                               cmos3_scl               , 
+    inout                                cmos3_sda
 `elsif USE_HDMI
     /////////////////////////  HDMI
     //ms72XX
@@ -134,6 +143,7 @@ wire [3:0]                  ddr_axi_awcache    ;
 wire [2:0]                  ddr_axi_awprot     ;
 wire [3:0]                  ddr_axi_awqos      ;
 
+wire [15:0] cam_s_data_available, cam2_s_data_available, cam3_s_data_available;
 wire [AXI_DATA_LEN-1:0]     ddr_axi_wdata      /* synthesis PAP_MARK_DEBUG="true" */;
 wire [AXI_DATA_LEN-1:0]     ddr_axi_wdata_ddr3      ;
 wire [AXI_STRB_LEN-1:0]     ddr_axi_wstrb      /* synthesis PAP_MARK_DEBUG="true" */;
@@ -425,6 +435,17 @@ ddr_w_arb u_ddr_w_arb (
     .m1_wready  (cam2_axi_wready    ),
     .m1_bid     (cam2_axi_bid       ), .m1_bresp  (cam2_axi_bresp    ),
     .m1_bvalid  (cam2_axi_bvalid    ), .m1_bready (cam2_axi_bready   ),
+    // [CAM3-FIX 2026-09-26] cam3 write channel reconnected (was tied off for bisect)
+    .m2_awid    (cam3_axi_awid      ), .m2_awaddr (cam3_axi_awaddr   ),
+    .m2_awlen   (cam3_axi_awlen     ), .m2_awsize (cam3_axi_awsize   ),
+    .m2_awburst (cam3_axi_awburst   ), .m2_awlock (cam3_axi_awlock   ),
+    .m2_awcache (cam3_axi_awcache   ), .m2_awprot (cam3_axi_awprot   ),
+    .m2_awvalid (cam3_axi_awvalid   ), .m2_awready(cam3_axi_awready  ),
+    .m2_wdata   (cam3_axi_wdata     ), .m2_wstrb  (cam3_axi_wstrb    ),
+    .m2_wlast   (cam3_axi_wlast     ), .m2_wvalid (cam3_axi_wvalid   ),
+    .m2_wready  (cam3_axi_wready    ),
+    .m2_bid     (cam3_axi_bid       ), .m2_bresp  (cam3_axi_bresp    ),
+    .m2_bvalid  (cam3_axi_bvalid    ), .m2_bready (cam3_axi_bready   ),
     .s_awid     (arb_s_awid         ), .s_awaddr (arb_s_awaddr      ),
     .s_awlen    (arb_s_awlen        ), .s_awsize (arb_s_awsize      ),
     .s_awburst  (arb_s_awburst      ), .s_awlock (arb_s_awlock      ),
@@ -523,7 +544,19 @@ assign ddr_axi_bid    = ddr_axi_bid_int;
 wire aw_burst_fits   = (ddr_axi_awlen < (5'd16 - wr_water_level));
 wire aw_latch_now    = ddr_axi_awvalid && !ddr3_aw_v && !aw_hold_v
                        && w_fifo_empty && aw_burst_fits && !ddr_axi_bvalid_int;
-wire ar_latch_now    = ddr_axi_arvalid && !ddr3_ar_v && ddr_axi_fifo_empty;
+// [VKFS 2026-09-26] single-outstanding DDR read gate.  The bridge keeps ONE
+// ddr_axi_ar_sid register for R-channel routing; allowing a 2nd AR to latch
+// (from a different slave, e.g. cam1's KF on S05) before the 1st read's RLAST
+// retags the earlier burst with the wrong slave ID -> host read never
+// completes -> crossbar M00 read channel wedges.  Host frame DMA (S00) and
+// KF prefetch (S05) are both low-bandwidth, so serialising is free here.
+reg  rd_inflight;
+wire ar_latch_now    = ddr_axi_arvalid && !ddr3_ar_v && ddr_axi_fifo_empty && !rd_inflight;
+always @(posedge axi_clk) begin
+    if (axi_rst)                                rd_inflight <= 1'b0;
+    else if (ar_latch_now)                      rd_inflight <= 1'b1;
+    else if (ddr_axi_rvalid_ddr3 && ddr_axi_rlast_ddr3) rd_inflight <= 1'b0;
+end
 
 reg              ddr3_aw_v, ddr3_ar_v;
 reg              aw_hold_v;
@@ -758,6 +791,20 @@ wire [31:0]                 cam2_axil_araddr;
 wire                        cam2_axil_rvalid, cam2_axil_rready;
 wire [31:0]                 cam2_axil_rdata;
 wire [1:0]                  cam2_axil_rresp;
+
+// --- cam3 register window (M01 sub-window 0x2000_0400~0x04FF) ---
+wire                        cam3_axil_awvalid, cam3_axil_awready;
+wire [31:0]                 cam3_axil_awaddr;
+wire                        cam3_axil_wvalid, cam3_axil_wready;
+wire [31:0]                 cam3_axil_wdata;
+wire [3:0]                  cam3_axil_wstrb;
+wire                        cam3_axil_bvalid, cam3_axil_bready;
+wire [1:0]                  cam3_axil_bresp;
+wire                        cam3_axil_arvalid, cam3_axil_arready;
+wire [31:0]                 cam3_axil_araddr;
+wire                        cam3_axil_rvalid, cam3_axil_rready;
+wire [31:0]                 cam3_axil_rdata;
+wire [1:0]                  cam3_axil_rresp;
 
 // --- cam2 capture / write stream (S04) ---
 wire [31 : 0]               cam2_cmd_addr    ;
@@ -1020,7 +1067,25 @@ ovreg_axil_decode ovreg_axil_decode_u (
     .m2_rvalid  (cam2_axil_rvalid),
     .m2_rready  (cam2_axil_rready),
     .m2_rdata   (cam2_axil_rdata),
-    .m2_rresp   (cam2_axil_rresp)
+    .m2_rresp   (cam2_axil_rresp),
+
+    .m3_awvalid (cam3_axil_awvalid),
+    .m3_awready (cam3_axil_awready),
+    .m3_awaddr  (cam3_axil_awaddr),
+    .m3_wvalid  (cam3_axil_wvalid),
+    .m3_wready  (cam3_axil_wready),
+    .m3_wdata   (cam3_axil_wdata),
+    .m3_wstrb   (cam3_axil_wstrb),
+    .m3_bvalid  (cam3_axil_bvalid),
+    .m3_bready  (cam3_axil_bready),
+    .m3_bresp   (cam3_axil_bresp),
+    .m3_arvalid (cam3_axil_arvalid),
+    .m3_arready (cam3_axil_arready),
+    .m3_araddr  (cam3_axil_araddr),
+    .m3_rvalid  (cam3_axil_rvalid),
+    .m3_rready  (cam3_axil_rready),
+    .m3_rdata   (cam3_axil_rdata),
+    .m3_rresp   (cam3_axil_rresp)
 );
 
 // --- prep datapath wiring ---
@@ -1030,6 +1095,9 @@ wire [11:0]                 prep_img_width_w;
 wire [7:0]                  prep_thr_sat_w, prep_thr_hue_w, prep_thr_val_w, prep_thr_low_w;
 wire [10:0]                 prep_thr_edge_w;
 wire [7:0]                  prep_lane_roi_top_w, prep_lane_roi_bot_w, prep_lane_row_thr_w, prep_lane_dash_thr_w;
+wire cam_dma_abort, cam_dma_abort_req;
+wire cam2_dma_abort, cam2_dma_abort_req;
+wire cam3_dma_abort, cam3_dma_abort_req;
 wire [7:0]                  prep_frame_cnt;
 wire [15:0]                 inj_addr_w, inj_len_w, inj_fid_w;
 wire                        inj_start_w, inj_done_clr_w;
@@ -1105,8 +1173,10 @@ prep_regs #(.TICK_DIV(50)) prep_regs_u (
 `ifdef USE_OV5640
 ov5640_top #(
     .IODELAY_STEP  (8'd40),
-    .MEDIAN_EN     (1'b0)        , // [MEDIAN] cam1/left path only; cam2 remains raw
-    .MEDIAN_RSVD   (3'd0)
+    .MEDIAN_EN     (1'b0)        , // [MEDIAN] disabled; cam1 uses FIR below
+    .MEDIAN_RSVD   (3'd0),
+    .KF_EN         (1'b0)         , // [VKFS] disabled; cam1 uses FIR
+    .KF_RD_EN      (1'b0)         // [VKFS] no previous-frame DDR read
 ) ov5640_top(
     .clk_50m       (clk_50m)        ,
     .clk_50m_rst_n (1'b1)                       , //[RSTFIX 2026-09-13] button_rst_n floating-low on this board
@@ -1168,15 +1238,68 @@ ov5640_top #(
     .cam_s_data_ready(cam_tap_data_ready),
 
     //DMA?
+    .cam_dma_abort(cam_dma_abort),
+    .cam_s_data_available(cam_s_data_available),
+    .cam_dma_abort_req(cam_dma_abort_req),
     .cam_dma_done(cam_dma_done),
     .xdma_clk (pcie_clk) ,
-    .xdma_irq (cam_irq ) 
+    .xdma_irq (cam_irq ) ,
+
+    // [VKFS 2026-09-25] previous-frame read master -> crossbar S05 (npu_s3_*)
+    .kf_arvalid (npu_s3_axi_arvalid),
+    .kf_arready (npu_s3_axi_arready),
+    .kf_araddr  (npu_s3_axi_araddr ),
+    .kf_arlen   (npu_s3_axi_arlen  ),
+    .kf_arsize  (npu_s3_axi_arsize ),
+    .kf_arburst (npu_s3_axi_arburst),
+    .kf_arlock  (npu_s3_axi_arlock ),
+    .kf_arcache (npu_s3_axi_arcache),
+    .kf_arprot  (npu_s3_axi_arprot ),
+    .kf_arid    (npu_s3_axi_arid   ),
+    .kf_rready  (npu_s3_axi_rready ),
+    .kf_rid     (npu_s3_axi_rid    ),
+    .kf_rdata   (npu_s3_axi_rdata  ),
+    .kf_rresp   (npu_s3_axi_rresp  ),
+    .kf_rlast   (npu_s3_axi_rlast  ),
+    .kf_rvalid  (npu_s3_axi_rvalid )
 
 );
 
 // [LEDGER 2026-09-19] DMA transaction-done pulses (single beat ledger)
 wire cam_dma_done;
 wire cam2_dma_done;
+wire cam3_dma_done;
+
+// --- CAM3 (FMC 3rd OV5640, BASE_ADDR 0x2000_0400, 640x480, raw passthrough) ---
+wire                        cam3_axil_awvalid_unused;
+wire [AXI_DATA_LEN-1 : 0]   cam3_s_data      ;
+wire                        cam3_s_data_valid;
+wire                        cam3_s_data_last ;
+wire                        cam3_s_data_ready;
+wire [31:0]                 cam3_cmd_addr    ;
+wire [31:0]                 cam3_cmd_len     ;
+wire                        cam3_cmd_valid   ;
+wire                        cam3_cmd_ready   ;
+wire [3:0]                  cam3_axi_awid    ;
+wire [31:0]                 cam3_axi_awaddr  ;
+wire [7:0]                  cam3_axi_awlen   ;
+wire [2:0]                  cam3_axi_awsize  ;
+wire [1:0]                  cam3_axi_awburst ;
+wire [3:0]                  cam3_axi_awcache ;
+wire [2:0]                  cam3_axi_awprot  ;
+wire                        cam3_axi_awvalid ;
+wire                        cam3_axi_awready ;
+wire [127:0]                cam3_axi_wdata   ;
+wire [15:0]                 cam3_axi_wstrb   ;
+wire                        cam3_axi_awlock  ;
+wire                        cam3_axi_wlast   ;
+wire                        cam3_axi_wvalid  ;
+wire                        cam3_axi_wready  ;
+wire [3:0]                  cam3_axi_bid     ;
+wire [1:0]                  cam3_axi_bresp   ;
+wire                        cam3_axi_bvalid  ;
+wire                        cam3_axi_bready  ;
+wire [31:0]                 cam3_dbg_dummy;
 
 // ---- CAM2 (FMC 2nd OV5640, BASE_ADDR 0x2000_0200, 640x480) ----
 ov5640_top #(
@@ -1238,7 +1361,81 @@ ov5640_top #(
     .cam_s_data_last (cam2_s_data_last ),
     .cam_s_data_ready(cam2_s_data_ready),
 
+    .cam_dma_abort(cam2_dma_abort),
+    .cam_s_data_available(cam2_s_data_available),
+    .cam_dma_abort_req(cam2_dma_abort_req),
     .cam_dma_done(cam2_dma_done),
+    .xdma_clk (pcie_clk),
+    .xdma_irq (          )
+);
+
+// ---- CAM3 (FMC 3rd OV5640, BASE_ADDR 0x2000_0400, 640x480, raw passthrough:
+//      VSYNC qualified for 64 PCLK; pixel-path settings unchanged) ----
+ov5640_top #(
+    .BASE_ADDR       (32'h2000_0400),
+    .SENSOR_PLL_MULT (8'h30), // cam3: initialize PLL for 48 MHz PCLK
+    .VSYNC_STABLE_CYCLES(64), // cam3 only: 0.762 us at 84 MHz
+    .CAM_ADDR_1_DEF  (32'h0100_0000),
+    .CAM_ADDR_2_DEF  (32'h0120_0000),
+    .CAM_EN_DEF      (1'b1),
+    .H_CMOS_DISP     (11'd640),
+    .V_CMOS_DISP     (11'd480),
+    .TOTAL_H_PIXEL   (12'd1896),
+    .TOTAL_V_PIXEL   (12'd984)
+) cam3_ov5640_top (
+    .clk_50m       (clk_50m),
+    .clk_50m_rst_n (1'b1),
+    .dbg_locked    (locked),
+    .dbg_btn_rst_n (button_rst_n),
+    .dbg_axi_awvalid(cam3_axi_awvalid),
+    .dbg_axi_awready(cam3_axi_awready),
+    .dbg_axi_wvalid (cam3_axi_wvalid ),
+    .dbg_axi_wready (cam3_axi_wready ),
+    .dbg_axi_bvalid (cam3_axi_bvalid ),
+    .dbg_axi_bready (cam3_axi_bready ),
+
+    .cam_pclk (cmos3_pclk ),
+    .cam_vsync(cmos3_vsync),
+    .cam_href (cmos3_href ),
+    .cam_data (cmos3_data ),
+    .cam_rst_n(cmos3_rst_n),
+    .cam_scl  (cmos3_scl  ),
+    .cam_sda  (cmos3_sda  ),
+
+    .s_axi_awvalid(cam3_axil_awvalid),
+    .s_axi_awready(cam3_axil_awready),
+    .s_axi_awaddr (cam3_axil_awaddr ),
+    .s_axi_wvalid (cam3_axil_wvalid ),
+    .s_axi_wready (cam3_axil_wready ),
+    .s_axi_wdata  (cam3_axil_wdata  ),
+    .s_axi_wstrb  (cam3_axil_wstrb  ),
+    .s_axi_bvalid (cam3_axil_bvalid ),
+    .s_axi_bready (cam3_axil_bready ),
+    .s_axi_bresp  (cam3_axil_bresp  ),
+    .s_axi_arvalid(cam3_axil_arvalid),
+    .s_axi_arready(cam3_axil_arready),
+    .s_axi_araddr (cam3_axil_araddr ),
+    .s_axi_rvalid (cam3_axil_rvalid ),
+    .s_axi_rready (cam3_axil_rready ),
+    .s_axi_rdata  (cam3_axil_rdata  ),
+    .s_axi_rresp  (cam3_axil_rresp  ),
+
+    .video_clk(axi_clk),
+    .video_rst(axi_rst),
+    .cam_cmd_addr (cam3_cmd_addr ),
+    .cam_cmd_len  (cam3_cmd_len  ),
+    .cam_cmd_valid(cam3_cmd_valid),
+    .cam_cmd_ready(cam3_cmd_ready),
+
+    .cam_s_data      (cam3_s_data      ),
+    .cam_s_data_valid(cam3_s_data_valid),
+    .cam_s_data_last (cam3_s_data_last ),
+    .cam_s_data_ready(cam3_s_data_ready),
+
+    .cam_dma_abort(cam3_dma_abort),
+    .cam_s_data_available(cam3_s_data_available),
+    .cam_dma_abort_req(cam3_dma_abort_req),
+    .cam_dma_done(cam3_dma_done),
     .xdma_clk (pcie_clk),
     .xdma_irq (          )
 );
@@ -1337,11 +1534,15 @@ wire                    ov5640_axi_bvalid  /*synthesis PAP_MARK_DEBUG="1"*/;
 wire                    ov5640_axi_bready  /*synthesis PAP_MARK_DEBUG="1"*/;
 
 axi_dma_write #(
+    .WAIT_FOR_DATA(1),
 	.BURST_LEN  (BURST_LEN)   ,
 	.ID_WIDTH   (AXI_ID_LEN)  ,
 	.DATA_WIDTH (AXI_DATA_LEN)
 )
 ov5640_axi_dma_write(
+    .data_in_available(cam_s_data_available),
+    .abort_req(cam_dma_abort_req),
+    .data_in_abort(cam_dma_abort),
 	.clk(axi_clk)                   ,
 	.rst(axi_rst)                   ,
 
@@ -1379,11 +1580,15 @@ ov5640_axi_dma_write(
 );
 
 axi_dma_write #(
+    .WAIT_FOR_DATA(1),
 	.BURST_LEN  (BURST_LEN)   ,
 	.ID_WIDTH   (AXI_ID_LEN)  ,
 	.DATA_WIDTH (AXI_DATA_LEN)
 )
 cam2_axi_dma_write(
+    .data_in_available(cam2_s_data_available),
+    .abort_req(cam2_dma_abort_req),
+    .data_in_abort(cam2_dma_abort),
 	.clk(axi_clk)                   ,
 	.rst(axi_rst)                   ,
 
@@ -1418,6 +1623,52 @@ cam2_axi_dma_write(
 	.m_axi_bresp   (cam2_axi_bresp   ),
 	.m_axi_bvalid  (cam2_axi_bvalid  ),
 	.m_axi_bready  (cam2_axi_bready  )
+);
+
+axi_dma_write #(
+    .WAIT_FOR_DATA(1),
+	.BURST_LEN  (BURST_LEN)   ,
+	.ID_WIDTH   (AXI_ID_LEN)  ,
+	.DATA_WIDTH (AXI_DATA_LEN)
+)
+cam3_axi_dma_write(
+    .data_in_available(cam3_s_data_available),
+    .abort_req(cam3_dma_abort_req),
+    .data_in_abort(cam3_dma_abort),
+	.clk(axi_clk)                   ,
+	.rst(axi_rst)                   ,
+
+	.cmd_valid (cam3_cmd_valid)     ,
+	.cmd_addr  (cam3_cmd_addr )     ,
+	.cmd_len   (cam3_cmd_len  )     ,
+	.cmd_id    (4'b0010)            ,
+	.cmd_ready (cam3_cmd_ready)     ,
+
+	.data_in       (cam3_s_data          ),
+	.data_in_keep  ({AXI_STRB_LEN{1'b1}}),
+	.data_in_valid (cam3_s_data_valid    ),
+	.data_in_last  (cam3_dma_done    ),  // [LEDGER] per-camera single-beat marker
+	.data_in_ready (cam3_s_data_ready    ),
+
+	.m_axi_awid    (cam3_axi_awid    ),
+	.m_axi_awaddr  (cam3_axi_awaddr  ),
+	.m_axi_awlen   (cam3_axi_awlen   ),
+	.m_axi_awsize  (cam3_axi_awsize  ),
+	.m_axi_awburst (cam3_axi_awburst ),
+	.m_axi_awlock  (cam3_axi_awlock  ),
+	.m_axi_awcache (cam3_axi_awcache ),
+	.m_axi_awprot  (cam3_axi_awprot  ),
+	.m_axi_awvalid (cam3_axi_awvalid ),
+	.m_axi_awready (cam3_axi_awready ),
+	.m_axi_wdata   (cam3_axi_wdata   ),
+	.m_axi_wstrb   (cam3_axi_wstrb   ),
+	.m_axi_wlast   (cam3_axi_wlast   ),
+	.m_axi_wvalid  (cam3_axi_wvalid  ),
+	.m_axi_wready  (cam3_axi_wready  ),
+	.m_axi_bid     (cam3_axi_bid     ),
+	.m_axi_bresp   (cam3_axi_bresp   ),
+	.m_axi_bvalid  (cam3_axi_bvalid  ),
+	.m_axi_bready  (cam3_axi_bready  )
 );
 // ===================== preprocess datapath (PREP, batch-2) =====================
 reg [7:0] prep_frame_cnt;
@@ -1587,6 +1838,9 @@ axi_dma_write #(
     .ID_WIDTH   (AXI_ID_LEN),
     .DATA_WIDTH (AXI_DATA_LEN)
 ) prep_axi_dma_write(
+    .data_in_available(16'd0),
+    .abort_req(1'b0),
+    .data_in_abort(),
     .clk(axi_clk),
     .rst(axi_rst),
     .cmd_valid (prep_wr_cmd_valid),
@@ -1793,8 +2047,8 @@ assign npu_s1_axi_rready   = 1'b1;
 // S04/S05/S06 read (npu_s2/s3/s4)
 assign npu_s2_axi_arvalid  = 1'b0;
 assign npu_s2_axi_rready   = 1'b1;
-assign npu_s3_axi_arvalid  = 1'b0;
-assign npu_s3_axi_rready   = 1'b1;
+// [VKFS 2026-09-25] S05 (npu_s3) is driven by cam1's vip_kf_stream read master
+// (was tied off). Keep S02/S04/S06 tied off.
 assign npu_s4_axi_arvalid  = 1'b0;
 assign npu_s4_axi_rready   = 1'b1;
 // M02 (NPU register window) response inputs

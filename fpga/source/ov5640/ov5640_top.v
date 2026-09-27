@@ -1,5 +1,6 @@
 module ov5640_top #(
     //DVP�����λ��
+    parameter [7:0] SENSOR_PLL_MULT = 8'h54,
     parameter DATA_WIDTH = 16,
 
     //AXI
@@ -29,6 +30,7 @@ module ov5640_top #(
     //�忨�豸
     //IODELAY step for DVP sampling phase (0..255)
     parameter [7:0] IODELAY_STEP = 8'd40,
+    parameter integer VSYNC_STABLE_CYCLES = 0,
 
     parameter DEVICE = "PG",
 
@@ -37,7 +39,16 @@ module ov5640_top #(
     //   MEDIAN_EN=1 -> 3x3 median independently on R/G/B, with replicated
     //                  image boundaries and one pixel accepted per clock.
     parameter        MEDIAN_EN      = 1'b0,
-    parameter [2:0]  MEDIAN_RSVD    = 3'd0
+    parameter [2:0]  MEDIAN_RSVD    = 3'd0,
+    // [VKFS 2026-09-25] cam1 temporal Kalman/IIR after the median stage.
+    //   KF_EN=0 -> pure bypass (cam2 default). The previous-frame state is
+    //   read back from the other DDR ping-pong bank via kf_* (a free
+    //   crossbar slave port), so no on-chip full-frame buffer is needed.
+    parameter        KF_EN          = 1'b0,
+    parameter [5:0]  KF_THR0        = 6'd3,
+    parameter [5:0]  KF_THR1        = 6'd8,
+    parameter [5:0]  KF_THR2        = 6'd20,
+parameter        KF_RD_EN       = 1'b1
 )(
     // input         pl_clk                ,  //��ʱ��
     input         clk_50m               ,
@@ -89,6 +100,9 @@ module ov5640_top #(
     //����ͷAXI_stream����
     input                          video_clk      /*synthesis PAP_MARK_DEBUG="1"*/,
     input                          video_rst      /*synthesis PAP_MARK_DEBUG="1"*/,
+    input                         cam_dma_abort,
+    output                        cam_dma_abort_req,
+    output [15:0]                 cam_s_data_available,
     input                         cam_dma_done   ,  // [LEDGER 2026-09-19] DMA transaction-done pulse
     output [AXI_ADDR_WIDTH-1 : 0]  cam_cmd_addr    /*synthesis PAP_MARK_DEBUG="1"*/,
     output [AXI_LEN_WIDTH-1 : 0]   cam_cmd_len     /*synthesis PAP_MARK_DEBUG="1"*/,
@@ -102,8 +116,25 @@ module ov5640_top #(
 
     //����DMA����������
     input                         xdma_clk  ,
-    output  [1 : 0]               xdma_irq   /*synthesis PAP_MARK_DEBUG="1"*/
+    output  [1 : 0]               xdma_irq   /*synthesis PAP_MARK_DEBUG="1"*/,
 
+    // [VKFS 2026-09-25] previous-frame DDR read master (driven when KF_EN=1)
+    output                        kf_arvalid,
+    input                         kf_arready,
+    output [AXI_ADDR_WIDTH-1 : 0] kf_araddr,
+    output [7 : 0]                kf_arlen,
+    output [2 : 0]                kf_arsize,
+    output [1 : 0]                kf_arburst,
+    output                        kf_arlock,
+    output [3 : 0]                kf_arcache,
+    output [2 : 0]                kf_arprot,
+    output [3 : 0]                kf_arid,
+    output                        kf_rready,
+    input  [3 : 0]                kf_rid,
+    input  [AXI_DATA_WIDTH-1 : 0] kf_rdata,
+    input  [1 : 0]                kf_rresp,
+    input                         kf_rlast,
+    input                         kf_rvalid
 );
 
 
@@ -140,6 +171,10 @@ module ov5640_top #(
     wire                    video_hsync ;
     wire                    video_valid ;
     wire [DATA_WIDTH-1 : 0] video_data  ;
+    wire [31:0] dbg_cdc_input;
+    wire [31:0] dbg_cdc_output;
+    wire [31:0] dbg_cdc_drop;
+    wire [31:0] dbg_cdc_seq;
     wire [31:0]   dbg_i2c_status;
     wire [31:0]   dbg_pclk_cnt;
     wire [31:0]   dbg_sys_status;
@@ -152,6 +187,8 @@ module ov5640_top #(
     wire         cam_vsync_dly;
     wire         cam_href_dly;
     wire [7 : 0] cam_data_dly;
+    // [CAM3DLY 2026-09-27] runtime DVP sampling delay (from ov5640_reg).
+    wire [7 : 0] reg_dly_step;
     
     // �����ӳٲ���ֵ (0~255)
     // IODELAY_STEP is a header parameter now (overridable per instance)
@@ -159,26 +196,26 @@ module ov5640_top #(
     // --- �����ź��ӳ����� ---
     GTP_IODELAY_E2 #(
         .DELAY_STEP_VALUE(IODELAY_STEP),
-        .DELAY_STEP_SEL("PARAMETER"),
+        .DELAY_STEP_SEL("PORT"),
         .TDELAY_EN("FALSE") 
     ) u_iodelay_vsync (
         .DO         (cam_vsync_dly),  
         .DELAY_SEL  (1'b0),
         .DI         (cam_vsync),     
         .EN_N       (1'b0),
-        .DELAY_STEP (8'b0)  
+        .DELAY_STEP (reg_dly_step)  
     );
 
     GTP_IODELAY_E2 #(
         .DELAY_STEP_VALUE(IODELAY_STEP),
-        .DELAY_STEP_SEL("PARAMETER"),
+        .DELAY_STEP_SEL("PORT"),
         .TDELAY_EN("FALSE") 
     ) u_iodelay_href (
         .DO         (cam_href_dly),  
         .DELAY_SEL  (1'b0),
         .DI         (cam_href),     
         .EN_N       (1'b0),
-        .DELAY_STEP (8'b0)  
+        .DELAY_STEP (reg_dly_step)  
     );
 
     // --- �����ź�(cam_data)�ӳ����� ---
@@ -187,24 +224,58 @@ module ov5640_top #(
         for (i = 0; i < 8; i = i + 1) begin : cam_data_iodelay
             GTP_IODELAY_E2 #(
                 .DELAY_STEP_VALUE(IODELAY_STEP),
-                .DELAY_STEP_SEL("PARAMETER"),
+                .DELAY_STEP_SEL("PORT"),
                 .TDELAY_EN("FALSE") 
             ) u_iodelay_data (
                 .DO         (cam_data_dly[i]),  
                 .DELAY_SEL  (1'b0),
                 .DI         (cam_data[i]),     
                 .EN_N       (1'b0),
-                .DELAY_STEP (8'b0)  
+                .DELAY_STEP (reg_dly_step)  
             );
         end
     endgenerate
 // ---------------- �����޸����� ���� ----------------
 
 
+    // [PT 2026-09-26] host SCCB passthrough: video_clk (ov5640_reg) <-> dri_clk
+    // (ov5640/i2c_dri). Command path is data+toggle (stable data; the toggle is
+    // synchronized in dri_clk inside ov5640). Result path is 2-FF synced here.
+    wire        pt_req_toggle;
+    wire        pt_rw;
+    wire [15:0] pt_addr;
+    wire [ 7:0] pt_wdata;
+    wire [ 7:0] pt_rdata;
+    wire        pt_ack;
+    wire        pt_done_toggle;
+    reg         pt_done_s1, pt_done_s2;
+    reg  [7:0]  pt_rdata_s1, pt_rdata_s2;
+    reg         pt_ack_s1, pt_ack_s2;
+    always @(posedge video_clk) begin
+        if(video_rst) begin
+            pt_done_s1  <= 1'b0;
+            pt_done_s2  <= 1'b0;
+            pt_rdata_s1 <= 8'd0;
+            pt_rdata_s2 <= 8'd0;
+            pt_ack_s1   <= 1'b0;
+            pt_ack_s2   <= 1'b0;
+        end
+        else begin
+            pt_done_s1  <= pt_done_toggle;
+            pt_done_s2  <= pt_done_s1;
+            pt_rdata_s1 <= pt_rdata;
+            pt_rdata_s2 <= pt_rdata_s1;
+            pt_ack_s1   <= pt_ack;
+            pt_ack_s2   <= pt_ack_s1;
+        end
+    end
+
     ov5640 #(
+        .SENSOR_PLL_MULT(SENSOR_PLL_MULT),
         //DVP����
         .DATA_WIDTH(DATA_WIDTH),
         //I2C
+        .VSYNC_STABLE_CYCLES(VSYNC_STABLE_CYCLES),
         .SLAVE_ADDR(SLAVE_ADDR)   ,      //I2C�ӻ���ַ
         .BIT_CTRL  (BIT_CTRL)     ,      //OV5640���ֽڵ�ַΪ16λ  0:8λ 1:16λ
         .CLK_FREQ  (CLK_FREQ)     ,      //ģ�������ʱ��Ƶ��
@@ -241,11 +312,25 @@ module ov5640_top #(
         .video_hsync        (video_hsync),  //����Ч�ź�
         .video_valid        (video_valid),  //������Чʹ���ź�
         .video_data         (video_data ),  //��Ч����
+    .dbg_cdc_input(dbg_cdc_input),
+    .dbg_cdc_output(dbg_cdc_output),
+    .dbg_cdc_drop(dbg_cdc_drop),
+    .dbg_cdc_seq(dbg_cdc_seq),
         .dbg_i2c_status     (dbg_i2c_status),
         .dbg_pclk_cnt       (dbg_pclk_cnt ),
         .dbg_sys_status     (dbg_sys_status),
         .dbg_href_raw       (dbg_href_raw  ),
-        .dbg_vsync_raw      (dbg_vsync_raw )
+        .dbg_vsync_raw      (dbg_vsync_raw ),
+
+        // [PT 2026-09-26] host SCCB passthrough
+        .pt_req_toggle      (pt_req_toggle),
+        .pt_rw              (pt_rw        ),
+        .pt_addr            (pt_addr      ),
+        .pt_wdata           (pt_wdata     ),
+        .pt_rdata           (pt_rdata     ),
+        .pt_ack             (pt_ack       ),
+        .pt_done_toggle     (pt_done_toggle)
+
     
     );
 
@@ -289,6 +374,95 @@ module ov5640_top #(
         end
     endgenerate
 
+    // [FIR3 2026-09-26] cam1 FIR filter: hand-written transparent 3-tap
+    // [1 2 1]/4 core (cam_fir3.v) replacing the Pango ipsxe FIR IP whose
+    // encrypted core dropped beats on the live camera stream and wedged the
+    // DDR write packer. Unsigned per-channel math, 1-cycle latency, one
+    // output beat per input beat.
+    wire                      fir_video_valid;
+    wire [DATA_WIDTH-1 : 0]   fir_video_data ;
+    wire                      fir_video_vsync;
+
+    cam_fir3 #(
+        .DATA_WIDTH (DATA_WIDTH)
+    ) u_cam_fir3 (
+        .clk       (video_clk      ),
+        .rst       (video_rst      ),
+        .in_valid  (sh_video_valid ),
+        .in_pixel  (sh_video_data  ),
+        .in_vsync  (sh_video_vsync ),
+        .out_valid (fir_video_valid),
+        .out_pixel (fir_video_data ),
+        .out_vsync (fir_video_vsync)
+    );
+
+    // [VKFS 2026-09-25] legacy temporal-filter path follows the FIR output.
+    // Keeps W*H pixels/frame and the single-beat s_valid contract; only pixel
+    // values change. Previous frame comes from the other ping-pong bank.
+    wire                      kf_video_valid;
+    wire [DATA_WIDTH-1 : 0]   kf_video_data ;
+    wire                      kf_video_vsync;
+    wire [AXI_ADDR_WIDTH-1:0] kf_prev_base;
+
+    generate
+        if (KF_EN) begin : g_kf
+            vip_kf_stream #(
+                .W (H_CMOS_DISP),
+                .H (V_CMOS_DISP),
+                .AW (19),
+                .AXI_ID_WIDTH (4),
+                .AXI_DATA_W   (AXI_DATA_WIDTH),
+                .BURST_LEN    (8),
+                .RD_EN        (KF_RD_EN)
+            ) u_kf_stream (
+                .clk        (video_clk),
+                .rst        (video_rst),
+                .en         (1'b1),
+                .thr0       (KF_THR0),
+                .thr1       (KF_THR1),
+                .thr2       (KF_THR2),
+                .in_valid   (fir_video_valid),
+                .in_pixel   (fir_video_data ),
+                .in_vsync   (fir_video_vsync),
+                .prev_base  (kf_prev_base),
+                .m_axi_arid    (kf_arid),
+                .m_axi_araddr  (kf_araddr),
+                .m_axi_arlen   (kf_arlen),
+                .m_axi_arsize  (kf_arsize),
+                .m_axi_arburst (kf_arburst),
+                .m_axi_arlock  (kf_arlock),
+                .m_axi_arcache (kf_arcache),
+                .m_axi_arprot  (kf_arprot),
+                .m_axi_arvalid (kf_arvalid),
+                .m_axi_arready (kf_arready),
+                .m_axi_rid     (kf_rid),
+                .m_axi_rdata   (kf_rdata),
+                .m_axi_rresp   (kf_rresp),
+                .m_axi_rlast   (kf_rlast),
+                .m_axi_rvalid  (kf_rvalid),
+                .m_axi_rready  (kf_rready),
+                .out_valid  (kf_video_valid),
+                .out_pixel  (kf_video_data ),
+                .out_vsync  (kf_video_vsync)
+            );
+        end
+        else begin : g_kf_bypass
+            assign kf_video_valid = fir_video_valid;
+            assign kf_video_data  = fir_video_data ;
+            assign kf_video_vsync = fir_video_vsync;
+            assign kf_arvalid = 1'b0;
+            assign kf_araddr  = {AXI_ADDR_WIDTH{1'b0}};
+            assign kf_arlen   = 8'd0;
+            assign kf_arsize  = 3'd0;
+            assign kf_arburst = 2'b01;
+            assign kf_arlock  = 1'b0;
+            assign kf_arcache = 4'd0;
+            assign kf_arprot  = 3'd0;
+            assign kf_arid    = 4'd0;
+            assign kf_rready  = 1'b1;
+        end
+    endgenerate
+
     // wire video_rst = !locked;
 
     wire                        cam_en    /*synthesis PAP_MARK_DEBUG="1"*/;
@@ -312,6 +486,7 @@ wire [31:0]   dbg_zout;
     wire [15:0]   dbg_axi_stat;
     reg  [31:0]   dbg_clk_status;
     wire [1 : 0]  xdma_ack  ; 
+    wire [31:0] diag_fault_snapshot, diag_reject_counts, diag_input_pixels;
     ov5640_ddr #(
         .DATA_WIDTH(DATA_WIDTH),
         .AXI_ADDR_WIDTH(AXI_ADDR_WIDTH),
@@ -325,15 +500,22 @@ wire [31:0]   dbg_zout;
         .axi_rst        (video_rst), 
 
         .axi_cam_en     (cam_en    ),
+        .dbg_fault_snapshot(diag_fault_snapshot),
+        .dbg_reject_counts(diag_reject_counts),
+        .dbg_input_pixels(diag_input_pixels),
+        .dma_abort      (cam_dma_abort),
+        .dma_abort_req  (cam_dma_abort_req),
+        .axi_data_available(cam_s_data_available),
         .dma_done       (cam_dma_done),  // [LEDGER 2026-09-19]
         .cam_data_addr_1(cam_addr_1),
         .cam_data_addr_2(cam_addr_2),
+        .prev_frame_base(kf_prev_base),
         .cam_data_len   (CAM_DATA_LEN), //��16�ֽ�Ϊ��λ
 
-        .s_data         (sh_video_data ),
-        .s_data_valid   (sh_video_valid),
+        .s_data         (kf_video_data ),
+        .s_data_valid   (kf_video_valid),
         .s_hsync        (video_hsync),
-        .s_vsync        (sh_video_vsync),
+        .s_vsync        (kf_video_vsync),
 
         //AXIЭ���
         .axi_data       (cam_s_data      ),
@@ -360,6 +542,27 @@ wire [31:0]   dbg_zout;
 
 
 
+    // VSYNC high widths in video_clk cycles (pre-FIR), saturating at 65535.
+    // Minimum ignores reset's initial partial pulse; first complete pulse seeds it.
+    reg diag_vs_q;
+    reg [15:0] diag_vs_width, diag_vs_last, diag_vs_min;
+    always @(posedge video_clk) begin
+        if(video_rst) begin
+            diag_vs_q <= 0;
+            diag_vs_width <= 0;
+            diag_vs_last <= 0;
+            diag_vs_min <= 16'hffff;
+        end else begin
+            diag_vs_q <= video_vsync;
+            if(video_vsync) begin
+                if(!diag_vs_q) diag_vs_width <= 1;
+                else if(diag_vs_width != 16'hffff) diag_vs_width <= diag_vs_width + 1'b1;
+            end else if(diag_vs_q) begin
+                diag_vs_last <= diag_vs_width;
+                if(diag_vs_width < diag_vs_min) diag_vs_min <= diag_vs_width;
+            end
+        end
+    end
     // [DBG] camera activity counters (read via ov5640_reg +0x30/+0x34)
     reg [31:0] dbg_cam_words;
     always @(posedge video_clk) begin
@@ -477,8 +680,17 @@ always @(posedge video_clk) dbg_clk_status <= {dbg_clk50_cnt, dbg_locked, dbg_bt
 
         .xdma_ack              (xdma_ack     ),
         .cam_en                (cam_en       ),
+        .dly_step              (reg_dly_step ),
         .cam_addr_1            (cam_addr_1   ), 
         .cam_addr_2            (cam_addr_2   ),
+    .dbg_cdc_input(dbg_cdc_input),
+    .dbg_cdc_output(dbg_cdc_output),
+    .dbg_cdc_drop(dbg_cdc_drop),
+    .dbg_cdc_seq(dbg_cdc_seq),
+        .dbg_fault_snapshot    (diag_fault_snapshot),
+        .dbg_reject_counts     (diag_reject_counts),
+        .dbg_input_pixels      (diag_input_pixels),
+        .dbg_vsync_widths      ({diag_vs_min, diag_vs_last}),
         .dbg_cam_words         (dbg_cam_words),
         .dbg_vsyncs            (dbg_vsyncs   ),
         .dbg_hsyncs            (dbg_hsyncs   ),
@@ -503,7 +715,16 @@ always @(posedge video_clk) dbg_clk_status <= {dbg_clk50_cnt, dbg_locked, dbg_bt
         .dbg_beat_last         (dbg_beat_last),
         .dbg_cmd_cnt           (dbg_cmd_cnt  ),
         .dbg_vsync_raw         (dbg_vsync_raw),
-        .dbg_clk_status        (dbg_clk_status)
+        .dbg_clk_status        (dbg_clk_status),
+
+        // [PT 2026-09-26] host SCCB passthrough
+        .pt_req_toggle         (pt_req_toggle ),
+        .pt_addr               (pt_addr       ),
+        .pt_wdata              (pt_wdata      ),
+        .pt_rw                 (pt_rw         ),
+        .pt_rdata              (pt_rdata_s2   ),
+        .pt_ack                (pt_ack_s2     ),
+        .pt_done_toggle        (pt_done_s2    )
     );
 
 

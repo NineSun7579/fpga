@@ -1,0 +1,20 @@
+"""Run with viewer stopped; read diagnostic words without issuing writes."""
+from pathlib import Path
+exec(Path('/tmp/probe_cam3_readonly.py').read_bytes().split(b'for sample in range(3):')[0])
+
+def block(addr):
+    op=Op(); op.ddr3_addr=addr; op.total_length=16
+    fcntl.ioctl(fd,cmd(5),op,True)
+    return struct.unpack('<4I',rx[:16])
+
+for sample in range(3):
+    print('SAMPLE',sample,flush=True)
+    for camera,base in ((1,0x20000000),(2,0x20000200),(3,0x20000400)):
+        identity,href,system=(read(base+o) for o in (0x50,0x90,0xd0))
+        values={'I2C':hex(identity),'HREF':href,'SYSTEM':hex(system),
+                'PCLK':read(base+0x10),'VSYNC':read(base+0x20),
+                'RAW_VSYNC':read(base+0xe0),'AW_B':hex(read(base+0x70)),
+                'STATE':hex(read(base+0x60))}
+        print(camera,values,flush=True)
+    if sample<2: time.sleep(2)
+rx.close(); os.close(fd)

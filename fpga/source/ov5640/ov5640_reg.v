@@ -4,6 +4,7 @@ module ov5640_reg #(
     parameter [31:0] CAM_ADDR_1_DEF = 32'h0080_0000,
     parameter [31:0] CAM_ADDR_2_DEF = 32'h00A0_0000,
     parameter        CAM_EN_DEF     = 1'b1,
+    parameter [7:0]  DLY_STEP_DEF   = 8'd40,
     // parameter AXI_REG_WIDTH = 32,
     parameter AXI_ADDR_WIDTH = 32
 ) (
@@ -37,6 +38,15 @@ module ov5640_reg #(
     output reg [AXI_ADDR_WIDTH-1 : 0] cam_addr_2            ,        
     output reg [1 : 0]                xdma_ack              ,
     output reg                        cam_en                        ,
+    output reg [7:0]                  dly_step                      ,
+    input [31:0] dbg_cdc_input,
+    input [31:0] dbg_cdc_output,
+    input [31:0] dbg_cdc_drop,
+    input [31:0] dbg_cdc_seq,
+    input [31:0] dbg_fault_snapshot,
+    input [31:0] dbg_reject_counts,
+    input [31:0] dbg_input_pixels,
+    input [31:0] dbg_vsync_widths,
     input  [31:0]                     dbg_cam_words         ,
     input  [31:0]                     dbg_vsyncs        ,
     input  [31:0]                     dbg_hsyncs        ,
@@ -61,12 +71,25 @@ module ov5640_reg #(
     input  [31:0]                     dbg_i2c_status      ,
     input  [31:0]                     dbg_pclk_cnt        ,
     input  [31:0]                     dbg_sys_status      ,
-    input  [31:0]                     dbg_clk_status
+    input  [31:0]                     dbg_clk_status,
+
+    // [PT 2026-09-26] host SCCB passthrough (video_clk domain; CDC in ov5640_top)
+    output reg                        pt_req_toggle,
+    output reg  [15:0]                pt_addr,
+    output reg  [ 7:0]                pt_wdata,
+    output reg                        pt_rw,
+    input       [ 7:0]                pt_rdata,
+    input                             pt_ack,
+    input                             pt_done_toggle
 );
 
 //�Ĵ�����ַ
 localparam REG_ACK       = BASE_ADDR + 32'h00;
 localparam REG_CAM_EN    = BASE_ADDR + 32'h40;
+// [CAM3DLY 2026-09-27] per-camera DVP sampling delay step (port mode).
+// Write-only here: offset 0x30 still READS the CAM_WORDS debug counter, so a
+// write to it was previously a no-op.  Lets the phase be swept on-board.
+localparam REG_DLY_STEP  = BASE_ADDR + 32'h30;
 localparam REG_CAM_ADDR_1= BASE_ADDR + 32'h80;
 localparam REG_CAM_ADDR_2= BASE_ADDR + 32'hc0;
 // [PROBE 2026-09-18] every offset is 16-byte aligned: the PCIe M01 read
@@ -87,6 +110,10 @@ localparam REG_DBG_AXI_NOW   = BASE_ADDR + 32'hd0;
 // probes (kept inside the addr[9:8]=00 CAM1 segment; 0x100+ routes to prep).
 localparam REG_DBG_ZDIN      = BASE_ADDR + 32'h50;
 localparam REG_DBG_ZOUT      = BASE_ADDR + 32'h90;
+// [PT 2026-09-26] host SCCB passthrough (cam3 page: BASE+0x100..0x12F)
+localparam REG_I2C_CMD  = BASE_ADDR + 32'h100;
+localparam REG_I2C_RD   = BASE_ADDR + 32'h110;
+localparam REG_I2C_STAT = BASE_ADDR + 32'h120;
 
     reg bvalid        ;
     reg data_out_valid;
@@ -117,6 +144,16 @@ localparam REG_DBG_ZOUT      = BASE_ADDR + 32'h90;
         end
     end
 
+    // [CAM3DLY 2026-09-27] runtime DVP sampling delay for this camera.
+    always @(posedge clk) begin
+        if(rst)begin
+            dly_step <= DLY_STEP_DEF;
+        end
+        else if((s_axi_awvalid & s_axi_awready) && (s_axi_wvalid & s_axi_wready) && (s_axi_awaddr == REG_DLY_STEP))begin
+            dly_step <= s_axi_wdata[7:0];
+        end
+    end
+
     //ͼƬ��ַ1
     always @(posedge clk) begin
         if(rst)begin
@@ -134,6 +171,42 @@ localparam REG_DBG_ZOUT      = BASE_ADDR + 32'h90;
         end
         else if((s_axi_awvalid & s_axi_awready) && (s_axi_wvalid & s_axi_wready) && (s_axi_awaddr == REG_CAM_ADDR_2))begin
             cam_addr_2 <= s_axi_wdata;
+        end
+    end
+
+    // [PT 2026-09-26] host SCCB passthrough command + result latch.
+    //   Any write to REG_I2C_CMD issues one SCCB transaction (after sensor
+    //   init). done/ack/rdata are latched back for polling reads.
+    reg        pt_done_lat;
+    reg [ 7:0] pt_rdata_lat;
+    reg        pt_ack_lat;
+    reg        pt_done_d;
+    always @(posedge clk) begin
+        if(rst) begin
+            pt_addr       <= 16'd0;
+            pt_wdata      <= 8'd0;
+            pt_rw         <= 1'b0;
+            pt_req_toggle <= 1'b0;
+            pt_done_lat   <= 1'b0;
+            pt_rdata_lat  <= 8'd0;
+            pt_ack_lat    <= 1'b0;
+            pt_done_d     <= 1'b0;
+        end
+        else begin
+            pt_done_d <= pt_done_toggle;
+            if((s_axi_awvalid & s_axi_awready) && (s_axi_wvalid & s_axi_wready) &&
+               (s_axi_awaddr == REG_I2C_CMD)) begin
+                pt_addr       <= s_axi_wdata[23:8];
+                pt_wdata      <= s_axi_wdata[7:0];
+                pt_rw         <= s_axi_wdata[24];
+                pt_req_toggle <= ~pt_req_toggle;
+                pt_done_lat   <= 1'b0;
+            end
+            if(pt_done_toggle ^ pt_done_d) begin
+                pt_rdata_lat <= pt_rdata;
+                pt_ack_lat   <= pt_ack;
+                pt_done_lat  <= 1'b1;
+            end
         end
     end
 
@@ -187,22 +260,31 @@ localparam REG_DBG_ZOUT      = BASE_ADDR + 32'h90;
                 rvalid <= 1'b1;
                 // ���ݸղ�����Ķ���ַ�����ض�Ӧ�Ĵ�������ʵֵ
                 case(raddr_reg)
-                    REG_ACK:        rdata <= {{AXI_ADDR_WIDTH-2{1'b0}}, xdma_ack};
+                    REG_ACK:        rdata <= dbg_fault_snapshot; // read-only; ACK writes unchanged
                     REG_CAM_EN:     rdata <= {{AXI_ADDR_WIDTH-1{1'b0}}, cam_en};
                     REG_CAM_ADDR_1: rdata <= cam_addr_1;
                     REG_CAM_ADDR_2: rdata <= cam_addr_2;
-                    REG_DBG_CAM_WORDS: rdata <= dbg_cam_words;
+
+
+
+                    BASE_ADDR + 32'h190: rdata <= dbg_cdc_input;
+                    BASE_ADDR + 32'h1a0: rdata <= dbg_cdc_output;
+                    BASE_ADDR + 32'h1b0: rdata <= dbg_cdc_drop;
+                    BASE_ADDR + 32'h1c0: rdata <= dbg_cdc_seq;
+                    REG_DBG_CAM_WORDS: rdata <= dbg_input_pixels;
                     REG_DBG_VSYNCS:    rdata <= dbg_vsyncs;
-                    REG_DBG_ZDIN:      rdata <= dbg_zdin;
-                    REG_DBG_ZOUT:      rdata <= dbg_zout;
-                    REG_DBG_BEAT_CNT:  rdata <= dbg_beat_cnt;
+                    REG_DBG_ZDIN:      rdata <= dbg_vsync_widths;
+                    REG_DBG_ZOUT:      rdata <= dbg_href_raw;
+                    REG_DBG_BEAT_CNT:  rdata <= dbg_reject_counts;
                     REG_DBG_BEAT_LAST: rdata <= dbg_last_cnt;
                     REG_DBG_XDMA_REQ:  rdata <= {{(AXI_ADDR_WIDTH-2){1'b0}}, dbg_xdma_req};
                     REG_DBG_VSYNC_RAW: rdata <= dbg_vsync_raw;
                     REG_DBG_I2C_ID:    rdata <= {dbg_wd_cnt[7:0], dbg_state[7:0], dbg_cmd_cnt[15:0]};
                     REG_DBG_PCLK_CNT:  rdata <= dbg_pclk_cnt;
                     REG_DBG_SYS:       rdata <= {dbg_b_cnt[15:0], dbg_aw_cnt[15:0]};
-                    REG_DBG_AXI_NOW:   rdata <= dbg_axi_num;
+                    REG_DBG_AXI_NOW:   rdata <= dbg_sys_status;
+                    REG_I2C_RD:        rdata <= {{(AXI_ADDR_WIDTH-8){1'b0}}, pt_rdata_lat};
+                    REG_I2C_STAT:      rdata <= {{(AXI_ADDR_WIDTH-2){1'b0}}, pt_done_lat, pt_ack_lat};
                     default:        rdata <= {AXI_ADDR_WIDTH{1'b1}}; // �����Ƿ���ַ���������ǣ����� debug
                 endcase
             end
