@@ -1,0 +1,292 @@
+$ date -Is; ps -eo pid,ppid,comm,args; ls -l /sys/bus/pci/devices/0002:21:00.0/driver; find /root/ov5640 -maxdepth 3 -name main.cpp -o -name camview -o -name run_camview.sh
+2026-09-27T02:22:31+00:00
+    PID    PPID COMMAND         COMMAND
+      1       0 systemd         /sbin/init
+      2       0 kthreadd        [kthreadd]
+      3       2 rcu_gp          [rcu_gp]
+      4       2 rcu_par_gp      [rcu_par_gp]
+      5       2 slub_flushwq    [slub_flushwq]
+      6       2 netns           [netns]
+     10       2 mm_percpu_wq    [mm_percpu_wq]
+     11       2 rcu_tasks_rude_ [rcu_tasks_rude_kthread]
+     12       2 ksoftirqd/0     [ksoftirqd/0]
+     13       2 rcu_sched       [rcu_sched]
+     14       2 migration/0     [migration/0]
+     15       2 cpuhp/0         [cpuhp/0]
+     16       2 cpuhp/1         [cpuhp/1]
+     17       2 migration/1     [migration/1]
+     18       2 ksoftirqd/1     [ksoftirqd/1]
+     21       2 cpuhp/2         [cpuhp/2]
+     22       2 migration/2     [migration/2]
+     23       2 ksoftirqd/2     [ksoftirqd/2]
+     26       2 cpuhp/3         [cpuhp/3]
+     27       2 migration/3     [migration/3]
+     28       2 ksoftirqd/3     [ksoftirqd/3]
+     31       2 kdevtmpfs       [kdevtmpfs]
+     32       2 inet_frag_wq    [inet_frag_wq]
+     35       2 oom_reaper      [oom_reaper]
+     37       2 writeback       [writeback]
+     38       2 kblockd         [kblockd]
+     39       2 kconsole        [kconsole]
+     40       2 tpm_dev_wq      [tpm_dev_wq]
+     41       2 edac-poller     [edac-poller]
+     42       2 devfreq_wq      [devfreq_wq]
+     43       2 watchdogd       [watchdogd]
+     46       2 kworker/u8:3+ev [kworker/u8:3+events_unbound]
+     48       2 rpciod          [rpciod]
+     49       2 xprtiod         [xprtiod]
+     50       2 cfg80211        [cfg80211]
+     51       2 irq/22-rockchip [irq/22-rockchip_thermal]
+     52       2 kswapd0         [kswapd0]
+     53       2 nfsiod          [nfsiod]
+     54       2 xfsalloc        [xfsalloc]
+     55       2 xfs_mru_cache   [xfs_mru_cache]
+     59       2 irq/27-rockchip [irq/27-rockchip_usb2phy]
+     60       2 irq/28-rockchip [irq/28-rockchip_usb2phy]
+     62       2 mpp_worker_0    [mpp_worker_0]
+     63       2 mpp_worker_1    [mpp_worker_1]
+     64       2 mpp_worker_2    [mpp_worker_2]
+     65       2 mpp_worker_3    [mpp_worker_3]
+     66       2 mpp_worker_4    [mpp_worker_4]
+     67       2 mpp_worker_5    [mpp_worker_5]
+     68       2 hwrng           [hwrng]
+     69       2 rk_pcie_hot_rst [rk_pcie_hot_rst]
+     72       2 nvme-wq         [nvme-wq]
+     73       2 nvme-reset-wq   [nvme-reset-wq]
+     74       2 nvme-delete-wq  [nvme-delete-wq]
+     75       2 spi0            [spi0]
+     76       2 spi2            [spi2]
+     80       2 stmmac_wq       [stmmac_wq]
+     82       2 stmmac_wq       [stmmac_wq]
+     87       2 uas             [uas]
+     88       2 goodix_wq       [goodix_wq]
+     90       2 irq/77-rk817    [irq/77-rk817]
+     96       2 cfinteractive   [cfinteractive]
+     98       2 kworker/u9:0-ma [kworker/u9:0-mali_jd]
+     99       2 sdhci           [sdhci]
+    100       2 irq/112-mmc0    [irq/112-mmc0]
+    101       2 cryptodev_queue [cryptodev_queue]
+    102       2 mmc_complete    [mmc_complete]
+    103       2 spi4            [spi4]
+    104       2 mld             [mld]
+    106       2 ipv6_addrconf   [ipv6_addrconf]
+    107       2 krfcommd        [krfcommd]
+    168       2 irq/117-rga2    [irq/117-rga2]
+    169       2 iommu_wq        [iommu_wq]
+    170       2 hpd_queue       [hpd_queue]
+    171       2 irq/50-fe0a0000 [irq/50-fe0a0000.hdmi]
+    172       2 cec-dw_hdmi     [cec-dw_hdmi]
+    173       2 irq/50-dw-hdmi- [irq/50-dw-hdmi-cec]
+    174       2 card0-crtc0     [card0-crtc0]
+    175       2 card0-crtc1     [card0-crtc1]
+    176       2 display-error-e [display-error-event-thread]
+    177       2 gpu_power_off_w [gpu_power_off_w]
+    178       2 free_pages_work [free_pages_work]
+    179       2 mali-simple-pow [mali-simple-power-model-temp-poll]
+    180       2 kbase_event     [kbase_event]
+    181       2 kbase_job_fault [kbase_job_fault]
+    183       2 irq/127-headset [irq/127-headset_input]
+    184       2 rknpu_power_off [rknpu_power_off]
+    189       2 jbd2/mmcblk0p6- [jbd2/mmcblk0p6-8]
+    190       2 ext4-rsv-conver [ext4-rsv-conver]
+    232       1 systemd-journal /lib/systemd/systemd-journald
+    263       1 systemd-udevd   /lib/systemd/systemd-udevd
+    350       2 jbd2/mmcblk0p7- [jbd2/mmcblk0p7-8]
+    353       2 ext4-rsv-conver [ext4-rsv-conver]
+    355       2 jbd2/mmcblk0p8- [jbd2/mmcblk0p8-8]
+    356       2 ext4-rsv-conver [ext4-rsv-conver]
+    602       1 log-guardian    /bin/sh -e /usr/bin/log-guardian
+   1067       2 RTW_CMD_THREAD  [RTW_CMD_THREAD]
+   1083       2 btfwwork        [btfwwork]
+   1312       1 acpid           /usr/sbin/acpid
+   1374       1 bluetoothd      /usr/libexec/bluetooth/bluetoothd
+   1375       1 dbus-daemon     /usr/bin/dbus-daemon --system --address=systemd: --nofork --nopidfile --systemd-activation --syslog-only
+   1382       1 input-event-dae /usr/bin/input-event-daemon --no-daemon
+   1386       1 irqbalance      /usr/sbin/irqbalance --foreground --policyscript=/etc/irqbalance.d
+   1393       1 rsyslogd        /usr/sbin/rsyslogd -n -iNONE
+   1394       1 systemd-logind  /lib/systemd/systemd-logind
+   1402       1 udisksd         /usr/libexec/udisks2/udisksd
+   1408       1 power-key.sh    /bin/sh /usr/bin/power-key.sh release
+   1421    1408 inotifywait     inotifywait -e modify /sys/power/state
+   1460       1 NetworkManager  /usr/sbin/NetworkManager --no-daemon
+   1477       1 wpa_supplicant  /sbin/wpa_supplicant -u -s -O DIR=/run/wpa_supplicant GROUP=netdev
+   1490       1 polkitd         /usr/lib/polkit-1/polkitd --no-debug
+   1581       2 kworker/0:2H-kb [kworker/0:2H-kblockd]
+   1604       1 starter         /usr/lib/ipsec/starter --daemon charon --nofork
+   1625    1604 charon          /usr/lib/ipsec/charon
+   1630       1 agetty          /sbin/agetty -o -p -- \u --noclear - linux
+   1638       1 lightdm         /usr/sbin/lightdm
+   1640       1 xl2tpd          /usr/sbin/xl2tpd
+   1642       1 sh              /bin/sh -c /bin/bash -l </dev/ttyFIQ0 >/dev/ttyFIQ0 2>&1
+   1644       1 sshd            sshd: /usr/sbin/sshd -D [listener] 0 of 10-100 startups
+   1677    1638 Xorg            /usr/lib/xorg/Xorg :0 -seat seat0 -auth /var/run/lightdm/root/:0 -nolisten tcp vt7 -novtswitch
+   1791       2 kbase_event     [kbase_event]
+   1854    1642 bash            /bin/bash -l
+   1969       1 ntpd            /usr/sbin/ntpd -p /run/ntpd.pid -c /etc/ntpsec/ntp.conf -g -N -u ntpsec:ntpsec
+   1976    1638 lightdm         lightdm --session-child 15 18
+   1987       1 systemd         /lib/systemd/systemd --user
+   1991    1987 (sd-pam)        (sd-pam)
+   2005    1987 pipewire        /usr/bin/pipewire
+   2007    1987 wireplumber     /usr/bin/wireplumber
+   2008    1987 pipewire-pulse  /usr/bin/pipewire-pulse
+   2012    1976 xfce4-session   xfce4-session
+   2032    1987 dbus-launch     dbus-launch --autolaunch f610affb568a4f60bdf90242ae474d24 --binary-syntax --close-stderr
+   2041    1987 dbus-daemon     /usr/bin/dbus-daemon --syslog-only --fork --print-pid 5 --print-address 7 --session
+   2092       1 dbus-launch     /usr/bin/dbus-launch --exit-with-session --sh-syntax
+   2093       1 dbus-daemon     /usr/bin/dbus-daemon --syslog --fork --print-pid 5 --print-address 7 --session
+   2109    2012 ssh-agent       /usr/bin/ssh-agent x-session-manager
+   2137    1987 gpg-agent       /usr/bin/gpg-agent --supervised
+   2139    2012 xfwm4           xfwm4
+   2144       1 gvfsd           /usr/libexec/gvfsd
+   2171    2012 xfsettingsd     xfsettingsd
+   2174       1 upowerd         /usr/libexec/upowerd
+   2183    2012 xfce4-panel     xfce4-panel
+   2187    2012 Thunar          Thunar --daemon
+   2192    2012 xfdesktop       xfdesktop
+   2195    2012 xfce4-power-man xfce4-power-manager
+   2196    2012 light-locker    light-locker
+   2197    2012 blueman-applet  /usr/bin/python3 /usr/bin/blueman-applet
+   2198    2012 nm-applet       nm-applet
+   2200    2012 polkit-gnome-au /usr/lib/policykit-1-gnome/polkit-gnome-authentication-agent-1
+   2201    2012 tracker-miner-f /usr/libexec/tracker-miner-fs-3
+   2204       1 gvfs-udisks2-vo /usr/libexec/gvfs-udisks2-volume-monitor
+   2215       1 dconf-service   /usr/libexec/dconf-service
+   2222    2144 gvfsd-trash     /usr/libexec/gvfsd-trash --spawner :1.7 /org/gtk/gvfs/exec_spaw/0
+   2232    2183 panel-6-systray /usr/lib/aarch64-linux-gnu/xfce4/panel/wrapper-2.0 /usr/lib/aarch64-linux-gnu/xfce4/panel/plugins/libsystray.so 6 20971532 systray 状态栏插件 提供状态通知程序项 (应用程序指示器) 和旧式系统托盘项
+   2233    2183 panel-8-pulseau /usr/lib/aarch64-linux-gnu/xfce4/panel/wrapper-2.0 /usr/lib/aarch64-linux-gnu/xfce4/panel/plugins/libpulseaudio-plugin.so 8 20971533 pulseaudio PulseAudio 插件 调节 PulseAudio 声音系统的音量
+   2242       1 gvfsd-metadata  /usr/libexec/gvfsd-metadata
+   2289    2183 panel-14-action /usr/lib/aarch64-linux-gnu/xfce4/panel/wrapper-2.0 /usr/lib/aarch64-linux-gnu/xfce4/panel/plugins/libactions.so 14 20971534 actions 动作按钮 注销、锁屏或其它系统动作
+   2302       1 obexd           /usr/libexec/bluetooth/obexd
+   2304       1 blueman-tray    /usr/bin/python3 /usr/bin/blueman-tray
+   2340    2171 xfce4-display-s xfce4-display-settings -m
+   2572       1 dbus-launch     dbus-launch --autolaunch f610affb568a4f60bdf90242ae474d24 --binary-syntax --close-stderr
+   2573       1 dbus-daemon     /usr/bin/dbus-daemon --syslog-only --fork --print-pid 5 --print-address 7 --session
+   2872       2 kworker/2:0H-kb [kworker/2:0H-kblockd]
+   2933       2 kworker/1:0H-kb [kworker/1:0H-kblockd]
+   3074       2 kworker/0:1H    [kworker/0:1H]
+   3076       2 kworker/u9:1-kb [kworker/u9:1-kbase_pm_shader_powerof]
+   3128       2 kworker/2:1-mm_ [kworker/2:1-mm_percpu_wq]
+   3151       2 kworker/3:1-eve [kworker/3:1-events_freezable]
+   3340       2 kworker/3:0H-kb [kworker/3:0H-kblockd]
+   3343       2 kworker/1:1H    [kworker/1:1H]
+   3412       2 kworker/0:2-eve [kworker/0:2-events_freezable]
+   3413       2 kworker/u8:1-ev [kworker/u8:1-events_unbound]
+   3428       2 kworker/0:1-eve [kworker/0:1-events_freezable]
+   3429       2 kworker/2:0-mm_ [kworker/2:0-mm_percpu_wq]
+   3434       2 kworker/1:0-mm_ [kworker/1:0-mm_percpu_wq]
+   3469       2 kworker/3:2H    [kworker/3:2H]
+   3560       1 run_camview.sh  /bin/bash /root/ov5640/run_camview.sh
+   3563    3560 camview         ./camview
+   3575       2 kworker/3:0-eve [kworker/3:0-events_freezable]
+   3576       2 kworker/u8:2-de [kworker/u8:2-devfreq_wq]
+   3615       2 kworker/u9:2-ma [kworker/u9:2-mali_kbase_hwcnt]
+   3620       2 kworker/2:2-eve [kworker/2:2-events]
+   3621       2 kworker/1:1-eve [kworker/1:1-events]
+   3624       2 kworker/2:1H-kb [kworker/2:1H-kblockd]
+   3625       2 kworker/3:2-eve [kworker/3:2-events_freezable]
+   3626       2 kworker/u8:0    [kworker/u8:0]
+   3627     602 sleep           sleep 10m
+   3634       1 xfconfd         /usr/lib/aarch64-linux-gnu/xfce4/xfconf/xfconfd
+   3638       2 kworker/0:0-eve [kworker/0:0-events]
+   3639       2 kworker/1:2-eve [kworker/1:2-events]
+   3640    1644 sshd            sshd: linaro [priv]
+   3655    3640 sshd            sshd: linaro@notty
+   3658    3655 sftp-server     /usr/lib/openssh/sftp-server
+   3659    3655 sudo            sudo -S -p  bash -c date -Is; ps -eo pid,ppid,comm,args; ls -l /sys/bus/pci/devices/0002:21:00.0/driver; find /root/ov5640 -maxdepth 3 -name main.cpp -o -name camview -o -name run_camview.sh
+   3664    3659 bash            bash -c date -Is; ps -eo pid,ppid,comm,args; ls -l /sys/bus/pci/devices/0002:21:00.0/driver; find /root/ov5640 -maxdepth 3 -name main.cpp -o -name camview -o -name run_camview.sh
+   3666    3664 ps              ps -eo pid,ppid,comm,args
+lrwxrwxrwx 1 root root 0  9月27日 02:22 /sys/bus/pci/devices/0002:21:00.0/driver -> ../../../../../../bus/pci/drivers/pango_pci_driver
+/root/ov5640/camview2/main.cpp
+/root/ov5640/camview
+/root/ov5640/camview/main.cpp
+/root/ov5640/camview/camview
+/root/ov5640/detview/main.cpp
+/root/ov5640/run_camview.sh
+
+RC=0
+$ cp /root/ov5640/run_camview.sh /tmp/cam2_evidence_run_camview.sh && chmod 644 /tmp/cam2_evidence_run_camview.sh
+
+RC=0
+$ for p in $(pidof camview); do readlink /proc/$p/exe; sha256sum /proc/$p/exe; done
+/root/ov5640/camview/camview
+e5c778b675e7d56f217ef21d02b90cf3282edb8d0e0a7b30cd771d4dce6ccbf9  /proc/3563/exe
+
+RC=0
+$ DISPLAY=:0 XAUTHORITY=/var/run/lightdm/root/:0 /root/ov5640/qshot/qshot /tmp/cam2_evidence_before.png 900
+OK 900x506 310477
+QStandardPaths: XDG_RUNTIME_DIR not set, defaulting to '/tmp/runtime-root'
+
+RC=0
+$ cp /root/ov5640/camview/main.cpp /tmp/cam2_evidence_board_main.cpp && chmod 644 /tmp/cam2_evidence_board_main.cpp
+
+RC=0
+$ cp /root/ov5640/camview/camview /tmp/cam2_evidence_board_camview && chmod 644 /tmp/cam2_evidence_board_camview
+
+RC=0
+$ stat /root/ov5640/camview/main.cpp /root/ov5640/camview/camview; sha256sum /root/ov5640/camview/main.cpp /root/ov5640/camview/camview; file /root/ov5640/camview/camview
+  文件：/root/ov5640/camview/main.cpp
+  大小：25803     	块：56         IO 块大小：4096   普通文件
+设备：179,6	Inode: 100568      硬链接：1
+权限：(0644/-rw-r--r--)  Uid: (    0/    root)   Gid: (    0/    root)
+访问时间：2026-09-26 08:37:22.362290039 +0000
+修改时间：2026-09-26 08:37:22.358289921 +0000
+变更时间：2026-09-26 08:37:22.358289921 +0000
+创建时间：2026-09-25 07:58:42.113461710 +0000
+  文件：/root/ov5640/camview/camview
+  大小：85688     	块：120        IO 块大小：4096   普通文件
+设备：179,6	Inode: 100644      硬链接：1
+权限：(0755/-rwxr-xr-x)  Uid: (    0/    root)   Gid: (    0/    root)
+访问时间：2026-09-26 08:37:46.899015952 +0000
+修改时间：2026-09-26 08:37:39.822806426 +0000
+变更时间：2026-09-26 08:37:39.822806426 +0000
+创建时间：2026-09-26 08:37:37.874748769 +0000
+0ad536bef8ad3217b8e7472193e1ce38ead5382360740a697f6aa9368b366bb2  /root/ov5640/camview/main.cpp
+e5c778b675e7d56f217ef21d02b90cf3282edb8d0e0a7b30cd771d4dce6ccbf9  /root/ov5640/camview/camview
+/root/ov5640/camview/camview: ELF 64-bit LSB pie executable, ARM aarch64, version 1 (SYSV), dynamically linked, interpreter /lib/ld-linux-aarch64.so.1, BuildID[sha1]=1550487aefbefd2486be1aaf9a020fc6521aaf3d, for GNU/Linux 3.7.0, not stripped
+
+RC=0
+$ pkill -9 -x run_camview.sh || true
+
+RC=0
+$ pkill -9 -x camview || true
+
+RC=0
+$ sleep 2; ! pgrep -x camview; ! pgrep -x run_camview.sh
+
+RC=0
+$ rmmod pango_pci_driver && insmod /root/ov5640/pango_pci_driver.ko && sleep 2 && test -L /sys/bus/pci/devices/0002:21:00.0/driver
+
+RC=0
+$ python3 -u /tmp/cam2_capture_board.py
+{"name": "cam2_ping_0", "address": "0xc00000", "bytes": 614400, "seconds": 0.005205203000059555, "tag_before": "cb7f0000000000000000000000000000", "tag_after": "cd7f0000000000000000000000000000", "sha256": "cb480ae68e4f6763120d9e69bb985b402ef08e0d3a5aba77e93ec4de05648310"}
+{"name": "cam2_pong_0", "address": "0xe00000", "bytes": 614400, "seconds": 0.005126160000145319, "tag_before": "cc7f0000000000000000000000000000", "tag_after": "cc7f0000000000000000000000000000", "sha256": "079e3460a75ed3fa4d72d60014f2a14d18bd05f7bc51aae8a643359c2aa82323"}
+{"name": "cam2_ping_1", "address": "0xc00000", "bytes": 614400, "seconds": 0.010292569999819534, "tag_before": "db7f0000000000000000000000000000", "tag_after": "db7f0000000000000000000000000000", "sha256": "4afb312db27a5154f59359e4d27d9b35940ae35c3b519fe867ab6e76d16aaf1e"}
+{"name": "cam2_pong_1", "address": "0xe00000", "bytes": 614400, "seconds": 0.004959905999839975, "tag_before": "da7f0000000000000000000000000000", "tag_after": "dc7f0000000000000000000000000000", "sha256": "c1762a69619cd2c815c337fc976bbf662bec950c2128650d33895c529776c751"}
+{"name": "cam2_ping_2", "address": "0xc00000", "bytes": 614400, "seconds": 0.00901737399999547, "tag_before": "e97f0000000000000000000000000000", "tag_after": "e97f0000000000000000000000000000", "sha256": "44396714f2beded757830d7d68e4cf6ee4dfe4ecadfdc8f48682ad9e58c40bd0"}
+{"name": "cam2_pong_2", "address": "0xe00000", "bytes": 614400, "seconds": 0.004798027000106231, "tag_before": "ea7f0000000000000000000000000000", "tag_after": "ea7f0000000000000000000000000000", "sha256": "d0f0ad2b97679928b09f38e3083a8b7fd699406ef4c2eb982ce118705d61bf5f"}
+
+RC=0
+$ rmmod pango_pci_driver && insmod /root/ov5640/pango_pci_driver.ko && sleep 2 && test -L /sys/bus/pci/devices/0002:21:00.0/driver
+
+RC=0
+$ rm -f /tmp/camview.lock; setsid nohup /root/ov5640/run_camview.sh > /tmp/camview.log 2>&1 < /dev/null &
+
+RC=0
+$ sleep 10; pgrep -a -x run_camview.sh; pgrep -a -x camview; tail -8 /tmp/camview.log
+4042 /bin/bash /root/ov5640/run_camview.sh
+4046 ./camview
+camview_fps=55.556
+camview_fps=59.880
+camview_fps=56.093
+camview_fps=58.939
+camview_fps=55.010
+camview_fps=55.118
+camview_fps=55.227
+camview_fps=52.224
+
+RC=0
+$ DISPLAY=:0 XAUTHORITY=/var/run/lightdm/root/:0 /root/ov5640/qshot/qshot /tmp/cam2_evidence_after.png 900
+OK 900x506 308516
+QStandardPaths: XDG_RUNTIME_DIR not set, defaulting to '/tmp/runtime-root'
+
+RC=0

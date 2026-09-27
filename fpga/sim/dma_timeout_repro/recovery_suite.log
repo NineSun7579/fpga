@@ -1,0 +1,70 @@
+frame_recovery: PASS
+# PASS complete frame seq=1 all 512 pixels including (0,0), bank=00010000
+# PASS short frame at next SOF aborts, no tag/req/counter; packer/FIFOs flushed
+# PASS complete frame seq=2 all 512 pixels including (0,0), bank=00020000
+# PASS missing data watchdog abort without another SOF
+# PASS complete frame seq=3 all 512 pixels including (0,0), bank=00010000
+# PASS abort during AW stall retains AW and drains accepted burst
+# PASS complete frame seq=4 all 512 pixels including (0,0), bank=00020000
+# PASS FIFO overflow + W/B backpressure; no premature flush/publication
+# PASS complete frame seq=5 all 512 pixels including (0,0), bank=00010000
+# PASS payload BRESP error prevents tag
+# PASS complete frame seq=6 all 512 pixels including (0,0), bank=00020000
+# PASS tag BRESP error does not publish req/count/bank
+# PASS complete frame seq=7 all 512 pixels including (0,0), bank=00010000
+# PASS complete frame seq=8 all 512 pixels including (0,0), bank=00020000
+# PASS complete frame seq=9 all 512 pixels including (0,0), bank=00010000
+# PASS dirty bank request invalidated; last good bank remains valid after abort
+# PASS complete frame seq=10 all 512 pixels including (0,0), bank=00020000
+# PASS tag B backpressure longer than WD_LIMIT never publishes early
+# PASS FRAME RECOVERY success=10 abort=7 AW=61 B=61 zero-strobe filler=75
+frame_recovery_vendor: PASS
+# PASS complete frame seq=1 all 16384 pixels including (0,0), bank=00010000
+# PASS short frame at next SOF aborts, no tag/req/counter; packer/FIFOs flushed
+# PASS complete frame seq=2 all 16384 pixels including (0,0), bank=00020000
+# PASS missing data watchdog abort without another SOF
+# PASS complete frame seq=3 all 16384 pixels including (0,0), bank=00010000
+# PASS abort during AW stall retains AW and drains accepted burst
+# PASS complete frame seq=4 all 16384 pixels including (0,0), bank=00020000
+# PASS FIFO overflow + W/B backpressure; no premature flush/publication
+# PASS complete frame seq=5 all 16384 pixels including (0,0), bank=00010000
+# PASS payload BRESP error prevents tag
+# PASS complete frame seq=6 all 16384 pixels including (0,0), bank=00020000
+# PASS tag BRESP error does not publish req/count/bank
+# PASS complete frame seq=7 all 16384 pixels including (0,0), bank=00010000
+# PASS complete frame seq=8 all 16384 pixels including (0,0), bank=00020000
+# PASS complete frame seq=9 all 16384 pixels including (0,0), bank=00010000
+# PASS dirty bank request invalidated; last good bank remains valid after abort
+# PASS complete frame seq=10 all 16384 pixels including (0,0), bank=00020000
+# PASS tag B backpressure longer than WD_LIMIT never publishes early
+# PASS FRAME RECOVERY success=10 abort=7 AW=1425 B=1425 zero-strobe filler=75
+ledger_recovery: PASS
+# PASS healthy burst/tag/burst AW=4 B=4 W=49
+# PASS waiting AW timeout preserves valid/address/len/trans; no false done
+# PASS internal act=0 with external W stalled retains transaction and BREADY=0
+# PASS external W complete but delayed B keeps owner/trans and no done
+# PASS recovered all three cameras AW=5/1/1 B=5/1/1 W=65/16/16 DONE=4/1/1
+# PASS multi-burst timeout drains accepted burst then retires unissued remainder after B
+# PASS post-recovery single-beat command
+# PASS separate success/abort: cam1=5/0 cam2=1/0 cam3=0/2
+PASS changed RTL module names unique in source/
+PASS DMA instance source\top.v:ov5640_axi_dma_write abort_req=cam_dma_abort_req abort_out=cam_dma_abort
+PASS DMA instance source\top.v:cam2_axi_dma_write abort_req=cam2_dma_abort_req abort_out=cam2_dma_abort
+PASS DMA instance source\top.v:cam3_axi_dma_write abort_req=cam3_dma_abort_req abort_out=cam3_dma_abort
+PASS DMA instance source\top.v:prep_axi_dma_write abort_req=1'b0 abort_out=
+PASS DMA instance source\axi_dma\axi_dma.v:axi_dma_write_inst abort_req=1'b0 abort_out=data_in_abort
+PASS all three camera wrapper fault paths connected at top
+PASS GBK non-ASCII lines and SENSOR_PLL_MULT preserved: source\top.v SHA256=c43f430f07192bf89d84bf78eab854a81584d3523922f59506a1c5dea744b49e
+PASS GBK non-ASCII lines and SENSOR_PLL_MULT preserved: source\axi_dma\axi_dma.v SHA256=3375525ef26dae7327c2ce35bd41d3c6b42d30a11014119dcd09ac3566fc0953
+PASS GBK non-ASCII lines and SENSOR_PLL_MULT preserved: source\axi_dma\axi_dma_write.v SHA256=d0a2b1a77247f7a7d847f797b38c9dfdc0e1ae8642005281aad4e92225da0d24
+PASS GBK non-ASCII lines and SENSOR_PLL_MULT preserved: source\ov5640\ov5640_top.v SHA256=661cce32bb22787d8ee4ab4d8101b2dceb6322b1610b8164168c030e54113bb8
+PASS GBK non-ASCII lines and SENSOR_PLL_MULT preserved: source\ov5640\ov5640_ddr\ov5640_ddr.v SHA256=f594caab050b4888d481511acc9b9339b3cd96c3ee9896154f3b83621dd80fcd
+PASS GBK non-ASCII lines and SENSOR_PLL_MULT preserved: source\ov5640\ov5640_ddr\ov5640_ddr_w.v SHA256=caba81156452b03439750de3ecc3b16588a8fea06abab30bf803931c81247dbd
+PASS GBK non-ASCII lines and SENSOR_PLL_MULT preserved: source\ov5640\ov5640_ddr\ov5640_ddr_w_ctrl.v SHA256=f90858a84018960102a57dc63578f82d53188bc9b0f811cc2c5e7150cf0b6b44
+PASS GBK non-ASCII lines and SENSOR_PLL_MULT preserved: source\ov5640\ov5640_ddr\ov5640_ddr_w_en.v SHA256=a2f1c3f48d2e0d46b44ea98ab5394e6a486ed193c1c71716a1959fb0ad1160ce
+Top ModelSim compile baseline: return=2, errors=103
+Top ModelSim compile current: return=2, errors=103
+PASS top compile error signatures identical to pre-edit baseline; top cannot be claimed ModelSim-clean
+PASS ov5640_top and generic axi_dma wrappers compile
+
+OVERALL PASS

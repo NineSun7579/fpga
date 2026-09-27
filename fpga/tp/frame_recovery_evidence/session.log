@@ -1,0 +1,53 @@
+pkill -9 -x run_camview.sh || true
+
+pkill -9 -x camview || true
+
+sleep 2; rmmod pango_pci_driver; echo 1 > /sys/bus/pci/devices/0002:21:00.0/remove
+rmmod: ERROR: Module pango_pci_driver is not currently loaded
+
+echo 1 > /sys/bus/pci/rescan; sleep 3; insmod /root/ov5640/pango_pci_driver.ko; sleep 3; test -L /sys/bus/pci/devices/0002:21:00.0/driver
+
+python3 -u /tmp/verify_recovery_board.py
+PCLK_Hz VSYNC_s FRAMES_s [[84002412.41677797, 44.98643880803176, 0.0], [84000967.6297806, 44.98303728649158, 0.0], [48000280.11085344, 25.98900713511094, 25.98900713511094]]
+
+rmmod pango_pci_driver; insmod /root/ov5640/pango_pci_driver.ko; sleep 2; test -L /sys/bus/pci/devices/0002:21:00.0/driver
+
+rm -f /tmp/camview.lock; setsid nohup /root/ov5640/run_camview.sh > /tmp/camview.log 2>&1 < /dev/null &
+
+sleep 10; pgrep -a -x camview
+2524 ./camview
+
+DISPLAY=:0 XAUTHORITY=/var/run/lightdm/root/:0 /root/ov5640/qshot/qshot /tmp/init48_screen.png 900
+OK 900x506 95064
+QStandardPaths: XDG_RUNTIME_DIR not set, defaulting to '/tmp/runtime-root'
+
+DISPLAY=:0 XAUTHORITY=/var/run/lightdm/root/:0 /root/ov5640/qshot/qshot /tmp/init48_screen.png 900
+OK 900x506 99412
+QStandardPaths: XDG_RUNTIME_DIR not set, defaulting to '/tmp/runtime-root'
+
+pkill -9 -x run_camview.sh || true
+
+pkill -9 -x camview || true
+
+sleep 2; rmmod pango_pci_driver; echo 1 > /sys/bus/pci/devices/0002:21:00.0/remove
+
+echo 1 > /sys/bus/pci/rescan; sleep 3; insmod /root/ov5640/pango_pci_driver.ko; sleep 3; test -L /sys/bus/pci/devices/0002:21:00.0/driver
+
+python3 -u /tmp/verify_recovery_board.py
+PCLK_Hz VSYNC_s FRAMES_s [[84002007.9597526, 45.31864250984112, 0.0], [84001229.33499236, 45.3049437303264, 0.0], [48000525.01453467, 25.642109637087913, 25.642109637087913]]
+
+rmmod pango_pci_driver; insmod /root/ov5640/pango_pci_driver.ko; sleep 2; test -L /sys/bus/pci/devices/0002:21:00.0/driver
+
+rm -f /tmp/camview.lock; setsid nohup /root/ov5640/run_camview.sh > /tmp/camview.log 2>&1 < /dev/null &
+
+sleep 10; pgrep -a -x camview
+3273 ./camview
+
+DISPLAY=:0 XAUTHORITY=/var/run/lightdm/root/:0 /root/ov5640/qshot/qshot /tmp/init48_screen.png 900
+OK 900x506 92732
+QStandardPaths: XDG_RUNTIME_DIR not set, defaulting to '/tmp/runtime-root'
+
+DISPLAY=:0 XAUTHORITY=/var/run/lightdm/root/:0 /root/ov5640/qshot/qshot /tmp/init48_screen.png 900
+OK 900x506 92714
+QStandardPaths: XDG_RUNTIME_DIR not set, defaulting to '/tmp/runtime-root'
+

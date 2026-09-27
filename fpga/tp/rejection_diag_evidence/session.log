@@ -1,0 +1,30 @@
+pkill -9 -x run_camview.sh || true
+
+pkill -9 -x camview || true
+
+sleep 2; rmmod pango_pci_driver; echo 1 > /sys/bus/pci/devices/0002:21:00.0/remove
+rmmod: ERROR: Module pango_pci_driver is not currently loaded
+
+echo 1 > /sys/bus/pci/rescan; sleep 3; insmod /root/ov5640/pango_pci_driver.ko; sleep 3; test -L /sys/bus/pci/devices/0002:21:00.0/driver
+
+python3 -u /tmp/verify_rejection_board.py
+CAM 1 success/s 0.0 offered_pixels [307200] faults ['0x80003482', '0x80003502', '0x80003582', '0x80003682', '0x80003702', '0x80006682', '0x80006702', '0x80006782', '0x80006802', '0x80006882', '0x80006902', '0x80006982', '0x80006a02', '0x80006a82', '0x80006b02', '0x80006b82'] overflow_count_delta 921 short_count_delta 0
+CAM 2 success/s 0.0 offered_pixels [307200] faults ['0x80003502', '0x80003602', '0x80003682', '0x80003702', '0x80006682', '0x80006702', '0x80006782', '0x80006802', '0x80006882', '0x80006902', '0x80006a02', '0x80006a82', '0x80006b02', '0x80006b82'] overflow_count_delta 921 short_count_delta 0
+CAM 3 success/s 25.737679205669277 offered_pixels [307200] faults ['0x0'] overflow_count_delta 0 short_count_delta 0
+PCLK_Hz VSYNC_s FRAMES_s [[84002326.14769429, 44.98831254626861, 0.0], [84001246.88103071, 44.983008927904464, 0.0], [48000532.69496614, 25.65531486543026, 25.65531486543026]]
+
+rmmod pango_pci_driver; insmod /root/ov5640/pango_pci_driver.ko; sleep 2; test -L /sys/bus/pci/devices/0002:21:00.0/driver
+
+rm -f /tmp/camview.lock; setsid nohup /root/ov5640/run_camview.sh > /tmp/camview.log 2>&1 < /dev/null &
+
+sleep 10; pgrep -a -x camview
+2618 ./camview
+
+DISPLAY=:0 XAUTHORITY=/var/run/lightdm/root/:0 /root/ov5640/qshot/qshot /tmp/init48_screen.png 900
+OK 900x506 101950
+QStandardPaths: XDG_RUNTIME_DIR not set, defaulting to '/tmp/runtime-root'
+
+DISPLAY=:0 XAUTHORITY=/var/run/lightdm/root/:0 /root/ov5640/qshot/qshot /tmp/init48_screen.png 900
+OK 900x506 93861
+QStandardPaths: XDG_RUNTIME_DIR not set, defaulting to '/tmp/runtime-root'
+

@@ -1,0 +1,65 @@
+pkill -9 -x run_camview.sh || true
+
+pkill -9 -x camview || true
+
+rmmod pango_pci_driver; insmod /root/ov5640/pango_pci_driver.ko; test -L /sys/bus/pci/devices/0002:21:00.0/driver
+
+python3 -u /tmp/verify_cdc_sustained.py
+Traceback (most recent call last):
+  File "/tmp/verify_cdc_sustained.py", line 29, in <module>
+    rows.append(dict(t=time.monotonic(),cams=[{hex(x):d.read32(base+x) for x in range(0,256,16)} for base in (0x20000000,0x20000200,0x20000400)]))
+                                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/verify_cdc_sustained.py", line 29, in <listcomp>
+    rows.append(dict(t=time.monotonic(),cams=[{hex(x):d.read32(base+x) for x in range(0,256,16)} for base in (0x20000000,0x20000200,0x20000400)]))
+                                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/verify_cdc_sustained.py", line 29, in <dictcomp>
+    rows.append(dict(t=time.monotonic(),cams=[{hex(x):d.read32(base+x) for x in range(0,256,16)} for base in (0x20000000,0x20000200,0x20000400)]))
+                                                      ^^^^^^^^^^^^^^^^
+  File "/tmp/cam3_i2c_pt.py", line 101, in read32
+    r = fcntl.ioctl(self.fd, F2H_CMD, op, True)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/cam3_i2c_pt.py", line 38, in _alarm
+    raise Timeout()
+cam3_i2c_pt.Timeout
+
+rmmod pango_pci_driver; insmod /root/ov5640/pango_pci_driver.ko; sleep 2; test -L /sys/bus/pci/devices/0002:21:00.0/driver
+
+rm -f /tmp/camview.lock; setsid nohup /root/ov5640/run_camview.sh > /tmp/camview.log 2>&1 < /dev/null &
+
+sleep 10; pgrep -a -x camview
+10283 ./camview
+
+pkill -9 -x run_camview.sh || true
+
+pkill -9 -x camview || true
+
+rmmod pango_pci_driver; insmod /root/ov5640/pango_pci_driver.ko; test -L /sys/bus/pci/devices/0002:21:00.0/driver
+
+python3 -u /tmp/verify_cdc_sustained.py
+Traceback (most recent call last):
+  File "/tmp/verify_cdc_sustained.py", line 35, in <module>
+    rows.append(dict(t=time.monotonic(),cams=[{hex(x):d.read32(base+x) for x in range(0,256,16)} for base in (0x20000000,0x20000200,0x20000400)]))
+                                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/verify_cdc_sustained.py", line 35, in <listcomp>
+    rows.append(dict(t=time.monotonic(),cams=[{hex(x):d.read32(base+x) for x in range(0,256,16)} for base in (0x20000000,0x20000200,0x20000400)]))
+                                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/verify_cdc_sustained.py", line 35, in <dictcomp>
+    rows.append(dict(t=time.monotonic(),cams=[{hex(x):d.read32(base+x) for x in range(0,256,16)} for base in (0x20000000,0x20000200,0x20000400)]))
+                                                      ^^^^^^^^^^^^^^^^
+  File "/tmp/verify_cdc_sustained.py", line 29, in traced_read32
+    return original_read32(address)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/cam3_i2c_pt.py", line 101, in read32
+    r = fcntl.ioctl(self.fd, F2H_CMD, op, True)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/cam3_i2c_pt.py", line 38, in _alarm
+    raise Timeout()
+cam3_i2c_pt.Timeout
+
+rmmod pango_pci_driver; insmod /root/ov5640/pango_pci_driver.ko; sleep 2; test -L /sys/bus/pci/devices/0002:21:00.0/driver
+
+rm -f /tmp/camview.lock; setsid nohup /root/ov5640/run_camview.sh > /tmp/camview.log 2>&1 < /dev/null &
+
+sleep 10; pgrep -a -x camview
+10789 ./camview
+

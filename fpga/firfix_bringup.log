@@ -1,0 +1,139 @@
+[02:28:21] === watcher start, polling COM5 every 30s ===
+[02:30:13] serial open fail: could not open port 'COM5': PermissionError(13, '拒绝访问。', None, 5)
+[02:30:43] serial open fail: could not open port 'COM5': PermissionError(13, '拒绝访问。', None, 5)
+[05:48:26] serial open fail: could not open port 'COM5': PermissionError(13, '拒绝访问。', None, 5)
+[05:48:56] serial open fail: could not open port 'COM5': PermissionError(13, '拒绝访问。', None, 5)
+[05:49:27] console ping ok (1/2)
+[05:49:59] console ping ok (2/2)
+[05:49:59] CONSOLE ALIVE -- starting bring-up
+[05:50:04] $ python tools\burn_now.py flash_firfix.tcl
+[05:50:25] tcl = flash_firfix.tcl
+--- burn attempt 1 (port 65425) ---
+The Progress: ��������������������������������80%
+The Progress: ����������������������������������85%
+The Progress: ������������������������������������90%
+The Progress: ��������������������������������������95%
+The Progress: ����������������������������������������100%
+The done bit is 1
+COMMAND[Program] execute successfully, takes 3.6 secs.
+Executing : cfg_program -device_index 0 successfully.
+BURN OK
+
+[05:50:28] $ python tools\_sh5.py "echo 1 > /sys/bus/pci/rescan; sleep 3; rmmod pango_pci_driver 2>/dev/null; sleep 1; insmod /root/ov5640/pango_pci_driver.ko && echo INSMOD_OK; sleep 2; rm -f /tmp/camview.lock; setsid nohup /root/ov5640/run_camview.sh >/dev/null 2>&1 & sleep 12; ps aux | grep -a ./camview | grep -v grep | wc -l" 180
+[05:53:29] 0 0ab5cf98 ffffff80 0cc43908 ffffff80
+[   78.166474] bd30  0cd3bd90 ffffffc0 081053bc ffffffc0 0cd3bdd0 ffffffc0 0823adf4 ffffffc0
+[   78.167205] bd50  0000000a 00000000 1fa28701 ffffff80 1fa28700 ffffff80 c0045305 ffffffff
+[   78.167935] bd70  80f2e7d8 0000007f 00000000 00000000 00000000 00000000 f7224200 1a3f852c
+[   78.168665] bd90  0cd3bdc0 ffffffc0 0824af28 ffffffc0 0000000a 00000000 75e08000 ffffffc0
+[   78.169396] bdb0  ffffffff 00000000 c0045305 ffffffff 0cd3bdd0 ffffffc0 f7224200 1a3f852c
+[   78.170126] bdd0  0cd3be10 ffffffc0 080238cc ffffffc0 0cd3beb0 ffffffc0 75e08000 ffffffc0
+[   78.170857] bdf0  ffffffff 00000000 951cf990 0000007f 60001000 00000000 f7224200 1a3f852c
+[   78.171588] be10  0cd3be40 ffffffc0 080239e8 ffffffc0 0cd3beb0 ffffffc0 75e08000 ffffffc0
+[   78.172318] be30  ffffffff 00000000 08030dd8 ffffffc0 0cd3be70 ffffffc0 08023b34 ffffffc0
+[   78.173049] be50  0cd3beb0 ffffffc0 093a4cc8 ffffffc0 0cd3beb0 ffffffc0 75e08000 ffffffc0
+[   78.173779] be70  0cd3be80 ffffffc0 093a4224 ffffffc0 0cd3bea0 ffffffc0 093a53a0 ffffffc0
+[   78.174510] be90  00000000 00000000 f7224200 1a3f852c 0cd3bfe0 ffffffc0 080115a4 ffffffc0
+[   78.175239] beb0  0000000a 00000000 c0045305 ffffffff 80f2e7d8 0000007f 00000000 00000000
+[   78.175972] Code: 91078042 33002401 b90782c1 d50332bf (b9000043) 
+[   78.176512] ---[ end trace 0000000000000000 ]---
+[   78.290505] [drm] only support 1 gamma
+[  103.514178] RTW: cfg80211_rtw_get_channel(wlx84fc1420fd6e) link_id:0
+
+[05:53:29] $ python tools\_sh5.py "pkill -f run_camview.sh; pkill -x camview; sleep 2; cd /root/ov5640 && QT_QPA_PLATFORM=offscreen timeout 30 ./detview/detview --selftest 15 --model 0 2>&1 | tail -8" 120
+[05:55:30] [  251.207881] [drm] only support 1 gamma
+[  251.289816] [drm] only support 1 gamma
+[  283.196466] ********* pango_cdev_read interruptible *********
+[  283.210234] pango_cdev_release.
+
+[05:55:30] $ python tools\_sh5.py "rm -f /tmp/camview.lock; setsid nohup /root/ov5640/run_camview.sh >/dev/null 2>&1 & sleep 12; ps aux | grep -a ./camview | grep -v grep | wc -l" 120
+[05:57:30] [  373.356928] [drm] only support 1 gamma
+
+[05:57:30] $ python rk.py "rm -f /tmp/qk.png /tmp/qk.jpg; DISPLAY=:0 XAUTHORITY=/var/run/lightdm/root/:0 /root/ov5640/qshot/qshot /tmp/qk.png 900 >/dev/null 2>&1; ffmpeg -y -loglevel error -i /tmp/qk.png -q:v 3 /tmp/qk.jpg 2>/dev/null; ls -la /tmp/qk.jpg" 90
+[06:44:32] === poll_and_fire start ===
+[08:15:29] serial open fail: could not open port 'COM5': PermissionError(13, '拒绝访问。', None, 5)
+[08:16:16] ping ok 1/2
+[08:17:02] ping ok 2/2
+[08:17:02] CONSOLE UP -- firing bring-up
+[08:26:36] $ python tools\_sh5.py "@tools/_trec.sh" 90
+[?2004l
+__R_START__
+rmmod: ERROR: Module pango_pci_driver is not currently loaded
+rmmod rc=1
+remove rc=0
+__R_DONE__
+[?2004hroot@linaro-alip:/# 
+
+$ python tools\burn_now.py flash_firfix.tcl
+tcl = flash_firfix.tcl
+--- burn attempt 1 (port 65425) ---
+The Progress: ��������������������������������80%
+The Progress: ����������������������������������85%
+The Progress: ������������������������������������90%
+The Progress: ��������������������������������������95%
+The Progress: ����������������������������������������100%
+The done bit is 1
+COMMAND[Program] execute successfully, takes 3.6 secs.
+Executing : cfg_program -device_index 0 successfully.
+BURN OK
+
+$ python tools\_sh5.py "echo 1 > /sys/bus/pci/rescan; sleep 3; rmmod pango_pci_driver 2>/dev/null; sleep 1; insmod /root/ov5640/pango_pci_driver.ko && echo INSMOD_OK" 120
+
+[  116.943045] Min Gnt: 0x0, 
+[  116.943058] Max Lat: 0x0
+[  116.943116] Link Speed: 2
+[  116.943124] Link Width: x2
+[  116.943137] MPS: 256
+[  116.943146] MRRS: 1024
+[  116.943174] cap id = 5; addr_offset = 50; next_offset = 70
+[  116.943194] cap id = 10; addr_offset = 70; next_offset = 0
+[  116.943331] pci_request_region result : 0
+[  116.943371] ioremap result : 0
+[  116.943390] pci_keep_intx_enabled.
+[  116.943787] MSI Interrupt0 registered.
+[  116.943826] MSI Interrupt1 registered.
+[  116.943861] MSI Interrupt2 registered.
+[  116.944101] *********pci_register_driver, result : 0
+[  116.944120] init pci result : 0
+[  116.944130] sema_init.
+[  116.944608] init cdev class result : 0
+[  116.944933] pwm-backlight backlight1: supply power not found, using dummy regulator
+
+$ python serial_xfer.py tools\board_dualcap.py /tmp/dualcap2.py
+(TIMEOUT after 180s) transfer 2145 B -> /tmp/dualcap2.py (3 chunks)
+mkdir -p $(dirname /tmp/dualcap2.py); rm -f /tmp/dualcap2.py.b64 /tmp/dualcap2.py; stty -echo; echo READY
+[?2004l
+READY
+[?2004hroot@linaro-alip:/# 
+  0/3 0s
+transfer 0s
+VERIFY OK /tmp/dualcap2.py md5=3133b6a80c764f56201012fc33ae3005
+
+$ python serial_xfer.py _dbg_probe.py /tmp/dbg_probe2.py
+(TIMEOUT after 180s) transfer 2081 B -> /tmp/dbg_probe2.py (2 chunks)
+[?2004l
+
+READY
+[?2004hroot@linaro-alip:/# 
+  0/2 0s
+transfer 0s
+VERIFY OK /tmp/dbg_probe2.py md5=10482bd7a0ee97340e7394dd9c05cd82
+
+$ python serial_xfer.py tools\board_bringup.sh /tmp/bringup.sh
+(TIMEOUT after 180s) transfer 1622 B -> /tmp/bringup.sh (2 chunks)
+[?2004l
+
+READY
+[?2004hroot@linaro-alip:/# 
+  0/2 0s
+transfer 0s
+VERIFY OK /tmp/bringup.sh md5=2395141d724b074297788e7ead141a71
+
+$ python rk.py "chmod +x /tmp/bringup.sh; setsid nohup bash /tmp/bringup.sh >/dev/null 2>&1 < /dev/null & echo LAUNCHED" 60
+[?2004l
+LAUNCHED
+__E__
+[?2004hroot@linaro-alip:/# 
+
+bring-up launched on board; artifacts at /root/ov5640/
+
+[08:26:36] === fire_bringup exit=0 ===
