@@ -9,7 +9,7 @@ OUT.mkdir(parents=True, exist_ok=True)
 sys.stdout.reconfigure(encoding='utf-8', errors='replace')
 c = paramiko.SSHClient()
 c.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-c.connect('192.168.10.241', username='linaro', password='123456', allow_agent=False, look_for_keys=False, timeout=15)
+c.connect('192.168.10.203', username='linaro', password='123456', allow_agent=False, look_for_keys=False, timeout=15)
 sftp = c.open_sftp()
 
 def sh(cmd, check=True):

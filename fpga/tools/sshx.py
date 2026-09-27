@@ -14,7 +14,7 @@ warnings.filterwarnings("ignore")
 
 import paramiko  # noqa: E402
 
-HOST = "192.168.10.241"
+HOST = "192.168.10.203"
 USER, PW = "linaro", "123456"
 
 

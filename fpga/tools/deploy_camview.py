@@ -9,7 +9,7 @@
 """
 import paramiko, hashlib, os, sys, time
 
-HOST, USER, PW = "192.168.10.241", "linaro", "123456"
+HOST, USER, PW = "192.168.10.203", "linaro", "123456"
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SRC = os.path.join(ROOT, "host", "camview", "main.cpp")
 DST = "/root/ov5640/camview/main.cpp"

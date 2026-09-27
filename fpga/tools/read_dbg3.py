@@ -2,7 +2,7 @@
 """Host: read per-camera debug counters through board_peek.py (driver must be idle)."""
 import paramiko, os, sys
 sys.stdout.reconfigure(encoding='utf-8', errors='replace')
-HOST, USER, PW = "192.168.10.241", "linaro", "123456"
+HOST, USER, PW = "192.168.10.203", "linaro", "123456"
 ROOT = r"C:\Users\NineSun\Desktop\ov56401\project"
 c = paramiko.SSHClient(); c.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 c.connect(HOST, 22, USER, PW, timeout=10, banner_timeout=15, auth_timeout=15,

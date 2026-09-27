@@ -102,7 +102,15 @@ module top #(
     input       [7 : 0]                  cmos3_data              , 
     output                               cmos3_rst_n             , 
     output                               cmos3_scl               , 
-    inout                                cmos3_sda
+    inout                                cmos3_sda               , 
+    ///////////// CAM4 (FMC 4th DVP camera)
+    input                                cmos4_pclk               , 
+    input                                cmos4_vsync              , 
+    input                                cmos4_href               , 
+    input       [7 : 0]                  cmos4_data              , 
+    output                               cmos4_rst_n             , 
+    output                               cmos4_scl               , 
+    inout                                cmos4_sda
 `elsif USE_HDMI
     /////////////////////////  HDMI
     //ms72XX
@@ -143,7 +151,7 @@ wire [3:0]                  ddr_axi_awcache    ;
 wire [2:0]                  ddr_axi_awprot     ;
 wire [3:0]                  ddr_axi_awqos      ;
 
-wire [15:0] cam_s_data_available, cam2_s_data_available, cam3_s_data_available;
+wire [15:0] cam_s_data_available, cam2_s_data_available, cam3_s_data_available, cam4_s_data_available;
 wire [AXI_DATA_LEN-1:0]     ddr_axi_wdata      /* synthesis PAP_MARK_DEBUG="true" */;
 wire [AXI_DATA_LEN-1:0]     ddr_axi_wdata_ddr3      ;
 wire [AXI_STRB_LEN-1:0]     ddr_axi_wstrb      /* synthesis PAP_MARK_DEBUG="true" */;
@@ -446,6 +454,17 @@ ddr_w_arb u_ddr_w_arb (
     .m2_wready  (cam3_axi_wready    ),
     .m2_bid     (cam3_axi_bid       ), .m2_bresp  (cam3_axi_bresp    ),
     .m2_bvalid  (cam3_axi_bvalid    ), .m2_bready (cam3_axi_bready   ),
+    // [CAM4 2026-09-27] cam4 write channel joins the arbiter as master 3
+    .m3_awid    (cam4_axi_awid      ), .m3_awaddr (cam4_axi_awaddr   ),
+    .m3_awlen   (cam4_axi_awlen     ), .m3_awsize (cam4_axi_awsize   ),
+    .m3_awburst (cam4_axi_awburst   ), .m3_awlock (cam4_axi_awlock   ),
+    .m3_awcache (cam4_axi_awcache   ), .m3_awprot (cam4_axi_awprot   ),
+    .m3_awvalid (cam4_axi_awvalid   ), .m3_awready(cam4_axi_awready  ),
+    .m3_wdata   (cam4_axi_wdata     ), .m3_wstrb  (cam4_axi_wstrb    ),
+    .m3_wlast   (cam4_axi_wlast     ), .m3_wvalid (cam4_axi_wvalid   ),
+    .m3_wready  (cam4_axi_wready    ),
+    .m3_bid     (cam4_axi_bid       ), .m3_bresp  (cam4_axi_bresp    ),
+    .m3_bvalid  (cam4_axi_bvalid    ), .m3_bready (cam4_axi_bready   ),
     .s_awid     (arb_s_awid         ), .s_awaddr (arb_s_awaddr      ),
     .s_awlen    (arb_s_awlen        ), .s_awsize (arb_s_awsize      ),
     .s_awburst  (arb_s_awburst      ), .s_awlock (arb_s_awlock      ),
@@ -806,6 +825,21 @@ wire                        cam3_axil_rvalid, cam3_axil_rready;
 wire [31:0]                 cam3_axil_rdata;
 wire [1:0]                  cam3_axil_rresp;
 
+// --- cam4 register window (M01 sub-window 0x2000_0600~0x07FF) ---
+wire                        cam4_axil_awvalid, cam4_axil_awready;
+wire [31:0]                 cam4_axil_awaddr;
+wire                        cam4_axil_wvalid, cam4_axil_wready;
+wire [31:0]                 cam4_axil_wdata;
+wire [3:0]                  cam4_axil_wstrb;
+wire                        cam4_axil_bvalid, cam4_axil_bready;
+wire [1:0]                  cam4_axil_bresp;
+wire                        cam4_axil_arvalid, cam4_axil_arready;
+wire [31:0]                 cam4_axil_araddr;
+wire                        cam4_axil_rvalid, cam4_axil_rready;
+wire [31:0]                 cam4_axil_rdata;
+wire [1:0]                  cam4_axil_rresp;
+
+
 // --- cam2 capture / write stream (S04) ---
 wire [31 : 0]               cam2_cmd_addr    ;
 wire [31 : 0]               cam2_cmd_len     ;
@@ -1085,7 +1119,24 @@ ovreg_axil_decode ovreg_axil_decode_u (
     .m3_rvalid  (cam3_axil_rvalid),
     .m3_rready  (cam3_axil_rready),
     .m3_rdata   (cam3_axil_rdata),
-    .m3_rresp   (cam3_axil_rresp)
+    .m3_rresp   (cam3_axil_rresp),
+    .m4_awvalid (cam4_axil_awvalid),
+    .m4_awready (cam4_axil_awready),
+    .m4_awaddr  (cam4_axil_awaddr),
+    .m4_wvalid  (cam4_axil_wvalid),
+    .m4_wready  (cam4_axil_wready),
+    .m4_wdata   (cam4_axil_wdata),
+    .m4_wstrb   (cam4_axil_wstrb),
+    .m4_bvalid  (cam4_axil_bvalid),
+    .m4_bready  (cam4_axil_bready),
+    .m4_bresp   (cam4_axil_bresp),
+    .m4_arvalid (cam4_axil_arvalid),
+    .m4_arready (cam4_axil_arready),
+    .m4_araddr  (cam4_axil_araddr),
+    .m4_rvalid  (cam4_axil_rvalid),
+    .m4_rready  (cam4_axil_rready),
+    .m4_rdata   (cam4_axil_rdata),
+    .m4_rresp   (cam4_axil_rresp)
 );
 
 // --- prep datapath wiring ---
@@ -1098,6 +1149,7 @@ wire [7:0]                  prep_lane_roi_top_w, prep_lane_roi_bot_w, prep_lane_
 wire cam_dma_abort, cam_dma_abort_req;
 wire cam2_dma_abort, cam2_dma_abort_req;
 wire cam3_dma_abort, cam3_dma_abort_req;
+wire cam4_dma_abort, cam4_dma_abort_req;
 wire [7:0]                  prep_frame_cnt;
 wire [15:0]                 inj_addr_w, inj_len_w, inj_fid_w;
 wire                        inj_start_w, inj_done_clr_w;
@@ -1269,6 +1321,7 @@ ov5640_top #(
 wire cam_dma_done;
 wire cam2_dma_done;
 wire cam3_dma_done;
+wire cam4_dma_done;
 
 // --- CAM3 (FMC 3rd OV5640, BASE_ADDR 0x2000_0400, 640x480, raw passthrough) ---
 wire                        cam3_axil_awvalid_unused;
@@ -1436,6 +1489,106 @@ ov5640_top #(
     .cam_s_data_available(cam3_s_data_available),
     .cam_dma_abort_req(cam3_dma_abort_req),
     .cam_dma_done(cam3_dma_done),
+    .xdma_clk (pcie_clk),
+    .xdma_irq (          )
+);
+
+// --- CAM4 (FMC 4th OV5640, BASE_ADDR 0x2000_0600, 640x480, raw passthrough:
+//      same 48 MHz init PLL and VSYNC qualification as CAM3) ---
+wire [AXI_DATA_LEN-1 : 0]   cam4_s_data      ;
+wire                        cam4_s_data_valid;
+wire                        cam4_s_data_last ;
+wire                        cam4_s_data_ready;
+wire [31:0]                 cam4_cmd_addr    ;
+wire [31:0]                 cam4_cmd_len     ;
+wire                        cam4_cmd_valid   ;
+wire                        cam4_cmd_ready   ;
+wire [3:0]                  cam4_axi_awid    ;
+wire [31:0]                 cam4_axi_awaddr  ;
+wire [7:0]                  cam4_axi_awlen   ;
+wire [2:0]                  cam4_axi_awsize  ;
+wire [1:0]                  cam4_axi_awburst ;
+wire [3:0]                  cam4_axi_awcache ;
+wire [2:0]                  cam4_axi_awprot  ;
+wire                        cam4_axi_awvalid ;
+wire                        cam4_axi_awready ;
+wire [127:0]                cam4_axi_wdata   ;
+wire [15:0]                 cam4_axi_wstrb   ;
+wire                        cam4_axi_awlock  ;
+wire                        cam4_axi_wlast   ;
+wire                        cam4_axi_wvalid  ;
+wire                        cam4_axi_wready  ;
+wire [3:0]                  cam4_axi_bid     ;
+wire [1:0]                  cam4_axi_bresp   ;
+wire                        cam4_axi_bvalid  ;
+wire                        cam4_axi_bready  ;
+wire [31:0]                 cam4_dbg_dummy;
+
+ov5640_top #(
+    .BASE_ADDR       (32'h2000_0600),
+    .SENSOR_PLL_MULT (8'h30), // cam4: same 48 MHz PCLK init as cam3
+    .VSYNC_STABLE_CYCLES(64), // cam4 only: 0.762 us at 84 MHz
+    .CAM_ADDR_1_DEF  (32'h0140_0000),
+    .CAM_ADDR_2_DEF  (32'h0160_0000),
+    .CAM_EN_DEF      (1'b1),
+    .H_CMOS_DISP     (11'd640),
+    .V_CMOS_DISP     (11'd480),
+    .TOTAL_H_PIXEL   (12'd1896),
+    .TOTAL_V_PIXEL   (12'd984)
+) cam4_ov5640_top (
+    .clk_50m       (clk_50m),
+    .clk_50m_rst_n (1'b1),
+    .dbg_locked    (locked),
+    .dbg_btn_rst_n (button_rst_n),
+    .dbg_axi_awvalid(cam4_axi_awvalid),
+    .dbg_axi_awready(cam4_axi_awready),
+    .dbg_axi_wvalid (cam4_axi_wvalid ),
+    .dbg_axi_wready (cam4_axi_wready ),
+    .dbg_axi_bvalid (cam4_axi_bvalid ),
+    .dbg_axi_bready (cam4_axi_bready ),
+
+    .cam_pclk (cmos4_pclk ),
+    .cam_vsync(cmos4_vsync),
+    .cam_href (cmos4_href ),
+    .cam_data (cmos4_data ),
+    .cam_rst_n(cmos4_rst_n),
+    .cam_scl  (cmos4_scl  ),
+    .cam_sda  (cmos4_sda  ),
+
+    .s_axi_awvalid(cam4_axil_awvalid),
+    .s_axi_awready(cam4_axil_awready),
+    .s_axi_awaddr (cam4_axil_awaddr ),
+    .s_axi_wvalid (cam4_axil_wvalid ),
+    .s_axi_wready (cam4_axil_wready ),
+    .s_axi_wdata  (cam4_axil_wdata  ),
+    .s_axi_wstrb  (cam4_axil_wstrb  ),
+    .s_axi_bvalid (cam4_axil_bvalid ),
+    .s_axi_bready (cam4_axil_bready ),
+    .s_axi_bresp  (cam4_axil_bresp  ),
+    .s_axi_arvalid(cam4_axil_arvalid),
+    .s_axi_arready(cam4_axil_arready),
+    .s_axi_araddr (cam4_axil_araddr ),
+    .s_axi_rvalid (cam4_axil_rvalid ),
+    .s_axi_rready (cam4_axil_rready ),
+    .s_axi_rdata  (cam4_axil_rdata  ),
+    .s_axi_rresp  (cam4_axil_rresp  ),
+
+    .video_clk(axi_clk),
+    .video_rst(axi_rst),
+    .cam_cmd_addr (cam4_cmd_addr ),
+    .cam_cmd_len  (cam4_cmd_len  ),
+    .cam_cmd_valid(cam4_cmd_valid),
+    .cam_cmd_ready(cam4_cmd_ready),
+
+    .cam_s_data      (cam4_s_data      ),
+    .cam_s_data_valid(cam4_s_data_valid),
+    .cam_s_data_last (cam4_s_data_last ),
+    .cam_s_data_ready(cam4_s_data_ready),
+
+    .cam_dma_abort(cam4_dma_abort),
+    .cam_s_data_available(cam4_s_data_available),
+    .cam_dma_abort_req(cam4_dma_abort_req),
+    .cam_dma_done(cam4_dma_done),
     .xdma_clk (pcie_clk),
     .xdma_irq (          )
 );
@@ -1670,6 +1823,53 @@ cam3_axi_dma_write(
 	.m_axi_bvalid  (cam3_axi_bvalid  ),
 	.m_axi_bready  (cam3_axi_bready  )
 );
+
+axi_dma_write #(
+    .WAIT_FOR_DATA(1),
+	.BURST_LEN  (BURST_LEN)   ,
+	.ID_WIDTH   (AXI_ID_LEN)  ,
+	.DATA_WIDTH (AXI_DATA_LEN)
+)
+cam4_axi_dma_write(
+    .data_in_available(cam4_s_data_available),
+    .abort_req(cam4_dma_abort_req),
+    .data_in_abort(cam4_dma_abort),
+	.clk(axi_clk)                   ,
+	.rst(axi_rst)                   ,
+
+	.cmd_valid (cam4_cmd_valid)     ,
+	.cmd_addr  (cam4_cmd_addr )     ,
+	.cmd_len   (cam4_cmd_len  )     ,
+	.cmd_id    (4'b1000)            ,
+	.cmd_ready (cam4_cmd_ready)     ,
+
+	.data_in       (cam4_s_data          ),
+	.data_in_keep  ({AXI_STRB_LEN{1'b1}}),
+	.data_in_valid (cam4_s_data_valid    ),
+	.data_in_last  (cam4_dma_done    ),  // [CAM4] per-camera single-beat marker
+	.data_in_ready (cam4_s_data_ready    ),
+
+	.m_axi_awid    (cam4_axi_awid    ),
+	.m_axi_awaddr  (cam4_axi_awaddr  ),
+	.m_axi_awlen   (cam4_axi_awlen   ),
+	.m_axi_awsize  (cam4_axi_awsize  ),
+	.m_axi_awburst (cam4_axi_awburst ),
+	.m_axi_awlock  (cam4_axi_awlock  ),
+	.m_axi_awcache (cam4_axi_awcache ),
+	.m_axi_awprot  (cam4_axi_awprot  ),
+	.m_axi_awvalid (cam4_axi_awvalid ),
+	.m_axi_awready (cam4_axi_awready ),
+	.m_axi_wdata   (cam4_axi_wdata   ),
+	.m_axi_wstrb   (cam4_axi_wstrb   ),
+	.m_axi_wlast   (cam4_axi_wlast   ),
+	.m_axi_wvalid  (cam4_axi_wvalid  ),
+	.m_axi_wready  (cam4_axi_wready  ),
+	.m_axi_bid     (cam4_axi_bid     ),
+	.m_axi_bresp   (cam4_axi_bresp   ),
+	.m_axi_bvalid  (cam4_axi_bvalid  ),
+	.m_axi_bready  (cam4_axi_bready  )
+);
+
 // ===================== preprocess datapath (PREP, batch-2) =====================
 reg [7:0] prep_frame_cnt;
 always @(posedge axi_clk) begin

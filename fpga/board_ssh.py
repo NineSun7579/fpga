@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """board_ssh.py -- RK3568 board access over the LAN (192.168.10.x).
 SSH linaro/linaro; helper CLI used by the deploy/verify steps.
-Note: the board IP changed from 192.168.137.4 to 192.168.10.241; update
+Note: the board IP changed from 192.168.137.4 to 192.168.10.203; update
 HOST below whenever the DHCP lease changes.
 
 Usage:
@@ -12,7 +12,7 @@ Usage:
 """
 import sys, paramiko
 
-HOST = '192.168.10.241'
+HOST = '192.168.10.203'
 USER, PW = 'linaro', '123456'
 
 

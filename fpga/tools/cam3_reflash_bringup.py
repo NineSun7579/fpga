@@ -17,7 +17,7 @@ import time
 import paramiko
 
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
-HOST, USER, PW = "192.168.10.241", "linaro", "123456"
+HOST, USER, PW = "192.168.10.203", "linaro", "123456"
 ROOT = r"C:\Users\NineSun\Desktop\ov56401\project"
 DEV = "/sys/bus/pci/devices/0002:21:00.0"
 TCL = os.path.join(ROOT, "flash_verified_cam3.tcl")

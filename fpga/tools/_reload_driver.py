@@ -11,7 +11,7 @@ PW = "123456"
 def connect():
     c = paramiko.SSHClient()
     c.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    c.connect("192.168.10.241", 22, "linaro", PW, timeout=10, banner_timeout=15,
+    c.connect("192.168.10.203", 22, "linaro", PW, timeout=10, banner_timeout=15,
               auth_timeout=15, allow_agent=False, look_for_keys=False)
     return c
 

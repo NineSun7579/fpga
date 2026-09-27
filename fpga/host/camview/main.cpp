@@ -52,6 +52,10 @@
 #define TAG2_ADDR_2 (CAM2_ADDR_2 + FRAME_BYTES)
 #define TAG3_ADDR_1 (CAM3_ADDR_1 + FRAME_BYTES)
 #define TAG3_ADDR_2 (CAM3_ADDR_2 + FRAME_BYTES)
+#define CAM4_ADDR_1 0x01400000u
+#define CAM4_ADDR_2 0x01600000u
+#define TAG4_ADDR_1 (CAM4_ADDR_1 + FRAME_BYTES)
+#define TAG4_ADDR_2 (CAM4_ADDR_2 + FRAME_BYTES)
 #define EDGE_ADDR_1 0x0A000000u   // [EDGE] prep2 write ping  (cam_prep_link BUFFER0)
 #define EDGE_ADDR_2 0x0A100000u   // [EDGE] prep2 write pong  (cam_prep_link BUFFER1)
 #define REG_BASE   0x20000000u
@@ -160,16 +164,16 @@ volatile sig_atomic_t PangoDev::timeoutHit_ = 0;
 
 struct LatestFrames {
     QMutex mutex;
-    QByteArray c1, c2, c3;
-    bool have1 = false, have2 = false, have3 = false;
-    uint64_t errors1 = 0, errors2 = 0, errors3 = 0;
-    qint64 last1 = 0, last2 = 0, last3 = 0;
+    QByteArray c1, c2, c3, c4;
+    bool have1 = false, have2 = false, have3 = false, have4 = false;
+    uint64_t errors1 = 0, errors2 = 0, errors3 = 0, errors4 = 0;
+    qint64 last1 = 0, last2 = 0, last3 = 0, last4 = 0;
     // [PACE 2026-09-27] bumped on every newly stored frame, so the display loop
     // can render only when the picture actually changed instead of free-running.
     uint64_t gen = 0;
     // [FPS3 2026-09-27] per-camera capture rate, measured by each worker so the
     // viewer can label every pane with its own fps.
-    double fps1 = 0, fps2 = 0, fps3 = 0;
+    double fps1 = 0, fps2 = 0, fps3 = 0, fps4 = 0;
 };
 
 class CameraWorker : public QThread {
@@ -179,10 +183,10 @@ public:
     void stop() { running_ = false; }
 protected:
     void run() override {
-        const uint32_t ta = camera_ == 1 ? TAG_ADDR_1 : camera_ == 2 ? TAG2_ADDR_1 : TAG3_ADDR_1;
-        const uint32_t tb = camera_ == 1 ? TAG_ADDR_2 : camera_ == 2 ? TAG2_ADDR_2 : TAG3_ADDR_2;
-        const uint32_t ba = camera_ == 1 ? CAM_ADDR_1 : camera_ == 2 ? CAM2_ADDR_1 : CAM3_ADDR_1;
-        const uint32_t bb = camera_ == 1 ? CAM_ADDR_2 : camera_ == 2 ? CAM2_ADDR_2 : CAM3_ADDR_2;
+        const uint32_t ta = camera_ == 1 ? TAG_ADDR_1 : camera_ == 2 ? TAG2_ADDR_1 : camera_ == 3 ? TAG3_ADDR_1 : TAG4_ADDR_1;
+        const uint32_t tb = camera_ == 1 ? TAG_ADDR_2 : camera_ == 2 ? TAG2_ADDR_2 : camera_ == 3 ? TAG3_ADDR_2 : TAG4_ADDR_2;
+        const uint32_t ba = camera_ == 1 ? CAM_ADDR_1 : camera_ == 2 ? CAM2_ADDR_1 : camera_ == 3 ? CAM3_ADDR_1 : CAM4_ADDR_1;
+        const uint32_t bb = camera_ == 1 ? CAM_ADDR_2 : camera_ == 2 ? CAM2_ADDR_2 : camera_ == 3 ? CAM3_ADDR_2 : CAM4_ADDR_2;
         uint32_t a = 0, b = 0, la = 0, lb = 0;
         bool base = false;
         QByteArray frame(FRAME_BYTES, 0);
@@ -200,14 +204,16 @@ protected:
                 QMutexLocker errorLock(&frames_->mutex);
                 if (camera_ == 1) ++frames_->errors1;
                 else if (camera_ == 2) ++frames_->errors2;
-                else ++frames_->errors3;
+                else if (camera_ == 3) ++frames_->errors3;
+                else ++frames_->errors4;
                 msleep(25); continue;
             }
             QMutexLocker lock(&frames_->mutex);
             ++frames_->gen;
             if (camera_ == 1) { frames_->c1 = frame; frames_->have1 = true; frames_->last1 = QDateTime::currentMSecsSinceEpoch(); }
             else if (camera_ == 2) { frames_->c2 = frame; frames_->have2 = true; frames_->last2 = QDateTime::currentMSecsSinceEpoch(); }
-            else { frames_->c3 = frame; frames_->have3 = true; frames_->last3 = QDateTime::currentMSecsSinceEpoch(); }
+            else if (camera_ == 3) { frames_->c3 = frame; frames_->have3 = true; frames_->last3 = QDateTime::currentMSecsSinceEpoch(); }
+            else { frames_->c4 = frame; frames_->have4 = true; frames_->last4 = QDateTime::currentMSecsSinceEpoch(); }
             // [FPS3] measure this camera's capture rate over a 0.5 s window
             if (!fpsTimer_.isValid()) fpsTimer_.start();
             ++fpsFrames_;
@@ -216,7 +222,8 @@ protected:
                 const double f = fpsFrames_ / fel;
                 if (camera_ == 1) frames_->fps1 = f;
                 else if (camera_ == 2) frames_->fps2 = f;
-                else frames_->fps3 = f;
+                else if (camera_ == 3) frames_->fps3 = f;
+                else frames_->fps4 = f;
                 fpsFrames_ = 0;
                 fpsTimer_.restart();
             }
@@ -256,16 +263,17 @@ signals:
     // [FPS3 2026-09-27] also carry each camera's own capture rate (fps1..3) so
     // every pane can be labelled with its individual frame rate.
     void frameReady(const QByteArray &rgb565, int w, int h, double fps,
-                    double fps1, double fps2, double fps3, const QString &status);
+                    double fps1, double fps2, double fps3, double fps4, const QString &status);
     void statusMsg(const QString &s);
 
 protected:
     void run() override {
         if (!dev_->open()) { emit statusMsg("FATAL: open driver failed"); return; }
         LatestFrames latest;
-        CameraWorker w1(dev_, &latest, 1), w2(dev_, &latest, 2), w3(dev_, &latest, 3);
-        w1.start(); w2.start(); w3.start();
-        QByteArray c1(FRAME_BYTES, 0), c2(FRAME_BYTES, 0), c3(FRAME_BYTES, 0), comp(3 * FRAME_BYTES, 0);
+        CameraWorker w1(dev_, &latest, 1), w2(dev_, &latest, 2), w3(dev_, &latest, 3), w4(dev_, &latest, 4);
+        w1.start(); w2.start(); w3.start(); w4.start();
+        QByteArray c1(FRAME_BYTES, 0), c2(FRAME_BYTES, 0), c3(FRAME_BYTES, 0), c4(FRAME_BYTES, 0),
+                   comp(4 * FRAME_BYTES, 0);
         const int rowb = IMG_W * 2;
         QElapsedTimer timer; timer.start();
         int frames = 0; double fps = 0;
@@ -275,7 +283,7 @@ protected:
         // env var to 0 for the old uncapped behaviour.
         const int minIntervalMs = qEnvironmentVariableIsSet("CAMVIEW_MIN_MS")
             ? qEnvironmentVariableIntValue("CAMVIEW_MIN_MS") : 33;
-        emit statusMsg("TRIPLE THREAD VIEW");
+        emit statusMsg("QUAD THREAD VIEW");
         // [PACE 2026-09-27] MUST live outside the loop: it remembers the last
         // rendered frame generation so we only present when a camera actually
         // produced a new frame. It used to be declared inside the loop body,
@@ -283,16 +291,18 @@ protected:
         // and the display free-ran at ~230 fps.
         uint64_t lastGen = 0;
         while (run_) {
-        bool ready; qint64 last1, last2, last3; uint64_t err1, err2, err3, gen;
-        double cf1, cf2, cf3;
-            { QMutexLocker lock(&latest.mutex); ready = latest.have1 || latest.have2 || latest.have3;
+        bool ready; qint64 last1, last2, last3, last4; uint64_t err1, err2, err3, err4, gen;
+        double cf1, cf2, cf3, cf4;
+            { QMutexLocker lock(&latest.mutex);
+              ready = latest.have1 || latest.have2 || latest.have3 || latest.have4;
               gen = latest.gen;
               if (latest.have1) c1 = latest.c1;
               if (latest.have2) c2 = latest.c2;
               if (latest.have3) c3 = latest.c3;
-              last1 = latest.last1; last2 = latest.last2; last3 = latest.last3;
-              err1 = latest.errors1; err2 = latest.errors2; err3 = latest.errors3;
-              cf1 = latest.fps1; cf2 = latest.fps2; cf3 = latest.fps3; }
+              if (latest.have4) c4 = latest.c4;
+              last1 = latest.last1; last2 = latest.last2; last3 = latest.last3; last4 = latest.last4;
+              err1 = latest.errors1; err2 = latest.errors2; err3 = latest.errors3; err4 = latest.errors4;
+              cf1 = latest.fps1; cf2 = latest.fps2; cf3 = latest.fps3; cf4 = latest.fps4; }
             if (!ready) { msleep(2); continue; }
             // [PACE 2026-09-27] Only rebuild+present when a camera actually
             // produced a new frame. Previously the loop free-ran (msleep 6) and
@@ -300,9 +310,11 @@ protected:
             if (gen == lastGen) { msleep(2); continue; }
             lastGen = gen;
             for (int y = 0; y < IMG_H; ++y) {
-                memcpy(comp.data() + (size_t)y * 3 * rowb,          c1.constData() + (size_t)y * rowb, rowb);
-                memcpy(comp.data() + (size_t)y * 3 * rowb + rowb,   c2.constData() + (size_t)y * rowb, rowb);
-                memcpy(comp.data() + (size_t)y * 3 * rowb + 2*rowb, c3.constData() + (size_t)y * rowb, rowb);
+                // [QUAD 2026-09-27] 2x2 grid: top C1|C2, bottom C3|C4.
+                memcpy(comp.data() + (size_t)y * 2 * rowb,                  c1.constData() + (size_t)y * rowb, rowb);
+                memcpy(comp.data() + (size_t)y * 2 * rowb + rowb,           c2.constData() + (size_t)y * rowb, rowb);
+                memcpy(comp.data() + (size_t)(y + IMG_H) * 2 * rowb,        c3.constData() + (size_t)y * rowb, rowb);
+                memcpy(comp.data() + (size_t)(y + IMG_H) * 2 * rowb + rowb, c4.constData() + (size_t)y * rowb, rowb);
             }
             frames++;
             double elapsed = timer.elapsed() / 1000.0;
@@ -312,23 +324,25 @@ protected:
                 // [GPU] byte order is a debug toggle; keep it on the CPU (rarely
                 // used) so the GL upload can always take RGB565 directly.
                 char *raw = comp.data();
-                for (int i = 0; i < 3 * FRAME_BYTES; i += 2) {
+                for (int i = 0; i < 4 * FRAME_BYTES; i += 2) {
                     char t = raw[i]; raw[i] = raw[i + 1]; raw[i + 1] = t;
                 }
             }
             qint64 now = QDateTime::currentMSecsSinceEpoch();
-            const QString status = QString("D:%1  C1:%2 C2:%3 C3:%4  E1:%5 E2:%6 E3:%7")
+            const QString status = QString("D:%1  C1:%2 C2:%3 C3:%4 C4:%5  E1:%6 E2:%7 E3:%8 E4:%9")
                                        .arg(fps, 0, 'f', 1)
                                        .arg(now - last1 < 500 ? "OK" : "WAIT")
                                        .arg(now - last2 < 500 ? "OK" : "WAIT")
                                        .arg(now - last3 < 500 ? "OK" : "WAIT")
-                                       .arg(err1).arg(err2).arg(err3);
-            emit frameReady(comp, 3 * IMG_W, IMG_H, fps, cf1, cf2, cf3, status);
+                                       .arg(now - last4 < 500 ? "OK" : "WAIT")
+                                       .arg(err1).arg(err2).arg(err3).arg(err4);
+            emit frameReady(comp, 2 * IMG_W, 2 * IMG_H, fps, cf1, cf2, cf3, cf4, status);
             // No fixed display delay: the generation gate above already paces us
             // to the camera, and the idle branch (gen == lastGen) sleeps 2 ms.
             if (minIntervalMs > 0) msleep(minIntervalMs);
         }
-        w1.stop(); w2.stop(); w3.stop(); w1.wait(3000); w2.wait(3000); w3.wait(3000);
+        w1.stop(); w2.stop(); w3.stop(); w4.stop();
+        w1.wait(3000); w2.wait(3000); w3.wait(3000); w4.wait(3000);
         return;
     }
 private:
@@ -377,10 +391,10 @@ public:
 
     // 采集线程投递新帧 (GUI 线程调用, 跨线程走 queued connection)
     void submitFrame(const QByteArray &rgb565, int w, int h, double fps,
-                     double fps1, double fps2, double fps3, const QString &status) {
+                     double fps1, double fps2, double fps3, double fps4, const QString &status) {
         frame_ = rgb565;          // QByteArray 隐式共享, 只是引用计数 +1
         fw_ = w; fh_ = h; fps_ = fps; status_ = status;
-        fps1_ = fps1; fps2_ = fps2; fps3_ = fps3;
+        fps1_ = fps1; fps2_ = fps2; fps3_ = fps3; fps4_ = fps4;
         frameDirty_ = true;
         statusOnly_ = false;
         if (!paused_) update();
@@ -412,7 +426,7 @@ private:
     QByteArray frame_;
     int fw_ = 0, fh_ = 0;
     double fps_ = 0;
-    double fps1_ = 0, fps2_ = 0, fps3_ = 0;   // [FPS3] per-camera capture rates
+    double fps1_ = 0, fps2_ = 0, fps3_ = 0, fps4_ = 0;   // [FPS3] per-camera capture rates
     QString status_;
     bool statusOnly_ = false;     // true => show status text without a frame
     bool frameDirty_ = false;
@@ -574,10 +588,11 @@ void View::paintGL() {
     }
     const int dprW = (int)(width()  * devicePixelRatioF());
     const int dprH = (int)(height() * devicePixelRatioF());
-    const QString key = QString("%1|%2|%3|%4|%5|%6x%7|%8|%9|%10")
+    const QString key = QString("%1|%2|%3|%4|%5|%6x%7|%8|%9|%10|%11")
                             .arg(fps_, 0, 'f', 0).arg(status_).arg(help_).arg(statusOnly_)
                             .arg(dprW).arg(fw_).arg(fh_)
-                            .arg(fps1_, 0, 'f', 0).arg(fps2_, 0, 'f', 0).arg(fps3_, 0, 'f', 0);
+                            .arg(fps1_, 0, 'f', 0).arg(fps2_, 0, 'f', 0).arg(fps3_, 0, 'f', 0)
+                            .arg(fps4_, 0, 'f', 0);
     if (hudImg_.size() != QSize(dprW, dprH) || key != hudKey_) {
         buildHudImage(dprW, dprH);
         hudKey_ = key;
@@ -612,7 +627,7 @@ void View::buildHudImage(int w, int h) {
         f.setPointSize(14);
         p.setFont(f);
         p.drawText(r.adjusted(10, 4, -8, -4), Qt::AlignLeft | Qt::AlignVCenter,
-                   QString("Dual FPS: %1   %2").arg(fps_, 0, 'f', 1).arg(status_));
+                   QString("Quad FPS: %1   %2").arg(fps_, 0, 'f', 1).arg(status_));
     }
     if (help_) {
         QRect r(20, 20, 340, 250);
@@ -623,8 +638,8 @@ void View::buildHudImage(int w, int h) {
         p.drawText(r.adjusted(16, 12, -16, -12), Qt::AlignTop | Qt::AlignLeft, QString::fromUtf8(kHelpText));
     }
     // [FPS3 2026-09-27] Per-pane frame-rate label in the top-left corner of
-    // each of the three side-by-side camera images. The panes are the three
-    // equal thirds of the letterboxed composite (fw_ is 3 * 640).
+    // each of the four camera images. The panes are the four quadrants of the
+    // letterboxed 2x2 composite (fw_ x fh_ is 2*640 x 2*480).
     if (haveFrame && !statusOnly_ && fw_ > 0 && fh_ > 0) {
         const float ia = (float)fw_ / (float)fh_;
         const float wa = (float)width() / (float)qMax(1, height());
@@ -633,12 +648,13 @@ void View::buildHudImage(int w, int h) {
         else         { dh = (float)height(); dw = (float)height() * ia; }
         const float dx = ((float)width()  - dw) * 0.5f;
         const float dy = ((float)height() - dh) * 0.5f;
-        const float pw = dw / 3.0f;
-        const double cf[3] = { fps1_, fps2_, fps3_ };
+        const float pw = dw / 2.0f;
+        const float ph = dh / 2.0f;
+        const double cf[4] = { fps1_, fps2_, fps3_, fps4_ };
         f.setPointSize(12);
         p.setFont(f);
-        for (int i = 0; i < 3; ++i) {
-            const QRect box((int)(dx + i * pw) + 6, (int)dy + 6, 150, 32);
+        for (int i = 0; i < 4; ++i) {
+            const QRect box((int)(dx + (i % 2) * pw) + 6, (int)(dy + (i / 2) * ph) + 6, 150, 32);
             p.fillRect(box, QColor(0, 0, 0, 170));
             p.setPen(QColor(0, 255, 120));
             p.drawText(box.adjusted(8, 0, -6, 0), Qt::AlignLeft | Qt::AlignVCenter,
@@ -674,8 +690,8 @@ int main(int argc, char **argv) {
 
     QObject::connect(grabber, &Grabber::frameReady, view,
         [view](const QByteArray &rgb565, int w, int h, double fps,
-               double fps1, double fps2, double fps3, const QString &status) {
-            view->submitFrame(rgb565, w, h, fps, fps1, fps2, fps3, status);
+               double fps1, double fps2, double fps3, double fps4, const QString &status) {
+            view->submitFrame(rgb565, w, h, fps, fps1, fps2, fps3, fps4, status);
         });
     QObject::connect(grabber, &Grabber::statusMsg, view, [view](const QString &s) {
         view->setStatusText(s);

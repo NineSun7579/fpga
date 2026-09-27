@@ -18,7 +18,7 @@ SRC=../../source/preprocess
     "$SRC/align16.v" "$SRC/prep_sync_fifo.v" "$SRC/preprocess_top.v" \
     "$SRC/button_debounce.v" "$SRC/prep_regs.v" "$SRC/lane_detect.v" ../../source/ov5640/ov5640_reg.v ../../source/ov5640/ovreg_axil_decode.v tb_ovreg_axil_decode.v \
     tb_rgb2gray.v tb_colorize.v tb_sobel_edge.v tb_preprocess_top.v \
-    tb_prep_regs.v tb_button_debounce.v
+    tb_prep_regs.v tb_button_debounce.v tb_cam4_decode.sv
 
 echo "== 3. 回归 =="
 PASS=0; FAIL=0
@@ -45,6 +45,7 @@ run_tb tb_preprocess_top bypass "+MODE=9 +W=$W +H=$H"
 run_tb tb_button_debounce btn ""
 run_tb tb_prep_regs regs ""
 run_tb tb_ovreg_axil_decode dec ""
+run_tb tb_cam4_decode cam4 ""
 
 echo "== 回归结果: PASS=$PASS FAIL=$FAIL =="
 echo "== 4. HW vs golden compare + sampling verify =="

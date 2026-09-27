@@ -18,7 +18,7 @@ import time
 import paramiko
 
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
-HOST, USER, PW = "192.168.10.241", "linaro", "123456"
+HOST, USER, PW = "192.168.10.203", "linaro", "123456"
 ROOT = r"C:\Users\NineSun\Desktop\ov56401\project"
 OUT = os.path.join(ROOT, "tp", "pclk48")
 DEV = "/sys/bus/pci/devices/0002:21:00.0"

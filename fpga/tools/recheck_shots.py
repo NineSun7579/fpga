@@ -7,7 +7,7 @@ import paramiko
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 c = paramiko.SSHClient()
 c.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-c.connect("192.168.10.241", 22, "linaro", "123456", timeout=15,
+c.connect("192.168.10.203", 22, "linaro", "123456", timeout=15,
           allow_agent=False, look_for_keys=False)
 inner = ("DISPLAY=:0 XAUTHORITY=/var/run/lightdm/root/:0 "
          "/root/ov5640/qshot/qshot /tmp/recheck_a.png 900 >/dev/null 2>&1; "

@@ -6,7 +6,7 @@ import sys
 import paramiko
 
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
-HOST, USER, PW = "192.168.10.241", "linaro", "123456"
+HOST, USER, PW = "192.168.10.203", "linaro", "123456"
 
 
 def sh(cmd, t=120, show=True):

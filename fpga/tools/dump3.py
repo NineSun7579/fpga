@@ -2,7 +2,7 @@
 """Host-side: upload dump_cam3_frame.py, stop viewer, dump cam1/2/3 DDR frames, fetch PPMs."""
 import paramiko, os, sys
 sys.stdout.reconfigure(encoding='utf-8', errors='replace')
-HOST, USER, PW = "192.168.10.241", "linaro", "123456"
+HOST, USER, PW = "192.168.10.203", "linaro", "123456"
 ROOT = r"C:\Users\NineSun\Desktop\ov56401\project"
 LOCAL_SCRIPT = os.path.join(ROOT, "tools", "dump_cam3_frame.py")
 c = paramiko.SSHClient(); c.set_missing_host_key_policy(paramiko.AutoAddPolicy())
