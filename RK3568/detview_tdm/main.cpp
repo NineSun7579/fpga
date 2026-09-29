@@ -36,6 +36,7 @@
 #include <cstring>
 #include <cerrno>
 #include <fcntl.h>
+#include <functional>
 #include <memory>
 #include <sys/ioctl.h>
 #include <sys/mman.h>
@@ -74,6 +75,58 @@ static const int MODEL_H = 640;
 static const size_t MODEL_SIZE = (size_t)MODEL_W * MODEL_H * 3;
 static const float CONF_THRESH = 0.25f;
 static const float IOU_THRESH = 0.45f;
+
+/* ---------------- dma-heap 缓冲：RGA 只能操作 dma-buf ---------------- */
+struct DmaHeapAllocData {
+    uint64_t len;
+    uint32_t fd;
+    uint32_t fd_flags;
+    uint64_t heap_flags;
+};
+#define DMA_HEAP_IOC_MAGIC 'H'
+#define DMA_HEAP_IOCTL_ALLOC _IOWR(DMA_HEAP_IOC_MAGIC, 0x0, struct DmaHeapAllocData)
+
+struct DmaBuffer {
+    int fd = -1;
+    void *p = nullptr;
+    size_t size = 0;
+
+    bool alloc(size_t bytes) {
+        release();
+        const int heap = ::open("/dev/dma_heap/system", O_RDWR | O_CLOEXEC);
+        if (heap < 0)
+            return false;
+        DmaHeapAllocData data{};
+        data.len = bytes;
+        data.fd_flags = O_RDWR | O_CLOEXEC;
+        const bool ok = ioctl(heap, DMA_HEAP_IOCTL_ALLOC, &data) == 0;
+        ::close(heap);
+        if (!ok)
+            return false;
+        fd = (int)data.fd;
+        size = bytes;
+        p = mmap(nullptr, bytes, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+        if (p == MAP_FAILED) {
+            p = nullptr;
+            release();
+            return false;
+        }
+        return true;
+    }
+    /* 只在需要更大时重新分配，避免每帧分配 */
+    bool ensure(size_t bytes) { return size >= bytes ? true : alloc(bytes); }
+    void release() {
+        if (p) {
+            munmap(p, size);
+            p = nullptr;
+        }
+        if (fd >= 0) {
+            ::close(fd);
+            fd = -1;
+        }
+        size = 0;
+    }
+};
 
 struct DmaOp {
     uint32_t current_len, offset_addr, cmd, ddr3_addr, total_length;
@@ -311,11 +364,32 @@ struct LatestFrames {
     uint64_t camGen[CAM_COUNT] = {}; // 每路自己的帧计数（只转换变化的那一路）
 };
 
+/* 单行 RGB565 -> RGB888（推理输入与四路合成都用它） */
+static void rgb565ToRgb888Line(const uint8_t *src, int pixels, uint8_t *dst) {
+    const uint16_t *s = reinterpret_cast<const uint16_t *>(src);
+    for (int i = 0; i < pixels; i++) {
+        const uint16_t v = s[i];
+        const uint8_t r5 = (v >> 11) & 0x1F;
+        const uint8_t g6 = (v >> 5) & 0x3F;
+        const uint8_t b5 = v & 0x1F;
+        dst[3 * i + 0] = (r5 << 3) | (r5 >> 2);
+        dst[3 * i + 1] = (g6 << 2) | (g6 >> 4);
+        dst[3 * i + 2] = (b5 << 3) | (b5 >> 2);
+    }
+}
+
 class CameraWorker : public QThread {
 public:
     CameraWorker(PangoDev *dev, LatestFrames *frames, int camera)
         : dev_(dev), frames_(frames), camera_(camera) {}
     void stop() { running_ = false; }
+    /* 选中用于推理的那一路（-1 = 不提交）；提交在本线程内完成，避免额外拷贝与锁竞争 */
+    void setInferPane(const std::atomic<int> *pane, std::function<void(QImage)> emitFn) {
+        inferPane_ = pane;
+        emitInfer_ = std::move(emitFn);
+    }
+    /* 当前显示模式（0..5 = 单路，CAM_COUNT = 整幅）：单路时只采那一路，其余停采 */
+    void setModePtr(const std::atomic<int> *mode) { mode_ = mode; }
 
 protected:
     void run() override {
@@ -332,15 +406,33 @@ protected:
         QElapsedTimer fpsTimer;
         int fpsFrames = 0;
         while (running_) {
-            if (!dev_->readTag(ta, a) || !dev_->readTag(tb, b)) { msleep(10); continue; }
-            if (!primed) { la = a; lb = b; primed = true; msleep(10); continue; }
+            /* 设备模式：整幅时六路全采；单选时只采那一路（其余不发 DMA、不轮询标签） */
+            if (mode_) {
+                const int mode = mode_->load();
+                if (mode != CAM_COUNT && mode != idx) {
+                    msleep(50);
+                    continue;
+                }
+            }
+            if (!dev_->readTag(ta, a) || !dev_->readTag(tb, b)) { msleep(20); continue; }
+            if (!primed) { la = a; lb = b; primed = true; msleep(20); continue; }
             const int which = (a != la) ? 0 : ((b != lb) ? 1 : -1);
-            if (which < 0) { msleep(10); continue; }
+            if (which < 0) { msleep(20); continue; }
             la = a; lb = b;
             if (!dev_->ddrRead(base[idx][which], FRAME_BYTES, frame.data())) {
                 { QMutexLocker lock(&frames_->mutex); ++frames_->errors[idx]; }
                 msleep(25);
                 continue;
+            }
+            /* 若本路正是推理用路：就地转成 640x640 并提交（不额外拷贝、不占锁） */
+            if (inferPane_ && inferPane_->load() == idx && emitInfer_) {
+                QImage infer(MODEL_W, MODEL_H, QImage::Format_RGB888);
+                memset(infer.bits(), 114, (size_t)MODEL_W * MODEL_H * 3);
+                const uint16_t *src = reinterpret_cast<const uint16_t *>(frame.constData());
+                for (int y = 0; y < IMG_H; ++y)
+                    rgb565ToRgb888Line(reinterpret_cast<const uint8_t *>(src + (size_t)y * IMG_W),
+                                       IMG_W, infer.bits() + (size_t)(y + 80) * MODEL_W * 3);
+                emitInfer_(infer);
             }
             QMutexLocker lock(&frames_->mutex);
             frames_->c[idx] = frame;
@@ -355,9 +447,9 @@ protected:
                 fpsTimer.restart();
             }
             lock.unlock();
-            /* 传感器约 30fps（33ms/帧）。标签轮询是 16 字节的小 PCIe 事务，camview 注释
-               建议 10ms 一档：既不会漏帧，也不至于把 MSI 与 DMA 通道挤满。 */
-            msleep(10);
+            /* 传感器约 22–30fps（33–45ms/帧）。标签轮询是 16 字节的小 PCIe 事务，
+               六个线程共用一条 DMA，轮询越密越容易互相排队，20ms 一档足够不漏帧。 */
+            msleep(20);
         }
     }
 
@@ -366,6 +458,9 @@ private:
     LatestFrames *frames_;
     int camera_;
     std::atomic_bool running_{true};
+    const std::atomic<int> *inferPane_ = nullptr;
+    const std::atomic<int> *mode_ = nullptr;
+    std::function<void(QImage)> emitInfer_;
 };
 
 class CameraThread : public QThread {
@@ -375,11 +470,13 @@ public:
     void setMode(int mode) { m_mode = mode; }
     void setPaused(bool paused) { m_paused = paused; }
     void setVideoSource(const QString &source) { m_videoSource = source; }
+    /* 控件尺寸：相机线程据此决定 RGA 缩放目标（letterbox 后的内容尺寸） */
+    void setDisplaySize(int w, int h) { m_dispW = w; m_dispH = h; }
 
 signals:
-    /* 四路：RGB888 的 3x2 合成帧（1920x960）。paneMask 指示画面含哪几路（bit0..bit5），
-       pane 为推理与检测叠加所在的那一路（整幅时固定为 C1） */
-    void compositeReady(QImage composite, int paneMask, int pane, double fps);
+    /* 四路：已按控件尺寸缩放好的内容帧（RGB888）；ox>=0 表示直接在 (ox,oy) 1:1 贴图，
+       ox<0 表示未缩放、由控件自行缩放铺满。paneMask/pane 同前 */
+    void frameReady(QImage content, int ox, int oy, int paneMask, int pane, double fps);
     /* 视频源路径：单路 RGB888 帧 */
     void imageReady(QImage frame, double fps);
     /* 推理输入（640x640 letterbox RGB888） */
@@ -399,14 +496,36 @@ protected:
             CameraWorker(&dev, &latest, 5), CameraWorker(&dev, &latest, 6)};
         for (CameraWorker &w : workers)
             w.start();
+        /* 推理提交交给“选中那一路”的采集线程：它手里就有刚读到的帧，
+           省掉一次 0.6MB 拷贝与锁竞争（原独立提交线程实测每轮要等帧 4–12ms）。 */
+        std::atomic<int> inferPane{m_mode.load() == CAM_COUNT ? 0 : m_mode.load()};
+        for (CameraWorker &w : workers) {
+            w.setInferPane(&inferPane, [this](QImage img) { emit inferReady(img); });
+            w.setModePtr(&m_mode);
+        }
         emit statusMsg("Six-camera DMA ready; 3x2 view, inference uses the selected pane");
-        /* 合成缓冲：RGB888 1920x960（3x2），两块轮换，QImage 只做包装（不拷贝、不分配） */
+        /* 合成缓冲：RGB888 1920x960（3x2）。优先放 dma-heap：RGA 只能读 dma-buf，
+           缩放交给硬件（同尺寸 Qt 缩放要 31ms，RGA 实测 5ms 且不占 CPU）。 */
         const int compW = GRID_COLS * IMG_W, compH = GRID_ROWS * IMG_H;
         const int compStride = compW * 3;
-        QByteArray compStore[2];
-        for (QByteArray &s : compStore)
-            s.resize(compStride * compH);
+        const size_t compBytes = (size_t)compStride * compH;
+        DmaBuffer compDma[2], cropDma, outDma[2];
+        const bool rgaOk = compDma[0].alloc(compBytes) && compDma[1].alloc(compBytes) &&
+                           cropDma.alloc((size_t)IMG_W * IMG_H * 3);
+        QByteArray compFallback[2];
+        uint8_t *compPtr[2] = {nullptr, nullptr};
+        if (rgaOk) {
+            compPtr[0] = reinterpret_cast<uint8_t *>(compDma[0].p);
+            compPtr[1] = reinterpret_cast<uint8_t *>(compDma[1].p);
+        } else {
+            emit statusMsg("WARN: dma-heap unavailable, 显示退回 CPU 缩放");
+            for (int i = 0; i < 2; i++) {
+                compFallback[i].resize(compBytes);
+                compPtr[i] = reinterpret_cast<uint8_t *>(compFallback[i].data());
+            }
+        }
         int compSlot = 0;
+        int outW = 0, outH = 0, outStride = 0, outSlot = 0;
         QByteArray cam565[CAM_COUNT];
         for (QByteArray &s : cam565)
             s.resize(FRAME_BYTES);
@@ -448,14 +567,17 @@ protected:
                 }
             }
             if (!ready) { msleep(2); continue; }
-            if (gen == lastGen) { msleep(2); continue; }   // 没有新帧就不重合成
-            lastGen = gen;
 
             const int mode = m_mode.load();
             const int pane = mode == CAM_COUNT ? 0 : mode;      // 整幅时用 C1 推理
             const int paneMask = mode == CAM_COUNT ? 0x3F : (1 << pane);
+            inferPane.store(pane);   // 提交线程据此切换要提交的那一路
+
+            if (gen == lastGen) { msleep(2); continue; }   // 没有新帧就不重合成
+            lastGen = gen;
+
             compSlot ^= 1;
-            QByteArray &comp = compStore[compSlot];
+            uint8_t *comp = compPtr[compSlot];
             /* 只把有新帧的那几路转成 RGB888 写进合成缓冲的对应格子（零分配、按 stride 写） */
             for (int c = 0; c < CAM_COUNT; ++c) {
                 const bool firstFrame = (lastCamGen[c] == 0);
@@ -464,8 +586,7 @@ protected:
                 if (!have[c])
                     continue;
                 lastCamGen[c] = camGen[c];
-                uint8_t *dst = reinterpret_cast<uint8_t *>(comp.data()) +
-                               (size_t)(c / GRID_COLS) * IMG_H * compStride +
+                uint8_t *dst = comp + (size_t)(c / GRID_COLS) * IMG_H * compStride +
                                (size_t)(c % GRID_COLS) * IMG_W * 3;
                 const uint16_t *src = reinterpret_cast<const uint16_t *>(cam565[c].constData());
                 for (int y = 0; y < IMG_H; ++y)
@@ -473,33 +594,70 @@ protected:
                                        IMG_W, dst + (size_t)y * compStride);
             }
 
-            /* 推理输入直接从合成缓冲取选中那一路（已是 RGB888）：640x480 -> 640x640 */
-            QImage infer(MODEL_W, MODEL_H, QImage::Format_RGB888);
-            memset(infer.bits(), 114, (size_t)MODEL_W * MODEL_H * 3);
-            const uint8_t *paneData = reinterpret_cast<const uint8_t *>(comp.constData()) +
-                                      (size_t)(pane / GRID_COLS) * IMG_H * compStride +
-                                      (size_t)(pane % GRID_COLS) * IMG_W * 3;
-            for (int y = 0; y < IMG_H; ++y)
-                memcpy(infer.bits() + (size_t)(y + 80) * MODEL_W * 3,
-                       paneData + (size_t)y * compStride, IMG_W * 3);
-
             ++frames;
             if (rate.elapsed() >= 1000) {
                 fps = frames * 1000.0 / rate.elapsed();
                 frames = 0;
                 rate.restart();
                 fprintf(stderr,
-                        "[panes] mode=%d fps=%.1f have=%d%d%d%d%d%d cam=%.1f/%.1f/%.1f/%.1f/%.1f/%.1f err=%llu/%llu/%llu/%llu/%llu/%llu\n",
+                        "[panes] mode=%d fps=%.1f have=%d%d%d%d%d%d cam=%.1f/%.1f/%.1f/%.1f/%.1f/%.1f err=%llu/%llu/%llu/%llu/%llu/%llu rga=%d\n",
                         mode, fps, have[0], have[1], have[2], have[3], have[4], have[5], camFps[0],
                         camFps[1], camFps[2], camFps[3], camFps[4], camFps[5],
                         (unsigned long long)errors[0], (unsigned long long)errors[1],
                         (unsigned long long)errors[2], (unsigned long long)errors[3],
-                        (unsigned long long)errors[4], (unsigned long long)errors[5]);
+                        (unsigned long long)errors[4], (unsigned long long)errors[5], rgaOk ? 1 : 0);
             }
-            const QImage compImg(reinterpret_cast<const uchar *>(comp.constData()), compW, compH,
-                                 compStride, QImage::Format_RGB888);
-            emit compositeReady(compImg, paneMask, pane, fps);
-            emit inferReady(infer);
+            /* 缩放：RGA 把合成（或单选的那一格）缩到控件里的内容尺寸，控件只做 1:1 贴图 */
+            bool scaled = false;
+            if (rgaOk) {
+                const int dispW = qMax(1, m_dispW.load()), dispH = qMax(1, m_dispH.load());
+                const int srcW = (paneMask == 0x3F) ? compW : IMG_W;
+                const int srcH = (paneMask == 0x3F) ? compH : IMG_H;
+                int tw = dispW, th = (int)((int64_t)dispW * srcH / srcW);
+                if (th > dispH) {
+                    th = dispH;
+                    tw = (int)((int64_t)dispH * srcW / srcH);
+                }
+                const int alignedW = (tw + 3) & ~3;
+                if (tw > 0 && th > 0 && outDma[0].ensure((size_t)alignedW * th * 3) &&
+                    outDma[1].ensure((size_t)alignedW * th * 3)) {
+                    outW = tw;
+                    outH = th;
+                    outStride = alignedW * 3;
+                    rga_buffer_t dstRga =
+                        wrapbuffer_fd(outDma[outSlot].fd, alignedW, th, RK_FORMAT_RGB_888);
+                    IM_STATUS st = IM_STATUS_FAILED;
+                    if (paneMask == 0x3F) {
+                        rga_buffer_t srcRga =
+                            wrapbuffer_fd(compDma[compSlot].fd, compW, compH, RK_FORMAT_RGB_888);
+                        st = imresize(srcRga, dstRga);
+                    } else {
+                        im_rect srect{(pane % GRID_COLS) * IMG_W, (pane / GRID_COLS) * IMG_H, IMG_W,
+                                      IMG_H};
+                        rga_buffer_t whole =
+                            wrapbuffer_fd(compDma[compSlot].fd, compW, compH, RK_FORMAT_RGB_888);
+                        rga_buffer_t cropRga =
+                            wrapbuffer_fd(cropDma.fd, IMG_W, IMG_H, RK_FORMAT_RGB_888);
+                        st = imcrop(whole, cropRga, srect);
+                        if (st == IM_STATUS_SUCCESS)
+                            st = imresize(cropRga, dstRga);
+                    }
+                    if (st == IM_STATUS_SUCCESS) {
+                        const QImage outImg(reinterpret_cast<const uchar *>(outDma[outSlot].p), outW,
+                                            outH, outStride, QImage::Format_RGB888);
+                        emit frameReady(outImg, (dispW - outW) / 2, (dispH - outH) / 2, paneMask,
+                                        pane, fps);
+                        outSlot ^= 1;
+                        scaled = true;
+                    }
+                }
+            }
+            if (!scaled) {
+                /* 兜底：交给控件用 Qt 缩放铺满（RGA 不可用或失败时） */
+                const QImage compImg(reinterpret_cast<const uchar *>(comp), compW, compH,
+                                     compStride, QImage::Format_RGB888);
+                emit frameReady(compImg, -1, -1, paneMask, pane, fps);
+            }
             if (minIntervalMs > 0) msleep(minIntervalMs);
         }
         for (CameraWorker &w : workers)
@@ -559,23 +717,12 @@ private:
         decoder.waitForFinished(2000);
         emit statusMsg("视频源结束");
     }
-    /* 单行 RGB565 -> RGB888（四路时只转换推理所需的选中一路） */
-    static void rgb565ToRgb888Line(const uint8_t *src, int pixels, uint8_t *dst) {
-        const uint16_t *s = reinterpret_cast<const uint16_t *>(src);
-        for (int i = 0; i < pixels; i++) {
-            const uint16_t v = s[i];
-            const uint8_t r5 = (v >> 11) & 0x1F;
-            const uint8_t g6 = (v >> 5) & 0x3F;
-            const uint8_t b5 = v & 0x1F;
-            dst[3 * i + 0] = (r5 << 3) | (r5 >> 2);
-            dst[3 * i + 1] = (g6 << 2) | (g6 >> 4);
-            dst[3 * i + 2] = (b5 << 3) | (b5 >> 2);
-        }
-    }
     std::atomic<bool> m_stop{false};
     std::atomic<int> m_mode{CAM_COUNT};
     QString m_videoSource;
     std::atomic<bool> m_paused{false};
+    std::atomic<int> m_dispW{1920};
+    std::atomic<int> m_dispH{1000};
     QImage m_dispImg[2];
     QImage m_modelImg[2];
     int m_bufIdx = 0;
@@ -769,14 +916,25 @@ protected:
         };
         QVector<CachedModel> cache;
         int next = 0;
+        /* 诊断（DET_BENCH）：每秒统计“等帧时间”与“单次运行时间”，判断推理线程是否被饿着 */
+        const bool diag = qEnvironmentVariableIsSet("DET_BENCH");
+        QElapsedTimer diagTimer;
+        if (diag)
+            diagTimer.start();
+        double diagWaitMs = 0, diagRunMs = 0;
+        int diagRuns = 0;
         while (!m_stop) {
+            const qint64 waitStart = diag ? QDateTime::currentMSecsSinceEpoch() : 0;
             QMutexLocker lock(&m_mutex);
             if (!m_hasPending && !m_modelChanged && !m_stop)
                 m_cond.wait(&m_mutex, 200);
             if (m_stop)
                 break;
             const bool reload = m_modelChanged;
-            const QVector<ModelInfo> selected = m_selection;
+            /* 只在型号切换时拷贝列表：原来每轮都深拷贝（含 29 个类名的 QStringList） */
+            QVector<ModelInfo> selected;
+            if (reload)
+                selected = m_selection;
             QImage frame;
             int sourceGeneration = m_pendingGeneration;
             if (m_hasPending) {
@@ -785,6 +943,8 @@ protected:
             }
             m_modelChanged = false;
             lock.unlock();
+            if (diag && !frame.isNull())
+                diagWaitMs += QDateTime::currentMSecsSinceEpoch() - waitStart;
 
             if (reload) {
                 for (CachedModel &old : cache) rknn_destroy(old.context);
@@ -825,7 +985,25 @@ protected:
                 m_nc = item.info.nc;
                 m_xyxy = cache.size() == 1 ? m_manualFormat.load() : item.info.xyxy;
                 m_lane = item.info.lane;
+                const qint64 runStart = diag ? QDateTime::currentMSecsSinceEpoch() : 0;
                 runOnce(frame, item.info.path, sourceGeneration);
+                if (diag) {
+                    diagRunMs += QDateTime::currentMSecsSinceEpoch() - runStart;
+                    ++diagRuns;
+                }
+            }
+            if (diag && diagTimer.isValid() && diagTimer.elapsed() >= 1000 && diagRuns > 0) {
+                fprintf(stderr,
+                        "[infer-diag] runs=%d 平均运行=%.1fms 平均等帧=%.1fms 单次=%d\n",
+                        diagRuns,
+                        diagRunMs / diagRuns,
+                        diagWaitMs / diagRuns,
+                        (int)((diagRunMs + diagWaitMs) / diagRuns));
+                fflush(stderr);
+                diagRuns = 0;
+                diagWaitMs = 0;
+                diagRunMs = 0;
+                diagTimer.restart();
             }
         }
         for (CachedModel &item : cache) rknn_destroy(item.context);
@@ -1255,9 +1433,12 @@ public:
         return v;
     }
 
-    /* 六路：composite 是 3x2 的 RGB888（1920x960），只包装相机线程的复用缓冲 */
-    void submitComposite(const QImage &composite, int paneMask, int pane) {
-        m_comp = composite;
+    /* 六路：content 可能是 RGA 已缩放好的内容（ox>=0 → 在 (ox,oy) 1:1 贴图），
+       也可能是未缩放的 3x2 合成（ox<0 → 由本控件缩放铺满） */
+    void submitScaled(const QImage &content, int ox, int oy, int paneMask, int pane) {
+        m_comp = content;
+        m_ox = ox;
+        m_oy = oy;
         m_paneMask = paneMask;
         m_pane = pane;
         m_videoMode = false;
@@ -1305,31 +1486,38 @@ protected:
             m_paintCount++;
             return;
         }
-        /* 等比铺满控件，四周留黑边；单选某一路时按 4:3 铺满（盘中该格也是 4:3） */
-        const double dispAspect = (!m_videoMode && m_paneMask != 0x3F)
-                                      ? (double)IMG_W / IMG_H
-                                      : (double)src.width() / src.height();
-        int tw = width();
-        int th = (int)(width() / dispAspect);
-        if (th > height()) {
-            th = height();
-            tw = (int)(height() * dispAspect);
-        }
-        const QRect content((width() - tw) / 2, (height() - th) / 2, tw, th);
-        p.fillRect(rect(), Qt::black);
-        QRect pane = content;
-        if (!m_videoMode && m_paneMask != 0x3F) {
-            /* 单选：从 3x2 合成里取该路（源 640x480）铺满内容区 */
-            const QRect source((m_pane % GRID_COLS) * IMG_W, (m_pane / GRID_COLS) * IMG_H, IMG_W,
-                               IMG_H);
-            p.drawImage(content, src, source);
+        QRect content;
+        if (!m_videoMode && m_ox >= 0) {
+            /* RGA 已缩放到内容尺寸，直接 1:1 贴图（缩放不占 CPU） */
+            content = QRect(m_ox, m_oy, src.width(), src.height());
+            p.fillRect(rect(), Qt::black);
+            p.drawImage(m_ox, m_oy, src);
         } else {
-            p.drawImage(content, src);
-            if (!m_videoMode && m_paneMask == 0x3F) {
-                const int pw = content.width() / GRID_COLS, ph = content.height() / GRID_ROWS;
-                pane = QRect(content.left() + (m_pane % GRID_COLS) * pw,
-                             content.top() + (m_pane / GRID_COLS) * ph, pw, ph);
+            /* 兜底（dma-heap/RGA 不可用）或视频源：等比缩放铺满控件 */
+            const double dispAspect = (!m_videoMode && m_paneMask != 0x3F)
+                                          ? (double)IMG_W / IMG_H
+                                          : (double)src.width() / src.height();
+            int tw = width();
+            int th = (int)(width() / dispAspect);
+            if (th > height()) {
+                th = height();
+                tw = (int)(height() * dispAspect);
             }
+            content = QRect((width() - tw) / 2, (height() - th) / 2, tw, th);
+            p.fillRect(rect(), Qt::black);
+            if (!m_videoMode && m_paneMask != 0x3F) {
+                const QRect source((m_pane % GRID_COLS) * IMG_W, (m_pane / GRID_COLS) * IMG_H, IMG_W,
+                                   IMG_H);
+                p.drawImage(content, src, source);
+            } else {
+                p.drawImage(content, src);
+            }
+        }
+        QRect pane = content;
+        if (!m_videoMode && m_paneMask == 0x3F) {
+            const int pw = content.width() / GRID_COLS, ph = content.height() / GRID_ROWS;
+            pane = QRect(content.left() + (m_pane % GRID_COLS) * pw,
+                         content.top() + (m_pane / GRID_COLS) * ph, pw, ph);
         }
         /* 覆盖层：车道掩码 + 检测框；模型输入是 640x640，画面贴在 y=80..560 */
         const double sx = pane.width() / (double)MODEL_W;
@@ -1372,6 +1560,7 @@ private:
     QStringList m_classes;
     bool m_videoMode = false;
     int m_paneMask = 0x3F, m_pane = 0;
+    int m_ox = -1, m_oy = -1;
     int m_paintCount = 0;
     double m_paintMsSum = 0;
 };
@@ -1467,7 +1656,7 @@ public:
             m_camCombo->setEnabled(false);
         }
         m_infer = new InferenceThread();
-        connect(m_camera, &CameraThread::compositeReady, this, &MainWindow::onComposite);
+        connect(m_camera, &CameraThread::frameReady, this, &MainWindow::onFrame);
         connect(m_camera, &CameraThread::imageReady, this, &MainWindow::onImage);
         connect(m_camera, &CameraThread::inferReady, this, &MainWindow::onInfer);
         connect(m_camera, &CameraThread::statusMsg, this, [this](QString s) {
@@ -1513,6 +1702,11 @@ public:
     void setFullscreen(bool on) {
         m_full = on;
         on ? showFullScreen() : showNormal();
+    }
+    /* 0..5 = C1..C6 单路，CAM_COUNT = 6 路 3x2 */
+    void setCameraMode(int mode) {
+        if (mode >= 0 && mode <= CAM_COUNT)
+            m_camCombo->setCurrentIndex(mode);
     }
     bool setRotation(const QStringList &selectors) {
         if (selectors.size() < 2 || selectors.size() > 4)
@@ -1588,9 +1782,10 @@ protected:
     }
 
 private slots:
-    void onComposite(QImage composite, int paneMask, int pane, double fps) {
+    void onFrame(QImage content, int ox, int oy, int paneMask, int pane, double fps) {
         m_camFps = fps;
-        m_video->submitComposite(composite, paneMask, pane);
+        m_camera->setDisplaySize(m_video->width(), m_video->height());
+        m_video->submitScaled(content, ox, oy, paneMask, pane);
         if (m_camLabelTimer.elapsed() >= 400) {
             m_camLabelTimer.restart();
             m_camLabel->setText(QString("cam: %1 fps").arg(fps, 0, 'f', 1));
@@ -1945,6 +2140,13 @@ int main(int argc, char **argv) {
     w.show();
     if (args.contains("--fullscreen"))
         w.setFullscreen(true);
+    const int camArg = args.indexOf("--camera");
+    if (camArg >= 0 && camArg + 1 < args.size()) {
+        const int cam = args[camArg + 1].toInt();
+        if (cam < 1 || cam > CAM_COUNT)
+            return 2;
+        w.setCameraMode(cam - 1);   // C1..C6 单路
+    }
     return app.exec();
 }
 
