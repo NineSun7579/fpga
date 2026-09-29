@@ -24,6 +24,7 @@
 #include <QPainter>
 #include <QProcess>
 #include <QPushButton>
+#include <QScreen>
 #include <QSlider>
 #include <QSurfaceFormat>
 #include <QThread>
@@ -1292,6 +1293,17 @@ protected:
         QElapsedTimer pt;
         pt.start();
         const float dpr = (float)devicePixelRatioF();
+        if (qEnvironmentVariableIsSet("DETVIEW_GEO")) {
+            static QElapsedTimer geo;
+            if (!geo.isValid() || geo.elapsed() >= 1000) {
+                geo.start();
+                const QScreen *scr = QGuiApplication::primaryScreen();
+                const QSize screen = scr ? scr->geometry().size() : QSize();
+                fprintf(stderr, "[geo] win=%dx%d dpr=%.2f screen=%dx%d\n", width(), height(), dpr,
+                        screen.width(), screen.height());
+                fflush(stderr);
+            }
+        }
         glViewport(0, 0, (int)(width() * dpr), (int)(height() * dpr));
         glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
@@ -1545,6 +1557,10 @@ public:
         if (index >= 0 && index < m_models.size())
             m_combo->setCurrentIndex(index);
     }
+    void setFullscreen(bool on) {
+        m_full = on;
+        on ? showFullScreen() : showNormal();
+    }
     bool setRotation(const QStringList &selectors) {
         if (selectors.size() < 2 || selectors.size() > 4)
             return false;
@@ -1640,6 +1656,8 @@ private slots:
         ++m_sourceGeneration;
         m_results.clear();
         m_resultTime.clear();
+        m_lastRotMs = 0;
+        m_rotInferFps = 0;
         m_video->setDetections({}, m_classes);
         m_video->setLaneMask({});
         m_camera->setMode(index);
@@ -1655,6 +1673,12 @@ private slots:
             const qint64 previous = m_resultTime.value(modelPath, 0);
             if (previous > 0 && now > previous)
                 m_resultFps[modelPath] = 1000.0 / (now - previous);
+            /* 轮换整体推理帧率：任意模型完成一次推理就算一帧，做指数平滑 */
+            if (m_lastRotMs > 0 && now > m_lastRotMs) {
+                const double inst = 1000.0 / (now - m_lastRotMs);
+                m_rotInferFps = m_rotInferFps > 0 ? m_rotInferFps * 0.8 + inst * 0.2 : inst;
+            }
+            m_lastRotMs = now;
             m_results[modelPath] = dets;
             m_resultTime[modelPath] = now;
             m_resultMs[modelPath] = ms;
@@ -1667,8 +1691,9 @@ private slots:
         if (m_inferLabelTimer.elapsed() >= 400) {
             m_inferLabelTimer.restart();
             m_inferLabel->setText(m_rotationEnabled
-                ? QString("轮换 %1 款 | 本次 %2 ms | 总检测 %3")
-                      .arg(m_rotation.size()).arg(ms, 0, 'f', 1).arg(m_visibleDets)
+                ? QString("轮换 %1 款 | 本次 %2 ms | 推理 %3 fps | 总检测 %4")
+                      .arg(m_rotation.size()).arg(ms, 0, 'f', 1)
+                      .arg(m_rotInferFps, 0, 'f', 1).arg(m_visibleDets)
                 : QString("infer: %1 ms / %2 fps   dets: %3")
                       .arg(ms, 0, 'f', 1).arg(fps, 0, 'f', 1).arg(dets.size()));
         }
@@ -1715,6 +1740,8 @@ private slots:
     }
     void onRotateClicked(bool enabled) {
         if (!enabled) { onModelChanged(m_combo->currentIndex()); return; }
+        m_lastRotMs = 0;
+        m_rotInferFps = 0;
         QVector<ModelInfo> selected;
         for (QAction *action : m_pickMenu->actions())
             if (action->isChecked()) selected.append(m_models[action->data().toInt()]);
@@ -1802,6 +1829,8 @@ private:
     QHash<QString, double> m_resultMs;
     QHash<QString, double> m_resultFps;
     int m_visibleDets = 0;
+    qint64 m_lastRotMs = 0;
+    double m_rotInferFps = 0;
     int m_sourceGeneration = 0;
     QComboBox *m_fmtCombo = nullptr;
     QComboBox *m_camCombo = nullptr;
@@ -1825,6 +1854,12 @@ int main(int argc, char **argv) {
     // 与运行版 camview 一致：强制走 Mali EGL/ES2，避免默认 GLX 回落到 Mesa 软件渲染
     qputenv("QT_XCB_GL_INTEGRATION", "xcb_egl");
     qputenv("QT_OPENGL", "es2");
+    /* 板端 XFCE 的“窗口缩放”会让 Qt 逻辑尺寸与 X 实际窗口不一致（例如 1.25x 时
+       Qt 认为 1920x1080 的窗口只有 1536x864），全屏时 GL 画面只能铺满左上角。
+       这是全屏 kiosk 程序，按物理像素 1:1 对齐。 */
+    if (!qEnvironmentVariableIsSet("QT_SCALE_FACTOR"))
+        qputenv("QT_SCALE_FACTOR", "1");
+    qputenv("QT_AUTO_SCREEN_SCALE_FACTOR", "0");
     QSurfaceFormat fmt;
     fmt.setRenderableType(QSurfaceFormat::OpenGLES);
     fmt.setVersion(2, 0);
@@ -1939,6 +1974,8 @@ int main(int argc, char **argv) {
         QTimer::singleShot(seconds * 1000, &app, &QCoreApplication::quit);
     }
     w.show();
+    if (args.contains("--fullscreen"))
+        w.setFullscreen(true);
     return app.exec();
 }
 
