@@ -763,6 +763,12 @@ private:
         rknn_outputs_release(m_ctx, m_nOutput, outs.data());
         const double ms = timer.elapsed();
         const int completed = ++m_completed[modelPath];
+        if (qEnvironmentVariableIsSet("DET_BENCH")) {
+            timespec stamp{};
+            clock_gettime(CLOCK_MONOTONIC, &stamp);
+            fprintf(stderr, "[tdm_bench] t=%.6f model=%s ms=%.3f\n",
+                    stamp.tv_sec + stamp.tv_nsec / 1e9, qPrintable(modelPath), ms);
+        }
         if (completed == 1 || completed % 20 == 0)
             fprintf(stderr, "[tdm] model=%s completed=%d ms=%.2f source_generation=%d\n",
                     qPrintable(modelPath), completed, ms, sourceGeneration);
