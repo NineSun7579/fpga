@@ -154,7 +154,7 @@ static QVector<ModelInfo> scanModels() {
     const QStringList dirs = {"/root/npu/yolov8n/zebra640", "/root/npu/yolov8n/vehicle640",
                               "/root/npu", "/root/npu/yolo11n", "/root/models/yolo26_rk3568",
                               "/root/npu/tt100k", "/root/npu/tt100k_yolov8n",
-                              "/root/npu/lane_linknet"};
+                              "/root/npu/lane_linknet", "/root/npu/whiteboard_3cls"};
     for (const QString &d : dirs) {
         QDir dir(d);
         const QStringList files = dir.entryList(QStringList() << "*.rknn", QDir::Files, QDir::Name);
@@ -195,6 +195,13 @@ static QVector<ModelInfo> scanModels() {
                                            << "arrow"
                                            << "road_marking";
                 mi.nc = 6;
+                mi.xyxy = false;
+            } else if (lower.contains("-3cls-wb")) {
+                /* 白板剪枝压缩实验（V0 base → V4 combo）：沿用 zebra/vehicle/person 三类 */
+                mi.classes = QStringList() << "zebra"
+                                           << "vehicle"
+                                           << "person";
+                mi.nc = 3;
                 mi.xyxy = false;
             } else if (lower.contains("yolov8n")) {
                 if (lower.contains("zebra")) {
