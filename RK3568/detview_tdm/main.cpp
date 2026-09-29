@@ -18,10 +18,14 @@
 #include <QKeyEvent>
 #include <QLabel>
 #include <QMutex>
+#include <QOpenGLFunctions>
+#include <QOpenGLShaderProgram>
+#include <QOpenGLWidget>
 #include <QPainter>
 #include <QProcess>
 #include <QPushButton>
 #include <QSlider>
+#include <QSurfaceFormat>
 #include <QThread>
 #include <QVBoxLayout>
 #include <QWaitCondition>
@@ -206,6 +210,7 @@ public:
     static volatile sig_atomic_t timeoutHit_;
 
     bool regWrite(uint32_t addr, uint32_t val) {
+        QMutexLocker dmaLock(&dmaMutex_);
         if (!tx_)
             return false;
         memcpy(tx_, &val, 4);
@@ -217,6 +222,7 @@ public:
     }
 
     bool regRead(uint32_t addr, uint32_t &val) {
+        QMutexLocker dmaLock(&dmaMutex_);
         DmaOp op{};
         op.offset_addr = 0;
         op.ddr3_addr = addr;
@@ -227,12 +233,16 @@ public:
         return true;
     }
 
+    /* 四路采集线程共用一条 DMA 通道与同一对 tx/rx 缓冲，必须串行化。
+       单次等待上限取 2s（与 camview 一致）：丢 MSI 时不能让整块卡住几十秒，
+       上层线程会保留上一帧并在下一次帧标签变化时重试。 */
     bool ddrRead(uint32_t addr, uint32_t len, void *out) {
+        QMutexLocker dmaLock(&dmaMutex_);
         DmaOp op{};
         op.offset_addr = 0;
         op.ddr3_addr = addr;
         op.total_length = len;
-        if (ioctlTmo(F2H_CMD, &op, 4) != 0)
+        if (ioctlTmo(F2H_CMD, &op, 2) != 0)
             return false;
         memcpy(out, rx_, len);
         return true;
@@ -283,9 +293,77 @@ private:
     int fd_ = -1;
     uint8_t *tx_ = nullptr;
     uint8_t *rx_ = nullptr;
+    QMutex dmaMutex_;   // 保护 tx_/rx_ 与 DMA ioctl（四路采集线程共用）
 };
 
 volatile sig_atomic_t PangoDev::timeoutHit_ = 0;
+
+/* ---------------- 四路采集（与运行版 camview 同构） ----------------
+   每路一个线程：轮询本路 ping/pong 帧标签 -> DDR DMA 读整帧 -> 存入 LatestFrames。
+   合成与显示由 CameraThread 按“代（gen）变化”推进，避免空转重绘。 */
+struct LatestFrames {
+    QMutex mutex;
+    QByteArray c[4];
+    bool have[4] = {false, false, false, false};
+    uint64_t errors[4] = {0, 0, 0, 0};
+    double fps[4] = {0, 0, 0, 0};
+    uint64_t gen = 0;   // 每存下一帧自增
+};
+
+class CameraWorker : public QThread {
+public:
+    CameraWorker(PangoDev *dev, LatestFrames *frames, int camera)
+        : dev_(dev), frames_(frames), camera_(camera) {}
+    void stop() { running_ = false; }
+
+protected:
+    void run() override {
+        static const uint32_t base[4][2] = {
+            {CAM_ADDR_1, CAM_ADDR_2}, {CAM_B_ADDR_1, CAM_B_ADDR_2},
+            {0x01000000u, 0x01200000u}, {0x01400000u, 0x01600000u}};
+        const int idx = camera_ - 1;
+        const uint32_t ta = base[idx][0] + FRAME_BYTES;
+        const uint32_t tb = base[idx][1] + FRAME_BYTES;
+        uint32_t a = 0, b = 0, la = 0, lb = 0;
+        bool primed = false;
+        QByteArray frame(FRAME_BYTES, 0);
+        QElapsedTimer fpsTimer;
+        int fpsFrames = 0;
+        while (running_) {
+            if (!dev_->readTag(ta, a) || !dev_->readTag(tb, b)) { msleep(10); continue; }
+            if (!primed) { la = a; lb = b; primed = true; msleep(10); continue; }
+            const int which = (a != la) ? 0 : ((b != lb) ? 1 : -1);
+            if (which < 0) { msleep(10); continue; }
+            la = a; lb = b;
+            if (!dev_->ddrRead(base[idx][which], FRAME_BYTES, frame.data())) {
+                { QMutexLocker lock(&frames_->mutex); ++frames_->errors[idx]; }
+                msleep(25);
+                continue;
+            }
+            QMutexLocker lock(&frames_->mutex);
+            frames_->c[idx] = frame;
+            frames_->have[idx] = true;
+            ++frames_->gen;
+            if (!fpsTimer.isValid()) fpsTimer.start();
+            ++fpsFrames;
+            if (fpsTimer.elapsed() >= 500) {
+                frames_->fps[idx] = fpsFrames * 1000.0 / fpsTimer.elapsed();
+                fpsFrames = 0;
+                fpsTimer.restart();
+            }
+            lock.unlock();
+            /* 传感器约 30fps（33ms/帧）。标签轮询是 16 字节的小 PCIe 事务，camview 注释
+               建议 10ms 一档：既不会漏帧，也不至于把 MSI 与 DMA 通道挤满。 */
+            msleep(10);
+        }
+    }
+
+private:
+    PangoDev *dev_;
+    LatestFrames *frames_;
+    int camera_;
+    std::atomic_bool running_{true};
+};
 
 class CameraThread : public QThread {
     Q_OBJECT
@@ -293,11 +371,16 @@ public:
     void stop() { m_stop = true; }
     void setMode(int mode) { m_mode = mode; }
     void setPaused(bool paused) { m_paused = paused; }
-    void setDisplaySize(int w, int h) { m_dispW = w; m_dispH = h; }
     void setVideoSource(const QString &source) { m_videoSource = source; }
 
 signals:
-    void frameReady(QImage display, QImage infer, double fps, int ox, int oy, int rw, int rh);
+    /* 四路：RGB565 合成帧。paneMask 指示画面含哪几路（bit0..bit3），pane 为推理与
+       检测叠加所在的那一路（Quad 时固定为 C1） */
+    void compositeReady(QByteArray rgb565, int w, int h, int paneMask, int pane, double fps);
+    /* 视频源路径：单路 RGB888 帧 */
+    void imageReady(QImage frame, double fps);
+    /* 推理输入（640x640 letterbox RGB888） */
+    void inferReady(QImage infer);
     void statusMsg(QString s);
 
 protected:
@@ -306,71 +389,90 @@ protected:
         PangoDev dev;
         if (!dev.openDev()) { emit statusMsg(QString("FATAL: ") + dev.lastErr()); return; }
         // 四路采用运行版 camview 的 DDR 地址和帧标签，不改写 FPGA 相机寄存器。
-        const uint32_t bases[4][2] = {{0x00800000,0x00a00000}, {0x00c00000,0x00e00000},
-                                      {0x01000000,0x01200000}, {0x01400000,0x01600000}};
-        QByteArray raw[4];
-        QImage images[4];
-        uint32_t previous[4][2] = {};
-        bool initialized[4] = {}, have[4] = {};
-        for (auto &buffer : raw) buffer.resize(FRAME_BYTES);
+        LatestFrames latest;
+        CameraWorker w1(&dev, &latest, 1), w2(&dev, &latest, 2), w3(&dev, &latest, 3),
+            w4(&dev, &latest, 4);
+        w1.start(); w2.start(); w3.start(); w4.start();
+        emit statusMsg("Four-camera DMA ready; Quad inference uses C1");
+        QByteArray composite(4 * FRAME_BYTES, 0);
+        const int rowb = IMG_W * 2;
+        // 显示节流：与 camview 相同的 33ms 上限（0 = 不限速），可用环境变量覆盖
+        const int minIntervalMs = qEnvironmentVariableIsSet("DETVIEW_MIN_MS")
+                                      ? qEnvironmentVariableIntValue("DETVIEW_MIN_MS") : 33;
+        uint64_t lastGen = 0;
         QElapsedTimer rate; rate.start();
         int frames = 0;
         double fps = 0;
-        emit statusMsg("Four-camera DMA ready; Quad inference uses C1");
         while (!m_stop) {
             if (m_paused) { msleep(25); continue; }
-            const int mode = m_mode.load();
-            bool changed = false;
-            for (int c = 0; c < 4; ++c) {
-                if (mode != 4 && mode != c) continue;
-                uint32_t tags[2];
-                if (!dev.readTag(bases[c][0] + FRAME_BYTES, tags[0]) ||
-                    !dev.readTag(bases[c][1] + FRAME_BYTES, tags[1])) continue;
-                if (!initialized[c]) {
-                    previous[c][0] = tags[0]; previous[c][1] = tags[1];
-                    initialized[c] = true; continue;
+            bool ready = false;
+            uint64_t gen = 0;
+            uint64_t errors[4] = {};
+            bool have[4] = {};
+            double camFps[4] = {};
+            QByteArray cam[4];
+            {
+                QMutexLocker lock(&latest.mutex);
+                ready = latest.have[0] || latest.have[1] || latest.have[2] || latest.have[3];
+                gen = latest.gen;
+                for (int i = 0; i < 4; i++) {
+                    have[i] = latest.have[i];
+                    errors[i] = latest.errors[i];
+                    camFps[i] = latest.fps[i];
+                    cam[i] = latest.c[i];
                 }
-                const int which = tags[0] != previous[c][0] ? 0 :
-                                  tags[1] != previous[c][1] ? 1 : -1;
-                if (which < 0) continue;
-                if (!dev.ddrRead(bases[c][which], FRAME_BYTES, raw[c].data())) continue;
-                previous[c][0] = tags[0]; previous[c][1] = tags[1];
-                QByteArray rgb(IMG_W * IMG_H * 3, 0);
-                rgb565ToRgb888(reinterpret_cast<const uint8_t *>(raw[c].constData()),
-                               IMG_W * IMG_H, reinterpret_cast<uint8_t *>(rgb.data()));
-                images[c] = QImage(reinterpret_cast<const uchar *>(rgb.constData()),
-                                   IMG_W, IMG_H, IMG_W * 3, QImage::Format_RGB888).copy();
-                have[c] = true; changed = true;
             }
-            const int selected = mode == 4 ? 0 : mode;
-            if (!changed || !have[selected]) { msleep(6); continue; }
-            const bool quad = mode == 4;
-            QImage composite(quad ? 1280 : 640, quad ? 960 : 480, QImage::Format_RGB888);
-            composite.fill(Qt::black);
-            QPainter compose(&composite);
-            if (quad) {
-                for (int c = 0; c < 4; ++c)
-                    if (have[c]) compose.drawImage((c % 2) * 640, (c / 2) * 480, images[c]);
-            } else compose.drawImage(0, 0, images[selected]);
-            compose.end();
-            QImage infer(640, 640, QImage::Format_RGB888);
-            infer.fill(QColor(114,114,114));
-            QPainter inputPainter(&infer); inputPainter.drawImage(0, 80, images[selected]);
-            inputPainter.end();
-            const QSize target = composite.size().scaled(m_dispW.load(), m_dispH.load(), Qt::KeepAspectRatio);
-            const int ox = (m_dispW.load() - target.width()) / 2;
-            const int oy = (m_dispH.load() - target.height()) / 2;
-            const int paneWidth = quad ? target.width() / 2 : target.width();
-            QImage display = composite.scaled(target, Qt::IgnoreAspectRatio, Qt::FastTransformation);
+            if (!ready) { msleep(2); continue; }
+            if (gen == lastGen) { msleep(2); continue; }   // 没有新帧就不重合成
+            lastGen = gen;
+
+            const int mode = m_mode.load();
+            const int pane = mode == 4 ? 0 : mode;          // Quad 用 C1 推理
+            const int paneMask = mode == 4 ? 0xF : (1 << pane);
+            /* 纹理始终按 2x2 组织，单选时只填需要显示的那一格（其余格不显示） */
+            for (int y = 0; y < IMG_H; ++y) {
+                uint8_t *dst = reinterpret_cast<uint8_t *>(composite.data()) +
+                               (size_t)(y + (pane / 2) * IMG_H) * 2 * rowb + (pane % 2) * rowb;
+                if (mode == 4) {
+                    memcpy(dst, cam[0].constData() + (size_t)y * rowb, rowb);
+                    memcpy(dst + rowb, cam[1].constData() + (size_t)y * rowb, rowb);
+                    memcpy(composite.data() + (size_t)(y + IMG_H) * 2 * rowb,
+                           cam[2].constData() + (size_t)y * rowb, rowb);
+                    memcpy(composite.data() + (size_t)(y + IMG_H) * 2 * rowb + rowb,
+                           cam[3].constData() + (size_t)y * rowb, rowb);
+                    continue;
+                }
+                memcpy(dst, cam[pane].constData() + (size_t)y * rowb, rowb);
+            }
+            const QByteArray *shown = &composite;
+            const int outW = 2 * IMG_W;
+            const int outH = 2 * IMG_H;
+
+            /* 只转换选中这一路做推理输入：640x480 -> 640x640 letterbox（灰 114 填充） */
+            QImage infer(MODEL_W, MODEL_H, QImage::Format_RGB888);
+            memset(infer.bits(), 114, (size_t)MODEL_W * MODEL_H * 3);
+            const uint8_t *paneData = reinterpret_cast<const uint8_t *>(cam[pane].constData());
+            for (int y = 0; y < IMG_H; ++y)
+                rgb565ToRgb888Line(paneData + (size_t)y * rowb, IMG_W,
+                                   infer.bits() + (size_t)(y + 80) * MODEL_W * 3);
+
             ++frames;
             if (rate.elapsed() >= 1000) {
-                fps = frames * 1000.0 / rate.elapsed(); frames = 0; rate.restart();
-                fprintf(stderr, "[quad] mode=%d fps=%.1f have=%d%d%d%d\n", mode, fps,
-                        have[0],have[1],have[2],have[3]);
+                fps = frames * 1000.0 / rate.elapsed();
+                frames = 0;
+                rate.restart();
+                fprintf(stderr, "[quad] mode=%d fps=%.1f have=%d%d%d%d cam=%.1f/%.1f/%.1f/%.1f err=%llu/%llu/%llu/%llu\n",
+                        mode, fps, have[0], have[1], have[2], have[3],
+                        camFps[0], camFps[1], camFps[2], camFps[3],
+                        (unsigned long long)errors[0], (unsigned long long)errors[1],
+                        (unsigned long long)errors[2], (unsigned long long)errors[3]);
             }
-            emit frameReady(display, infer, fps, ox, oy, paneWidth, paneWidth);
-            msleep(6);
+            emit compositeReady(*shown, outW, outH, paneMask, pane, fps);
+            emit inferReady(infer);
+            if (minIntervalMs > 0) msleep(minIntervalMs);
         }
+        w1.stop(); w2.stop(); w3.stop(); w4.stop();
+        w1.wait(3000); w2.wait(3000); w3.wait(3000); w4.wait(3000);
     }
 
 private:
@@ -409,15 +511,14 @@ private:
             QPainter inputPainter(&infer);
             inputPainter.drawImage(0, 80, rgb);
             inputPainter.end();
-            const QSize target = rgb.size().scaled(m_dispW.load(), m_dispH.load(), Qt::KeepAspectRatio);
-            QImage display = rgb.scaled(target, Qt::IgnoreAspectRatio, Qt::FastTransformation);
             if (++frames >= 30) {
                 fps = frames * 1000.0 / rate.elapsed();
                 frames = 0; rate.restart();
                 fprintf(stderr, "[video] fps=%.1f\n", fps);
             }
-            emit frameReady(display, infer, fps, (m_dispW.load() - target.width()) / 2,
-                            (m_dispH.load() - target.height()) / 2, target.width(), target.height());
+            // rgb 只是包装解码缓冲，跨线程投递前必须深拷贝
+            emit imageReady(rgb.copy(), fps);
+            emit inferReady(infer);
             frame.clear();
             while (m_paused && !m_stop) msleep(25);
         }
@@ -425,9 +526,10 @@ private:
         decoder.waitForFinished(2000);
         emit statusMsg("视频源结束");
     }
-    static void rgb565ToRgb888(const uint8_t *src, size_t pixels, uint8_t *dst) {
+    /* 单行 RGB565 -> RGB888（四路时只转换推理所需的选中一路） */
+    static void rgb565ToRgb888Line(const uint8_t *src, int pixels, uint8_t *dst) {
         const uint16_t *s = reinterpret_cast<const uint16_t *>(src);
-        for (size_t i = 0; i < pixels; i++) {
+        for (int i = 0; i < pixels; i++) {
             const uint16_t v = s[i];
             const uint8_t r5 = (v >> 11) & 0x1F;
             const uint8_t g6 = (v >> 5) & 0x3F;
@@ -441,8 +543,6 @@ private:
     std::atomic<int> m_mode{4};
     QString m_videoSource;
     std::atomic<bool> m_paused{false};
-    std::atomic<int> m_dispW{1280};
-    std::atomic<int> m_dispH{720};
     QImage m_dispImg[2];
     QImage m_modelImg[2];
     int m_bufIdx = 0;
@@ -1096,17 +1196,27 @@ private:
     int m_accCount = 0;
 };
 
-class VideoWidget : public QWidget {
+/* ---------------- 显示（与运行版 camview 同构的 GPU 合成） ----------------
+   RGB565 帧直接上传纹理，letterbox 缩放交给 GL；检测框/车道掩码/各路帧率先在
+   CPU 侧画进一张 ARGB 覆盖图再整块 blit —— 直接在 GL 窗口上用 QPainter 画文字
+   会被 Mali ES2 的字形图集画花（camview 已踩过）。
+   paneMask 指示画面里有哪几路（bit0..bit3）；只显示一路时用纹理坐标取子矩形。 */
+class VideoView : public QOpenGLWidget, protected QOpenGLFunctions {
     Q_OBJECT
 public:
-    explicit VideoWidget(QWidget *parent = nullptr) : QWidget(parent) {
+    explicit VideoView(QWidget *parent = nullptr) : QOpenGLWidget(parent) {
         setMinimumSize(640, 480);
-        setAutoFillBackground(true);
-        setAttribute(Qt::WA_OpaquePaintEvent, true);
-        QPalette pal = palette();
-        pal.setColor(QPalette::Window, Qt::black);
-        setPalette(pal);
+        setFocusPolicy(Qt::NoFocus);
     }
+    ~VideoView() override {
+        if (m_tex) {
+            makeCurrent();
+            glDeleteTextures(1, &m_tex);
+            m_tex = 0;
+            doneCurrent();
+        }
+    }
+
     int takePaintCount() { return m_paintCount; }
     double takePaintAvgMs() {
         double v = m_paintCount ? m_paintMsSum / m_paintCount : 0.0;
@@ -1115,23 +1225,26 @@ public:
         return v;
     }
 
-    /* ox<0 表示相机线程未做缩放（CPU 回退），使用旧的自适应缩放绘制 */
-    void setFrame(const QImage &img, int ox) {
-        const QRect old = m_imgRect;
-        m_frame = img;
-        m_ox = ox;
-        if (ox >= 0) {
-            m_imgRect = QRect(ox, m_oy, img.width(), img.height());
-            update(old.united(m_imgRect));  // 局部重绘：只刷画面区域
-        } else {
-            m_imgRect = QRect();
-            update();  // CPU 回退：整窗自适应缩放
-        }
+    /* 四路：rgb565 为 2x2 合成（1280x960）；单选时复用同一缓冲，只显示其中一格 */
+    void submitComposite(const QByteArray &rgb565, int w, int h, int paneMask, int pane) {
+        m_frame = rgb565;
+        m_fw = w;
+        m_fh = h;
+        m_paneMask = paneMask;
+        m_pane = pane;
+        m_videoMode = false;
+        m_dirty = true;
+        update();
     }
-    void setLayoutInfo(int oy, int rw, int rh) {
-        m_oy = oy;
-        m_rw = rw;
-        m_rh = rh;
+    /* 视频源路径：单路 RGB888 帧 */
+    void submitImage(const QImage &img) {
+        m_image = img.format() == QImage::Format_RGB888 ? img
+                                                        : img.convertToFormat(QImage::Format_RGB888);
+        m_videoMode = true;
+        m_paneMask = 0x1;
+        m_pane = 0;
+        m_dirty = true;
+        update();
     }
     void setDetections(const QVector<Detection> &dets, const QStringList &classes) {
         m_dets = dets;
@@ -1144,76 +1257,169 @@ public:
     }
 
 protected:
-    void resizeEvent(QResizeEvent *e) override {
-        QWidget::resizeEvent(e);
-        update();
+    void initializeGL() override {
+        initializeOpenGLFunctions();
+        static const char *vsrc =
+            "attribute highp vec2 aPos;\n"
+            "attribute highp vec2 aTex;\n"
+            "varying highp vec2 vTex;\n"
+            "void main() { vTex = aTex; gl_Position = vec4(aPos, 0.0, 1.0); }\n";
+        // RGB565 以 sampler2D 上传，驱动负责转到 float
+        static const char *fsrc =
+            "precision mediump float;\n"
+            "varying mediump vec2 vTex;\n"
+            "uniform sampler2D uTex;\n"
+            "void main() { gl_FragColor = vec4(texture2D(uTex, vTex).rgb, 1.0); }\n";
+        m_prog.addShaderFromSourceCode(QOpenGLShader::Vertex, vsrc);
+        m_prog.addShaderFromSourceCode(QOpenGLShader::Fragment, fsrc);
+        m_prog.bindAttributeLocation("aPos", 0);
+        m_prog.bindAttributeLocation("aTex", 1);
+        if (!m_prog.link())
+            fprintf(stderr, "[gl] shader link failed: %s\n", qPrintable(m_prog.log()));
+        glGenTextures(1, &m_tex);
+        glBindTexture(GL_TEXTURE_2D, m_tex);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+        const char *ren = (const char *)glGetString(GL_RENDERER);
+        fprintf(stderr, "detview_gl_renderer=%s\n", ren ? ren : "?");
+        fflush(stderr);
     }
-    void paintEvent(QPaintEvent *) override {
+
+    void paintGL() override {
         QElapsedTimer pt;
         pt.start();
-        QPainter p(this);
-        if (m_frame.isNull()) {
-            p.fillRect(rect(), Qt::black);
-            m_paintMsSum += pt.nsecsElapsed() / 1e6;
-            m_paintCount++;
-            return;
+        const float dpr = (float)devicePixelRatioF();
+        glViewport(0, 0, (int)(width() * dpr), (int)(height() * dpr));
+        glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT);
+
+        /* 画面内容（逻辑坐标）。四路时是 2x2，单选时只取其中一格 */
+        QRectF content;
+        int cw = 0, ch = 0;
+        if (m_videoMode) {
+            cw = m_image.width();
+            ch = m_image.height();
+        } else if (m_fw > 0 && m_fh > 0) {
+            cw = (m_paneMask == 0xF) ? m_fw : m_fw / 2;
+            ch = (m_paneMask == 0xF) ? m_fh : m_fh / 2;
         }
-        double baseX, baseY, sx, sy;
-        if (m_ox >= 0) {
-            p.drawImage(m_ox, m_oy, m_frame);  // 相机线程已按画面尺寸缩放，1:1 贴图
-            baseX = m_ox;
-            baseY = m_oy - 80.0 * m_rh / MODEL_H;
-            sx = m_rw / (double)MODEL_W;
-            sy = m_rh / (double)MODEL_H;
-        } else {
-            p.fillRect(rect(), Qt::black);
-            const QSize scaled = m_frame.size().scaled(size(), Qt::KeepAspectRatio);
-            const QRect target((width() - scaled.width()) / 2, (height() - scaled.height()) / 2,
-                               scaled.width(), scaled.height());
-            p.drawImage(target, m_frame);
-            const double s = target.width() / (double)m_frame.width();
-            baseX = target.left();
-            baseY = target.top() - 80.0 * s;
-            sx = sy = s;
+        if (cw > 0 && ch > 0) {
+            const float ia = (float)cw / (float)ch;
+            const float wa = (float)width() / (float)qMax(1, height());
+            float w = width(), h = height();
+            if (ia > wa) h = width() / ia; else w = height() * ia;
+            content = QRectF((width() - w) / 2.0, (height() - h) / 2.0, w, h);
+
+            /* 纹理上传：四路/单选是 RGB565，视频源是 RGB888 */
+            float u0 = 0.0f, v0 = 0.0f, u1 = 1.0f, v1 = 1.0f;
+            glBindTexture(GL_TEXTURE_2D, m_tex);
+            if (m_dirty || !m_texAlloc) {
+                if (m_videoMode) {
+                    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, m_image.width(), m_image.height(), 0,
+                                 GL_RGB, GL_UNSIGNED_BYTE, m_image.constBits());
+                } else {
+                    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, m_fw, m_fh, 0, GL_RGB,
+                                 GL_UNSIGNED_SHORT_5_6_5, m_frame.constData());
+                }
+                m_texAlloc = true;
+                m_dirty = false;
+            }
+            if (!m_videoMode && m_paneMask != 0xF) {
+                u0 = (m_pane % 2) * 0.5f;
+                v0 = (m_pane / 2) * 0.5f;
+                u1 = u0 + 0.5f;
+                v1 = v0 + 0.5f;
+            }
+            float ndcx = 1.0f, ndcy = 1.0f;
+            if (ia > wa) ndcy = wa / ia; else ndcx = ia / wa;
+            // 顶点 y=+ 对应数据第 0 行（朝向与 camview 一致）
+            const GLfloat verts[] = {
+                -ndcx,  ndcy, u0, v0,
+                 ndcx,  ndcy, u1, v0,
+                -ndcx, -ndcy, u0, v1,
+                 ndcx, -ndcy, u1, v1,
+            };
+            m_prog.bind();
+            m_prog.enableAttributeArray(0);
+            m_prog.enableAttributeArray(1);
+            m_prog.setAttributeArray(0, GL_FLOAT, verts, 2, 4 * sizeof(GLfloat));
+            m_prog.setAttributeArray(1, GL_FLOAT, verts + 2, 2, 4 * sizeof(GLfloat));
+            m_prog.setUniformValue("uTex", 0);
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, m_tex);
+            glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+            m_prog.disableAttributeArray(0);
+            m_prog.disableAttributeArray(1);
+            m_prog.release();
         }
-        if (m_ox >= 0)
-            p.setClipRect(QRectF(m_ox, m_oy, m_rw, m_rh * 480.0 / 640.0));
-        if (!m_laneMask.isNull())
-            p.drawImage(QRectF(baseX, baseY, MODEL_W * sx, MODEL_H * sy), m_laneMask);
-        for (const Detection &d : m_dets) {
-            const double x1 = baseX + d.x1 * sx;
-            const double x2 = baseX + d.x2 * sx;
-            const double y1 = baseY + d.y1 * sy;
-            const double y2 = baseY + d.y2 * sy;
-            if (y2 < 0 || y1 > height())
-                continue;
-            const QRectF r(x1, std::max(0.0, y1), std::max(1.0, x2 - x1),
-                           std::min((double)height(), y2) - std::max(0.0, y1));
-            const QColor color =
-                d.cls == 0 ? QColor(0, 255, 0) : (d.cls == 1 ? QColor(255, 60, 60) : QColor(255, 220, 0));
-            p.setPen(QPen(color, 3));
-            p.drawRect(r);
-            const QString label =
-                QString("%1 %2")
-                    .arg(d.cls >= 0 && d.cls < m_classes.size() ? m_classes[d.cls]
-                                                                : QString::number(d.cls))
-                    .arg(d.score, 0, 'f', 2);
-            p.setPen(Qt::black);
-            p.drawText(QPointF(r.left() + 4, r.top() + 12), label);
-            p.setPen(color);
-            p.drawText(QPointF(r.left() + 3, r.top() + 11), label);
+
+        /* 覆盖层：检测框与车道掩码。只在有内容时才建图并 blit，且限制在推理那一格内
+           （与旧实现的裁剪行为一致）。每帧新建 QImage 以获得新的 cacheKey，避免 Qt 的
+           GL 图像缓存复用旧纹理。 */
+        if ((!m_dets.isEmpty() || !m_laneMask.isNull()) && content.width() >= 1 &&
+            content.height() >= 1) {
+            const bool quad = (!m_videoMode && m_paneMask == 0xF);
+            QRectF pane(0, 0, content.width(), content.height());
+            if (quad) {
+                const double pw = content.width() / 2.0, ph = content.height() / 2.0;
+                pane = QRectF((m_pane % 2) * pw, (m_pane / 2) * ph, pw, ph);
+            }
+            const QSize osz = pane.size().toSize();
+            QImage overlay(osz, QImage::Format_ARGB32_Premultiplied);
+            overlay.fill(Qt::transparent);
+            QPainter p(&overlay);
+            p.setRenderHint(QPainter::Antialiasing, true);
+            p.setRenderHint(QPainter::TextAntialiasing, true);
+            const double sx = pane.width() / MODEL_W;
+            const double sy = pane.height() / IMG_H;
+            const double baseX = 0.0;
+            const double baseY = -80.0 * sy;   // 模型上下留白不属于画面
+            if (!m_laneMask.isNull())
+                p.drawImage(QRectF(baseX, baseY, MODEL_W * sx, MODEL_H * sy), m_laneMask);
+            for (const Detection &d : m_dets) {
+                const double x1 = baseX + d.x1 * sx;
+                const double x2 = baseX + d.x2 * sx;
+                const double y1 = baseY + d.y1 * sy;
+                const double y2 = baseY + d.y2 * sy;
+                const QRectF r(x1, y1, std::max(1.0, x2 - x1), std::max(1.0, y2 - y1));
+                const QColor color = d.cls == 0 ? QColor(0, 255, 0)
+                                    : (d.cls == 1 ? QColor(255, 60, 60) : QColor(255, 220, 0));
+                p.setPen(QPen(color, 3));
+                p.drawRect(r);
+                const QString label =
+                    QString("%1 %2")
+                        .arg(d.cls >= 0 && d.cls < m_classes.size() ? m_classes[d.cls]
+                                                                    : QString::number(d.cls))
+                        .arg(d.score, 0, 'f', 2);
+                p.setPen(Qt::black);
+                p.drawText(QPointF(r.left() + 4, r.top() + 12), label);
+                p.setPen(color);
+                p.drawText(QPointF(r.left() + 3, r.top() + 11), label);
+            }
+            p.end();
+            QPainter painter(this);
+            painter.drawImage((content.topLeft() + pane.topLeft()).toPoint(), overlay);
+            painter.end();
         }
         m_paintMsSum += pt.nsecsElapsed() / 1e6;
         m_paintCount++;
     }
 
 private:
-    QImage m_frame;
+    QOpenGLShaderProgram m_prog;
+    GLuint m_tex = 0;
+    bool m_texAlloc = false;
+    bool m_dirty = false;
+    bool m_videoMode = false;
+    QByteArray m_frame;        // RGB565：四路 2x2 合成或单路
+    QImage m_image;            // 视频源路径
     QImage m_laneMask;
     QVector<Detection> m_dets;
     QStringList m_classes;
-    int m_ox = -1, m_oy = 0, m_rw = 0, m_rh = 0;
-    QRect m_imgRect;
+    int m_fw = 0, m_fh = 0, m_paneMask = 0, m_pane = 0;
     int m_paintCount = 0;
     double m_paintMsSum = 0;
 };
@@ -1274,7 +1480,7 @@ public:
         bar->addWidget(m_inferLabel);
         bar->addWidget(m_shotBtn);
         root->addLayout(bar);
-        m_video = new VideoWidget(this);
+        m_video = new VideoView(this);
         root->addWidget(m_video, 1);
         m_status = new QLabel("starting...", this);
         m_status->setWordWrap(true);
@@ -1296,7 +1502,9 @@ public:
             m_camCombo->setEnabled(false);
         }
         m_infer = new InferenceThread();
-        connect(m_camera, &CameraThread::frameReady, this, &MainWindow::onFrame);
+        connect(m_camera, &CameraThread::compositeReady, this, &MainWindow::onComposite);
+        connect(m_camera, &CameraThread::imageReady, this, &MainWindow::onImage);
+        connect(m_camera, &CameraThread::inferReady, this, &MainWindow::onInfer);
         connect(m_camera, &CameraThread::statusMsg, this, [this](QString s) {
             m_status->setText(s);
         });
@@ -1411,17 +1619,23 @@ protected:
     }
 
 private slots:
-    void onFrame(QImage display, QImage infer, double fps, int ox, int oy, int rw, int rh) {
+    void onComposite(QByteArray rgb565, int w, int h, int paneMask, int pane, double fps) {
         m_camFps = fps;
-        m_camera->setDisplaySize(m_video->width(), m_video->height());
-        m_video->setLayoutInfo(oy, rw, rh);
-        m_video->setFrame(display, ox);
+        m_video->submitComposite(rgb565, w, h, paneMask, pane);
         if (m_camLabelTimer.elapsed() >= 400) {
             m_camLabelTimer.restart();
             m_camLabel->setText(QString("cam: %1 fps").arg(fps, 0, 'f', 1));
         }
-        m_infer->submit(infer, m_sourceGeneration);
     }
+    void onImage(QImage frame, double fps) {
+        m_camFps = fps;
+        m_video->submitImage(frame);
+        if (m_camLabelTimer.elapsed() >= 400) {
+            m_camLabelTimer.restart();
+            m_camLabel->setText(QString("cam: %1 fps").arg(fps, 0, 'f', 1));
+        }
+    }
+    void onInfer(QImage infer) { m_infer->submit(infer, m_sourceGeneration); }
     void onCamChanged(int index) {
         ++m_sourceGeneration;
         m_results.clear();
@@ -1602,12 +1816,23 @@ private:
     double m_camFps = 0;
     QElapsedTimer m_statsTimer, m_camLabelTimer, m_inferLabelTimer;
     QPushButton *m_shotBtn = nullptr;
-    VideoWidget *m_video = nullptr;
+    VideoView *m_video = nullptr;
     CameraThread *m_camera = nullptr;
     InferenceThread *m_infer = nullptr;
 };
 
 int main(int argc, char **argv) {
+    // 与运行版 camview 一致：强制走 Mali EGL/ES2，避免默认 GLX 回落到 Mesa 软件渲染
+    qputenv("QT_XCB_GL_INTEGRATION", "xcb_egl");
+    qputenv("QT_OPENGL", "es2");
+    QSurfaceFormat fmt;
+    fmt.setRenderableType(QSurfaceFormat::OpenGLES);
+    fmt.setVersion(2, 0);
+    fmt.setDepthBufferSize(0);
+    fmt.setStencilBufferSize(0);
+    fmt.setSwapInterval(1);
+    QSurfaceFormat::setDefaultFormat(fmt);
+
     QApplication app(argc, argv);
     qRegisterMetaType<QVector<Detection>>("QVector<Detection>");
     if (app.arguments().contains("--dfl-selftest")) {

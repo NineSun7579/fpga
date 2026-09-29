@@ -15,6 +15,12 @@
 
 `--video` 也接受网络 URL，由 `ffmpeg` 解码为 640×480 RGB，再 letterbox 到 640×640。视频模式不访问 PCIe；不带 `--video` 时沿用四路 FPGA/PCIe 采集。Quad 显示四路并对 C1 推理，选择 C1–C4 单路时对该路推理。切换相机时清除旧结果。
 
+## 采集与显示
+
+四路采集与显示采用运行版 `camview` 的结构：每路一个采集线程按帧标签轮询并 DMA 读整帧（共用一条 DMA 通道，读写串行化），采集线程按“代（gen）变化 + 默认 33ms 节流”合成 2×2 RGB565 画面并投递到 GPU；显示用 `QOpenGLWidget`（Mali EGL/ES2）直接上传纹理、由 GL 做 letterbox 缩放，检测框与车道掩码在 CPU 侧画进覆盖图后整块 blit（直接在 GL 窗口上画文字会被 ES2 的字形图集画花）。推理输入只转换 C1 这一路为 640×640，不再逐帧做四路 RGB565→RGB888 与 QPainter 拼图缩放。
+
+环境变量：`DETVIEW_MIN_MS` 覆盖显示节流（默认 33ms，0 = 不限速）。调大可在推理与显示之间更偏向推理。
+
 每款模型保留最近一次检测框，框标签带模型名；超过 2 秒未更新的结果自动隐藏。状态栏显示各模型耗时、有效检测数量、每模型更新频率和结果年龄。切换相机或手动选单模型会清除旧结果。LinkNet 分割模型仍走原来的单模型路径，不参与 YOLO 轮换。多个模型共用一颗 NPU，单模型更新频率会随所选模型数下降。
 
 ## 验证
@@ -26,4 +32,6 @@ QT_QPA_PLATFORM=offscreen ./detview --lane-selftest
 QT_QPA_PLATFORM=offscreen ./detview --rotate-selftest image.ppm zebra-merged-v3-rm8,tt100k-anneal-c12
 ```
 
-板端静态图轮换自检：两款模型各运行 40 次；四款模型各运行 20 次，严格轮转，均未重新初始化上下文。12 秒、约 30fps 视频输入测试中，两个模型持续交替推理且视频解码保持运行。当前 FPGA 位流仅枚举 64KiB BAR0，PCIe 驱动未绑定；实时四路 DMA 模式须待正确 BAR0/BAR1/BAR2 位流恢复后验证。隔离构建位于 `/userdata/linaro/detview-tdm-build-20260928`，未覆盖板端正式 `detview`。
+板端自检：`DFL_SELFTEST_PASS`、`LANE_SELFTEST_PASS`；静态图轮换自检两款各 40 次、四款各 20 次严格轮转，未重新初始化上下文。
+
+2026-09-29 四路实时实测（PCIe BAR0 8K/BAR1 4K/BAR2 4K，驱动已绑定，隔离构建 `/userdata/linaro/detview-tdm-build-20260928`）：Quad + 两款轮换跑 70s，`have=1111`、`err=0/0/0/0`，四路显示 **23.13 fps**（每路采集约 23 fps），轮换吞吐 **17.77 次/秒**（每款 8.89），单帧 zebra rm8 43.4ms、TT100K 63.1ms，paint 平均 2.29ms。同机位 camview 为 22.0 fps、每路 24.8–34.1 fps。相比改造前的单线程 CPU 拼图路径，显示帧率 15.08 → 23.13 fps，轮换吞吐 14.89 → 17.77 次/秒；代价是显示管线吃满 DDR/CPU 后单帧推理慢约 9–12%，可用 `DETVIEW_MIN_MS` 调节。正式 `/root/npu/detview/detview` 未替换。
