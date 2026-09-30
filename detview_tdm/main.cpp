@@ -464,7 +464,12 @@ protected:
                 emitInfer_(infer);
             }
             QMutexLocker lock(&frames_->mutex);
-            frames_->c[idx] = frame;
+            /* 零拷贝交接：与槽位互换缓冲。原来 `frames_->c[idx] = frame` 会因
+               QByteArray 隐式共享在下一次写入时 detach（每帧每路白拷 0.6MB，
+               4~6 路 × 25fps ≈ 60~90MB/s 的 DDR 流量）。交换后采集线程拿回旧缓冲继续用。 */
+            qSwap(frame, frames_->c[idx]);
+            if (frame.size() != FRAME_BYTES)
+                frame.resize(FRAME_BYTES);
             frames_->have[idx] = true;
             ++frames_->gen;
             ++frames_->camGen[idx];
@@ -505,7 +510,8 @@ public:
 signals:
     /* 四路：已按控件尺寸缩放好的内容帧（RGB888）；ox>=0 表示直接在 (ox,oy) 1:1 贴图，
        ox<0 表示未缩放、由控件自行缩放铺满。paneMask/pane 同前 */
-    void frameReady(QImage content, int paneMask, int pane, double fps, QVector<double> camFps);
+    void frameReady(QImage content, int paneMask, int pane, double fps, QVector<double> camFps,
+                    int changedMask);
     /* 视频源路径：单路 RGB888 帧 */
     void imageReady(QImage frame, double fps);
     /* 推理输入（640x640 letterbox RGB888） */
@@ -614,6 +620,7 @@ protected:
 
             compSlot ^= 1;
             uint8_t *comp = compPtr[compSlot];
+            int changedMask = 0;   // 本次真正更新的格子（供显示端只传这几块纹理）
             /* 只把有新帧的那几路转成 RGB888 写进合成缓冲的对应格子（零分配、按 stride 写） */
             for (int c = 0; c < CAM_COUNT; ++c) {
                 const bool firstFrame = (lastCamGen[c] == 0);
@@ -627,6 +634,7 @@ protected:
                 uint8_t *dst = comp + (size_t)(c / GRID_COLS) * IMG_H * compStride +
                                (size_t)(c % GRID_COLS) * IMG_W * 2;
                 memcpy(dst, cam565[c].constData(), FRAME_BYTES);
+                changedMask |= 1 << c;
             }
 
             ++frames;
@@ -655,7 +663,7 @@ protected:
             QVector<double> fpsVec;
             for (int i = 0; i < CAM_COUNT; ++i)
                 fpsVec.append(camFps[i]);
-            emit frameReady(compImg, paneMask, pane, fps, fpsVec);
+            emit frameReady(compImg, paneMask, pane, fps, fpsVec, changedMask);
             if (minIntervalMs > 0) msleep(minIntervalMs);
         }
         for (CameraWorker &w : workers)
@@ -1502,13 +1510,14 @@ public:
 
     /* 相机线程：RGB888 合成帧（3x2 或单格），paneMask/pane 同 detview 约定 */
     void submitComposite(const QImage &composite, int paneMask, int pane, double fps,
-                         const QVector<double> &camFps) {
+                         const QVector<double> &camFps, int changedMask) {
         QMutexLocker lock(&m_uiMutex);
         m_comp = composite;
         m_paneMask = paneMask;
         m_pane = pane;
         m_dispFps = fps;
         m_camFps = camFps;
+        m_changedMask = changedMask;
         m_videoMode = false;
         m_dirty = true;
         m_haveFrame = true;
@@ -1642,17 +1651,40 @@ protected:
             if (ia > wa) h = width() / ia; else w = height() * ia;
             content = QRectF((width() - w) / 2.0, (height() - h) / 2.0, w, h);
 
-            /* 纹理上传：整幅上传一次，单选时用纹理坐标取子矩形 */
+            /* 纹理上传：首次按整幅分配，之后只更新本次真正变化的格子（glTexSubImage2D）。
+               原来每帧整幅上传 3.7MB，是 detview 最大的一笔 DDR 流量，也是它 C1/C2 采集率
+               低于 camview（36→32）的原因之一；按格更新后每帧只传 0.6MB×变化格数。 */
             glBindTexture(GL_TEXTURE_2D, m_tex);
             if (m_dirty || !m_texAlloc) {
                 if (videoMode) {
                     /* 视频源是 RGB888（解码器给的就是 8bit/像素） */
                     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, video.width(), video.height(), 0, GL_RGB,
                                  GL_UNSIGNED_BYTE, video.constBits());
+                    m_texW = video.width();
+                    m_texH = video.height();
                 } else {
-                    /* 相机合成是 RGB565：按 Mali 原生格式直传，GPU 自己解析 */
-                    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, comp.width(), comp.height(), 0, GL_RGB,
-                                 GL_UNSIGNED_SHORT_5_6_5, comp.constBits());
+                    const int cw2 = comp.width(), ch2 = comp.height();
+                    if (!m_texAlloc || m_texW != cw2 || m_texH != ch2) {
+                        /* 相机合成是 RGB565：按 Mali 原生格式直传，GPU 自己解析 */
+                        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, cw2, ch2, 0, GL_RGB,
+                                     GL_UNSIGNED_SHORT_5_6_5, comp.constBits());
+                        m_texW = cw2;
+                        m_texH = ch2;
+                    } else {
+                        const int mask = m_changedMask ? m_changedMask : 0x3F;
+                        for (int c = 0; c < CAM_COUNT; ++c) {
+                            if (!(mask & (1 << c)))
+                                continue;
+                            const int px = (c % GRID_COLS) * IMG_W;
+                            const int py = (c / GRID_COLS) * IMG_H;
+                            if (px + IMG_W > cw2 || py + IMG_H > ch2)
+                                continue;
+                            glTexSubImage2D(GL_TEXTURE_2D, 0, px, py, IMG_W, IMG_H, GL_RGB,
+                                            GL_UNSIGNED_SHORT_5_6_5,
+                                            comp.constBits() + (size_t)py * comp.bytesPerLine() +
+                                                (size_t)px * 2);
+                        }
+                    }
                 }
                 m_texAlloc = true;
                 m_dirty = false;
@@ -1802,6 +1834,8 @@ private:
     QMutex m_uiMutex;              // 显示状态锁（采集/推理线程写，GL 线程读）
     bool m_haveFrame = false;
     QImage m_comp;                 // RGB565 3x2 合成（包装相机线程缓冲）
+    int m_changedMask = 0x3F;      // 本次更新的格子（供按格 glTexSubImage2D）
+    int m_texW = 0, m_texH = 0;    // 当前纹理尺寸（判断是否需要重新分配）
     QImage m_image;                // 视频源路径
     QImage m_laneMask;
 
@@ -2009,10 +2043,11 @@ private:
         }
     }
 
-    void onFrame(QImage content, int paneMask, int pane, double fps, QVector<double> camFps) {
+    void onFrame(QImage content, int paneMask, int pane, double fps, QVector<double> camFps,
+                 int changedMask) {
         m_camFps = fps;
         m_lastFrameMs = QDateTime::currentMSecsSinceEpoch();
-        m_gl->submitComposite(content, paneMask, pane, fps, camFps);
+        m_gl->submitComposite(content, paneMask, pane, fps, camFps, changedMask);
         if (m_labelTimer.elapsed() >= 300) {
             m_labelTimer.restart();
             updateHudLines();
