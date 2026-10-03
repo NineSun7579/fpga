@@ -34,7 +34,7 @@ module fram_buf #(
     input                         wr_en,
     input  [PIX_WIDTH- 1'b1 : 0]  wr_data,
     output reg                    init_done=0,
-    
+    input  [11:0]                 rd_base,     //[DIAG] 读指针基准(扫参用)
     input                         ddr_clk,
     input                         ddr_rstn,
     
@@ -92,6 +92,8 @@ module fram_buf #(
     wire                        rd_cmd_done;
                                 
     wire                        read_ready  = 1'b1;
+    wire                        pub_page_w  ;   // [P1-2] writer-published page
+    wire                        rd_page_r   ;   // [P1-2] display read page
     wire [MEM_DQ_WIDTH*8-1:0]   read_rdata  ;
     wire                        read_en     ;
     wire                        ddr_wr_bac;
@@ -124,6 +126,8 @@ module fram_buf #(
         .ddr_wdata        (  ddr_wdata        ),//output [8*DQ_WIDTH- 1'b1 : 0] ddr_wdata,
         .ddr_wdata_req    (  ddr_wdata_req    ),//input                         ddr_wdata_req,
                                               
+        .rd_page          (  rd_page_r      ),//input  [P1-2] display read page
+        .pub_page         (  pub_page_w     ),//output [P1-2] published page
         .frame_wcnt       (                   ),//output [FRAME_CNT_WIDTH-1 :0] frame_wcnt,
         .frame_wirq       (  frame_wirq       ) //output                        frame_wirq
     );
@@ -157,6 +161,9 @@ module fram_buf #(
         .vout_data       (  vout_data         ),//output [PIX_WIDTH- 1'b1 : 0]  vout_data,
         
         .init_done       (  init_done         ),//input                         init_done,
+        .rd_base         (  rd_base           ),
+        .pub_page        (  pub_page_w      ),//input  [P1-2]
+        .rd_page         (  rd_page_r      ),//output [P1-2]//[DIAG] scan
       
         .ddr_rreq        (  rd_cmd_en         ),//output                        ddr_rreq,
         .ddr_raddr       (  rd_cmd_addr       ),//output [ADDR_WIDTH- 1'b1 : 0] ddr_raddr,
@@ -177,7 +184,7 @@ module fram_buf #(
                                               
         .wr_cmd_en        (  ddr_wreq         ),//input                        wr_cmd_en   ,
         .wr_cmd_addr      (  ddr_waddr        ),//input  [CTRL_ADDR_WIDTH-1:0] wr_cmd_addr ,
-        .wr_cmd_len       (  ddr_wr_len       ),//input  [31��0]               wr_cmd_len  ,
+        .wr_cmd_len       (  ddr_wr_len       ),//input  [31��0]               wr_cmd_len  ,
         .wr_cmd_ready     (  ddr_wrdy         ),//output                       wr_cmd_ready,
         .wr_cmd_done      (  ddr_wdone        ),//output                       wr_cmd_done,
         .wr_bac           (  ddr_wr_bac       ),//output                       wr_bac,                                     
@@ -186,7 +193,7 @@ module fram_buf #(
                                               
         .rd_cmd_en        (  rd_cmd_en        ),//input                        rd_cmd_en   ,
         .rd_cmd_addr      (  rd_cmd_addr      ),//input  [CTRL_ADDR_WIDTH-1:0] rd_cmd_addr ,
-        .rd_cmd_len       (  rd_cmd_len       ),//input  [31��0]               rd_cmd_len  ,
+        .rd_cmd_len       (  rd_cmd_len       ),//input  [31��0]               rd_cmd_len  ,
         .rd_cmd_ready     (  rd_cmd_ready     ),//output                       rd_cmd_ready, 
         .rd_cmd_done      (  rd_cmd_done      ),//output                       rd_cmd_done,
                                               

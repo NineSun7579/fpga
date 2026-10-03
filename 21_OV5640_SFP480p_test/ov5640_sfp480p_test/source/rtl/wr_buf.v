@@ -48,7 +48,9 @@ module wr_buf #(
     input                         ddr_wdata_req,
     
     output [FRAME_CNT_WIDTH-1 :0] frame_wcnt,
-    output                        frame_wirq
+    output reg                    frame_wirq,
+    input                         rd_page,     // [P1-2] display read page
+    output reg                    pub_page     // [P1-2] last fully written page
 );
     localparam RAM_WIDTH      = 16'd32;
     localparam DDR_DATA_WIDTH = DQ_WIDTH * 8;
@@ -61,6 +63,8 @@ module wr_buf #(
     reg       wr_en_1d;
     wire      wr_rst;
     reg       wr_enable=0;
+    reg       wr_frame_en = 1'b1;              // [P1-2] this frame may be written
+    wire      wr_active = wr_enable & wr_frame_en;  // [P1-2]
     
     reg       ddr_rstn_1d,ddr_rstn_2d;
     
@@ -148,7 +152,7 @@ endgenerate
             wr_addr <= 12'd0;
         else
         begin
-            if(write_en & wr_enable)
+            if(write_en & wr_active)
                 wr_addr <= wr_addr + 12'd1;
             else
                 wr_addr <= wr_addr;
@@ -159,7 +163,7 @@ endgenerate
     begin 
         if(wr_rst)
             x_cnt <= 12'd0;
-        else if(wr_en & wr_enable)
+        else if(wr_en & wr_active)
             x_cnt <= x_cnt + 1'b1;
         else
             x_cnt <= 12'd0;
@@ -169,7 +173,7 @@ endgenerate
     begin 
         if(wr_rst)
             y_cnt <= 12'd0;
-        else if(~wr_en_1d & wr_en & wr_enable)
+        else if(~wr_en_1d & wr_en & wr_active)
             y_cnt <= y_cnt + 1'b1;
         else
             y_cnt <= y_cnt;
@@ -178,7 +182,7 @@ endgenerate
     reg rd_pulse;
     always @(posedge wr_clk)
     begin
-        if(x_cnt > H_NUM - 5'd20  & wr_enable)
+        if(x_cnt > H_NUM - 5'd20  & wr_active)
             rd_pulse <= 1'b1;
         else
             rd_pulse <= 1'b0; 
@@ -268,16 +272,31 @@ endgenerate
             rd_addr <= rd_addr;
     end 
     
-    reg [FRAME_CNT_WIDTH - 1'b1 :0] rd_frame_cnt=1;
+    // ---- [P1-2] page publish / handoff ----
+    reg              wr_page;
+    wire             wrfrm  = ~rd_fsync_3d && rd_fsync_2d;   // write-frame boundary
     always @(posedge ddr_clk)
-    begin 
+    begin
         if(~ddr_rstn)
-            rd_frame_cnt <= 'd0;
-        else if(~rd_fsync_3d && rd_fsync_2d)
-            rd_frame_cnt <= rd_frame_cnt + 1'b1;
-        else
-            rd_frame_cnt <= rd_frame_cnt;
-    end 
+        begin
+            wr_page     <= 1'b0;
+            pub_page    <= 1'b0;
+            wr_frame_en <= 1'b1;
+        end
+        else if(wrfrm)
+        begin
+            if(wr_frame_en) pub_page <= wr_page;   // publish completed page
+            if(rd_page != ~wr_page)
+            begin wr_page <= ~wr_page; wr_frame_en <= 1'b1; end
+            else
+                wr_frame_en <= 1'b0;               // target page busy: drop frame
+        end
+    end
+    always @(posedge ddr_clk)
+    begin
+        if(~ddr_rstn) frame_wirq <= 1'b0;
+        else          frame_wirq <= wrfrm & wr_frame_en;
+    end
 
     reg [LINE_ADDR_WIDTH - 1'b1 :0] rd_cnt;
     always @(posedge ddr_clk)
@@ -300,9 +319,8 @@ endgenerate
     end 
     
     assign ddr_wdata = (~ddr_wdata_req_1d & ddr_wdata_req) ? rd_wdata_1d : rd_wdata;
-    assign ddr_waddr = {rd_frame_cnt[0],rd_cnt} + ADDR_OFFSET;
+    assign ddr_waddr = {wr_page,rd_cnt} + ADDR_OFFSET;
     assign ddr_wr_len = RD_LINE_NUM;
-    assign frame_wcnt = rd_frame_cnt;
-    assign frame_wirq = wirq_en && rd_fsync_3d;
+    assign frame_wcnt = {FRAME_CNT_WIDTH{1'b0}};
     
 endmodule

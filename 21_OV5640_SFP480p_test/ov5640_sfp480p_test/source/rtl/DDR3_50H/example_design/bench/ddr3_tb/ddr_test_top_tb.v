@@ -1,5 +1,3 @@
-// Created by IP Generator (Version 2022.1 build 99559)
-
 
 
 `timescale 1 ps / 1 ps
@@ -23,7 +21,8 @@ parameter MEM_DQ_WIDTH = 32;
 
 parameter MEM_DM_WIDTH         = MEM_DQ_WIDTH/8;
 parameter MEM_DQS_WIDTH        = MEM_DQ_WIDTH/8;
-parameter MEM_NUM              = MEM_DQ_WIDTH/16;
+
+parameter MEM_NUM              = MEM_DQ_WIDTH/8;
 
 reg                           pll_refclk_in    ;
 reg                           free_clk         ;
@@ -48,6 +47,10 @@ wire [   MEM_DQ_WIDTH-1:0]    mem_dq           ;
 wire [   MEM_DM_WIDTH-1:0]    mem_dm           ;
 wire [      ADDR_BITS-1:0]    mem_addr         ; 
 wire                          dfi_init_complete;
+
+wire                          error_state      ; 
+
+assign error_state = | u_ddr.I_ipsxb_ddr_top.u_ddrphy_top.ddrphy_calib_top.ddrphy_main_ctrl.error_status ;
 
 
 test_ddr u_ddr(
@@ -112,10 +115,12 @@ for(gen_mem=0; gen_mem<MEM_NUM; gen_mem=gen_mem+1) begin   : i_mem
     .cs_n              (mem_cs_n                         ),
 
     .addr              (mem_addr                         ),
-    .dq                (mem_dq[16*gen_mem+15:16*gen_mem] ),
-    .dqs               (mem_dqs[2*gen_mem+1:2*gen_mem]   ),
-    .dqs_n             (mem_dqs_n[2*gen_mem+1:2*gen_mem] ),
-    .dm_tdqs           (mem_dm[2*gen_mem+1:2*gen_mem]    ),
+
+    .dq                (mem_dq[8*gen_mem+7:8*gen_mem]    ),
+    .dqs               (mem_dqs[gen_mem]                 ),
+    .dqs_n             (mem_dqs_n[gen_mem]               ),
+    .dm_tdqs           (mem_dm[gen_mem]                  ),
+
     .tdqs_n            (                                 ),
     .cke               (mem_cke                          ),
     .odt               (mem_odt                          ),
@@ -163,12 +168,45 @@ initial begin
 //reset the bu_top
 #10000 ddr_rstn = 1'b0;
 #50000 ddr_rstn = 1'b1;
-$display("%t keyboard reset sequence finished!", $time);
+$display("%t simulation start... ",$time);
+$display("%t Reset sequence start... ",$time);
 
 @ (posedge dfi_init_complete);
 $display("%t dfi_init_complete is high now!", $time);
+$display("%t simulation finish... ",$time);
 #100000000;
 $finish;
+end
+
+initial begin
+    @(posedge u_ddr.I_ipsxb_ddr_top.u_ddrphy_top.ddrphy_reset_ctrl.ddrphy_rst_n)
+    $display("%t Reset sequence complete ... ",$time);
+    $display("%t Mem ddrphy training start ... ",$time);
+    @(posedge u_ddr.I_ipsxb_ddr_top.u_ddrphy_top.ddrphy_calib_top.ddrphy_main_ctrl.init_done)
+    $display("%t Initialiation done ... ",$time);
+    @(posedge u_ddr.I_ipsxb_ddr_top.u_ddrphy_top.ddrphy_calib_top.ddrphy_main_ctrl.wrlvl_done)
+    $display("%t Write Leveling done ... ",$time);
+    $display("%t The Phy wrlvl_step is %h",$time,u_ddr.I_ipsxb_ddr_top.u_ddrphy_top.ddrphy_slice_top.wrlvl_step);
+    $display("%t The Phy ck_dly_step is %h",$time,u_ddr.I_ipsxb_ddr_top.u_ddrphy_top.ddrphy_slice_top.ck_dly_set_bin);
+    $display("%t The Phy ck_dly_step is %h",$time,u_ddr.I_ipsxb_ddr_top.u_ddrphy_top.ddrphy_slice_top.wl_step_ov_warning);
+
+    @(posedge u_ddr.I_ipsxb_ddr_top.u_ddrphy_top.ddrphy_calib_top.ddrphy_main_ctrl.rdcal_done)
+    $display("%t Read calibration and Gate calibration done ... ",$time);
+    $display("%t The Phy coarse_slip_step is %h",$time,u_ddr.I_ipsxb_ddr_top.u_ddrphy_top.ddrphy_slice_top.coarse_slip_step);
+    $display("%t The Phy read_clk_ctrl is %h",$time,u_ddr.I_ipsxb_ddr_top.u_ddrphy_top.ddrphy_slice_top.read_clk_ctrl);  
+    $display("%t The Phy dqs_even_bin is %h",$time,u_ddr.I_ipsxb_ddr_top.u_ddrphy_top.ddrphy_slice_top.samp_center_position);
+    $display("%t The Phy dqs_odd_bin is %h",$time,u_ddr.I_ipsxb_ddr_top.u_ddrphy_top.ddrphy_slice_top.samp_win_size);
+    $display("%t The Phy dqs_odd_bin is %h",$time,u_ddr.I_ipsxb_ddr_top.u_ddrphy_top.ddrphy_slice_top.samp_win_valid);    
+    $display("%t Mem training complete ... ",$time);
+
+end
+
+initial
+begin
+    @(posedge error_state)
+    $display("%t TRAINING ERROR, error_state is %h ",$time,u_ddr.I_ipsxb_ddr_top.u_ddrphy_top.ddrphy_calib_top.ddrphy_main_ctrl.error_status);
+    #5000000;
+    $finish;
 end
 
 initial 

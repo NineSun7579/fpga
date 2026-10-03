@@ -19,7 +19,7 @@
 // 
 //////////////////////////////////////////////////////////////////////////////////
 //camera中寄存器的配置程序
- module reg_config(     
+ module reg_config #(parameter COLOR_BAR_TEST = 0)(     
 		  input clk_25M,
 		  input camera_rstn,
 		  input initial_en,
@@ -48,7 +48,7 @@
 
 assign reg_conf_done=reg_conf_done_reg;
 //产生i2c控制时钟-20khz    
-always@(posedge clk_25M)   
+always@(posedge clk_25M or negedge camera_rstn)   
 begin
    if(!camera_rstn) begin
         clock_20k<=0;
@@ -64,7 +64,7 @@ end
 
 
 ////iic寄存器配置过程控制    
-always@(posedge clock_20k)    
+always@(posedge clock_20k or negedge camera_rstn)    
 begin
    if(!camera_rstn) begin
        config_step<=0;
@@ -74,12 +74,12 @@ begin
    end
    else begin
       if(reg_conf_done_reg==1'b0) begin          //如果camera初始化未完成
-			  if(reg_index<357) begin               //配置寄存器
+			  if(reg_index < (COLOR_BAR_TEST ? 358 : 357)) begin               //配置寄存器
 					 case(config_step)
-					 0:begin
+					 0:begin if (initial_en) begin
 						i2c_data<={8'h78,reg_data};       //OV5640 IIC Device address is 0x78   
 						start<=1;                         //i2c写开始
-						config_step<=1;                  
+						config_step<=1; end                  
 					 end
 					 1:begin
 						if(tr_end) begin                  //i2c写结束               					
@@ -150,8 +150,8 @@ always@(reg_index)
 	 143  :reg_data  <=24'h3c091c ;//       
 	 144  :reg_data  <=24'h3c0a9c ;//       
 	 145  :reg_data  <=24'h3c0b40 ;//       
-	 146  :reg_data  <=24'h381000 ;//   ISP window X offset = 0 (VGA config)
-	 147  :reg_data  <=24'h381100 ;//
+	 146  :reg_data  <=24'h381000 ;//   ISP window X offset = 16 (horizontal margin candidate)
+	 147  :reg_data  <=24'h381110 ;//
 	 148  :reg_data  <=24'h381200 ;//       
 	 149  :reg_data  <=24'h370864 ;//       
 	 150  :reg_data  <=24'h400102 ;//       
@@ -312,7 +312,7 @@ always@(reg_index)
 	 305  :reg_data <=24'h530c06 ;//        
 	 306  :reg_data <=24'h502500 ;//        
 	 307  :reg_data <=24'h300802 ;//       
-  //VGA 640x480 ~60fps ;//  crop 1280x960 -> sub-sample 2:1 -> 640x480
+  //VGA 640x480 ~60fps ;//  crop 1344x960 -> horizontal ISP margin 16 -> output 640x480
   //input clock=24Mhz,PCLK=84Mhz ;//  fps = PCLK/(HTS*VTS) = 84M/(2000*705) ~ 59.6fps ;//
 	 308  :reg_data <=24'h303521 ;//PLL
 	 309  :reg_data <=24'h303669 ;//PLL
@@ -321,12 +321,12 @@ always@(reg_index)
 	 312  :reg_data <=24'h382100 ;//
 	 313  :reg_data <=24'h381431 ;//
 	 314  :reg_data <=24'h381531 ;//
-	 315  :reg_data <=24'h380002 ;//X start = 672   (crop 1280 wide, centered)
-	 316  :reg_data <=24'h3801a0 ;//
+	 315  :reg_data <=24'h380002 ;//X start = 640 (1344-wide window; 32 extra sensor columns each side)
+	 316  :reg_data <=24'h380180 ;//
 	 317  :reg_data <=24'h380201 ;//Y start = 492   (crop 960 high, centered)
 	 318  :reg_data <=24'h3803ec ;//
-	 319  :reg_data <=24'h380407 ;//X end = 1951    (672+1280-1)
-	 320  :reg_data <=24'h38059f ;//
+	 319  :reg_data <=24'h380407 ;//X end = 1983 (640+1344-1)
+	 320  :reg_data <=24'h3805bf ;//
 	 321  :reg_data <=24'h380605 ;//Y end = 1451    (492+960-1)
 	 322  :reg_data <=24'h3807ab ;//
 	 323  :reg_data <=24'h380802 ;//H output = 640
@@ -336,14 +336,14 @@ always@(reg_index)
 	 327  :reg_data <=24'h380c07 ;//HTS = 2000
 	 328  :reg_data <=24'h380dd0 ;//
 	 329  :reg_data <=24'h380e02 ;//VTS = 705
-	 330  :reg_data <=24'h380fc1 ;//
+	 330  :reg_data <=24'h380f08 ;//
 	 331  :reg_data <=24'h381300 ;//ISP window Y offset = 0        
 	 332  :reg_data <=24'h361800 ;//        
 	 333  :reg_data <=24'h361229 ;//        
 	 334  :reg_data <=24'h370952 ;//        
 	 335  :reg_data <=24'h370c03 ;//        
-	 336  :reg_data <=24'h3a0202 ;//max exposure = 684 < VTS 705 ;//
-	 337  :reg_data <=24'h3a03ac ;//        
+	 336  :reg_data <=24'h3a0201 ;//max exposure = 684 < VTS 705 ;//
+	 337  :reg_data <=24'h3a03f3 ;//        
 
 	 338  :reg_data <=24'h3a0800 ;//        
 	 339  :reg_data <=24'h3a096f ;//        
@@ -351,8 +351,8 @@ always@(reg_index)
 	 341  :reg_data <=24'h3a0b5c ;//        
 	 342  :reg_data <=24'h3a0e06 ;//        
 	 343  :reg_data <=24'h3a0d08 ;//        
-	 344  :reg_data <=24'h3a1402 ;//banding max exposure = 684 < VTS ;//
-	 345  :reg_data <=24'h3a15ac ;//
+	 344  :reg_data <=24'h3a1401 ;//banding max exposure = 684 < VTS ;//
+	 345  :reg_data <=24'h3a15f3 ;//
 	 346  :reg_data <=24'h400402 ;//         
 	 347  :reg_data <=24'h30021c ;//         
 	 348  :reg_data <=24'h3006c3 ;//         
@@ -364,6 +364,7 @@ always@(reg_index)
 	 354  :reg_data <=24'h382404 ;//         
 	 355  :reg_data <=24'h500183 ;//         
 	 356  :reg_data <=24'h350300 ;//         
+     357  :reg_data <=24'h503D80; // OV5640 standard sensor color bars
 	 default:reg_data<=24'hffffff;//        
     endcase      
 end	 

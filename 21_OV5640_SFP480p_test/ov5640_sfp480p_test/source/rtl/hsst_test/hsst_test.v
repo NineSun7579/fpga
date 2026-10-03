@@ -1,5 +1,3 @@
-// Created by IP Generator (Version 2022.1 build 99559)
-
 
 ///////////////////////////////////////////////////////////////////////////////
 //
@@ -50,24 +48,24 @@ module hsst_test (
     output         o_p_l2txp                     ,
     output         o_p_l3txn                     ,
     output         o_p_l3txp                     ,
-    input  [31:0]  i_txd_2                       /*synthesis PAP_MARK_DEBUG="1"*/,
+    input  [31:0]  i_txd_2                       ,
     input  [3:0]   i_tdispsel_2                  ,
     input  [3:0]   i_tdispctrl_2                 ,
-    input  [3:0]   i_txk_2                       /*synthesis PAP_MARK_DEBUG="1"*/,
-    input  [31:0]  i_txd_3                       /*synthesis PAP_MARK_DEBUG="1"*/,
+    input  [3:0]   i_txk_2                       ,
+    input  [31:0]  i_txd_3                       ,
     input  [3:0]   i_tdispsel_3                  ,
     input  [3:0]   i_tdispctrl_3                 ,
-    input  [3:0]   i_txk_3                       /*synthesis PAP_MARK_DEBUG="1"*/,
+    input  [3:0]   i_txk_3                       ,
     output [2:0]   o_rxstatus_2                  ,
-    output [31:0]  o_rxd_2                       /*synthesis PAP_MARK_DEBUG="1"*/,
+    output [31:0]  o_rxd_2                       ,
     output [3:0]   o_rdisper_2                   ,
     output [3:0]   o_rdecer_2                    ,
-    output [3:0]   o_rxk_2                       /*synthesis PAP_MARK_DEBUG="1"*/,
+    output [3:0]   o_rxk_2                       ,
     output [2:0]   o_rxstatus_3                  ,
-    output [31:0]  o_rxd_3                       /*synthesis PAP_MARK_DEBUG="1"*/,
+    output [31:0]  o_rxd_3                       ,
     output [3:0]   o_rdisper_3                   ,
     output [3:0]   o_rdecer_3                    ,
-    output [3:0]   o_rxk_3                       /*synthesis PAP_MARK_DEBUG="1"*/,
+    output [3:0]   o_rxk_3                       ,
     input          i_pll_rst_0                     
 );
 
@@ -462,7 +460,7 @@ ipml_hsst_rst_v1_1#(
     .PCS_CH0_BYPASS_CTC            ("TRUE"                        ), //TRUE: Lane0 Bypass CTC, FALSE: Lane0 No Bypass CTC
     .PCS_CH1_BYPASS_CTC            ("TRUE"                        ), //TRUE: Lane1 Bypass CTC, FALSE: Lane1 No Bypass CTC
     .PCS_CH2_BYPASS_CTC            ("FALSE"                       ), //TRUE: Lane2 Bypass CTC, FALSE: Lane2 No Bypass CTC
-    .PCS_CH3_BYPASS_CTC            ("FALSE"                       ), //TRUE: Lane3 Bypass CTC, FALSE: Lane3 No Bypass CTC
+    .PCS_CH3_BYPASS_CTC            ("TRUE"                        ), //TRUE: Lane3 Bypass CTC, FALSE: Lane3 No Bypass CTC
     .P_LX_TX_CKDIV_0               (1                             ), //TX initial clock division value
     .P_LX_TX_CKDIV_1               (1                             ), //TX initial clock division value
     .P_LX_TX_CKDIV_2               (3                             ), //TX initial clock division value

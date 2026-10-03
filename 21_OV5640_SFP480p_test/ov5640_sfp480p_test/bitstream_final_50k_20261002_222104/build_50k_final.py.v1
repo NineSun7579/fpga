@@ -1,0 +1,283 @@
+"""Production 50K flow. Launch through build_50k_final.ps1 for a visible live tee.
+
+--prepare validates/snapshots only. --run executes the prepared immutable inputs.
+Every vendor action is sequential; bitgen accepts only the STA-proven audited ADF.
+"""
+import argparse
+import hashlib
+import json
+import os
+from pathlib import Path
+import re
+import shutil
+import subprocess
+import sys
+import threading
+import time
+import zipfile
+
+TOOLS = Path(__file__).resolve().parent
+ROOT = TOOLS.parents[1] / 'ov5640_sfp480p_test/ov5640_sfp480p_test'
+BIN = Path('C:/pango/PDS_2022.2-SP6.4/bin')
+PDS = BIN / 'pds_shell.exe'
+DESIGN = 'hdmi_ddr_ov5640_top'
+ARCH = 'set_arch -family Logos -device PGL50H -speedgrade -6 -package FBG484\n'
+CLOCKS = ('sys_clk', 'cfg_clk', 'clk_25M', 'cam1_sccb', 'cam2_sccb',
+          'cmos1_pclk', 'cmos2_pclk', 'cmos1_pclk_16bit', 'cmos2_pclk_16bit',
+          'p_clk2core_tx_2', 'mrg_clk')
+
+
+def sha(p):
+    h = hashlib.sha256()
+    with p.open('rb') as f:
+        for chunk in iter(lambda: f.read(1024 * 1024), b''):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def save(p, data):
+    tmp = p.with_suffix(p.suffix + '.tmp')
+    tmp.write_text(json.dumps(data, indent=2), encoding='utf8')
+    tmp.replace(p)
+
+
+def idle():
+    query = "Get-Process | Where-Object { $_.ProcessName -match '^(pds|pds_shell|pnr|ta|bitgen)$' } | Select-Object Id,ProcessName | ConvertTo-Json -Compress"
+    busy = subprocess.check_output(['powershell', '-NoProfile', '-Command', query], text=True).strip()
+    if busy:
+        raise RuntimeError('Vendor runtime already active: ' + busy)
+
+
+def inputs():
+    paths = list((ROOT / 'source').rglob('*')) + list(ROOT.glob('*.fdc'))
+    paths = [p for p in paths if p.is_file()]
+    if len(paths) != 293:
+        raise RuntimeError(f'Expected 293 source/constraint files, got {len(paths)}')
+    paths += [ROOT / 'build.pds']
+    paths += [p for p in (ROOT / 'ipcore').rglob('*') if p.is_file()]
+    return {p.relative_to(ROOT).as_posix(): sha(p) for p in sorted(set(paths))}
+
+
+def check_inputs(dest):
+    original = json.loads((dest / 'input_sha256.json').read_text())
+    current = inputs()
+    changed = [n for n in sorted(original.keys() | current.keys()) if original.get(n) != current.get(n)]
+    save(dest / 'source_audit_latest.json', {'checked': len(original), 'changed_or_missing': changed})
+    if changed:
+        raise RuntimeError('Production inputs changed: ' + repr(changed))
+
+
+def script(dest, name, text):
+    p = dest / (name + '.tcl')
+    p.write_text(text, encoding='ascii')
+    return p
+
+
+def execute(dest, name, command, cwd=ROOT, data=None, timeout=5400):
+    idle()
+    check_inputs(dest)
+    print('STAGE ' + name + ': ' + subprocess.list2cmdline([str(x) for x in command]), flush=True)
+    save(dest / 'status.json', {'status': 'running', 'stage': name, 'runner_pid': os.getpid(), 'artifact_dir': str(dest)})
+    log = dest / (name + '.log')
+    with log.open('wb') as stream:
+        p = subprocess.Popen([str(x) for x in command], cwd=cwd, stdin=subprocess.PIPE if data else subprocess.DEVNULL,
+                             stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        save(dest / 'active_process.json', {'stage': name, 'pid': p.pid, 'command': [str(x) for x in command]})
+        def expire():
+            subprocess.run(['taskkill', '/PID', str(p.pid), '/T', '/F'], capture_output=True)
+        timer = threading.Timer(timeout, expire)
+        timer.start()
+        try:
+            if data:
+                p.stdin.write(data)
+                p.stdin.close()
+            for line in iter(p.stdout.readline, b''):
+                stream.write(line)
+                stream.flush()
+                print(line.decode('gb18030', errors='replace').rstrip(), flush=True)
+            code = p.wait()
+        finally:
+            timer.cancel()
+    text = log.read_bytes().decode('gb18030', errors='replace')
+    if code or re.search(r'^E:|invalid command name|Public-4023', text, re.M):
+        raise RuntimeError(f'{name} failed (exit {code}); inspect {log}')
+    check_inputs(dest)
+    return text
+
+
+def action(dest, name, tcl, work=ROOT):
+    work.mkdir(parents=True, exist_ok=True)
+    return execute(dest, name, [PDS, '-file', tcl, '-work_dir', work, '-project_name', name], cwd=work)
+
+
+def prepare():
+    idle()
+    manifest = inputs()
+    pds = (ROOT / 'build.pds').read_bytes()
+    fdc = (ROOT / 'ov5640_sfp480p_test.fdc').read_bytes()
+    if b'(_device PGL50H)' not in pds or b'define_attribute {n:mrg_clk} {PAP_CLOCK_ASSIGN} {GTP_CLKBUFG}' not in fdc:
+        raise RuntimeError('Wrong device or missing merge global-clock constraint')
+    dest = ROOT / time.strftime('bitstream_final_50k_%Y%m%d_%H%M%S')
+    dest.mkdir()
+    save(dest / 'input_sha256.json', manifest)
+    source = {n: h for n, h in manifest.items() if n.startswith('source/') or n.endswith('.fdc')}
+    save(dest / 'source_sha256.json', source)
+    with zipfile.ZipFile(dest / 'sources.zip', 'w', zipfile.ZIP_DEFLATED) as archive:
+        for n in source:
+            archive.write(ROOT / n, n)
+    shutil.copy2(ROOT / 'build.pds', dest / 'build.pds')
+    for name in ('build_50k_final.py', 'build_50k_final.ps1', 'audit_sta50k_mapped_constraints.py',
+                 'apply_sta50k_postmap_interactive.py', 'sta50k_mapped_enumerate.tcl', 'sta50k_holdexperiment.tcl'):
+        shutil.copy2(TOOLS / name, dest / name)
+    helptext = execute(dest, 'vendor_help', [PDS], data=b'help dev_map\nhelp pnr\nhelp gen_bit_stream\nhelp report_timing\nexit\n', timeout=60)
+    for token in ('dev_map :', 'gen_bit_stream :', '-input_db_file', '-fix_hold_violation_in_route'):
+        if token not in helptext:
+            raise RuntimeError('Vendor help missing required capability: ' + token)
+    base = (TOOLS / 'sta50k_holdexperiment.tcl').read_text(encoding='ascii').splitlines()[-1]
+    script(dest, 'production_pnr', ARCH + 'set mapped {' + (ROOT / ('device_map/' + DESIGN + '_map.adf')).as_posix() + '}\n' + base + '\n')
+    check_inputs(dest)
+    save(dest / 'status.json', {'status': 'prepared', 'artifact_dir': str(dest), 'source_count': len(source)})
+    print('ARTIFACT_DIRECTORY: ' + str(dest), flush=True)
+    return dest
+
+
+def prove_report(dest, report, route):
+    text = report.read_bytes().decode('gb18030', errors='replace')
+    problems = []
+    if 'Timing Models: Production' not in text or 'Timing analysis mode : multi corner' not in text:
+        problems.append('Missing production models or multi-corner timing')
+    if 'Design Summary : All Constraints Met.' not in text or 'Slack (VIOLATED)' in text:
+        problems.append('STA reports violated constraints')
+    rows = []
+    for kind in ('Setup', 'Hold', 'Recovery', 'Removal'):
+        for corner in ('Slow', 'Fast'):
+            match = re.search(kind + r' Summary\(' + corner + r' Corner\):(.*?)(?=\n=+)', text, re.S)
+            if not match:
+                problems.append(f'Missing {kind} {corner} summary')
+                continue
+            found = re.findall(r'^\s*(\S+)\s+(\S+)\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s+(\d+)\s+(\d+)\s*$', match[1], re.M)
+            rows += [{'kind': kind, 'corner': corner, 'launch': a, 'capture': b, 'slack': float(s), 'failing': int(f), 'total': int(t)} for a,b,s,_,f,t in found]
+            if any(float(s) < 0 or int(f) != 0 for _,_,s,_,f,_ in found):
+                problems.append(f'Negative slack/failing endpoints in {kind} {corner}')
+            if kind in ('Setup', 'Hold'):
+                for clock in CLOCKS:
+                    if not any(a == clock and b == clock and int(t) > 0 for a,b,_,_,_,t in found):
+                        problems.append(f'Missing local {kind} {corner} clock coverage: {clock}')
+                for a,b in (('cmos1_pclk','cmos1_pclk_16bit'), ('cmos2_pclk','cmos2_pclk_16bit'),
+                            ('mrg_clk','p_clk2core_tx_2'), ('p_clk2core_tx_2','mrg_clk')):
+                    if not any(x == a and y == b and int(t) > 0 for x,y,_,_,_,t in found):
+                        problems.append(f'Missing related paths {kind} {corner}: {a}->{b}')
+    # The two CDC directions must retain exactly ten constrained Gray destinations.
+    for a,b in (('mrg_clk','p_clk2core_tx_2'), ('p_clk2core_tx_2','mrg_clk')):
+        for corner in ('Slow','Fast'):
+            if not any(r['kind'] == 'Setup' and r['corner'] == corner and r['launch'] == a and r['capture'] == b and r['total'] == 10 for r in rows):
+                problems.append(f'Gray destination coverage is not ten: {a}->{b} {corner}')
+    proof = {'report': str(report), 'report_sha256': sha(report), 'audited_route_sha256': sha(route), 'summary_rows': rows, 'problems': problems}
+    save(dest / 'final_sta_proof.json', proof)
+    if problems:
+        raise RuntimeError('Final STA blocked: ' + '; '.join(problems))
+
+
+def run(dest):
+    idle()
+    if json.loads((dest / 'status.json').read_text())['status'] != 'prepared':
+        raise RuntimeError('Runner requires a new prepared archive; no destructive resume')
+    check_inputs(dest)
+    for name in ('compile', 'synthesize', 'device_map', 'place_route', 'report_timing', 'generate_bitstream', 'generate_netlist'):
+        p = ROOT / name
+        if p.exists():
+            shutil.move(str(p), str(dest / ('previous_' + name)))
+    for stage in ('compile', 'synthesize', 'dev_map'):
+        execute(dest, stage, [PDS, '-project', ROOT / 'build.pds', '-run', stage, '-work_dir', ROOT])
+    mapped = ROOT / ('device_map/' + DESIGN + '_map.adf')
+    if not mapped.is_file():
+        raise RuntimeError('Fresh mapped database missing')
+    save(dest / 'mapped_sha256.json', {'db': str(mapped), 'sha256': sha(mapped)})
+    pnrlog = action(dest, 'physical_pnr', dest / 'production_pnr.tcl')
+    route = ROOT / ('place_route/' + DESIGN + '_pnr.adf')
+    if not route.is_file():
+        raise RuntimeError('Fresh routed database missing')
+    shutil.copytree(ROOT / 'place_route', dest / 'original_full_route')
+    protected = dest / 'original_full_route' / route.name
+    route_hash = sha(route)
+    clock_report = ROOT / 'place_route/clock_utilization.txt'
+    clocktext = clock_report.read_bytes().decode('gb18030', errors='replace')
+    if 'Design net mrg_clk is routed by general path' in pnrlog or not re.search(r'^\|\s*mrg_clk/.*\|.*clkbufg.*USCM_', clocktext, re.M):
+        raise RuntimeError('Merge clock lacks verified global-buffer placement')
+    enumout = dest / 'enumeration_output'
+    enumout.mkdir()
+    execute(dest, 'enumerate_route', [BIN / 'ta.exe', route, '-rtr', enumout, '-tcl', dest / 'sta50k_mapped_enumerate.tcl'], timeout=300)
+    if sha(route) != route_hash:
+        raise RuntimeError('Enumeration changed original route')
+    fdc = dest / 'audited_postroute.fdc'
+    execute(dest, 'audit_objects', [sys.executable, dest / 'audit_sta50k_mapped_constraints.py', '--log', dest / 'enumerate_route.log', '--db', route, '--expected-db-sha256', route_hash, '--output', fdc], timeout=60)
+    audited = dest / 'audited_route' / route.name
+    execute(dest, 'install_audited_constraints', [sys.executable, dest / 'apply_sta50k_postmap_interactive.py', '--db', route, '--fdc', fdc, '--audit', fdc.with_suffix('.fdc.audit.json'), '--output-db', audited], timeout=360)
+    # Dump both exact databases to text, proving original timing constraints persist.
+    dumpwork = dest / 'constraint_proof'
+    dumpwork.mkdir()
+    for name, db in (('original', route), ('audited', audited)):
+        tcl = script(dest, 'dump_' + name, ARCH + '.switch_db -input {' + db.as_posix() + '} -output {' + (dumpwork / (name + '.adf')).as_posix() + '}\n')
+        action(dest, 'dump_' + name, tcl, dumpwork)
+    original_text = (dumpwork / 'original.adf').read_bytes()
+    audited_text = (dumpwork / 'audited.adf').read_bytes()
+    # Native text DB stores timing commands as SDC text. Require all original
+    # clock, clock-group and uncertainty commands byte-for-byte, plus bounds.
+    timing_commands = (b'create_clock', b'create_generated_clock', b'set_clock_groups', b'set_clock_uncertainty')
+    baseline_lines = [line.strip() for line in original_text.splitlines() if any(t in line for t in timing_commands)]
+    missing = [line.decode('ascii', errors='replace') for line in baseline_lines if line not in audited_text]
+    bounds = []
+    for delay, pin in ((16, b'wptr_rd1'), (8, b'rptr_wr1')):
+        bound_lines = [line for line in audited_text.splitlines() if b'set_max_delay' in line and pin in line and b'datapath_only' in line]
+        valid = any(re.search(rb'set_max_delay\s+\{?' + str(delay).encode() + rb'(?:\.0+)?(?:\}|\s)', line) for line in bound_lines)
+        bounds.append({'delay_ns': delay, 'destination': pin.decode(), 'verified': valid})
+    save(dest / 'constraints_preserved.json', {'baseline_clock_commands': len(baseline_lines), 'missing': missing, 'bounds': bounds})
+    if not baseline_lines or missing or not all(x['verified'] for x in bounds):
+        raise RuntimeError('Installed route timing-constraint preservation/bounds proof failed; inspect constraint_proof')
+    fullwork = dest / 'final_sta'
+    sta = script(dest, 'final_sta', ARCH + 'report_timing -input_db_file {' + audited.as_posix() + '} -force_to_run -delay_type min_max -nworst 1 -max_path 15000 -input_pins TRUE -report_exception TRUE\n')
+    audited_hash = sha(audited)
+    action(dest, 'final_sta', sta, fullwork)
+    report = fullwork / ('report_timing/' + DESIGN + '.rtr')
+    prove_report(dest, report, audited)
+    if sha(audited) != audited_hash or sha(route) != route_hash or sha(protected) != route_hash:
+        raise RuntimeError('Protected or audited routed database changed during STA')
+    check_inputs(dest)
+    bitwork = dest / 'final_bitgen'
+    bit = script(dest, 'final_bitgen', ARCH + 'gen_bit_stream -input_db_file {' + audited.as_posix() + '} -force_to_run -create_bit_file TRUE\n')
+    action(dest, 'final_bitgen', bit, bitwork)
+    if sha(audited) != audited_hash or sha(route) != route_hash:
+        raise RuntimeError('Bitgen changed routed input')
+    bits = list(bitwork.rglob('*.sbit'))
+    if len(bits) != 1:
+        raise RuntimeError('Expected exactly one fresh generated .sbit, got ' + repr(bits))
+    shutil.copy2(bits[0], dest / bits[0].name)
+    check_inputs(dest)
+    save(dest / 'status.json', {'status': 'complete', 'artifact_dir': str(dest), 'bitstream': str(dest / bits[0].name),
+                              'bit_sha256': sha(bits[0]), 'audited_route_sha256': audited_hash, 'original_route_sha256': route_hash,
+                              'report_sha256': sha(report), 'source_inputs_unchanged': True})
+    print('COMPLETE: ' + str(dest / bits[0].name), flush=True)
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--prepare', action='store_true')
+    parser.add_argument('--run', type=Path)
+    args = parser.parse_args()
+    if args.prepare:
+        prepare()
+    elif args.run:
+        dest = args.run.resolve()
+        try:
+            run(dest)
+        except Exception as error:
+            save(dest / 'status.json', {'status': 'blocked', 'blocker': str(error), 'artifact_dir': str(dest)})
+            print('BLOCKED: ' + str(error), flush=True)
+            raise
+    else:
+        parser.error('Choose --prepare or --run ARTIFACT_DIRECTORY')
+
+
+if __name__ == '__main__':
+    sys.stdout.reconfigure(errors='backslashreplace')
+    main()

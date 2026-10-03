@@ -26,7 +26,7 @@ module pll (
 
     localparam real CLKIN_FREQ          = 50.0;
     localparam integer STATIC_RATIOI    = 2;
-    localparam integer STATIC_RATIO0    = 33;   // VCO 1225MHz / 33 = 37.125MHz (720p30 pix clock)
+    localparam integer STATIC_RATIO0    = 33;
     localparam integer STATIC_RATIO1    = 123;
     localparam integer STATIC_RATIO2    = 49;
     localparam integer STATIC_RATIO3    = 16;

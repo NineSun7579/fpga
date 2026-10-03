@@ -1,5 +1,3 @@
-// Created by IP Generator (Version 2022.1 build 99559)
-
 
 
 `timescale 1ns/1ps
@@ -83,13 +81,15 @@ wire                             resetn                    ;
 reg  [26:0]                      cnt                       ;
 
 wire [7:0]                       ck_dly_set_bin            ;
-wire                             force_ck_dly_en           ;
-wire [7:0]                       force_ck_dly_set_bin      ;
+wire                             ck_dly_en                 ;
+wire [7:0]                       init_ck_dly_step          ;
+wire [MEM_DQS_WIDTH-1:0]         wl_step_ov_warning        ;
+wire [3:0]                       status_wl_step_ov_warning ;
 wire [7:0]                       dll_step                  ;     
 wire                             dll_lock                  ;      
 
-wire [1:0]                       init_read_clk_ctrl        ;                                         
-wire [3:0]                       init_slip_step            ;                                                
+wire  [2*4-1:0]                  init_read_clk_ctrl        ;
+wire  [4*4-1:0]                  init_slip_step            ;
 wire                             force_read_clk_ctrl       ;    
 wire                             ddrphy_gate_update_en     ;
 
@@ -268,7 +268,7 @@ wire [7:0]                       err_cnt                   ;
 wire [3:0]                       test_main_state           ;
 wire [2:0]                       test_wr_state             ;
 wire [2:0]                       test_rd_state             ;
-wire [21:0]                      debug_calib_ctrl          ;
+wire [23:0]                      debug_calib_ctrl          ;
 
 wire                             manu_clear                ;
 wire [15:0]                      result_bit_out            ;
@@ -320,8 +320,8 @@ assign bist_stop              = ctrl_bus_2[24];
 //control bus 3
 parameter DFT_CTRL_BUS_3      = 32'h00_00_00_00;
 assign force_read_clk_ctrl    = ctrl_bus_3[0];
-assign init_slip_step         = ctrl_bus_3[7:4];
-assign init_read_clk_ctrl     = ctrl_bus_3[9:8];
+assign init_slip_step         = ctrl_bus_3[19:4];
+assign init_read_clk_ctrl     = ctrl_bus_3[27:20];
 
 //control bus 4
 parameter DFT_CTRL_BUS_4      = 32'h00_00_03_01;
@@ -362,27 +362,28 @@ parameter DFT_CTRL_BUS_13     = 32'h00_00_00_00;
 parameter DFT_CTRL_BUS_14     = 32'h00_00_00_00;
 
 //control bus 15
-parameter DFT_CTRL_BUS_15     = 32'h00_00_01_40;
-assign force_ck_dly_en        = ctrl_bus_15[0];
-assign force_ck_dly_set_bin   = ctrl_bus_15[11:4];
+parameter DFT_CTRL_BUS_15     = 32'h00_00_00_01;
+assign ck_dly_en              = ctrl_bus_15[0];
+assign init_ck_dly_step       = ctrl_bus_15[11:4];
 
-assign status_debug_slice_state = {{13*REM_DQS_WIDTH{1'b0}},debug_slice_state };
-assign status_debug_data        = {{34*REM_DQS_WIDTH{1'b0}},debug_data        };
+assign status_debug_slice_state   = {{13*REM_DQS_WIDTH{1'b0}},debug_slice_state   };
+assign status_debug_data          = {{34*REM_DQS_WIDTH{1'b0}},debug_data          };
+assign status_wl_step_ov_warning = {{REM_DQS_WIDTH{1'b0}},wl_step_ov_warning      };
 
-assign status_err_flag_out      = {{64*REM_DQS_WIDTH{1'b0}},err_flag_out      };
-assign status_err_data_out      = {{64*REM_DQS_WIDTH{1'b0}},err_data_out      };
-assign status_exp_data_out      = {{64*REM_DQS_WIDTH{1'b0}},exp_data_out      };
-assign status_next_err_data     = {{64*REM_DQS_WIDTH{1'b0}},next_err_data     };
-assign status_err_data_pre      = {{64*REM_DQS_WIDTH{1'b0}},err_data_pre      };
-assign status_err_data_aft      = {{64*REM_DQS_WIDTH{1'b0}},err_data_aft      };
-assign status_com_val_err_flag  = {{REM_DQS_WIDTH{1'b0}},update_com_val_err_flag};
+assign status_err_flag_out      = {{64*REM_DQS_WIDTH{1'b0}},err_flag_out          };
+assign status_err_data_out      = {{64*REM_DQS_WIDTH{1'b0}},err_data_out          };
+assign status_exp_data_out      = {{64*REM_DQS_WIDTH{1'b0}},exp_data_out          };
+assign status_next_err_data     = {{64*REM_DQS_WIDTH{1'b0}},next_err_data         };
+assign status_err_data_pre      = {{64*REM_DQS_WIDTH{1'b0}},err_data_pre          };
+assign status_err_data_aft      = {{64*REM_DQS_WIDTH{1'b0}},err_data_aft          };
+assign status_com_val_err_flag  = {{REM_DQS_WIDTH{1'b0}},update_com_val_err_flag };
 
 
 //status
 assign status_bus_80 =  {15'b0,heart_beat_led,3'b0,ddr_init_done,3'b0,dll_lock,3'b0,pll_lock,3'b0,err_flag_led};
-assign status_bus_81 =  {10'b0,debug_calib_ctrl};
+assign status_bus_81 =  {8'b0,debug_calib_ctrl};
 
-assign status_bus_82 =  {15'b0,ck_dly_set_bin,next_err_flag,dll_step};
+assign status_bus_82 =  {11'b0,status_wl_step_ov_warning,ck_dly_set_bin,next_err_flag,dll_step};
 
 assign status_bus_83 =  32'b0;
 assign status_bus_84 =  32'b0;
@@ -816,79 +817,79 @@ DDR3_50H  #
   )
 
   I_ipsxb_ddr_top(
-   .ref_clk                (ref_clk                ),
-   .resetn                 (resetn                 ),
-   .ddr_init_done          (ddr_init_done          ),
-   .ddrphy_clkin           (core_clk               ),
-   .pll_lock               (pll_lock               ), 
+   .ref_clk                (ref_clk                                  ),
+   .resetn                 (resetn                                   ),
+   .ddr_init_done          (ddr_init_done                            ),
+   .ddrphy_clkin           (core_clk                                 ),
+   .pll_lock               (pll_lock                                 ), 
+                                                                     
+   .axi_awaddr             (axi_awaddr                               ),
+   .axi_awuser_ap          (axi_awuser_ap                            ),
+   .axi_awuser_id          (axi_awuser_id                            ),
+   .axi_awlen              (axi_awlen                                ),
+   .axi_awready            (axi_awready                              ),
+   .axi_awvalid            (axi_awvalid                              ),
+                                                                     
+   .axi_wdata              (axi_wdata                                ),
+   .axi_wstrb              (axi_wstrb                                ),
+   .axi_wready             (axi_wready                               ),
+   .axi_wusero_id          (                                         ),
+   .axi_wusero_last        (                                         ),
+                                                                     
+   .axi_araddr             (axi_araddr                               ),
+   .axi_aruser_ap          (axi_aruser_ap                            ),
+   .axi_aruser_id          (axi_aruser_id                            ),
+   .axi_arlen              (axi_arlen                                ),
+   .axi_arready            (axi_arready                              ),
+   .axi_arvalid            (axi_arvalid                              ),
+                                                                     
+   .axi_rdata              (axi_rdata                                ),
+   .axi_rid                (                                         ),
+   .axi_rlast              (                                         ),
+   .axi_rvalid             (axi_rvalid                               ),
+                                                                     
+   .apb_clk                (1'b0                                     ),
+   .apb_rst_n              (1'b0                                     ),
+   .apb_sel                (1'b0                                     ),
+   .apb_enable             (1'b0                                     ),
+   .apb_addr               (8'd0                                     ),
+   .apb_write              (1'b0                                     ),
+   .apb_ready              (                                         ),
+   .apb_wdata              (16'd0                                    ),
+   .apb_rdata              (                                         ),
+   .apb_int                (                                         ),
+   .debug_data             (debug_data                               ),
+   .debug_slice_state      (debug_slice_state                        ),
+   .debug_calib_ctrl       (debug_calib_ctrl                         ),
+   .ck_dly_set_bin         (ck_dly_set_bin                           ),
+   .ck_dly_en              (ck_dly_en                                ),
+   .init_ck_dly_step       (init_ck_dly_step                         ),
+   .dll_step               (dll_step                                 ),
+   .dll_lock               (dll_lock                                 ),
+   .init_read_clk_ctrl     (init_read_clk_ctrl[2*MEM_DQS_WIDTH-1:0]  ),                                                       
+   .init_slip_step         (init_slip_step[4*MEM_DQS_WIDTH-1:0]      ), 
+   .force_read_clk_ctrl    (force_read_clk_ctrl                      ),  
+   .ddrphy_gate_update_en  (ddrphy_gate_update_en                    ),
+   .update_com_val_err_flag (update_com_val_err_flag                 ),
+   .rd_fake_stop           (rd_fake_stop                             ),
+                                                                     
+   .mem_rst_n              (mem_rst_n                                ),
+   .mem_ck                 (mem_ck                                   ),
+   .mem_ck_n               (mem_ck_n                                 ),
+   .mem_cke                (mem_cke                                  ),
 
-   .axi_awaddr             (axi_awaddr             ),
-   .axi_awuser_ap          (axi_awuser_ap          ),
-   .axi_awuser_id          (axi_awuser_id          ),
-   .axi_awlen              (axi_awlen              ),
-   .axi_awready            (axi_awready            ),
-   .axi_awvalid            (axi_awvalid            ),
+   .mem_cs_n               (mem_cs_n                                 ),
 
-   .axi_wdata              (axi_wdata              ),
-   .axi_wstrb              (axi_wstrb              ),
-   .axi_wready             (axi_wready             ),
-   .axi_wusero_id          (                       ),
-   .axi_wusero_last        (                       ),
-
-   .axi_araddr             (axi_araddr             ),
-   .axi_aruser_ap          (axi_aruser_ap          ),
-   .axi_aruser_id          (axi_aruser_id          ),
-   .axi_arlen              (axi_arlen              ),
-   .axi_arready            (axi_arready            ),
-   .axi_arvalid            (axi_arvalid            ),
-
-   .axi_rdata              (axi_rdata              ),
-   .axi_rid                (                       ),
-   .axi_rlast              (                       ),
-   .axi_rvalid             (axi_rvalid             ),
-
-   .apb_clk                (1'b0                   ),
-   .apb_rst_n              (1'b0                   ),
-   .apb_sel                (1'b0                   ),
-   .apb_enable             (1'b0                   ),
-   .apb_addr               (8'd0                   ),
-   .apb_write              (1'b0                   ),
-   .apb_ready              (                       ),
-   .apb_wdata              (16'd0                  ),
-   .apb_rdata              (                       ),
-   .apb_int                (                       ),
-   .debug_data             (debug_data             ),
-   .debug_slice_state      (debug_slice_state      ),
-   .debug_calib_ctrl       (debug_calib_ctrl       ),
-   .ck_dly_set_bin         (ck_dly_set_bin         ),
-   .force_ck_dly_en        (force_ck_dly_en        ),
-   .force_ck_dly_set_bin   (force_ck_dly_set_bin   ),
-   .dll_step               (dll_step               ),
-   .dll_lock               (dll_lock               ),
-   .init_read_clk_ctrl     (init_read_clk_ctrl     ),                                                       
-   .init_slip_step         (init_slip_step         ), 
-   .force_read_clk_ctrl    (force_read_clk_ctrl    ),  
-   .ddrphy_gate_update_en  (ddrphy_gate_update_en  ),
-   .update_com_val_err_flag (update_com_val_err_flag),
-   .rd_fake_stop           (rd_fake_stop           ),
-
-   .mem_rst_n              (mem_rst_n              ),
-   .mem_ck                 (mem_ck                 ),
-   .mem_ck_n               (mem_ck_n               ),
-   .mem_cke                (mem_cke                ),
-
-   .mem_cs_n               (mem_cs_n               ),
-
-   .mem_ras_n              (mem_ras_n              ),
-   .mem_cas_n              (mem_cas_n              ),
-   .mem_we_n               (mem_we_n               ),
-   .mem_odt                (mem_odt                ),
-   .mem_a                  (mem_a                  ),
-   .mem_ba                 (mem_ba                 ),
-   .mem_dqs                (mem_dqs                ),
-   .mem_dqs_n              (mem_dqs_n              ),
-   .mem_dq                 (mem_dq                 ),
-   .mem_dm                 (mem_dm                 )
+   .mem_ras_n              (mem_ras_n                                ),
+   .mem_cas_n              (mem_cas_n                                ),
+   .mem_we_n               (mem_we_n                                 ),
+   .mem_odt                (mem_odt                                  ),
+   .mem_a                  (mem_a                                    ),
+   .mem_ba                 (mem_ba                                   ),
+   .mem_dqs                (mem_dqs                                  ),
+   .mem_dqs_n              (mem_dqs_n                                ),
+   .mem_dq                 (mem_dq                                   ),
+   .mem_dm                 (mem_dm                                   )
   );
 
 

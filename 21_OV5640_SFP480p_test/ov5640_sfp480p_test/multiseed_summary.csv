@@ -1,32 +1,38 @@
 version,2022.2-SP6.4<build 146967>
-project name,build.pds
+project name,physical_pnr.pds
 
 Single Seed:
 Seed,State,Convergence,Setup(Slow),Setup(Fast),Hold(Slow),Hold(Fast),Recovery(Slow),Recovery(Fast),Removal(Slow),Removal(Fast),PBM-GP,PBM-PreGP,PBM-PostGP,LP,Total Placement Cpu Time,Detailed routing,Total Routing Cpu Time,Wire Length After Post-GP,Wire Length After LP,Wire Length After DP,Routing Arc Length,Worst Slack After GP Timing,Worst Slack After LP Timing,Worst Slack Before RP,Worst Slack Before DP,Worst Slack After DP,Worst Slack After Placement,Worst Slack After TA By Preroute,TNS After DP,TNS Before Route,Setup(Slow) Total Failing TNS,Setup(Slow) Total Failing Endpoints,Hold(Slow) Total Failing THS,Hold(Slow) Total Failing Endpoints,Power
-single,OK,Fail,0.287,1.834,-0.181,-0.182,3.617,5.282,0.464,0.271,NA,NA,NA,8.23,94.86,239.36,332.72,NA,NA,NA,481854,NA,NA,-1153,NA,NA,1145,NA,NA,0,0.000,0,-0.181,1,NA
-Pass Rate/Convergence Rate,100.00%,0.00%
+single,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,0.19,6.48,9.83,41.84,NA,NA,NA,71584,NA,NA,1526,NA,NA,-2236,NA,NA,-8484,NA,NA,NA,NA,NA
+Pass Rate/Convergence Rate,0.00%,0.00%
 
 Synthesize:
-control_set,1514
+control_set,NA
 Synthesize Performance Summary:
 slack category,Synthesize Setup WNS,Synthesize Setup TNS,Synthesize Recovery WNS,Synthesize Recovery TNS
-slack value,-0.511,-10465.916,5.501,0.000
-Synthesize Process Cpu Time,0h:1m:59s
+slack value,NA,NA,NA,NA
+Synthesize Process Cpu Time,NA
 
 Device Map:
 Device Map Resource Usage Summary:
 Logic Utilization,LUT,FF,DRM,APM,Distributed RAM,HSSTHP,USCM,HCKB,RCKB
-Used,21819,36242,22.5,0,1160,NA,10,NA,0
-Available,42800,64200,134,84,17000,NA,30,NA,24
-Utilization(%),51%,57%,17%,0%,7%,NA,34%,NA,0%
-Device Map Process Cpu Time,0h:0m:14s
+Used,NA,NA,NA,NA,NA,NA,NA,NA,NA
+Available,NA,NA,NA,NA,NA,NA,NA,NA,NA
+Utilization(%),NA,NA,NA,NA,NA,NA,NA,NA,NA
+Device Map Process Cpu Time,NA
 
 Project Configurations:
-top module,hdmi_ddr_ov5640_top
+top module,
 compile,
-synthesize," -ads "
+synthesize,
 device map,
-place & route,
+place & route," -force_to_run 
+ -input_db_file {C:/Users/NineSun/Desktop/ov56401/ov5640_sfp480p_test/ov5640_sfp480p_test/device_map/hdmi_ddr_ov5640_top_map.adf} 
+ -fast_router false 
+ -optimize_multi_corner_timing 
+ -fix_hold_violation 
+ -fix_hold_violation_threshold 100 
+ -fix_hold_violation_threshold_for_clk_tree 200 "
 
 Test Parameters Configurations:
 testparam,

@@ -4,10 +4,10 @@ if {[file exists work]} {
 vlib work
 vmap work work
 
-set LIB_DIR  C:/pango/PDS_2022.1/ip/system_ip/ipsxb_hmic_s/ipsxb_hmic_eval/ipsxb_hmic_s/../../../../../arch/vendor/pango/verilog/simulation
+set LIB_DIR  C:/pango/PDS_2022.2-SP6.4/ip/system_ip/ipsxb_hmic_s/ipsxb_hmic_eval/ipsxb_hmic_s/../../../../../arch/vendor/pango/verilog/simulation
 
 vlib work
 vlog -sv -work work -mfcu -incr -f ../modelsim/sim_file_list.f -y $LIB_DIR +libext+.v +incdir+../../example_design/bench/mem/ 
-vsim -suppress 3486,3680,3781 +nowarn1 -c -sva -lib work ddr_test_top_tb -l sim.log
+vsim -voptargs="+acc" -debugDB -pli /mnt/edatool/tool/synopsys/verdi/Q-2020.03-SP2/share/PLI/MODELSIM/linux64/novas_fli.so -suppress 3486,3680,3781 +nowarn1 -c -sva -lib work ddr_test_top_tb -l sim.log
 run 800us
 

@@ -90,7 +90,7 @@ input                         wr_rst         ; //input write reset
 
 output [RD_DATA_WIDTH-1:0]    rd_data        ; //output read data    [C_RD_DATA_WIDTH-1:0]
 input  [RD_ADDR_WIDTH-1:0]    rd_addr        ; //input read address [RD_ADDR_WIDTH-1:0]
-input                         rd_clk         ; //input read clock 
+input                         rd_clk         ; //input read clock
 
 input                         rd_rst         ; //input read reset
 
@@ -105,7 +105,7 @@ wire  [BE_WIDTH-1:0]          wr_byte_en     ; //input write reset
 wire                          wr_addr_strobe ; //input write address string
 wire  [RD_DATA_WIDTH-1:0]     rd_data        ; //output read data    [C_RD_DATA_WIDTH-1:0]
 wire  [RD_ADDR_WIDTH-1:0]     rd_addr        ; //input read address [RD_ADDR_WIDTH-1:0]
-wire                          rd_clk         ; //input read clock 
+wire                          rd_clk         ; //input read clock
 wire                          rd_clk_en      ; //input read clock enable
 wire                          rd_rst         ; //input read reset
 wire                          rd_oce         ; //input read output register enable
@@ -134,7 +134,7 @@ assign rd_data         = ((DEVICE_NAME == "PGT30G") && (RD_DATA_WIDTH <= 9)) ? r
 
 
 //ipml_sdpram IP instance
-ipml_sdpram_v1_6_rd_fram_buf
+ipml_sdpram_v1_8_rd_fram_buf
     #(
     .c_SIM_DEVICE           (SIM_DEVICE             ),
     .c_WR_ADDR_WIDTH        (WR_ADDR_WIDTH          ),
@@ -167,7 +167,7 @@ ipml_sdpram_v1_6_rd_fram_buf
 
     .rd_data                (rd_data_wrap           ),//output read data
     .rd_addr                (rd_addr                ),//input read address
-    .rd_clk                 (rd_clk                 ),//input read clock 
+    .rd_clk                 (rd_clk                 ),//input read clock
     .rd_clk_en              (rd_clk_en_mux          ),//input read clock enable
     .rd_rst                 (rd_rst                 ),//input read reset
     .rd_oce                 (rd_oce_mux             ),//input read output register enable

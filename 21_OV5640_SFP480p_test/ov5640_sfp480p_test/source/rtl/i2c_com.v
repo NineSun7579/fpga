@@ -50,7 +50,7 @@ module i2c_com(clock_i2c        ,  //i2c控制接口传输所需时钟，0-400kh
     assign i2c_sclk=sclk|(((cyc_count>=4)&(cyc_count<=39))?~clock_i2c:0);
     assign i2c_sdat=reg_sdat?1'bz:0; 
    
-    always@(posedge clock_i2c)
+    always@(posedge clock_i2c or negedge camera_rstn)
     begin
        if(!camera_rstn)
          cyc_count<=6'b111111;
@@ -64,7 +64,7 @@ module i2c_com(clock_i2c        ,  //i2c控制接口传输所需时钟，0-400kh
     end
 	 
 	 
-    always@(posedge clock_i2c)
+    always@(posedge clock_i2c or negedge camera_rstn)
     begin
        if(!camera_rstn)
        begin

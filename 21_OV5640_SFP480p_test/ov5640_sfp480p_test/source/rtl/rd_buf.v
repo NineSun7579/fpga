@@ -39,7 +39,10 @@ module rd_buf #(
     output                        vout_de,
     output [PIX_WIDTH- 1'b1 : 0]  vout_data,
     
-    input                         init_done,
+    input                         init_done,        //input
+    input  [11:0]                 rd_base,
+    input                         pub_page,         //[P1-2] published page
+    output                        rd_page,          //[P1-2] page being read          //[DIAG] 读指针基准(扫参用)
     
     output                        ddr_rreq,
     output [ADDR_WIDTH- 1'b1 : 0] ddr_raddr,
@@ -102,14 +105,13 @@ module rd_buf #(
     assign wr_rst = ~wr_fsync_3d && wr_fsync_2d;
     
     //==========================================================================
-    reg [FRAME_CNT_WIDTH - 1'b1 :0] wr_frame_cnt=0;
+    // ---- [P1-2] latch the published page at each display-frame boundary ----
+    reg rd_page_r;
     always @(posedge ddr_clk)
-    begin 
-        if(wr_rst)
-            wr_frame_cnt <= wr_frame_cnt + 1'b1;
-        else
-            wr_frame_cnt <= wr_frame_cnt;
-    end 
+    begin
+        if(wr_rst) rd_page_r <= pub_page;
+    end
+    assign rd_page = rd_page_r;
 
     reg [LINE_ADDR_WIDTH - 1'b1 :0] wr_cnt;
     always @(posedge ddr_clk)
@@ -123,7 +125,7 @@ module rd_buf #(
     end 
     
     assign ddr_rreq = wr_trig;
-    assign ddr_raddr = {wr_frame_cnt[0],wr_cnt} + ADDR_OFFSET;
+    assign ddr_raddr = {rd_page_r,wr_cnt} + ADDR_OFFSET;
     assign ddr_rd_len = RD_LINE_NUM;
     
     reg  [ 8:0]           wr_addr;
@@ -166,7 +168,7 @@ module rd_buf #(
     always @(posedge vout_clk)
     begin
         if(rd_rst)
-            rd_addr <= 'd0;
+            rd_addr <= rd_base;              //[DIAG] 基准可调, 用于扫出水平错位量
         else if(read_en)
             rd_addr <= rd_addr + 1'b1;
         else

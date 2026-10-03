@@ -1,0 +1,430 @@
+License checkout: fabric_shell from C:\pango\license\new_pds_F4A80DA47D72.lic
+Compiling architecture definition.
+Analyzing project file 'C:/Users/NineSun/Desktop/ov56401/ov5640_sfp480p_test/ov5640_sfp480p_test/physical_pnr.pds'.
+Executing : set_arch -family Logos -device PGL50H -speedgrade -6 -package FBG484
+Executing : set_arch -family Logos -device PGL50H -speedgrade -6 -package FBG484 successfully.
+
+
+Executing : pnr -input_db_file C:/Users/NineSun/Desktop/ov56401/ov5640_sfp480p_test/ov5640_sfp480p_test/device_map/hdmi_ddr_ov5640_top_map.adf -force_to_run -optimize_multi_corner_timing -fix_hold_violation -fix_hold_violation_iterations 500 -fix_hold_violation_threshold 100 -fix_hold_violation_in_route TRUE -fix_hold_violation_threshold_for_clock_path_cross_srb 200 -fix_hold_violation_threshold_for_clk_tree 200 -max_hold_violated_paths_num 15000 -fast_router FALSE
+
+
+Process "Place & Route" started.
+Current time: Fri Oct  2 22:26:48 2026
+Compiling architecture definition.
+Analyzing project file 'C:/Users/NineSun/Desktop/ov56401/ov5640_sfp480p_test/ov5640_sfp480p_test/physical_pnr.pds'.
+Compiling verification operator library.
+Compiling common defs.
+Compiling prim grid devices.
+Compiling gate devices.
+Compiling gate operators.
+Building architecture model.
+Loading device packaging model.
+pnr strategy configuration : 
+strategy name : 0
+W: ConstraintEditor-4019: Port 'sfp0_rxn' unspecified I/O constraint.
+W: ConstraintEditor-4019: Port 'sfp0_rxp' unspecified I/O constraint.
+W: ConstraintEditor-4019: Port 'sfp0_txn' unspecified I/O constraint.
+W: ConstraintEditor-4019: Port 'sfp0_txp' unspecified I/O constraint.
+W: ConstraintEditor-4019: Port 'sfp1_rxn' unspecified I/O constraint.
+W: ConstraintEditor-4019: Port 'sfp1_rxp' unspecified I/O constraint.
+W: ConstraintEditor-4019: Port 'sfp1_txn' unspecified I/O constraint.
+W: ConstraintEditor-4019: Port 'sfp1_txp' unspecified I/O constraint.
+W: ConstraintEditor-4019: Port 'sfp_refckn' unspecified I/O constraint.
+W: ConstraintEditor-4019: Port 'sfp_refckp' unspecified I/O constraint.
+NOTE: The technology fpga was specified.
+NOTE: delay_model specified was generic_cmos.
+NOTE: Using the fpga syntax tables...
+Totals:
+ Calls to malloc = 0
+ Calls to calloc = 5993935
+
+I: Column Clock Check open.
+Read Column Clock Map.
+
+Placement started.
+Building architecture floorplan logic view.
+Phase 1 Pre global placement started.
+Mapping instance u_hsst/U_GTP_HSST_WRAPPER/U_GTP_HSST/hsst to HSST_88_340.
+Phase 1.1 1st GP placement started.
+Design Utilization : 57%.
+First map gop timing takes 0.19 sec
+Worst slack after clock region global placement is 1437
+Wirelength after clock region global placement is 255411 and checksum is 83490BC9D1436697.
+1st GP placement takes 17.53 sec.
+
+Phase 1.2 Clock placement started.
+Mapping instance cmos1_8_16bit/u_GTP_IOCLKDIV/gopclkdiv to IOCKDIV_6_323.
+Mapping instance clkbufg_3/gopclkbufg to USCM_84_109.
+Mapping instance cmos1_pclk_ibuf/opit_1 to IOL_7_205.
+Mapping instance cmos1_8_16bit/u_GTP_IOCLKBUF/gopclkgate to IOCKGATE_6_322.
+Mapping instance cmos2_8_16bit/u_GTP_IOCLKDIV/gopclkdiv to IOCKDIV_6_314.
+Mapping instance clkbufg_2/gopclkbufg to USCM_84_110.
+Mapping instance cmos2_pclk_ibuf/opit_1 to IOL_7_206.
+Mapping instance cmos2_8_16bit/u_GTP_IOCLKBUF/gopclkgate to IOCKGATE_6_312.
+Mapping instance clkbufg_1/gopclkbufg to USCM_84_108.
+Mapping instance u_pll/u_pll_e3/goppll to PLL_158_303.
+Mapping instance clkbufg_5/gopclkbufg to USCM_84_111.
+Mapping instance clkbufg_8/gopclkbufg to USCM_84_112.
+Mapping instance sys_clk_ibuf/opit_1 to IOL_7_209.
+Mapping instance clkbufg_4/gopclkbufg to USCM_84_113.
+Mapping instance clkbufg_6/gopclkbufg to USCM_84_114.
+Mapping instance clkbufg_0/gopclkbufg to USCM_84_115.
+C: Place-2028: GLOBAL_CLOCK: the driver cmos2_pclk_ibuf/opit_1 fixed at IOL_7_206 is unreasonable. Sub-optimal placement for a clock source and a clock buffer.
+Mapping instance clkbufg_7/gopclkbufg to USCM_84_116.
+Clock placement takes 1.23 sec.
+
+Wirelength after Pre Global Placement is 255411 and checksum is 83490BC9D1436697.
+Pre global placement takes 19.36 sec.
+
+Phase 2 Global placement started.
+Phase 2.1 Fixed placement started.
+Placed fixed group with base inst cmos1_pclk_ibuf/opit_1 on IOL_7_205.
+Placed fixed group with base inst cmos2_pclk_ibuf/opit_1 on IOL_7_206.
+Placed fixed group with base inst sys_clk_ibuf/opit_1 on IOL_7_209.
+Placed fixed instance clkbufg_0/gopclkbufg on USCM_84_115.
+Placed fixed instance clkbufg_1/gopclkbufg on USCM_84_108.
+Placed fixed instance clkbufg_2/gopclkbufg on USCM_84_110.
+Placed fixed instance clkbufg_3/gopclkbufg on USCM_84_109.
+Placed fixed instance clkbufg_4/gopclkbufg on USCM_84_113.
+Placed fixed instance clkbufg_5/gopclkbufg on USCM_84_111.
+Placed fixed instance clkbufg_6/gopclkbufg on USCM_84_114.
+Placed fixed instance clkbufg_7/gopclkbufg on USCM_84_116.
+Placed fixed instance clkbufg_8/gopclkbufg on USCM_84_112.
+Placed fixed instance cmos1_8_16bit/u_GTP_IOCLKBUF/gopclkgate on IOCKGATE_6_322.
+Placed fixed instance cmos1_8_16bit/u_GTP_IOCLKDIV/gopclkdiv on IOCKDIV_6_323.
+Placed fixed instance cmos2_8_16bit/u_GTP_IOCLKBUF/gopclkgate on IOCKGATE_6_312.
+Placed fixed instance cmos2_8_16bit/u_GTP_IOCLKDIV/gopclkdiv on IOCKDIV_6_314.
+Placed fixed instance u_hsst/U_GTP_HSST_WRAPPER/U_GTP_HSST/hsst on HSST_88_340.
+Placed fixed instance u_pll/u_pll_e3/goppll on PLL_158_303.
+Fixed placement takes 0.44 sec.
+
+Phase 2.2 Process placement started.
+Process placement takes 0.00 sec.
+
+Phase 2.3 IO placement started.
+IO placement takes 0.09 sec.
+
+Phase 2.4 2nd GP placement started.
+Run super clustering :
+	Initial slack 950.
+	1 iterations finished.
+	Final slack 950.
+Super clustering done.
+Design Utilization : 57%.
+Worst slack after global placement is 1644
+2nd GP placement takes 14.09 sec.
+
+Wirelength after global placement is 284207 and checksum is 91D52B94E7519561.
+Global placement takes 14.64 sec.
+
+Phase 3 Post global placement started.
+Phase 3.1 Macro cell placement started.
+I: Process macros using "Greedy".
+Wirelength after macro cell placement is 285678 and checksum is 61C4F97C441F20F0.
+Macro cell placement takes 0.02 sec.
+
+Phase 3.2 3rd GP placement started.
+Run super clustering :
+	Initial slack 950.
+	1 iterations finished.
+	Final slack 950.
+Super clustering done.
+Design Utilization : 57%.
+Worst slack after post global placement is 1606
+3rd GP placement takes 14.94 sec.
+
+Wirelength after post global placement is 227185 and checksum is 19E657499E3F9A51.
+Post global placement takes 14.98 sec.
+
+Phase 4 Legalization started.
+The average distance in LP is 2.181424.
+Wirelength after legalization is 392717 and checksum is F86F6B86132211FF.
+Legalization takes 3.08 sec.
+
+Phase 5 Timing-driven detailed placement started.
+Phase 5.1 Replication placement started.
+Worst slack before Replication Place is 1493.
+Replication placement takes 0.27 sec.
+
+Wirelength after replication placement is 392717 and checksum is F86F6B86132211FF.
+Phase 5.2 DP placement started.
+Legalized cost 1493.000000.
+The detailed placement ends at 0th iteration.
+DP placement takes 0.38 sec.
+
+Wirelength after detailed placement is 392717 and checksum is F86F6B86132211FF.
+Timing-driven detailed placement takes 0.64 sec.
+
+Worst slack is -5581, TNS after placement is -21800.
+Placement done.
+Total placement takes 57.16 sec.
+Finished placement.
+
+Routing started.
+Building routing graph takes 1.59 sec.
+Worst slack is -5581, TNS before global route is -21800.
+Processing design graph takes 1.20 sec.
+Total memory for routing:
+	138.565489 M.
+Total nets for routing : 38063.
+Global Routing step 1 processed 0 nets, it takes 0.03 sec.
+Rcf routing step 1 processed 0 nets, it takes 0.00 sec.
+Rcf routing step 2 processed 0 nets, it takes 0.00 sec.
+Rcf routing step 3 processed 0 nets, it takes 0.00 sec.
+Global routing takes 0.11 sec.
+Total 38063 subnets.
+    forward max bucket size 11029 , backward 4547.
+        Unrouted nets 29647 at the end of iteration 0.
+    route iteration 0, CPU time elapsed 37.109375 sec.
+    forward max bucket size 10282 , backward 4437.
+        Unrouted nets 20586 at the end of iteration 1.
+    route iteration 1, CPU time elapsed 29.625000 sec.
+    forward max bucket size 9389 , backward 5904.
+        Unrouted nets 14639 at the end of iteration 2.
+    route iteration 2, CPU time elapsed 32.390625 sec.
+    forward max bucket size 8089 , backward 6522.
+        Unrouted nets 10623 at the end of iteration 3.
+    route iteration 3, CPU time elapsed 33.718750 sec.
+    forward max bucket size 7644 , backward 5971.
+        Unrouted nets 8414 at the end of iteration 4.
+    route iteration 4, CPU time elapsed 30.000000 sec.
+    forward max bucket size 6040 , backward 5471.
+        Unrouted nets 6930 at the end of iteration 5.
+    route iteration 5, CPU time elapsed 35.765625 sec.
+    forward max bucket size 3458 , backward 5176.
+        Unrouted nets 8034 at the end of iteration 6.
+    route iteration 6, CPU time elapsed 25.484375 sec.
+    forward max bucket size 3598 , backward 5373.
+        Unrouted nets 7648 at the end of iteration 7.
+    route iteration 7, CPU time elapsed 24.171875 sec.
+    forward max bucket size 3251 , backward 4188.
+        Unrouted nets 6404 at the end of iteration 8.
+    route iteration 8, CPU time elapsed 17.078125 sec.
+    forward max bucket size 2201 , backward 2909.
+        Unrouted nets 5209 at the end of iteration 9.
+    route iteration 9, CPU time elapsed 12.515625 sec.
+    forward max bucket size 2772 , backward 3577.
+        Unrouted nets 4333 at the end of iteration 10.
+    route iteration 10, CPU time elapsed 8.953125 sec.
+    forward max bucket size 2113 , backward 2533.
+        Unrouted nets 3421 at the end of iteration 11.
+    route iteration 11, CPU time elapsed 7.421875 sec.
+    forward max bucket size 2718 , backward 3102.
+        Unrouted nets 2720 at the end of iteration 12.
+    route iteration 12, CPU time elapsed 6.093750 sec.
+    forward max bucket size 2594 , backward 3061.
+        Unrouted nets 2201 at the end of iteration 13.
+    route iteration 13, CPU time elapsed 4.718750 sec.
+    forward max bucket size 1521 , backward 2559.
+        Unrouted nets 1850 at the end of iteration 14.
+    route iteration 14, CPU time elapsed 4.968750 sec.
+    forward max bucket size 2816 , backward 4085.
+        Unrouted nets 1725 at the end of iteration 15.
+    route iteration 15, CPU time elapsed 5.203125 sec.
+    forward max bucket size 1321 , backward 1677.
+        Unrouted nets 1273 at the end of iteration 16.
+    route iteration 16, CPU time elapsed 2.703125 sec.
+    forward max bucket size 1516 , backward 2456.
+        Unrouted nets 1019 at the end of iteration 17.
+    route iteration 17, CPU time elapsed 3.031250 sec.
+    forward max bucket size 940 , backward 2478.
+        Unrouted nets 775 at the end of iteration 18.
+    route iteration 18, CPU time elapsed 1.421875 sec.
+    forward max bucket size 2439 , backward 3437.
+        Unrouted nets 555 at the end of iteration 19.
+    route iteration 19, CPU time elapsed 1.015625 sec.
+    forward max bucket size 683 , backward 349.
+        Unrouted nets 432 at the end of iteration 20.
+    route iteration 20, CPU time elapsed 1.125000 sec.
+    forward max bucket size 927 , backward 733.
+        Unrouted nets 321 at the end of iteration 21.
+    route iteration 21, CPU time elapsed 0.656250 sec.
+    forward max bucket size 2839 , backward 4565.
+        Unrouted nets 237 at the end of iteration 22.
+    route iteration 22, CPU time elapsed 0.421875 sec.
+    forward max bucket size 2686 , backward 3858.
+        Unrouted nets 183 at the end of iteration 23.
+    route iteration 23, CPU time elapsed 0.484375 sec.
+    forward max bucket size 729 , backward 385.
+        Unrouted nets 145 at the end of iteration 24.
+    route iteration 24, CPU time elapsed 0.343750 sec.
+    forward max bucket size 859 , backward 964.
+        Unrouted nets 161 at the end of iteration 25.
+    route iteration 25, CPU time elapsed 0.453125 sec.
+    forward max bucket size 855 , backward 1558.
+        Unrouted nets 130 at the end of iteration 26.
+    route iteration 26, CPU time elapsed 0.421875 sec.
+    forward max bucket size 1217 , backward 348.
+        Unrouted nets 115 at the end of iteration 27.
+    route iteration 27, CPU time elapsed 0.296875 sec.
+    forward max bucket size 531 , backward 277.
+        Unrouted nets 90 at the end of iteration 28.
+    route iteration 28, CPU time elapsed 0.203125 sec.
+    forward max bucket size 206 , backward 113.
+        Unrouted nets 50 at the end of iteration 29.
+    route iteration 29, CPU time elapsed 0.156250 sec.
+    forward max bucket size 454 , backward 132.
+        Unrouted nets 45 at the end of iteration 30.
+    route iteration 30, CPU time elapsed 0.171875 sec.
+    forward max bucket size 846 , backward 436.
+        Unrouted nets 104 at the end of iteration 31.
+    route iteration 31, CPU time elapsed 0.609375 sec.
+    forward max bucket size 836 , backward 406.
+        Unrouted nets 107 at the end of iteration 32.
+    route iteration 32, CPU time elapsed 0.312500 sec.
+    forward max bucket size 394 , backward 1377.
+        Unrouted nets 76 at the end of iteration 33.
+    route iteration 33, CPU time elapsed 0.187500 sec.
+    forward max bucket size 310 , backward 176.
+        Unrouted nets 49 at the end of iteration 34.
+    route iteration 34, CPU time elapsed 0.109375 sec.
+    forward max bucket size 404 , backward 352.
+        Unrouted nets 21 at the end of iteration 35.
+    route iteration 35, CPU time elapsed 0.125000 sec.
+    forward max bucket size 278 , backward 65.
+        Unrouted nets 14 at the end of iteration 36.
+    route iteration 36, CPU time elapsed 0.125000 sec.
+    forward max bucket size 82 , backward 45.
+        Unrouted nets 15 at the end of iteration 37.
+    route iteration 37, CPU time elapsed 0.109375 sec.
+    forward max bucket size 134 , backward 94.
+        Unrouted nets 11 at the end of iteration 38.
+    route iteration 38, CPU time elapsed 0.109375 sec.
+    forward max bucket size 314 , backward 82.
+        Unrouted nets 8 at the end of iteration 39.
+    route iteration 39, CPU time elapsed 0.062500 sec.
+    forward max bucket size 20 , backward 13.
+        Unrouted nets 2 at the end of iteration 40.
+    route iteration 40, CPU time elapsed 0.109375 sec.
+    forward max bucket size 241 , backward 95.
+        Unrouted nets 5 at the end of iteration 41.
+    route iteration 41, CPU time elapsed 0.109375 sec.
+    forward max bucket size 37 , backward 38.
+        Unrouted nets 4 at the end of iteration 42.
+    route iteration 42, CPU time elapsed 0.140625 sec.
+    forward max bucket size 21 , backward 20.
+        Unrouted nets 2 at the end of iteration 43.
+    route iteration 43, CPU time elapsed 0.093750 sec.
+    forward max bucket size 280 , backward 18.
+        Unrouted nets 4 at the end of iteration 44.
+    route iteration 44, CPU time elapsed 0.109375 sec.
+    forward max bucket size 14 , backward 14.
+        Unrouted nets 0 at the end of iteration 45.
+    route iteration 45, CPU time elapsed 0.109375 sec.
+Detailed routing takes 45 iterations
+I: Design net coms1_reg_config/clock_20k is routed by general path.
+C: Route-2036: The clock path from coms1_reg_config/clock_20k/opit_0_inv:Q to coms1_reg_config/config_step_reg[2]/opit_0_inv_L5Q:CLK is routed by SRB.
+I: Design net coms2_reg_config/clock_20k is routed by general path.
+C: Route-2036: The clock path from coms2_reg_config/clock_20k/opit_0_inv:Q to coms2_reg_config/config_step_reg[2]/opit_0_inv_L5Q:CLK is routed by SRB.
+I: Design net mrg_clk is routed by general path.
+C: Route-2036: The clock path from mrg_clk/opit_0_inv:Q to clkbufg_0/gopclkbufg:CLK is routed by SRB.
+Detailed routing takes 332.73 sec.
+Start fix hold violation.
+Build tmp routing results takes 0.34 sec.
+Timing analysis takes 0.25 sec.
+Hold violation fix iter 0 takes 9.62 sec, total_step_forward 87761.
+Incremental timing analysis takes 0.22 sec.
+Hold violation fix iter 1 takes 0.19 sec, total_step_forward 2357.
+Incremental timing analysis takes 0.27 sec.
+Hold violation fix iter 2 takes 0.00 sec, total_step_forward 0.
+Incremental timing analysis takes 0.22 sec.
+Hold violation fix iter 3 takes 0.00 sec, total_step_forward 0.
+Incremental timing analysis takes 0.23 sec.
+Hold violation fix iter 4 takes 0.00 sec, total_step_forward 0.
+Incremental timing analysis takes 0.30 sec.
+Hold violation fix iter 5 takes 0.00 sec, total_step_forward 0.
+Hold Violation Fix in router takes 6 iterations.
+Fix hold violation Finished.
+Hold Violation Fix in router takes 11.98 sec.
+
+Dispose routing result:
+    Collect routing result.
+    Delete unused device instances.
+    Annotate routing result.
+    Change LUT configuration.
+    Dispose misc instances.
+    Annotate routing result again.
+Finish routing takes 0.97 sec.
+The timing paths of the clock cmos1_pclk_16bit have hold violation, the worst slack : -93.
+The timing paths of the clock mrg_clk have hold violation, the worst slack : 32.
+All timing paths hold violation have been fixed.
+Hold fix iterated 8 times
+The hold violation of the clock cmos1_pclk_16bit has been fixed successfully, the finally worst slack: 278(slow), 102(fast).
+The hold violation of the clock mrg_clk has been fixed successfully, the finally worst slack: 181(slow), 129(fast).
+Hold violation fix takes 1.47 sec.
+Used SRB routing arc is 382885.
+Cleanup routing takes 0.03 sec.
+Routing done.
+Total routing takes 350.75 sec.
+W: Timing-4105: The worst slack of endpoint u_sfp_video_tx/u_fifo/mem_3_1/ram32x1dp/WADM4 of clock mrg_clk is 129ps(fast corner), but required hold violation threshold is 200ps.
+C: STA-3017: There are 6 clock cross SRB paths do not meet the required hold violation threshold(200ps).
+
+
+Device Utilization Summary :
++----------------------------------------------------------------------------+
+| Logic Utilization        | Used      | Available     | Utilization(%)     
++----------------------------------------------------------------------------+
+| Use of APM               | 0         | 84            | 0                  
+| Use of BKCL              | 0         | 4             | 0                  
+| Use of CLMA              | 5792      | 6450          | 90                 
+|   FF                     | 21032     | 38700         | 55                 
+|   LUT                    | 10513     | 25800         | 41                 
+|   LUT-FF pairs           | 6969      | 25800         | 28                 
+| Use of CLMS              | 3894      | 4250          | 92                 
+|   FF                     | 11005     | 25500         | 44                 
+|   LUT                    | 6891      | 17000         | 41                 
+|   LUT-FF pairs           | 3832      | 17000         | 23                 
+|   Distributed RAM        | 1376      | 17000         | 9                  
+| Use of CRYSTAL           | 0         | 2             | 0                  
+| Use of DLL               | 0         | 10            | 0                  
+| Use of DQSL              | 0         | 18            | 0                  
+| Use of DRM               | 6         | 134           | 5                  
+| Use of FUSECODE          | 0         | 1             | 0                  
+| Use of HARD0N1           | 217       | 6672          | 4                  
+| Use of HSST              | 1         | 1             | 100                
+| Use of IO                | 40        | 296           | 14                 
+|   IOBD                   | 12        | 64            | 19                 
+|   IOBR_LR                | 1         | 7             | 15                 
+|   IOBR_TB                | 0         | 8             | 0                  
+|   IOBS_LR                | 20        | 161           | 13                 
+|   IOBS_TB                | 7         | 56            | 13                 
+| Use of IOCKDIV           | 2         | 20            | 10                 
+| Use of IOCKDLY           | 0         | 40            | 0                  
+| Use of IOCKGATE          | 2         | 20            | 10                 
+| Use of IOCKGMUX_TEST     | 0         | 20            | 0                  
+| Use of IOL               | 40        | 400           | 10                 
+| Use of IPAL              | 0         | 1             | 0                  
+| Use of LDO               | 0         | 4             | 0                  
+| Use of MFG_TEST          | 0         | 1             | 0                  
+| Use of OSC               | 0         | 1             | 0                  
+| Use of PCIE              | 0         | 1             | 0                  
+| Use of PIOMUX_TEST       | 0         | 10            | 0                  
+| Use of PLL               | 1         | 5             | 20                 
+| Use of PREGMUX_TEST      | 0         | 6             | 0                  
+| Use of RCKB              | 4         | 24            | 17                 
+|  RCKB dataused           | 3         | 24            | 13                 
+| Use of RCKBMUX_TEST      | 0         | 12            | 0                  
+| Use of RESCAL            | 0         | 4             | 0                  
+| Use of SCANCHAIN         | 0         | 2             | 0                  
+| Use of START             | 1         | 1             | 100                
+| Use of UDID              | 0         | 1             | 0                  
+| Use of USCM              | 9         | 30            | 30                 
+|  USCM dataused           | 0         | 30            | 0                  
+| Use of USCMMUX_TEST      | 0         | 30            | 0                  
+| Use of VCKBMUX_TEST      | 0         | 12            | 0                  
++----------------------------------------------------------------------------+
+
+Finished routing.
+Design 'hdmi_ddr_ov5640_top' has been placed and routed successfully.
+Saving design to DB.
+Finished placement and routing.
+Action pnr: Real time elapsed is 0h:9m:24s
+Action pnr: CPU time elapsed is 0h:7m:44s
+Action pnr: Process CPU time elapsed is 0h:9m:11s
+Current time: Fri Oct  2 22:36:11 2026
+Action pnr: Peak memory pool usage is 1,940 MB
+Action from pnr to pnr: Total Real Time elapsed is 0h:9m:24s
+Action from pnr to pnr: Total CPU time elapsed is 0h:7m:44s
+Action from pnr to pnr: Total Process CPU Time elapsed is 0h:9m:11s
+Process "Place & Route" done.
+Executing : pnr -input_db_file C:/Users/NineSun/Desktop/ov56401/ov5640_sfp480p_test/ov5640_sfp480p_test/device_map/hdmi_ddr_ov5640_top_map.adf -force_to_run -optimize_multi_corner_timing -fix_hold_violation -fix_hold_violation_iterations 500 -fix_hold_violation_threshold 100 -fix_hold_violation_in_route TRUE -fix_hold_violation_threshold_for_clock_path_cross_srb 200 -fix_hold_violation_threshold_for_clk_tree 200 -max_hold_violated_paths_num 15000 -fast_router FALSE successfully.

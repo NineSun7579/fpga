@@ -1,4 +1,4 @@
 log -r /*
-run 2 ms
+run 37 ms
 echo MON_DONE
 quit -f

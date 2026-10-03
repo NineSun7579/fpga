@@ -1,5 +1,3 @@
-// Created by IP Generator (Version 2022.1 build 99559)
-
 
 
 `timescale 1ns/1ps
@@ -43,68 +41,70 @@ module DDR3_50H_ddrphy_top  #(
 
 )(
 //clk
-  input                              ref_clk              ,
-  input                              ddr_rstn             , 
-  input                              pll_lock             ,
-  output                             ddrphy_ioclk_gate    , 
-  output                             ddrphy_pll_rst       ,
-  output                             ddrphy_dqs_rst       ,                                                  
-  input                              ddrphy_clkin         ,
-  input [8:0]                        ddrphy_ioclk         ,   
-  input                              ioclk_gate_clk       ,         
+  input                              ref_clk                 ,
+  input                              ddr_rstn                , 
+  input                              pll_lock                ,
+  output                             ddrphy_ioclk_gate       , 
+  output                             ddrphy_pll_rst          ,
+  output                             ddrphy_dqs_rst          ,                                                  
+  input                              ddrphy_clkin            ,
+  input  [8:0]                       ddrphy_ioclk            ,   
+  input                              ioclk_gate_clk          ,         
 //rst                                                                                                        
-  input                              ddrphy_gate_update_en,   
-  output [MEM_DQS_WIDTH-1:0]         update_com_val_err_flag,
-  input [1:0]                        init_read_clk_ctrl   ,                                                       
-  input [3:0]                        init_slip_step       ,                                                
-  input [7:0]                        init_samp_position   , 
-  input                              force_read_clk_ctrl  ,               
+  input                              ddrphy_gate_update_en   ,   
+  output [MEM_DQS_WIDTH-1:0]         update_com_val_err_flag ,
+  input  [2*MEM_DQS_WIDTH-1:0]       init_read_clk_ctrl      ,
+  input  [4*MEM_DQS_WIDTH-1:0]       init_slip_step          ,
+  input  [7:0]                       init_samp_position      , 
+  input                              force_read_clk_ctrl     ,               
+                                                            
+//dfi                                                             
+  input  [4*MEM_ADDR_WIDTH-1:0]      dfi_address             ,                     
+  input  [4*MEM_BANK_WIDTH-1:0]      dfi_bank                ,                     
+  input  [3:0]                       dfi_cs_n                ,                     
+  input  [3:0]                       dfi_cas_n               ,                     
+  input  [3:0]                       dfi_ras_n               ,                     
+  input  [3:0]                       dfi_we_n                ,                     
+  input  [3:0]                       dfi_cke                 ,                     
+  input  [3:0]                       dfi_odt                 , 
+  input  [3:0]                       dfi_wrdata_en           ,                      
+  input  [8*MEM_DQ_WIDTH-1:0]        dfi_wrdata              ,                     
+  input  [8*MEM_DM_WIDTH-1:0]        dfi_wrdata_mask         ,                     
+  output [8*MEM_DQ_WIDTH-1:0]        dfi_rddata              ,                                         
+  output                             dfi_rddata_valid        ,                     
+  input                              dfi_reset_n             ,                     
+  output                             dfi_phyupd_req          ,                             
+  input                              dfi_phyupd_ack          ,                                       
+  output                             dfi_init_complete       ,                             
+  output                             dfi_error               , 
+  input                              rd_fake_stop            ,   
+                                                            
+  output                             mem_rst_n               ,                       
+  output                             mem_ck                  ,
+  output                             mem_ck_n                ,
+  output                             mem_cke                 ,
 
-//dfi                                                          
-  input  [4*MEM_ADDR_WIDTH-1:0]      dfi_address          ,                     
-  input  [4*MEM_BANK_WIDTH-1:0]      dfi_bank             ,                     
-  input  [3:0]                       dfi_cs_n             ,                     
-  input  [3:0]                       dfi_cas_n            ,                     
-  input  [3:0]                       dfi_ras_n            ,                     
-  input  [3:0]                       dfi_we_n             ,                     
-  input  [3:0]                       dfi_cke              ,                     
-  input  [3:0]                       dfi_odt              , 
-  input  [3:0]                       dfi_wrdata_en        ,                      
-  input  [8*MEM_DQ_WIDTH-1:0]        dfi_wrdata           ,                     
-  input  [8*MEM_DM_WIDTH-1:0]        dfi_wrdata_mask      ,                     
-  output [8*MEM_DQ_WIDTH-1:0]        dfi_rddata           ,                                         
-  output                             dfi_rddata_valid     ,                     
-  input                              dfi_reset_n          ,                     
-  output                             dfi_phyupd_req       ,                             
-  input                              dfi_phyupd_ack       ,                                       
-  output                             dfi_init_complete    ,                             
-  output                             dfi_error            , 
-  input                              rd_fake_stop         ,   
+  output                             mem_cs_n                ,
 
-  output                             mem_rst_n            ,                       
-  output                             mem_ck               ,
-  output                             mem_ck_n             ,
-  output                             mem_cke              ,
-
-  output                             mem_cs_n             ,
-
-  output                             mem_ras_n            ,
-  output                             mem_cas_n            ,
-  output                             mem_we_n             , 
-  output                             mem_odt              ,
-  output [MEM_ADDR_WIDTH-1:0]        mem_a                ,   
-  output [MEM_BANK_WIDTH-1:0]        mem_ba               ,   
-  inout  [MEM_DQS_WIDTH-1:0]         mem_dqs              ,
-  inout  [MEM_DQS_WIDTH-1:0]         mem_dqs_n            ,
-  inout  [MEM_DQ_WIDTH-1:0]          mem_dq               ,
-  output [MEM_DM_WIDTH-1:0]          mem_dm               ,
-  output [21:0]                      debug_calib_ctrl     ,
-  output [34*MEM_DQS_WIDTH -1:0]     debug_data           ,
-  output [13*MEM_DQS_WIDTH -1:0]     debug_slice_state    ,
-  output [7:0]                       ck_dly_set_bin       ,
-  input  [7:0]                       force_ck_dly_set_bin ,
-  input                              force_ck_dly_en      ,
-  output [7:0]                       dll_step             ,
+  output                             mem_ras_n               ,
+  output                             mem_cas_n               ,
+  output                             mem_we_n                , 
+  output                             mem_odt                 ,
+  output [MEM_ADDR_WIDTH-1:0]        mem_a                   ,   
+  output [MEM_BANK_WIDTH-1:0]        mem_ba                  ,   
+  inout  [MEM_DQS_WIDTH-1:0]         mem_dqs                 ,
+  inout  [MEM_DQS_WIDTH-1:0]         mem_dqs_n               ,
+  inout  [MEM_DQ_WIDTH-1:0]          mem_dq                  ,
+  output [MEM_DM_WIDTH-1:0]          mem_dm                  ,
+  output [23:0]                      debug_calib_ctrl        ,
+  output [34*MEM_DQS_WIDTH -1:0]     debug_data              ,
+  output [13*MEM_DQS_WIDTH -1:0]     debug_slice_state       ,
+  output [7:0]                       ck_dly_set_bin          ,
+  input                              ck_dly_en               ,
+  input  [7:0]                       init_ck_dly_step        ,
+  input  [8*MEM_DQS_WIDTH-1:0]       init_wrlvl_step         ,
+  output [MEM_DQS_WIDTH-1:0]         wl_step_ov_warning      ,
+  output [7:0]                       dll_step                ,
   output                             dll_lock                                                      
 );
 
@@ -194,6 +194,7 @@ wire                            wrlvl_dqs_req                ;
 wire                            wrlvl_dqs_resp               ;
 wire                            wrlvl_error                  ;
 wire                            wrlvl_ck_dly_start_rst       ;
+wire                            ck_delay_complete            ;
 wire                            gatecal_start                ;
 wire                            gate_check_pass              ;
 wire                            gate_adj_done                ;
@@ -276,10 +277,11 @@ ipsxb_ddrphy_reset_ctrl_v1_4  ddrphy_reset_ctrl(
   .ddrphy_ioclk_gate        (ddrphy_ioclk_gate       ),
   .gate_check_error         (gate_check_error        ),
   .dll_tran_update_en       (dll_tran_update_en      ),
+  .ck_delay_complete        (ck_delay_complete       ),
   .wrlvl_ck_dly_start_rst   (wrlvl_ck_dly_start_rst  )
 );
 
-ipsxb_ddrphy_gate_update_ctrl_v1_3 #(
+ipsxb_ddrphy_gate_update_ctrl_v1_5 #(
   .MEM_DQS_WIDTH            (MEM_DQS_WIDTH           )
 ) ddrphy_gate_update_ctrl (
   .ddrphy_clkin             (ddrphy_clkin            ),
@@ -317,7 +319,7 @@ ipsxb_rst_sync_v1_1 #(
     .sig_synced            (dll_freeze_syn           )
 );
 
-ipsxb_ddrphy_calib_top_v1_3 #(
+ipsxb_ddrphy_calib_top_v1_5 #(
  .T200US              (T200US             ),
  .T500US              (T500US             ),
  .TMRD                (TMRD               ),
@@ -406,7 +408,7 @@ ipsxb_ddrphy_training_ctrl_v1_0 ddrphy_training_ctrl
  .ddrphy_dqs_training_rstn   (ddrphy_dqs_training_rstn  )        
 );
 
-ipsxb_ddrphy_slice_top_v1_4 #(
+ipsxb_ddrphy_slice_top_v1_5 #(
   .MEM_ADDR_WIDTH      (MEM_ADDR_WIDTH     ),
   .MEM_BANKADDR_WIDTH  (MEM_BANK_WIDTH     ),
   .MEM_DQ_WIDTH        (MEM_DQ_WIDTH       ),
@@ -434,8 +436,11 @@ ipsxb_ddrphy_slice_top_v1_4 #(
   .wrlvl_error              (wrlvl_error              ),                                 
   .man_wrlvl_dqs            (1'b0                     ),  
   .wrlvl_ck_dly_start_rst   (wrlvl_ck_dly_start_rst   ),
-  .force_ck_dly_en          (force_ck_dly_en          ),
-  .force_ck_dly_set_bin     (force_ck_dly_set_bin     ),
+  .ck_delay_complete        (ck_delay_complete        ),
+  .init_wrlvl_step          (init_wrlvl_step          ),
+  .ck_dly_en                (ck_dly_en                ),
+  .init_ck_dly_step         (init_ck_dly_step         ),
+  .wl_step_ov_warning       (wl_step_ov_warning       ),
                          
   .force_read_clk_ctrl      (force_read_clk_ctrl      ),
   .gatecal_start            (gatecal_start            ),

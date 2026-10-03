@@ -78,9 +78,11 @@ GTP_IOCLKDIV #(
         begin
             if(!rst_n)
                 cnt <= 2'b0;
-            else if(de_i == 1'b1 && cnt == 2'd1)
+            else if(de_i == 1'b0)
+                cnt <= 2'b0;   // [FIX] rebuild byte phase when DE inactive
+            else if(cnt == 2'd1)
                 cnt <= 2'b0;
-            else if(de_i == 1'b1)
+            else
                 cnt <= cnt + 1'b1;
         end
     

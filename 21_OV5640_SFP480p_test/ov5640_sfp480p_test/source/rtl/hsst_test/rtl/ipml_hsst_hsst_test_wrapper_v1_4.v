@@ -1,5 +1,3 @@
-// Created by IP Generator (Version 2022.1 build 99559)
-
 
 //////////////////////////////////////////////////////////////////////////////
 //
@@ -701,7 +699,7 @@ GTP_HSST_E2
     .PCS_CH3_BYPASS_WORD_ALIGN                ("FALSE"                       ), 
     .PCS_CH3_BYPASS_DENC                      ("FALSE"                       ), 
     .PCS_CH3_BYPASS_BONDING                   ("TRUE"                        ), 
-    .PCS_CH3_BYPASS_CTC                       ("FALSE"                       ), 
+    .PCS_CH3_BYPASS_CTC                       ("TRUE"                        ), 
     .PCS_CH3_BYPASS_GEAR                      ("FALSE"                       ), 
     .PCS_CH3_BYPASS_BRIDGE                    ("FALSE"                       ), 
     .PCS_CH3_BYPASS_BRIDGE_FIFO               ("FALSE"                       ), 
@@ -713,9 +711,9 @@ GTP_HSST_E2
     .PCS_CH3_COMMA_REG0                       (10'b0101111100                ), 
     .PCS_CH3_COMMA_MASK                       (10'b0000000000                ), 
     .PCS_CH3_CEB_MODE                         ("10GB"                        ), 
-    .PCS_CH3_CTC_MODE                         ("2SKIP"                       ), 
+    .PCS_CH3_CTC_MODE                         ("1SKIP"                       ), 
     .PCS_CH3_A_REG                            (8'b01111100                   ), 
-    .PCS_CH3_GE_AUTO_EN                       ("TRUE"                        ), 
+    .PCS_CH3_GE_AUTO_EN                       ("FALSE"                       ), 
     .PCS_CH3_SKIP_REG0                        (10'b110111100                 ), 
     .PCS_CH3_SKIP_REG1                        (10'b001010000                 ), 
     .PCS_CH3_SKIP_REG2                        (10'b0                         ), 
@@ -728,14 +726,14 @@ GTP_HSST_E2
     .PCS_CH3_PMA_RCLK_POLINV                  ("PMA_RCLK"                    ),            
     .PCS_CH3_PCS_RCLK_SEL                     ("PMA_RCLK"                    ), 
     .PCS_CH3_CB_RCLK_SEL                      ("PMA_RCLK"                    ), 
-    .PCS_CH3_AFTER_CTC_RCLK_SEL               ("PMA_TCLK"                    ), 
+    .PCS_CH3_AFTER_CTC_RCLK_SEL               ("PMA_RCLK"                    ), 
     .PCS_CH3_RCLK_POLINV                      ("RCLK"                        ),           
     .PCS_CH3_BRIDGE_RCLK_SEL                  ("PMA_RCLK"                    ),         
     .PCS_CH3_PCS_RCLK_EN                      ("FALSE"                       ), 
     .PCS_CH3_CB_RCLK_EN                       ("FALSE"                       ), 
     .PCS_CH3_AFTER_CTC_RCLK_EN                ("FALSE"                       ), 
     .PCS_CH3_AFTER_CTC_RCLK_EN_GB             ("TRUE"                        ), 
-    .PCS_CH3_AFTER_CTC_RCLK_SEL_1             ("PMA_TCLK"                    ), 
+    .PCS_CH3_AFTER_CTC_RCLK_SEL_1             ("PMA_RCLK"                    ), 
     .PCS_CH3_PCS_RX_RSTN                      ("TRUE"                        ),               
     .PCS_CH3_SLAVE                            ("MASTER"                      ), 
     .PCS_CH3_PCIE_SLAVE                       ("MASTER"                      ), 
