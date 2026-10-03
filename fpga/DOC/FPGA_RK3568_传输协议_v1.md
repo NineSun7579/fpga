@@ -268,3 +268,30 @@ cam1/cam2/cam3/cam4 对应寄存器块。
 
 - 传输层不变：`CAM2_ADDR_1/2` 直接落在 DDR，主机用 F2H 按地址读；`CAM2_ACK` 用 H2F 写。
 - 参考实现：`host/camview/main.cpp`（四路左右并排合成 2560×480，每路 640×480，并各自显示 fps）。
+---
+
+## 3.9 CAM5/CAM6 光纤通道(2026-09-29,SFP 双路扩展)
+
+第五/六路视频不是本地 DVP 相机,而是 **PGL50H(50K)开发板经 SFP 光纤送来的双摄合成流**:
+50K 侧 cam2_merge 把两颗 OV5640 逐行拼接为 1280x480(左 640=对端 CMOS1,右 640=对端 CMOS2),
+sfp_video_tx 经 HSST CH2/SFP0 以 5G/8B10B 发出;100H 侧 QR3(HSSTLP_364_918)CH2 接收,
+sfp_video_rx 解包 + 按列拆分为 cam5(前 640 列)/cam6(后 640 列),各经 ov5640_ddr 写引擎
+入 DDR(与 cam1~4 同构,FRTAG 机制相同)。无寄存器窗(常使能、固定地址),主机只轮询帧 tag。
+
+### DDR 分区(FPGA 视角,续 3.4 节)
+
+| 区域 | 地址 | 说明 |
+|---|---|---|
+| cam5 ping | `0x0180_0000` | 640x480 RGB565,帧 0x96000;FRTAG 在 `+0x96000`(光纤左半幅) |
+| cam5 pong | `0x01A0_0000` | 同上 |
+| cam6 ping | `0x01C0_0000` | 同上(光纤右半幅) |
+| cam6 pong | `0x01E0_0000` | 同上 |
+
+### 主机侧接入(camview)
+
+`host/camview/main.cpp` 已扩展为 6 worker、3x2 六宫格(1920x960)。CAM5/CAM6 地址宏同上。
+注意:光纤通道帧率跟随对端 30Hz 读出;链路断开时 tag 停更,画面停在最后一帧(WAIT 状态)。
+
+### ddr_w_arb
+
+写仲裁器由 4 主扩为 6 主(cam5=master4, cam6=master5,cmd_id 0011/1100),轮询逻辑不变。

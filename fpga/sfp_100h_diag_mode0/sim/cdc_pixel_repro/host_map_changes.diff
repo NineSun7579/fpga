@@ -1,0 +1,265 @@
+--- tools\prepare_cdc_stage_verify.py.cdc_host_map.bak
++++ tools\prepare_cdc_stage_verify.py
+@@ -7,12 +7,12 @@
+ anchor = b'records=[]'
+ helper = b'''def stage_snapshot(base):
+     for attempt in range(30):
+-        seq0=d.read32(base+0x14)
+-        counts=[d.read32(base+x) for x in (4,8,12)]
+-        seq1=d.read32(base+0x14)
++        seq0=d.read32(base+0x1c0)
++        counts=[d.read32(base+x) for x in (0x190,0x1a0,0x1b0)]
++        seq1=d.read32(base+0x1c0)
+         if seq0==seq1 and seq1>=2:
+             return dict(seq=seq1,input=counts[0],output=counts[1],drop=counts[2])
+-    raise RuntimeError('No stable CDC snapshot at '+hex(base))
++    return dict(seq=seq1,input=counts[0],output=counts[1],drop=counts[2],unstable=True,seq_before=seq0)
+ records=[]'''
+ assert data.count(anchor)==1
+ data = data.replace(anchor, helper)
+--- tools\verify_cdc_stage_board.py.cdc_host_map.bak
++++ tools\verify_cdc_stage_board.py
+@@ -16,9 +16,9 @@
+     finally:signal.alarm(0)
+ def stage_snapshot(base):
+     for attempt in range(30):
+-        seq0=d.read32(base+0x14)
+-        counts=[d.read32(base+x) for x in (4,8,12)]
+-        seq1=d.read32(base+0x14)
++        seq0=d.read32(base+0x1c0)
++        counts=[d.read32(base+x) for x in (0x190,0x1a0,0x1b0)]
++        seq1=d.read32(base+0x1c0)
+         if seq0==seq1 and seq1>=2:
+             return dict(seq=seq1,input=counts[0],output=counts[1],drop=counts[2])
+     return dict(seq=seq1,input=counts[0],output=counts[1],drop=counts[2],unstable=True,seq_before=seq0)
+--- source\ov5640\ov5640_reg.v.cdc_host_map.bak
++++ source\ov5640\ov5640_reg.v
+@@ -267,10 +267,10 @@
+ 
+ 
+ 
+-                    BASE_ADDR + 32'h04: rdata <= dbg_cdc_input;
+-                    BASE_ADDR + 32'h08: rdata <= dbg_cdc_output;
+-                    BASE_ADDR + 32'h0c: rdata <= dbg_cdc_drop;
+-                    BASE_ADDR + 32'h14: rdata <= dbg_cdc_seq;
++                    BASE_ADDR + 32'h190: rdata <= dbg_cdc_input;
++                    BASE_ADDR + 32'h1a0: rdata <= dbg_cdc_output;
++                    BASE_ADDR + 32'h1b0: rdata <= dbg_cdc_drop;
++                    BASE_ADDR + 32'h1c0: rdata <= dbg_cdc_seq;
+                     REG_DBG_CAM_WORDS: rdata <= dbg_input_pixels;
+                     REG_DBG_VSYNCS:    rdata <= dbg_vsyncs;
+                     REG_DBG_ZDIN:      rdata <= dbg_vsync_widths;
+--- source\ov5640\ovreg_axil_decode.v.cdc_host_map.bak
++++ source\ov5640\ovreg_axil_decode.v
+@@ -127,21 +127,26 @@
+                        s_awaddr[ADDR_SEL_LSB+1 : ADDR_SEL_LSB]};
+     end
+ 
++    // CDC host diagnostics: four unused, 16-byte aligned reads per 0x200 stride.
++    wire cdc_read = (s_araddr[31:11] == (32'h20000000 >> 11)) &&
++                   (s_araddr[10:9] < 3) &&
++                   ((s_araddr[8:0] == 9'h190) || (s_araddr[8:0] == 9'h1a0) ||
++                    (s_araddr[8:0] == 9'h1b0) || (s_araddr[8:0] == 9'h1c0));
++    wire [3:0] ar_route = cdc_read ? {1'b0, s_araddr[10:9], 1'b0} :
++                         s_araddr[ADDR_SEL_LSB+3 : ADDR_SEL_LSB];
+     reg [3:0] ar_sel;
+     always @(posedge clk) begin
+         if (rst)
+             ar_sel <= 4'b0000;
+         else if (s_arvalid && s_arready)
+-            ar_sel <= {s_araddr[ADDR_SEL_LSB+3 : ADDR_SEL_LSB+2],
+-                       s_araddr[ADDR_SEL_LSB+1 : ADDR_SEL_LSB]};
++            ar_sel <= ar_route;
+     end
+ 
+     // steering value for the current AW/W pair; falls back to the live address
+     // while AW is pending
+     wire [3:0] aw_sel_live = s_awvalid ? {s_awaddr[ADDR_SEL_LSB+3 : ADDR_SEL_LSB+2],
+                                           s_awaddr[ADDR_SEL_LSB+1 : ADDR_SEL_LSB]} : aw_sel;
+-    wire [3:0] ar_sel_live = s_arvalid ? {s_araddr[ADDR_SEL_LSB+3 : ADDR_SEL_LSB+2],
+-                                          s_araddr[ADDR_SEL_LSB+1 : ADDR_SEL_LSB]} : ar_sel;
++    wire [3:0] ar_sel_live = s_arvalid ? ar_route : ar_sel;
+ 
+     wire aw_page3 = (aw_sel_live[3:2] == 2'b01);   // CAM3 page  (0x2000_0400+)
+     wire ar_page3 = (ar_sel_live[3:2] == 2'b01);
+--- sim\cdc_pixel_repro\check_integration.py.cdc_host_map.bak
++++ sim\cdc_pixel_repro\check_integration.py
+@@ -6,11 +6,11 @@
+ changed=[]
+ for name,digest in manifest.items():
+  if hashlib.sha256((ROOT/name).read_bytes()).hexdigest()!=digest: changed.append(name.replace('\\','/'))
+-expected={'source/ov5640/ov5640/ov5640_cdc.v','source/ov5640/ov5640/ov5640.v','source/ov5640/ov5640_top.v','source/ov5640/ov5640_reg.v'}
++expected={'source/ov5640/ov5640/ov5640_cdc.v','source/ov5640/ov5640/ov5640.v','source/ov5640/ov5640_top.v','source/ov5640/ov5640_reg.v','source/ov5640/ovreg_axil_decode.v'}
+ assert set(changed)==expected,changed
+ print('PASS vendor/IP and all other RTL byte-identical, including top clocks, DMA, DDR bad-frame/AXI retirement')
+ for name in expected|{'source/constraints/cdc.fdc'}:
+- p=ROOT/name; old=p.with_name(p.name+'.cdc_pixel.bak').read_bytes(); new=p.read_bytes()
++ p=ROOT/name; old=p.with_name(p.name+('.cdc_host_map.bak' if p.name=='ovreg_axil_decode.v' else '.cdc_pixel.bak')).read_bytes(); new=p.read_bytes()
+  assert [l for l in old.splitlines() if any(c>=128 for c in l)]==[l for l in new.splitlines() if any(c>=128 for c in l)],name
+  print('PASS backup and original non-ASCII lines preserved:',name)
+ constraints=(ROOT/'source/constraints/cdc.fdc').read_bytes()
+@@ -27,7 +27,8 @@
+ b=b.replace(anchor,b" .dbg_cdc_input(32'd307200),.dbg_cdc_output(32'd1290240),\n .dbg_cdc_drop(32'd7),.dbg_cdc_seq(32'd123),\n"+anchor)
+ anchor=b" read_check(0,32'h80006123);"
+ assert b.count(anchor)==1
+-b=b.replace(anchor,b" read_check(4,307200);read_check(8,1290240);read_check(12,7);read_check(20,123);\n"+anchor)
++b=b.replace(anchor,b" read_check('h190,307200);read_check('h1a0,1290240);read_check('h1b0,7);read_check('h1c0,123);\n"+anchor)
++b=b.replace(b"ra=32'h20000000+offset;", b"ra=(32'h20000000+offset) & 32'hfffffff0;")
+ (HERE/'tb_cdc_regs.sv').write_bytes(b)
+ exe='C:/modeltech64_10.6e/win64/'
+ args=[exe+'vlog.exe','-work','work_cdc','-sv']
+--- sim\cdc_pixel_repro\patch_cdc_diag.py.cdc_host_map.bak
++++ sim\cdc_pixel_repro\patch_cdc_diag.py
+@@ -117,7 +117,7 @@
+ edit('source/ov5640/ov5640_reg.v','    input [31:0] dbg_fault_snapshot,',
+      ''.join(f'    input [31:0] dbg_cdc_{n},\n' for n in names)+'    input [31:0] dbg_fault_snapshot,')
+ edit('source/ov5640/ov5640_reg.v','                    REG_DBG_CAM_WORDS: rdata <= dbg_input_pixels;',
+-     ''.join(f"                    BASE_ADDR + 32'h{o:02x}: rdata <= dbg_cdc_{n};\n" for o,n in zip([4,8,12,20],names))+
++     ''.join(f"                    BASE_ADDR + 32'h{o:02x}: rdata <= dbg_cdc_{n};\n" for o,n in zip([0x190,0x1a0,0x1b0,0x1c0],names))+
+      '                    REG_DBG_CAM_WORDS: rdata <= dbg_input_pixels;')
+ 
+ for p in pending:
+--- sim\cdc_pixel_repro\RESULTS.md.cdc_host_map.bak
++++ sim\cdc_pixel_repro\RESULTS.md
+@@ -31,7 +31,7 @@
+ * Removed that whole-hierarchy exception. Existing `clock.fdc` asynchronous clock groups remain in effect and still isolate camera clocks from `ddrphy_sysclk`; all frequencies are unchanged. Same-domain FIFO paths must now be timed.
+ * Removed three redundant group commands from `cdc.fdc` that PDS had ignored because their clocks were not yet created (SDC-2027). The corresponding valid groups already exist after clock creation in `clock.fdc`.
+ * Added an explicit reset to the CDC output-valid register. Normal post-reset data timing is unchanged.
+-* Added source input/drop snapshots, output-valid snapshots and a sequence number to `ov5640_cdc.v`, routed through `ov5640.v` and `ov5640_top.v` into four unused aligned read addresses in `ov5640_reg.v`.
++* Added source input/drop snapshots, output-valid snapshots and a sequence number to `ov5640_cdc.v`, routed through `ov5640.v` and `ov5640_top.v` into four diagnostic read addresses in `ov5640_reg.v` (host alignment and routing repaired below).
+ 
+ The diagnostics use a stable source-frame snapshot, two data stages and a three-stage notification toggle. The output snapshot is taken on the synchronized SOF and published with the source snapshot after the notification arrives. Normal sensor blanking allows the last row's FIFO tail to drain before SOF. Reads do not change acquisition or DMA behavior. The diagnostic counters are 32-bit modulo counters; source data is held for a frame, and the reader is assumed to run normally. A stopped read clock spanning multiple frames is not a lossless event-log use case.
+ 
+@@ -45,17 +45,17 @@
+ 
+ | Offset | Name | Meaning |
+ |---|---|---|
+-| +0x04 | `dbg_cdc_input` | Source-domain `s_valid` count before FIFO full gating, previous complete SOF interval |
+-| +0x08 | `dbg_cdc_output` | `video_valid` count after the actual FIFO, before FIR, same normal frame interval |
+-| +0x0C | `dbg_cdc_drop` | Source `s_valid && full` cycles in that interval |
+-| +0x14 | `dbg_cdc_seq` | Source SOF snapshot sequence; increments once per observed source SOF |
++| +0x190 | `dbg_cdc_input` | Source-domain `s_valid` count before FIFO full gating, previous complete SOF interval |
++| +0x1A0 | `dbg_cdc_output` | `video_valid` count after the actual FIFO, before FIR, same normal frame interval |
++| +0x1B0 | `dbg_cdc_drop` | Source `s_valid && full` cycles in that interval |
++| +0x1C0 | `dbg_cdc_seq` | Source SOF snapshot sequence; increments once per observed source SOF |
+ | +0x30 | Existing `dbg_input_pixels` | Unchanged downstream post-FIR count; this snapshot is independently updated |
+ 
+-Read +0x14, then +0x04/+0x08/+0x0C, then +0x14 again; retry if sequence changed. Ignore startup/partial snapshots (wait until sequence >=2). The +0x30 snapshot is independent and can straddle a different frame while software reads, so compare stable steady-state values or repeated samples.
++Read +0x1C0, then +0x190/+0x1A0/+0x1B0, then +0x1C0 again; retry if sequence changed. Ignore startup/partial snapshots (wait until sequence >=2). The +0x30 snapshot is independent and can straddle a different frame while software reads, so compare stable steady-state values or repeated samples.
+ 
+ Expected steady state: input = output = +0x30 = 307,200, drop = 0. Source >307,200 puts the anomaly before the FIFO; source =307,200 and output inflated localizes it to FIFO/read-valid; output =307,200 and +0x30 inflated localizes it after CDC. Drop >0 exposes upstream FIFO loss that the downstream packer's own overflow counter does not measure. Existing +0x00/+0xA0 fault/rejection evidence is unchanged.
+ 
+-These offsets require ordinary **32-bit reads at the exact byte offsets**, not rounding them to the legacy 0x10 spacing. Existing ACK, delay and enable writes are unchanged; no new write behavior was introduced.
++These offsets are **16-byte aligned** for the existing host DMA read path. Each read returns the selected 32-bit register in the low word of one 128-bit beat; the upper 96 bits are zero. Existing ACK, delay and enable writes are unchanged; no new write behavior was introduced.
+ 
+ ## Verification completed
+ 
+@@ -93,3 +93,88 @@
+ ## Remaining work outside this subagent's authorization
+ 
+ The main session must rebuild with the corrected constraints, inspect **same-clock FIFO paths** rather than rely only on summary WNS, and retain the corrected constraints if new violations are exposed. Clock-group exceptions still do not establish physical Gray-bus skew bounds; those require a proper implementation timing/CDC audit. After programming, read the new stage snapshots and compare actual captured pixels/stripes. This task intentionally performed no PDS, bitstream generation, programming or board operation. It does not claim that the hardware image defect is already fixed.
++
++
++## Host diagnostic address repair after the 140553 image
++
++The prior +0x04/+0x08/+0x0C/+0x14 mapping was not host-readable. The old
++isolated AXI-Lite bench bypassed PCIe alignment and incorrectly accepted it.
++`source/pcie_dma/pcie_fifo.v:668` initializes `r_cur_addr` with
++`{(fpga_ddr3_addr >> AXI_DATA_SIZE), {AXI_DATA_SIZE{1'b0}}}`; assigning this to
++32 bits with AXI_DATA_SIZE=4 clears address bits [3:0]. Thus +04/+08/+0C
++read +00 (fault snapshot), and +14 reads +10 (PCLK count).
++
++Audited production route: top S00 PCIe -> crossbar M01 (base 0x20000000,
++29 address bits) -> `axi_to_axi_lite` -> `ovreg_axil_decode` -> camera
++registers. The bridge passes the byte address unchanged and zero-extends
++one 32-bit result to 128 bits; it does not issue four word reads or recover
++low address bits. Existing decoder comments describe legacy page splits;
++the actual pre-repair logic sends cam1/cam2 +100..+1FF to PREP, while
++CAM3 page 0x400..0x7FF has priority. Therefore aligned offsets alone are
++insufficient for all three cameras.
++
+++100/+110/+120/+130 cannot be used without displacing existing functionality:
++PREP implements those offsets, and the camera block also reserves
+++100/+110/+120 for SCCB. PREP implements diagnostics at +180/+184/+188/+18C.
++The selected +190/+1A0/+1B0/+1C0 have no prior read or write implementation
++in PREP or camera registers and fit each 0x200 camera stride.
++
++| Register | Camera 1 | Camera 2 | Camera 3 |
++|---|---|---|---|
++| CDC input | 0x20000190 | 0x20000390 | 0x20000590 |
++| CDC output | 0x200001A0 | 0x200003A0 | 0x200005A0 |
++| CDC drop | 0x200001B0 | 0x200003B0 | 0x200005B0 |
++| CDC sequence | 0x200001C0 | 0x200003C0 | 0x200005C0 |
++
++`ovreg_axil_decode.v` overrides only these twelve exact read addresses,
++selecting cameras from address [10:9] and latching the selected route at
++AR handshake for response routing. All AW/W/B routing is unchanged.
++No top, PCIe DMA, AXI bridge, camera data path, IP, or project file changed
++for this repair. The four register cases and read-only decode are the only
++production RTL changes in this repair. The existing corrected constraints
++and CDC diagnostics from the previous investigation remain in place.
++
++`verify_cdc_stage_board.py` and its preparation generator use the new
++addresses. If no stable sequence >=2 is found after 30 attempts, both
++return `unstable=True`, `seq_before`, `seq`, and the last raw input/output/drop
++values; they do not raise and discard diagnostic evidence.
++`tools/read_cdc_stage_board.py` was not edited or executed.
++
++New verification (offline, ModelSim):
++
++* `python test_host_map.py`: PASS. Uses the exact production ingress
++  alignment expression, actual 128-to-32 bridge, actual decoder, and three
++  actual register instances with different diagnostic values. All twelve
++  new reads pass; old offsets reproduce fault/PCLK aliasing for all cameras.
++  R-channel backpressure and changing the live AR address after handshake
++  preserve the response. Every 16-byte-aligned implemented PREP location
++  through +180 (both existing PREP pages) retains routing. CAM3 SCCB +110
++  and +120 remain readable. Upper 96 return bits are zero.
++* The same offline test extracts only `stage_snapshot` via AST, without
++  importing any board driver. Stable and perpetually changing sequences
++  pass, including 150 raw reads on retry exhaustion and retained raw values.
++  Preparation-script output is evaluated in memory and exactly matches
++  the verifier bytes.
++* `python check_integration.py`: PASS. Updated isolated register bench models
++  16-byte alignment and checks the new offsets plus existing fault/count
++  reads and ACK/delay/enable writes. Production wrapper compilation passes.
++  Protected-file hashes confirm all vendor/IP and other RTL are unchanged
++  apart from the previously documented CDC files and this decoder repair;
++  original non-ASCII lines remain exact.
++
++Evidence: `host_map.log`, `compile_host_map.log`, `cdc_regs.log`, and
++`compile_integration.log`. The host bench models PCIe ingress alignment and
++starts at the M01 AXI input; it does not simulate the entire PCIe endpoint
++or crossbar. Their routing/width parameters were inspected in source.
++
++Every existing file edited for this repair has an exact Python-bytes
++`.cdc_host_map.bak` backup. `fix_host_map.py` is a one-shot repair utility,
++not a build step; do not rerun it on the repaired tree. The old
++`patch_cdc_diag.py` now emits the corrected register offsets, but remains
++a historical one-shot initial diagnostic patch, not a standalone host-route
++installer. Use the checked-in production decoder and register files.
++
++No PDS, bitstream generation, programming, or board access was performed.
++The 140553 programmed image still contains the old map; these new addresses
++require a rebuild/program by the main session. Hardware snapshot access
++and the original pixel anomaly remain unverified on the repaired image.
+--- sim\cdc_pixel_repro\tb_cdc_regs.sv.cdc_host_map.bak
++++ sim\cdc_pixel_repro\tb_cdc_regs.sv
+@@ -19,7 +19,7 @@
+  .dbg_last_cnt(32'd42),.dbg_sys_status(32'h420d));
+ task read_check(input [31:0] offset,input [31:0] expected);
+ begin
+- @(negedge clk);ra=32'h20000000+offset;rv=1;
++ @(negedge clk);ra=(32'h20000000+offset) & 32'hfffffff0;rv=1;
+  @(negedge clk);rv=0;
+  wait(rvalid);#1;if(rd!==expected)$fatal(1,"register %h got %h expected %h",offset,rd,expected);
+  repeat(2)@(negedge clk);
+@@ -31,7 +31,7 @@
+ end endtask
+ initial begin
+  repeat(4)@(negedge clk);rst=0;
+- read_check(4,307200);read_check(8,1290240);read_check(12,7);read_check(20,123);
++ read_check('h190,307200);read_check('h1a0,1290240);read_check('h1b0,7);read_check('h1c0,123);
+  read_check(0,32'h80006123);read_check('h30,307200);
+  read_check('h50,32'h00020003);read_check('ha0,32'h12345678);
+  read_check('hd0,32'h420d);read_check('hf0,42);

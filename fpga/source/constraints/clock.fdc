@@ -2,6 +2,10 @@
 ###================================  Clocks ========================================###
     ###==== OV5640 Clocks
     create_clock -name {free_clk} [get_ports {free_clk}] -period {40.000} -waveform {0.000 20.000}
+    create_generated_clock -name {cam1_sccb} -source [get_ports {free_clk}] [get_nets {ov5640_top.ov5640.dri_clk}] -master_clock [get_clocks {free_clk}] -divide_by {24}
+    create_generated_clock -name {cam2_sccb} -source [get_ports {free_clk}] [get_nets {cam2_ov5640_top.ov5640.dri_clk}] -master_clock [get_clocks {free_clk}] -divide_by {24}
+    create_generated_clock -name {cam3_sccb} -source [get_ports {free_clk}] [get_nets {cam3_ov5640_top.ov5640.dri_clk}] -master_clock [get_clocks {free_clk}] -divide_by {24}
+    create_generated_clock -name {cam4_sccb} -source [get_ports {free_clk}] [get_nets {cam4_ov5640_top.ov5640.dri_clk}] -master_clock [get_clocks {free_clk}] -divide_by {24}
     # [CLKFIX]  -source [get_ports {free_clk}] [get_nets {ov5640_clk.clkout0}] -master_clock [get_clocks {free_clk}]
     create_generated_clock -name {clk_150m} -source [get_ports {free_clk}] [get_nets {ov5640_clk.clkout1}] -master_clock [get_clocks {free_clk}] -multiply_by {6} -divide_by {1}
     # [CLKFIX]  -source [get_ports {free_clk}] [get_nets {ov5640_clk.clkout2}] -master_clock [get_clocks {free_clk}] -multiply_by {2} -divide_by {5}
@@ -47,6 +51,8 @@
 
 
 ###================================ ASYNCHRONOUS Clocks ========================================###
+    create_clock -name {sfp_fabric} [get_pins {u_sfp_rx_link.u_hsst.U_GTP_HSSTLP_WRAPPER.CHANNEL2_ENABLE.U_GTP_HSSTLP_LANE2.P_TCLK2FABRIC}] -period {8.000} -waveform {0.000 4.000}
+    set_clock_groups -name sfp_fabric -asynchronous -group [get_clocks {sfp_fabric}]
     ###==== OV5640 Clocks
     # [CLKFIX]  -asynchronous -group [get_clocks {clk_50m}]
     set_clock_groups -name clk_150m -asynchronous -group [get_clocks {clk_150m}]

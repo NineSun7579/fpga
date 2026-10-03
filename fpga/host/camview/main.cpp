@@ -12,6 +12,7 @@
 #include <QWidget>
 #include <QImage>
 #include <QByteArray>
+#include <QVector>
 #include <QThread>
 #include <QMutex>
 #include <QElapsedTimer>
@@ -26,6 +27,7 @@
 #include <QOpenGLFunctions>
 #include <QOpenGLShaderProgram>
 #include <atomic>
+#include <algorithm>
 #include <cstdio>
 #include <cstring>
 #include <cstdint>
@@ -35,6 +37,9 @@
 #include <sys/mman.h>
 #include <csignal>
 #include <cerrno>
+#include "dma_copy.h"
+using CameraFrames = QVector<QByteArray>;
+Q_DECLARE_METATYPE(CameraFrames)
 
 #define IMG_W 640
 #define IMG_H 480
@@ -56,6 +61,15 @@
 #define CAM4_ADDR_2 0x01600000u
 #define TAG4_ADDR_1 (CAM4_ADDR_1 + FRAME_BYTES)
 #define TAG4_ADDR_2 (CAM4_ADDR_2 + FRAME_BYTES)
+// [SFP 2026-09-29] fiber channels cam5/cam6 (QR3 HSST CH2 from PGL50H)
+#define CAM5_ADDR_1 0x01800000u
+#define CAM5_ADDR_2 0x01A00000u
+#define TAG5_ADDR_1 (CAM5_ADDR_1 + FRAME_BYTES)
+#define TAG5_ADDR_2 (CAM5_ADDR_2 + FRAME_BYTES)
+#define CAM6_ADDR_1 0x01C00000u
+#define CAM6_ADDR_2 0x01E00000u
+#define TAG6_ADDR_1 (CAM6_ADDR_1 + FRAME_BYTES)
+#define TAG6_ADDR_2 (CAM6_ADDR_2 + FRAME_BYTES)
 #define EDGE_ADDR_1 0x0A000000u   // [EDGE] prep2 write ping  (cam_prep_link BUFFER0)
 #define EDGE_ADDR_2 0x0A100000u   // [EDGE] prep2 write pong  (cam_prep_link BUFFER1)
 #define REG_BASE   0x20000000u
@@ -137,6 +151,44 @@ public:
     }
     bool ddrRead(uint32_t addr, uint32_t len, void *out) {
         QMutexLocker dmaLock(&dmaMutex_);
+        return ddrReadLocked(addr, len, out);
+    }
+    // Poll/select/read under one DMA lock. Frame and adjacent commit tag are
+    // fetched in one contiguous transfer; the pixel buffer keeps its exact size.
+    int cameraRead(int camera, uint32_t ba, uint32_t bb, bool have, uint32_t last,
+                   void *out, uint32_t &selected, qint64 &transferNs) {
+        QMutexLocker dmaLock(&dmaMutex_);
+        QElapsedTimer timer; timer.start();
+        uint32_t a = 0, b = 0;
+        if (!tagReadLocked(ba + FRAME_BYTES, a)) return -1;
+        if (!tagReadLocked(bb + FRAME_BYTES, b)) return -1;
+        const bool bankA = int32_t(a - b) > 0;
+        selected = bankA ? a : b;
+        if (!selected || (have && int32_t(selected - last) <= 0)) return 0;
+        DmaOp op{}; op.offset_addr = 0; op.ddr3_addr = bankA ? ba : bb;
+        // Six disjoint slots fit inside the existing 4 MiB coherent buffer.
+        // Only this camera's worker writes its slot, so CPU copy can overlap
+        // another camera's serialized DMA without sharing source bytes.
+        op.offset_addr = uint32_t(camera - 1) * 0x97000u;
+        op.total_length = FRAME_BYTES + 16;
+        if (!ioctlTmo(F2H_CMD, &op, 2, 1)) return -1;
+        const uint8_t *pixels = rx_ + op.offset_addr;
+        uint32_t actual = 0;
+        memcpy(&actual, pixels + FRAME_BYTES, sizeof(actual));
+        if (actual != selected) return 2;
+        dmaLock.unlock();
+        copyDmaPixels(out, pixels, FRAME_BYTES);
+        transferNs = timer.nsecsElapsed();
+        return 1;
+    }
+    bool tagReadLocked(uint32_t address, uint32_t &tag) {
+        DmaOp op{}; op.offset_addr = 0x3ff000u;
+        op.ddr3_addr = address; op.total_length = 16;
+        if (!ioctlTmo(F2H_CMD, &op, 2, 1)) return false;
+        memcpy(&tag, rx_ + op.offset_addr, sizeof(tag));
+        return true;
+    }
+    bool ddrReadLocked(uint32_t addr, uint32_t len, void *out) {
         DmaOp op{}; op.offset_addr = 0; op.ddr3_addr = addr; op.total_length = len;
         // A lost MSI must not hold the shared DMA mutex for tens of seconds.
         // The kernel driver already bounds one DMA wait to ~800 ms, so one
@@ -164,16 +216,16 @@ volatile sig_atomic_t PangoDev::timeoutHit_ = 0;
 
 struct LatestFrames {
     QMutex mutex;
-    QByteArray c1, c2, c3, c4;
-    bool have1 = false, have2 = false, have3 = false, have4 = false;
-    uint64_t errors1 = 0, errors2 = 0, errors3 = 0, errors4 = 0;
-    qint64 last1 = 0, last2 = 0, last3 = 0, last4 = 0;
+    QByteArray c1, c2, c3, c4, c5, c6;
+    bool have1 = false, have2 = false, have3 = false, have4 = false, have5 = false, have6 = false;
+    uint64_t errors1 = 0, errors2 = 0, errors3 = 0, errors4 = 0, errors5 = 0, errors6 = 0;
+    qint64 last1 = 0, last2 = 0, last3 = 0, last4 = 0, last5 = 0, last6 = 0;
     // [PACE 2026-09-27] bumped on every newly stored frame, so the display loop
     // can render only when the picture actually changed instead of free-running.
     uint64_t gen = 0;
     // [FPS3 2026-09-27] per-camera capture rate, measured by each worker so the
     // viewer can label every pane with its own fps.
-    double fps1 = 0, fps2 = 0, fps3 = 0, fps4 = 0;
+    double fps1 = 0, fps2 = 0, fps3 = 0, fps4 = 0, fps5 = 0, fps6 = 0;
 };
 
 class CameraWorker : public QThread {
@@ -183,62 +235,88 @@ public:
     void stop() { running_ = false; }
 protected:
     void run() override {
-        const uint32_t ta = camera_ == 1 ? TAG_ADDR_1 : camera_ == 2 ? TAG2_ADDR_1 : camera_ == 3 ? TAG3_ADDR_1 : TAG4_ADDR_1;
-        const uint32_t tb = camera_ == 1 ? TAG_ADDR_2 : camera_ == 2 ? TAG2_ADDR_2 : camera_ == 3 ? TAG3_ADDR_2 : TAG4_ADDR_2;
-        const uint32_t ba = camera_ == 1 ? CAM_ADDR_1 : camera_ == 2 ? CAM2_ADDR_1 : camera_ == 3 ? CAM3_ADDR_1 : CAM4_ADDR_1;
-        const uint32_t bb = camera_ == 1 ? CAM_ADDR_2 : camera_ == 2 ? CAM2_ADDR_2 : camera_ == 3 ? CAM3_ADDR_2 : CAM4_ADDR_2;
-        uint32_t a = 0, b = 0, la = 0, lb = 0;
-        bool base = false;
+        const uint32_t ba = camera_ == 1 ? CAM_ADDR_1 : camera_ == 2 ? CAM2_ADDR_1 : camera_ == 3 ? CAM3_ADDR_1 :
+                            camera_ == 4 ? CAM4_ADDR_1 : camera_ == 5 ? CAM5_ADDR_1 : CAM6_ADDR_1;
+        const uint32_t bb = camera_ == 1 ? CAM_ADDR_2 : camera_ == 2 ? CAM2_ADDR_2 : camera_ == 3 ? CAM3_ADDR_2 :
+                            camera_ == 4 ? CAM4_ADDR_2 : camera_ == 5 ? CAM5_ADDR_2 : CAM6_ADDR_2;
         QByteArray frame(FRAME_BYTES, 0);
+        fpsTimer_.start();
+        auditTimer_.start();
         while (running_) {
-            if (!dev_->readTag(ta, a) || !dev_->readTag(tb, b)) { msleep(10); continue; }
-            if (!base) { la = a; lb = b; base = true; msleep(10); continue; }
-            int which = (a != la) ? 0 : ((b != lb) ? 1 : -1);
-            // Tags are only frame notifications; polling them at a tight loop
-            // creates thousands of small PCIe DMA transactions and increases
-            // MSI contention. A 10 ms cadence is still much faster than the
-            // ~32 fps camera stream.
-            if (which < 0) { msleep(6); continue; }
-            la = a; lb = b;
-            if (!dev_->ddrRead(which ? bb : ba, FRAME_BYTES, frame.data())) {
+            reportRates();
+            uint32_t selectedTag = 0;
+            QElapsedTimer readTimer; readTimer.start();
+            qint64 transferNs = 0;
+            const int result = dev_->cameraRead(camera_, ba, bb, haveDelivered_, deliveredTag_,
+                                                frame.data(), selectedTag, transferNs);
+            if (result == 0) { msleep(6); continue; }
+            if (result == 2) { ++unstableReads_; msleep(1); continue; }
+            if (result < 0) {
                 QMutexLocker errorLock(&frames_->mutex);
                 if (camera_ == 1) ++frames_->errors1;
                 else if (camera_ == 2) ++frames_->errors2;
                 else if (camera_ == 3) ++frames_->errors3;
-                else ++frames_->errors4;
+                else if (camera_ == 4) ++frames_->errors4;
+                else if (camera_ == 5) ++frames_->errors5;
+                else ++frames_->errors6;
+                errorLock.unlock();
                 msleep(25); continue;
             }
+            if (haveDelivered_) sequenceAdvance_ += uint32_t(selectedTag - deliveredTag_);
+            deliveredTag_ = selectedTag; haveDelivered_ = true;
+            readNs_ += readTimer.nsecsElapsed();
+            transferNs_ += transferNs;
             QMutexLocker lock(&frames_->mutex);
             ++frames_->gen;
             if (camera_ == 1) { frames_->c1 = frame; frames_->have1 = true; frames_->last1 = QDateTime::currentMSecsSinceEpoch(); }
             else if (camera_ == 2) { frames_->c2 = frame; frames_->have2 = true; frames_->last2 = QDateTime::currentMSecsSinceEpoch(); }
             else if (camera_ == 3) { frames_->c3 = frame; frames_->have3 = true; frames_->last3 = QDateTime::currentMSecsSinceEpoch(); }
-            else { frames_->c4 = frame; frames_->have4 = true; frames_->last4 = QDateTime::currentMSecsSinceEpoch(); }
-            // [FPS3] measure this camera's capture rate over a 0.5 s window
-            if (!fpsTimer_.isValid()) fpsTimer_.start();
+            else if (camera_ == 4) { frames_->c4 = frame; frames_->have4 = true; frames_->last4 = QDateTime::currentMSecsSinceEpoch(); }
+            else if (camera_ == 5) { frames_->c5 = frame; frames_->have5 = true; frames_->last5 = QDateTime::currentMSecsSinceEpoch(); }
+            else { frames_->c6 = frame; frames_->have6 = true; frames_->last6 = QDateTime::currentMSecsSinceEpoch(); }
             ++fpsFrames_;
-            const double fel = fpsTimer_.elapsed() / 1000.0;
+            ++auditFrames_;
+            lock.unlock();
+            msleep(6);
+        }
+    }
+private:
+    // Called even with no new frame or DMA errors, so stopped streams report zero.
+    void reportRates() {
+            QMutexLocker lock(&frames_->mutex);
+            const double fel = fpsTimer_.nsecsElapsed() / 1e9;
             if (fel >= 0.5) {
                 const double f = fpsFrames_ / fel;
                 if (camera_ == 1) frames_->fps1 = f;
                 else if (camera_ == 2) frames_->fps2 = f;
                 else if (camera_ == 3) frames_->fps3 = f;
-                else frames_->fps4 = f;
+                else if (camera_ == 4) frames_->fps4 = f;
+                else if (camera_ == 5) frames_->fps5 = f;
+                else frames_->fps6 = f;
                 fpsFrames_ = 0;
                 fpsTimer_.restart();
             }
-            // The sensor is ~32 fps. Do not hammer the single PCIe DMA engine
-            // with back-to-back tag/frame transactions from both workers.
-            msleep(6);
-        }
+            if (auditTimer_.elapsed() >= 5000) {
+                const double seconds = auditTimer_.nsecsElapsed() / 1e9;
+                std::fprintf(stderr, "capture camera=%d seconds=%.3f frames=%llu delivered_fps=%.3f sequence_fps=%.3f read_ms=%.3f dma_ms=%.3f unstable=%llu\n",
+                    camera_, seconds, (unsigned long long)auditFrames_, auditFrames_ / seconds,
+                    sequenceAdvance_ / seconds, auditFrames_ ? readNs_ / 1e6 / auditFrames_ : 0.0, auditFrames_ ? transferNs_ / 1e6 / auditFrames_ : 0.0, (unsigned long long)unstableReads_);
+                std::fflush(stderr);
+                auditFrames_ = sequenceAdvance_ = unstableReads_ = 0; readNs_ = transferNs_ = 0;
+                auditTimer_.restart();
+            }
     }
-private:
     PangoDev *dev_;
     LatestFrames *frames_;
     int camera_;
     std::atomic_bool running_{true};
     QElapsedTimer fpsTimer_;   // [FPS3] per-camera fps window
     int fpsFrames_ = 0;
+    bool haveDelivered_ = false;
+    uint32_t deliveredTag_ = 0;
+    QElapsedTimer auditTimer_;
+    uint64_t auditFrames_ = 0, sequenceAdvance_ = 0, unstableReads_ = 0;
+    qint64 readNs_ = 0, transferNs_ = 0;
 };
 
 // ---------------- 采集线程 ----------------
@@ -247,7 +325,7 @@ class Grabber : public QThread {
 public:
     Grabber() : dev_(new PangoDev) {}
     ~Grabber() override { stop(); delete dev_; }
-    void stop() { run_ = false; wait(3000); }
+    void stop() { run_ = false; wait(); }
     void setByteSwap(bool on) { QMutexLocker l(&m_); swapB_ = on; }
     void setPaused(bool on)   { paused_ = on; }
     // [EDGE] request a one-shot write of the prep mode register
@@ -255,6 +333,17 @@ public:
     void requestEdge()  { edgeWrite_ = true;  }
     void requestRaw()   { edgeWrite_ = false; }
     void setRBSwap(bool on)   { QMutexLocker l(&m_); swapC_ = on; }
+    struct Snapshot {
+        CameraFrames images;
+        double fps = 0;
+        double capture[6] = {};
+        QString status;
+    };
+    Snapshot takeLatest() {
+        QMutexLocker lock(&mailboxMutex_);
+        notificationPending_ = false;
+        return mailbox_;
+    }
 
 signals:
     // [GPU 2026-09-27] emit the raw RGB565 composite (1920x480) instead of a
@@ -262,27 +351,26 @@ signals:
     // no CPU-side format conversion or scaling any more.
     // [FPS3 2026-09-27] also carry each camera's own capture rate (fps1..3) so
     // every pane can be labelled with its individual frame rate.
-    void frameReady(const QByteArray &rgb565, int w, int h, double fps,
-                    double fps1, double fps2, double fps3, double fps4, const QString &status);
+    void frameReady();
     void statusMsg(const QString &s);
 
 protected:
     void run() override {
         if (!dev_->open()) { emit statusMsg("FATAL: open driver failed"); return; }
         LatestFrames latest;
-        CameraWorker w1(dev_, &latest, 1), w2(dev_, &latest, 2), w3(dev_, &latest, 3), w4(dev_, &latest, 4);
-        w1.start(); w2.start(); w3.start(); w4.start();
+        CameraWorker w1(dev_, &latest, 1), w2(dev_, &latest, 2), w3(dev_, &latest, 3), w4(dev_, &latest, 4),
+                     w5(dev_, &latest, 5), w6(dev_, &latest, 6);
+        w1.start(); w2.start(); w3.start(); w4.start(); w5.start(); w6.start();
         QByteArray c1(FRAME_BYTES, 0), c2(FRAME_BYTES, 0), c3(FRAME_BYTES, 0), c4(FRAME_BYTES, 0),
-                   comp(4 * FRAME_BYTES, 0);
-        const int rowb = IMG_W * 2;
+                    c5(FRAME_BYTES, 0), c6(FRAME_BYTES, 0);
         QElapsedTimer timer; timer.start();
         int frames = 0; double fps = 0;
         // [TUNE 2026-09-27] Display-rate cap (ms between presented frames).
-        // Default 33 ms => ~30 fps, matching the ~30-32 fps sensor; the frame
-        // generation gate below already suppresses redundant redraws. Set the
-        // env var to 0 for the old uncapped behaviour.
+        // Default 16 ms between submissions leaves room for 40-fps cameras. Processing
+        // time counts toward the interval; only fresh frames trigger updates.
+        // Set CAMVIEW_MIN_MS=0 to measure uncapped composition throughput.
         const int minIntervalMs = qEnvironmentVariableIsSet("CAMVIEW_MIN_MS")
-            ? qEnvironmentVariableIntValue("CAMVIEW_MIN_MS") : 33;
+            ? qEnvironmentVariableIntValue("CAMVIEW_MIN_MS") : 16;
         emit statusMsg("QUAD THREAD VIEW");
         // [PACE 2026-09-27] MUST live outside the loop: it remembers the last
         // rendered frame generation so we only present when a camera actually
@@ -290,59 +378,76 @@ protected:
         // which reset it to 0 every iteration, so `gen == lastGen` never held
         // and the display free-ran at ~230 fps.
         uint64_t lastGen = 0;
+        QElapsedTimer displayPace; displayPace.start();
         while (run_) {
-        bool ready; qint64 last1, last2, last3, last4; uint64_t err1, err2, err3, err4, gen;
-        double cf1, cf2, cf3, cf4;
+        bool ready; qint64 last1, last2, last3, last4, last5, last6; uint64_t err1, err2, err3, err4, err5, err6, gen;
+        double cf1, cf2, cf3, cf4, cf5, cf6;
             { QMutexLocker lock(&latest.mutex);
-              ready = latest.have1 || latest.have2 || latest.have3 || latest.have4;
+              ready = latest.have1 || latest.have2 || latest.have3 || latest.have4 || latest.have5 || latest.have6;
               gen = latest.gen;
               if (latest.have1) c1 = latest.c1;
               if (latest.have2) c2 = latest.c2;
               if (latest.have3) c3 = latest.c3;
               if (latest.have4) c4 = latest.c4;
+              if (latest.have5) c5 = latest.c5;
+              if (latest.have6) c6 = latest.c6;
               last1 = latest.last1; last2 = latest.last2; last3 = latest.last3; last4 = latest.last4;
+              last5 = latest.last5; last6 = latest.last6;
               err1 = latest.errors1; err2 = latest.errors2; err3 = latest.errors3; err4 = latest.errors4;
-              cf1 = latest.fps1; cf2 = latest.fps2; cf3 = latest.fps3; cf4 = latest.fps4; }
+              err5 = latest.errors5; err6 = latest.errors6;
+              cf1 = latest.fps1; cf2 = latest.fps2; cf3 = latest.fps3; cf4 = latest.fps4;
+              cf5 = latest.fps5; cf6 = latest.fps6; }
             if (!ready) { msleep(2); continue; }
             // [PACE 2026-09-27] Only rebuild+present when a camera actually
             // produced a new frame. Previously the loop free-ran (msleep 6) and
             // redisplayed the same picture ~90x/s, wasting GPU/CPU and PCIe.
             if (gen == lastGen) { msleep(2); continue; }
-            lastGen = gen;
-            for (int y = 0; y < IMG_H; ++y) {
-                // [QUAD 2026-09-27] 2x2 grid: top C1|C2, bottom C3|C4.
-                memcpy(comp.data() + (size_t)y * 2 * rowb,                  c1.constData() + (size_t)y * rowb, rowb);
-                memcpy(comp.data() + (size_t)y * 2 * rowb + rowb,           c2.constData() + (size_t)y * rowb, rowb);
-                memcpy(comp.data() + (size_t)(y + IMG_H) * 2 * rowb,        c3.constData() + (size_t)y * rowb, rowb);
-                memcpy(comp.data() + (size_t)(y + IMG_H) * 2 * rowb + rowb, c4.constData() + (size_t)y * rowb, rowb);
+            if (minIntervalMs > 0 && displayPace.elapsed() < minIntervalMs) {
+                msleep(1); continue;
             }
+            displayPace.restart();
+            lastGen = gen;
+            CameraFrames images{c1, c2, c3, c4, c5, c6};
             frames++;
             double elapsed = timer.elapsed() / 1000.0;
-            if (elapsed >= 0.5) { fps = frames / elapsed; frames = 0; timer.restart(); std::fprintf(stderr, "camview_fps=%.3f\n", fps); std::fflush(stderr); }
+            if (elapsed >= 0.5) { fps = frames / elapsed; frames = 0; timer.restart(); std::fprintf(stderr, "submit_fps=%.3f\n", fps); std::fflush(stderr); }
             bool sb; { QMutexLocker l(&m_); sb = swapB_; }
             if (sb) {
                 // [GPU] byte order is a debug toggle; keep it on the CPU (rarely
                 // used) so the GL upload can always take RGB565 directly.
-                char *raw = comp.data();
-                for (int i = 0; i < 4 * FRAME_BYTES; i += 2) {
-                    char t = raw[i]; raw[i] = raw[i + 1]; raw[i + 1] = t;
+                for (QByteArray &image : images) {
+                    char *raw = image.data();
+                    for (int i = 0; i < FRAME_BYTES; i += 2) {
+                        char t = raw[i]; raw[i] = raw[i + 1]; raw[i + 1] = t;
+                    }
                 }
             }
             qint64 now = QDateTime::currentMSecsSinceEpoch();
-            const QString status = QString("D:%1  C1:%2 C2:%3 C3:%4 C4:%5  E1:%6 E2:%7 E3:%8 E4:%9")
+            const QString status = QString("D:%1  C1:%2 C2:%3 C3:%4 C4:%5 C5:%6 C6:%7  E1:%8 E2:%9 E3:%10 E4:%11 E5:%12 E6:%13")
                                        .arg(fps, 0, 'f', 1)
                                        .arg(now - last1 < 500 ? "OK" : "WAIT")
                                        .arg(now - last2 < 500 ? "OK" : "WAIT")
                                        .arg(now - last3 < 500 ? "OK" : "WAIT")
                                        .arg(now - last4 < 500 ? "OK" : "WAIT")
-                                       .arg(err1).arg(err2).arg(err3).arg(err4);
-            emit frameReady(comp, 2 * IMG_W, 2 * IMG_H, fps, cf1, cf2, cf3, cf4, status);
-            // No fixed display delay: the generation gate above already paces us
-            // to the camera, and the idle branch (gen == lastGen) sleeps 2 ms.
-            if (minIntervalMs > 0) msleep(minIntervalMs);
+                                       .arg(now - last5 < 500 ? "OK" : "WAIT")
+                                       .arg(now - last6 < 500 ? "OK" : "WAIT")
+                                       .arg(err1).arg(err2).arg(err3).arg(err4).arg(err5).arg(err6);
+            bool notify = false;
+            {
+                QMutexLocker lock(&mailboxMutex_);
+                mailbox_.images = images;
+                mailbox_.fps = fps;
+                const double capture[] = {cf1, cf2, cf3, cf4, cf5, cf6};
+                for (int i = 0; i < 6; ++i) mailbox_.capture[i] = capture[i];
+                mailbox_.status = status;
+                if (!notificationPending_) { notificationPending_ = true; notify = true; }
+            }
+            if (notify) emit frameReady();
+            // Pacing is checked before composition, without adding a full
+            // interval to the time already spent composing this frame.
         }
-        w1.stop(); w2.stop(); w3.stop(); w4.stop();
-        w1.wait(3000); w2.wait(3000); w3.wait(3000); w4.wait(3000);
+        w1.stop(); w2.stop(); w3.stop(); w4.stop(); w5.stop(); w6.stop();
+        w1.wait(); w2.wait(); w3.wait(); w4.wait(); w5.wait(); w6.wait();
         return;
     }
 private:
@@ -353,17 +458,24 @@ private:
     std::atomic_bool edgeWrite_{false};   // [RAW] default: unprocessed camera image
     std::atomic_bool edgePending_{false}; // [RAW] no prep-register write at all
     QMutex m_;
+    QMutex mailboxMutex_;
+    Snapshot mailbox_;
+    bool notificationPending_ = false;
 };
 
 // ---------------- 主窗口 (GPU 渲染) ----------------
 //
 // [GPU 2026-09-27] 整个显示路径基于 OpenGL ES2:
-//   RGB565 复合帧 --glTexImage2D--> 纹理 --quad 着色器--> 屏幕(letterbox)
+//   六路完整 RGB565 帧 --> 独立纹理 --> 六块 GPU 画面(letterbox)
 // 缩放/红蓝换序/平滑滤波都在 GPU 上完成, CPU 只负责把帧内存交给驱动.
 class View : public QOpenGLWindow, protected QOpenGLFunctions {
 public:
-    explicit View(Grabber *g) : g_(g) {
+    explicit View(Grabber *g) : QOpenGLWindow(qEnvironmentVariableIsSet("CAMVIEW_OFFSCREEN_DRAW")
+        ? QOpenGLWindow::PartialUpdateBlend : QOpenGLWindow::NoPartialUpdate), g_(g) {
         setTitle("camview");
+        QObject::connect(this, &QOpenGLWindow::frameSwapped, this, [this]() { ++swappedFrames_; });
+        if (qEnvironmentVariableIsSet("CAMVIEW_SWAP_DRIVEN"))
+            QObject::connect(this, &QOpenGLWindow::frameSwapped, this, [this]() { update(); });
         // [SURF 2026-09-27] Create the GL surface at the final (screen) size.
         // resize(1280,720) here used to make the *first* EGL surface 1280x720;
         // after showFullScreen() the swap chain still held that stale buffer,
@@ -371,6 +483,29 @@ public:
         // up/clipped. Sizing to the screen up front removes that source.
         const QRect sg = QGuiApplication::primaryScreen()->geometry();
         resize(sg.size());
+        uploadTimer_.start();
+        auto *rateTimer = new QTimer(this);
+        connect(rateTimer, &QTimer::timeout, this, [this]() {
+            if (uploadTimer_.elapsed() < 5000) return;
+            const double seconds = uploadTimer_.nsecsElapsed() / 1e9;
+            displayedFps_ = uploadedFrames_ / seconds;
+            const double captureFps[] = {fps1_, fps2_, fps3_, fps4_, fps5_, fps6_};
+            std::copy(captureFps, captureFps + 6, captureHudFps_);
+            swapFps_ = swappedFrames_ / seconds;
+            swappedFrames_ = 0;
+            std::fprintf(stderr, "swap_fps=%.3f\n", swapFps_);
+            std::fprintf(stderr, "uploaded_fps=%.3f\n", displayedFps_);
+            for (int i = 0; i < 6; ++i) {
+                cameraDisplayedFps_[i] = cameraUploads_[i] / seconds;
+                std::fprintf(stderr, "upload camera=%d fps=%.3f\n", i + 1, cameraDisplayedFps_[i]);
+                cameraUploads_[i] = 0;
+            }
+            uploadedFrames_ = 0;
+            uploadTimer_.restart();
+            std::fflush(stderr);
+            update();
+        });
+        rateTimer->start(500);
     }
 
     bool byteSwapped() const { return bs_; }
@@ -390,12 +525,18 @@ public:
     bool helpVisible() const { return help_; }
 
     // 采集线程投递新帧 (GUI 线程调用, 跨线程走 queued connection)
-    void submitFrame(const QByteArray &rgb565, int w, int h, double fps,
-                     double fps1, double fps2, double fps3, double fps4, const QString &status) {
-        frame_ = rgb565;          // QByteArray 隐式共享, 只是引用计数 +1
+    void submitFrame(const CameraFrames &images, int w, int h, double fps,
+                     double fps1, double fps2, double fps3, double fps4,
+                     double fps5, double fps6, const QString &status) {
+        if (images.size() != 6 || paused_) return;
+        for (int i = 0; i < 6; ++i) {
+            if (frames_.size() != 6 || frames_[i].constData() != images[i].constData())
+                textureDirty_[i] = true;
+        }
+        frames_ = images;
         fw_ = w; fh_ = h; fps_ = fps; status_ = status;
         fps1_ = fps1; fps2_ = fps2; fps3_ = fps3; fps4_ = fps4;
-        frameDirty_ = true;
+        fps5_ = fps5; fps6_ = fps6;
         statusOnly_ = false;
         if (!paused_) update();
     }
@@ -423,15 +564,28 @@ protected:
 private:
     void buildHudImage(int w, int h);
     Grabber *g_;
-    QByteArray frame_;
+    CameraFrames frames_;
+    bool textureDirty_[6] = {true, true, true, true, true, true};
+    bool textureAllocated_[18] = {};
+    int textureSlot_[6] = {};
+    int textureRing_ = qBound(1, qEnvironmentVariableIntValue("CAMVIEW_TEXTURE_RING"), 3);
+    uint64_t cameraUploads_[6] = {0, 0, 0, 0, 0, 0};
+    double displayedFps_ = 0;
+    uint64_t swappedFrames_ = 0;
+    double swapFps_ = 0;
+    double cameraDisplayedFps_[6] = {0, 0, 0, 0, 0, 0};
+    double captureHudFps_[6] = {0, 0, 0, 0, 0, 0};
     int fw_ = 0, fh_ = 0;
     double fps_ = 0;
-    double fps1_ = 0, fps2_ = 0, fps3_ = 0, fps4_ = 0;   // [FPS3] per-camera capture rates
+    double fps1_ = 0, fps2_ = 0, fps3_ = 0, fps4_ = 0, fps5_ = 0, fps6_ = 0;   // [FPS3+SFP] per-camera capture rates
     QString status_;
     bool statusOnly_ = false;     // true => show status text without a frame
-    bool frameDirty_ = false;
-    bool texAlloc_ = false;
-    GLuint tex_ = 0;
+    QElapsedTimer uploadTimer_;
+    uint64_t uploadedFrames_ = 0;
+    GLuint tex_[18] = {};
+    GLuint vertexBuffer_ = 0;
+    QString vertexKey_;
+    GLint textureFilter_[18] = {};
     QOpenGLShaderProgram prog_;
     bool full_ = false, bs_ = false, rs_ = false, paused_ = false, smooth_ = false, help_ = false;
     bool edgeOn_ = false;  // [RAW] default: unprocessed camera image
@@ -441,6 +595,8 @@ private:
     // texture atlas (that path produced smeared/blurry text on Mali ES2).
     QImage hudImg_;
     QString hudKey_;
+    GLuint hudTex_ = 0;
+    int hudTexWidth_ = 0, hudTexHeight_ = 0;
 };
 
 static const char *kHelpText =
@@ -488,8 +644,8 @@ void View::initializeGL() {
         "    return;\n"
         "  }\n"
         "  vec4 c = texture2D(uTex, vTex);\n"
-        "  if (uSwap == 1) gl_FragColor = vec4(c.b, c.g, c.r, 1.0);\n"
-        "  else            gl_FragColor = vec4(c.rgb, 1.0);\n"
+        "  if (uSwap == 1) gl_FragColor = vec4(c.b, c.g, c.r, c.a);\n"
+        "  else            gl_FragColor = c;\n"
         "}\n";
     prog_.addShaderFromSourceCode(QOpenGLShader::Vertex, vsrc);
     prog_.addShaderFromSourceCode(QOpenGLShader::Fragment, fsrc);
@@ -498,16 +654,29 @@ void View::initializeGL() {
     if (!prog_.link())
         std::fprintf(stderr, "camview_gl: shader link failed: %s\n", qPrintable(prog_.log()));
 
-    glGenTextures(1, &tex_);
-    glBindTexture(GL_TEXTURE_2D, tex_);
+    glGenTextures(18, tex_);
+    glGenBuffers(1, &vertexBuffer_);
+    for (GLuint texture : tex_) {
+        glBindTexture(GL_TEXTURE_2D, texture);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    }
+    std::fill(textureFilter_, textureFilter_ + 18, GL_NEAREST);
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+    glGenTextures(1, &hudTex_);
+    glBindTexture(GL_TEXTURE_2D, hudTex_);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 }
 
 void View::paintGL() {
+    QElapsedTimer paintTimer; paintTimer.start();
+    qint64 cameraUploadNs = 0;
+    qint64 cameraDrawNs = 0;
     // [VP 2026-09-27] Log any change of the GL viewport / window size. The
     // "jitter" turned out to be the picture being drawn 360 px higher on some
     // frames, i.e. a stale/foreign viewport, so watch it explicitly.
@@ -533,51 +702,92 @@ void View::paintGL() {
     const int fbh = (int)(height() * devicePixelRatioF());
     glViewport(0, 0, fbw, fbh);
 
-    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT);
 
-    const bool haveFrame = (fw_ > 0 && fh_ > 0 && frame_.size() >= fw_ * fh_ * 2);
-    if ((haveFrame || testPat_) && !statusOnly_) {
-        glBindTexture(GL_TEXTURE_2D, tex_);
-        if (haveFrame && (frameDirty_ || !texAlloc_)) {
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, fw_, fh_, 0,
-                         GL_RGB, GL_UNSIGNED_SHORT_5_6_5, frame_.constData());
-            texAlloc_ = true;
-            frameDirty_ = false;
-        }
-        const GLint filt = smooth_ ? GL_LINEAR : GL_NEAREST;
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, filt);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, filt);
-
-        // letterbox: preserve the frame aspect ratio inside the widget
-        const float ia = (float)fw_ / (float)fh_;
-        const float wa = (float)width() / (float)qMax(1, height());
-        float sx = 1.0f, sy = 1.0f;
+    const bool haveFrame = (fw_ > 0 && fh_ > 0 && frames_.size() == 6);
+    const QString geometryKey = QString("%1/%2/%3/%4").arg(width()).arg(height()).arg(fw_).arg(fh_);
+    glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer_);
+    if (vertexKey_ != geometryKey) {
+        GLfloat vertices[7 * 16];
+        float sx = 1, sy = 1;
+        const float ia = fw_ > 0 && fh_ > 0 ? float(fw_) / fh_ : 2.0f;
+        const float wa = float(width()) / qMax(1, height());
         if (ia > wa) sy = wa / ia; else sx = ia / wa;
+        for (int i = 0; i < 7; ++i) {
+            const float left = i == 6 ? -1 : -sx + (i % 3) * (2 * sx / 3);
+            const float right = i == 6 ? 1 : left + 2 * sx / 3;
+            const float top = i == 6 ? 1 : sy - (i / 3) * sy;
+            const float bottom = i == 6 ? -1 : top - sy;
+            const GLfloat quad[] = {left, top, 0, 0, right, top, 1, 0,
+                                    left, bottom, 0, 1, right, bottom, 1, 1};
+            std::copy(quad, quad + 16, vertices + i * 16);
+        }
+        glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+        vertexKey_ = geometryKey;
+    }
+    const qint64 setupCostNs = paintTimer.nsecsElapsed();
+    if ((haveFrame || testPat_) && !statusOnly_) {
         // [GEO] kept for post-mortem; see the viewport log at the top of paintGL.
-        const GLfloat verts[] = {
-            -sx,  sy, 0.0f, 0.0f,   // top-left      -> frame top row
-             sx,  sy, 1.0f, 0.0f,   // top-right
-            -sx, -sy, 0.0f, 1.0f,   // bottom-left   -> frame bottom row
-             sx, -sy, 1.0f, 1.0f,   // bottom-right
-        };
         prog_.bind();
         prog_.enableAttributeArray(0);
         prog_.enableAttributeArray(1);
-        prog_.setAttributeArray(0, GL_FLOAT, verts,     2, 4 * sizeof(GLfloat));
-        prog_.setAttributeArray(1, GL_FLOAT, verts + 2, 2, 4 * sizeof(GLfloat));
         prog_.setUniformValue("uTex", 0);
         prog_.setUniformValue("uSwap", rs_ ? 1 : 0);
         prog_.setUniformValue("uTest", testPat_ ? 1 : 0);
         glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, tex_);
-        glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+        bool uploaded = false;
+        for (int i = 0; i < 6; ++i) {
+            if (haveFrame && frames_[i].size() == FRAME_BYTES && textureDirty_[i]) {
+                textureSlot_[i] = (textureSlot_[i] + 1) % textureRing_;
+                const int textureIndex = i * 3 + textureSlot_[i];
+                glBindTexture(GL_TEXTURE_2D, tex_[textureIndex]);
+                QElapsedTimer uploadCost; uploadCost.start();
+                if (!textureAllocated_[textureIndex]) {
+                    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, IMG_W, IMG_H, 0,
+                                 GL_RGB, GL_UNSIGNED_SHORT_5_6_5, frames_[i].constData());
+                    textureAllocated_[textureIndex] = true;
+                } else {
+                    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, IMG_W, IMG_H,
+                                    GL_RGB, GL_UNSIGNED_SHORT_5_6_5, frames_[i].constData());
+                }
+                textureDirty_[i] = false;
+                cameraUploadNs += uploadCost.nsecsElapsed();
+                ++cameraUploads_[i]; uploaded = true;
+            }
+        }
+        // Upload every changed image before issuing any draw, avoiding
+        // alternating texture updates and rendering on the tiled Mali GPU.
+        QElapsedTimer drawCost; drawCost.start();
+        // Acquire the window framebuffer after texture uploads so CPU upload
+        // work can overlap the wait for the previous presentation buffer.
+        glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT);
+        for (int i = 0; i < 6; ++i) {
+            glBindTexture(GL_TEXTURE_2D, tex_[i * 3 + textureSlot_[i]]);
+            const GLint filt = smooth_ ? GL_LINEAR : GL_NEAREST;
+            const int textureIndex = i * 3 + textureSlot_[i];
+            if (textureFilter_[textureIndex] != filt) {
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, filt);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, filt);
+                textureFilter_[textureIndex] = filt;
+            }
+            prog_.setAttributeBuffer(0, GL_FLOAT, 0, 2, 4 * sizeof(GLfloat));
+            prog_.setAttributeBuffer(1, GL_FLOAT, 2 * sizeof(GLfloat), 2, 4 * sizeof(GLfloat));
+            glDrawArrays(GL_TRIANGLE_STRIP, i * 4, 4);
+        }
+        if (uploaded) {
+            ++uploadedFrames_;
+        }
         prog_.disableAttributeArray(0);
         prog_.disableAttributeArray(1);
         prog_.release();
+        cameraDrawNs = drawCost.nsecsElapsed();
+    } else {
+        glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT);
     }
 
     // ---- HUD overlay ----
+    QElapsedTimer hudCost; hudCost.start();
     // [HUDIMG 2026-09-27] Build the overlay with the *raster* paint engine into
     // an ARGB image (crisp glyphs) and only blit it here. Drawing the text
     // directly with QPainter on this GL window sent it through Qt's GL glyph
@@ -588,23 +798,85 @@ void View::paintGL() {
     }
     const int dprW = (int)(width()  * devicePixelRatioF());
     const int dprH = (int)(height() * devicePixelRatioF());
-    const QString key = QString("%1|%2|%3|%4|%5|%6x%7|%8|%9|%10|%11")
-                            .arg(fps_, 0, 'f', 0).arg(status_).arg(help_).arg(statusOnly_)
+    const QString key = QString("%1|%2|%3|%4|%5|%6x%7|%8|%9|%10|%11|%12|%13|%14|%15|%16|%17|%18|%19|%20")
+                            .arg(displayedFps_, 0, 'f', 1).arg((statusOnly_ || !haveFrame) ? status_ : QString()).arg(help_).arg(statusOnly_)
                             .arg(dprW).arg(fw_).arg(fh_)
-                            .arg(fps1_, 0, 'f', 0).arg(fps2_, 0, 'f', 0).arg(fps3_, 0, 'f', 0)
-                            .arg(fps4_, 0, 'f', 0);
+                            .arg(cameraDisplayedFps_[0], 0, 'f', 1).arg(cameraDisplayedFps_[1], 0, 'f', 1).arg(cameraDisplayedFps_[2], 0, 'f', 1)
+                            .arg(cameraDisplayedFps_[3], 0, 'f', 1).arg(cameraDisplayedFps_[4], 0, 'f', 1).arg(cameraDisplayedFps_[5], 0, 'f', 1)
+                            .arg(swapFps_, 0, 'f', 1).arg(captureHudFps_[0], 0, 'f', 1).arg(captureHudFps_[1], 0, 'f', 1)
+                            .arg(captureHudFps_[2], 0, 'f', 1).arg(captureHudFps_[3], 0, 'f', 1).arg(captureHudFps_[4], 0, 'f', 1).arg(captureHudFps_[5], 0, 'f', 1);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, hudTex_);
     if (hudImg_.size() != QSize(dprW, dprH) || key != hudKey_) {
         buildHudImage(dprW, dprH);
         hudKey_ = key;
+        const QImage &rgba = hudImg_;
+        if (hudTexWidth_ != dprW || hudTexHeight_ != dprH) {
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, dprW, dprH, 0,
+                         GL_RGBA, GL_UNSIGNED_BYTE, rgba.constBits());
+            hudTexWidth_ = dprW; hudTexHeight_ = dprH;
+        } else {
+            glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, dprW, dprH,
+                            GL_RGBA, GL_UNSIGNED_BYTE, rgba.constBits());
+        }
     }
-    QPainter p(this);
-    p.drawImage(QPoint(0, 0), hudImg_);
-    p.end();
+    // Keep raster glyph quality; reuse a GPU texture rather than invoking
+    // Qt's GL paint engine for a full-window image on every presentation.
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+    prog_.bind();
+    prog_.enableAttributeArray(0); prog_.enableAttributeArray(1);
+    prog_.setAttributeBuffer(0, GL_FLOAT, 0, 2, 4 * sizeof(GLfloat));
+    prog_.setAttributeBuffer(1, GL_FLOAT, 2 * sizeof(GLfloat), 2, 4 * sizeof(GLfloat));
+    prog_.setUniformValue("uTex", 0);
+    prog_.setUniformValue("uSwap", 0); prog_.setUniformValue("uTest", 0);
+    if (haveFrame && !help_ && !statusOnly_) {
+        glEnable(GL_SCISSOR_TEST);
+        const float ratio = float(devicePixelRatioF());
+        auto hudBox = [&](float x, float y, float w, float h) {
+            glScissor(int(x * ratio), qMax(0, fbh - int((y + h) * ratio)),
+                      int(w * ratio), int(h * ratio));
+            glDrawArrays(GL_TRIANGLE_STRIP, 24, 4);
+        };
+        hudBox(18, 18, 470, 44);
+        const float ia = float(fw_) / fh_;
+        const float wa = float(width()) / qMax(1, height());
+        const float dw = ia > wa ? width() : height() * ia;
+        const float dh = ia > wa ? width() / ia : height();
+        const float dx = (width() - dw) * 0.5f;
+        const float dy = (height() - dh) * 0.5f;
+        for (int i = 0; i < 6; ++i)
+            hudBox(dx + (i % 3) * dw / 3 + 6, dy + (i / 3) * dh / 2 + 6, 310, 32);
+        glDisable(GL_SCISSOR_TEST);
+    } else {
+        glDrawArrays(GL_TRIANGLE_STRIP, 24, 4);
+    }
+    prog_.disableAttributeArray(0); prog_.disableAttributeArray(1);
+    prog_.release(); glDisable(GL_BLEND);
+    static QElapsedTimer paintAudit;
+    static qint64 paintNs = 0;
+    static qint64 uploadNs = 0;
+    static qint64 drawNs = 0;
+    static qint64 setupNs = 0, hudNs = 0;
+    static uint64_t paintCount = 0;
+    if (!paintAudit.isValid()) paintAudit.start();
+    paintNs += paintTimer.nsecsElapsed(); ++paintCount;
+    uploadNs += cameraUploadNs;
+    drawNs += cameraDrawNs;
+    setupNs += setupCostNs; hudNs += hudCost.nsecsElapsed();
+    if (paintAudit.elapsed() >= 5000) {
+        std::fprintf(stderr, "paint_ms=%.3f\n", paintNs / 1e6 / paintCount);
+        std::fprintf(stderr, "camera_upload_ms=%.3f\n", uploadNs / 1e6 / paintCount);
+        std::fprintf(stderr, "camera_draw_ms=%.3f\n", drawNs / 1e6 / paintCount);
+        std::fprintf(stderr, "setup_ms=%.3f hud_ms=%.3f\n", setupNs / 1e6 / paintCount, hudNs / 1e6 / paintCount);
+        setupNs = hudNs = 0;
+        std::fflush(stderr); paintNs = uploadNs = drawNs = 0; paintCount = 0; paintAudit.restart();
+    }
 }
 
 void View::buildHudImage(int w, int h) {
     if (w <= 0 || h <= 0) return;
-    hudImg_ = QImage(w, h, QImage::Format_ARGB32_Premultiplied);
+    hudImg_ = QImage(w, h, QImage::Format_RGBA8888_Premultiplied);
     hudImg_.fill(Qt::transparent);
     QPainter p(&hudImg_);
     p.setRenderHint(QPainter::Antialiasing, true);
@@ -613,7 +885,7 @@ void View::buildHudImage(int w, int h) {
     p.scale(dpr, dpr);                       // draw in logical coordinates
     QFont f = p.font();
     f.setBold(true);
-    const bool haveFrame = (fw_ > 0 && fh_ > 0 && frame_.size() >= fw_ * fh_ * 2);
+    const bool haveFrame = (fw_ > 0 && fh_ > 0 && frames_.size() == 6);
     if (!haveFrame || statusOnly_) {
         p.setPen(QColor(0, 255, 120));
         f.setPointSize(16);
@@ -627,7 +899,7 @@ void View::buildHudImage(int w, int h) {
         f.setPointSize(14);
         p.setFont(f);
         p.drawText(r.adjusted(10, 4, -8, -4), Qt::AlignLeft | Qt::AlignVCenter,
-                   QString("Quad FPS: %1   %2").arg(fps_, 0, 'f', 1).arg(status_));
+                    QString("Upload %1 fps | Swap %2 fps").arg(displayedFps_, 0, 'f', 1).arg(swapFps_, 0, 'f', 1));
     }
     if (help_) {
         QRect r(20, 20, 340, 250);
@@ -637,9 +909,9 @@ void View::buildHudImage(int w, int h) {
         p.setFont(f);
         p.drawText(r.adjusted(16, 12, -16, -12), Qt::AlignTop | Qt::AlignLeft, QString::fromUtf8(kHelpText));
     }
-    // [FPS3 2026-09-27] Per-pane frame-rate label in the top-left corner of
-    // each of the four camera images. The panes are the four quadrants of the
-    // letterboxed 2x2 composite (fw_ x fh_ is 2*640 x 2*480).
+    // [FPS3+SFP] Per-pane frame-rate label in the top-left corner of each of
+    // the six camera images. Panes are the 3x2 grid of the composite
+    // (fw_ x fh_ is 3*640 x 2*480).
     if (haveFrame && !statusOnly_ && fw_ > 0 && fh_ > 0) {
         const float ia = (float)fw_ / (float)fh_;
         const float wa = (float)width() / (float)qMax(1, height());
@@ -648,17 +920,17 @@ void View::buildHudImage(int w, int h) {
         else         { dh = (float)height(); dw = (float)height() * ia; }
         const float dx = ((float)width()  - dw) * 0.5f;
         const float dy = ((float)height() - dh) * 0.5f;
-        const float pw = dw / 2.0f;
+        const float pw = dw / 3.0f;
         const float ph = dh / 2.0f;
-        const double cf[4] = { fps1_, fps2_, fps3_, fps4_ };
+        const double *cf = cameraDisplayedFps_;
         f.setPointSize(12);
         p.setFont(f);
-        for (int i = 0; i < 4; ++i) {
-            const QRect box((int)(dx + (i % 2) * pw) + 6, (int)(dy + (i / 2) * ph) + 6, 150, 32);
+        for (int i = 0; i < 6; ++i) {
+            const QRect box((int)(dx + (i % 3) * pw) + 6, (int)(dy + (i / 3) * ph) + 6, 310, 32);
             p.fillRect(box, QColor(0, 0, 0, 170));
             p.setPen(QColor(0, 255, 120));
             p.drawText(box.adjusted(8, 0, -6, 0), Qt::AlignLeft | Qt::AlignVCenter,
-                       QString("C%1  %2 fps").arg(i + 1).arg(cf[i], 0, 'f', 1));
+                        QString("C%1 cap %2 | up %3 fps").arg(i + 1).arg(captureHudFps_[i], 0, 'f', 1).arg(cf[i], 0, 'f', 1));
         }
     }
     p.end();
@@ -675,12 +947,16 @@ int main(int argc, char **argv) {
     // (software). Must be set before QApplication loads the platform plugin.
     qputenv("QT_XCB_GL_INTEGRATION", "xcb_egl");
     qputenv("QT_OPENGL", "es2");
+    if (!qEnvironmentVariableIsSet("QT_QPA_UPDATE_IDLE_TIME"))
+        qputenv("QT_QPA_UPDATE_IDLE_TIME", "0");
+    qRegisterMetaType<CameraFrames>("CameraFrames");
     QSurfaceFormat fmt;
     fmt.setRenderableType(QSurfaceFormat::OpenGLES);
     fmt.setVersion(2, 0);
     fmt.setDepthBufferSize(0);
     fmt.setStencilBufferSize(0);
-    fmt.setSwapInterval(1);   // [SURF] present on vblank; avoids torn frames
+    fmt.setSwapInterval(qEnvironmentVariableIsSet("CAMVIEW_SWAP_INTERVAL")
+        ? qEnvironmentVariableIntValue("CAMVIEW_SWAP_INTERVAL") : 1);
     QSurfaceFormat::setDefaultFormat(fmt);
 
     QApplication app(argc, argv);
@@ -689,9 +965,11 @@ int main(int argc, char **argv) {
     View *view = new View(grabber);
 
     QObject::connect(grabber, &Grabber::frameReady, view,
-        [view](const QByteArray &rgb565, int w, int h, double fps,
-               double fps1, double fps2, double fps3, double fps4, const QString &status) {
-            view->submitFrame(rgb565, w, h, fps, fps1, fps2, fps3, fps4, status);
+        [view, grabber]() {
+             const auto frame = grabber->takeLatest();
+             view->submitFrame(frame.images, 3 * IMG_W, 2 * IMG_H, frame.fps,
+                               frame.capture[0], frame.capture[1], frame.capture[2],
+                               frame.capture[3], frame.capture[4], frame.capture[5], frame.status);
         });
     QObject::connect(grabber, &Grabber::statusMsg, view, [view](const QString &s) {
         view->setStatusText(s);

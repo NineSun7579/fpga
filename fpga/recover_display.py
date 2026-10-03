@@ -11,9 +11,9 @@
 """
 import serial, time, base64, subprocess, sys, re
 
-PORT, BAUD = 'COM9', 1500000
+PORT, BAUD = 'COM9', 1500000   # 2026-09-30 实测: COM9 已不存在(枚举到 COM3/4/5/20/21), 用前需改成板子实际串口
 PDS = r'C:/pango/PDS_2022.2-SP6.4/bin'
-TCL = r'C:\Users\NineSun\Desktop\ov56401\flash_jtag.tcl'
+TCL = r'C:\Users\NineSun\Desktop\ov56401\project\flash_jtag.tcl'
 
 def serial_cmd(snippet, tmo=90):
     """板上执行 shell 片段, 返回输出文本"""

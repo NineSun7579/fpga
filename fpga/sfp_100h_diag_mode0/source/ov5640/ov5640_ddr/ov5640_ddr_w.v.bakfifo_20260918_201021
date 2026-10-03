@@ -1,0 +1,358 @@
+module ov5640_ddr_w #(
+    parameter DATA_WIDTH = 24,
+    parameter AXI_DATA_WIDTH = 128,
+    parameter CAM_DATA_LEN  = 172800, //1280*720*3/16
+    parameter DEVICE = "PG"
+)(
+    input          axi_clk        ,
+    input          axi_rst        ,
+
+    input  [$clog2(CAM_DATA_LEN) : 0]  data_len       /*synthesis PAP_MARK_DEBUG="1"*/, //��16�ֽ�Ϊ��λ
+
+    input  [DATA_WIDTH-1 :0]       s_data       ,
+    input                          s_data_valid ,
+    input                          s_vsync      ,
+    input                          s_hsync      ,       //û��
+
+    output [AXI_DATA_WIDTH-1 : 0]  axi_data       /*synthesis PAP_MARK_DEBUG="1"*/,
+    output                         axi_data_valid /*synthesis PAP_MARK_DEBUG="1"*/,
+    output                         axi_data_last  /*synthesis PAP_MARK_DEBUG="1"*/, 
+    input                          axi_data_ready /*synthesis PAP_MARK_DEBUG="1"*/,
+    output [31:0]                  dbg_axi_cnt,
+    output [31:0]                  dbg_axi_num  
+);
+
+
+
+
+    reg             wr_en;
+    reg  [31 : 0]   din  ;
+    wire            rd_en;
+    wire [AXI_DATA_WIDTH-1 : 0] dout ;
+
+    wire                        empty;
+    wire                        full /*synthesis PAP_MARK_DEBUG="1"*/;
+
+
+
+    reg [1 : 0] cnt;
+    always @(posedge axi_clk) begin
+        if(axi_rst)begin
+            cnt <= 2'd0;
+        end
+        else if(s_data_valid)begin
+            cnt <= cnt + 2'd1;
+        end
+    end
+generate
+    if(DATA_WIDTH == 24) begin    
+    
+        reg [23 : 0]  cam_data_temp;
+        always @(posedge axi_clk) begin
+            if(s_data_valid)begin
+                case (cnt)
+                    2'b00:begin
+                        cam_data_temp <= s_data;
+                    end
+                    2'b01:begin
+                        cam_data_temp <= {8'd0, s_data[23:8]};
+                    end
+                    2'b10:begin
+                        cam_data_temp <= {16'd0, s_data[23:16]};
+                    end
+                    2'b11:begin
+                        cam_data_temp <= 24'd0;
+                    end
+                endcase
+            end
+        end
+
+        always @(posedge axi_clk) begin
+            if(s_data_valid)begin
+                case (cnt)
+                    2'b01:begin
+                        din <= {s_data[7:0], cam_data_temp[23:0]};
+                    end
+                    2'b10:begin
+                        din <= {s_data[15:0], cam_data_temp[15:0]};
+                    end
+                    2'b11:begin
+                        din <= {s_data, cam_data_temp[7:0]};
+                    end
+                endcase
+            end
+        end
+
+        always @(posedge axi_clk) begin
+            if(axi_rst)begin
+                wr_en <= 1'b0;
+            end
+            else if(s_data_valid & (cnt != 2'b00))begin
+                wr_en <= 1'b1;
+            end
+            else begin
+                wr_en <= 1'b0;
+            end
+        end
+
+    end
+    else if(DATA_WIDTH == 16) begin
+
+        reg [15 : 0] cam_data_temp;
+        always @(posedge axi_clk) begin
+            if(s_data_valid) begin
+                cam_data_temp <= s_data;
+            end
+        end
+
+
+        always @(posedge axi_clk) begin
+            if(s_data_valid)begin
+                if(cnt[0]) begin
+                    din <= {s_data, cam_data_temp};
+                end
+            end
+        end
+
+        always @(posedge axi_clk) begin
+            if(axi_rst)begin
+                wr_en <= 1'b0;
+            end
+            else if(s_data_valid & cnt[0])begin
+                wr_en <= 1'b1;
+            end
+            else begin
+                wr_en <= 1'b0;
+            end
+        end
+
+    end
+    else if(DATA_WIDTH == 8) begin
+
+        reg [23 : 0] cam_data_temp;
+        always @(posedge axi_clk) begin
+            if(s_data_valid) begin
+                cam_data_temp <= {s_data, cam_data_temp[23:8]};
+            end
+        end
+
+        always @(posedge axi_clk) begin
+            if(s_data_valid)begin
+                if(&cnt) begin
+                    din <= {s_data, cam_data_temp};
+                end
+            end
+        end
+
+
+        always @(posedge axi_clk) begin
+            if(axi_rst)begin
+                wr_en <= 1'b0;
+            end
+            else if(s_data_valid & &cnt)begin
+                wr_en <= 1'b1;
+            end
+            else begin
+                wr_en <= 1'b0;
+            end
+        end
+
+    end
+endgenerate
+
+
+
+
+
+
+        reg [$clog2(CAM_DATA_LEN) : 0] axi_num/*synthesis PAP_MARK_DEBUG="1"*/;
+        reg [$clog2(CAM_DATA_LEN) : 0] axi_cnt/*synthesis PAP_MARK_DEBUG="1"*/;
+
+        always @(posedge axi_clk) begin
+            if(axi_rst)begin
+                axi_num <= 20'd0;
+            end
+            else begin
+                axi_num <= data_len - 20'd1;
+            end
+        end
+
+        // [PLANC 2026-09-18] VSYNC-delimited frame with zero padding.
+        // The AXI command length is FIXED (data_len beats) and the DMA deadlocks
+        // when the pixel stream delivers a different count: a burst that starts
+        // and then starves never returns its B response, so burst_trans/trans
+        // stick and the frame FSM wedges in ADDR forever (measured: bvalid never
+        // asserted, state=ADDR). Instead of trusting the stream to be exact, we
+        // end every frame at VSYNC and pad the tail with zero beats, so each frame
+        // is exactly data_len beats and the command length always matches.
+        reg pad_mode;
+
+        always @(posedge axi_clk) begin
+            if(axi_rst)begin
+                axi_cnt <= 20'd0;
+            end
+            else if(s_vsync && !pad_mode)begin
+                axi_cnt <= 20'd0;
+            end
+            else if(axi_data_valid & axi_data_ready)begin
+                if(axi_data_last)begin
+                    axi_cnt <= 20'd0;
+                end
+                else begin
+                    axi_cnt <= axi_cnt + 20'd1;
+                end
+            end
+        end
+
+        // entered at VSYNC when the frame came up short; emits zero beats until
+        // the nominal length is reached (axi_data_last then fires naturally)
+        always @(posedge axi_clk) begin
+            if(axi_rst)begin
+                pad_mode <= 1'b0;
+            end
+            else if(s_vsync)begin
+                pad_mode <= (axi_cnt != axi_num) && (axi_cnt != 20'd0);
+            end
+            else if(pad_mode && (axi_cnt == axi_num) && axi_data_ready)begin
+                pad_mode <= 1'b0;
+            end
+        end
+
+    // reg test1/*synthesis PAP_MARK_DEBUG="1"*/;
+    // always @(posedge axi_clk) begin
+    //     if(axi_rst) begin
+    //         test1 <= 1'b0;
+    //     end
+    //     else if(s_vsync && (axi_cnt != 0)) begin
+    //         test1 <= 1'b1;
+    //     end
+    // end
+
+
+    // OUTPUT_REG=0 presents read data one clock after rd_en. Keep one read
+    // outstanding, then capture dout on the following clock and expose it to
+    // AXI. Capturing dout on the request edge observes the previous word.
+    reg fifo_data_valid;
+    reg fifo_read_pending;
+    reg [AXI_DATA_WIDTH-1:0] fifo_data_q;
+    wire fifo_read_req;
+    assign fifo_read_req = !empty && (!fifo_data_valid || axi_data_ready);
+    assign rd_en = fifo_read_req;
+    assign axi_data_last = (axi_cnt == axi_num);
+    assign axi_data = fifo_data_q;
+    assign axi_data_valid = fifo_data_valid;
+    always @(posedge axi_clk) begin
+        if (axi_rst) begin
+            fifo_data_valid <= 1'b0;
+            fifo_read_pending <= 1'b0;
+            fifo_data_q <= {AXI_DATA_WIDTH{1'b0}};
+        end
+        else begin
+            fifo_read_pending <= fifo_read_req;
+            fifo_data_valid <= fifo_read_pending;
+            if (fifo_read_pending)
+                fifo_data_q <= dout;
+        end
+    end
+
+
+
+
+        wire [AXI_DATA_WIDTH-1 : 0] dout_drm;
+        wire                        empty_drm/*synthesis PAP_MARK_DEBUG="1"*/;  
+        wire                        almost_full_drm;
+        wire                        almost_full_out;
+        wire rd_en_drm = !(almost_full_drm | empty_drm);
+        ov5640_ddr_fifo_DRM ov5640_ddr_fifo_DRM (
+          .clk(axi_clk),                      // input
+          .rst(axi_rst),                      // input
+          .wr_en(wr_en),                  // input
+          .wr_data(din),              // input [31:0]
+          .wr_full(full),              // output
+          
+          .rd_en(rd_en_drm),                  // input
+          .rd_data(dout_drm),              // output [127:0]
+          .rd_empty(empty_drm),            // output
+
+          .almost_full(almost_full_drm),      // output
+          .almost_empty()     // output
+        );
+
+
+        // reg rd_en_drm_d;
+        // always @(posedge axi_clk) begin
+        //     if(axi_rst) begin
+        //         rd_en_drm_d <= 1'b0;
+        //     end
+        //     else begin
+        //         rd_en_drm_d <= rd_en_drm;  
+        //     end
+        // end
+
+        // Capture the DRM FIFO's current combinational word before its read
+        // pointer advances. The captured word is written to the output FIFO
+        // on the following clock; using dout_drm directly there would select
+        // the next word and skip every entry.
+        reg wr_en_drm;
+        reg [AXI_DATA_WIDTH-1:0] dout_drm_q;
+        always @(posedge axi_clk) begin
+            if (axi_rst) begin
+                wr_en_drm <= 1'b0;
+                dout_drm_q <= {AXI_DATA_WIDTH{1'b0}};
+            end
+            else begin
+                wr_en_drm <= rd_en_drm;
+                if (rd_en_drm)
+                    dout_drm_q <= dout_drm;
+            end
+        end
+
+        // [PLANC2 2026-09-18] Inject pad beats ONLY after every real pixel has
+        // drained out of both FIFOs. The first attempt pushed zeros at 1/cycle
+        // while the DRM FIFO was still emptying, so zeros interleaved with real
+        // beats -> screen showed "image / stripe / image / stripe". pad_drained
+        // latches once both FIFOs are empty during the vertical-blanking gap and
+        // is cleared at the next VSYNC.
+        reg pad_drained;
+        always @(posedge axi_clk) begin
+            if(axi_rst)begin
+                pad_drained <= 1'b0;
+            end
+            else if(s_vsync)begin
+                pad_drained <= 1'b0;
+            end
+            else if(pad_mode && empty && empty_drm && !wr_en_drm
+                    && !s_data_valid && !almost_full_out)begin
+                pad_drained <= 1'b1;
+            end
+        end
+
+        wire                     pad_push = pad_mode && pad_drained && !almost_full_out;
+        wire                     fifo_we  = wr_en_drm | pad_push;
+        wire [AXI_DATA_WIDTH-1:0] fifo_wd = pad_push ? {AXI_DATA_WIDTH{1'b0}} : dout_drm_q;
+
+        ov5640_ddr_fifo ov5640_ddr_fifo (
+          .clk(axi_clk),                      // input
+          .rst(axi_rst),                      // input
+          .wr_en  (fifo_we ),                  // input
+          .wr_data(fifo_wd ),              // input [127:0]
+          .full(),              // output
+          
+
+          .rd_en(rd_en),                  // input
+          .rd_data(dout),              // output [127:0]
+          .empty(empty),            // output
+
+          .almost_full(almost_full_out),      // output
+          .almost_empty()     // output
+        );
+
+
+
+
+
+    
+    assign dbg_axi_cnt = axi_cnt;
+    assign dbg_axi_num = axi_num;
+
+endmodule

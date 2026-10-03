@@ -49,6 +49,14 @@ module top #(
     output  wire    [1:0]       txp             ,
     output wire                 ref_led         ,
     output wire                 pclk_led        ,
+
+    ////////////////// SFP fiber RX (QR3 HSST CH2) [SFP 2026-09-29] ////////////////
+    // ref clock shared with PCIe (ref_clk_p/n F6/E6, 100MHz)
+    input                       sfp_l2rxn       ,
+    input                       sfp_l2rxp       ,
+    output wire                 sfp_l2txn       ,
+    output wire                 sfp_l2txp       ,
+    output wire                 sfp_tx_disable  ,
     // output wire                 smlh_link_up     ,
     // output wire                 rdlh_link_up     ,
 
@@ -463,8 +471,29 @@ ddr_w_arb u_ddr_w_arb (
     .m3_wdata   (cam4_axi_wdata     ), .m3_wstrb  (cam4_axi_wstrb    ),
     .m3_wlast   (cam4_axi_wlast     ), .m3_wvalid (cam4_axi_wvalid   ),
     .m3_wready  (cam4_axi_wready    ),
-    .m3_bid     (cam4_axi_bid       ), .m3_bresp  (cam4_axi_bresp    ),
-    .m3_bvalid  (cam4_axi_bvalid    ), .m3_bready (cam4_axi_bready   ),
+    .m3_bid     (cam4_axi_bid     ), .m3_bresp  (cam4_axi_bresp  ),
+    .m3_bvalid  (cam4_axi_bvalid  ), .m3_bready (cam4_axi_bready ),
+    // [SFP 2026-09-30] fiber cam5/cam6 join as masters 4/5
+    .m4_awid    (cam5_axi_awid    ), .m4_awaddr (cam5_axi_awaddr ),
+    .m4_awlen   (cam5_axi_awlen   ), .m4_awsize (cam5_axi_awsize ),
+    .m4_awburst (cam5_axi_awburst ), .m4_awlock (cam5_axi_awlock ),
+    .m4_awcache (cam5_axi_awcache ), .m4_awprot (cam5_axi_awprot ),
+    .m4_awvalid (cam5_axi_awvalid ), .m4_awready(cam5_axi_awready),
+    .m4_wdata   (cam5_axi_wdata   ), .m4_wstrb  (cam5_axi_wstrb  ),
+    .m4_wlast   (cam5_axi_wlast   ), .m4_wvalid (cam5_axi_wvalid ),
+    .m4_wready  (cam5_axi_wready  ),
+    .m4_bid     (cam5_axi_bid     ), .m4_bresp  (cam5_axi_bresp  ),
+    .m4_bvalid  (cam5_axi_bvalid  ), .m4_bready (cam5_axi_bready ),
+    .m5_awid    (cam6_axi_awid    ), .m5_awaddr (cam6_axi_awaddr ),
+    .m5_awlen   (cam6_axi_awlen   ), .m5_awsize (cam6_axi_awsize ),
+    .m5_awburst (cam6_axi_awburst ), .m5_awlock (cam6_axi_awlock ),
+    .m5_awcache (cam6_axi_awcache ), .m5_awprot (cam6_axi_awprot ),
+    .m5_awvalid (cam6_axi_awvalid ), .m5_awready(cam6_axi_awready),
+    .m5_wdata   (cam6_axi_wdata   ), .m5_wstrb  (cam6_axi_wstrb  ),
+    .m5_wlast   (cam6_axi_wlast   ), .m5_wvalid (cam6_axi_wvalid ),
+    .m5_wready  (cam6_axi_wready  ),
+    .m5_bid     (cam6_axi_bid     ), .m5_bresp  (cam6_axi_bresp  ),
+    .m5_bvalid  (cam6_axi_bvalid  ), .m5_bready (cam6_axi_bready ),
     .s_awid     (arb_s_awid         ), .s_awaddr (arb_s_awaddr      ),
     .s_awlen    (arb_s_awlen        ), .s_awsize (arb_s_awsize      ),
     .s_awburst  (arb_s_awburst      ), .s_awlock (arb_s_awlock      ),
@@ -1158,7 +1187,14 @@ wire [31:0]                 ts0_w, ts1_w, ts2_w, ts3_w;
 
 // --- PREP/INJ registers (doc +0x100~0x17C). Register stage only: datapath
 //     inputs tied to defaults until the preprocess pipeline is integrated.
-prep_regs #(.TICK_DIV(50)) prep_regs_u (
+prep_regs #(.TICK_DIV(50), .SFP_DIAG_EN(1)) prep_regs_u (
+    .sfp_diag_status(sfp_diag_status),
+    .sfp_diag_fault5(cam5_diag_fault),
+    .sfp_diag_fault6(cam6_diag_fault),
+    .sfp_diag_pixels5(cam5_diag_pixels),
+    .sfp_diag_pixels6(cam6_diag_pixels),
+    .sfp_diag_states({cam6_diag_state[15:0], cam5_diag_state[15:0]}),
+    .sfp_diag_rejects({cam6_diag_rejects[15:0], cam5_diag_rejects[15:0]}),
     .clk              (axi_clk),
     .rst_n            (~axi_rst),
     .s_axi_awvalid    (prep_axil_awvalid),
@@ -1203,7 +1239,8 @@ prep_regs #(.TICK_DIV(50)) prep_regs_u (
     .npu_busy         (1'b0),
     .out_frame_cnt    (prep_frame_cnt),
     .btn_toggle_evt   (4'd0),
-    .btn_level_sync   (4'd0),
+    // [SFP-STATUS 2026-09-30] +0x144 = SFP ��·״̬: bit0=pll_lock1 bit1=txlane_done2 bit2=rxlane_done2 bit3=pcs_synced2
+    .btn_level_sync   (sfp_status_bits),
     .btn_sticky       (),
     .btn_sticky_clr   (),
     .led_ctrl         (),
@@ -1222,16 +1259,27 @@ prep_regs #(.TICK_DIV(50)) prep_regs_u (
     .ts_value3        ()
 );
 
+reg [15:0] camera_startup_count = 16'd0;
+reg camera_ctrl_rst_n = 1'b0;
+always @(posedge clk_50m) begin
+    if (!camera_ctrl_rst_n) begin
+        if (&camera_startup_count)
+            camera_ctrl_rst_n <= 1'b1;
+        else
+            camera_startup_count <= camera_startup_count + 1'b1;
+    end
+end
+
 `ifdef USE_OV5640
 ov5640_top #(
-    .IODELAY_STEP  (8'd40),
+    .IODELAY_STEP  (8'd140),
     .MEDIAN_EN     (1'b0)        , // [MEDIAN] disabled; cam1 uses FIR below
     .MEDIAN_RSVD   (3'd0),
     .KF_EN         (1'b0)         , // [VKFS] disabled; cam1 uses FIR
     .KF_RD_EN      (1'b0)         // [VKFS] no previous-frame DDR read
 ) ov5640_top(
     .clk_50m       (clk_50m)        ,
-    .clk_50m_rst_n (1'b1)                       , //[RSTFIX 2026-09-13] button_rst_n floating-low on this board
+    .clk_50m_rst_n (camera_ctrl_rst_n),
     .dbg_locked    (locked)         ,
     .dbg_btn_rst_n (button_rst_n)   ,
     .dbg_axi_awvalid(ov5640_axi_awvalid),
@@ -1319,9 +1367,85 @@ ov5640_top #(
 
 // [LEDGER 2026-09-19] DMA transaction-done pulses (single beat ledger)
 wire cam_dma_done;
+// [SFP-STATUS 2026-09-30] SFP link status -> prep_regs +0x144 (btn_level_sync slot)
+wire sfp_st_pll_lock, sfp_st_txlane_done, sfp_st_rxlane_done, sfp_st_pcs_synced;
+wire sfp_st_sigdet;
+wire [31:0] cam5_diag_fault, cam6_diag_fault;
+wire [31:0] cam5_diag_pixels, cam6_diag_pixels;
+wire [31:0] cam5_diag_state, cam6_diag_state;
+wire [31:0] cam5_diag_rejects, cam6_diag_rejects;
+reg [1:0] sfp_sigdet_sync = 0;
+reg [1:0] sfp_enable_sync = 0;
+wire [31:0] sfp_diag_status = {26'd0, sfp_enable_sync[1], sfp_sigdet_sync[1], sfp_status_bits};
+always @(posedge axi_clk) begin
+    sfp_sigdet_sync <= {sfp_sigdet_sync[0], sfp_st_sigdet};
+    sfp_enable_sync <= {sfp_enable_sync[0], sfp_rx_en};
+end
+reg [3:0] sfp_status_bits = 4'b0;
+reg [1:0] st_pll1_q, st_txd2_q, st_rxd2_q, st_pcs_q;
+always @(posedge axi_clk) begin
+    st_pll1_q <= {st_pll1_q[0], sfp_st_pll_lock};
+    st_txd2_q <= {st_txd2_q[0], sfp_st_txlane_done};
+    st_rxd2_q <= {st_rxd2_q[0], sfp_st_rxlane_done};
+    st_pcs_q  <= {st_pcs_q[0],  sfp_st_pcs_synced};
+    sfp_status_bits <= {st_pcs_q[1], st_rxd2_q[1], st_txd2_q[1], st_pll1_q[1]};
+end
 wire cam2_dma_done;
 wire cam3_dma_done;
 wire cam4_dma_done;
+
+// ---- [SFP 2026-09-29] fiber RX link / cam5 / cam6 signals ----
+wire        sfp_rx_clk, sfp_rx_rst_n, sfp_rx_en;
+wire t4_awready, t4_wready; wire [3:0] t4_bid; wire [1:0] t4_bresp; wire t4_bvalid;
+wire t5_awready, t5_wready; wire [3:0] t5_bid; wire [1:0] t5_bresp; wire t5_bvalid;
+wire [31:0] sfp_rxd;
+wire [3:0]  sfp_rxk;
+wire        sfp_vs, sfp_hs, sfp_de;
+wire [15:0] sfp_pix;
+wire        cam5_vs, cam5_hs, cam5_de;
+wire [15:0] cam5_pix;
+wire        cam6_vs, cam6_hs, cam6_de;
+wire [15:0] cam6_pix;
+wire [31:0] cam5_cmd_addr, cam5_cmd_len;
+wire        cam5_cmd_valid, cam5_cmd_ready;
+wire [AXI_DATA_LEN-1:0] cam5_s_data;
+wire        cam5_s_data_valid, cam5_s_data_last, cam5_s_data_ready;
+wire [15:0] cam5_s_data_available;
+wire [AXI_ID_LEN-1:0]   cam5_axi_awid;
+wire [31:0]             cam5_axi_awaddr;
+wire [3:0]              cam5_axi_awlen;
+wire [2:0]              cam5_axi_awsize;
+wire [1:0]              cam5_axi_awburst;
+wire                    cam5_axi_awlock;
+wire [3:0]              cam5_axi_awcache;
+wire [2:0]              cam5_axi_awprot;
+wire                    cam5_axi_awvalid, cam5_axi_awready;
+wire [AXI_DATA_LEN-1:0] cam5_axi_wdata;
+wire [AXI_STRB_LEN-1:0] cam5_axi_wstrb;
+wire                    cam5_axi_wlast, cam5_axi_wvalid, cam5_axi_wready;
+wire [AXI_ID_LEN-1:0]   cam5_axi_bid;
+wire [1:0]              cam5_axi_bresp;
+wire                    cam5_axi_bvalid, cam5_axi_bready;
+wire [31:0] cam6_cmd_addr, cam6_cmd_len;
+wire        cam6_cmd_valid, cam6_cmd_ready;
+wire [AXI_DATA_LEN-1:0] cam6_s_data;
+wire        cam6_s_data_valid, cam6_s_data_last, cam6_s_data_ready;
+wire [15:0] cam6_s_data_available;
+wire [AXI_ID_LEN-1:0]   cam6_axi_awid;
+wire [31:0]             cam6_axi_awaddr;
+wire [3:0]              cam6_axi_awlen;
+wire [2:0]              cam6_axi_awsize;
+wire [1:0]              cam6_axi_awburst;
+wire                    cam6_axi_awlock;
+wire [3:0]              cam6_axi_awcache;
+wire [2:0]              cam6_axi_awprot;
+wire                    cam6_axi_awvalid, cam6_axi_awready;
+wire [AXI_DATA_LEN-1:0] cam6_axi_wdata;
+wire [AXI_STRB_LEN-1:0] cam6_axi_wstrb;
+wire                    cam6_axi_wlast, cam6_axi_wvalid, cam6_axi_wready;
+wire [AXI_ID_LEN-1:0]   cam6_axi_bid;
+wire [1:0]              cam6_axi_bresp;
+wire                    cam6_axi_bvalid, cam6_axi_bready;
 
 // --- CAM3 (FMC 3rd OV5640, BASE_ADDR 0x2000_0400, 640x480, raw passthrough) ---
 wire                        cam3_axil_awvalid_unused;
@@ -1366,7 +1490,7 @@ ov5640_top #(
     .TOTAL_V_PIXEL   (12'd984)
 ) cam2_ov5640_top (
     .clk_50m       (clk_50m),
-    .clk_50m_rst_n (1'b1),
+    .clk_50m_rst_n (camera_ctrl_rst_n),
     .dbg_locked    (locked),
     .dbg_btn_rst_n (button_rst_n),
     .dbg_axi_awvalid(cam2_axi_awvalid),
@@ -1437,7 +1561,7 @@ ov5640_top #(
     .TOTAL_V_PIXEL   (12'd984)
 ) cam3_ov5640_top (
     .clk_50m       (clk_50m),
-    .clk_50m_rst_n (1'b1),
+    .clk_50m_rst_n (camera_ctrl_rst_n),
     .dbg_locked    (locked),
     .dbg_btn_rst_n (button_rst_n),
     .dbg_axi_awvalid(cam3_axi_awvalid),
@@ -1537,7 +1661,7 @@ ov5640_top #(
     .TOTAL_V_PIXEL   (12'd984)
 ) cam4_ov5640_top (
     .clk_50m       (clk_50m),
-    .clk_50m_rst_n (1'b1),
+    .clk_50m_rst_n (camera_ctrl_rst_n),
     .dbg_locked    (locked),
     .dbg_btn_rst_n (button_rst_n),
     .dbg_axi_awvalid(cam4_axi_awvalid),
@@ -1592,7 +1716,234 @@ ov5640_top #(
     .xdma_clk (pcie_clk),
     .xdma_irq (          )
 );
+
+// =====================================================================
+// [SFP 2026-09-29] fiber RX path:
+//   SFP(QR3 HSST CH2) -> sfp_rx_link -> sfp_video_rx (1280 wide unpack)
+//   -> sfp_rx_cam_if (split 640+640 + CDC to axi_clk)
+//   -> cam5/cam6 ov5640_ddr write engines -> axi_dma_write -> ddr_w_arb m4/m5
+//   DDR ping-pong: cam5 0x0180_0000/0x01A0_0000, cam6 0x01C0_0000/0x01E0_0000
+// =====================================================================
+sfp_rx_link u_sfp_rx_link (
+    .i_free_clk       (free_clk),
+    .i_refckp         (ref_clk_p),      // F6, shared with PCIe
+    .i_refckn         (ref_clk_n),      // E6
+    .i_l2rxn          (sfp_l2rxn),      // D11
+    .i_l2rxp          (sfp_l2rxp),      // C11
+    .o_l2txn          (sfp_l2txn),      // D5
+    .o_l2txp          (sfp_l2txp),      // C5
+    .o_sfp_tx_disable (sfp_tx_disable), // L16
+    .o_rx_clk         (sfp_rx_clk),
+    .o_rx_rst_n       (sfp_rx_rst_n),
+    .o_rxd            (sfp_rxd),
+    .o_rxk            (sfp_rxk),
+    .o_rx_en          (sfp_rx_en),
+    .o_pll_lock       (sfp_st_pll_lock),
+    .o_txlane_done    (sfp_st_txlane_done),
+    .o_rxlane_done    (sfp_st_rxlane_done),
+    .o_pcs_synced     (sfp_st_pcs_synced),
+    .o_rx_sigdet      (sfp_st_sigdet)
+);
+
+sfp_video_rx u_sfp_video_rx (
+    .i_clk      (sfp_rx_clk),
+    .i_rst_n    (sfp_rx_rst_n),
+    .i_en       (sfp_rx_en),
+    .i_rxd      (sfp_rxd),
+    .i_rxk      (sfp_rxk),
+    .o_vs       (sfp_vs),
+    .o_hs       (sfp_hs),
+    .o_de       (sfp_de),
+    .o_pix      (sfp_pix),
+    .o_overflow ()
+);
+
+sfp_rx_cam_if #(
+    .IMG_W   (1280),
+    .SPLIT_W (640),
+    .FIFO_D  (1024)
+) u_sfp_rx_cam_if (
+    .i_rx_clk   (sfp_rx_clk),
+    .i_rx_rst_n (sfp_rx_rst_n),
+    .i_vs       (sfp_vs),
+    .i_hs       (sfp_hs),
+    .i_de       (sfp_de),
+    .i_pix      (sfp_pix),
+    .i_axi_clk  (axi_clk),
+    .i_axi_rst_n(~axi_rst),
+    .o_vs5  (cam5_vs),  .o_hs5 (cam5_hs),  .o_de5 (cam5_de),  .o_pix5 (cam5_pix),
+    .o_vs6  (cam6_vs),  .o_hs6 (cam6_hs),  .o_de6 (cam6_de),  .o_pix6 (cam6_pix)
+);
+
+// [2026-09-30] BISECT3 uncommented: cam5/6 ��������ע��
+// ---- cam5 write engine (fiber left half = 50K CMOS1) ----
+wire cam5_dma_done, cam5_dma_abort, cam5_dma_abort_req;
+wire cam6_dma_done, cam6_dma_abort, cam6_dma_abort_req;
+ov5640_ddr #(
+    .DATA_WIDTH     (16),
+    .AXI_ADDR_WIDTH (32),
+    .AXI_LEN_WIDTH  (32),
+    .AXI_DATA_WIDTH (128),
+    .CAM_DATA_LEN   (38400),            // 640*480*2/16
+    .DEVICE         ("PG")
+) cam5_ov5640_ddr (
+    .axi_clk        (axi_clk),
+    .axi_rst        (axi_rst),
+    .axi_cam_en     (1'b1),   // [2026-09-30] enable cam5/6 DDR write (SFP fiber channels)
+    .dbg_fault_snapshot (cam5_diag_fault), .dbg_reject_counts (cam5_diag_rejects), .dbg_input_pixels (cam5_diag_pixels),
+    .dma_abort      (cam5_dma_abort),
+    .dma_abort_req  (cam5_dma_abort_req),
+    .axi_data_available (cam5_s_data_available),
+    .dma_done       (cam5_dma_done),
+    .cam_data_addr_1(32'h0180_0000),
+    .cam_data_addr_2(32'h01A0_0000),
+    .prev_frame_base(),               // [KF-unused] output: fiber channels have no KF readback
+    .cam_data_len   (38400),
+    .s_data         (cam5_pix),
+    .s_data_valid   (cam5_de),
+    .s_hsync        (cam5_hs),
+    .s_vsync        (cam5_vs),
+    .axi_data       (cam5_s_data),
+    .axi_data_valid (cam5_s_data_valid),
+    .axi_data_last  (cam5_s_data_last),
+    .axi_data_ready (cam5_s_data_ready),
+    .axi_cmd_addr   (cam5_cmd_addr),
+    .axi_cmd_len    (cam5_cmd_len),
+    .axi_cmd_valid  (cam5_cmd_valid),
+    .axi_cmd_ready  (cam5_cmd_ready),
+    .dbg_axi_cnt (), .dbg_axi_num (), .dbg_zdin (), .dbg_zout (),
+    .dbg_state (cam5_diag_state), .dbg_last_cnt (), .dbg_wd_cnt (),
+    .xdma_req  (),
+    .xdma_ack  (2'b00)
+);
+
+axi_dma_write #(
+    .WAIT_FOR_DATA(1),
+    .BURST_LEN  (BURST_LEN)   ,
+    .ID_WIDTH   (AXI_ID_LEN)  ,
+    .DATA_WIDTH (AXI_DATA_LEN)
+) cam5_axi_dma_write (
+    .data_in_available(cam5_s_data_available),
+    .abort_req(cam5_dma_abort_req),
+    .data_in_abort(cam5_dma_abort),
+    .clk(axi_clk),
+    .rst(axi_rst),
+    .cmd_valid (cam5_cmd_valid),
+    .cmd_addr  (cam5_cmd_addr ),
+    .cmd_len   (cam5_cmd_len  ),
+    .cmd_id    (4'b0011),
+    .cmd_ready (cam5_cmd_ready),
+    .data_in       (cam5_s_data),
+    .data_in_keep  ({AXI_STRB_LEN{1'b1}}),
+    .data_in_valid (cam5_s_data_valid),
+    .data_in_last  (cam5_dma_done),
+    .data_in_ready (cam5_s_data_ready),
+    .m_axi_awid    (cam5_axi_awid),
+    .m_axi_awaddr  (cam5_axi_awaddr),
+    .m_axi_awlen   (cam5_axi_awlen),
+    .m_axi_awsize  (cam5_axi_awsize),
+    .m_axi_awburst (cam5_axi_awburst),
+    .m_axi_awlock  (cam5_axi_awlock),
+    .m_axi_awcache (cam5_axi_awcache),
+    .m_axi_awprot  (cam5_axi_awprot),
+    .m_axi_awvalid (cam5_axi_awvalid),
+    .m_axi_awready (cam5_axi_awready),
+    .m_axi_wdata   (cam5_axi_wdata),
+    .m_axi_wstrb   (cam5_axi_wstrb),
+    .m_axi_wlast   (cam5_axi_wlast),
+    .m_axi_wvalid  (cam5_axi_wvalid),
+    .m_axi_wready  (cam5_axi_wready),
+    .m_axi_bid     (cam5_axi_bid),
+    .m_axi_bresp   (cam5_axi_bresp),
+    .m_axi_bvalid  (cam5_axi_bvalid),
+    .m_axi_bready  (cam5_axi_bready)
+);
+
+// ---- cam6 write engine (fiber right half = 50K CMOS2) ----
+ov5640_ddr #(
+    .DATA_WIDTH     (16),
+    .AXI_ADDR_WIDTH (32),
+    .AXI_LEN_WIDTH  (32),
+    .AXI_DATA_WIDTH (128),
+    .CAM_DATA_LEN   (38400),
+    .DEVICE         ("PG")
+) cam6_ov5640_ddr (
+    .axi_clk        (axi_clk),
+    .axi_rst        (axi_rst),
+    .axi_cam_en     (1'b1),   // [2026-09-30] enable cam5/6 DDR write (SFP fiber channels)
+    .dbg_fault_snapshot (cam6_diag_fault), .dbg_reject_counts (cam6_diag_rejects), .dbg_input_pixels (cam6_diag_pixels),
+    .dma_abort      (cam6_dma_abort),
+    .dma_abort_req  (cam6_dma_abort_req),
+    .axi_data_available (cam6_s_data_available),
+    .dma_done       (cam6_dma_done),
+    .cam_data_addr_1(32'h01C0_0000),
+    .cam_data_addr_2(32'h01E0_0000),
+    .prev_frame_base(),               // [KF-unused]
+    .cam_data_len   (38400),
+    .s_data         (cam6_pix),
+    .s_data_valid   (cam6_de),
+    .s_hsync        (cam6_hs),
+    .s_vsync        (cam6_vs),
+    .axi_data       (cam6_s_data),
+    .axi_data_valid (cam6_s_data_valid),
+    .axi_data_last  (cam6_s_data_last),
+    .axi_data_ready (cam6_s_data_ready),
+    .axi_cmd_addr   (cam6_cmd_addr),
+    .axi_cmd_len    (cam6_cmd_len),
+    .axi_cmd_valid  (cam6_cmd_valid),
+    .axi_cmd_ready  (cam6_cmd_ready),
+    .dbg_axi_cnt (), .dbg_axi_num (), .dbg_zdin (), .dbg_zout (),
+    .dbg_state (cam6_diag_state), .dbg_last_cnt (), .dbg_wd_cnt (),
+    .xdma_req  (),
+    .xdma_ack  (2'b00)
+);
+
+axi_dma_write #(
+    .WAIT_FOR_DATA(1),
+    .BURST_LEN  (BURST_LEN)   ,
+    .ID_WIDTH   (AXI_ID_LEN)  ,
+    .DATA_WIDTH (AXI_DATA_LEN)
+) cam6_axi_dma_write (
+    .data_in_available(cam6_s_data_available),
+    .abort_req(cam6_dma_abort_req),
+    .data_in_abort(cam6_dma_abort),
+    .clk(axi_clk),
+    .rst(axi_rst),
+    .cmd_valid (cam6_cmd_valid),
+    .cmd_addr  (cam6_cmd_addr ),
+    .cmd_len   (cam6_cmd_len  ),
+    .cmd_id    (4'b1100),
+    .cmd_ready (cam6_cmd_ready),
+    .data_in       (cam6_s_data),
+    .data_in_keep  ({AXI_STRB_LEN{1'b1}}),
+    .data_in_valid (cam6_s_data_valid),
+    .data_in_last  (cam6_dma_done),
+    .data_in_ready (cam6_s_data_ready),
+    .m_axi_awid    (cam6_axi_awid),
+    .m_axi_awaddr  (cam6_axi_awaddr),
+    .m_axi_awlen   (cam6_axi_awlen),
+    .m_axi_awsize  (cam6_axi_awsize),
+    .m_axi_awburst (cam6_axi_awburst),
+    .m_axi_awlock  (cam6_axi_awlock),
+    .m_axi_awcache (cam6_axi_awcache),
+    .m_axi_awprot  (cam6_axi_awprot),
+    .m_axi_awvalid (cam6_axi_awvalid),
+    .m_axi_awready (cam6_axi_awready),
+    .m_axi_wdata   (cam6_axi_wdata),
+    .m_axi_wstrb   (cam6_axi_wstrb),
+    .m_axi_wlast   (cam6_axi_wlast),
+    .m_axi_wvalid  (cam6_axi_wvalid),
+    .m_axi_wready  (cam6_axi_wready),
+    .m_axi_bid     (cam6_axi_bid),
+    .m_axi_bresp   (cam6_axi_bresp),
+    .m_axi_bvalid  (cam6_axi_bvalid),
+    .m_axi_bready  (cam6_axi_bready)
+);
+
+
+// */
 `elsif USE_HDMI
+
 hdmi_top hdmi_top(
     .clk_10m(clk_10m)               ,
     .clk_10m_rst_n(locked & button_rst_n)         ,

@@ -1,0 +1,136 @@
+"""One-shot byte patch; preserves GBK and exact pre-edit .bak files."""
+from pathlib import Path
+import hashlib, json, difflib
+ROOT = Path(__file__).resolve().parents[2]
+HERE = Path(__file__).resolve().parent
+pending = {}
+def edit(name, old, new):
+    p = ROOT / name
+    data = pending.get(p, p.read_bytes())
+    old, new = old.encode('ascii'), new.encode('ascii')
+    # Production files include CRLF as well as LF; preserve the local style.
+    if b'\r\n' in data:
+        old, new = old.replace(b'\n', b'\r\n'), new.replace(b'\n', b'\r\n')
+    assert data.count(old) == 1, (name, old[:100], data.count(old))
+    pending[p] = data.replace(old, new)
+
+edit('source/constraints/cdc.fdc',
+     'set_false_path -through [get_pins -hier *ov5640_cdc*]',
+     '# [CDC_PIXEL 2026-09-27] Do not false-path an entire FIFO hierarchy.\n'
+     '# This cut same-clock pointer/empty/data/valid paths and hid their timing.\n'
+     '# clock.fdc already separates the camera clocks from ddrphy_sysclk.\n'
+     '# Keep all intra-domain FIFO paths timed; vendor IP remains unchanged.')
+# These duplicate groups precede clock creation, are ignored by PDS, and are
+# already correctly declared after create_clock in clock.fdc.
+for name, clock in [('i2c_free_clk','free_clk'),('dbg_pclk','cmos1_pclk'),('dbg_pclk2','cmos2_pclk')]:
+    edit('source/constraints/cdc.fdc',
+         f'set_clock_groups -name {name} -asynchronous -group [get_clocks {clock}]',
+         f'# [CDC_PIXEL] Group {clock} is declared after create_clock in clock.fdc.')
+
+ports = '''    // [CDC_PIXEL] Read-only per-frame snapshots, all in video_clk domain.
+    output reg [31:0] dbg_cdc_input,
+    output reg [31:0] dbg_cdc_output,
+    output reg [31:0] dbg_cdc_drop,
+    output reg [31:0] dbg_cdc_seq,
+'''
+edit('source/ov5640/ov5640/ov5640_cdc.v', '    input         cam_clk', ports+'    input         cam_clk')
+edit('source/ov5640/ov5640/ov5640_cdc.v',
+     '        video_valid_r <= rd_en;',
+     "        if (video_rst) video_valid_r <= 1'b0;\n        else video_valid_r <= rd_en;")
+diag = '''
+    // Diagnostic-only source snapshot: data is held for a complete frame.
+    // Two data stages precede the three-stage toggle notification. This is
+    // a bundled-data transfer, not a live asynchronous binary counter read.
+    reg src_vs_q, src_toggle;
+    reg [31:0] src_count, src_drop, src_seq;
+    reg [95:0] src_snapshot;
+    always @(posedge cam_clk or posedge cam_rst) begin
+        if (cam_rst) begin
+            src_vs_q <= 0;
+            src_toggle <= 0;
+            src_count <= 0;
+            src_drop <= 0;
+            src_seq <= 0;
+            src_snapshot <= 0;
+        end else begin
+            src_vs_q <= s_vsync;
+            if (s_vsync && !src_vs_q) begin
+                src_snapshot <= {src_seq + 32'd1, src_drop, src_count};
+                src_toggle <= ~src_toggle;
+                src_seq <= src_seq + 1'b1;
+                src_count <= {31'd0, s_valid};
+                src_drop <= {31'd0, (s_valid && full)};
+            end else begin
+                if (s_valid) src_count <= src_count + 1'b1;
+                if (s_valid && full) src_drop <= src_drop + 1'b1;
+            end
+        end
+    end
+
+    reg [95:0] snapshot_s1, snapshot_s2;
+    reg [2:0] toggle_sync;
+    reg toggle_seen, out_vs_q;
+    reg [31:0] out_count, out_snapshot;
+    always @(posedge video_clk) begin
+        if (video_rst) begin
+            snapshot_s1 <= 0;
+            snapshot_s2 <= 0;
+            toggle_sync <= 0;
+            toggle_seen <= 0;
+            out_vs_q <= 0;
+            out_count <= 0;
+            out_snapshot <= 0;
+            dbg_cdc_input <= 0;
+            dbg_cdc_output <= 0;
+            dbg_cdc_drop <= 0;
+            dbg_cdc_seq <= 0;
+        end else begin
+            snapshot_s1 <= src_snapshot;
+            snapshot_s2 <= snapshot_s1;
+            toggle_sync <= {toggle_sync[1:0], src_toggle};
+            out_vs_q <= video_vsync;
+            if (video_vsync && !out_vs_q) begin
+                out_snapshot <= out_count;
+                out_count <= {31'd0, video_valid};
+            end else if (video_valid) out_count <= out_count + 1'b1;
+            if (toggle_sync[2] != toggle_seen) begin
+                toggle_seen <= toggle_sync[2];
+                dbg_cdc_input <= snapshot_s2[31:0];
+                dbg_cdc_drop <= snapshot_s2[63:32];
+                dbg_cdc_seq <= snapshot_s2[95:64];
+                dbg_cdc_output <= out_snapshot;
+            end
+        end
+    end
+
+'''
+edit('source/ov5640/ov5640/ov5640_cdc.v','endmodule',diag+'endmodule')
+names=['input','output','drop','seq']
+outer_ports=''.join(f'    output [31:0] dbg_cdc_{n},\n' for n in names)
+connections=''.join(f'    .dbg_cdc_{n}(dbg_cdc_{n}),\n' for n in names)
+edit('source/ov5640/ov5640/ov5640.v', '    input                     pt_req_toggle',outer_ports+'    input                     pt_req_toggle')
+edit('source/ov5640/ov5640/ov5640.v', '    .cam_clk(cam_pclk),',connections+'    .cam_clk(cam_pclk),')
+edit('source/ov5640/ov5640_top.v', '    wire [31:0]   dbg_i2c_status;',
+     ''.join(f'    wire [31:0] dbg_cdc_{n};\n' for n in names)+'    wire [31:0]   dbg_i2c_status;')
+edit('source/ov5640/ov5640_top.v','        .dbg_i2c_status     (dbg_i2c_status),',connections+'        .dbg_i2c_status     (dbg_i2c_status),')
+edit('source/ov5640/ov5640_top.v','        .dbg_fault_snapshot    (diag_fault_snapshot),',connections+'        .dbg_fault_snapshot    (diag_fault_snapshot),')
+edit('source/ov5640/ov5640_reg.v','    input [31:0] dbg_fault_snapshot,',
+     ''.join(f'    input [31:0] dbg_cdc_{n},\n' for n in names)+'    input [31:0] dbg_fault_snapshot,')
+edit('source/ov5640/ov5640_reg.v','                    REG_DBG_CAM_WORDS: rdata <= dbg_input_pixels;',
+     ''.join(f"                    BASE_ADDR + 32'h{o:02x}: rdata <= dbg_cdc_{n};\n" for o,n in zip([4,8,12,20],names))+
+     '                    REG_DBG_CAM_WORDS: rdata <= dbg_input_pixels;')
+
+for p in pending:
+    assert not p.with_name(p.name+'.cdc_pixel.bak').exists(), p
+manifest={str(p.relative_to(ROOT)):hashlib.sha256(p.read_bytes()).hexdigest()
+          for p in list((ROOT/'ipcore').rglob('*'))+list((ROOT/'source').rglob('*.v')) if p.is_file()}
+(HERE/'protected_before.json').write_text(json.dumps(manifest,indent=2))
+diff=[]
+for p,new in pending.items():
+    old=p.read_bytes()
+    p.with_name(p.name+'.cdc_pixel.bak').write_bytes(old)
+    p.write_bytes(new)
+    rel=str(p.relative_to(ROOT))
+    diff.extend(difflib.unified_diff(old.decode('gbk',errors='replace').splitlines(True),new.decode('gbk',errors='replace').splitlines(True),fromfile=rel+'.bak',tofile=rel))
+    print('PATCHED',rel)
+(HERE/'cdc_pixel_source.diff').write_text(''.join(diff),encoding='utf-8')

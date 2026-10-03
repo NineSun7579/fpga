@@ -2,6 +2,7 @@
 // ddr_w_arb.v -- [WARB 2026-09-19] minimal DDR write arbiter.
 // [CAM3 2026-09-26] extended to 3 masters (cam3 engine joins as master 2).
 // [CAM4 2026-09-27] extended to 4 masters (cam4 engine joins as master 3).
+// [SFP  2026-09-29] extended to 6 masters (SFP fiber cam5/cam6 join as 4/5).
 //
 // WHY: the Forencich axi_crossbar's M00 write path leaks its per-master W-channel
 // select across handoffs (bench-proven in sim/wedge: after S01's burst tail the
@@ -11,8 +12,8 @@
 //
 // DESIGN: single-outstanding end-to-end, matching the DDR3 IP user-port contract
 // (no wvalid, unthrottleable wready, one burst processed at a time):
-//   IDLE  : present one master's AW (round-robin tie-break); the accept from the
-//           port glue locks OWNER for the whole burst.
+//   IDLE  : register one master (round-robin tie-break), then present its AW;
+//           the accept from the port glue locks OWNER for the whole burst.
 //   BUSY  : only OWNER's W stream reaches the glue; the fabric-minted B (from
 //           wusero_last) is routed back to OWNER; its accept frees the slot and
 //           advances the round-robin.
@@ -108,6 +109,48 @@ module ddr_w_arb (
     output wire         m3_bvalid,
     input  wire         m3_bready,
 
+    // ---- master 4 (SFP cam5 DMA) [SFP 2026-09-29] ----
+    input  wire [3:0]   m4_awid,
+    input  wire [31:0]  m4_awaddr,
+    input  wire [7:0]   m4_awlen,
+    input  wire [2:0]   m4_awsize,
+    input  wire [1:0]   m4_awburst,
+    input  wire         m4_awlock,
+    input  wire [3:0]   m4_awcache,
+    input  wire [2:0]   m4_awprot,
+    input  wire         m4_awvalid,
+    output wire         m4_awready,
+    input  wire [127:0] m4_wdata,
+    input  wire [15:0]  m4_wstrb,
+    input  wire         m4_wlast,
+    input  wire         m4_wvalid,
+    output wire         m4_wready,
+    output wire [3:0]   m4_bid,
+    output wire [1:0]   m4_bresp,
+    output wire         m4_bvalid,
+    input  wire         m4_bready,
+
+    // ---- master 5 (SFP cam6 DMA) [SFP 2026-09-29] ----
+    input  wire [3:0]   m5_awid,
+    input  wire [31:0]  m5_awaddr,
+    input  wire [7:0]   m5_awlen,
+    input  wire [2:0]   m5_awsize,
+    input  wire [1:0]   m5_awburst,
+    input  wire         m5_awlock,
+    input  wire [3:0]   m5_awcache,
+    input  wire [2:0]   m5_awprot,
+    input  wire         m5_awvalid,
+    output wire         m5_awready,
+    input  wire [127:0] m5_wdata,
+    input  wire [15:0]  m5_wstrb,
+    input  wire         m5_wlast,
+    input  wire         m5_wvalid,
+    output wire         m5_wready,
+    output wire [3:0]   m5_bid,
+    output wire [1:0]   m5_bresp,
+    output wire         m5_bvalid,
+    input  wire         m5_bready,
+
     // ---- slave (DDR3 port glue) ----
     output wire [3:0]   s_awid,
     output wire [31:0]  s_awaddr,
@@ -131,8 +174,8 @@ module ddr_w_arb (
 );
 
     reg        busy;    // an AW is locked in (waiting for its B)
-    reg  [1:0] owner;    // which master owns the slot (0..3)
-    reg  [1:0] rr;       // round-robin preference for the next idle grant
+    reg  [2:0] owner;    // which master owns the slot (0..5)
+    reg  [2:0] rr;       // round-robin preference for the next idle grant
 
     // [WARBFIX 2026-09-26] AW selection is latched. The previous version drove
     // the slave AW payload from purely combinational grants, so when a higher
@@ -140,90 +183,116 @@ module ddr_w_arb (
     // the shared AWVALID stayed high while AWADDR/AWID changed mid-handshake.
     // The slave (DDR3 IP) could then latch a torn/wrong descriptor, dropping or
     // misrouting an integer number of beats -> cam2 frame rotation, cam3 tearing.
-    // Now the winner is frozen (sel/sel_valid) until AWREADY accepts it, so the
-    // payload is stable for the whole handshake (AXI4 1.2.3).
+    // Register every winner before asserting AWVALID/AWREADY, removing the
+    // fresh round-robin pick from the source AWREADY path. The winner stays
+    // frozen until AWREADY accepts it; the source holds its AW payload stable.
     reg        sel_valid;
-    reg  [1:0] sel;
+    reg  [2:0] sel;
 
     // grant decision: only when idle; round-robin among the requesting masters.
     // rr points at the master that gets the slot when several request at once.
     // Rotate-mask round-robin: prefer requesters at/after rr, else wrap to 0.
-    wire [3:0] req_v   = {m3_awvalid, m2_awvalid, m1_awvalid, m0_awvalid};
-    wire [3:0] rr_mask = 4'b1111 << rr;
-    wire [3:0] req_hi  = req_v & rr_mask;
-    wire [1:0] pick_pref = req_hi[0] ? 2'd0 : req_hi[1] ? 2'd1 :
-                           req_hi[2] ? 2'd2 : 2'd3;
-    wire [1:0] pick_wrap = req_v[0] ? 2'd0 : req_v[1] ? 2'd1 :
-                           req_v[2] ? 2'd2 : 2'd3;
+    wire [5:0] req_v   = {m5_awvalid, m4_awvalid, m3_awvalid, m2_awvalid, m1_awvalid, m0_awvalid};
+    wire [5:0] rr_mask = 6'b111111 << rr;
+    wire [5:0] req_hi  = req_v & rr_mask;
+    wire [2:0] pick_pref = req_hi[0] ? 3'd0 : req_hi[1] ? 3'd1 :
+                           req_hi[2] ? 3'd2 : req_hi[3] ? 3'd3 :
+                           req_hi[4] ? 3'd4 : 3'd5;
+    wire [2:0] pick_wrap = req_v[0] ? 3'd0 : req_v[1] ? 3'd1 :
+                           req_v[2] ? 3'd2 : req_v[3] ? 3'd3 :
+                           req_v[4] ? 3'd4 : 3'd5;
     wire pick_v = |req_v;
-    wire [1:0] pick_sel = (|req_hi) ? pick_pref : pick_wrap;
+    wire [2:0] pick_sel = (|req_hi) ? pick_pref : pick_wrap;
 
-    // effective selection: the latched winner if any, else the fresh pick
-    wire eff_valid = ~busy & (sel_valid | pick_v);
-    wire [1:0] eff_sel = sel_valid ? sel : pick_sel;
+    // effective selection: only the registered winner can present an AW
+    wire eff_valid = ~busy & sel_valid;
+    wire [2:0] eff_sel = sel;
 
     // AW datapath (latched winner's request)
-    assign s_awid    = eff_sel == 2'd3 ? m3_awid    : eff_sel == 2'd2 ? m2_awid    :
-                       eff_sel == 2'd1 ? m1_awid    : m0_awid;
-    assign s_awaddr  = eff_sel == 2'd3 ? m3_awaddr  : eff_sel == 2'd2 ? m2_awaddr  :
-                       eff_sel == 2'd1 ? m1_awaddr  : m0_awaddr;
-    assign s_awlen   = eff_sel == 2'd3 ? m3_awlen   : eff_sel == 2'd2 ? m2_awlen   :
-                       eff_sel == 2'd1 ? m1_awlen   : m0_awlen;
-    assign s_awsize  = eff_sel == 2'd3 ? m3_awsize  : eff_sel == 2'd2 ? m2_awsize  :
-                       eff_sel == 2'd1 ? m1_awsize  : m0_awsize;
-    assign s_awburst = eff_sel == 2'd3 ? m3_awburst : eff_sel == 2'd2 ? m2_awburst :
-                       eff_sel == 2'd1 ? m1_awburst : m0_awburst;
-    assign s_awlock  = eff_sel == 2'd3 ? m3_awlock  : eff_sel == 2'd2 ? m2_awlock  :
-                       eff_sel == 2'd1 ? m1_awlock  : m0_awlock;
-    assign s_awcache = eff_sel == 2'd3 ? m3_awcache : eff_sel == 2'd2 ? m2_awcache :
-                       eff_sel == 2'd1 ? m1_awcache : m0_awcache;
-    assign s_awprot  = eff_sel == 2'd3 ? m3_awprot  : eff_sel == 2'd2 ? m2_awprot  :
-                       eff_sel == 2'd1 ? m1_awprot  : m0_awprot;
+    assign s_awid    = eff_sel == 3'd5 ? m5_awid    : eff_sel == 3'd4 ? m4_awid    :
+                       eff_sel == 3'd3 ? m3_awid    : eff_sel == 3'd2 ? m2_awid    :
+                       eff_sel == 3'd1 ? m1_awid    : m0_awid;
+    assign s_awaddr  = eff_sel == 3'd5 ? m5_awaddr  : eff_sel == 3'd4 ? m4_awaddr  :
+                       eff_sel == 3'd3 ? m3_awaddr  : eff_sel == 3'd2 ? m2_awaddr  :
+                       eff_sel == 3'd1 ? m1_awaddr  : m0_awaddr;
+    assign s_awlen   = eff_sel == 3'd5 ? m5_awlen   : eff_sel == 3'd4 ? m4_awlen   :
+                       eff_sel == 3'd3 ? m3_awlen   : eff_sel == 3'd2 ? m2_awlen   :
+                       eff_sel == 3'd1 ? m1_awlen   : m0_awlen;
+    assign s_awsize  = eff_sel == 3'd5 ? m5_awsize  : eff_sel == 3'd4 ? m4_awsize  :
+                       eff_sel == 3'd3 ? m3_awsize  : eff_sel == 3'd2 ? m2_awsize  :
+                       eff_sel == 3'd1 ? m1_awsize  : m0_awsize;
+    assign s_awburst = eff_sel == 3'd5 ? m5_awburst : eff_sel == 3'd4 ? m4_awburst :
+                       eff_sel == 3'd3 ? m3_awburst : eff_sel == 3'd2 ? m2_awburst :
+                       eff_sel == 3'd1 ? m1_awburst : m0_awburst;
+    assign s_awlock  = eff_sel == 3'd5 ? m5_awlock  : eff_sel == 3'd4 ? m4_awlock  :
+                       eff_sel == 3'd3 ? m3_awlock  : eff_sel == 3'd2 ? m2_awlock  :
+                       eff_sel == 3'd1 ? m1_awlock  : m0_awlock;
+    assign s_awcache = eff_sel == 3'd5 ? m5_awcache : eff_sel == 3'd4 ? m4_awcache :
+                       eff_sel == 3'd3 ? m3_awcache : eff_sel == 3'd2 ? m2_awcache :
+                       eff_sel == 3'd1 ? m1_awcache : m0_awcache;
+    assign s_awprot  = eff_sel == 3'd5 ? m5_awprot  : eff_sel == 3'd4 ? m4_awprot  :
+                       eff_sel == 3'd3 ? m3_awprot  : eff_sel == 3'd2 ? m2_awprot  :
+                       eff_sel == 3'd1 ? m1_awprot  : m0_awprot;
     assign s_awvalid = eff_valid;
 
-    assign m0_awready = eff_valid & (eff_sel == 2'd0) & s_awready;
-    assign m1_awready = eff_valid & (eff_sel == 2'd1) & s_awready;
-    assign m2_awready = eff_valid & (eff_sel == 2'd2) & s_awready;
-    assign m3_awready = eff_valid & (eff_sel == 2'd3) & s_awready;
+    assign m0_awready = eff_valid & (eff_sel == 3'd0) & s_awready;
+    assign m1_awready = eff_valid & (eff_sel == 3'd1) & s_awready;
+    assign m2_awready = eff_valid & (eff_sel == 3'd2) & s_awready;
+    assign m3_awready = eff_valid & (eff_sel == 3'd3) & s_awready;
+    assign m4_awready = eff_valid & (eff_sel == 3'd4) & s_awready;
+    assign m5_awready = eff_valid & (eff_sel == 3'd5) & s_awready;
 
     // W datapath (only the owner's beats can flow)
-    assign s_wdata  = owner == 2'd3 ? m3_wdata : owner == 2'd2 ? m2_wdata :
-                      owner == 2'd1 ? m1_wdata : m0_wdata;
-    assign s_wstrb  = owner == 2'd3 ? m3_wstrb : owner == 2'd2 ? m2_wstrb :
-                      owner == 2'd1 ? m1_wstrb : m0_wstrb;
-    assign s_wlast  = owner == 2'd3 ? m3_wlast : owner == 2'd2 ? m2_wlast :
-                      owner == 2'd1 ? m1_wlast : m0_wlast;
-    assign s_wvalid = busy & (owner == 2'd3 ? m3_wvalid : owner == 2'd2 ? m2_wvalid :
-                              owner == 2'd1 ? m1_wvalid : m0_wvalid);
+    assign s_wdata  = owner == 3'd5 ? m5_wdata : owner == 3'd4 ? m4_wdata :
+                      owner == 3'd3 ? m3_wdata : owner == 3'd2 ? m2_wdata :
+                      owner == 3'd1 ? m1_wdata : m0_wdata;
+    assign s_wstrb  = owner == 3'd5 ? m5_wstrb : owner == 3'd4 ? m4_wstrb :
+                      owner == 3'd3 ? m3_wstrb : owner == 3'd2 ? m2_wstrb :
+                      owner == 3'd1 ? m1_wstrb : m0_wstrb;
+    assign s_wlast  = owner == 3'd5 ? m5_wlast : owner == 3'd4 ? m4_wlast :
+                      owner == 3'd3 ? m3_wlast : owner == 3'd2 ? m2_wlast :
+                      owner == 3'd1 ? m1_wlast : m0_wlast;
+    assign s_wvalid = busy & (owner == 3'd5 ? m5_wvalid : owner == 3'd4 ? m4_wvalid :
+                              owner == 3'd3 ? m3_wvalid : owner == 3'd2 ? m2_wvalid :
+                              owner == 3'd1 ? m1_wvalid : m0_wvalid);
 
-    assign m0_wready = busy & (owner == 2'd0) & s_wready;
-    assign m1_wready = busy & (owner == 2'd1) & s_wready;
-    assign m2_wready = busy & (owner == 2'd2) & s_wready;
-    assign m3_wready = busy & (owner == 2'd3) & s_wready;
+    assign m0_wready = busy & (owner == 3'd0) & s_wready;
+    assign m1_wready = busy & (owner == 3'd1) & s_wready;
+    assign m2_wready = busy & (owner == 3'd2) & s_wready;
+    assign m3_wready = busy & (owner == 3'd3) & s_wready;
+    assign m4_wready = busy & (owner == 3'd4) & s_wready;
+    assign m5_wready = busy & (owner == 3'd5) & s_wready;
 
     // B path: single outstanding -> the owner gets the fabric-minted response
-    assign m0_bvalid = busy & (owner == 2'd0) & s_bvalid;
-    assign m1_bvalid = busy & (owner == 2'd1) & s_bvalid;
-    assign m2_bvalid = busy & (owner == 2'd2) & s_bvalid;
-    assign m3_bvalid = busy & (owner == 2'd3) & s_bvalid;
+    assign m0_bvalid = busy & (owner == 3'd0) & s_bvalid;
+    assign m1_bvalid = busy & (owner == 3'd1) & s_bvalid;
+    assign m2_bvalid = busy & (owner == 3'd2) & s_bvalid;
+    assign m3_bvalid = busy & (owner == 3'd3) & s_bvalid;
+    assign m4_bvalid = busy & (owner == 3'd4) & s_bvalid;
+    assign m5_bvalid = busy & (owner == 3'd5) & s_bvalid;
     assign m0_bid    = s_bid;
     assign m1_bid    = s_bid;
     assign m2_bid    = s_bid;
     assign m3_bid    = s_bid;
+    assign m4_bid    = s_bid;
+    assign m5_bid    = s_bid;
     assign m0_bresp  = s_bresp;
     assign m1_bresp  = s_bresp;
     assign m2_bresp  = s_bresp;
     assign m3_bresp  = s_bresp;
-    assign s_bready  = busy & (owner == 2'd3 ? m3_bready : owner == 2'd2 ? m2_bready :
-                               owner == 2'd1 ? m1_bready : m0_bready);
+    assign m4_bresp  = s_bresp;
+    assign m5_bresp  = s_bresp;
+    assign s_bready  = busy & (owner == 3'd5 ? m5_bready : owner == 3'd4 ? m4_bready :
+                               owner == 3'd3 ? m3_bready : owner == 3'd2 ? m2_bready :
+                               owner == 3'd1 ? m1_bready : m0_bready);
 
     always @(posedge clk) begin
         if (rst) begin
             busy      <= 1'b0;
-            owner     <= 2'd0;
-            rr        <= 2'd0;
+            owner     <= 3'd0;
+            rr        <= 3'd0;
             sel_valid <= 1'b0;
-            sel       <= 2'd0;
+            sel       <= 3'd0;
         end
         else begin
             if (!busy && eff_valid && s_awready) begin
@@ -231,12 +300,12 @@ module ddr_w_arb (
                 // the following master in round-robin order
                 busy      <= 1'b1;
                 owner     <= eff_sel;
-                rr        <= (eff_sel == 2'd3) ? 2'd0 : (eff_sel + 2'd1);
+                rr        <= (eff_sel == 3'd5) ? 3'd0 : (eff_sel + 3'd1);
                 sel_valid <= 1'b0;
             end
             else if (!busy && !sel_valid && pick_v) begin
-                // freeze the winner so its AW payload cannot change while
-                // AWREADY is low (was the AW stability violation)
+                // register the winner before presenting AW, even if ready;
+                // keep it frozen throughout downstream backpressure
                 sel_valid <= 1'b1;
                 sel       <= pick_sel;
             end

@@ -1,3 +1,2 @@
-cfg_help cfg_set_cable_property
-cfg_help cfg_jtag_flash_scan_device
-cfg_help cfg_set_options
+cfg_connect -ip 127.0.0.1 -port 65470
+info commands cfg*

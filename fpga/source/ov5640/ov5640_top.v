@@ -650,6 +650,7 @@ always @(posedge video_clk) dbg_clk_status <= {dbg_clk50_cnt, dbg_locked, dbg_bt
         .CAM_ADDR_1_DEF(CAM_ADDR_1_DEF),
         .CAM_ADDR_2_DEF(CAM_ADDR_2_DEF),
         .CAM_EN_DEF   (CAM_EN_DEF   ),
+        .DLY_STEP_DEF (IODELAY_STEP),
         .AXI_ADDR_WIDTH(AXI_ADDR_WIDTH)
     ) 
     ov5640_reg(

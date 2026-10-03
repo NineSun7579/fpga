@@ -1,0 +1,6 @@
+cfg_scan_chain
+cfg_jtag_flash_scan_device -device_index 0
+cfg_jtag_flash_assign_file -file C:/Users/NineSun/Desktop/ov56401/ov5640_sfp480p_test/ov5640_sfp480p_test/bitstream_final_50k_20261003_105717/hdmi_ddr_ov5640_top.sbit -device_index 0
+cfg_jtag_flash_erase -device_index 0
+cfg_jtag_flash_program -device_index 0
+cfg_jtag_flash_verify -device_index 0

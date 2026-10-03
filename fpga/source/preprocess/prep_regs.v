@@ -22,7 +22,8 @@ module prep_regs #(
     parameter AXI_ADDR_WIDTH = 32,
     parameter AXI_DATA_WIDTH = 32,
     parameter BTN_NUM        = 4,
-    parameter TICK_DIV       = 50            // 50MHz -> 1us 打点节拍
+    parameter TICK_DIV       = 50,           // 50MHz -> 1us 打点节拍
+    parameter SFP_DIAG_EN    = 0
 )(
     input  wire                          clk,
     input  wire                          rst_n,
@@ -94,7 +95,15 @@ module prep_regs #(
     input  wire [31:0]                   dbg_pp_beats,
     input  wire [31:0]                   dbg_prep_aw,
     input  wire [31:0]                   dbg_prep_w,
-    input  wire [31:0]                   dbg_prep_b
+    input  wire [31:0]                   dbg_prep_b,
+    // Optional SFP diagnostics, already synchronized to clk.
+    input  wire [31:0]                   sfp_diag_status,
+    input  wire [31:0]                   sfp_diag_fault5,
+    input  wire [31:0]                   sfp_diag_fault6,
+    input  wire [31:0]                   sfp_diag_pixels5,
+    input  wire [31:0]                   sfp_diag_pixels6,
+    input  wire [31:0]                   sfp_diag_states,
+    input  wire [31:0]                   sfp_diag_rejects
 );
 
     //------------------------------------------------------------------
@@ -290,17 +299,18 @@ module prep_regs #(
             8'h10: rdata_mux = r_inj_addr;
             8'h14: rdata_mux = r_inj_len;
             8'h18: rdata_mux = r_inj_fid;
-            8'h20: rdata_mux = {inj_done_fid, 14'd0, inj_done, inj_busy};
-            8'h30: rdata_mux = {8'd0, out_frame_cnt, 5'd0, npu_busy,
+            // Aligned +0x120..+0x180 reads only; write decode is unchanged.
+            8'h20: rdata_mux = SFP_DIAG_EN ? sfp_diag_status : {inj_done_fid, 14'd0, inj_done, inj_busy};
+            8'h30: rdata_mux = SFP_DIAG_EN ? sfp_diag_fault5 : {8'd0, out_frame_cnt, 5'd0, npu_busy,
                                 pipe_fifo_afull, pipe_frame_sync};
-            8'h40: rdata_mux = {{(32-BTN_NUM){1'b0}}, r_btn_sticky_r};
+            8'h40: rdata_mux = SFP_DIAG_EN ? sfp_diag_fault6 : {{(32-BTN_NUM){1'b0}}, r_btn_sticky_r};
             8'h44: rdata_mux = {{(32-BTN_NUM){1'b0}}, btn_level_sync};
-            8'h50: rdata_mux = {28'd0, r_led};
-            8'h60: rdata_mux = {lane_frame_upd, lane_left_valid, lane_right_valid,
+            8'h50: rdata_mux = SFP_DIAG_EN ? sfp_diag_pixels5 : {28'd0, r_led};
+            8'h60: rdata_mux = SFP_DIAG_EN ? sfp_diag_pixels6 : {lane_frame_upd, lane_left_valid, lane_right_valid,
                                 2'b00, lane_right_type, lane_left_type};
-            8'h70: rdata_mux = r_ts0;
+            8'h70: rdata_mux = SFP_DIAG_EN ? sfp_diag_states : r_ts0;
             // [EDGE-DBG] link observability counters
-            8'h80: rdata_mux = dbg_pp_beats;
+            8'h80: rdata_mux = SFP_DIAG_EN ? sfp_diag_rejects : dbg_pp_beats;
             8'h84: rdata_mux = dbg_prep_aw;
             8'h88: rdata_mux = dbg_prep_w;
             8'h8C: rdata_mux = dbg_prep_b;
