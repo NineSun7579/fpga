@@ -1,0 +1,53 @@
+--- actual/reg_config.v
++++ sim_candidate/reg_config.v
+@@ -48,7 +48,7 @@
+ 
+ assign reg_conf_done=reg_conf_done_reg;
+ //����i2c����ʱ��-20khz    
+-always@(posedge clk_25M)   
++always@(posedge clk_25M or negedge camera_rstn)   
+ begin
+    if(!camera_rstn) begin
+         clock_20k<=0;
+@@ -64,7 +64,7 @@
+ 
+ 
+ ////iic�Ĵ������ù��̿���    
+-always@(posedge clock_20k)    
++always@(posedge clock_20k or negedge camera_rstn)    
+ begin
+    if(!camera_rstn) begin
+        config_step<=0;
+@@ -76,10 +76,10 @@
+       if(reg_conf_done_reg==1'b0) begin          //���camera��ʼ��δ���
+ 			  if(reg_index<357) begin               //���üĴ���
+ 					 case(config_step)
+-					 0:begin
++					 0:begin if (initial_en) begin
+ 						i2c_data<={8'h78,reg_data};       //OV5640 IIC Device address is 0x78   
+ 						start<=1;                         //i2cд��ʼ
+-						config_step<=1;                  
++						config_step<=1; end                  
+ 					 end
+ 					 1:begin
+ 						if(tr_end) begin                  //i2cд����               					
+--- actual/i2c_com.v
++++ sim_candidate/i2c_com.v
+@@ -50,7 +50,7 @@
+     assign i2c_sclk=sclk|(((cyc_count>=4)&(cyc_count<=39))?~clock_i2c:0);
+     assign i2c_sdat=reg_sdat?1'bz:0; 
+    
+-    always@(posedge clock_i2c)
++    always@(posedge clock_i2c or negedge camera_rstn)
+     begin
+        if(!camera_rstn)
+          cyc_count<=6'b111111;
+@@ -64,7 +64,7 @@
+     end
+ 	 
+ 	 
+-    always@(posedge clock_i2c)
++    always@(posedge clock_i2c or negedge camera_rstn)
+     begin
+        if(!camera_rstn)
+        begin

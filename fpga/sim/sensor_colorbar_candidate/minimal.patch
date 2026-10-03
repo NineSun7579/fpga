@@ -1,0 +1,56 @@
+--- production/reg_config.v
++++ candidate/reg_config.v
+@@ -19,7 +19,7 @@
+ // 
+ //////////////////////////////////////////////////////////////////////////////////
+ //camera中寄存器的配置程序
+- module reg_config(     
++ module reg_config #(parameter COLOR_BAR_TEST = 0)(     
+ 		  input clk_25M,
+ 		  input camera_rstn,
+ 		  input initial_en,
+@@ -74,7 +74,7 @@
+    end
+    else begin
+       if(reg_conf_done_reg==1'b0) begin          //如果camera初始化未完成
+-			  if(reg_index<357) begin               //配置寄存器
++			  if(reg_index < (COLOR_BAR_TEST ? 358 : 357)) begin               //配置寄存器
+ 					 case(config_step)
+ 					 0:begin if (initial_en) begin
+ 						i2c_data<={8'h78,reg_data};       //OV5640 IIC Device address is 0x78   
+@@ -364,6 +364,7 @@
+ 	 354  :reg_data <=24'h382404 ;//         
+ 	 355  :reg_data <=24'h500183 ;//         
+ 	 356  :reg_data <=24'h350300 ;//         
++     357  :reg_data <=24'h503D80; // OV5640 standard sensor color bars
+ 	 default:reg_data<=24'hffffff;//        
+     endcase      
+ end	 
+--- production/hdmi_ddr_ov5640_top.v
++++ candidate/hdmi_ddr_ov5640_top.v
+@@ -35,6 +35,7 @@
+ //   DDR3_50H/ms72xx/HDMI 绔\xaf鍙ｄ笌 fdc 绾︽潫), SFP 瑙嗛\xa2戞簮鐩磋繛 cam2_merge 杈撳嚭(125M 鍩\x9f)銆\x82
+ //   鎭㈠\xa4嶆樉绀洪摼: 鍙栨秷鏈\xac鏂囦欢涓\xad [SLIM Rev3.2] 鏍囪\xae扮殑娉ㄩ噴銆乫dc 鍚屽悕鏍囪\xae般\x80乥uild.tcl 琚\xab鍒犺\xa1屻\x80\x82
+ module hdmi_ddr_ov5640_top#(
++	parameter COLOR_BAR_TEST = 0, // Both OV5640 sensors; normal image by default
+ 	parameter MEM_ROW_ADDR_WIDTH   = 15         ,
+ 	parameter MEM_COL_ADDR_WIDTH   = 10         ,
+ 	parameter MEM_BADDR_WIDTH      = 3          ,
+@@ -268,7 +269,7 @@
+     	.initial_en              (initial_en     ) //output
+     );
+ //CMOS1 Camera
+-    reg_config	coms1_reg_config(
++    reg_config #(.COLOR_BAR_TEST(COLOR_BAR_TEST))	coms1_reg_config(
+     	.clk_25M                 (clk_25M            ),//input
+     	.camera_rstn             (cmos1_reset        ),//input
+     	.initial_en              (initial_en         ),//input
+@@ -280,7 +281,7 @@
+     );
+ 
+ //CMOS2 Camera
+-    reg_config	coms2_reg_config(
++    reg_config #(.COLOR_BAR_TEST(COLOR_BAR_TEST))	coms2_reg_config(
+     	.clk_25M                 (clk_25M            ),//input
+     	.camera_rstn             (cmos2_reset        ),//input
+     	.initial_en              (initial_en         ),//input

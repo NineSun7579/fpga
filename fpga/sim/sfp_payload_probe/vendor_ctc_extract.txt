@@ -1,0 +1,668 @@
+PDF PAGE 9
+ 
+9/55 
+ UG041004 
+www.pangomicro.com 
+表目录 
+表 1-1 行文规范说明 ................................................................................................................................. 11 
+表 2-1 HSSTLP IP 适用器件及封装 .......................................................................................................... 13 
+表 2-2 APB 地址映射 ................................................................................................................................. 14 
+表 2-3 Protocol and Rate 页配置参数说明 ................................................................................................ 21 
+表 2-4 Alignment and CTC 页配置参数说明 ............................................................................................ 24 
+表 2-5 Misc 页配置参数说明 ..................................................................................................................... 25 
+表 2-6 IP 生成后的输出文件 ..................................................................................................................... 28 
+表 2-7 参数描述列表 ................................................................................................................................. 29 
+表 2-8 HSSTLP IP 基于适用器件的资源利用典型值 .............................................................................. 32 
+表 2-9 8B10B 使能时的数据格式 ............................................................................................................. 35 
+表 2-10 64B66B_transparent 模式发送Pattern ......................................................................................... 36 
+表 2-11 64B67B_transparent 模式发送Pattern .......................................................................................... 36 
+表 2-12 常用接口列表 ............................................................................................................................... 38 
+表 2-13 Misc 页可选接口配置参数说明 ................................................................................................... 43 
+ 
+ 
+ 
+
+PDF PAGE 12
+                              第2 章  IP 使用指南 
+12/55 
+ UG041004 
+www.pangomicro.com 
+第2章 IP 使用指南 
+本章讲述HSSTLP IP 相关使用指南，内容包括IP 简介、IP 框图、IP 生成流程、
+Example Design、IP 接口描述、IP 寄存器描述、典型应用、说明与注意事项、IP 调试手
+段。更多设计流程相关详细信息可以参见下述PDS 帮助文档。 
+ 
+Pango_Design_Suite_Quick_Start_Tutorial[1] 
+ 
+Pango_Design_Suite_User_Guide[2] 
+ 
+IP_Compiler_User_Guide[3] 
+ 
+Simulation_User_Guide[4] 
+2.1 IP 简介 
+HSSTLP IP 是基于Logos2 系列产品中HSSTLP 资源实现的一款IP，可通过公司PDS 
+( Pango Design Suite) 套件中的IPC (IP Compiler ) 工具完成IP 模块的配置和生成。 
+2.1.1 主要特性 
+HSST IP 支持的功能包括： 
+ 
+支持四条通道独立配置； 
+ 
+支持各通道独立配置“双工”、“仅发送”、“仅接收”、“关闭”四种工作模式； 
+ 
+支持标准协议（GE/SGMII、PCIEx1/PCIEx2/PCIEx4、XAUI、3G-SDI）； 
+ 
+支持客户自定义协议； 
+ 
+支持Line Rate 配置； 
+ 
+支持用户侧接口位宽配置； 
+ 
+支持PLL 数量可配置； 
+ 
+支持参考时钟配置；  
+ 
+支持8B10B 编解码使能配置； 
+ 
+支持64B66B、64B67B 透传模式配置； 
+ 
+支持Word Alignment 使能配置及COMMA 序列值配置； 
+ 
+支持Channel Bonding 使能配置及Bonding 序列值配置； 
+ 
+支持CTC 使能配置及CTC 操作序列值配置； 
+
+PDF PAGE 20
+                              第2 章  IP 使用指南 
+20/55 
+ UG041004 
+www.pangomicro.com 
+ 
+图 2-11 HSSTLP IP 接口框图 
+ 
+图 2-12 配置HSSTLP IP 参数界面 
+参数配置分为三个页面，分别为Protocol and Rate，Alignment and CTC 和Misc。
+HSST IP 配置步骤描述如下。 
+ 
+
+PDF PAGE 22
+                              第2 章  IP 使用指南 
+22/55 
+ UG041004 
+www.pangomicro.com 
+参数/配置选项 
+参数说明 
+Protocol Default 
+Setting 
+选择Channel 0~3 是否为协议固定配置，与Protocol 配合使用： 
+当Protocol 配置为CUSTOMERIZEDx1/x2/x4 模式，Protocol Default 
+Setting 固定不勾选； 
+当Protocol 配置为GE、SGMII、PCIEx1、3G-SDI、PCIEx2、XAUI
+或PCIEx4 时，可以选择是否勾选Protocol Default Setting；当勾选时， 
+Protocol and Rate 页和Alignment and CTC 页对应Channel 的全部参数
+不可选择。 
+TX Line 
+Rate(0.6~6.6Gbps) 
+配置Channel 0~3 TX 线速率，范围为0.6~6.6Gbps。 
+RX Line 
+Rate(0.6~6.6Gbps) 
+配置Channel 0~3 RX 线速率，范围为0.6~6.6Gbps。 
+PCS Encoder/Decoder, Fabric Interface Data Width and Clock Frequence 
+TX Encoder 
+选择Channel 0~3 TX 编码模式为8B10B、64B66B_transparent、
+64B67B_transparent 或Bypassed。 
+TX Fabric Data 
+Width(Bits) 
+选择Channel 0~3 TX Fabric 数据位宽，在保证Fabric 时钟不大于
+206.25Mhz 的前提下： 
+当配置8B10B 编码模式，可选择数据位宽为8/16/32bits； 
+当配置64B66B_transparent 模式，可选择数据位宽为16/32bits； 
+当配置64B67B_transparent 模式，可选择数据位宽为16/32bits； 
+当配置Bypassed 编码模式，可选择数据位宽为8/10/16/20/32/40bits。 
+TX Fabric Clock 
+Frequence 
+显示Channel 0~3 TX Fabric 时钟频率，取决于TX Line Rate、TX 
+Encoder 和TX Fabric Data Width 配置。 
+RX Decoder 
+选择Channel 0~3 RX 解码模式为8B10B、64B66B_transparent、
+64B67B_transparent 或Bypassed。 
+RX Fabric Data 
+Width(Bits) 
+选择Channel 0~3 RX Fabric 数据位宽，在保证Fabric 时钟不大于
+206.25Mhz 的前提下： 
+当配置8B10B 解码模式，可选择数据位宽为8/16/32bits； 
+当配置64B66B_transparent 模式，可选择数据位宽为16/32bits； 
+当配置64B67B_transparent 模式，可选择数据位宽为16/32bits； 
+当配置Bypassed 解码模式，可选择数据位宽为8/10/16/20/32/40bits。 
+RX Fabric Clock 
+Frequence 
+显示Channel 0~3 RX Fabric 时钟频率，取决于RX Line Rate、RX 
+Encoder 和RX Fabric Data Width 配置。 
+PLL Configuration 
+Use PLL Number 
+选择使用PLL 的个数，1 或2。 
+当选择1 个时，TX/RX 通道均来自同一个PLL，默认使用PLL0，若
+用户须单独使用PLL1 可通过修改物理约束实现； 
+当选择2 个时，TX/RX 通道可独立配置来源PLL0 或PLL1，该场景
+不支持所有TX/RX 通道均配置来源PLL1，否则上报告警。 
+
+PDF PAGE 24
+                              第2 章  IP 使用指南 
+24/55 
+ UG041004 
+www.pangomicro.com 
+(2) Alignment and CTC 页配置 
+表 2-4 Alignment and CTC 页配置参数说明 
+参数/配置选项 
+参数说明 
+Word Alignment 
+Word Align Mode 
+选择Channel 0~3 Word Align 模式为： 
+GE_MODE：对应PCS_CHx_ALIGN_MODE8=1GB； 
+XAUI_MODE：对应PCS_CHx_ALIGN_MODE=10GB； 
+RAPIDIO_MODE：对应PCS_CHx_ALIGN_MODE=RAPIDIO； 
+CUSTOMERIZED_MODE：对应
+PCS_CHx_ALIGN_MODE=OUTSIDE；此时，
+i_p_pcs_word_align_en_{0..3}( P_PCS_WORD_ALIGN_EN[3:0])9接口
+生效； 
+Bypassed：对应PCS_CHx_BYPASS_WORD_ALIGN=TRUE；仅在RX 
+Decoder 选择为Bypassed 时才可以选择。 
+COMMA 
+code-group select 
+当Word Align 模式没有选择Bypassed 时，选择Channel 0~3 Word Align
+的字节格式为COMMA，K28.1，K28.5 或K28.7； 
+或者选择CUSTOMERIZED，自定义Word Align 的字节格式。 
+COMMA+ 
+code-group(10bits) 
+当Word Align 的字节格式为CUSTOMERIZED 时，用来自定义Channel 
+0~3 Word Align 的字节格式，对应PCS_CHx_COMMA_REG0，和
+PCS_CHx_COMMA_REG1 的反码； 
+定义的值需要是10 比特二进制格式。 
+COMMA 
+MASK(bin) 
+当Word Align 的字节格式为CUSTOMERIZED 时，用来自定义Channel 
+0~3 Word Align 的字节格式，对应PCS_CHx_COMMA_MASK； 
+定义的值需要是10 比特二进制格式。 
+Channel Bonding 
+Channel Bonding 
+Mode 
+选择Channel 0~3 Channel Bonding 模式为： 
+XAUI_MODE：对应PCS_CHx_CEB_MODE=10GB； 
+RAPIDIO_MODE：对应PCS_CHx_CEB_MODE=RAPIDIO_MODE； 
+CUSTOMERIZED_MODE：对应PCS_CHx_CEB_MODE=OUTSIDE；
+此时，i_p_pcs_mcb_ext_en_{0..3}( P_PCS_MCB_EXT_EN[3:0])接口生
+效； 
+Bypassed：对应PCS_CHx_BYPASS_BONDING=TRUE；当单lane 模
+式或RX Decoder 选择Bypassed 时，固定为Bypassed。 
+Channel Bonding 
+Special Code(bin) 
+当Channel Bonding 模式不是Bypassed 时，选择Channel 0~3 Channel 
+Bonding 模式的K 码，对应PCS_CHx_A_REG。 
+Channel Bonding 
+Range(UI) 
+当Channel Bonding 模式不是Bypassed 时，选择Channel 0~3 Channel 
+Bonding skew 范围，对应PCS_CHx_SEACH_OFFSET。 
+                                                        
+8 统一描述约束：：PCS_CHx_*为HSSTLP 参数，具体参见《UG040008_Logos2 系列FPGA 高速串行收发器(HSSTLP)用户指南》上的描述。 
+9 统一描述约束：若IP 管脚名称i_x 或o_x 后面紧跟(*)，*表示对应的《UG040008_Logos2 系列FPGA 高速串行收发器(HSSTLP)用户指南》
+上的HSSTLP 管脚。 
+
+PDF PAGE 25
+                              第2 章  IP 使用指南 
+25/55 
+ UG041004 
+www.pangomicro.com 
+参数/配置选项 
+参数说明 
+Clock Tolerance Compensation 
+CTC Mode 
+选择Channel 0~3 增删SKIP 字节的CTC 模式为： 
+GE：按1000GBASE-X 协议做CTC 操作； 
+XAUI：按XAUI 协议做CTC 操作； 
+PCIE_2BYTE：按PCIE 协议两字节做CTC 操作； 
+PCIE_4BYTE：按PCIE 协议四字节做CTC 操作； 
+CUSTOMERIZED_1BYTE：可以定制一字节，用于CTC 操作； 
+CUSTOMERIZED_2BYTE：可以定制两字节，用于CTC 操作； 
+CUSTOMERIZED_4BYTE：可以定制四字节，用于CTC 操作； 
+Bypassed：对应PCS_CHx_BYPASS_CTC=TRUE；当RX Decoder 选
+择Bypassed 或TX Fabric 与RX Fabric 时钟频率不一致时，固定为
+Bypassed。 
+SKIP Byte#0(9bits) 
+配置Channel 0~3 第一个的SKIP 字节； 
+解码后的值，9 比特二进制格式，高位0 表示数据字节，1 表示控制字
+节，下同。 
+SKIP Byte#1(9bits) 
+配置Channel 0~3 第二个的SKIP 字节。 
+SKIP Byte#2(9bits) 
+配置Channel 0~3 第三个的SKIP 字节。 
+SKIP Byte#3(9bits) 
+配置Channel 0~3 第四个的SKIP 字节。 
+ 
+(3) Misc 页配置 
+表 2-5 Misc 页配置参数说明 
+参数/配置选项 
+参数说明 
+Reset Sequence Config 
+Reset Sequence 
+选择是否是使能复位序列。 
+Free Clock 
+frequence(10~100 
+MHz) 
+i_free_clk 的时钟频率配置。 
+RXPCS Align 
+Timer(0~65535 
+cycles) 
+配置Channel 0~3 中复位序列的RXPCS_ALIGN_TIMER 阈值。 
+当Word Align Mode 没有选择Bypassed 时，从RX 侧检测到合法信号
+（即o_p_lx_cdr_ align_{0..3}=1）到Word Align 同步成功（即
+o_p_pcs_lsm_synced_{0..3}=1）的时间不能超过
+RXPCS_ALIGN_TIMER 个Free Clock 周期，否则RX 复位序列自动重
+启； 
+当Protocol Default Setting 没有被勾选，且Word Align Mode 未选择
+Bypassed 时，用户需要自己配置RXPCS_ALIGN_TIMER 阈值，配置
+范围为0~65535。 
+
+PDF PAGE 29
+                              第2 章  IP 使用指南 
+29/55 
+ UG041004 
+www.pangomicro.com 
+ 4. 参数描述 
+表 2-7 参数描述列表 
+页面 
+参数/配置选项 
+参数说明 
+IP 配置界面默认值 
+Protocol and 
+Rate 
+Channel ENABLE 
+配置通道工作模式 
+Fullduplex 
+Protocol 
+配置通道协议 
+GE 
+Protocol Default Setting 
+配置是否使能默认配置 
+使能 
+TX Line Rate(0.6~6.375Gbps) 
+配置通道TX 线速 
+1.25Gbps 
+RX Line Rate(0.6~6.375Gbps) 
+配置通道RX 线速 
+1.25Gbps 
+TX Encoder 
+配置通道TX 编码模式 
+8B10B 
+TX Fabric Data Width(Bits) 
+配置通道TX 用户侧数据位宽 
+8 
+TX Fabric Clock Frequence 
+显示TX 用户侧工作时钟频率 
+125MHz 
+RX Decoder 
+配置通道RX 编码模式 
+8B10B 
+RX Fabric Data Width(Bits) 
+配置通道RX 用户侧数据位宽 
+8 
+RX Fabric Clock Frequence 
+显示RX 用户侧工作时钟频率 
+125MHz 
+Use PLL Numbers 
+配置使用PLL 的个数 
+1 
+PLL Reference Clock source from 
+配置PLL 参考时钟来源 
+Diff_REFCK0 
+PLL Reference Clock 
+frequence(MHz) 
+选择PLL 参考时钟合法值 
+125 
+Alignment 
+and CTC 
+Word Align Mode 
+配置COMMA 对齐场景下的同步状
+态机 
+GE_MODE 
+COMMA code-group select 
+配置Word align 对齐的控制字 
+K28.5 
+COMMA+ code-group(10bits) 
+配置自定义对齐控制字 
+0101111100 
+COMMA MASK(bin) 
+配置是否屏蔽对齐字的域段 
+0000000000 
+Channel Bonding Mode 
+配置通道的Channel Bonding 模式 
+Bypassed 
+Channel Bonding Special Code(bin) 
+配置A Pattern Reg 值 
+- 
+Channel Bonding Range(UI) 
+配置Channel Bonding Deskew 范围
+值 
+- 
+CTC Mode 
+配置CTC 模式值 
+GE 
+SKIP Byte#0(9bits) 
+配置第一个SKP 字节 
+110111100 
+SKIP Byte#1(9bits) 
+配置第二个SKP 字节 
+001010000 
+SKIP Byte#2(9bits) 
+配置第三个SKP 字节 
+0 
+SKIP Byte#3(9bits) 
+配置第四个SKP 字节 
+0 
+Misc 
+Reset Sequence 
+配置是否是使能复位序列 
+使能 
+Free Clock frequence(10~100 
+MHz) 
+配置复位序列工作时钟频率 
+100 
+RXPCS Align Timer(0~65535 
+cycles) 
+配置word align 使能情况下异常处
+理阈值 
+32767 
+TX Pre-Cursor Emphasis Enable 
+配置前标量去加重使能 
+不使能 
+TX Pre-Cursor Emphasis Static 
+Setting 
+配置前标量去加重值 
+0 
+TX Post-Cursor Emphasis Enable 
+配置后标量去加重使能 
+不使能 
+
+PDF PAGE 35
+                              第2 章  IP 使用指南 
+35/55 
+ UG041004 
+www.pangomicro.com 
+表 2-9 8B10B 使能时的数据格式 
+字节位置 
+字节内容 
+内容说明 
+byte0~3 
+a0_a1_a2_a3 
+当Channel Bonding 使能有效时，a0= CHx_RXPCS_A_REG,
+否则，a0=i0; 
+a_{1..3}=i_{1..3}； 
+byte4~7 
+byte8~11 
+byte12~15 
+byte16~19 
+byte20~23 
+i0_i1_i2_i3 
+i0= CHx_RXPCS_COMMA_REG0; 
+i1=D5.6 
+i2=i0 
+i3=i1 
+byte24~27 
+s0_s1_s2_s3 
+s0= CHx_RXPCS_SKIP_REG0 
+s1= "GE" ? CHx_RXPCS_SKIP_REG1: 
+   "XAUI"? CHx_RXPCS_SKIP_REG0: 
+   "PCIE_2BYTE"? CHx_RXPCS_SKIP_REG1: 
+"PCIE_4BYTE"? CHx_RXPCS_SKIP_REG1: 
+   "CUSTOMERIZED_1BYTE"? CHx_RXPCS_SKIP_REG0: 
+   "CUSTOMERIZED_2BYTE"? CHx_RXPCS_SKIP_REG1: 
+   "CUSTOMERIZED_4BYTE"?CHx_RXPCS_SKIP_REG1: 
+D5.6 
+s2= "GE" ? CHx_RXPCS_SKIP_REG0: 
+   "XAUI"? CHx_RXPCS_SKIP_REG0: 
+   "PCIE_2BYTE"? CHx_RXPCS_SKIP_REG0: 
+"PCIE_4BYTE"? CHx_RXPCS_SKIP_REG2: 
+   "CUSTOMERIZED_1BYTE"? CHx_RXPCS_SKIP_REG0: 
+   "CUSTOMERIZED_2BYTE"? CHx_RXPCS_SKIP_REG0: 
+   "CUSTOMERIZED_4BYTE"? CHx_RXPCS_SKIP_REG2: 
+K28_5 
+s3= "GE" ? CHx_RXPCS_SKIP_REG1: 
+   "XAUI"? CHx_RXPCS_SKIP_REG0: 
+   "PCIE_2BYTE"? CHx_RXPCS_SKIP_REG1: 
+"PCIE_4BYTE"? CHx_RXPCS_SKIP_REG3: 
+   "CUSTOMERIZED_1BYTE"? CHx_RXPCS_SKIP_REG0: 
+   "CUSTOMERIZED_2BYTE"? CHx_RXPCS_SKIP_REG1: 
+   "CUSTOMERIZED_4BYTE"? CHx_RXPCS_SKIP_REG3: 
+D5.6 
+注：条件语句判断值来自CTC Mode（见表 2-4）。 
+byte28~31 
+p0_p1_p2_p3 
+Payload 字节，初始值为1，向左移位操作； 
+ 
+(3) 64B66B_transparent 模式 
+当TX Encoder 和RX Decoder 设为64B66B_transparent 模式，循环发送Pattern 如表 
+
+PDF PAGE 38
+                              第2 章  IP 使用指南 
+38/55 
+ UG041004 
+www.pangomicro.com 
+2.4.4 实例仿真 
+在Windows 系统下，IP 生成后，在<project_path>/sim/modelsim 路径下，双击*.bat
+文件（参见“2.3.1 3  生成IP”）即可运行仿真。 
+2.5 IP 接口描述 
+2.5.1 常用接口说明 
+ 1. 时钟域说明 
+ 
+o_p_pll_lock_{0..1} 、o_p_rx_sigdet_sta_{0..3} 、o_p_lx_cdr_align_{0..3} 、
+o_p_pcs_lsm_synced_{0..3}、o_p_pcs_rx_mcb_status_{0..3}的时钟在内部生成，
+没有输出，将其视为异步信号处理； 
+ 
+master 通道说明：四条通道Channel Bonding 模式下，Channel0 是master 通道，
+两条通道Channel Bonding 模式下，Channel0 和Channel1 Bonding 时Channel0
+是master 通道，Channel2 和Channel3 Bonding 时Channel2 是master 通道； 
+ 
+rxclk 在CTC 开启时是该通道TX 端的o_p_clk2core_tx,在Channel Bonding 功能
+开启时是master 通道的o_p_clk2core_rx 或o_p_clk2core_tx（CTC 开启时是
+o_p_clk2core_tx），其余情况是该通道的o_p_clk2core_rx； 
+ 
+txclk 在Channel Bonding 功能开启时是master 通道的i_p_tx_clk_fr_core，否则
+是该通道的i_p_tx_clk_fr_core。 
+ 2. 常用接口列表 
+表 2-12 常用接口列表13 
+接口名 
+时钟域 
+输入/输出 
+描述 
+复位序列接口14 
+i_free_clk 
+clock 
+输入 
+用于复位序列逻辑的时钟，范围在10~100MHz。 
+i_pll_rst_{0..1} 
+async 
+输入 
+复位PLL 及驱动的TX/RX 通道，高有效。 
+                                                        
+13 此列表只描述常用接口，其他接口请参见“2.3.1 2  配置IP 参数”、“2.3.1 4  参数描述”、“2.5.2  可选接口说明”；HSSTLP IP 接口命
+名规则如下： 
+i_*表示输入接口，o_*表示输出接口； 
+命名中的{0..3}分别表示0~3 的四个命名，如无特殊说明，分别对应Channel 0~3，后面的参数命名遵循同样的规则。 
+14 复位序列接口统一约束：输出信号全部为i_free_clk 时钟域；如果没有特殊说明，输入信号会在复位序列逻辑内部做i_free_clk 时钟域同
+步处理，用户需要保证寄存输入。附录复位序列可选接口也有相同的约束。 
+
+PDF PAGE 41
+                              第2 章  IP 使用指南 
+41/55 
+ UG041004 
+www.pangomicro.com 
+接口名 
+时钟域 
+输入/输出 
+描述 
+i_tdispctrl_{0..3}[ x-1:0] 
+txclk 
+输入 
+{ i_tdispctrl_{0..3}，i_tdispsel_{0..3}}为 
+2'b00: 正常数据发送 
+2'b01: 根据IEEE 802.3 1000BASE-X specification
+协议，实现帧尾第一个I1/I2 的选择，满足条件下
+自动实现从I2 到I1 的替换； 
+2'b10: 强制8b10b 编码极性为负； 
+2'b11: 强制8b10b 编码极性为正； 
+接口只有当TX Encoder 参数配置为8B10B 才有
+效；当TX Fabric Data Width(Bits)=8 时，x=1；当
+TX Fabric Data Width(Bits)=16 时，x=2，其中第
+0bit
+对应
+i_txd_{0..3}[7:0] ，第
+1bit
+对应
+i_txd_{0..3}[15:8]
+；
+当
+TX 
+Fabric 
+Data 
+Width(Bits)=32 时，x=4 ，其中第0bit 对应
+i_txd_{0..3}[7:0]，第1bit 对应i_txd_{0..3}[15:8]，
+第2bit 对应i_txd_{0..3}[23:16]，第3bit 对应
+i_txd_{0..3}[31:24]。 
+i_txk_{0..3}[x-1:0] 
+txclk 
+输入 
+控制TXK 接口，只有当TX Encoder 参数配置为
+8B10B 才有效，每一bit 对应8bits  i_txd_{0..3}，
+对应关系参见i_tdispsel_{0..3}[x-1:0]； 
+1
+表示
+TXD
+为
+IEEE 802.3 1000BASE-X 
+Specification 的8b10b Special Code-groups； 
+0
+表示
+TXD
+为
+IEEE 802.3 1000BASE-X 
+Specification 的8b10b Data Code-groups。 
+i_txq_{0..3}[6:0] 
+txclk 
+输入 
+控制TXQ 接口，只有当TX Encoder 参数配置为
+64B66B_transparent、64B67B_transparent 才有效； 
+表示用户侧Sequence counter 输入； 
+其中，[5:0]用于64B66B_transparent，[6:0]用于
+64B67B_transparent。 
+i_txh_{0..3}[2:0] 
+txclk 
+输入 
+控制TXH 接口，只有当TX Encoder 参数配置为
+64B66B_transparent、64B67B_transparent 才有效； 
+表示同步字输入； 
+其中，[1:0]用于64B66B_transparent，[2:0]用于
+64B67B_transparent。 
+o_rxstatus_{0..3}[2:0] 
+rxclk 
+输出 
+用于PCI Express PHY Interface (PIPE)接口的接收
+状态编码： 
+3'b000: 正常结束数据； 
+3'b001:CTC 模块执行了SKIP add 操作； 
+3'b010: CTC 模块执行了SKIP delete 操作； 
+3’b011:PCIe4byte 模式，连续删除； 
+3’b100:Bridge Over Flow； 
+3'b101: CTC FIFO Over Flow； 
+3'b110: CTC FIFO Under Flow； 
+3’b111:Bridge Under Flow。 
+
+PDF PAGE 46
+                              第2 章  IP 使用指南 
+46/55 
+ UG041004 
+www.pangomicro.com 
+参数/配置选项 
+参数说明 
+时钟域 
+RX{0..3} Reset 
+选择是否使能i_rxlane_rst_{0..3}接口； 
+i_rxlane_rst_{0..3}为复位序列RX 侧复位信号，高
+有效； 
+当CTC Mode（见参数说明）不是Bypassed 时，
+由i_txlane_rst_{0..3}统一控制； 
+当Channel 0~3 为单lane 模式，i_rxlane_rst_{0..3}
+独立控制Channel 0~3； 
+当Channel 0~3 为四lane 模式，i_rxlane_rst_0 控制
+Channel 0~3； 
+当Channel 0~1 为双lane 模式，i_rxlane_rst_0 控制
+Channel 0~1； 
+当Channel 2~3 为双lane 模式，i_rxlane_rst_2 控制
+Channel 2~3。 
+async 
+RX{0..3} Rate Change Select 
+选择是否使能复位序列的i_rx_rate_chng_{0..3}和
+i_rxckdiv_{0..3}[1:0] 接口； 
+i_rx_rate_chng_{0..3}为复位序列速率切换使能，
+上升沿有效；当启动切速后
+o_tx_ckdiv_done_{0..3}拉高时，才能响应下一个上
+升沿启动切速，i_free_clk 时钟域信号； 
+当CTC Mode（见参数说明）不是Bypassed 时，
+由i_tx_rate_chng_{0..3}统一控制TX/RX 速率切
+换； 
+当Channel 0~3 为单lane 模式，
+i_rx_rate_chng_{0..3}独立控制Channel 0~3； 
+当Channel 0~3 为四lane 模式，i_rx_rate_chng_0
+控制Channel 0~3； 
+当Channel 0~1 为双lane 模式，i_rx_rate_chng_0
+控制Channel 0~1； 
+当Channel 2~3 为双lane 模式，i_rx_rate_chng_2
+控制Channel 2~3； 
+当Channel 0~3 有多条单lane 或者双lane 和单lane
+混合时，只有当工作的Channel 对应的
+o_rxlane_done_{0..3}全部置1 后，RX 侧才可以速
+率切换； 
+i_rxckdiv_{0..3}[1:0] 与P_RX_RATE[1:0]含义一
+致，需要在i_rx_rate_chng_{0..3}上升沿到来前保
+持稳定，i_free_clk 时钟域信号。 
+i_free_clk 
+
+PDF PAGE 53
+                                    第3 章  附录 
+53/55 
+ UG041004 
+www.pangomicro.com 
+第3章 附录 
+3.1 参考文档 
+[1] Pango_Design_Suite_Quick_Start_Tutorial 
+[2] Pango_Design_Suite_User_Guide 
+[3] IP_Compiler_User_Guide 
+[4] Simulation_User_Guide 
+[5] User_Constraint_Editor_User_Guide 
+[6] Physical_Constraint_Editor_User_Guide 
+[7] Route_Constraint_Editor_User_Guide 
+[8] UG040008_Logos2 系列FPGA 高速串行收发器(HSSTLP)用户指南 
+[9] UG042002_Logos2 系列产品3G-SDI IP 用户指南 
+3.2 术语表 
+3 
+3G-SDI 
+SMPTE STANDARD, Source Image Format and Ancillary Data Mapping 
+for the 3 Gb/s Serial Interface 
+ 
+A 
+APB 
+ 
+Advanced Peripheral Bus  
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+C 
+CDR 
+ 
+Clock Data Recovery 
+CTC 
+ 
+Clock Tolerance Compensation 
+ 
+G 

@@ -1,0 +1,28 @@
+--- cam2_merge.v
++++ cam2_merge_stream_snapshot.v
+@@ -394,6 +394,11 @@
+             S_RD_B: begin
+                 c_de   <= `UD 1'b1;
+                 b_rcnt <= `UD b_rcnt + 11'd1;
++                // Snapshot only real output rows; commit validity on final pixel.
++                if (!b_rep) begin
++                    if (b_cur) b_memL[b_rcnt[9:0]] <= `UD b_mem1[b_rcnt[9:0]];
++                    else       b_memL[b_rcnt[9:0]] <= `UD b_mem0[b_rcnt[9:0]];
++                end
+                 if (b_rcnt == LINE_PIX - 11'd1) begin
+                     gap_cnt <= `UD 2'd0;
+                     if (!b_rep) begin
+@@ -401,7 +406,13 @@
+                         cpy_src<= `UD b_cur;        // 快� �刚消费的行
+                         cpy_cnt<= `UD 10'd0;
+-                        state  <= `UD S_COPY;       // 拷贝到 b_memL
++                        snap_valid <= `UD 1'b1;
++                        if (pair_cnt == LINES - 13'd1)
++                            state <= `UD S_VSYNC;
++                        else begin
++                            pair_cnt <= `UD pair_cnt + 13'd1;
++                            state <= `UD S_GAP_BA;
++                        end
+                     end
+                     else begin
+                         if (pair_cnt == LINES - 13'd1)

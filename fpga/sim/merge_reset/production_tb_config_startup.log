@@ -1,0 +1,38 @@
+# vsim -c -l production_tb_config_startup.log production_work.tb_config_startup -do "onbreak {quit -code 1}; onerror {quit -code 1}; run -all; quit -code 0" 
+# Start time: 20:47:36 on Oct 02,2026
+# ** Warning: (vsim-8891) All optimizations are turned off because the -novopt switch is in effect. This will cause your simulation to run very slowly. If you are using this switch to preserve visibility for Debug or PLI features please see the User's Manual section on Preserving Object Visibility with vopt.
+# //  ModelSim SE-64 10.6e Jun 23 2018
+# //
+# //  Copyright 1991-2018 Mentor Graphics Corporation
+# //  All Rights Reserved.
+# //
+# //  ModelSim SE-64 and its associated documentation contain trade
+# //  secrets and commercial or financial information that are the property of
+# //  Mentor Graphics Corporation and are privileged, confidential,
+# //  and exempt from disclosure under the Freedom of Information Act,
+# //  5 U.S.C. Section 552. Furthermore, this information
+# //  is prohibited from disclosure under the Trade Secrets Act,
+# //  18 U.S.C. Section 1905.
+# //
+# Loading sv_std.std
+# Loading production_work.tb_config_startup
+# Loading production_work.power_on_delay
+# Loading production_work.reg_config
+# Loading production_work.i2c_com
+# Loading production_work.reg_config_legacy
+# Loading production_work.i2c_com_legacy
+# onbreak {quit -code 1}
+#  Warning: onbreak command for use within macro
+#  onerror {quit -code 1}
+#  Warning: onerror command for use within macro
+#  run -all
+# NEGATIVE PASS: actual legacy divided-clock configuration remains X during camera reset
+# NEGATIVE PASS: seeded legacy config launches START with initial_en tied low
+# NEGATIVE PASS: stopped-clock legacy core retains cyc_count=10; seeded completed legacy config retains done=1/index=357
+# CONFIG PASS run=1 START=357 STOP=357 completed=357 ACKbits=1428 index=357
+# CONFIG PASS run=2 START=357 STOP=357 completed=357 ACKbits=1428 index=357
+# TEST PASS full power startup/config rerun: 357 identical real I2C commands twice, no pre-enable START, stopped-clock async reset, negative controls
+# ** Note: $finish    : tb_config_startup.sv(160)
+#    Time: 3269258340 ns  Iteration: 2  Instance: /tb_config_startup
+# End time: 20:48:19 on Oct 02,2026, Elapsed time: 0:00:43
+# Errors: 0, Warnings: 1

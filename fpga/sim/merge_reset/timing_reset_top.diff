@@ -1,0 +1,71 @@
+--- production-before
++++ validated-candidate
+@@ -235,6 +235,12 @@
+         .pll_lock (  locked     )
+     );
+ 
++    // Registered startup request: comparator never drives reset pins directly.
++    reg startup_ready = 1'b0;
++    always @(posedge cfg_clk or negedge locked)
++        if (!locked) startup_ready <= 1'b0;
++        else startup_ready <= (rstn_1ms == 16'h2710);
++
+     always @(posedge cfg_clk or negedge locked)
+     begin
+     	if(!locked)
+@@ -248,7 +254,7 @@
+     	end
+     end
+ 
+-    assign rstn_int  = locked & (rstn_1ms == 16'h2710);//ä¸çµ1msåéæ¾
++    assign rstn_int  = locked & startup_ready;//ä¸çµ1msåéæ¾
+     // Common sys_clk reset: asynchronous assertion, two-edge release.
+     // Keep cfg startup delay and merge reset request in their original domains.
+     (* ASYNC_REG = "TRUE" *) reg [1:0] sys_rst_sync = 2'b00;
+@@ -256,6 +262,13 @@
+         if (!rstn_int) sys_rst_sync <= 2'b00;
+         else sys_rst_sync <= {sys_rst_sync[0], 1'b1};
+     wire sys_rst_n = sys_rst_sync[1];
++
++    // Local diagnostic reset: async assertion, two clk_25M edges to release.
++    (* ASYNC_REG = "TRUE" *) reg [1:0] diag_rst_sync = 2'b00;
++    always @(posedge clk_25M or negedge rstn_int)
++        if (!rstn_int) diag_rst_sync <= 2'b00;
++        else diag_rst_sync <= {diag_rst_sync[0], 1'b1};
++    wire diag_rst_n = diag_rst_sync[1];
+ 
+     assign rstn_out  = rstn_int;               //MS7210 å¤ä½(å ¼ä½å@@ -312,7 +325,7 @@
+ 
+     sccb_diag #(.CLK_HZ(25_000_000), .SCL_HZ(100_000), .WAIT_MS(20)) u_sccb_diag1 (
+         .clk      ( clk_25M         ),
+-        .rst_n    ( rstn_out        ),
++        .rst_n    ( diag_rst_n      ),
+         .cfg_done ( cmos_init_done_int[0] ),
+         .id_hi    ( diag1_id_hi     ),
+         .id_lo    ( diag1_id_lo     ),
+@@ -329,7 +342,7 @@
+ 
+     sccb_diag #(.CLK_HZ(25_000_000), .SCL_HZ(100_000), .WAIT_MS(20)) u_sccb_diag2 (
+         .clk      ( clk_25M         ),
+-        .rst_n    ( rstn_out        ),
++        .rst_n    ( diag_rst_n      ),
+         .cfg_done ( cmos_init_done_int[1] ),
+         .id_hi    ( diag2_id_hi     ),
+         .id_lo    ( diag2_id_lo     ),
+@@ -904,7 +917,7 @@
+         .i_free_clk          (  sys_clk        ),
+         .i_p_refckp_0        (  sfp_refckp     ),
+         .i_p_refckn_0        (  sfp_refckn     ),
+-        .i_wtchdg_clr_0      (  ~rstn_int      ),
++        .i_wtchdg_clr_0      (  ~sys_rst_n     ),
+         .o_wtchdg_st_0       (                 ),
+         .o_pll_done_0        (                 ),
+         .o_txlane_done_2     (  hsst_tx_done_2 ),
+@@ -949,7 +962,7 @@
+         .o_rdisper_3         (  sfp_rx_disp3   ),
+         .o_rdecer_3          (  sfp_rx_dec3    ),
+         .o_rxk_3              (  sfp_rx_k3      ),
+-        .i_pll_rst_0         (  ~rstn_int      )
++        .i_pll_rst_0         (  ~sys_rst_n     )
+     );
+ // SFP0 å çº¤è¾åº ç»æ
