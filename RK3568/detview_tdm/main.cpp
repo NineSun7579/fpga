@@ -1,4 +1,4 @@
-// detview - OV5640 live detection UI for RK3568 + Pango FPGA + RKNN
+﻿// detview - OV5640 live detection UI for RK3568 + Pango FPGA + RKNN
 // Cam path: OV5640 -> DDR3 ping-pong (0x00800000/0x00A00000, RGB565 640x480)
 //           -> PCIe DMA read -> letterbox 640x640 -> RKNN model
 #include <QApplication>
@@ -15,9 +15,16 @@
 #include <QFileInfo>
 #include <QHBoxLayout>
 #include <QImage>
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QJsonParseError>
 #include <QKeyEvent>
 #include <QLabel>
 #include <QMutex>
+#include <QOpenGLFunctions>
+#include <QOpenGLShaderProgram>
+#include <QOpenGLWindow>
 #include <QPainter>
 #include <QProcess>
 #include <QPushButton>
@@ -29,6 +36,7 @@
 #include <QWidget>
 
 #include <algorithm>
+#include <array>
 #include <atomic>
 #include <cmath>
 #include <csignal>
@@ -38,11 +46,21 @@
 #include <fcntl.h>
 #include <functional>
 #include <memory>
+#include <stdexcept>
 #include <sys/ioctl.h>
 #include <sys/mman.h>
 #include <unistd.h>
 #include <time.h>
 #include <vector>
+
+#include "vision_types.h"
+#include "vision_pipeline.h"
+#include "template_tracker.h"
+#include "camera_dma.h"
+#include "frame_metrics.h"
+#include "display_perf.h"
+#include "calibration_capture.h"
+#include "stereo_demo/stereo_depth.h"
 
 #include "rknn_api.h"
 
@@ -75,6 +93,12 @@ static const int MODEL_H = 640;
 static const size_t MODEL_SIZE = (size_t)MODEL_W * MODEL_H * 3;
 static const float CONF_THRESH = 0.25f;
 static const float IOU_THRESH = 0.45f;
+
+static qint64 monotonicMs() {
+    timespec stamp{};
+    clock_gettime(CLOCK_MONOTONIC, &stamp);
+    return stamp.tv_sec * 1000LL + stamp.tv_nsec / 1000000;
+}
 
 /* ---------------- dma-heap 缓冲：RGA 只能操作 dma-buf ---------------- */
 struct DmaHeapAllocData {
@@ -133,14 +157,6 @@ struct DmaOp {
     void *read_buf, *write_buf;
 };
 
-struct Detection {
-    int cls;
-    float score;
-    float x1, y1, x2, y2;  // model 640x640 coordinates
-};
-Q_DECLARE_METATYPE(Detection)
-Q_DECLARE_METATYPE(QVector<Detection>)
-
 struct ModelInfo {
     QString path;
     QStringList classes;
@@ -148,6 +164,28 @@ struct ModelInfo {
     bool xyxy = false;
     bool lane = false;
 };
+
+static bool selectRotation(const QVector<ModelInfo>& models, const QStringList& selectors,
+                           QVector<ModelInfo>& chosen) {
+    chosen.clear();
+    if (selectors.size() < 2 || selectors.size() > 4) return false;
+    for (const QString& selector : selectors) {
+        if (selector.trimmed().isEmpty()) return false;
+        ModelInfo match;
+        int count = 0;
+        for (const auto& candidate : models) {
+            if (!candidate.lane && QFileInfo(candidate.path).fileName().startsWith("det-") &&
+                candidate.path.contains(selector.trimmed(), Qt::CaseInsensitive)) {
+                match = candidate;
+                ++count;
+            }
+        }
+        if (count != 1) return false;
+        for (const auto& already : chosen) if (already.path == match.path) return false;
+        chosen.append(match);
+    }
+    return true;
+}
 
 static QVector<ModelInfo> scanModels() {
     QVector<ModelInfo> list;
@@ -229,6 +267,31 @@ static QVector<ModelInfo> scanModels() {
     return list;
 }
 
+static QVector<int> vehicleTrackingClasses(const ModelInfo& model) {
+    QVector<int> result;
+    // TT100K labels such as "机动车" describe signs, not vehicle observations.
+    if (model.lane || model.path.contains("tt100k", Qt::CaseInsensitive)) return result;
+    static const QStringList objects = {"vehicle", "car", "truck", "bus", "motorcycle"};
+    for (int c = 0; c < model.classes.size(); ++c)
+        if (objects.contains(model.classes[c].trimmed().toLower())) result.append(c);
+    return result;
+}
+
+static bool selfTestVehiclePolicy() {
+    ModelInfo mixed; mixed.path = "det-3cls-wb.rknn";
+    mixed.classes = QStringList{"zebra", "vehicle", "person"};
+    if (vehicleTrackingClasses(mixed) != QVector<int>{1}) return false;
+    ModelInfo single; single.path = "det-vehicle.rknn"; single.classes = QStringList{"vehicle"};
+    if (vehicleTrackingClasses(single) != QVector<int>{0}) return false;
+    ModelInfo signs; signs.path = "det-tt100k.rknn";
+    signs.classes = QStringList{"机动车", "非机动车", "禁止货车驶入", "vehicle"};
+    if (!vehicleTrackingClasses(signs).isEmpty()) return false;
+    mixed.lane = true;
+    if (!vehicleTrackingClasses(mixed).isEmpty()) return false;
+    fprintf(stderr, "VEHICLE_TRACKING_POLICY_SELFTEST_PASS\n");
+    return true;
+}
+
 class PangoDev {
 public:
     ~PangoDev() { close(); }
@@ -284,27 +347,33 @@ public:
     bool regRead(uint32_t addr, uint32_t &val) {
         QMutexLocker dmaLock(&dmaMutex_);
         DmaOp op{};
-        op.offset_addr = 0;
+        op.offset_addr = tdm::cameraScratchOffset;
         op.ddr3_addr = addr;
         op.total_length = 16;
         if (ioctlTmo(F2H_CMD, &op, 3) != 0)
             return false;
-        memcpy(&val, rx_, 4);
+        memcpy(&val, rx_ + op.offset_addr, 4);
         return true;
     }
 
-    /* 四路采集线程共用一条 DMA 通道与同一对 tx/rx 缓冲，必须串行化。
+    /* 六路采集线程共用一条 DMA 通道与同一对 tx/rx 缓冲，必须串行化。
        单次等待上限取 2s（与 camview 一致）：丢 MSI 时不能让整块卡住几十秒，
        上层线程会保留上一帧并在下一次帧标签变化时重试。 */
     bool ddrRead(uint32_t addr, uint32_t len, void *out) {
+        if (len > tdm::cameraAllocationBytes || (!out && len)) return false;
         QMutexLocker dmaLock(&dmaMutex_);
-        DmaOp op{};
-        op.offset_addr = 0;
-        op.ddr3_addr = addr;
-        op.total_length = len;
-        if (ioctlTmo(F2H_CMD, &op, 2) != 0)
-            return false;
-        memcpy(out, rx_, len);
+        uint8_t* destination = static_cast<uint8_t*>(out);
+        for (uint32_t copied = 0; copied < len;) {
+            const uint32_t bytes = std::min(len - copied,
+                tdm::cameraAllocationBytes - tdm::cameraScratchOffset);
+            DmaOp op{};
+            op.offset_addr = tdm::cameraScratchOffset;
+            op.ddr3_addr = addr + copied;
+            op.total_length = std::max(16u, bytes);
+            if (ioctlTmo(F2H_CMD, &op, 2) != 0) return false;
+            memcpy(destination + copied, rx_ + op.offset_addr, bytes);
+            copied += bytes;
+        }
         return true;
     }
 
@@ -317,9 +386,49 @@ public:
         return true;
     }
 
+    // One worker per camera owns its RX slot until the CPU copy is complete.
+    // All DMA submissions remain serialized; metadata uses a separate scratch.
+    int cameraRead(int camera, uint32_t ping, uint32_t pong, bool delivered, uint32_t last,
+                   void* output, uint32_t& selected, qint64& dmaNs, qint64& copyNs,
+                   qint64& capturedMs) {
+        if (camera < 0 || camera >= CAM_COUNT) return -1;
+        QMutexLocker lock(&dmaMutex_);
+        uint32_t a = 0, b = 0;
+        if (!cameraTagLocked(ping + FRAME_BYTES, a) || !cameraTagLocked(pong + FRAME_BYTES, b)) return -1;
+        const int bank = tdm::newestCameraBank(a, b, delivered, last);
+        if (bank < 0) return 0;
+        selected = bank == 0 ? a : b;
+        DmaOp op{};
+        op.offset_addr = tdm::cameraSlotOffset(camera);
+        op.ddr3_addr = bank == 0 ? ping : pong;
+        op.total_length = FRAME_BYTES + 16;
+        QElapsedTimer timer; timer.start();
+        if (ioctlTmo(F2H_CMD, &op, 2) != 0) return -1;
+        dmaNs = timer.nsecsElapsed();
+        capturedMs = monotonicMs();
+        const uint8_t* pixels = rx_ + op.offset_addr;
+        uint32_t actual = 0;
+        memcpy(&actual, pixels + FRAME_BYTES, sizeof(actual));
+        if (actual != selected) return 2;
+        lock.unlock();
+        timer.restart();
+        tdm::copyCameraPixels(output, pixels, FRAME_BYTES);
+        copyNs = timer.nsecsElapsed();
+        return 1;
+    }
+
     const char *lastErr() const { return err_; }
 
 private:
+    bool cameraTagLocked(uint32_t address, uint32_t& tag) {
+        DmaOp op{};
+        op.offset_addr = tdm::cameraScratchOffset;
+        op.ddr3_addr = address;
+        op.total_length = 16;
+        if (ioctlTmo(F2H_CMD, &op, 2) != 0) return false;
+        memcpy(&tag, rx_ + op.offset_addr, sizeof(tag));
+        return true;
+    }
     int ioctlTmo(unsigned long cmd, DmaOp *op, unsigned sec) {
         timeoutHit_ = false;
         struct timespec ts0{}, ts1{};
@@ -340,9 +449,26 @@ private:
         }
         if (timeoutHit_) {
             err_ = "ioctl timeout";
+            noteFailure();
             return -1;
         }
+        if (r < 0) {
+            noteFailure();
+            return r;
+        }
+        failures_ = 0;
         return r;
+    }
+    /* 连续失败自愈：驱动的 pango_cdev_open 每次打开设备都会把 g_dma_flag 等状态清零，
+       所以"退出进程 + 重新打开"本身就等于恢复，不需要 rmmod/insmod。连续失败到阈值就
+       主动退出（硬退出，避免卡住的线程拖延），交给守护脚本 run_detview.sh 重启。 */
+    void noteFailure() {
+        const int n = ++failures_;
+        if (n < kRecoverAfterFailures)
+            return;
+        fprintf(stderr, "[recover] %d consecutive pango ioctl failures -> exit(3) for supervisor restart\n", n);
+        fflush(stderr);
+        ::_exit(3);
     }
     void close() {
         if (fd_ >= 0)
@@ -354,6 +480,8 @@ private:
     uint8_t *tx_ = nullptr;
     uint8_t *rx_ = nullptr;
     QMutex dmaMutex_;   // 保护 tx_/rx_ 与 DMA ioctl（四路采集线程共用）
+    static const int kRecoverAfterFailures = 6;   // 连续失败几次就退出，让守护脚本重启
+    std::atomic<int> failures_{0};
 };
 
 volatile sig_atomic_t PangoDev::timeoutHit_ = 0;
@@ -367,6 +495,10 @@ struct LatestFrames {
     bool have[CAM_COUNT] = {};
     uint64_t errors[CAM_COUNT] = {};
     double fps[CAM_COUNT] = {};
+    qint64 lastCapturedMs[CAM_COUNT] = {};
+    qint64 rawCapturedMs[CAM_COUNT] = {};
+    quint32 tags[CAM_COUNT] = {};
+    int sourceGenerations[CAM_COUNT] = {};
     uint64_t gen = 0;                // 存下任意一帧就自增（显示侧据此推进）
     uint64_t camGen[CAM_COUNT] = {}; // 每路自己的帧计数（只转换变化的那一路）
 };
@@ -390,13 +522,19 @@ public:
     CameraWorker(PangoDev *dev, LatestFrames *frames, int camera)
         : dev_(dev), frames_(frames), camera_(camera) {}
     void stop() { running_ = false; }
-    /* 选中用于推理的那一路（-1 = 不提交）；提交在本线程内完成，避免额外拷贝与锁竞争 */
-    void setInferPane(const std::atomic<int> *pane, std::function<void(QImage)> emitFn) {
+    /* Deliver owned camera pixels to a bounded analytics mailbox, not a GUI event queue. */
+    void setVisionSink(const std::atomic<int> *pane, const std::atomic<int> *generation,
+                       std::atomic<quint64> *sequence, std::function<void(const VisionFrame&)> sink,
+                       int stereoMask) {
         inferPane_ = pane;
-        emitInfer_ = std::move(emitFn);
+        generation_ = generation;
+        sequence_ = sequence;
+        visionSink_ = std::move(sink);
+        stereoMask_ = stereoMask;
     }
     /* 当前显示模式（0..5 = 单路，CAM_COUNT = 整幅）：单路时只采那一路，其余停采 */
     void setModePtr(const std::atomic<int> *mode) { mode_ = mode; }
+    void setPausedPtr(const std::atomic<bool> *paused) { paused_ = paused; }
 
 protected:
     void run() override {
@@ -405,58 +543,108 @@ protected:
             {CAM_BASE[2][0], CAM_BASE[2][1]}, {CAM_BASE[3][0], CAM_BASE[3][1]},
             {CAM_BASE[4][0], CAM_BASE[4][1]}, {CAM_BASE[5][0], CAM_BASE[5][1]}};
         const int idx = camera_ - 1;
-        const uint32_t ta = base[idx][0] + FRAME_BYTES;
-        const uint32_t tb = base[idx][1] + FRAME_BYTES;
-        uint32_t a = 0, b = 0, la = 0, lb = 0;
-        bool primed = false;
+        uint32_t deliveredTag = 0;
+        bool delivered = false;
         QByteArray frame(FRAME_BYTES, 0);
-        QElapsedTimer fpsTimer;
-        int fpsFrames = 0;
+        tdm::FrameRate captureRate;
+        captureRate.reset(monotonicMs());
+        qint64 auditStartMs = monotonicMs(), readNs = 0, dmaNsTotal = 0, copyNsTotal = 0;
+        uint64_t auditFrames = 0, sequenceAdvance = 0, unstable = 0;
+        bool measuring = true;
+        bool measureTagAdvance = false;
+        auto suspendMeasurement = [&]() {
+            if (!measuring) return;
+            measuring = false;
+            measureTagAdvance = false;
+            QMutexLocker lock(&frames_->mutex);
+            frames_->fps[idx] = 0;
+            frames_->lastCapturedMs[idx] = 0;
+        };
         while (running_) {
+            if (paused_ && paused_->load()) { suspendMeasurement(); msleep(20); continue; }
+            const int sourceGeneration = generation_ ? generation_->load() : 0;
             /* 设备模式：整幅时六路全采；单选时只采那一路（其余不发 DMA、不轮询标签） */
             if (mode_) {
                 const int mode = mode_->load();
-                if (mode != CAM_COUNT && mode != idx) {
+                if (mode != CAM_COUNT && mode != idx && !(stereoMask_ & (1 << idx))) {
+                    suspendMeasurement();
                     msleep(50);
                     continue;
                 }
             }
-            if (!dev_->readTag(ta, a) || !dev_->readTag(tb, b)) { msleep(20); continue; }
-            if (!primed) { la = a; lb = b; primed = true; msleep(20); continue; }
-            const int which = (a != la) ? 0 : ((b != lb) ? 1 : -1);
-            if (which < 0) { msleep(20); continue; }
-            la = a; lb = b;
-            if (!dev_->ddrRead(base[idx][which], FRAME_BYTES, frame.data())) {
+            if (!measuring) {
+                measuring = true;
+                captureRate.reset(monotonicMs());
+                auditStartMs = monotonicMs(); auditFrames = sequenceAdvance = unstable = 0;
+                readNs = dmaNsTotal = copyNsTotal = 0;
+            }
+            QElapsedTimer readTimer; readTimer.start();
+            // A display snapshot may still own this recycled buffer. Allocate
+            // fresh writable storage instead of copying old pixels on detach;
+            // cameraRead overwrites every pixel before publishing it.
+            if (!frame.isDetached()) frame = QByteArray(FRAME_BYTES, Qt::Uninitialized);
+            uint32_t selectedTag = 0;
+            qint64 dmaNs = 0, copyNs = 0, capturedMs = 0;
+            const int result = dev_->cameraRead(idx, base[idx][0], base[idx][1], delivered, deliveredTag,
+                                                frame.data(), selectedTag, dmaNs, copyNs, capturedMs);
+            if (result == 0) { msleep(6); continue; }
+            if (result == 2) { ++unstable; msleep(1); continue; }
+            if (result < 0) {
                 { QMutexLocker lock(&frames_->mutex); ++frames_->errors[idx]; }
                 msleep(25);
                 continue;
             }
-            /* 若本路正是推理用路：就地转成 640x640 并提交（不额外拷贝、不占锁） */
-            if (inferPane_ && inferPane_->load() == idx && emitInfer_) {
-                QImage infer(MODEL_W, MODEL_H, QImage::Format_RGB888);
-                memset(infer.bits(), 114, (size_t)MODEL_W * MODEL_H * 3);
+            if (delivered && measureTagAdvance) sequenceAdvance += uint32_t(selectedTag - deliveredTag);
+            measureTagAdvance = true;
+            deliveredTag = selectedTag;
+            delivered = true;
+            readNs += readTimer.nsecsElapsed();
+            dmaNsTotal += dmaNs; copyNsTotal += copyNs; ++auditFrames;
+            const qint64 completedMs = monotonicMs();
+            captureRate.add(completedMs);
+            if (visionSink_ && ((inferPane_ && inferPane_->load() == idx) || (stereoMask_ & (1 << idx))) &&
+                generation_ && sourceGeneration == generation_->load()) {
+                QImage pixels(IMG_W, IMG_H, QImage::Format_RGB888);
                 const uint16_t *src = reinterpret_cast<const uint16_t *>(frame.constData());
                 for (int y = 0; y < IMG_H; ++y)
                     rgb565ToRgb888Line(reinterpret_cast<const uint8_t *>(src + (size_t)y * IMG_W),
-                                       IMG_W, infer.bits() + (size_t)(y + 80) * MODEL_W * 3);
-                emitInfer_(infer);
+                                       IMG_W, pixels.scanLine(y));
+                VisionFrame packet;
+                packet.image = std::move(pixels);
+                packet.frameId = sequence_->fetch_add(1) + 1;
+                packet.camera = idx;
+                packet.sourceGeneration = sourceGeneration;
+                packet.tag = selectedTag;
+                packet.capturedMs = capturedMs;
+                visionSink_(packet);
             }
             QMutexLocker lock(&frames_->mutex);
-            frames_->c[idx] = frame;
+            /* 零拷贝交接：与槽位互换缓冲。原来 `frames_->c[idx] = frame` 会因
+               QByteArray 隐式共享在下一次写入时 detach（每帧每路白拷 0.6MB，
+               4~6 路 × 25fps ≈ 60~90MB/s 的 DDR 流量）。交换后采集线程拿回旧缓冲继续用。 */
+            qSwap(frame, frames_->c[idx]);
+            if (frame.size() != FRAME_BYTES)
+                frame.resize(FRAME_BYTES);
             frames_->have[idx] = true;
+            frames_->lastCapturedMs[idx] = completedMs;
+            frames_->rawCapturedMs[idx] = capturedMs;
+            frames_->tags[idx] = selectedTag;
+            frames_->sourceGenerations[idx] = sourceGeneration;
             ++frames_->gen;
             ++frames_->camGen[idx];
-            if (!fpsTimer.isValid()) fpsTimer.start();
-            ++fpsFrames;
-            if (fpsTimer.elapsed() >= 500) {
-                frames_->fps[idx] = fpsFrames * 1000.0 / fpsTimer.elapsed();
-                fpsFrames = 0;
-                fpsTimer.restart();
-            }
+            frames_->fps[idx] = captureRate.rate(completedMs);
             lock.unlock();
-            /* 传感器约 22–30fps（33–45ms/帧）。标签轮询是 16 字节的小 PCIe 事务，
-               六个线程共用一条 DMA，轮询越密越容易互相排队，20ms 一档足够不漏帧。 */
-            msleep(20);
+            const qint64 auditNow = monotonicMs();
+            if (auditNow - auditStartMs >= 5000) {
+                const double seconds = (auditNow - auditStartMs) / 1000.0;
+                fprintf(stderr, "[capture] camera=%d delivered_fps=%.2f tag_advance_rate=%.2f read_ms=%.3f frame_dma_ms=%.3f copy_ms=%.3f unstable=%llu\n",
+                        idx + 1, auditFrames / seconds, sequenceAdvance / seconds,
+                        readNs / 1e6 / auditFrames, dmaNsTotal / 1e6 / auditFrames,
+                        copyNsTotal / 1e6 / auditFrames, (unsigned long long)unstable);
+                auditStartMs = auditNow; auditFrames = sequenceAdvance = unstable = 0;
+                readNs = dmaNsTotal = copyNsTotal = 0;
+            }
+            msleep(6);
         }
     }
 
@@ -466,33 +654,151 @@ private:
     int camera_;
     std::atomic_bool running_{true};
     const std::atomic<int> *inferPane_ = nullptr;
+    const std::atomic<int> *generation_ = nullptr;
+    const std::atomic<bool> *paused_ = nullptr;
+    std::atomic<quint64> *sequence_ = nullptr;
+    int stereoMask_ = 0;
     const std::atomic<int> *mode_ = nullptr;
-    std::function<void(QImage)> emitInfer_;
+    std::function<void(const VisionFrame&)> visionSink_;
 };
 
 class CameraThread : public QThread {
     Q_OBJECT
 public:
+    struct DisplayFrame {
+        QImage image;
+        int generation = 0, paneMask = 0, pane = 0, changedMask = 0;
+        double fps = 0;
+        QVector<double> camFps;
+        bool video = false;
+        std::array<uint64_t, CAM_COUNT> cameraSequences{};
+        std::array<qint64, CAM_COUNT> capturedMs{};
+        quint64 videoSequence = 0;
+        std::array<QByteArray, CAM_COUNT> cameraPixels{};
+        qint64 publishedMs = 0;
+        uint64_t replacedBeforeTake = 0;
+        std::array<quint32, CAM_COUNT> tags{};
+        std::array<int, CAM_COUNT> cameraGenerations{};
+        std::array<qint64, CAM_COUNT> rawCapturedMs{};
+    };
+    DisplayFrame takeDisplay() {
+        QMutexLocker lock(&m_displayMutex);
+        DisplayFrame frame = m_latestDisplay;
+        m_latestDisplay = {};
+        m_displayPending = false;
+        return frame;
+    }
+    DisplayFrame rawSnapshot() {
+        QMutexLocker lock(&m_displayMutex);
+        return m_rawSnapshot;
+    }
+    void enableRawCapture(bool enabled) { m_rawCaptureEnabled = enabled; }
+    static bool selfTestDisplay() {
+        CameraThread source;
+        source.enableRawCapture(true);
+        int notifications = 0;
+        QObject::connect(&source, &CameraThread::displayAvailable, &source,
+                         [&] { ++notifications; }, Qt::DirectConnection);
+        DisplayFrame frame;
+        frame.generation = 1; frame.paneMask = 0x3F; frame.changedMask = 1;
+        frame.cameraPixels[0] = QByteArray(FRAME_BYTES, char(0x11));
+        frame.tags[0] = 123;
+        frame.cameraGenerations[0] = 1;
+        frame.rawCapturedMs[0] = 100;
+        frame.cameraSequences[0] = 1;
+        source.publishDisplay(frame);
+        if (source.takeDisplay().changedMask != 0x3F) return false;
+        const auto raw = source.rawSnapshot();
+        if (raw.cameraPixels[0][0] != char(0x11) || raw.tags[0] != 123 ||
+            raw.cameraGenerations[0] != 1 || raw.rawCapturedMs[0] != 100 || raw.cameraSequences[0] != 1) return false;
+        source.publishDisplay(frame);
+        // A writer taking a new buffer must not overwrite the GUI's snapshot.
+        frame.cameraPixels[0].fill(char(0x22));
+        if (raw.cameraPixels[0][0] != char(0x11)) return false;
+        const auto previous = source.takeDisplay();
+        if (previous.cameraPixels[0][0] != char(0x11)) return false;
+        source.publishDisplay(frame);
+        frame.changedMask = 2;
+        source.publishDisplay(frame);
+        if (notifications != 3) return false;
+        const auto newest = source.takeDisplay();
+        if (newest.changedMask != 3 || newest.cameraPixels[0][0] != char(0x22)) return false;
+        frame.changedMask = 1; source.publishDisplay(frame);
+        frame.generation = 2; frame.pane = 1; frame.changedMask = 4;
+        source.publishDisplay(frame);
+        const auto switched = source.takeDisplay();
+        if (notifications != 4 || switched.generation != 2 || switched.changedMask != 0x3F ||
+            !source.takeDisplay().cameraPixels[0].isEmpty()) return false;
+        VisionFrame packet;
+        int submissions = 0;
+        source.m_visionSink = [&](const VisionFrame &value) { packet = value; ++submissions; };
+        source.setSourceGeneration(3);
+        QImage video(IMG_W, IMG_H, QImage::Format_RGB888);
+        video.fill(Qt::black);
+        if (!source.publishVideoFrame(video, 3, 200, 30)) return false;
+        const auto firstVideo = source.takeDisplay();
+        if (!firstVideo.video || firstVideo.generation != packet.sourceGeneration ||
+            firstVideo.videoSequence != packet.frameId || firstVideo.capturedMs[0] != packet.capturedMs ||
+            packet.capturedMs != 200 || submissions != 1) return false;
+        source.setPaused(true);
+        if (source.publishVideoFrame(video, 3, 201, 30)) return false;
+        source.setPaused(false);
+        source.setSourceGeneration(4);
+        if (source.publishVideoFrame(video, 3, 202, 30) || submissions != 1) return false;
+        if (!source.publishVideoFrame(video, 4, 203, 30)) return false;
+        const auto nextVideo = source.takeDisplay();
+        return submissions == 2 && nextVideo.generation == 4 && packet.sourceGeneration == 4 &&
+               nextVideo.videoSequence > firstVideo.videoSequence && nextVideo.videoSequence == packet.frameId &&
+               nextVideo.capturedMs[0] == packet.capturedMs && packet.capturedMs == 203;
+    }
     void stop() { m_stop = true; }
-    void setMode(int mode) { m_mode = mode; }
-    void setPaused(bool paused) { m_paused = paused; }
-    void setVideoSource(const QString &source) { m_videoSource = source; }
+    void setMode(int mode) {
+        QMutexLocker lock(&m_configMutex);
+        m_selectedCamera = mode == CAM_COUNT ? (m_options.stereoEnabled() ? m_options.primaryStereoLeft() : 0) : mode;
+        m_mode = mode;
+    }
+    void setSourceGeneration(int generation) {
+        QMutexLocker lock(&m_configMutex);
+        m_sourceGeneration = generation;
+    }
+    void setVisionSink(VisionOptions options, std::function<void(const VisionFrame&)> sink) {
+        m_options = options;
+        m_visionSink = std::move(sink);
+        setMode(m_mode.load());
+    }
+    void setPaused(bool paused) {
+        QMutexLocker lock(&m_configMutex);
+        m_paused = paused;
+    }
+    void setVideoSource(const QString &source) {
+        QMutexLocker lock(&m_configMutex);
+        m_videoSource = source;
+    }
+    void setVideoLoop(bool loop) {
+        QMutexLocker lock(&m_configMutex);
+        m_videoLoop = loop;
+    }
     /* 控件尺寸：相机线程据此决定 RGA 缩放目标（letterbox 后的内容尺寸） */
     void setDisplaySize(int w, int h) { m_dispW = w; m_dispH = h; }
 
 signals:
+    void displayAvailable();
     /* 四路：已按控件尺寸缩放好的内容帧（RGB888）；ox>=0 表示直接在 (ox,oy) 1:1 贴图，
        ox<0 表示未缩放、由控件自行缩放铺满。paneMask/pane 同前 */
-    void frameReady(QImage content, int ox, int oy, int paneMask, int pane, double fps);
+    void frameReady(QImage content, int paneMask, int pane, double fps, QVector<double> camFps,
+                    int changedMask);
     /* 视频源路径：单路 RGB888 帧 */
     void imageReady(QImage frame, double fps);
-    /* 推理输入（640x640 letterbox RGB888） */
-    void inferReady(QImage infer);
     void statusMsg(QString s);
 
 protected:
     void run() override {
-        if (!m_videoSource.isEmpty()) { runVideo(); return; }
+        bool videoMode;
+        {
+            QMutexLocker lock(&m_configMutex);
+            videoMode = !m_videoSource.isEmpty();
+        }
+        if (videoMode) { runVideo(); return; }
         PangoDev dev;
         if (!dev.openDev()) { emit statusMsg(QString("FATAL: ") + dev.lastErr()); return; }
         // 六路采用运行版 camview 6 路版的 DDR 地址和帧标签，不改写 FPGA 相机寄存器。
@@ -501,91 +807,94 @@ protected:
             CameraWorker(&dev, &latest, 1), CameraWorker(&dev, &latest, 2),
             CameraWorker(&dev, &latest, 3), CameraWorker(&dev, &latest, 4),
             CameraWorker(&dev, &latest, 5), CameraWorker(&dev, &latest, 6)};
-        for (CameraWorker &w : workers)
-            w.start();
-        /* 推理提交交给“选中那一路”的采集线程：它手里就有刚读到的帧，
-           省掉一次 0.6MB 拷贝与锁竞争（原独立提交线程实测每轮要等帧 4–12ms）。 */
-        std::atomic<int> inferPane{m_mode.load() == CAM_COUNT ? 0 : m_mode.load()};
+        const int stereoMask = m_options.stereoCameraMask();
         for (CameraWorker &w : workers) {
-            w.setInferPane(&inferPane, [this](QImage img) { emit inferReady(img); });
+            w.setVisionSink(&m_selectedCamera, &m_sourceGeneration, &m_frameSequence, m_visionSink, stereoMask);
             w.setModePtr(&m_mode);
+            w.setPausedPtr(&m_paused);
         }
+        for (CameraWorker &w : workers) w.start();
         emit statusMsg("Six-camera DMA ready; 3x2 view, inference uses the selected pane");
-        /* 合成缓冲：RGB888 1920x960（3x2）。优先放 dma-heap：RGA 只能读 dma-buf，
-           缩放交给硬件（同尺寸 Qt 缩放要 31ms，RGA 实测 5ms 且不占 CPU）。 */
-        const int compW = GRID_COLS * IMG_W, compH = GRID_ROWS * IMG_H;
-        const int compStride = compW * 3;
-        const size_t compBytes = (size_t)compStride * compH;
-        DmaBuffer compDma[2], cropDma, outDma[2];
-        const bool rgaOk = compDma[0].alloc(compBytes) && compDma[1].alloc(compBytes) &&
-                           cropDma.alloc((size_t)IMG_W * IMG_H * 3);
-        QByteArray compFallback[2];
-        uint8_t *compPtr[2] = {nullptr, nullptr};
-        if (rgaOk) {
-            compPtr[0] = reinterpret_cast<uint8_t *>(compDma[0].p);
-            compPtr[1] = reinterpret_cast<uint8_t *>(compDma[1].p);
-        } else {
-            emit statusMsg("WARN: dma-heap unavailable, 显示退回 CPU 缩放");
-            for (int i = 0; i < 2; i++) {
-                compFallback[i].resize(compBytes);
-                compPtr[i] = reinterpret_cast<uint8_t *>(compFallback[i].data());
-            }
-        }
-        int compSlot = 0;
-        int outW = 0, outH = 0, outStride = 0, outSlot = 0;
-        QByteArray cam565[CAM_COUNT];
-        for (QByteArray &s : cam565)
-            s.resize(FRAME_BYTES);
+        // Same owned per-camera snapshot path as optimized camview: no CPU
+        // composite, row copies, or GLES2 tile packing in the display pipeline.
+        std::array<QByteArray, CAM_COUNT> cameraPixels;
         uint64_t lastCamGen[CAM_COUNT] = {};
-        // 显示节流：与 camview 相同的 33ms 上限（0 = 不限速），可用环境变量覆盖
+        // Same 16ms submit pacing as current camview, including composition time.
         const int minIntervalMs = qEnvironmentVariableIsSet("DETVIEW_MIN_MS")
-                                      ? qEnvironmentVariableIntValue("DETVIEW_MIN_MS") : 33;
+                                       ? std::max(0, qEnvironmentVariableIntValue("DETVIEW_MIN_MS")) : 16;
         uint64_t lastGen = 0;
+        int lastMode = -1, lastDisplayGeneration = -1;
+        /* 诊断：DET_DUMP_COMP=1 时把合成缓冲原样存一张 PNG，用来分辨
+           “合成内容错”还是“显示映射错”（两者症状很像） */
+        const bool dumpComp = qEnvironmentVariableIsSet("DET_DUMP_COMP");
+        bool dumped = false;
+        QElapsedTimer startup; startup.start();
         QElapsedTimer rate; rate.start();
+        QElapsedTimer displayPace; displayPace.start();
         int frames = 0;
         double fps = 0;
+        bool wasPaused = false;
         while (!m_stop) {
-            if (m_paused) { msleep(25); continue; }
+            if (m_paused) { wasPaused = true; msleep(25); continue; }
+            if (wasPaused) {
+                wasPaused = false; rate.restart(); frames = 0; fps = 0;
+                displayPace.restart();
+            }
+            if (minIntervalMs > 0 && displayPace.elapsed() < minIntervalMs) { msleep(1); continue; }
+            int mode, displayGeneration, pane;
+            {
+                QMutexLocker lock(&m_configMutex);
+                mode = m_mode.load(); displayGeneration = m_sourceGeneration.load(); pane = m_selectedCamera.load();
+            }
+            const int paneMask = mode == CAM_COUNT ? 0x3F : (1 << pane);
             bool ready = false;
             uint64_t gen = 0;
             uint64_t camGen[CAM_COUNT] = {};
             uint64_t errors[CAM_COUNT] = {};
             bool have[CAM_COUNT] = {};
             double camFps[CAM_COUNT] = {};
+            std::array<qint64, CAM_COUNT> captureTimes{};
+            std::array<qint64, CAM_COUNT> rawCaptureTimes{};
+            std::array<quint32, CAM_COUNT> tags{};
+            std::array<int, CAM_COUNT> cameraGenerations{};
             {
                 QMutexLocker lock(&latest.mutex);
                 for (int i = 0; i < CAM_COUNT; i++)
                     ready = ready || latest.have[i];
                 gen = latest.gen;
+                if (gen == lastGen && mode == lastMode && displayGeneration == lastDisplayGeneration) {
+                    lock.unlock(); msleep(2); continue;
+                }
                 for (int i = 0; i < CAM_COUNT; i++) {
                     have[i] = latest.have[i];
                     errors[i] = latest.errors[i];
                     camFps[i] = latest.fps[i];
+                    captureTimes[i] = latest.lastCapturedMs[i];
+                    rawCaptureTimes[i] = latest.rawCapturedMs[i];
+                    tags[i] = latest.tags[i];
+                    cameraGenerations[i] = latest.sourceGenerations[i];
+                    if (monotonicMs() - captureTimes[i] > 1000) camFps[i] = 0;
                     camGen[i] = latest.camGen[i];
                 }
-                /* 帧数据在锁内拷到复用缓冲：既避免与采集线程竞争，也不产生每帧分配 */
-                for (int i = 0; i < CAM_COUNT; i++) {
-                    if (!have[i])
-                        continue;
-                    if (lastCamGen[i] != 0 && camGen[i] == lastCamGen[i])
-                        continue;
-                    if (latest.c[i].size() == FRAME_BYTES)
-                        memcpy(cam565[i].data(), latest.c[i].constData(), FRAME_BYTES);
-                }
+                for (int i = 0; i < CAM_COUNT; ++i)
+                    if (have[i]) cameraPixels[i] = latest.c[i];
             }
             if (!ready) { msleep(2); continue; }
 
-            const int mode = m_mode.load();
-            const int pane = mode == CAM_COUNT ? 0 : mode;      // 整幅时用 C1 推理
-            const int paneMask = mode == CAM_COUNT ? 0x3F : (1 << pane);
-            inferPane.store(pane);   // 提交线程据此切换要提交的那一路
-
-            if (gen == lastGen) { msleep(2); continue; }   // 没有新帧就不重合成
+            bool freshVisible = false;
+            for (int camera = 0; camera < CAM_COUNT; ++camera)
+                if ((paneMask & (1 << camera)) && have[camera] && camGen[camera] != lastCamGen[camera])
+                    freshVisible = true;
+            if (!freshVisible && mode == lastMode && displayGeneration == lastDisplayGeneration) {
+                lastGen = gen;
+                msleep(2); continue;
+            }
             lastGen = gen;
+            displayPace.restart();
+            lastMode = mode;
+            lastDisplayGeneration = displayGeneration;
 
-            compSlot ^= 1;
-            uint8_t *comp = compPtr[compSlot];
-            /* 只把有新帧的那几路转成 RGB888 写进合成缓冲的对应格子（零分配、按 stride 写） */
+            int changedMask = 0;   // 本次真正更新的格子（供显示端只传这几块纹理）
             for (int c = 0; c < CAM_COUNT; ++c) {
                 const bool firstFrame = (lastCamGen[c] == 0);
                 if (!firstFrame && camGen[c] == lastCamGen[c])
@@ -593,95 +902,83 @@ protected:
                 if (!have[c])
                     continue;
                 lastCamGen[c] = camGen[c];
-                uint8_t *dst = comp + (size_t)(c / GRID_COLS) * IMG_H * compStride +
-                               (size_t)(c % GRID_COLS) * IMG_W * 3;
-                const uint16_t *src = reinterpret_cast<const uint16_t *>(cam565[c].constData());
-                for (int y = 0; y < IMG_H; ++y)
-                    rgb565ToRgb888Line(reinterpret_cast<const uint8_t *>(src + (size_t)y * IMG_W),
-                                       IMG_W, dst + (size_t)y * compStride);
+                changedMask |= 1 << c;
             }
 
-            ++frames;
+            if (freshVisible) ++frames;
             if (rate.elapsed() >= 1000) {
                 fps = frames * 1000.0 / rate.elapsed();
                 frames = 0;
                 rate.restart();
                 fprintf(stderr,
-                        "[panes] mode=%d fps=%.1f have=%d%d%d%d%d%d cam=%.1f/%.1f/%.1f/%.1f/%.1f/%.1f err=%llu/%llu/%llu/%llu/%llu/%llu rga=%d\n",
+                        "[panes] mode=%d submit_fps=%.1f have=%d%d%d%d%d%d capture_fps=%.1f/%.1f/%.1f/%.1f/%.1f/%.1f err=%llu/%llu/%llu/%llu/%llu/%llu\n",
                         mode, fps, have[0], have[1], have[2], have[3], have[4], have[5], camFps[0],
                         camFps[1], camFps[2], camFps[3], camFps[4], camFps[5],
                         (unsigned long long)errors[0], (unsigned long long)errors[1],
                         (unsigned long long)errors[2], (unsigned long long)errors[3],
-                        (unsigned long long)errors[4], (unsigned long long)errors[5], rgaOk ? 1 : 0);
+                        (unsigned long long)errors[4], (unsigned long long)errors[5]);
             }
-            /* 缩放：RGA 把合成（或单选的那一格）缩到控件里的内容尺寸，控件只做 1:1 贴图 */
-            bool scaled = false;
-            if (rgaOk) {
-                const int dispW = qMax(1, m_dispW.load()), dispH = qMax(1, m_dispH.load());
-                const int srcW = (paneMask == 0x3F) ? compW : IMG_W;
-                const int srcH = (paneMask == 0x3F) ? compH : IMG_H;
-                int tw = dispW, th = (int)((int64_t)dispW * srcH / srcW);
-                if (th > dispH) {
-                    th = dispH;
-                    tw = (int)((int64_t)dispH * srcW / srcH);
+            if (dumpComp && !dumped && startup.elapsed() >= 8000) {
+                dumped = true;
+                QImage compImg(GRID_COLS * IMG_W, GRID_ROWS * IMG_H, QImage::Format_RGB16);
+                compImg.fill(Qt::black);
+                for (int c = 0; c < CAM_COUNT; ++c) {
+                    if (cameraPixels[c].size() != FRAME_BYTES) continue;
+                    for (int y = 0; y < IMG_H; ++y)
+                        memcpy(compImg.scanLine((c / GRID_COLS) * IMG_H + y) + (c % GRID_COLS) * IMG_W * 2,
+                               cameraPixels[c].constData() + y * IMG_W * 2, IMG_W * 2);
                 }
-                const int alignedW = (tw + 3) & ~3;
-                if (tw > 0 && th > 0 && outDma[0].ensure((size_t)alignedW * th * 3) &&
-                    outDma[1].ensure((size_t)alignedW * th * 3)) {
-                    outW = tw;
-                    outH = th;
-                    outStride = alignedW * 3;
-                    rga_buffer_t dstRga =
-                        wrapbuffer_fd(outDma[outSlot].fd, alignedW, th, RK_FORMAT_RGB_888);
-                    IM_STATUS st = IM_STATUS_FAILED;
-                    if (paneMask == 0x3F) {
-                        rga_buffer_t srcRga =
-                            wrapbuffer_fd(compDma[compSlot].fd, compW, compH, RK_FORMAT_RGB_888);
-                        st = imresize(srcRga, dstRga);
-                    } else {
-                        im_rect srect{(pane % GRID_COLS) * IMG_W, (pane / GRID_COLS) * IMG_H, IMG_W,
-                                      IMG_H};
-                        rga_buffer_t whole =
-                            wrapbuffer_fd(compDma[compSlot].fd, compW, compH, RK_FORMAT_RGB_888);
-                        rga_buffer_t cropRga =
-                            wrapbuffer_fd(cropDma.fd, IMG_W, IMG_H, RK_FORMAT_RGB_888);
-                        st = imcrop(whole, cropRga, srect);
-                        if (st == IM_STATUS_SUCCESS)
-                            st = imresize(cropRga, dstRga);
-                    }
-                    if (st == IM_STATUS_SUCCESS) {
-                        const QImage outImg(reinterpret_cast<const uchar *>(outDma[outSlot].p), outW,
-                                            outH, outStride, QImage::Format_RGB888);
-                        emit frameReady(outImg, (dispW - outW) / 2, (dispH - outH) / 2, paneMask,
-                                        pane, fps);
-                        outSlot ^= 1;
-                        scaled = true;
-                    }
-                }
+                const bool ok = compImg.save("/tmp/det_comp.png", "PNG");
+                fprintf(stderr, "[dump] composite %dx%d stride=%d save=%s\n", compImg.width(), compImg.height(),
+                        compImg.bytesPerLine(), ok ? "ok" : "fail");
+                fflush(stderr);
             }
-            if (!scaled) {
-                /* 兜底：交给控件用 Qt 缩放铺满（RGA 不可用或失败时） */
-                const QImage compImg(reinterpret_cast<const uchar *>(comp), compW, compH,
-                                     compStride, QImage::Format_RGB888);
-                emit frameReady(compImg, -1, -1, paneMask, pane, fps);
+            QVector<double> fpsVec;
+            for (int i = 0; i < CAM_COUNT; ++i)
+                fpsVec.append(camFps[i]);
+            DisplayFrame display{{}, displayGeneration, paneMask, pane, changedMask, fps, fpsVec, false};
+            display.cameraPixels = cameraPixels;
+            std::copy(camGen, camGen + CAM_COUNT, display.cameraSequences.begin());
+            display.capturedMs = captureTimes;
+            display.rawCapturedMs = rawCaptureTimes;
+            display.tags = tags;
+            display.cameraGenerations = cameraGenerations;
+            {
+                QMutexLocker lock(&m_configMutex);
+                if (mode == m_mode.load() && pane == m_selectedCamera.load() &&
+                    displayGeneration == m_sourceGeneration.load() && !m_paused)
+                    publishDisplay(std::move(display));
             }
-            if (minIntervalMs > 0) msleep(minIntervalMs);
         }
         for (CameraWorker &w : workers)
             w.stop();
         for (CameraWorker &w : workers)
-            w.wait(3000);
+            w.wait();
     }
 
 private:
     void runVideo() {
+        QString source;
+        bool loop;
+        {
+            QMutexLocker lock(&m_configMutex);
+            source = m_videoSource;
+            loop = m_videoLoop;
+        }
+        bool validFps = false;
+        const int requestedFps = qEnvironmentVariableIntValue("DETVIEW_VIDEO_FPS", &validFps);
+        const int expectedFps = validFps && requestedFps >= 1 && requestedFps <= 60 ? requestedFps : 30;
+        const qint64 minPeriodNs = (1000000000LL + expectedFps - 1) / expectedFps;
+        const bool localFile = !source.startsWith("/dev/video") && !source.contains("://");
         QProcess decoder;
         QStringList args = {"-nostdin", "-loglevel", "error"};
-        if (m_videoSource.startsWith("/dev/video"))
+        if (source.startsWith("/dev/video"))
             args += {"-f", "v4l2"};
-        else if (!m_videoSource.contains("://"))
+        else if (localFile) {
+            if (loop) args += {"-stream_loop", "-1"};
             args.append("-re");
-        args += {"-i", m_videoSource, "-an", "-vf",
+        }
+        args += {"-i", source, "-an", "-vf",
                  "scale=640:480:force_original_aspect_ratio=decrease:flags=fast_bilinear,pad=640:480:(ow-iw)/2:(oh-ih)/2:color=0x727272",
                  "-pix_fmt", "rgb24", "-f", "rawvideo", "pipe:1"};
         decoder.start("ffmpeg", args, QIODevice::ReadOnly);
@@ -692,41 +989,183 @@ private:
         const int bytes = IMG_W * IMG_H * 3;
         QByteArray frame;
         frame.reserve(bytes);
-        QElapsedTimer rate;
-        rate.start();
-        int frames = 0;
-        double fps = 0;
+        tdm::FrameRate videoCaptureRate;
+        videoCaptureRate.reset(monotonicMs());
+        QElapsedTimer audit; audit.start();
+        QElapsedTimer presentationClock; presentationClock.start();
+        qint64 nextFrameNs = 0;
+        quint64 sourceFrameIndex = 0;
+        qint64 lastCapturedMs = 0;
+        bool suspended = false, signalFailed = false;
+        const pid_t decoderPid = static_cast<pid_t>(decoder.processId());
+        // Only this owning thread touches QProcess or signals its exact child PID.
+        // While stopped, do not pump QProcess: its internal buffer must not grow.
+        const auto pausePoint = [&]() -> bool {
+            if (m_stop) return false;
+            if (!m_paused) return true;
+            if (!suspended && decoder.state() != QProcess::NotRunning) {
+                if (::kill(decoderPid, SIGSTOP) == 0) suspended = true;
+                else if (errno != ESRCH) {
+                    signalFailed = true;
+                    fprintf(stderr, "[video] decoder SIGSTOP failed: %s\n", strerror(errno));
+                    return false;
+                }
+            }
+            while (m_paused && !m_stop) msleep(10);
+            if (m_stop) return false; // Cleanup resumes the child before killing it.
+            if (suspended) {
+                if (::kill(decoderPid, SIGCONT) != 0 && errno != ESRCH) {
+                    signalFailed = true;
+                    fprintf(stderr, "[video] decoder SIGCONT failed: %s\n", strerror(errno));
+                    return false;
+                }
+                suspended = false;
+            }
+            nextFrameNs = 0;
+            videoCaptureRate.reset(monotonicMs());
+            audit.restart();
+            return true;
+        };
+        fprintf(stderr, "[video] width=%d height=%d expected_fps=%d loop=%d local_file=%d source=%s\n",
+                IMG_W, IMG_H, expectedFps, loop, localFile, qPrintable(source));
         while (!m_stop) {
-            while (frame.size() < bytes && decoder.state() != QProcess::NotRunning && !m_stop) {
-                if (decoder.bytesAvailable() == 0 && !decoder.waitForReadyRead(200)) continue;
+            if (!pausePoint()) break;
+            int generation;
+            {
+                QMutexLocker lock(&m_configMutex);
+                generation = m_sourceGeneration.load();
+            }
+            while (frame.size() < bytes && !m_stop) {
+                if (!pausePoint()) break;
+                if (decoder.bytesAvailable() == 0) {
+                    if (decoder.state() == QProcess::NotRunning) break;
+                    if (!decoder.waitForReadyRead(20)) continue;
+                }
+                // waitForReadyRead may have overlapped a pause request.
+                if (!pausePoint()) break;
                 frame += decoder.read(bytes - frame.size());
             }
-            if (frame.size() != bytes) break;
+            if (m_stop || signalFailed || frame.size() != bytes) break;
+            ++sourceFrameIndex;
+            // Never catch up missed deadlines after slow decoding or a pause.
+            // Retain this frame and pace output instead of dropping video frames.
+            while (!m_stop && !signalFailed) {
+                if (!pausePoint()) break;
+                if (presentationClock.nsecsElapsed() >= nextFrameNs) break;
+                msleep(1);
+            }
+            if (m_stop || signalFailed || !pausePoint()) break;
             QImage rgb(reinterpret_cast<const uchar *>(frame.constData()),
                        IMG_W, IMG_H, IMG_W * 3, QImage::Format_RGB888);
-            QImage infer(MODEL_W, MODEL_H, QImage::Format_RGB888);
-            infer.fill(QColor(114, 114, 114));
-            QPainter inputPainter(&infer);
-            inputPainter.drawImage(0, 80, rgb);
-            inputPainter.end();
-            if (++frames >= 30) {
-                fps = frames * 1000.0 / rate.elapsed();
-                frames = 0; rate.restart();
-                fprintf(stderr, "[video] fps=%.1f\n", fps);
-            }
             // rgb 只是包装解码缓冲，跨线程投递前必须深拷贝
-            emit imageReady(rgb.copy(), fps);
-            emit inferReady(infer);
+            const QImage owned = rgb.copy();
+            // A pause between copying and committing retains this decoded frame.
+            for (;;) {
+                if (!pausePoint()) break;
+                const qint64 capturedMs = monotonicMs();
+                if (publishVideoFrame(owned, generation, capturedMs, 0, &videoCaptureRate)) {
+                    lastCapturedMs = capturedMs;
+                    break;
+                }
+                // A very short pause may have ended already; do not drop that
+                // frame just because the commit observed its paused state.
+                QMutexLocker lock(&m_configMutex);
+                if (m_stop || generation != m_sourceGeneration.load()) break;
+            }
+            if (m_stop || signalFailed) break;
+            nextFrameNs = presentationClock.nsecsElapsed() + minPeriodNs;
+            if (audit.elapsed() >= 1000) {
+                audit.restart();
+                fprintf(stderr, "[video] width=%d height=%d expected_fps=%d capture_fps=%.1f source_index=%llu sequence=%llu captured_ms=%lld loop=%d eof=0\n",
+                        IMG_W, IMG_H, expectedFps, videoCaptureRate.rate(monotonicMs()),
+                        (unsigned long long)sourceFrameIndex, (unsigned long long)m_videoSequence,
+                        (long long)lastCapturedMs, loop);
+            }
             frame.clear();
-            while (m_paused && !m_stop) msleep(25);
         }
-        decoder.kill();
-        decoder.waitForFinished(2000);
-        emit statusMsg("视频源结束");
+        if (suspended) ::kill(decoderPid, SIGCONT);
+        const bool exited = decoder.state() == QProcess::NotRunning;
+        const bool eof = !m_stop && !signalFailed && exited && frame.isEmpty() &&
+                         decoder.exitStatus() == QProcess::NormalExit && decoder.exitCode() == 0;
+        if (!exited) {
+            decoder.kill();
+            decoder.waitForFinished(2000);
+        }
+        fprintf(stderr, "[video] width=%d height=%d expected_fps=%d source_index=%llu sequence=%llu captured_ms=%lld loop=%d eof=%d stopped=%d exit_code=%d\n",
+                IMG_W, IMG_H, expectedFps, (unsigned long long)sourceFrameIndex,
+                (unsigned long long)m_videoSequence, (long long)lastCapturedMs, loop, eof,
+                m_stop.load(), decoder.exitCode());
+        if (m_stop) emit statusMsg("视频源已停止");
+        else if (eof && !(localFile && loop)) emit statusMsg("视频源结束");
+        else {
+            const QByteArray errors = decoder.readAllStandardError().right(2048);
+            fprintf(stderr, "[video] decoder error: %s\n", errors.constData());
+            emit statusMsg("视频解码异常结束");
+        }
     }
+    bool publishVideoFrame(const QImage &owned, int generation, qint64 capturedMs, double fps,
+                           tdm::FrameRate *captureRate = nullptr) {
+        QMutexLocker lock(&m_configMutex);
+        if (m_stop || m_paused || generation != m_sourceGeneration.load()) return false;
+        if (captureRate) {
+            captureRate->add(capturedMs);
+            fps = captureRate->rate(capturedMs);
+        }
+        // One identity and timestamp for display and inference, committed against
+        // the same configuration. Sequence counters survive pause and switches.
+        m_videoSequence = m_frameSequence.fetch_add(1) + 1;
+        DisplayFrame display{owned, generation, 1, 0, 1, fps, {}, true};
+        display.videoSequence = m_videoSequence;
+        display.cameraSequences[0] = m_videoSequence;
+        display.capturedMs[0] = display.rawCapturedMs[0] = capturedMs;
+        display.cameraGenerations[0] = generation;
+        publishDisplay(std::move(display));
+        if (m_visionSink) {
+            VisionFrame packet;
+            packet.image = owned;
+            packet.frameId = m_videoSequence;
+            packet.sourceGeneration = generation;
+            packet.capturedMs = capturedMs;
+            m_visionSink(packet);
+        }
+        return true;
+    }
+    void publishDisplay(DisplayFrame frame) {
+        frame.publishedMs = monotonicMs();
+        bool notify = false;
+        {
+            QMutexLocker lock(&m_displayMutex);
+            if (frame.generation != m_lastDisplayGeneration) {
+                frame.changedMask = frame.video ? 1 : 0x3F;
+                m_lastDisplayGeneration = frame.generation;
+            }
+            if (m_displayPending && m_latestDisplay.generation == frame.generation)
+                frame.changedMask |= m_latestDisplay.changedMask;
+            if (m_displayPending) frame.replacedBeforeTake = m_latestDisplay.replacedBeforeTake + 1;
+            if (m_rawCaptureEnabled && !frame.video) m_rawSnapshot = frame;
+            m_latestDisplay = std::move(frame);
+            notify = !m_displayPending;
+            m_displayPending = true;
+        }
+        if (notify) emit displayAvailable();
+    }
+    QMutex m_displayMutex;
+    QMutex m_configMutex;
+    DisplayFrame m_latestDisplay;
+    DisplayFrame m_rawSnapshot;
+    std::atomic<bool> m_rawCaptureEnabled{false};
+    bool m_displayPending = false;
+    int m_lastDisplayGeneration = -1;
+    quint64 m_videoSequence = 0;
     std::atomic<bool> m_stop{false};
     std::atomic<int> m_mode{CAM_COUNT};
+    std::atomic<int> m_selectedCamera{0};
+    std::atomic<int> m_sourceGeneration{0};
+    std::atomic<quint64> m_frameSequence{0};
+    VisionOptions m_options;
+    std::function<void(const VisionFrame&)> m_visionSink;
     QString m_videoSource;
+    bool m_videoLoop = false;
     std::atomic<bool> m_paused{false};
     std::atomic<int> m_dispW{1920};
     std::atomic<int> m_dispH{1000};
@@ -741,6 +1180,33 @@ class InferenceThread : public QThread {
     Q_OBJECT
 public:
     InferenceThread(QObject *parent = nullptr) : QThread(parent) {}
+
+    struct Metrics {
+        double started = 0, completed = 0, failed = 0;
+        QHash<QString, double> modelRates;
+        QHash<QString, qint64> completedMs;
+    };
+    void resetMetrics(int generation) {
+        QMutexLocker lock(&m_metricsMutex);
+        m_metricsGeneration = generation;
+        const qint64 now = monotonicMs();
+        m_startedRate.reset(now); m_completedRate.reset(now); m_failedRate.reset(now);
+        m_modelRates.clear(); m_completedAt.clear();
+        m_metricsStartMs = now;
+    }
+    Metrics metrics(int generation) {
+        QMutexLocker lock(&m_metricsMutex);
+        Metrics result;
+        if (generation != m_metricsGeneration) return result;
+        const qint64 now = monotonicMs();
+        result.started = m_startedRate.rate(now);
+        result.completed = m_completedRate.rate(now);
+        result.failed = m_failedRate.rate(now);
+        for (auto it = m_modelRates.begin(); it != m_modelRates.end(); ++it)
+            result.modelRates[it.key()] = it.value().rate(now);
+        result.completedMs = m_completedAt;
+        return result;
+    }
 
     static QImage decodeLaneMask(const rknn_output &out, const rknn_tensor_attr &attr, int nc) {
         if (!out.buf || attr.n_dims != 4 || attr.dims[0] != 1)
@@ -877,10 +1343,11 @@ public:
         return ok;
     }
 
-    void submit(const QImage &img, int sourceGeneration = 0) {
+    void submit(const QImage &img, int sourceGeneration = 0, quint64 frameId = 0) {
         QMutexLocker lock(&m_mutex);
         m_pending = img;
         m_pendingGeneration = sourceGeneration;
+        m_pendingFrameId = frameId;
         m_hasPending = true;
         m_cond.wakeOne();
     }
@@ -908,9 +1375,10 @@ public:
     }
 
 signals:
-    void detectionsReady(QString modelPath, int sourceGeneration, QVector<Detection> dets,
+    void detectionsReady(QString modelPath, int sourceGeneration, quint64 frameId, QVector<Detection> dets,
                          double inferFps, double inferMs);
-    void laneMaskReady(QImage mask, double inferFps, double inferMs);
+    void laneMaskReady(QImage mask, int sourceGeneration, quint64 frameId, double inferFps, double inferMs);
+    void inferenceFailed(int sourceGeneration, quint64 frameId);
     void modelLoaded(QString path, bool ok, QString info);
 
 protected:
@@ -944,6 +1412,7 @@ protected:
                 selected = m_selection;
             QImage frame;
             int sourceGeneration = m_pendingGeneration;
+            const quint64 frameId = m_pendingFrameId;
             if (m_hasPending) {
                 frame = m_pending;
                 m_hasPending = false;
@@ -993,11 +1462,17 @@ protected:
                 m_xyxy = cache.size() == 1 ? m_manualFormat.load() : item.info.xyxy;
                 m_lane = item.info.lane;
                 const qint64 runStart = diag ? QDateTime::currentMSecsSinceEpoch() : 0;
-                runOnce(frame, item.info.path, sourceGeneration);
+                recordMetric(sourceGeneration, item.info.path, 0);
+                if (!runOnce(frame, item.info.path, sourceGeneration, frameId)) {
+                    recordMetric(sourceGeneration, item.info.path, 2);
+                    emit inferenceFailed(sourceGeneration, frameId);
+                }
                 if (diag) {
                     diagRunMs += QDateTime::currentMSecsSinceEpoch() - runStart;
                     ++diagRuns;
                 }
+            } else if (!frame.isNull()) {
+                emit inferenceFailed(sourceGeneration, frameId);
             }
             if (diag && diagTimer.isValid() && diagTimer.elapsed() >= 1000 && diagRuns > 0) {
                 fprintf(stderr,
@@ -1018,11 +1493,51 @@ protected:
     }
 
 private:
-    void runOnce(const QImage &src, const QString &modelPath, int sourceGeneration) {
+    double recordMetric(int generation, const QString& model, int event) {
+        QMutexLocker lock(&m_metricsMutex);
+        if (m_metricsGeneration < 0) {
+            m_metricsGeneration = generation;
+            m_metricsStartMs = monotonicMs();
+            m_startedRate.reset(m_metricsStartMs); m_completedRate.reset(m_metricsStartMs);
+            m_failedRate.reset(m_metricsStartMs);
+        }
+        if (generation != m_metricsGeneration) return 0;
+        const qint64 now = monotonicMs();
+        if (event == 0) m_startedRate.add(now);
+        else if (event == 2) m_failedRate.add(now);
+        else {
+            m_completedRate.add(now);
+            if (!m_modelRates.contains(model)) m_modelRates[model].reset(m_metricsStartMs);
+            m_modelRates[model].add(now);
+            m_completedAt[model] = now;
+        }
+        return m_completedRate.rate(now);
+    }
+    /* DET_BENCH 用：结束上一段计时 */
+    static void markLap(QElapsedTimer &lap, double &slot) {
+        slot = lap.nsecsElapsed() / 1e6;
+        lap.restart();
+    }
+    bool runOnce(const QImage &src, const QString &modelPath, int sourceGeneration, quint64 frameId) {
         if (m_input.size() != (int)MODEL_SIZE)
             m_input.resize((int)MODEL_SIZE);
-        if (src.width() == MODEL_W && src.height() == MODEL_H) {
-            // 相机线程已用 RGA 完成 letterbox（640x640 RGB888），直接拷贝
+        /* DET_BENCH 分段计时：定位应用内比纯 NPU 慢在哪一段
+           prep=输入拷贝, set=rknn_inputs_set, run=NPU, get=输出反量化,
+           query=输出属性查询, decode=DFL+NMS, release=释放 */
+        const bool bench = qEnvironmentVariableIsSet("DET_BENCH");
+        const bool int8In = qEnvironmentVariableIsSet("DET_INT8_IN");
+        QElapsedTimer lap;
+        double tPrep = 0, tSet = 0, tRun = 0, tGet = 0, tQuery = 0, tDecode = 0, tRel = 0;
+        if (bench)
+            lap.start();
+        /* 相机线程已经给出 640x640 RGB888（letterbox 完成），且不需要 int8 转换时
+           直接把它的缓冲喂给 rknn_inputs_set，省掉一次 1.2MB 拷贝（实测 prep 段
+           0.8~1.3ms）。QImage 是隐式共享的，调用期间 src 一直有效。 */
+        const QImage *feed = nullptr;
+        if (!int8In && src.width() == MODEL_W && src.height() == MODEL_H &&
+            src.format() == QImage::Format_RGB888 && src.bytesPerLine() == MODEL_W * 3) {
+            feed = &src;
+        } else if (src.width() == MODEL_W && src.height() == MODEL_H) {
             const QImage rgb = src.format() == QImage::Format_RGB888
                                    ? src
                                    : src.convertToFormat(QImage::Format_RGB888);
@@ -1045,19 +1560,29 @@ private:
                    (MODEL_H - 80 - IMG_H) * copyBytes);
         }
 
+        /* 实测：输入按 INT8 直传反而慢得多（inputs_set 1.4ms → 16.9ms，整体 +58%），
+           驱动对 UINT8 输入是快路径；默认走 UINT8，DET_INT8_IN=1 仅用于对照。 */
+        if (int8In) {
+            uint8_t *p = reinterpret_cast<uint8_t *>(m_input.data());
+            for (int i = 0; i < (int)MODEL_SIZE; ++i)
+                p[i] = (uint8_t)(p[i] - 128);
+        }
+        if (bench) markLap(lap, tPrep);
         rknn_input input;
         memset(&input, 0, sizeof(input));
         input.index = 0;
-        input.buf = (void *)m_input.constData();
+        input.buf = feed ? (void *)feed->constBits() : (void *)m_input.constData();
         input.size = (uint32_t)MODEL_SIZE;
-        input.type = RKNN_TENSOR_UINT8;
+        input.type = int8In ? RKNN_TENSOR_INT8 : RKNN_TENSOR_UINT8;
         input.fmt = RKNN_TENSOR_NHWC;
         QElapsedTimer timer;
         timer.start();
         if (rknn_inputs_set(m_ctx, 1, &input) != 0)
-            return;
+            return false;
+        if (bench) markLap(lap, tSet);
         if (rknn_run(m_ctx, nullptr) != 0)
-            return;
+            return false;
+        if (bench) markLap(lap, tRun);
         std::vector<rknn_output> outs(m_nOutput);
         for (uint32_t i = 0; i < m_nOutput; i++) {
             memset(&outs[i], 0, sizeof(rknn_output));
@@ -1065,21 +1590,25 @@ private:
             outs[i].want_float = 1;
         }
         if (rknn_outputs_get(m_ctx, m_nOutput, outs.data(), nullptr) != 0)
-            return;
+            return false;
+        if (bench) markLap(lap, tGet);
         std::vector<rknn_tensor_attr> attrs(m_nOutput);
         for (uint32_t i = 0; i < m_nOutput; i++) {
             memset(&attrs[i], 0, sizeof(rknn_tensor_attr));
             attrs[i].index = i;
             rknn_query(m_ctx, RKNN_QUERY_OUTPUT_ATTR, &attrs[i], sizeof(rknn_tensor_attr));
         }
+        if (bench) markLap(lap, tQuery);
         QImage laneMask;
         QVector<Detection> dets;
         if (m_lane)
             laneMask = decodeLaneMask(outs[0], attrs[0], m_nc);
         else
             dets = decode(outs, attrs);
+        if (bench) markLap(lap, tDecode);
         rknn_outputs_release(m_ctx, m_nOutput, outs.data());
-        const double ms = timer.elapsed();
+        if (bench) markLap(lap, tRel);
+        const double ms = timer.nsecsElapsed() / 1e6;
         const int completed = ++m_completed[modelPath];
         if (qEnvironmentVariableIsSet("DET_BENCH")) {
             timespec stamp{};
@@ -1090,20 +1619,29 @@ private:
         if (completed == 1 || completed % 20 == 0)
             fprintf(stderr, "[tdm] model=%s completed=%d ms=%.2f source_generation=%d\n",
                     qPrintable(modelPath), completed, ms, sourceGeneration);
-        m_accMs += ms;
-        m_accCount++;
-        if (m_accCount >= 10) {
-            m_inferMs = m_accMs / m_accCount;
-            m_inferFps = m_inferMs > 0 ? 1000.0 / m_inferMs : 0.0;
-            m_accMs = 0;
-            m_accCount = 0;
+        if (bench) {
+            m_accPrep += tPrep; m_accSet += tSet; m_accRun += tRun; m_accGet += tGet;
+            m_accQuery += tQuery; m_accDecode += tDecode; m_accRel += tRel; m_accSplitN++;
+            if (m_accSplitN >= 10) {
+                const double n = m_accSplitN;
+                fprintf(stderr,
+                        "[infer-split] n=%d prep=%.2f set=%.2f run=%.2f get=%.2f query=%.2f decode=%.2f release=%.2f | sum=%.2f ms\n",
+                        m_accSplitN, m_accPrep / n, m_accSet / n, m_accRun / n, m_accGet / n,
+                        m_accQuery / n, m_accDecode / n, m_accRel / n,
+                        (m_accPrep + m_accSet + m_accRun + m_accGet + m_accQuery + m_accDecode + m_accRel) / n);
+                fflush(stderr);
+                m_accPrep = m_accSet = m_accRun = m_accGet = m_accQuery = m_accDecode = m_accRel = 0;
+                m_accSplitN = 0;
+            }
         }
+        if (m_lane && laneMask.isNull()) return false;
+        const double completedFps = recordMetric(sourceGeneration, modelPath, 1);
         if (m_lane) {
-            if (!laneMask.isNull())
-                emit laneMaskReady(laneMask, m_inferFps, m_inferMs);
+            emit laneMaskReady(laneMask, sourceGeneration, frameId, completedFps, ms);
         } else {
-            emit detectionsReady(modelPath, sourceGeneration, dets, ms > 0 ? 1000.0 / ms : 0.0, ms);
+            emit detectionsReady(modelPath, sourceGeneration, frameId, dets, completedFps, ms);
         }
+        return true;
     }
 
     static float sigmoidf(float x) { return 1.0f / (1.0f + std::exp(-x)); }
@@ -1121,7 +1659,10 @@ private:
             if (removed[i])
                 continue;
             const CandD &a = cands[i];
-            dets.append({a.cls, a.score, a.x1, a.y1, a.x2, a.y2});
+            Detection detection;
+            detection.cls = a.cls; detection.score = a.score;
+            detection.x1 = a.x1; detection.y1 = a.y1; detection.x2 = a.x2; detection.y2 = a.y2;
+            dets.append(detection);
             for (size_t j = i + 1; j < cands.size(); j++) {
                 if (removed[j])
                     continue;
@@ -1397,6 +1938,7 @@ private:
     QWaitCondition m_cond;
     QImage m_pending;
     int m_pendingGeneration = 0;
+    quint64 m_pendingFrameId = 0;
     bool m_hasPending = false;
     bool m_modelChanged = false;
     QVector<ModelInfo> m_selection;
@@ -1410,8 +1952,16 @@ private:
     rknn_context m_ctx = 0;
     uint32_t m_nOutput = 0;
     QByteArray m_input;
-    double m_inferFps = 0, m_inferMs = 0, m_accMs = 0;
-    int m_accCount = 0;
+    QMutex m_metricsMutex;
+    int m_metricsGeneration = -1;
+    qint64 m_metricsStartMs = 0;
+    tdm::FrameRate m_startedRate, m_completedRate, m_failedRate;
+    QHash<QString, tdm::FrameRate> m_modelRates;
+    QHash<QString, qint64> m_completedAt;
+    /* DET_BENCH 分段累计 */
+    double m_accPrep = 0, m_accSet = 0, m_accRun = 0, m_accGet = 0;
+    double m_accQuery = 0, m_accDecode = 0, m_accRel = 0;
+    int m_accSplitN = 0;
 };
 
 /* ---------------- 显示（纯 CPU 绘制，不依赖 GL / 合成器） ----------------
@@ -1420,156 +1970,1031 @@ private:
    普通 QWidget：相机线程给出 RGB888 的 2x2 合成（缓冲复用、QImage 只包装不拷贝），
    本控件每帧只做一次缩放 drawImage，检测框与车道掩码在同一个 paintEvent 里叠加。
    单路显示时从合成里取那一格的源矩形，铺满内容区。 */
-class VideoWidget : public QWidget {
+/* ---------------- 显示（顶层 QOpenGLWindow，camview 同款） ----------------
+   板端没有合成器在跑（_NET_WM_CM_S0 不存在），QWidget 系的 GL 方案
+   （QOpenGLWidget / createWindowContainer）都会出现陈旧区域与双份绘制。
+   因此整个 UI 就是这一个顶层 GL 窗口：
+   - 采集线程给出 RGB888 3x2 合成帧（缓冲复用，QImage 只包装不拷贝）；
+   - glTexImage2D 上传 + 着色器 letterbox（GPU 缩放，CPU 不碰像素）；
+   - 检测框用 QPainter 画矩形（便宜），文字先画进小缓存位图再 blit
+     （直接在 GL 窗口上画文字会被 Mali ES2 的字形图集画花，camview 已踩过）；
+   - 工具栏信息（模型/轮换/置信度/各路 fps/帮助）全部画在 HUD，控制用键盘。
+   paneMask 指示画面里有哪几路（bit0..bit5）；单路时纹理里取该格子矩形。 */
+class DetView : public QOpenGLWindow, protected QOpenGLFunctions {
     Q_OBJECT
 public:
-    explicit VideoWidget(QWidget *parent = nullptr) : QWidget(parent) {
-        setMinimumSize(640, 480);
-        setAutoFillBackground(true);
-        setAttribute(Qt::WA_OpaquePaintEvent, true);
-        QPalette pal = palette();
-        pal.setColor(QPalette::Window, Qt::black);
-        setPalette(pal);
+    DetView() {
+        setTitle("detview");
+        m_perfEnabled = !qEnvironmentVariableIsSet("DETVIEW_PERF") ||
+                        qEnvironmentVariableIntValue("DETVIEW_PERF") != 0;
+        m_perfStartedMs = monotonicMs();
+        connect(this, &QOpenGLWindow::frameSwapped, this, [this] {
+            if (m_perfEnabled) ++m_perf.swaps;
+        });
+        m_textureRing = qEnvironmentVariableIsSet("DETVIEW_TEXTURE_RING") ?
+            qBound(1, qEnvironmentVariableIntValue("DETVIEW_TEXTURE_RING"), kTextureRing) : 1;
+        /* camview [SURF]：先按屏幕尺寸建表面，避免交换链残留旧尺寸 */
+        const QRect sg = QGuiApplication::primaryScreen()->geometry();
+        resize(sg.size());
+    }
+    ~DetView() override {
+        if (!context()) return;
+        makeCurrent();
+        glDeleteTextures(CAM_COUNT * kTextureRing, &m_cameraTextures[0][0]);
+        glDeleteTextures(1, &m_overlayTexture);
+        glDeleteBuffers(1, &m_vertexBuffer);
+        if (m_tex) {
+            glDeleteTextures(1, &m_tex);
+            m_tex = 0;
+        }
+        doneCurrent();
+    }
+    static bool selfTestRefresh() {
+        DetView view;
+        const auto initial = view.m_detectionRevision;
+        view.setLaneMask({}); view.setLaneMask({});
+        view.setStereoPreview({}, {});
+        if (view.m_detectionRevision != initial) return false;
+        QImage mask(16, 16, QImage::Format_ARGB32); mask.fill(Qt::red);
+        view.setLaneMask(mask);
+        const auto withMask = view.m_detectionRevision;
+        view.setLaneMask(mask);
+        if (view.m_detectionRevision != withMask) return false;
+        view.setLaneMask({}); view.setLaneMask({});
+        if (view.m_detectionRevision != withMask + 1) return false;
+        Detection d; d.cls = 1; d.score = .8f; d.x1 = 10; d.x2 = 40; d.y1 = 90; d.y2 = 130;
+        d.validUntilMs = 2000;
+        view.setDetections({d}, {"a", "b"});
+        const auto first = view.m_detectionRevision;
+        view.setDetections({d}, {"a", "b"});
+        if (view.m_detectionRevision != first) return false;
+        d.validUntilMs = 2100; // A new deadline must still invalidate the HUD.
+        view.setDetections({d}, {"a", "b"});
+        if (view.m_detectionRevision != first + 1) return false;
+        view.setDetections({}, {"a", "b"});
+        const auto cleared = view.m_detectionRevision;
+        view.setDetections({}, {"a", "b"});
+        if (view.m_detectionRevision != cleared) return false;
+        view.setCalibrationLine("单车辆试用 Z=2.00 米", monotonicMs() - 1);
+        view.refreshExpiredContent();
+        if (view.m_calibrationLine.contains("Z=") || view.m_calibrationExpiresMs != 0) return false;
+        fprintf(stderr, "DISPLAY_REFRESH_SELFTEST_PASS\n");
+        return true;
     }
 
-    int takePaintCount() { return m_paintCount; }
-    double takePaintAvgMs() {
-        double v = m_paintCount ? m_paintMsSum / m_paintCount : 0.0;
+    struct PaintStats { int count; double averageMs; };
+    PaintStats takePaintStats() {
+        const PaintStats result{m_paintCount, m_paintCount ? m_paintMsSum / m_paintCount : 0.0};
         m_paintCount = 0;
         m_paintMsSum = 0;
-        return v;
+        return result;
+    }
+    void resetRates() {
+        const qint64 now = monotonicMs();
+        m_takeRate.reset(now); m_uploadRate.reset(now); m_newPaintRate.reset(now); m_paintRate.reset(now);
+        for (auto& rate : m_cameraUploadRates) rate.reset(now);
+    }
+    double newFrameRate() { return m_newPaintRate.rate(monotonicMs()); }
+    void setMetricsPaused(bool paused) { m_metricsPaused = paused; m_overlayUpdatedMs = 0; }
+    double takeRate() { return m_takeRate.rate(monotonicMs()); }
+    double uploadRate() { return m_uploadRate.rate(monotonicMs()); }
+    double paintRate() { return m_paintRate.rate(monotonicMs()); }
+    void observeFrame(const CameraThread::DisplayFrame& frame) {
+        m_sequences = frame.cameraSequences;
+        m_capturedMs = frame.capturedMs;
+        m_videoSequence = frame.videoSequence;
+        m_videoReceivedMs = monotonicMs();
+        m_takeRate.add(m_videoReceivedMs);
+        if (m_perfEnabled) {
+            ++m_perf.takes;
+            m_perf.replacedSnapshots += frame.replacedBeforeTake;
+            if (frame.publishedMs > 0 && m_videoReceivedMs >= frame.publishedMs)
+                m_perf.time[tdm::GuiDelay].add(m_videoReceivedMs - frame.publishedMs);
+        }
     }
 
-    /* 六路：content 可能是 RGA 已缩放好的内容（ox>=0 → 在 (ox,oy) 1:1 贴图），
-       也可能是未缩放的 3x2 合成（ox<0 → 由本控件缩放铺满） */
-    void submitScaled(const QImage &content, int ox, int oy, int paneMask, int pane) {
-        m_comp = content;
-        m_ox = ox;
-        m_oy = oy;
+    void submitCameras(const CameraThread::DisplayFrame& frame) {
+        if (m_videoMode || m_paneMask != frame.paneMask || m_pane != frame.pane) m_overlayUpdatedMs = 0;
+        m_cameraPixels = frame.cameraPixels;
+        m_paneMask = frame.paneMask;
+        m_pane = frame.pane;
+        m_dispFps = frame.fps;
+        m_camFps = frame.camFps;
+        m_changedMask |= frame.changedMask;
+        m_videoMode = false;
+        m_dirty = true;
+        m_haveFrame = true;
+        update();
+    }
+
+    /* 相机线程：RGB888 合成帧（3x2 或单格），paneMask/pane 同 detview 约定 */
+    void submitComposite(const QImage &composite, int paneMask, int pane, double fps,
+                         const QVector<double> &camFps, int changedMask) {
+        QMutexLocker lock(&m_uiMutex);
+        m_comp = composite;
         m_paneMask = paneMask;
         m_pane = pane;
+        m_dispFps = fps;
+        m_camFps = camFps;
+        m_changedMask |= changedMask;
         m_videoMode = false;
+        m_dirty = true;
+        m_haveFrame = true;
+        lock.unlock();
         update();
     }
     /* 视频源路径：单路 RGB888 帧 */
-    void submitImage(const QImage &img) {
+    void submitImage(const QImage &img, double fps = 0) {
+        QMutexLocker lock(&m_uiMutex);
         m_image = img.format() == QImage::Format_RGB888 ? img
                                                         : img.convertToFormat(QImage::Format_RGB888);
         m_videoMode = true;
         m_paneMask = 0x1;
         m_pane = 0;
+        m_dispFps = fps;
+        m_dirty = true;
+        m_haveFrame = true;
+        lock.unlock();
         update();
     }
     void setDetections(const QVector<Detection> &dets, const QStringList &classes) {
+        QMutexLocker lock(&m_uiMutex);
+        auto sameNumber = [](double a, double b) { return a == b || (std::isnan(a) && std::isnan(b)); };
+        bool same = m_classes == classes && m_dets.size() == dets.size();
+        for (int i = 0; same && i < dets.size(); ++i) {
+            const auto& a = m_dets[i]; const auto& b = dets[i];
+            same = a.cls == b.cls && a.score == b.score && a.x1 == b.x1 && a.x2 == b.x2 &&
+                   a.y1 == b.y1 && a.y2 == b.y2 && a.trackId == b.trackId &&
+                   a.matchScore == b.matchScore && a.predicted == b.predicted &&
+                   a.validUntilMs == b.validUntilMs && sameNumber(a.depthMeters, b.depthMeters) &&
+                   a.depthCapturedMs == b.depthCapturedMs && a.depthAgeMs == b.depthAgeMs &&
+                   a.depthTrial == b.depthTrial && a.depthStatus == b.depthStatus;
+        }
+        if (same) return;
         m_dets = dets;
         m_classes = classes;
+        ++m_detectionRevision;
+        lock.unlock();
         update();
     }
     void setLaneMask(const QImage &mask) {
+        QMutexLocker lock(&m_uiMutex);
+        if ((mask.isNull() && m_laneMask.isNull()) ||
+            (!mask.isNull() && !m_laneMask.isNull() && mask.cacheKey() == m_laneMask.cacheKey())) return;
         m_laneMask = mask;
+        ++m_detectionRevision;
+        lock.unlock();
         update();
     }
-
-protected:
-    void paintEvent(QPaintEvent *) override {
-        QElapsedTimer pt;
-        pt.start();
-        QPainter p(this);
-        if (qEnvironmentVariableIsSet("DETVIEW_GEO")) {
-            static QElapsedTimer geo;
-            if (!geo.isValid() || geo.elapsed() >= 1000) {
-                geo.start();
-                const QScreen *scr = QGuiApplication::primaryScreen();
-                const QSize screen = scr ? scr->geometry().size() : QSize();
-                fprintf(stderr, "[geo] win=%dx%d dpr=%.2f screen=%dx%d\n", width(), height(),
-                        (double)devicePixelRatioF(), screen.width(), screen.height());
-                fflush(stderr);
-            }
-        }
-        const QImage &src = m_videoMode ? m_image : m_comp;
-        if (src.isNull()) {
-            p.fillRect(rect(), Qt::black);
-            m_paintMsSum += pt.nsecsElapsed() / 1e6;
-            m_paintCount++;
+    void refreshExpiredContent() {
+        if (m_calibrationExpiresMs > 0 && monotonicMs() > m_calibrationExpiresMs)
+            setCalibrationLine("单车辆试用 · 旧距离已过期，等待新测量");
+        if (m_settingsVisible) {
+            if (!m_overlaySettings || m_overlaySize != size() || m_overlayRevision != m_settingsRevision) update();
             return;
         }
-        QRect content;
-        if (!m_videoMode && m_ox >= 0) {
-            /* RGA 已缩放到内容尺寸，直接 1:1 贴图（缩放不占 CPU） */
-            content = QRect(m_ox, m_oy, src.width(), src.height());
-            p.fillRect(rect(), Qt::black);
-            p.drawImage(m_ox, m_oy, src);
-        } else {
-            /* 兜底（dma-heap/RGA 不可用）或视频源：等比缩放铺满控件 */
-            const double dispAspect = (!m_videoMode && m_paneMask != 0x3F)
-                                          ? (double)IMG_W / IMG_H
-                                          : (double)src.width() / src.height();
-            int tw = width();
-            int th = (int)(width() / dispAspect);
-            if (th > height()) {
-                th = height();
-                tw = (int)(height() * dispAspect);
+        const qint64 now = monotonicMs();
+        const bool expired = m_overlayExpiresMs > 0 && now > m_overlayExpiresMs;
+        const bool periodic = now - m_overlayUpdatedMs >= 300;
+        if (expired || periodic) update();
+    }
+    void reportPerformance() {
+        if (!m_perfEnabled) return;
+        const qint64 now = monotonicMs();
+        const double seconds = std::max(0.001, (now - m_perfStartedMs) / 1000.0);
+        fprintf(stderr, "[display-perf] started_ms=%lld ended_ms=%lld seconds=%.3f take_fps=%.2f upload_fps=%.2f new_paint_fps=%.2f swap_fps=%.2f replaced_snapshots=%llu hud_rebuilds=%llu revision=%llu periodic=%llu expired=%llu layout=%llu upload_rects=%llu upload_bytes=%llu draw_rects=%llu text_hits=%llu text_misses=%llu text_clears=%llu\n",
+                (long long)m_perfStartedMs, (long long)now, seconds, m_perf.takes / seconds, m_perf.uploads / seconds, m_perf.freshPaints / seconds,
+                m_perf.swaps / seconds, (unsigned long long)m_perf.replacedSnapshots, (unsigned long long)m_perf.hudRebuilds,
+                (unsigned long long)m_perf.hudRevision, (unsigned long long)m_perf.hudPeriodic,
+                (unsigned long long)m_perf.hudExpired, (unsigned long long)m_perf.hudLayout,
+                (unsigned long long)m_perf.hudUploadRects, (unsigned long long)m_perf.hudUploadBytes,
+                (unsigned long long)m_perf.hudDrawRects, (unsigned long long)m_perf.textHits,
+                (unsigned long long)m_perf.textMisses, (unsigned long long)m_perf.textClears);
+        fprintf(stderr, "[display-events] takes=%llu uploads=%llu new_paints=%llu swaps=%llu\n",
+                (unsigned long long)m_perf.takes, (unsigned long long)m_perf.uploads,
+                (unsigned long long)m_perf.freshPaints, (unsigned long long)m_perf.swaps);
+        static const char* names[] = {"camera_upload", "hud_regions", "hud_raster", "hud_pack", "hud_upload",
+            "camera_draw", "hud_draw", "paint_total", "settings_paint", "gui_delay", "capture_to_upload"};
+        for (int i = 0; i < tdm::DisplayStageCount; ++i) {
+            const auto& v = m_perf.time[i];
+            fprintf(stderr, "[display-stage] name=%s count=%llu sum_ms=%.3f mean_ms=%.3f p50_le_ms=%.1f p95_le_ms=%.1f p99_le_ms=%.1f max_ms=%.3f overflow=%llu\n",
+                    names[i], (unsigned long long)v.count, v.sumMs, v.mean(), v.percentile(.50), v.percentile(.95),
+                    v.percentile(.99), v.maxMs, (unsigned long long)v.overflow);
+        }
+        for (int c = 0; c < CAM_COUNT; ++c)
+            fprintf(stderr, "[display-upload] camera=%d count=%llu bytes=%llu\n", c + 1,
+                    (unsigned long long)m_perf.cameraUploads[c], (unsigned long long)m_perf.cameraUploadBytes[c]);
+        m_perf = {}; m_perfStartedMs = now;
+    }
+    void setStatusLine(const QString &s) {
+        QMutexLocker lock(&m_uiMutex);
+        if (m_statusLine == s)
+            return;
+        m_statusLine = s;
+        ++m_settingsRevision;
+        lock.unlock();
+        update();
+    }
+    void setModelLine(const QString &s) {
+        QMutexLocker lock(&m_uiMutex);
+        if (m_modelLine == s)
+            return;
+        m_modelLine = s;
+        lock.unlock();
+        update();
+    }
+    void setConfLine(const QString &s) {
+        QMutexLocker lock(&m_uiMutex);
+        if (m_confLine == s)
+            return;
+        m_confLine = s;
+        lock.unlock();
+        update();
+    }
+    void setHelpVisible(bool on) {
+        m_help = on;
+        update();
+    }
+    bool settingsVisible() const { return m_settingsVisible; }
+    void setSettingsVisible(bool visible) {
+        m_settingsVisible = visible;
+        // Keep pending pixels/masks until monitoring resumes. Old content is
+        // uploaded once; opening settings never pauses capture or inference.
+        resetRates();
+        update();
+    }
+    void moveSetting(int direction) {
+        m_settingRow = (m_settingRow + direction + 6) % 6;
+        update();
+    }
+    int settingRow() const { return m_settingRow; }
+    void setCameraLayout(int mode, int selectedCamera) {
+        if (m_videoMode) return;
+        m_paneMask = mode == CAM_COUNT ? 0x3F : (1 << mode);
+        m_pane = selectedCamera;
+        m_overlayUpdatedMs = 0;
+        update();
+    }
+    void setSettings(const QStringList& values, const QStringList& models, int currentModel,
+                     const QString& pipeline, const QString& throughput, const QString& monitor) {
+        if (m_settingValues != values || m_settingModels != models || m_settingModelIndex != currentModel)
+            m_overlayUpdatedMs = 0;
+        if (m_settingValues != values || m_settingModels != models || m_settingModelIndex != currentModel ||
+            m_pipelineSummary != pipeline || m_throughputSummary != throughput)
+            ++m_settingsRevision;
+        m_settingValues = values;
+        m_settingModels = models;
+        m_settingModelIndex = currentModel;
+        m_pipelineSummary = pipeline;
+        m_throughputSummary = throughput;
+        m_monitorSummary = monitor;
+    }
+    void setVisionLine(const QString &text) {
+        if (m_visionLine != text) ++m_settingsRevision;
+        m_visionLine = text; update();
+    }
+    void setCalibrationLine(const QString& text, qint64 expiresMs = 0) {
+        if (qEnvironmentVariableIsSet("DETVIEW_STEREO_VEHICLE_TRIAL") && expiresMs == 0 &&
+            text == QString("单车辆试用 · 等待同帧双目") &&
+            m_calibrationExpiresMs > monotonicMs()) return;
+        if (m_calibrationLine == text && m_calibrationExpiresMs == expiresMs) return;
+        m_calibrationExpiresMs = expiresMs;
+        m_calibrationLine = text; m_overlayUpdatedMs = 0; ++m_settingsRevision; update();
+    }
+    void setStereoPreview(const QImage &image, const QString &status) {
+        if (qEnvironmentVariableIsSet("DETVIEW_STEREO_TRIAL_METERS") &&
+            !qEnvironmentVariableIsSet("DETVIEW_STEREO_VEHICLE_TRIAL"))
+            setCalibrationLine(QString("试用测距 · %1").arg(status));
+        if (m_stereoStatus == status &&
+            ((image.isNull() && m_stereoPreview.isNull()) ||
+             (!image.isNull() && !m_stereoPreview.isNull() && image.cacheKey() == m_stereoPreview.cacheKey()))) return;
+        m_stereoPreview = image;
+        ++m_detectionRevision;
+        if (m_stereoStatus != status) ++m_settingsRevision;
+        m_stereoStatus = status;
+        update();
+    }
+    /* 键盘统一在 GL 窗口处理：控制器把按键回调装进来 */
+    void setKeyHook(std::function<void(QKeyEvent *)> hook) { m_keyHook = std::move(hook); }
+    /* 截屏：直接抓 GL 帧缓冲 */
+    QImage grabFrame() { return grabFramebuffer(); }
+
+protected:
+    void initializeGL() override {
+        initializeOpenGLFunctions();
+        static const char *vsrc =
+            "attribute highp vec2 aPos;\n"
+            "attribute highp vec2 aTex;\n"
+            "varying mediump vec2 vTex;\n"
+            "void main() { vTex = aTex; gl_Position = vec4(aPos, 0.0, 1.0); }\n";
+        static const char *fsrc =
+            "precision mediump float;\n"
+            "varying mediump vec2 vTex;\n"
+            "uniform sampler2D uTex;\n"
+            "void main() { gl_FragColor = texture2D(uTex, vTex); }\n";
+        m_prog.addShaderFromSourceCode(QOpenGLShader::Vertex, vsrc);
+        m_prog.addShaderFromSourceCode(QOpenGLShader::Fragment, fsrc);
+        m_prog.bindAttributeLocation("aPos", 0);
+        m_prog.bindAttributeLocation("aTex", 1);
+        if (!m_prog.link())
+            fprintf(stderr, "[gl] shader link failed: %s\n", qPrintable(m_prog.log()));
+        glGenTextures(1, &m_tex);
+        glBindTexture(GL_TEXTURE_2D, m_tex);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+        glGenTextures(CAM_COUNT * kTextureRing, &m_cameraTextures[0][0]);
+        for (int camera = 0; camera < CAM_COUNT; ++camera) {
+            for (int slot = 0; slot < kTextureRing; ++slot) {
+                glBindTexture(GL_TEXTURE_2D, m_cameraTextures[camera][slot]);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
             }
-            content = QRect((width() - tw) / 2, (height() - th) / 2, tw, th);
-            p.fillRect(rect(), Qt::black);
-            if (!m_videoMode && m_paneMask != 0x3F) {
-                const QRect source((m_pane % GRID_COLS) * IMG_W, (m_pane / GRID_COLS) * IMG_H, IMG_W,
-                                   IMG_H);
-                p.drawImage(content, src, source);
+        }
+        glGenBuffers(1, &m_vertexBuffer);
+        glBindBuffer(GL_ARRAY_BUFFER, m_vertexBuffer);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(m_vertices), nullptr, GL_STATIC_DRAW);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        glGenTextures(1, &m_overlayTexture);
+        glBindTexture(GL_TEXTURE_2D, m_overlayTexture);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        const char *ren = (const char *)glGetString(GL_RENDERER);
+        fprintf(stderr, "detview_gl_renderer=%s\n", ren ? ren : "?");
+        fflush(stderr);
+    }
+
+    void paintGL() override {
+        QElapsedTimer pt;
+        pt.start();
+        const float dpr = (float)devicePixelRatioF();
+        glViewport(0, 0, (int)(width() * dpr), (int)(height() * dpr));
+        glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+        glDisable(GL_BLEND);
+        glDisable(GL_SCISSOR_TEST);
+        if (m_settingsVisible) {
+            if (!m_overlaySettings || m_overlaySize != size() || m_overlayRevision != m_settingsRevision ||
+                m_overlayRow != m_settingRow) {
+                if (!m_overlaySettings || m_overlaySize != size() || m_overlayRow != m_settingRow ||
+                    monotonicMs() - m_overlayUpdatedMs >= 300) {
+                QImage image(size(), QImage::Format_RGBA8888_Premultiplied);
+                QPainter painter(&image);
+                drawSettingsCanvas(painter);
+                painter.end();
+                uploadOverlay(image);
+                m_overlayRevision = m_settingsRevision;
+                m_overlayRow = m_settingRow;
+                m_overlayUpdatedMs = monotonicMs();
+                }
+            }
+            m_overlaySettings = true;
+            glClear(GL_COLOR_BUFFER_BIT);
+            drawOverlay({QRect(QPoint(0, 0), size())});
+            recordPaint(pt, false);
+            return;
+        }
+
+        /* 快照显示状态（采集/推理线程写，这里读） */
+        const bool videoMode = m_videoMode;
+        const int paneMask = m_paneMask, pane = m_pane;
+        QVector<double> camFps = m_camFps;
+        QVector<Detection> dets = m_dets;
+        QStringList classes = m_classes;
+        QImage video = m_videoMode ? m_image : QImage();
+        QImage laneMask = m_laneMask;
+        const qint64 metricNow = monotonicMs();
+        for (int camera = 0; camera < camFps.size(); ++camera)
+            if (m_metricsPaused || metricNow - m_capturedMs[camera] >= 1000) camFps[camera] = 0;
+        bool freshVisibleFrame = false;
+
+        /* 画面内容（逻辑坐标）：整幅 2:1，单选某路时 4:3 */
+        QRectF content;
+        std::function<void()> drawContent;
+        int cw = 0, ch = 0;
+        if (videoMode) {
+            cw = video.width();
+            ch = video.height();
+        } else if (m_haveFrame) {
+            cw = (paneMask == 0x3F) ? GRID_COLS * IMG_W : IMG_W;
+            ch = (paneMask == 0x3F) ? GRID_ROWS * IMG_H : IMG_H;
+        }
+        if (cw > 0 && ch > 0) {
+            const float ia = (float)cw / (float)ch;
+            const int top = std::min(56, height() / 8);
+            const int bottom = std::min(40, height() / 10);
+            const int viewHeight = qMax(1, height() - top - bottom);
+            const float wa = (float)width() / viewHeight;
+            float w = width(), h = viewHeight;
+            if (ia > wa) h = width() / ia; else w = viewHeight * ia;
+            content = QRectF((width() - w) / 2.0, top + (viewHeight - h) / 2.0, w, h);
+            glViewport(0, int(bottom * dpr), int(width() * dpr), int(viewHeight * dpr));
+
+            /* 相机纹理采用与新版 camview 相同的独立三槽轮换：每路更新自己的
+               RGB565纹理，避免单张合成纹理仍在显示时被glTexSubImage2D阻塞Mali。
+               合成QImage只作为兼容的CPU邮箱，上传路径不再把六路拼成一张GPU纹理。 */
+            if (m_dirty || !m_texAlloc) {
+                QElapsedTimer uploadTimer; if (m_perfEnabled) uploadTimer.start();
+                int uploadedMask = 0;
+                if (videoMode) {
+                    glBindTexture(GL_TEXTURE_2D, m_tex);
+                    /* 视频源是 RGB888（解码器给的就是 8bit/像素） */
+                    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, video.width(), video.height(), 0, GL_RGB,
+                                 GL_UNSIGNED_BYTE, video.constBits());
+                    m_texW = video.width();
+                    m_texH = video.height();
+                    freshVisibleFrame = m_videoSequence != 0 && m_videoSequence != m_uploadedVideoSequence;
+                    m_uploadedVideoSequence = m_videoSequence;
+                } else {
+                    const int mask = m_changedMask ? m_changedMask : 0x3F;
+                    for (int c = 0; c < CAM_COUNT; ++c) {
+                        if (!(mask & (1 << c)))
+                            continue;
+                        if (m_cameraPixels[c].size() != FRAME_BYTES) continue;
+                        const int slot = (m_cameraTextureSlot[c] + 1) % m_textureRing;
+                        glBindTexture(GL_TEXTURE_2D, m_cameraTextures[c][slot]);
+                        if (!m_cameraTextureAllocated[c][slot]) {
+                            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, IMG_W, IMG_H, 0, GL_RGB,
+                                         GL_UNSIGNED_SHORT_5_6_5, m_cameraPixels[c].constData());
+                            m_cameraTextureAllocated[c][slot] = true;
+                        } else {
+                            glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, IMG_W, IMG_H, GL_RGB,
+                                            GL_UNSIGNED_SHORT_5_6_5, m_cameraPixels[c].constData());
+                        }
+                        m_cameraTextureSlot[c] = slot;
+                        if (m_perfEnabled) {
+                            ++m_perf.cameraUploads[c]; m_perf.cameraUploadBytes[c] += FRAME_BYTES;
+                            const qint64 uploadedAt = monotonicMs();
+                            if (m_capturedMs[c] > 0 && uploadedAt >= m_capturedMs[c])
+                                m_perf.time[tdm::CaptureToUpload].add(uploadedAt - m_capturedMs[c]);
+                        }
+                        uploadedMask |= 1 << c;
+                    }
+                }
+                if (!videoMode) {
+                    for (int camera = 0; camera < CAM_COUNT; ++camera) {
+                        if (!(uploadedMask & (1 << camera))) continue;
+                        const bool fresh = m_sequences[camera] != 0 &&
+                                           m_sequences[camera] != m_uploadedSequences[camera];
+                        m_uploadedSequences[camera] = m_sequences[camera];
+                        if (fresh && !m_metricsPaused && (paneMask & (1 << camera))) {
+                            freshVisibleFrame = true;
+                            m_cameraUploadRates[camera].add(metricNow);
+                        }
+                    }
+                }
+                if (freshVisibleFrame && !m_metricsPaused) m_uploadRate.add(metricNow);
+                if (m_perfEnabled) {
+                    m_perf.time[tdm::CameraUpload].add(uploadTimer.nsecsElapsed() / 1e6);
+                    if (freshVisibleFrame && !m_metricsPaused) ++m_perf.uploads;
+                }
+                m_texAlloc = true;
+                m_dirty = false;
+                m_changedMask = 0;
+            }
+            float ndcx = 1.0f, ndcy = 1.0f;
+            if (ia > wa) ndcy = wa / ia; else ndcx = ia / wa;
+            drawContent = [this, ndcx, ndcy, videoMode, paneMask, pane, content] {
+            m_prog.bind();
+            m_prog.enableAttributeArray(0);
+            m_prog.enableAttributeArray(1);
+            m_prog.setUniformValue("uTex", 0);
+            glActiveTexture(GL_TEXTURE0);
+            auto drawCamera = [&](int camera, const QRectF &tile) {
+                const float tx0 = float((tile.left() - content.left()) / content.width());
+                const float tx1 = float((tile.right() - content.left()) / content.width());
+                const float ty0 = float((tile.top() - content.top()) / content.height());
+                const float ty1 = float((tile.bottom() - content.top()) / content.height());
+                /* NDC y=+ maps to the top of the content, matching the old
+                   composite texture's v=0 orientation. */
+                const GLfloat verts[] = {
+                    -ndcx + 2.0f * ndcx * tx0,  ndcy - 2.0f * ndcy * ty0, 0, 0,
+                    -ndcx + 2.0f * ndcx * tx1,  ndcy - 2.0f * ndcy * ty0, 1, 0,
+                    -ndcx + 2.0f * ndcx * tx0,  ndcy - 2.0f * ndcy * ty1, 0, 1,
+                    -ndcx + 2.0f * ndcx * tx1,  ndcy - 2.0f * ndcy * ty1, 1, 1,
+                };
+                setVertices(verts, camera);
+                glBindTexture(GL_TEXTURE_2D, m_cameraTextures[camera][m_cameraTextureSlot[camera]]);
+                glDrawArrays(GL_TRIANGLE_STRIP, camera * 4, 4);
+            };
+            if (videoMode) {
+                const GLfloat verts[] = {
+                    -ndcx, ndcy, 0, 0, ndcx, ndcy, 1, 0,
+                    -ndcx, -ndcy, 0, 1, ndcx, -ndcy, 1, 1};
+                setVertices(verts, CAM_COUNT);
+                glBindTexture(GL_TEXTURE_2D, m_tex);
+                glDrawArrays(GL_TRIANGLE_STRIP, CAM_COUNT * 4, 4);
             } else {
-                p.drawImage(content, src);
+                const bool quad = paneMask == 0x3F;
+                for (int c = 0; c < CAM_COUNT; ++c) {
+                    if (!quad && c != pane) continue;
+                    const QRectF tile = quad ? QRectF(content.left() + (c % GRID_COLS) * content.width() / GRID_COLS,
+                                                      content.top() + (c / GRID_COLS) * content.height() / GRID_ROWS,
+                                                      content.width() / GRID_COLS, content.height() / GRID_ROWS)
+                                             : content;
+                    drawCamera(c, tile);
+                }
+            }
+            m_prog.disableAttributeArray(0);
+            m_prog.disableAttributeArray(1);
+            m_prog.release();
+            };
+        }
+
+        /* ---- HUD ---- */
+        QElapsedTimer regionTimer; if (m_perfEnabled) regionTimer.start();
+        QRectF paneRect = content;
+        if (!videoMode && paneMask == 0x3F) {
+            const double pw = content.width() / GRID_COLS, ph = content.height() / GRID_ROWS;
+            paneRect = QRectF(content.left() + (pane % GRID_COLS) * pw,
+                              content.top() + (pane / GRID_COLS) * ph, pw, ph);
+        }
+        QList<QRect> hudRegions;
+        QFont labelFont; labelFont.setPointSize(11);
+        const int labelImageHeight = QFontMetrics(labelFont).height() + 8;
+        const int cameraLabelHeight = std::max(30, labelImageHeight + 3);
+        auto borderRegions = [&](const QRectF& box, int thickness) {
+            const QRect r = box.toAlignedRect().adjusted(-thickness, -thickness, thickness, thickness);
+            hudRegions << QRect(r.x(), r.y(), r.width(), thickness * 2)
+                       << QRect(r.x(), r.bottom() - thickness * 2 + 1, r.width(), thickness * 2)
+                       << QRect(r.x(), r.y(), thickness * 2, r.height())
+                       << QRect(r.right() - thickness * 2 + 1, r.y(), thickness * 2, r.height());
+        };
+        const int top = std::min(56, height() / 8), bottom = std::min(40, height() / 10);
+        hudRegions << QRect(0, 0, width(), top) << QRect(0, height() - bottom, width(), bottom);
+        if (!content.isEmpty()) {
+            const bool quad = !videoMode && paneMask == 0x3F;
+            if (quad) borderRegions(paneRect.adjusted(1, 1, -1, -1), 2);
+            for (int c = 0; c < (quad ? CAM_COUNT : 1); ++c) {
+                const double pw = content.width() / (quad ? GRID_COLS : 1);
+                const double ph = content.height() / (quad ? GRID_ROWS : 1);
+                hudRegions << QRect(int(content.left() + (quad ? c % GRID_COLS * pw : 0) + 6),
+                                    int(content.top() + (quad ? c / GRID_COLS * ph : 0) + 6),
+                                    int(std::min(280.0, pw - 12)), cameraLabelHeight);
+            }
+            if (!laneMask.isNull()) hudRegions << paneRect.toAlignedRect();
+            else {
+                const double sx = paneRect.width() / MODEL_W, sy = paneRect.height() / IMG_H;
+                const double bx = paneRect.left(), by = paneRect.top() - 80 * sy;
+                for (const auto& d : dets) {
+                    if (d.validUntilMs > 0 && metricNow > d.validUntilMs) continue;
+                    const QRectF box(bx + d.x1 * sx, by + d.y1 * sy,
+                                     std::max(1.0, (d.x2 - d.x1) * sx), std::max(1.0, (d.y2 - d.y1) * sy));
+                    const int firstRegion = hudRegions.size();
+                    borderRegions(box, 3);
+                    hudRegions << QRect(int(box.left()), int(std::max(box.top(), paneRect.top() + 42)),
+                                        qMax(0, int(paneRect.right() - box.left()) + 1), labelImageHeight + 2);
+                    for (int r = firstRegion; r < hudRegions.size(); ++r)
+                        hudRegions[r] &= paneRect.toAlignedRect();
+                }
             }
         }
-        QRect pane = content;
-        if (!m_videoMode && m_paneMask == 0x3F) {
-            const int pw = content.width() / GRID_COLS, ph = content.height() / GRID_ROWS;
-            pane = QRect(content.left() + (m_pane % GRID_COLS) * pw,
-                         content.top() + (m_pane / GRID_COLS) * ph, pw, ph);
+        // Preview can overlap the selected pane or footer. Merge these to avoid
+        // blending the same semi-transparent HUD pixels twice.
+        if (!m_stereoPreview.isNull()) {
+            const int pw = std::min(240, width() / 4);
+            QRect preview(width() - pw - 8, height() - pw * m_stereoPreview.height() / m_stereoPreview.width() - 8,
+                          pw, pw * m_stereoPreview.height() / m_stereoPreview.width());
+            for (int i = hudRegions.size() - 1; i >= 0; --i) {
+                if (preview.intersects(hudRegions[i])) preview = preview.united(hudRegions.takeAt(i));
+            }
+            hudRegions << preview;
         }
-        /* 覆盖层：车道掩码 + 检测框；模型输入是 640x640，画面贴在 y=80..560 */
-        const double sx = pane.width() / (double)MODEL_W;
-        const double sy = pane.height() / (double)IMG_H;
-        const double baseX = pane.left();
-        const double baseY = pane.top() - 80.0 * sy;
-        if (!m_laneMask.isNull())
-            p.drawImage(QRectF(baseX, baseY, MODEL_W * sx, MODEL_H * sy), m_laneMask);
-        p.setClipRect(pane);
-        for (const Detection &d : m_dets) {
-            const double x1 = baseX + d.x1 * sx;
-            const double x2 = baseX + d.x2 * sx;
-            const double y1 = baseY + d.y1 * sy;
-            const double y2 = baseY + d.y2 * sy;
-            const QRectF r(x1, y1, std::max(1.0, x2 - x1), std::max(1.0, y2 - y1));
-            const QColor color = d.cls == 0 ? QColor(0, 255, 0)
-                                : (d.cls == 1 ? QColor(255, 60, 60) : QColor(255, 220, 0));
-            p.setPen(QPen(color, 3));
-            p.drawRect(r);
-            const QString label =
-                QString("%1 %2")
-                    .arg(d.cls >= 0 && d.cls < m_classes.size() ? m_classes[d.cls]
-                                                                : QString::number(d.cls))
-                    .arg(d.score, 0, 'f', 2);
-            p.setPen(Qt::black);
-            p.drawText(QPointF(r.left() + 4, r.top() + 12), label);
-            p.setPen(color);
-            p.drawText(QPointF(r.left() + 3, r.top() + 11), label);
+        // Keep the CPU raster HUD, but avoid QPainter's GL engine. Its state
+        // transitions force a costly synchronization on this Mali stack.
+        const qint64 hudNow = monotonicMs();
+        const bool repaintHud = m_overlaySettings || m_overlaySize != size() ||
+            m_overlayDetections != m_detectionRevision || hudNow - m_overlayUpdatedMs >= 300 ||
+            (m_overlayExpiresMs > 0 && hudNow > m_overlayExpiresMs);
+        if (m_perfEnabled) m_perf.time[tdm::HudRegions].add(regionTimer.nsecsElapsed() / 1e6);
+        if (repaintHud) {
+        QElapsedTimer rasterTimer; if (m_perfEnabled) {
+            rasterTimer.start(); ++m_perf.hudRebuilds;
+            if (m_overlaySettings || m_overlaySize != size()) ++m_perf.hudLayout;
+            if (m_overlayDetections != m_detectionRevision) ++m_perf.hudRevision;
+            if (hudNow - m_overlayUpdatedMs >= 300) ++m_perf.hudPeriodic;
+            if (m_overlayExpiresMs > 0 && hudNow > m_overlayExpiresMs) ++m_perf.hudExpired;
         }
-        p.setClipping(false);
-        m_paintMsSum += pt.nsecsElapsed() / 1e6;
-        m_paintCount++;
+        m_overlayExpiresMs = 0;
+        // Clear the previous frame's glyph/box pixels too, then draw only the
+        // new region set. This removes old boxes when tracks move or expire.
+        QList<QRect> uploadRegions = hudRegions;
+        uploadRegions.append(m_previousHudRegions);
+        if (m_rasterOverlay.size() != size()) {
+            m_rasterOverlay = QImage(size(), QImage::Format_RGBA8888_Premultiplied);
+            m_rasterOverlay.fill(Qt::transparent);
+        }
+        QPainter painter(&m_rasterOverlay);
+        QRegion dirtyRegion;
+        for (const auto& r : uploadRegions) dirtyRegion += r;
+        painter.setClipRegion(dirtyRegion);
+        painter.setCompositionMode(QPainter::CompositionMode_Source);
+        for (const QRect& r : dirtyRegion) painter.fillRect(r, Qt::transparent);
+        painter.setCompositionMode(QPainter::CompositionMode_SourceOver);
+        paintMonitorChrome(painter);
+        /* 每路采集帧率标签（六路 3×2 逐格，单路只一个）：只贴几张小位图（走 textImage
+           缓存）。早先版本每帧上传一张整窗 ARGB HUD 位图（1898x955x4≈7.3MB），实测
+           paintGL 里每帧多花 10ms 以上。 */
+        {
+            const bool quad = (!videoMode && paneMask == 0x3F);
+            const int nLab = quad ? CAM_COUNT : 1;
+            const double pw = content.width() / (quad ? GRID_COLS : 1);
+            const double ph = content.height() / (quad ? GRID_ROWS : 1);
+            const double ox = content.left(), oy = content.top();
+            for (int i = 0; i < nLab; ++i) {
+                const QRectF box(ox + (quad ? (i % GRID_COLS) * pw + 6 : 6),
+                                  oy + (quad ? (i / GRID_COLS) * ph + 6 : 6), std::min(280.0, pw - 12), cameraLabelHeight);
+                if (box.right() > content.right() || box.bottom() > content.bottom())
+                    continue;
+                const int cameraIndex = quad ? i : pane;
+                const bool selected = !videoMode && cameraIndex == pane;
+                painter.fillRect(box, selected ? QColor(12, 78, 86, 225) : QColor(12, 22, 34, 210));
+                painter.drawImage(box.left() + 8, box.top() + 3,
+                                  textImage(videoMode ? QString("视频 · 采集 %1 fps").arg(
+                                                m_metricsPaused || metricNow - m_videoReceivedMs >= 1000 ? 0 : m_dispFps, 0, 'f', 1) :
+                                            QString("C%1  采集 %2 · 画面 %3").arg(cameraIndex + 1)
+                                                .arg(camFps.value(cameraIndex), 0, 'f', 1)
+                                                .arg(m_cameraUploadRates[cameraIndex].rate(metricNow), 0, 'f', 1),
+                                            QColor(225, 239, 245), 11));
+            }
+            if (!videoMode && paneMask == 0x3F) {
+                painter.setPen(QPen(QColor(62, 213, 199), 2));
+                painter.drawRect(paneRect.adjusted(1, 1, -1, -1));
+            }
+        }
+        /* 检测框/车道掩码：矩形用 QPainter 画（便宜），标签文字走缓存位图 */
+        {
+            painter.save();
+            painter.setClipRect(paneRect, Qt::IntersectClip);
+            const double sx = paneRect.width() / (double)MODEL_W;
+            const double sy = paneRect.height() / (double)IMG_H;
+            const double baseX = paneRect.left();
+            const double baseY = paneRect.top() - 80.0 * sy;
+            if (!laneMask.isNull())
+                painter.drawImage(QRectF(baseX, baseY, MODEL_W * sx, MODEL_H * sy), laneMask);
+            for (const Detection &d : dets) {
+                if (d.validUntilMs > 0 && monotonicMs() > d.validUntilMs) continue;
+                auto expireAt = [&](qint64 deadline) {
+                    if (deadline > hudNow && (m_overlayExpiresMs == 0 || deadline < m_overlayExpiresMs))
+                        m_overlayExpiresMs = deadline;
+                };
+                expireAt(d.validUntilMs);
+                const double x1 = baseX + d.x1 * sx;
+                const double x2 = baseX + d.x2 * sx;
+                const double y1 = baseY + d.y1 * sy;
+                const double y2 = baseY + d.y2 * sy;
+                const QRectF r(x1, y1, std::max(1.0, x2 - x1), std::max(1.0, y2 - y1));
+                const QColor color = d.cls == 0 ? QColor(0, 255, 0)
+                                    : (d.cls == 1 ? QColor(255, 60, 60) : QColor(255, 220, 0));
+                painter.setPen(QPen(color, 3));
+                painter.drawRect(r);
+                QString label =
+                    QString("%1 %2")
+                        .arg(d.cls >= 0 && d.cls < classes.size() ? classes[d.cls]
+                                                                  : QString::number(d.cls))
+                         .arg(d.score, 0, 'f', 2);
+                if (d.trackId)
+                    label += QString(" #%1 %2").arg(d.trackId).arg(d.predicted ? "预测" : "追踪");
+                const qint64 depthAge = monotonicMs() - d.depthCapturedMs;
+                if (std::isfinite(d.depthMeters) && d.depthCapturedMs > 0 && depthAge >= 0 && depthAge <= 300)
+                    label += QString(" %1Z=%2m (%3ms)").arg(d.depthTrial ? "试用 " : "")
+                        .arg(d.depthMeters, 0, 'f', 2).arg(depthAge);
+                else if (!d.depthStatus.isEmpty()) label += " · " + d.depthStatus;
+                if (std::isfinite(d.depthMeters) && d.depthCapturedMs > 0) expireAt(d.depthCapturedMs + 300);
+                QImage tag = textImage(label, color, 11);
+                painter.drawImage(r.left(), std::max(r.top(), paneRect.top() + 42), tag);
+            }
+            painter.restore();
+            if (!m_stereoPreview.isNull()) {
+                const int previewWidth = std::min(240, width() / 4);
+                const int previewHeight = previewWidth * m_stereoPreview.height() / m_stereoPreview.width();
+                painter.drawImage(QRect(width() - previewWidth - 8, height() - previewHeight - 8,
+                                        previewWidth, previewHeight), m_stereoPreview);
+            }
+            painter.end();
+        }
+        if (m_perfEnabled) m_perf.time[tdm::HudRaster].add(rasterTimer.nsecsElapsed() / 1e6);
+        uploadOverlay(m_rasterOverlay, uploadRegions);
+        m_previousHudRegions = hudRegions;
+        m_overlayUpdatedMs = hudNow;
+        m_overlayDetections = m_detectionRevision;
+        }
+        m_overlaySettings = false;
+        // All camera and HUD uploads precede framebuffer drawing. Updating the
+        // HUD after a camera draw otherwise flushes Mali's tile render pass.
+        const int viewHeight = qMax(1, height() - top - bottom);
+        QElapsedTimer drawTimer; if (m_perfEnabled) drawTimer.start();
+        glViewport(0, int(bottom * dpr), int(width() * dpr), int(viewHeight * dpr));
+        glClear(GL_COLOR_BUFFER_BIT);
+        if (drawContent) drawContent();
+        if (m_perfEnabled) m_perf.time[tdm::CameraDraw].add(drawTimer.nsecsElapsed() / 1e6);
+        drawOverlay(hudRegions);
+        recordPaint(pt, freshVisibleFrame);
+    }
+
+    void keyPressEvent(QKeyEvent *e) override {
+        if (m_keyHook)
+            m_keyHook(e);
+        else
+            QOpenGLWindow::keyPressEvent(e);
     }
 
 private:
-    QImage m_comp;      // 2x2 合成（RGB888 1280x960，仅包装相机线程的复用缓冲）
-    QImage m_image;     // 视频源路径
+    void setVertices(const GLfloat* vertices, int slot) {
+        glBindBuffer(GL_ARRAY_BUFFER, m_vertexBuffer);
+        if (!m_vertexValid[slot] || std::memcmp(m_vertices[slot], vertices, sizeof(m_vertices[slot])) != 0) {
+            std::memcpy(m_vertices[slot], vertices, sizeof(m_vertices[slot]));
+            glBufferSubData(GL_ARRAY_BUFFER, slot * sizeof(m_vertices[slot]), sizeof(m_vertices[slot]), vertices);
+            m_vertexValid[slot] = true;
+        }
+        m_prog.setAttributeBuffer(0, GL_FLOAT, 0, 2, 4 * sizeof(GLfloat));
+        m_prog.setAttributeBuffer(1, GL_FLOAT, 2 * sizeof(GLfloat), 2, 4 * sizeof(GLfloat));
+    }
+    void uploadOverlay(const QImage& image, const QList<QRect>& regions = {}) {
+        QElapsedTimer timer; if (m_perfEnabled) timer.start();
+        double packMs = 0;
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, m_overlayTexture);
+        if (m_overlaySize != image.size()) {
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image.width(), image.height(), 0,
+                         GL_RGBA, GL_UNSIGNED_BYTE, image.constBits());
+            m_overlaySize = image.size();
+            if (m_perfEnabled) { ++m_perf.hudUploadRects; m_perf.hudUploadBytes += uint64_t(image.width()) * image.height() * 4; }
+        } else if (regions.isEmpty()) {
+            glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, image.width(), image.height(),
+                            GL_RGBA, GL_UNSIGNED_BYTE, image.constBits());
+            if (m_perfEnabled) { ++m_perf.hudUploadRects; m_perf.hudUploadBytes += uint64_t(image.width()) * image.height() * 4; }
+        } else {
+            // GLES2 row-length packing is now limited to small HUD regions,
+            // never the six camera frames or a full-window HUD every frame.
+            QRegion unionRegion;
+            for (const auto& region : regions) unionRegion += region;
+            unionRegion &= image.rect();
+            for (const QRect& r : unionRegion) {
+                if (r.isEmpty()) continue;
+                QElapsedTimer pack; if (m_perfEnabled) pack.start();
+                const QImage tile = image.copy(r);
+                if (m_perfEnabled) {
+                    packMs += pack.nsecsElapsed() / 1e6;
+                    ++m_perf.hudUploadRects; m_perf.hudUploadBytes += uint64_t(r.width()) * r.height() * 4;
+                }
+                glTexSubImage2D(GL_TEXTURE_2D, 0, r.x(), r.y(), r.width(), r.height(),
+                                GL_RGBA, GL_UNSIGNED_BYTE, tile.constBits());
+            }
+        }
+        if (m_perfEnabled) {
+            m_perf.time[tdm::HudPack].add(packMs);
+            m_perf.time[tdm::HudUpload].add(std::max(0.0, timer.nsecsElapsed() / 1e6 - packMs));
+        }
+    }
+    void drawOverlay(const QList<QRect>& regions) {
+        QElapsedTimer timer; if (m_perfEnabled) timer.start();
+        glViewport(0, 0, int(width() * devicePixelRatioF()), int(height() * devicePixelRatioF()));
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+        m_prog.bind();
+        m_prog.enableAttributeArray(0); m_prog.enableAttributeArray(1);
+        const GLfloat vertices[] = {-1, 1, 0, 0, 1, 1, 1, 0, -1, -1, 0, 1, 1, -1, 1, 1};
+        setVertices(vertices, CAM_COUNT + 1);
+        m_prog.setUniformValue("uTex", 0);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, m_overlayTexture);
+        glEnable(GL_SCISSOR_TEST);
+        const double ratio = devicePixelRatioF();
+        QRegion unionRegion;
+        for (const auto& region : regions) unionRegion += region;
+        unionRegion &= QRect(QPoint(0, 0), size());
+        for (const QRect& r : unionRegion) {
+            if (r.isEmpty()) continue;
+            if (m_perfEnabled) ++m_perf.hudDrawRects;
+            glScissor(int(r.x() * ratio), int((height() - r.y() - r.height()) * ratio),
+                      int(r.width() * ratio), int(r.height() * ratio));
+            glDrawArrays(GL_TRIANGLE_STRIP, (CAM_COUNT + 1) * 4, 4);
+        }
+        glDisable(GL_SCISSOR_TEST); glDisable(GL_BLEND);
+        m_prog.disableAttributeArray(0); m_prog.disableAttributeArray(1);
+        m_prog.release();
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        if (m_perfEnabled) m_perf.time[tdm::HudDraw].add(timer.nsecsElapsed() / 1e6);
+    }
+    void recordPaint(const QElapsedTimer& timer, bool fresh) {
+        m_paintMsSum += timer.nsecsElapsed() / 1e6;
+        ++m_paintCount;
+        const qint64 now = monotonicMs();
+        m_paintRate.add(now);
+        if (fresh && !m_metricsPaused) m_newPaintRate.add(now);
+        if (m_perfEnabled) {
+            m_perf.time[m_settingsVisible ? tdm::SettingsPaint : tdm::PaintTotal].add(timer.nsecsElapsed() / 1e6);
+            if (fresh && !m_metricsPaused) ++m_perf.freshPaints;
+        }
+    }
+
+    void paintMonitorChrome(QPainter& painter) {
+        const int top = std::min(56, height() / 8);
+        const int bottom = std::min(40, height() / 10);
+        const QColor ink(223, 234, 244), muted(144, 166, 187), accent(62, 213, 199);
+        painter.fillRect(QRect(0, 0, width(), top), QColor(15, 25, 38));
+        painter.fillRect(QRect(0, height() - bottom, width(), bottom), QColor(15, 25, 38));
+        const QString title = m_videoMode ? "视频监看" : "摄像头监看";
+        painter.drawImage(16, std::max(0, (top - 30) / 2), textImage(title, accent, 13));
+        const QString summary = !m_calibrationLine.isEmpty() ?
+            (m_calibrationExpiresMs > 0 && monotonicMs() > m_calibrationExpiresMs ?
+                QString("单车辆试用 · 旧距离已过期，等待新测量") : m_calibrationLine) : QString("%1 · %2 · 新画面 %3 fps")
+            .arg(m_metricsPaused ? "已暂停" : "运行中")
+            .arg(m_monitorSummary).arg(newFrameRate(), 0, 'f', 0);
+        QFont summaryFont; summaryFont.setPointSize(11);
+        const QFontMetrics metrics(summaryFont);
+        const QString concise = metrics.elidedText(summary, Qt::ElideRight, qMax(0, width() - 470));
+        painter.drawImage(180, std::max(0, (top - 30) / 2), textImage(concise, ink, 11));
+        painter.drawImage(qMax(180, width() - 250), std::max(0, (top - 30) / 2),
+                          textImage("Tab  设置  /  监看", accent, 11));
+        QString keys = m_help ?
+            "Tab 设置   V 切换单路/六路   P 暂停   S 截屏   F 全屏   Q 退出  ·  模型与参数请到设置页" :
+            "V 切换相机     G 六路总览     P 暂停     S 截屏     H 帮助     Tab 设置";
+        if (!m_calibrationLine.isEmpty()) keys = "S 保存左右原图并检查棋盘   D 距离标签   V 切相机（C5为第二组）   G 六路   Tab 设置";
+        if (qEnvironmentVariableIsSet("DETVIEW_STEREO_TRIAL_METERS"))
+            keys = "试用草稿 · 中央ROI光轴深度Z · 请用静止、有纹理目标 · V 切相机   G 六路   Tab 设置   Q 退出";
+        if (m_statusLine.contains("FATAL") || m_statusLine.contains("FAIL"))
+            keys = "设备异常 · " + m_statusLine + " · Tab 查看设置";
+        keys = metrics.elidedText(keys, Qt::ElideRight, qMax(1, width() - 32));
+        painter.drawImage(16, height() - bottom + std::max(0, (bottom - 28) / 2),
+                          textImage(keys, muted, 11));
+    }
+
+    void paintSettings(QPainter& painter) {
+        // Mali's ES2 glyph path corrupts direct drawText. Rasterize the page on
+        // the CPU, then use the same image upload path as the monitor labels.
+        const QString key = QString("%1/%2/%3/%4/%5/").arg(width()).arg(height())
+            .arg(m_settingRow).arg(m_settingModelIndex).arg(m_settingsRevision);
+        if (m_settingsImage.isNull() || key != m_settingsImageKey) {
+            m_settingsImage = QImage(size(), QImage::Format_ARGB32_Premultiplied);
+            QPainter raster(&m_settingsImage);
+            drawSettingsCanvas(raster);
+            raster.end();
+            m_settingsImageKey = key;
+        }
+        painter.drawImage(0, 0, m_settingsImage);
+    }
+
+    void drawSettingsCanvas(QPainter& painter) {
+        // One logical layout scales uniformly, including fonts, on small displays.
+        painter.fillRect(QRect(0, 0, width(), height()), QColor(10, 18, 29));
+        const double scale = std::min(width() / 1280.0, height() / 720.0);
+        painter.translate((width() - 1280 * scale) / 2, (height() - 720 * scale) / 2);
+        painter.scale(scale, scale);
+        painter.setRenderHint(QPainter::Antialiasing);
+        const QColor ink(229, 237, 245), muted(139, 162, 184), accent(62, 213, 199);
+        auto font = [&](int pixels, bool bold = false) {
+            QFont f; f.setPixelSize(pixels); f.setBold(bold); painter.setFont(f);
+        };
+        auto text = [&](const QRect& rect, const QString& value, const QColor& color,
+                        int pixels, bool bold = false, bool wrap = false) {
+            font(pixels, bold); painter.setPen(color);
+            painter.drawText(rect, Qt::AlignLeft | Qt::AlignVCenter |
+                             (wrap ? Qt::TextWordWrap : Qt::TextSingleLine),
+                             wrap ? value : QFontMetrics(painter.font()).elidedText(value, Qt::ElideRight, rect.width()));
+        };
+        auto card = [&](const QRect& rect, const QString& title) {
+            painter.setPen(QColor(35, 52, 70)); painter.setBrush(QColor(17, 29, 44));
+            painter.drawRoundedRect(rect, 12, 12);
+            text(QRect(rect.x() + 20, rect.y() + 12, rect.width() - 40, 30), title, accent, 17, true);
+        };
+        text(QRect(32, 20, 760, 38), "设置", ink, 28, true);
+        text(QRect(32, 62, 890, 30), "↑ ↓ 选择设置项     ← → 调整     Enter 切换     修改即时生效", muted, 16);
+        text(QRect(990, 28, 250, 34), "Tab 返回摄像头", accent, 18, true);
+        card(QRect(32, 110, 594, 422), "识别与显示");
+        const QStringList labels = {"模型", "画面", "置信度阈值", "模型轮换", "框坐标格式", "运行状态"};
+        const QStringList hints = {"← → 切换模型", "← → C1–C6 / 六路", "← → 每次 5%", "Enter 开关", "Enter 切换", "Enter 暂停 / 继续"};
+        for (int row = 0; row < labels.size(); ++row) {
+            const QRect rect(48, 162 + row * 58, 562, 52);
+            if (row == m_settingRow) {
+                painter.setPen(QColor(62, 213, 199)); painter.setBrush(QColor(22, 62, 70));
+                painter.drawRoundedRect(rect, 8, 8);
+            }
+            text(QRect(62, rect.y() + 7, 154, 30), labels[row], row == m_settingRow ? accent : muted, 17);
+            text(QRect(226, rect.y() + 2, 364, 26), m_settingValues.value(row), ink, 18, true);
+            const QString hint = row == 4 && m_settingValues.value(row) == "按各模型配置" ?
+                "轮换时使用各模型的坐标格式" : hints[row];
+            text(QRect(226, rect.y() + 28, 364, 20), hint, muted, 12);
+        }
+        card(QRect(650, 110, 598, 136), "识别策略");
+        text(QRect(670, 157, 558, 72), m_pipelineSummary, ink, 17, false, true);
+        card(QRect(650, 264, 598, 120), "实时性能");
+        text(QRect(670, 308, 558, 62), m_throughputSummary, ink, 17, false, true);
+        card(QRect(650, 402, 598, 226), "模型列表");
+        const int first = std::max(0, std::min(m_settingModelIndex - 2, m_settingModels.size() - 5));
+        for (int index = first; index < std::min(first + 5, m_settingModels.size()); ++index) {
+            const bool selected = index == m_settingModelIndex;
+            text(QRect(670, 446 + (index - first) * 32, 558, 30),
+                 QString("%1 %2  %3").arg(selected ? "›" : " ").arg(index + 1, 2).arg(m_settingModels[index]),
+                 selected ? accent : muted, 16, selected);
+        }
+        card(QRect(32, 550, 594, 78), "设备状态");
+        text(QRect(52, 590, 554, 26), m_statusLine, muted, 14);
+        // Diagnostics occupy their own bounded region; never cover camera tiles.
+        text(QRect(36, 642, 1208, 30), m_stereoStatus.isEmpty() ? m_visionLine : m_stereoStatus,
+             muted, 13);
+        text(QRect(36, 679, 1208, 25),
+             "快捷键  1–9 模型 · R 轮换 · +/− 阈值 · V 相机 · C 坐标 · P 暂停 · S 截屏 · F 全屏 · Q 退出",
+             muted, 14);
+    }
+
+    /* 文本 → 小缓存位图（按键值缓存，上限 64 条，超出清空重画） */
+    QImage textImage(const QString &s, const QColor &color, int pointSize) {
+        const QString key = QString("%1|%2|%3").arg(s).arg(color.rgba()).arg(pointSize);
+        auto it = m_textCache.find(key);
+        if (it != m_textCache.end()) {
+            if (m_perfEnabled) ++m_perf.textHits;
+            return it.value();
+        }
+        if (m_perfEnabled) ++m_perf.textMisses;
+        QFont f;
+        f.setPointSize(pointSize);
+        QFontMetrics fm(f);
+        QImage img(fm.horizontalAdvance(s) + 16, fm.height() + 8,
+                   QImage::Format_ARGB32_Premultiplied);
+        img.fill(QColor(0, 0, 0, 170));
+        QPainter p(&img);
+        p.setFont(f);
+        p.setPen(color);
+        p.drawText(img.rect().adjusted(8, 0, -8, 0), Qt::AlignLeft | Qt::AlignVCenter, s);
+        p.end();
+        if (m_textCache.size() > 64) {
+            if (m_perfEnabled) ++m_perf.textClears;
+            m_textCache.clear();
+        }
+        m_textCache.insert(key, img);
+        return img;
+    }
+
+    QOpenGLShaderProgram m_prog;
+    static constexpr int kTextureRing = 3;
+    int m_textureRing = 1;
+    GLuint m_tex = 0; // video texture
+    GLuint m_overlayTexture = 0, m_vertexBuffer = 0;
+    GLfloat m_vertices[CAM_COUNT + 2][16] = {};
+    bool m_vertexValid[CAM_COUNT + 2] = {};
+    QSize m_overlaySize;
+    QImage m_rasterOverlay;
+    QList<QRect> m_previousHudRegions;
+    bool m_overlaySettings = false;
+    quint64 m_overlayRevision = 0, m_detectionRevision = 0, m_overlayDetections = 0;
+    qint64 m_overlayUpdatedMs = 0;
+    qint64 m_overlayExpiresMs = 0;
+    int m_overlayRow = -1;
+    GLuint m_cameraTextures[CAM_COUNT][kTextureRing] = {};
+    std::array<int, CAM_COUNT> m_cameraTextureSlot{};
+    bool m_cameraTextureAllocated[CAM_COUNT][kTextureRing] = {};
+    bool m_texAlloc = false;
+    bool m_dirty = false;
+    bool m_videoMode = false;
+    bool m_help = false;
+    bool m_settingsVisible = false;
+    int m_settingRow = 0, m_settingModelIndex = 0;
+    QStringList m_settingValues, m_settingModels;
+    QString m_pipelineSummary, m_throughputSummary, m_monitorSummary;
+    QString m_calibrationLine;
+    qint64 m_calibrationExpiresMs = 0;
+    quint64 m_settingsRevision = 0;
+    QImage m_settingsImage;
+    QString m_settingsImageKey;
+    QMutex m_uiMutex;              // 显示状态锁（采集/推理线程写，GL 线程读）
+    bool m_haveFrame = false;
+    QImage m_comp;                 // RGB565 3x2 合成（包装相机线程缓冲）
+    std::array<QByteArray, CAM_COUNT> m_cameraPixels;
+    int m_changedMask = 0x3F;      // 本次更新的格子（供按格 glTexSubImage2D）
+    int m_texW = 0, m_texH = 0;    // 当前纹理尺寸（判断是否需要重新分配）
+    QImage m_image;                // 视频源路径
     QImage m_laneMask;
+    QImage m_stereoPreview;
+    QByteArray m_uploadTile;
+    QString m_stereoStatus, m_visionLine;
+
+    QHash<QString, QImage> m_textCache;
     QVector<Detection> m_dets;
     QStringList m_classes;
-    bool m_videoMode = false;
     int m_paneMask = 0x3F, m_pane = 0;
-    int m_ox = -1, m_oy = -1;
+    double m_dispFps = 0;
+    QVector<double> m_camFps = QVector<double>(CAM_COUNT, 0.0);
+    std::array<uint64_t, CAM_COUNT> m_sequences{}, m_uploadedSequences{};
+    std::array<qint64, CAM_COUNT> m_capturedMs{};
+    std::array<tdm::FrameRate, CAM_COUNT> m_cameraUploadRates;
+    quint64 m_videoSequence = 0, m_uploadedVideoSequence = 0;
+    qint64 m_videoReceivedMs = 0;
+    bool m_metricsPaused = false;
+    tdm::FrameRate m_takeRate, m_uploadRate, m_newPaintRate, m_paintRate;
+    QString m_statusLine, m_modelLine, m_confLine;
+    std::function<void(QKeyEvent *)> m_keyHook;
     int m_paintCount = 0;
     double m_paintMsSum = 0;
+    tdm::DisplayPerfWindow m_perf;
+    bool m_perfEnabled = true;
+    qint64 m_perfStartedMs = 0;
 };
 
 /* 轮换模型在界面上的短名：去掉 det-/yolov8n- 前缀与 -rk3568 之后的量化后缀 */
@@ -1583,372 +3008,533 @@ static QString shortModelName(const QString &path) {
     return n;
 }
 
-class MainWindow : public QWidget {
+/* ---------------- 控制器（没有独立窗口，UI 全在 DetView 这一个 GL 窗口里） ----------------
+   板端没有合成器，QWidget 系的 GL 方案（QOpenGLWidget / createWindowContainer）会闪、
+   留残影；所以整个程序只有 DetView 一个顶层 GL 窗口：画面、检测框、HUD 三行文字都在
+   它里面，操作全走键盘。本类只持有采集/推理线程与状态，把结果投给 DetView。 */
+class DetViewController : public QObject {
     Q_OBJECT
 public:
-    MainWindow(const QVector<ModelInfo> &models, const QString &videoSource = {}) : m_models(models) {
-        auto *root = new QVBoxLayout(this);
-        auto *bar = new QHBoxLayout();
-        m_combo = new QComboBox(this);
-        for (int i = 0; i < models.size(); i++)
-            m_combo->addItem(QFileInfo(models[i].path).fileName(), i);
-        m_pickBtn = new QPushButton("选择轮换模型", this);
-        m_pickMenu = new QMenu(m_pickBtn);
-        for (int i = 0; i < models.size(); ++i) {
-            if (models[i].lane || !QFileInfo(models[i].path).fileName().startsWith("det-"))
-                continue;
-            QAction *action = m_pickMenu->addAction(QFileInfo(models[i].path).fileName());
-            action->setCheckable(true);
-            action->setData(i);
-        }
-        m_pickBtn->setMenu(m_pickMenu);
-        m_rotateBtn = new QPushButton("轮换", this);
-        m_rotateBtn->setCheckable(true);
-        m_camLabel = new QLabel("cam: -- fps", this);
-        m_camLabel->setMinimumWidth(110);
-        m_inferLabel = new QLabel("infer: -- ms / -- fps   dets: --", this);
-        m_inferLabel->setMinimumWidth(250);
-        m_fmtCombo = new QComboBox(this);
-        m_fmtCombo->addItem("cxcywh");
-        m_fmtCombo->addItem("xyxy");
-        m_camCombo = new QComboBox(this);
-        m_camCombo->addItem("C1");
-        m_camCombo->addItem("C2");
-        m_camCombo->addItem("C3");
-        m_camCombo->addItem("C4");
-        m_camCombo->addItem("C5");
-        m_camCombo->addItem("C6");
-        m_camCombo->addItem("6 路 3x2 (infer C1)");
-        m_camCombo->setCurrentIndex(CAM_COUNT);
-        m_confSlider = new QSlider(Qt::Horizontal, this);
-        m_confSlider->setRange(5, 95);
-        m_confSlider->setValue(25);
-        m_confSlider->setFixedWidth(150);
-        m_confSlider->setToolTip("置信度阈值");
-        m_confLabel = new QLabel("Conf 0.25", this);
-        m_shotBtn = new QPushButton("截屏", this);
-        bar->addWidget(new QLabel("Model:", this));
-        bar->addWidget(m_combo, 1);
-        bar->addWidget(m_pickBtn);
-        bar->addWidget(m_rotateBtn);
-        bar->addWidget(new QLabel("Box:", this));
-        bar->addWidget(m_fmtCombo);
-        bar->addWidget(new QLabel("Cam:", this));
-        bar->addWidget(m_camCombo);
-        bar->addWidget(m_confLabel);
-        bar->addWidget(m_confSlider);
-        bar->addWidget(m_camLabel);
-        bar->addWidget(m_inferLabel);
-        bar->addWidget(m_shotBtn);
-        root->addLayout(bar);
-        m_video = new VideoWidget(this);
-        root->addWidget(m_video, 1);
-        m_status = new QLabel("starting...", this);
-        m_status->setWordWrap(true);
-        root->addWidget(m_status);
-        m_helpLabel = new QLabel(
-            "快捷键:  1-9 切换模型 | C 切换框格式(cxcywh/xyxy) | V 切换相机(C1..C6 / 6 路 3x2) | "
-            "+/- 置信度 | S 截屏 | P/空格 暂停 | F 全屏 | H 帮助 | Q/Esc 退出",
-            this);
-        m_helpLabel->setStyleSheet("background:#111; color:#0f0; font:13px monospace; padding:4px;");
-        m_helpLabel->setWordWrap(true);
-        m_helpLabel->setVisible(false);
-        root->addWidget(m_helpLabel);
-        setFocusPolicy(Qt::StrongFocus);
+    DetViewController(const QVector<ModelInfo> &models, const QString &videoSource,
+                      const VisionOptions &visionOptions)
+         : m_models(models), m_visionOptions(visionOptions) {
+        m_calibrationMode = qEnvironmentVariableIsSet("DETVIEW_CALIBRATION_CAPTURE");
+        m_gl = new DetView();
+        m_gl->setGeometry(QGuiApplication::primaryScreen()->geometry());
+        m_gl->setKeyHook([this](QKeyEvent *e) { handleKey(e); });
+        m_gl->show();
 
         m_camera = new CameraThread();
-        if (!videoSource.isEmpty()) {
-            m_camera->setVideoSource(videoSource);
-            m_camCombo->setCurrentIndex(0);
-            m_camCombo->setEnabled(false);
+        m_camera->enableRawCapture(m_calibrationMode);
+        if (m_calibrationMode) {
+            m_capture = new CalibrationCaptureWorker(this);
+            connect(m_capture, &CalibrationCaptureWorker::saved, this,
+                [this](int generation, QString path, QString message, bool usable) {
+                    fprintf(stderr, "[calibration-capture] generation=%d usable=%d path=%s message=%s\n",
+                            generation, int(usable), qPrintable(path), qPrintable(message));
+                    if (generation == m_sourceGeneration) m_gl->setCalibrationLine(message);
+                });
+            m_capture->start();
+            m_gl->setCalibrationLine("标定采图 · 6×9内角点 / 28.60mm · 摆好并静止后按 S");
         }
+        m_videoMode = !videoSource.isEmpty();
+        if (m_videoMode)
+            m_camera->setVideoSource(videoSource);
+        m_camera->setVideoLoop(QCoreApplication::arguments().contains("--video-loop"));
         m_infer = new InferenceThread();
-        connect(m_camera, &CameraThread::frameReady, this, &MainWindow::onFrame);
-        connect(m_camera, &CameraThread::imageReady, this, &MainWindow::onImage);
-        connect(m_camera, &CameraThread::inferReady, this, &MainWindow::onInfer);
+        m_vision = new VisionPipeline(visionOptions);
+        std::function<void(const VisionFrame&)> analysisSink;
+        if (!m_calibrationMode) analysisSink = [this](const VisionFrame& frame) { m_vision->submitFrame(frame); };
+        m_camera->setVisionSink(visionOptions, std::move(analysisSink));
+        connect(m_camera, &CameraThread::displayAvailable, this, [this]() {
+            const auto frame = m_camera->takeDisplay();
+            if (frame.generation != m_sourceGeneration || (frame.video && frame.image.isNull())) return;
+            m_gl->observeFrame(frame);
+            if (frame.video) onImage(frame.image, frame.fps);
+            else {
+                m_camFps = frame.fps;
+                m_lastFrameMs = QDateTime::currentMSecsSinceEpoch();
+                m_gl->submitCameras(frame);
+                if (m_labelTimer.elapsed() >= 300) {
+                    m_labelTimer.restart();
+                    updateHudLines();
+                }
+            }
+        });
         connect(m_camera, &CameraThread::statusMsg, this, [this](QString s) {
-            m_status->setText(s);
+            m_gl->setStatusLine(s);
         });
-        connect(m_infer, &InferenceThread::detectionsReady, this, &MainWindow::onDets);
-        connect(m_infer, &InferenceThread::laneMaskReady, this, &MainWindow::onLaneMask);
-        connect(m_infer, &InferenceThread::modelLoaded, this, &MainWindow::onModelLoaded);
-        connect(m_combo, QOverload<int>::of(&QComboBox::currentIndexChanged), this,
-                &MainWindow::onModelChanged);
-        connect(m_rotateBtn, &QPushButton::clicked, this, &MainWindow::onRotateClicked);
-        connect(m_camCombo, QOverload<int>::of(&QComboBox::currentIndexChanged), this,
-                &MainWindow::onCamChanged);
-        connect(m_fmtCombo, QOverload<int>::of(&QComboBox::currentIndexChanged), this,
-                &MainWindow::onFormatChanged);
-        connect(m_confSlider, &QSlider::valueChanged, this, &MainWindow::onConfChanged);
-        connect(m_shotBtn, &QPushButton::clicked, this, &MainWindow::onScreenshot);
+        connect(m_infer, &InferenceThread::detectionsReady, this, &DetViewController::onDets);
+        connect(m_infer, &InferenceThread::laneMaskReady, this, &DetViewController::onLaneMask);
+        connect(m_infer, &InferenceThread::modelLoaded, this, &DetViewController::onModelLoaded);
+        connect(m_vision, &VisionPipeline::inferenceRequested, this, [this](VisionFrame frame) {
+            if (frame.sourceGeneration != m_sourceGeneration || m_paused || m_calibrationMode) {
+                m_vision->inferenceFailed(frame.sourceGeneration, frame.frameId);
+                return;
+            }
+            QImage infer(MODEL_W, MODEL_H, QImage::Format_RGB888);
+            infer.fill(QColor(114, 114, 114));
+            for (int y = 0; y < IMG_H; ++y)
+                memcpy(infer.scanLine(y + 80), frame.image.constScanLine(y), IMG_W * 3);
+            m_infer->submit(infer, frame.sourceGeneration, frame.frameId);
+            m_requestRate.add(monotonicMs());
+        });
+        connect(m_infer, &InferenceThread::inferenceFailed, this, [this](int generation, quint64 frameId) {
+            m_vision->inferenceFailed(generation, frameId);
+        });
+        connect(m_vision, &VisionPipeline::tracksReady, this,
+                [this](QString model, int generation, quint64 frameId, QVector<Detection> dets, double ms) {
+            if (generation != m_sourceGeneration) return;
+            if (QCoreApplication::arguments().contains("--tracker-debug") &&
+                monotonicMs() - m_trackerDebugMs >= 250) {
+                m_trackerDebugMs = monotonicMs();
+                QJsonArray boxes;
+                int tracked = 0, predicted = 0, raw = 0;
+                for (const auto& d : dets) {
+                    if (d.trackId) { ++tracked; if (d.predicted) ++predicted; }
+                    else ++raw;
+                    boxes.append(QJsonObject{{"class", d.cls}, {"id", QString::number(d.trackId)},
+                        {"score", double(d.score)}, {"ncc", double(d.matchScore)}, {"predicted", d.predicted},
+                        {"x", double(d.x1)}, {"y", double(d.y1 - 80)},
+                        {"w", double(d.x2 - d.x1)}, {"h", double(d.y2 - d.y1)},
+                        {"ttl_ms", double(d.validUntilMs - m_trackerDebugMs)}});
+                }
+                const QJsonObject record{{"captured_at_host_ms", double(m_trackerDebugMs)},
+                    {"model", QFileInfo(model).fileName()}, {"generation", generation},
+                    {"source_frame", QString::number(frameId)}, {"tracked_vehicles", tracked},
+                    {"predicted_vehicles", predicted}, {"raw_detections", raw},
+                    {"update_ms", ms}, {"boxes", boxes}};
+                fprintf(stderr, "[tracker-debug] %s\n", QJsonDocument(record).toJson(QJsonDocument::Compact).constData());
+            }
+            if (m_rotationEnabled) {
+                m_lastTrackMs = monotonicMs();
+                m_results[model] = dets;
+                m_resultTime[model] = monotonicMs();
+                updateRotationOverlay();
+            } else if (m_currentIndex >= 0 && m_models[m_currentIndex].path == model) {
+                m_lastTrackMs = monotonicMs();
+                m_gl->setDetections(dets, m_classes);
+            }
+            m_trackingMs = ms;
+            if (m_visionOptions.stereoVehicleTrial) {
+                QString text = "单车辆试用 · 未识别到车辆";
+                qint64 expiresMs = 0;
+                for (const auto& d : dets) {
+                    if (d.depthStatus.isEmpty()) continue;
+                    const qint64 age = monotonicMs() - d.depthCapturedMs;
+                    if (std::isfinite(d.depthMeters) && d.depthCapturedMs > 0 && age >= 0 && age <= 300) {
+                        text = QString("单车辆试用 Z=%1 米 · 检测框ROI · 同步未确认 · 请保持静止")
+                            .arg(d.depthMeters, 0, 'f', 2);
+                        expiresMs = d.depthCapturedMs + 300;
+                        fprintf(stderr, "[vehicle-range] frame=%llu meters=%.4f captured_ms=%lld age_ms=%lld trial=%d cls=%d score=%.3f box=%.1f,%.1f,%.1f,%.1f\n",
+                            (unsigned long long)frameId, d.depthMeters, (long long)d.depthCapturedMs, (long long)age,
+                            int(d.depthTrial), d.cls, d.score, d.x1, d.y1, d.x2, d.y2);
+                    } else text = "单车辆试用 · " + d.depthStatus;
+                    break;
+                }
+                m_gl->setCalibrationLine(text, expiresMs);
+            }
+        });
+        connect(m_vision, &VisionPipeline::stereoReady, this,
+                [this](int generation, quint64, QImage disparity, QString status) {
+            if (generation != m_sourceGeneration) return;
+            m_lastStereoMs = monotonicMs();
+            m_gl->setStereoPreview(disparity, status);
+        });
+        connect(m_vision, &VisionPipeline::diagnostics, this, [this](QString text) {
+            m_gl->setVisionLine(text);
+        });
+        /* 未指定 --rotate-model 时，R 键在“全部非 lane 检测模型(最多 4 款)”上轮换 */
+        for (const ModelInfo &model : m_models) {
+            if (m_rotationSelection.size() >= 4)
+                break;
+            if (!model.lane && QFileInfo(model.path).fileName().startsWith("det-"))
+                m_rotationSelection.append(model);
+        }
         m_statsTimer.start();
-        m_camLabelTimer.start();
-        m_inferLabelTimer.start();
+        m_labelTimer.start();
         m_infer->start();
+        m_vision->start();
         m_camera->start();
-        auto *expiryTimer = new QTimer(this);
-        connect(expiryTimer, &QTimer::timeout, this, [this]() {
-            if (m_rotationEnabled) updateRotationOverlay();
+        /* 轮换结果 2 秒过期；过期只影响叠加显示，不影响推理 */
+        auto *expiry = new QTimer(this);
+        connect(expiry, &QTimer::timeout, this, [this]() {
+            if (m_rotationEnabled)
+                updateRotationOverlay();
+            if (m_visionOptions.stereoEnabled() && monotonicMs() - m_lastStereoMs > 1000)
+                m_gl->setStereoPreview({}, "双目：等待新帧，旧距离已失效");
+            if (monotonicMs() - m_lastLaneMs > 2000) m_gl->setLaneMask({});
+            updateHudLines();
+            if (m_statsTimer.elapsed() >= 5000) {
+                const double seconds = m_statsTimer.elapsed() / 1000.0;
+                m_statsTimer.restart();
+                const auto paints = m_gl->takePaintStats();
+                const auto npu = m_infer->metrics(m_sourceGeneration);
+                fprintf(stderr, "[stats] take_fps=%.2f upload_new_fps=%.2f paint_new_fps=%.2f paint_fps=%.2f paint_avg_ms=%.2f npu_request_fps=%.2f npu_started_fps=%.2f npu_completed_fps=%.2f npu_failed_fps=%.2f infer_service_ms=%.2f\n",
+                        m_gl->takeRate(), m_gl->uploadRate(), m_gl->newFrameRate(), paints.count / seconds,
+                        paints.averageMs, m_requestRate.rate(monotonicMs()), npu.started, npu.completed,
+                        npu.failed, m_lastMs);
+                m_gl->reportPerformance();
+            }
+            m_gl->refreshExpiredContent(); // Refresh labels/TTL only when due.
         });
-        expiryTimer->start(250);
-        if (!models.isEmpty())
+        expiry->start(100);
+        /* 看门狗：相机停摆（FPGA 不再出帧）或 ioctl 被驱动的信号量卡住时，
+           ioctlTmo 的失败计数不会推进，应用会一直挂着不退。这里用"多久没有新帧"
+           兜底：60 秒没有任何新帧就退出，交给 run_detview.sh 重启；暂停时不计时。 */
+        m_lastFrameMs = QDateTime::currentMSecsSinceEpoch();
+        /* 超时默认 60s，可用 DETVIEW_NOFRAME_MS 覆盖（自测看门狗时用） */
+        m_noFrameTimeoutMs = qEnvironmentVariableIsSet("DETVIEW_NOFRAME_MS")
+                                 ? qEnvironmentVariableIntValue("DETVIEW_NOFRAME_MS") : 60000;
+        if (m_noFrameTimeoutMs <= 0)
+            m_noFrameTimeoutMs = 60000;
+        auto *watchdog = new QTimer(this);
+        connect(watchdog, &QTimer::timeout, this, [this]() {
+            if (m_paused || m_lastFrameMs == 0)
+                return;
+            const qint64 silent = QDateTime::currentMSecsSinceEpoch() - m_lastFrameMs;
+            if (silent < m_noFrameTimeoutMs)
+                return;
+            fprintf(stderr, "[recover] no new frame for %lld ms -> exit(3) for supervisor restart\n",
+                    (long long)silent);
+            fflush(stderr);
+            ::_exit(3);
+        });
+        watchdog->start(5000);
+        if (!m_models.isEmpty())
             onModelChanged(0);
-        setWindowTitle("detview - OV5640 + RKNN");
-        resize(1280, 800);
     }
-    ~MainWindow() override {
+    ~DetViewController() override {
+        if (m_capture) { m_capture->stop(); m_capture->wait(); }
         m_camera->stop();
         m_camera->wait();
         m_infer->stop();
+        m_vision->stop();
+        delete m_camera;
+        delete m_infer;
+        delete m_vision;
+        delete m_gl;
     }
 
     void setModelIndex(int index) {
         if (index >= 0 && index < m_models.size())
-            m_combo->setCurrentIndex(index);
+            onModelChanged(index);
     }
     void setFullscreen(bool on) {
         m_full = on;
-        on ? showFullScreen() : showNormal();
+        on ? m_gl->showFullScreen() : m_gl->showNormal();
     }
     /* 0..5 = C1..C6 单路，CAM_COUNT = 6 路 3x2 */
     void setCameraMode(int mode) {
         if (mode >= 0 && mode <= CAM_COUNT)
-            m_camCombo->setCurrentIndex(mode);
+            onCamChanged(mode);
     }
     bool setRotation(const QStringList &selectors) {
-        if (selectors.size() < 2 || selectors.size() > 4)
-            return false;
-        QVector<int> indices;
-        for (const QString &selector : selectors) {
-            if (selector.trimmed().isEmpty()) return false;
-            int matched = -1;
-            for (QAction *action : m_pickMenu->actions()) {
-                const int index = action->data().toInt();
-                if (!m_models[index].path.contains(selector.trimmed(), Qt::CaseInsensitive))
-                    continue;
-                if (matched >= 0) return false;
-                matched = index;
-            }
-            if (matched < 0 || indices.contains(matched)) return false;
-            indices.append(matched);
-        }
-        for (QAction *action : m_pickMenu->actions()) {
-            action->setChecked(indices.contains(action->data().toInt()));
-        }
-        onRotateClicked(true);
+        QVector<ModelInfo> chosen;
+        if (!selectRotation(m_models, selectors, chosen)) return false;
+        m_rotationSelection = chosen;
+        startRotation(chosen);
         return m_rotationEnabled;
     }
+    /* --shot N：N 秒后自动截一张 GL 帧缓冲（远程/无人值守验证用），之后继续跑 */
+    void takeShot() { onScreenshot(); }
 
-protected:
-    void keyPressEvent(QKeyEvent *e) override {
-        const int k = e->key();
+private:
+    void handleKey(QKeyEvent *e) {
+        int k = e->key();
+        if (k == Qt::Key_Escape && e->isAutoRepeat()) return;
+        if (k == Qt::Key_Tab || k == Qt::Key_Backtab) {
+            if (!e->isAutoRepeat()) {
+                m_gl->setSettingsVisible(!m_gl->settingsVisible());
+                fprintf(stderr, "[ui] page=%s\n", m_gl->settingsVisible() ? "settings" : "monitor");
+                updateHudLines();
+            }
+            return;
+        }
+        if (m_gl->settingsVisible()) {
+            if (k == Qt::Key_Escape) { m_gl->setSettingsVisible(false); return; }
+            if (k == Qt::Key_Up || k == Qt::Key_Down) {
+                m_gl->moveSetting(k == Qt::Key_Up ? -1 : 1);
+                return;
+            }
+            if (k == Qt::Key_Left || k == Qt::Key_Right || k == Qt::Key_Return || k == Qt::Key_Enter) {
+                const int direction = k == Qt::Key_Left ? -1 : 1;
+                switch (m_gl->settingRow()) {
+                case 0:
+                    if (!m_models.isEmpty())
+                        onModelChanged((m_currentIndex + direction + m_models.size()) % m_models.size());
+                    return;
+                case 1:
+                    if (!m_videoMode) onCamChanged((m_camMode + direction + CAM_COUNT + 1) % (CAM_COUNT + 1));
+                    return;
+                case 2: onConfChanged(m_confPct + direction * 5); return;
+                case 3: k = Qt::Key_R; break;
+                case 4: k = Qt::Key_C; break;
+                case 5: k = Qt::Key_P; break;
+                }
+            }
+        }
         if (k >= Qt::Key_1 && k <= Qt::Key_9) {
             const int idx = k - Qt::Key_1;
             if (idx < m_models.size())
-                m_combo->setCurrentIndex(idx);
+                onModelChanged(idx);
             return;
         }
         switch (k) {
         case Qt::Key_Q:
         case Qt::Key_Escape:
-            close();
+            qApp->quit();
             break;
         case Qt::Key_F:
-            m_full = !m_full;
-            m_full ? showFullScreen() : showNormal();
+            setFullscreen(!m_full);
             break;
         case Qt::Key_S:
+            if (e->isAutoRepeat()) break;
             onScreenshot();
             break;
+        case Qt::Key_D:
+            if (m_calibrationMode && !e->isAutoRepeat()) {
+                m_captureDistance = (m_captureDistance + 1) % 5;
+                const double distances[] = {0, .5, 1, 2, 4};
+                m_gl->setCalibrationLine(m_captureDistance ? QString("标定采图 · 距离标签 %1m · 静止后按 S").arg(distances[m_captureDistance]) :
+                    QString("标定采图 · 距离未指定 · 换位置/倾角，静止后按 S"));
+            }
+            break;
         case Qt::Key_C:
-            m_fmtCombo->setCurrentIndex((m_fmtCombo->currentIndex() + 1) % 2);
+            if (m_rotationEnabled) {
+                m_gl->setStatusLine("轮换时使用各模型的坐标格式");
+                break;
+            }
+            m_xyxy = !m_xyxy;
+            m_infer->setFormat(m_xyxy);
+            resetVision();
+            updateHudLines();
             break;
         case Qt::Key_V:
-            m_camCombo->setCurrentIndex((m_camCombo->currentIndex() + 1) % (CAM_COUNT + 1));
+            if (!m_videoMode) onCamChanged((m_camMode + 1) % (CAM_COUNT + 1));
+            break;
+        case Qt::Key_G:
+            if (!m_videoMode) onCamChanged(CAM_COUNT);
+            m_gl->setSettingsVisible(false);
             break;
         case Qt::Key_P:
         case Qt::Key_Space:
             m_paused = !m_paused;
+            m_gl->setMetricsPaused(m_paused);
             m_camera->setPaused(m_paused);
-            m_status->setText(m_paused ? "已暂停 (P/空格 继续)" : "运行中");
+            if (!m_paused) m_lastFrameMs = QDateTime::currentMSecsSinceEpoch();
+            resetVision();
+            m_gl->setDetections({}, m_classes);
+            m_gl->setStatusLine(m_paused ? "已暂停 (P/空格 继续)" : "运行中");
+            updateHudLines();
             break;
         case Qt::Key_Minus:
         case Qt::Key_Underscore:
-            m_confSlider->setValue(std::max(5, m_confSlider->value() - 5));
+            onConfChanged(std::max(5, m_confPct - 5));
             break;
         case Qt::Key_Equal:
         case Qt::Key_Plus:
-            m_confSlider->setValue(std::min(95, m_confSlider->value() + 5));
+            onConfChanged(std::min(95, m_confPct + 5));
             break;
         case Qt::Key_H:
-            m_helpLabel->setVisible(!m_helpLabel->isVisible());
+            m_helpVisible = !m_helpVisible;
+            m_gl->setHelpVisible(m_helpVisible);
+            break;
+        case Qt::Key_R:
+            if (m_rotationEnabled)
+                onModelChanged(m_currentIndex < 0 ? 0 : m_currentIndex);
+            else
+                startRotation(m_rotationSelection);
             break;
         default:
-            QWidget::keyPressEvent(e);
+            break;
         }
     }
 
-private slots:
-    void onFrame(QImage content, int ox, int oy, int paneMask, int pane, double fps) {
+    void onFrame(QImage content, int paneMask, int pane, double fps, QVector<double> camFps,
+                 int changedMask) {
         m_camFps = fps;
-        m_camera->setDisplaySize(m_video->width(), m_video->height());
-        m_video->submitScaled(content, ox, oy, paneMask, pane);
-        if (m_camLabelTimer.elapsed() >= 400) {
-            m_camLabelTimer.restart();
-            m_camLabel->setText(QString("cam: %1 fps").arg(fps, 0, 'f', 1));
+        m_lastFrameMs = QDateTime::currentMSecsSinceEpoch();
+        m_gl->submitComposite(content, paneMask, pane, fps, camFps, changedMask);
+        if (m_labelTimer.elapsed() >= 300) {
+            m_labelTimer.restart();
+            updateHudLines();
         }
     }
     void onImage(QImage frame, double fps) {
         m_camFps = fps;
-        m_video->submitImage(frame);
-        if (m_camLabelTimer.elapsed() >= 400) {
-            m_camLabelTimer.restart();
-            m_camLabel->setText(QString("cam: %1 fps").arg(fps, 0, 'f', 1));
+        m_lastFrameMs = QDateTime::currentMSecsSinceEpoch();
+        m_gl->submitImage(frame, fps);
+        if (m_labelTimer.elapsed() >= 300) {
+            m_labelTimer.restart();
+            updateHudLines();
         }
     }
-    void onInfer(QImage infer) { m_infer->submit(infer, m_sourceGeneration); }
-    void onCamChanged(int index) {
+    void resetVision() {
+        if (m_visionOptions.stereoVehicleTrial)
+            m_gl->setCalibrationLine("单车辆试用 · 等待新车辆与同帧测距");
         ++m_sourceGeneration;
+        m_infer->resetMetrics(m_sourceGeneration);
+        m_requestRate.reset(monotonicMs());
+        m_gl->resetRates();
+        m_resultMs.clear(); m_resultFps.clear();
+        m_rotInferFps = m_lastMs = 0;
+        m_lastDets = 0;
+        QStringList paths;
+        QHash<QString, QVector<int>> vehicleClasses;
+        bool lane = false;
+        if (m_rotationEnabled) {
+            for (const auto& model : m_rotation) {
+                paths.append(model.path);
+                vehicleClasses.insert(model.path, vehicleTrackingClasses(model));
+            }
+        } else if (m_currentIndex >= 0) {
+            paths.append(m_models[m_currentIndex].path);
+            lane = m_models[m_currentIndex].lane;
+            vehicleClasses.insert(m_models[m_currentIndex].path, vehicleTrackingClasses(m_models[m_currentIndex]));
+        }
+        const int selected = m_videoMode ? 0 : (m_camMode == CAM_COUNT ?
+            (m_visionOptions.stereoEnabled() ? m_visionOptions.primaryStereoLeft() : 0) : m_camMode);
+        m_vision->configure(m_sourceGeneration, selected, lane, paths, vehicleClasses);
+        for (const auto& path : paths) {
+            QStringList ids;
+            for (int c : vehicleClasses.value(path)) ids << QString::number(c);
+            fprintf(stderr, "[tracking-policy] model=%s vehicle_classes=%s interval_ms=%d template_side=%d\n",
+                qPrintable(QFileInfo(path).fileName()), qPrintable(ids.isEmpty() ? "none" : ids.join(',')),
+                m_visionOptions.trackingIntervalMs, m_visionOptions.maxTemplateSide);
+        }
+        m_camera->setSourceGeneration(m_sourceGeneration);
         m_results.clear();
         m_resultTime.clear();
-        m_fpsWindowStart = 0;
-        m_fpsWindowTotal = 0;
-        m_fpsWindowModel.clear();
-        m_rotInferFps = 0;
-        m_video->setDetections({}, m_classes);
-        m_video->setLaneMask({});
-        m_camera->setMode(index);
+        m_gl->setDetections({}, m_classes);
+        m_gl->setLaneMask({});
+        m_lastStereoMs = m_lastTrackMs = 0;
+        m_gl->setStereoPreview({}, m_visionOptions.stereoEnabled() ? "双目：等待配对帧" : QString());
     }
-    void onDets(QString modelPath, int sourceGeneration, QVector<Detection> dets, double fps, double ms) {
-        if (sourceGeneration != m_sourceGeneration) return;
-        if (m_rotationEnabled) {
-            bool chosen = false;
-            for (const ModelInfo &model : m_rotation)
-                if (model.path == modelPath) chosen = true;
-            if (!chosen) return;
-            const qint64 now = QDateTime::currentMSecsSinceEpoch();
-            /* 帧率按 1 秒窗口计数：GUI 线程绘制时会把排队的完成信号挤在一起处理，
-               按相邻时间戳求倒数会算出几百 fps 的假值（实测差 1ms 就是 1000fps）。 */
-            if (m_fpsWindowStart == 0)
-                m_fpsWindowStart = now;
-            ++m_fpsWindowTotal;
-            ++m_fpsWindowModel[modelPath];
-            if (now - m_fpsWindowStart >= 1000) {
-                const double span = (now - m_fpsWindowStart) / 1000.0;
-                m_rotInferFps = m_fpsWindowTotal / span;
-                for (auto it = m_fpsWindowModel.constBegin(); it != m_fpsWindowModel.constEnd(); ++it)
-                    m_resultFps[it.key()] = it.value() / span;
-                m_fpsWindowTotal = 0;
-                m_fpsWindowModel.clear();
-                m_fpsWindowStart = now;
-            }
-            m_results[modelPath] = dets;
-            m_resultTime[modelPath] = now;
-            m_resultMs[modelPath] = ms;
-            updateRotationOverlay();
-        } else {
-            const int index = m_combo->currentIndex();
-            if (index < 0 || m_models[index].path != modelPath) return;
-            m_video->setDetections(dets, m_classes);
-        }
-        if (m_inferLabelTimer.elapsed() >= 400) {
-            m_inferLabelTimer.restart();
-            if (m_rotationEnabled) {
-                /* 整体吞吐 + 每款模型各自的窗口帧率（名字取短名，完整名字在状态栏） */
-                QStringList perModel;
-                for (int i = 0; i < m_rotation.size(); ++i)
-                    perModel << QString("%1 %2")
-                                    .arg(shortModelName(m_rotation[i].path))
-                                    .arg(m_resultFps.value(m_rotation[i].path), 0, 'f', 1);
-                m_inferLabel->setText(QString("轮换 %1 款 | 整体 %2 fps | %3 fps | 本次 %4 ms | 检测 %5")
-                                          .arg(m_rotation.size())
-                                          .arg(m_rotInferFps, 0, 'f', 1)
-                                          .arg(perModel.join("  "))
-                                          .arg(ms, 0, 'f', 1)
-                                          .arg(m_visibleDets));
-            } else {
-                m_inferLabel->setText(QString("infer: %1 ms / %2 fps   dets: %3")
-                                          .arg(ms, 0, 'f', 1).arg(fps, 0, 'f', 1).arg(dets.size()));
-            }
-        }
-        if (m_statsTimer.elapsed() >= 5000) {
-            m_statsTimer.restart();
-            fprintf(stderr, "[stats] cam=%.1ffps infer=%.1fms/%.1ffps dets=%d paints=%d paintAvg=%.2fms\n",
-                    m_camFps, ms, fps, dets.size(), m_video->takePaintCount(),
-                    m_video->takePaintAvgMs());
-            fflush(stderr);
-        }
-    }
-    void onLaneMask(QImage mask, double fps, double ms) {
-        m_video->setLaneMask(mask);
-        if (m_inferLabelTimer.elapsed() >= 400) {
-            m_inferLabelTimer.restart();
-            m_inferLabel->setText(QString("infer: %1 ms / %2 fps   lane mask")
-                                      .arg(ms, 0, 'f', 1).arg(fps, 0, 'f', 1));
-        }
-    }
-    void onModelLoaded(QString path, bool ok, QString info) {
-        fprintf(stderr, "[model] %s %s %s\n", path.toLocal8Bit().constData(),
-                ok ? "OK" : "FAIL", info.toLocal8Bit().constData());
-        m_status->setText(QString("%1 -> %2  %3")
-                              .arg(QFileInfo(path).fileName())
-                              .arg(ok ? "OK" : "FAIL")
-                              .arg(info));
-    }
-    void onModelChanged(int index) {
-        if (index < 0 || index >= m_models.size())
+
+    void onCamChanged(int index) {
+        if (index < 0 || index > CAM_COUNT)
             return;
-        m_rotationEnabled = false;
-        m_rotateBtn->setChecked(false);
-        m_results.clear();
-        m_classes = m_models[index].classes;
-        m_video->setDetections({}, m_classes);
-        m_video->setLaneMask({});
-        m_fmtCombo->blockSignals(true);
-        m_fmtCombo->setCurrentIndex(m_models[index].xyxy ? 1 : 0);
-        m_fmtCombo->setEnabled(!m_models[index].lane);
-        m_fmtCombo->blockSignals(false);
-        m_infer->setModel(m_models[index]);
-        m_infer->setFormat(m_models[index].xyxy);
-        setWindowTitle(QString("detview - %1").arg(QFileInfo(m_models[index].path).fileName()));
-    }
-    void onRotateClicked(bool enabled) {
-        if (!enabled) { onModelChanged(m_combo->currentIndex()); return; }
-        m_fpsWindowStart = 0;
-        m_fpsWindowTotal = 0;
-        m_fpsWindowModel.clear();
-        m_rotInferFps = 0;
-        QVector<ModelInfo> selected;
-        for (QAction *action : m_pickMenu->actions())
-            if (action->isChecked()) selected.append(m_models[action->data().toInt()]);
-        if (selected.size() < 2 || selected.size() > 4) {
-            m_rotateBtn->setChecked(false);
-            m_status->setText("请选择 2–4 款 YOLO 检测模型轮换");
-            return;
-        }
-        m_rotation = selected;
-        m_rotationEnabled = true;
-        m_rotateBtn->setChecked(true);
+        m_camMode = index;
         m_results.clear();
         m_resultTime.clear();
         m_resultMs.clear();
         m_resultFps.clear();
-        m_video->setDetections({}, {});
-        m_video->setLaneMask({});
-        m_fmtCombo->setEnabled(false);
-        m_infer->setModels(selected);
-        setWindowTitle(QString("detview - %1 款 YOLO 轮换").arg(selected.size()));
-        m_status->setText("加载轮换模型中...");
+        m_rotInferFps = 0;
+        m_gl->setDetections({}, m_classes);
+        m_gl->setLaneMask({});
+        m_camera->setMode(index);
+        m_gl->setCameraLayout(index, index == CAM_COUNT ?
+            (m_visionOptions.stereoEnabled() ? m_visionOptions.primaryStereoLeft() : 0) : index);
+        resetVision();
+        updateHudLines();
     }
+
+    void onDets(QString modelPath, int sourceGeneration, quint64 frameId,
+                QVector<Detection> dets, double fps, double ms) {
+        if (sourceGeneration != m_sourceGeneration)
+            return;
+        if (QCoreApplication::arguments().contains("--tracker-debug")) {
+            QJsonArray boxes;
+            for (const auto& d : dets) boxes.append(QJsonObject{{"class", d.cls}, {"score", double(d.score)},
+                {"x", double(d.x1)}, {"y", double(d.y1 - 80)},
+                {"w", double(d.x2 - d.x1)}, {"h", double(d.y2 - d.y1)}});
+            const QJsonObject record{{"received_at_host_ms", double(monotonicMs())},
+                {"source_frame", QString::number(frameId)}, {"generation", sourceGeneration},
+                {"model", QFileInfo(modelPath).fileName()}, {"inference_ms", ms}, {"boxes", boxes}};
+            fprintf(stderr, "[detector-debug] %s\n", QJsonDocument(record).toJson(QJsonDocument::Compact).constData());
+        }
+        m_vision->submitDetections(modelPath, sourceGeneration, frameId, dets, ms);
+        if (m_rotationEnabled) {
+            bool chosen = false;
+            for (const ModelInfo &model : m_rotation)
+                if (model.path == modelPath)
+                    chosen = true;
+            if (!chosen)
+                return;
+            m_resultMs[modelPath] = ms;
+            m_lastMs = ms;
+            updateRotationOverlay();
+        } else {
+            if (m_currentIndex < 0 || m_models[m_currentIndex].path != modelPath)
+                return;
+            m_lastMs = ms;
+            m_lastDets = dets.size();
+            if (m_labelTimer.elapsed() >= 300) {
+                m_labelTimer.restart();
+                updateHudLines();
+            }
+        }
+        Q_UNUSED(fps); // Throughput is sampled from the inference thread, independent of GUI queuing.
+    }
+
+    void onLaneMask(QImage mask, int generation, quint64 frameId, double fps, double ms) {
+        if (generation != m_sourceGeneration) return;
+        m_vision->inferenceFailed(generation, frameId);
+        m_lastLaneMs = monotonicMs();
+        m_lastMs = ms;
+        m_gl->setLaneMask(mask);
+        Q_UNUSED(fps);
+        updateHudLines();
+    }
+
+    void onModelLoaded(QString path, bool ok, QString info) {
+        fprintf(stderr, "[model] %s %s %s\n", path.toLocal8Bit().constData(),
+                ok ? "OK" : "FAIL", info.toLocal8Bit().constData());
+        m_gl->setStatusLine(QString("%1 -> %2  %3")
+                                .arg(QFileInfo(path).fileName())
+                                .arg(ok ? "OK" : "FAIL")
+                                .arg(info));
+    }
+
+    void onModelChanged(int index) {
+        if (index < 0 || index >= m_models.size())
+            return;
+        m_rotationEnabled = false;
+        m_currentIndex = index;
+        m_results.clear();
+        m_classes = m_models[index].classes;
+        m_xyxy = m_models[index].xyxy;
+        m_gl->setDetections({}, m_classes);
+        m_gl->setLaneMask({});
+        m_infer->setModel(m_models[index]);
+        m_infer->setFormat(m_models[index].xyxy);
+        resetVision();
+        updateHudLines();
+    }
+
+    void startRotation(const QVector<ModelInfo> &selection) {
+        if (selection.size() < 2 || selection.size() > 4) {
+            m_gl->setStatusLine("轮换需要 2-4 款 YOLO 检测模型（启动时 --rotate-model a,b）");
+            return;
+        }
+        m_rotInferFps = 0;
+        m_rotation = selection;
+        m_rotationEnabled = true;
+        m_results.clear();
+        m_resultTime.clear();
+        m_resultMs.clear();
+        m_resultFps.clear();
+        m_gl->setDetections({}, {});
+        m_gl->setLaneMask({});
+        m_infer->setModels(selection);
+        resetVision();
+        m_gl->setStatusLine("加载轮换模型中...");
+        updateHudLines();
+    }
+
     void updateRotationOverlay() {
         QVector<Detection> all;
         QStringList labels, summaries;
-        const qint64 now = QDateTime::currentMSecsSinceEpoch();
-        /* 状态栏：先给整体吞吐，再逐款给出耗时/检测数/该款窗口帧率/结果年龄 */
-        summaries.append(QString("整体 %1 fps").arg(m_rotInferFps, 0, 'f', 1));
+        const qint64 now = monotonicMs();
+        const auto npu = m_infer->metrics(m_sourceGeneration);
+        m_rotInferFps = npu.completed;
+        m_resultFps = npu.modelRates;
+        summaries.append(QString("NPU完成 %1 fps").arg(m_rotInferFps, 0, 'f', 1));
         for (const ModelInfo &model : m_rotation) {
             const QString name = shortModelName(model.path);
-            if (!m_resultTime.contains(model.path) || now - m_resultTime[model.path] > 2000)
+            if (!m_resultTime.contains(model.path) || now - m_resultTime[model.path] >
+                (m_visionOptions.tracking ? m_visionOptions.trackingMaxDetectionAgeMs : 2000))
                 continue;
             const int offset = labels.size();
             for (const QString &cls : model.classes)
@@ -1957,81 +3543,203 @@ private slots:
                 det.cls += offset;
                 all.append(det);
             }
-            summaries.append(QString("%1 %2ms %3个 %4fps 更新%5ms前")
+            summaries.append(QString("%1 %2ms %3个 %4fps NPU%5ms前")
                 .arg(name).arg(m_resultMs.value(model.path), 0, 'f', 0)
                 .arg(m_results.value(model.path).size()).arg(m_resultFps.value(model.path), 0, 'f', 1)
-                .arg(now - m_resultTime[model.path]));
+                .arg(npu.completedMs.contains(model.path) ? now - npu.completedMs.value(model.path) : -1));
         }
         m_visibleDets = all.size();
-        m_video->setDetections(all, labels);
-        m_status->setText(summaries.join(" | "));
+        m_gl->setDetections(all, labels);
+        m_gl->setStatusLine(summaries.join(" | "));
+        updateHudLines();
     }
-    void onFormatChanged(int index) { m_infer->setFormat(index == 1); }
-    void onConfChanged(int value) {
-        m_confLabel->setText(QString("Conf %1").arg(value / 100.0, 0, 'f', 2));
-        m_infer->setConf(value / 100.0f);
+
+    void onConfChanged(int pct) {
+        m_confPct = std::min(95, std::max(5, pct));
+        m_infer->setConf(m_confPct / 100.0f);
+        resetVision();
+        updateHudLines();
     }
+
     void onScreenshot() {
-        const QPixmap pm = m_video->grab();
+        if (m_calibrationMode) { captureCalibration(); return; }
+        const QPixmap pm = QPixmap::fromImage(m_gl->grabFrame());
         if (pm.isNull()) {
-            m_status->setText("截屏失败: 无画面");
+            m_gl->setStatusLine("截屏失败: 无画面");
             return;
         }
         const QString dir = "/userdata/detview_shots";
         QDir().mkpath(dir);
-        const QString model = m_combo->currentIndex() >= 0 && m_combo->currentIndex() < m_models.size()
-                                  ? QFileInfo(m_models[m_combo->currentIndex()].path).completeBaseName()
+        const QString model = (m_currentIndex >= 0 && m_currentIndex < m_models.size())
+                                  ? QFileInfo(m_models[m_currentIndex].path).completeBaseName()
                                   : QString("model");
         const QString ts = QDateTime::currentDateTime().toString("yyyyMMdd_HHmmss");
         QString path = QString("%1/shot_%2_%3.png").arg(dir).arg(model).arg(ts);
         if (!pm.save(path, "PNG")) {
             path = QString("%1/shot_%2_%3.jpg").arg(dir).arg(model).arg(ts);
             if (!pm.save(path, "JPG")) {
-                m_status->setText("截屏保存失败");
+                m_gl->setStatusLine("截屏保存失败");
                 return;
             }
         }
-        m_status->setText(QString("已保存: %1  (%2x%3)").arg(path).arg(pm.width()).arg(pm.height()));
+        m_gl->setStatusLine(QString("已保存: %1  (%2x%3)").arg(path).arg(pm.width()).arg(pm.height()));
+    }
+    void captureCalibration() {
+        if (m_videoMode || m_paused || !m_capture) {
+            m_gl->setCalibrationLine("采图失败：请恢复实时相机画面"); return;
+        }
+        const int selected = m_camMode == CAM_COUNT ? m_visionOptions.primaryStereoLeft() : m_camMode;
+        const auto pairs = m_visionOptions.stereoPairs();
+        auto pair = std::find_if(pairs.begin(), pairs.end(), [selected](const StereoPairOptions& p) {
+            return p.left == selected || p.right == selected;
+        });
+        if (pair == pairs.end()) { m_gl->setCalibrationLine("请选择 C1/C2 或 C5/C6 后采图"); return; }
+        const auto snapshot = m_camera->rawSnapshot();
+        const qint64 now = monotonicMs();
+        for (int camera : {pair->left, pair->right}) {
+            if (snapshot.generation != m_sourceGeneration || snapshot.cameraGenerations[camera] != m_sourceGeneration ||
+                snapshot.cameraPixels[camera].size() != FRAME_BYTES || snapshot.rawCapturedMs[camera] <= 0 ||
+                now < snapshot.rawCapturedMs[camera] || now - snapshot.rawCapturedMs[camera] > 500) {
+                m_gl->setCalibrationLine("采图失败：等待所选双目两路新帧"); return;
+            }
+        }
+        const std::pair<quint64, quint64> identity{snapshot.cameraSequences[pair->left], snapshot.cameraSequences[pair->right]};
+        const int pairKey = pair->left * CAM_COUNT + pair->right;
+        if (m_captureSequences.contains(pairKey) && m_captureSequences[pairKey] == identity) {
+            m_gl->setCalibrationLine("采图失败：这对帧已保存，请等待新帧"); return;
+        }
+        auto image = [&](int c) {
+            return QImage(reinterpret_cast<const uchar*>(snapshot.cameraPixels[c].constData()), IMG_W, IMG_H,
+                          IMG_W * 2, QImage::Format_RGB16).convertToFormat(QImage::Format_RGB888);
+        };
+        CalibrationCaptureJob job;
+        job.left = image(pair->left); job.right = image(pair->right);
+        job.leftCamera = pair->left; job.rightCamera = pair->right; job.generation = m_sourceGeneration;
+        job.leftSequence = identity.first; job.rightSequence = identity.second;
+        job.leftTag = snapshot.tags[pair->left]; job.rightTag = snapshot.tags[pair->right];
+        job.leftCapturedMs = snapshot.rawCapturedMs[pair->left]; job.rightCapturedMs = snapshot.rawCapturedMs[pair->right];
+        job.requestedMs = now;
+        const double distances[] = {0, .5, 1, 2, 4}; job.distanceMeters = distances[m_captureDistance];
+        job.outputRoot = qEnvironmentVariable("DETVIEW_CALIBRATION_DIR", "/userdata/detview_calibration");
+        job.synchronizationConfirmed = pair->synchronizationConfirmed; job.hasTagOffset = pair->hasTagOffset;
+        job.tagOffset = pair->tagOffset;
+        if (!m_capture->submit(std::move(job))) { m_gl->setCalibrationLine("正在保存上一对图，请稍候"); return; }
+        m_captureSequences[pairKey] = identity;
+        m_gl->setCalibrationLine(QString("C%1/C%2 保存原图并检测54个内角点…").arg(pair->left + 1).arg(pair->right + 1));
     }
 
-private:
+    QString camModeText() const {
+        return m_camMode >= CAM_COUNT ? QString("6 路 3x2") : QString("C%1").arg(m_camMode + 1);
+    }
+
+    /* HUD 的模型行与相机/置信度行（状态行由采集/推理事件单独写） */
+    void updateHudLines() {
+        const auto npu = m_infer->metrics(m_sourceGeneration);
+        m_resultFps = npu.modelRates;
+        m_rotInferFps = npu.completed;
+        QString modelLine;
+        if (m_rotationEnabled) {
+            QStringList per;
+            for (const ModelInfo &model : m_rotation)
+                per << QString("%1 %2fps").arg(shortModelName(model.path))
+                           .arg(m_resultFps.value(model.path), 0, 'f', 1);
+            modelLine = QString("轮换 %1 款: %2").arg(m_rotation.size()).arg(per.join("  "));
+        } else if (m_currentIndex >= 0 && m_currentIndex < m_models.size()) {
+            const ModelInfo &info = m_models[m_currentIndex];
+            modelLine = QString("模型: %1").arg(QFileInfo(info.path).fileName());
+            if (m_lastMs > 0)
+                modelLine += QString("   处理 %1 ms  %2").arg(m_lastMs, 0, 'f', 1)
+                    .arg(info.lane ? QString("lane mask") : QString("检测 %1").arg(m_lastDets));
+        }
+        m_gl->setModelLine(modelLine);
+        m_gl->setConfLine(QString("%1 | conf %2 | %3 | 新画面 %4 fps | NPU 请求 %5 / 完成 %6 fps")
+                              .arg(camModeText())
+                              .arg(m_confPct / 100.0, 0, 'f', 2)
+                              .arg(m_xyxy ? "xyxy" : "cxcywh")
+                              .arg(m_gl->newFrameRate(), 0, 'f', 1)
+                              .arg(m_requestRate.rate(monotonicMs()), 0, 'f', 1)
+                              .arg(npu.completed, 0, 'f', 1));
+        QStringList modelNames;
+        for (const auto& model : m_models) modelNames.append(shortModelName(model.path));
+        const QString activeModel = m_currentIndex >= 0 ? shortModelName(m_models[m_currentIndex].path) : "无模型";
+        QStringList rotationNames;
+        for (const auto& model : m_rotation) rotationNames.append(shortModelName(model.path));
+        const QString rotation = m_rotationEnabled ? rotationNames.join(" + ") : "关闭";
+        const QString monitor = QString("%1 · %2").arg(m_videoMode ? "视频" : camModeText())
+            .arg(m_rotationEnabled ? "模型轮换" : activeModel);
+        QStringList stereoDescriptions;
+        for (const auto& pair : m_visionOptions.stereoPairs())
+            stereoDescriptions << QString("C%1/C%2 %3·%4").arg(pair.left + 1).arg(pair.right + 1)
+                .arg(pair.calibrationPath.isEmpty() ? "未标定" : "已标定")
+                .arg(pair.synchronizationConfirmed && pair.hasTagOffset ? "同步已确认" : "同步未确认");
+        const QString pipeline = QString("%1\n%2\n%3")
+            .arg(m_visionOptions.tracking ? QString("仅车辆模板追踪 · 检测间隔 %1 ms").arg(m_visionOptions.detectionIntervalMs) :
+                                           QString("逐帧 NPU 检测"))
+            .arg(m_visionOptions.tracking ? QString("最多 %1 辆 · 有效期 %2 ms · 追踪间隔 %3 ms")
+                    .arg(m_visionOptions.maxTracks).arg(m_visionOptions.trackingMaxDetectionAgeMs)
+                    .arg(m_visionOptions.trackingIntervalMs) :
+                    QString("模板追踪已关闭"))
+            .arg(stereoDescriptions.isEmpty() ? QString("双目测距未启用") : stereoDescriptions.join("；"));
+        const QString throughput = QString("NPU 请求 %1 / 完成 %2 次/秒\n处理 %3 ms · 追踪 %4 ms")
+            .arg(m_requestRate.rate(monotonicMs()), 0, 'f', 0).arg(npu.completed, 0, 'f', 0)
+            .arg(m_lastMs, 0, 'f', 1).arg(m_trackingMs, 0, 'f', 1);
+        m_gl->setSettings({activeModel, m_videoMode ? "视频源" : camModeText(),
+                           QString("%1 %").arg(m_confPct), rotation,
+                           m_rotationEnabled ? "按各模型配置" : (m_xyxy ? "xyxy" : "cxcywh"),
+                           m_paused ? "已暂停" : "运行中"},
+                          modelNames, m_currentIndex, pipeline, throughput, monitor);
+    }
+
     QVector<ModelInfo> m_models;
     QStringList m_classes;
-    QComboBox *m_combo = nullptr;
-    QPushButton *m_pickBtn = nullptr, *m_rotateBtn = nullptr;
-    QMenu *m_pickMenu = nullptr;
-    QVector<ModelInfo> m_rotation;
+    QVector<ModelInfo> m_rotation, m_rotationSelection;
     bool m_rotationEnabled = false;
+    int m_currentIndex = -1;
     QHash<QString, QVector<Detection>> m_results;
     QHash<QString, qint64> m_resultTime;
     QHash<QString, double> m_resultMs;
     QHash<QString, double> m_resultFps;
     int m_visibleDets = 0;
-    /* 轮换帧率按窗口计数，避免排队信号造成的假高值 */
-    qint64 m_fpsWindowStart = 0;
-    int m_fpsWindowTotal = 0;
-    QHash<QString, int> m_fpsWindowModel;
     double m_rotInferFps = 0;
+    tdm::FrameRate m_requestRate;
     int m_sourceGeneration = 0;
-    QComboBox *m_fmtCombo = nullptr;
-    QComboBox *m_camCombo = nullptr;
-    QSlider *m_confSlider = nullptr;
-    QLabel *m_confLabel = nullptr;
-    QLabel *m_camLabel = nullptr;
-    QLabel *m_inferLabel = nullptr;
-    QLabel *m_status = nullptr;
-    QLabel *m_helpLabel = nullptr;
-    bool m_full = false;
-    bool m_paused = false;
-    double m_camFps = 0;
-    QElapsedTimer m_statsTimer, m_camLabelTimer, m_inferLabelTimer;
-    QPushButton *m_shotBtn = nullptr;
-    VideoWidget *m_video = nullptr;
+    bool m_xyxy = false;
+    int m_confPct = 25;      /* 与 InferenceThread 默认 conf 一致 */
+    int m_camMode = CAM_COUNT;
+    bool m_full = false, m_paused = false, m_helpVisible = false, m_videoMode = false;
+    double m_camFps = 0, m_lastMs = 0;
+    int m_lastDets = 0;
+    qint64 m_noFrameTimeoutMs = 60000;   // 无新帧超时（DETVIEW_NOFRAME_MS 可覆盖）
+    qint64 m_lastFrameMs = 0;
+    QElapsedTimer m_statsTimer, m_labelTimer;
+    DetView *m_gl = nullptr;
     CameraThread *m_camera = nullptr;
     InferenceThread *m_infer = nullptr;
+    VisionPipeline *m_vision = nullptr;
+    VisionOptions m_visionOptions;
+    bool m_calibrationMode = false;
+    int m_captureDistance = 0;
+    CalibrationCaptureWorker* m_capture = nullptr;
+    QHash<int, std::pair<quint64, quint64>> m_captureSequences;
+    double m_trackingMs = 0;
+    qint64 m_trackerDebugMs = 0;
+    qint64 m_lastStereoMs = 0, m_lastTrackMs = 0, m_lastLaneMs = 0;
 };
 
 int main(int argc, char **argv) {
+    /* camview 同款：强制 Mali EGL/ES2，避免 GLX 回落到 llvmpipe 软件渲染 */
+    qputenv("QT_XCB_GL_INTEGRATION", "xcb_egl");
+    qputenv("QT_OPENGL", "es2");
+    QSurfaceFormat fmt;
+    fmt.setRenderableType(QSurfaceFormat::OpenGLES);
+    fmt.setVersion(2, 0);
+    fmt.setDepthBufferSize(0);
+    fmt.setStencilBufferSize(0);
+    // Match the deployed optimized camview, not only its source defaults.
+    // Set DETVIEW_SWAP_INTERVAL=1 to restore vsync on displays that need it.
+    fmt.setSwapInterval(qEnvironmentVariableIsSet("DETVIEW_SWAP_INTERVAL") ?
+        qEnvironmentVariableIntValue("DETVIEW_SWAP_INTERVAL") : 0);
+    QSurfaceFormat::setDefaultFormat(fmt);
     /* 板端 XFCE 的“窗口缩放”会让 Qt 逻辑尺寸与 X 实际窗口不一致（例如 1.25x 时
        Qt 认为 1920x1080 的窗口只有 1536x864），全屏时画面只能铺满左上角。
        这是全屏 kiosk 程序，按物理像素 1:1 对齐。 */
@@ -2040,12 +3748,43 @@ int main(int argc, char **argv) {
     qputenv("QT_AUTO_SCREEN_SCALE_FACTOR", "0");
 
     QApplication app(argc, argv);
+    if (app.arguments().contains("--stereo-vehicle-trial")) {
+        qputenv("DETVIEW_STEREO_VEHICLE_TRIAL", "1");
+        qputenv("DETVIEW_STEREO_TRIAL_METERS", "1");
+    }
+    if (app.arguments().contains("--stereo-trial-meters")) qputenv("DETVIEW_STEREO_TRIAL_METERS", "1");
+    if (app.arguments().contains("--calibration-capture")) qputenv("DETVIEW_CALIBRATION_CAPTURE", "1");
     qRegisterMetaType<QVector<Detection>>("QVector<Detection>");
+    /* frameReady 跨线程带每路采集帧率：不注册这个类型，Qt 会丢掉整个排队信号
+       （表现就是“显示 0.0 fps、无每路标签、画面不动”，推理却照常跑） */
+    qRegisterMetaType<QVector<double>>("QVector<double>");
+    qRegisterMetaType<VisionFrame>("VisionFrame");
+    cv::setNumThreads(2);
+    if (app.arguments().contains("--calibration-capture-selftest")) return runCalibrationCaptureSelfTest();
+    if (app.arguments().contains("--tracker-benchmark")) {
+        const auto benchmarkArgs = app.arguments();
+        const int capAt = benchmarkArgs.indexOf("--track-template-side");
+        bool valid = true;
+        const int cap = capAt < 0 ? 48 : capAt + 1 < benchmarkArgs.size() ? benchmarkArgs[capAt + 1].toInt(&valid) : -1;
+        if (!valid || (cap != 0 && (cap < 16 || cap > 128))) {
+            fprintf(stderr, "--track-template-side requires 0 or 16..128\n"); return 2;
+        }
+        return tdm::runTrackerBenchmark(cap);
+    }
+    if (app.arguments().contains("--vision-selftest")) {
+        const bool ok = runCalibrationCaptureSelfTest() == 0 && selfTestVehiclePolicy() && CameraThread::selfTestDisplay() && DetView::selfTestRefresh() && tdm::runTrackerSelfTest() == 0 &&
+                        tdm::runCameraDmaSelfTest() == 0 && runFrameMetricsSelfTest() == 0 &&
+                        VisionPipeline::selfTest();
+        fprintf(stderr, ok ? "VISION_SELFTEST_PASS\n" : "VISION_SELFTEST_FAIL\n");
+        return ok ? 0 : 2;
+    }
     if (app.arguments().contains("--dfl-selftest")) {
         const bool ok = InferenceThread::selfTestDfl() && InferenceThread::selfTestDfl(8, 29);
         fprintf(stderr, ok ? "DFL_SELFTEST_PASS\n" : "DFL_SELFTEST_FAIL\n");
         return ok ? 0 : 2;
     }
+    if (app.arguments().contains("--camera-dma-selftest")) return tdm::runCameraDmaSelfTest();
+    if (app.arguments().contains("--frame-metrics-selftest")) return runFrameMetricsSelfTest();
     if (app.arguments().contains("--lane-selftest")) {
         const bool ok = InferenceThread::selfTestLane();
         fprintf(stderr, ok ? "LANE_SELFTEST_PASS\n" : "LANE_SELFTEST_FAIL\n");
@@ -2059,6 +3798,30 @@ int main(int argc, char **argv) {
     }
     const QVector<ModelInfo> models = scanModels();
     const QStringList args = app.arguments();
+    for (const QString &option : {QString("--video"), QString("--duration"), QString("--shot"),
+                                  QString("--camera"), QString("--model"), QString("--model-index"),
+                                  QString("--rotate-model")}) {
+        const int index = args.indexOf(option);
+        if (index >= 0 && (index + 1 >= args.size() || args[index + 1].startsWith("--") ||
+                          args[index + 1].trimmed().isEmpty())) {
+            fprintf(stderr, "%s requires a value\n", qPrintable(option));
+            return 2;
+        }
+    }
+    for (const QString &option : {QString("--duration"), QString("--shot"), QString("--camera"),
+                                  QString("--model-index")}) {
+        const int index = args.indexOf(option);
+        if (index < 0) continue;
+        bool valid = false;
+        const int value = args[index + 1].toInt(&valid);
+        const int minimum = option == "--model-index" ? 0 : 1;
+        const int maximum = option == "--camera" ? CAM_COUNT :
+                            option == "--model-index" ? models.size() - 1 : 3600;
+        if (!valid || value < minimum || value > maximum) {
+            fprintf(stderr, "%s has an invalid value\n", qPrintable(option));
+            return 2;
+        }
+    }
     const int rotateTest = args.indexOf("--rotate-selftest");
     if (rotateTest >= 0 && rotateTest + 2 < args.size()) {
         const QImage image(args[rotateTest + 1]);
@@ -2089,7 +3852,7 @@ int main(int argc, char **argv) {
                 if (!ok) app.quit();
             });
         QObject::connect(&worker, &InferenceThread::detectionsReady, &app,
-            [&](QString path, int, QVector<Detection>, double, double ms) {
+            [&](QString path, int, quint64, QVector<Detection>, double, double ms) {
                 if (path != chosen[total % chosen.size()].path) orderOk = false;
                 ++counts[path];
                 if (++total >= 80) {
@@ -2115,7 +3878,159 @@ int main(int argc, char **argv) {
     if (!videoSource.isEmpty() && !videoSource.contains("://") &&
         !videoSource.startsWith("/dev/video"))
         videoSource = QFileInfo(videoSource).absoluteFilePath();
-    MainWindow w(models, videoSource);
+    if (args.contains("--video-loop") && (videoSource.isEmpty() || videoSource.contains("://") ||
+                                          videoSource.startsWith("/dev/video"))) {
+        fprintf(stderr, "--video-loop requires a local video file\n"); return 2;
+    }
+    if (!videoSource.isEmpty() && !videoSource.contains("://") && !videoSource.startsWith("/dev/video") &&
+        !QFileInfo(videoSource).isFile()) {
+        fprintf(stderr, "video source file does not exist: %s\n", qPrintable(videoSource)); return 2;
+    }
+    VisionOptions visionOptions;
+    try {
+        auto integerOption = [&](const QString &name, int fallback) {
+            const int index = args.indexOf(name);
+            if (index < 0) return fallback;
+            if (index + 1 >= args.size()) throw std::invalid_argument(qPrintable(name + " needs a value"));
+            bool ok = false;
+            const int value = args[index + 1].toInt(&ok);
+            if (!ok) throw std::invalid_argument(qPrintable(name + " requires an integer"));
+            return value;
+        };
+        visionOptions.tracking = !args.contains("--no-tracking") && !args.contains("--calibration-capture");
+        visionOptions.stereoTrialMeters = args.contains("--stereo-trial-meters");
+        visionOptions.stereoVehicleTrial = args.contains("--stereo-vehicle-trial");
+        if (visionOptions.stereoVehicleTrial) visionOptions.stereoTrialMeters = true;
+        visionOptions.detectionIntervalMs = integerOption("--detect-interval-ms", 250);
+        visionOptions.minimumDetectionIntervalMs = integerOption("--detect-min-ms", 100);
+        visionOptions.maxTracks = integerOption("--max-tracks", 12);
+        visionOptions.trackingMaxDetectionAgeMs = integerOption("--track-max-age-ms", 2000);
+        visionOptions.trackingIntervalMs = integerOption("--track-interval-ms", 33);
+        visionOptions.maxTemplateSide = integerOption("--track-template-side", 48);
+        visionOptions.stereoIntervalMs = integerOption("--stereo-interval-ms", 200);
+        visionOptions.stereoDisparities = integerOption("--stereo-disparities", 32);
+        if (visionOptions.detectionIntervalMs < 50 || visionOptions.detectionIntervalMs > 2000 ||
+            visionOptions.minimumDetectionIntervalMs < 50 ||
+            visionOptions.minimumDetectionIntervalMs > visionOptions.detectionIntervalMs ||
+            visionOptions.maxTracks < 1 || visionOptions.maxTracks > 12 ||
+            visionOptions.trackingMaxDetectionAgeMs < 500 || visionOptions.trackingMaxDetectionAgeMs > 10000 ||
+            visionOptions.trackingIntervalMs < 0 || visionOptions.trackingIntervalMs > 200 ||
+            (visionOptions.maxTemplateSide != 0 && (visionOptions.maxTemplateSide < 16 || visionOptions.maxTemplateSide > 128)) ||
+            visionOptions.stereoIntervalMs < 100 || visionOptions.stereoIntervalMs > 5000 ||
+            visionOptions.stereoDisparities < 16 || visionOptions.stereoDisparities % 16 ||
+            visionOptions.stereoDisparities > 128)
+            throw std::invalid_argument("Invalid tracking/stereo timing, track count or disparity range");
+        const int stereoArg = args.indexOf("--stereo");
+        if (stereoArg >= 0) {
+            if (stereoArg + 1 >= args.size()) throw std::invalid_argument("--stereo needs LEFT,RIGHT camera IDs");
+            const auto cameras = args[stereoArg + 1].split(',');
+            bool leftOk = false, rightOk = false;
+            if (cameras.size() != 2) throw std::invalid_argument("--stereo needs LEFT,RIGHT");
+            visionOptions.stereoLeft = cameras[0].toInt(&leftOk) - 1;
+            visionOptions.stereoRight = cameras[1].toInt(&rightOk) - 1;
+            if (!leftOk || !rightOk || visionOptions.stereoLeft < 0 || visionOptions.stereoLeft >= CAM_COUNT ||
+                visionOptions.stereoRight < 0 || visionOptions.stereoRight >= CAM_COUNT ||
+                visionOptions.stereoLeft == visionOptions.stereoRight || !videoSource.isEmpty())
+                throw std::invalid_argument("Stereo requires two distinct FPGA cameras 1..6; video source is mono");
+        }
+        const int calibrationArg = args.indexOf("--stereo-calibration");
+        if (calibrationArg >= 0) {
+            if (calibrationArg + 1 >= args.size()) throw std::invalid_argument("Missing stereo calibration path");
+            visionOptions.calibrationPath = args[calibrationArg + 1];
+        }
+        const int scaleArg = args.indexOf("--stereo-scale");
+        if (scaleArg >= 0) {
+            bool ok = false;
+            if (scaleArg + 1 >= args.size()) throw std::invalid_argument("Missing stereo scale");
+            visionOptions.stereoScale = args[scaleArg + 1].toDouble(&ok);
+            if (!ok || !std::isfinite(visionOptions.stereoScale) || visionOptions.stereoScale < 0.125 ||
+                visionOptions.stereoScale > 1)
+                throw std::invalid_argument("Stereo scale must be 0.125..1");
+        }
+        visionOptions.synchronizationConfirmed = args.contains("--stereo-synchronized");
+        visionOptions.hasTagOffset = args.contains("--stereo-tag-offset");
+        visionOptions.tagOffset = integerOption("--stereo-tag-offset", 0);
+        const int groupsArg = args.indexOf("--stereo-config");
+        if (groupsArg >= 0) {
+            if (stereoArg >= 0 || calibrationArg >= 0 || visionOptions.synchronizationConfirmed || visionOptions.hasTagOffset)
+                throw std::invalid_argument("--stereo-config cannot combine with single-pair camera/calibration/sync options");
+            if (groupsArg + 1 >= args.size() || !videoSource.isEmpty())
+                throw std::invalid_argument("--stereo-config requires a JSON path and FPGA cameras");
+            const QFileInfo configInfo(args[groupsArg + 1]);
+            QFile file(configInfo.absoluteFilePath());
+            if (!file.open(QIODevice::ReadOnly)) throw std::invalid_argument("Cannot open stereo config");
+            QJsonParseError error;
+            const auto doc = QJsonDocument::fromJson(file.readAll(), &error);
+            if (error.error != QJsonParseError::NoError || !doc.isObject() || !doc.object().value("pairs").isArray())
+                throw std::invalid_argument("Stereo config requires a JSON object with pairs array");
+            const auto groups = doc.object().value("pairs").toArray();
+            if (groups.isEmpty() || groups.size() > 2) throw std::invalid_argument("Stereo config supports 1..2 pairs");
+            int usedCameras = 0;
+            for (const auto& value : groups) {
+                if (!value.isObject()) throw std::invalid_argument("Each stereo pair must be an object");
+                const auto object = value.toObject();
+                auto camera = [&](const char* name) {
+                    const auto v = object.value(name);
+                    if (!v.isDouble() || v.toDouble() != v.toInt() || v.toInt() < 1 || v.toInt() > CAM_COUNT)
+                        throw std::invalid_argument("Stereo camera IDs must be integers 1..6");
+                    return v.toInt() - 1;
+                };
+                StereoPairOptions pair; pair.left = camera("left"); pair.right = camera("right");
+                const int mask = (1 << pair.left) | (1 << pair.right);
+                if (pair.left == pair.right || (usedCameras & mask))
+                    throw std::invalid_argument("Stereo pairs must use distinct, non-overlapping cameras");
+                usedCameras |= mask;
+                if (object.contains("calibration") && !object.value("calibration").isString())
+                    throw std::invalid_argument("Stereo calibration must be a path string");
+                pair.calibrationPath = object.value("calibration").toString();
+                if (!pair.calibrationPath.isEmpty())
+                    pair.calibrationPath = configInfo.absoluteDir().absoluteFilePath(pair.calibrationPath);
+                if (object.contains("synchronized") && !object.value("synchronized").isBool())
+                    throw std::invalid_argument("Stereo synchronized must be boolean");
+                pair.synchronizationConfirmed = object.value("synchronized").toBool(false);
+                pair.hasTagOffset = object.contains("tag_offset");
+                if (pair.hasTagOffset) {
+                    const auto offset = object.value("tag_offset");
+                    if (!offset.isDouble() || offset.toDouble() != offset.toInt())
+                        throw std::invalid_argument("Stereo tag_offset must be a signed integer");
+                    pair.tagOffset = offset.toInt();
+                }
+                if (object.contains("interval_ms")) {
+                    const auto interval = object.value("interval_ms");
+                    if (!interval.isDouble() || interval.toDouble() != interval.toInt() ||
+                        interval.toInt() < 100 || interval.toInt() > 5000)
+                        throw std::invalid_argument("Stereo interval_ms must be an integer 100..5000");
+                    pair.intervalMs = interval.toInt();
+                }
+                visionOptions.stereoGroups.push_back(pair);
+            }
+        }
+        if (!visionOptions.stereoEnabled() && (calibrationArg >= 0 || scaleArg >= 0 ||
+            visionOptions.synchronizationConfirmed || visionOptions.hasTagOffset))
+            throw std::invalid_argument("Stereo calibration/sync options require --stereo LEFT,RIGHT");
+        if (visionOptions.stereoEnabled() &&
+            cvRound(IMG_W * visionOptions.stereoScale) <= visionOptions.stereoDisparities + 5)
+            throw std::invalid_argument("Stereo image is too small for the disparity search range");
+        if (!visionOptions.stereoConfigurationError().isEmpty())
+            throw std::invalid_argument(visionOptions.stereoConfigurationError().toStdString());
+        for (const auto& pair : visionOptions.stereoPairs()) {
+            if (pair.calibrationPath.isEmpty()) continue;
+            const auto calibration = stereo::Calibration::load(pair.calibrationPath.toStdString());
+            if (calibration.imageSize != cv::Size(IMG_W, IMG_H))
+                throw std::invalid_argument("Stereo calibration must match 640x480 FPGA frames");
+        }
+    } catch (const std::exception &error) {
+        fprintf(stderr, "detview options: %s\n", error.what());
+        return 2;
+    }
+    const int rotateArg = args.indexOf("--rotate-model");
+    const QStringList rotationSelectors = rotateArg >= 0 ? args[rotateArg + 1].split(',') : QStringList();
+    QVector<ModelInfo> rotationModels;
+    if (rotateArg >= 0 && !selectRotation(models, rotationSelectors, rotationModels)) {
+        fprintf(stderr, "--rotate-model needs 2-4 unique YOLO model substrings\n");
+        return 2;
+    }
+    DetViewController w(models, videoSource, visionOptions);
     const int ai = args.indexOf("--model-index");
     if (ai >= 0 && ai + 1 < args.size()) {
         const int idx = args[ai + 1].toInt();
@@ -2132,11 +4047,16 @@ int main(int argc, char **argv) {
             }
         }
     }
-    const int rotateArg = args.indexOf("--rotate-model");
-    if (rotateArg >= 0 && (rotateArg + 1 >= args.size() ||
-        !w.setRotation(args[rotateArg + 1].split(',', Qt::SkipEmptyParts)))) {
+    if (rotateArg >= 0 && !w.setRotation(rotationSelectors)) {
         fprintf(stderr, "--rotate-model needs 2-4 unique YOLO model substrings\n");
         return 2;
+    }
+    const int shotArg = args.indexOf("--shot");
+    if (shotArg >= 0 && shotArg + 1 < args.size()) {
+        const int seconds = args[shotArg + 1].toInt();
+        if (seconds < 1 || seconds > 3600)
+            return 2;
+        QTimer::singleShot(seconds * 1000, &w, [&w]() { w.takeShot(); });
     }
     const int durationArg = args.indexOf("--duration");
     if (durationArg >= 0 && durationArg + 1 < args.size()) {
@@ -2144,7 +4064,6 @@ int main(int argc, char **argv) {
         if (seconds < 1 || seconds > 3600) return 2;
         QTimer::singleShot(seconds * 1000, &app, &QCoreApplication::quit);
     }
-    w.show();
     if (args.contains("--fullscreen"))
         w.setFullscreen(true);
     const int camArg = args.indexOf("--camera");

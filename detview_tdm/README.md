@@ -1,8 +1,10 @@
 # detview YOLO 时分复用
 
+已融合仅车辆CPU模板追踪和双目测距：NPU默认间歇检测，帧间匹配更新车辆ID与位置；行人、斑马线和交通标志保留NPU检测。双目复用现有采集帧，显式指定两路才启用。使用、参数与有效条件见[识别＋追踪＋测距](VISION.md)。
+
 本目录基于四路 `detview` 扩展为 **六路**采集，并支持 2–4 款 YOLO 检测模型轮换。一个推理线程顺序使用各模型的 RKNN 上下文，每个模型只加载一次；相机或视频解码继续提供最新帧，推理忙时覆盖待处理帧，避免积压和重播旧画面。内核 PCIe 驱动与 DMA 地址协议不变（地址表与运行版 camview 六路版一致）。
 
-界面是**单个顶层 `QOpenGLWindow`**（camview 同款 GPU 路径，无独立工具栏窗口）：相机原始 RGB565 合成后直传纹理，缩放/letterbox 在 Mali 上完成，工具栏信息全部画在 HUD 三行，操作走键盘。
+界面是**单个顶层 `QOpenGLWindow`**（camview 同款 GPU 路径，无独立工具栏窗口）：相机原始 RGB565 合成后直传纹理，缩放/letterbox 在 Mali 上完成，工具栏、追踪统计和双目状态画在HUD，操作走键盘。
 
 ## 使用
 
@@ -11,6 +13,8 @@
 ./detview --fullscreen --rotate-model zebra-rk3568-raw-dfl6,wb_v4_combo
 ./detview --fullscreen --camera 1 --rotate-model zebra-rk3568-raw-dfl6,wb_v4_combo
 ./detview --video demo.mp4 --rotate-model zebra-rk3568-raw-dfl6,wb_v4_combo
+# 480p本地视频循环调试，仅车辆追踪；三分类定位质量优先候选
+./detview --video demo_480p30.mp4 --video-loop --model zebra-merged-v3-rk3568-raw-dfl6 --fullscreen --tracker-debug --detect-interval-ms 250 --detect-min-ms 250 --track-interval-ms 33 --track-template-side 48
 # 定时结束（短测）: --duration 30；到点自动截一张 GL 帧缓冲: --shot 300
 # 无人值守自愈（连续 DMA 失败自动退出并重启）: sudo bash run_detview.sh --fullscreen --rotate-model a,b
 ```
@@ -18,6 +22,8 @@
 键盘：`1-9` 切单模型 | `R` 轮换开关（集合由 `--rotate-model` 给出，未给时默认全部非 lane 检测模型最多 4 款）| `V` 相机（C1–C6 单路 / 6 路 3×2）| `C` 框格式 | `+/-` 置信度 | `S` 截屏到 `/userdata/detview_shots/` | `P`/空格 暂停 | `F` 全屏 | `H` 帮助 | `Q`/Esc 退出。
 
 `--rotate-model` 传逗号分隔的唯一文件名子串，每个子串必须只匹配一款已扫描模型。`--video` 也接受网络 URL，由 `ffmpeg` 解码为 640×480 RGB，再 letterbox 到 640×640；视频模式不访问 PCIe。默认是 **6 路 3×2** 显示并对 C1 推理。`--shot N`（第 N 秒抓一张 GL 帧缓冲，用于远程/无人值守留证）、`DET_DUMP_COMP=1`（把合成缓冲原样存 `/tmp/det_comp.png`，用于分辨"合成错"还是"显示映射错"）。
+
+`--video-loop` 仅接受本地视频文件。`DETVIEW_VIDEO_FPS` 限制发布帧率，默认30，合法1–60；原视频更慢时保持原速率。暂停停止解码子进程，恢复不追赶积压时间。`--tracker-debug` 输出车辆ID、NCC、预测状态及检测源帧日志。道路视频实测与局限见[视频验证](VIDEO_VALIDATION.md)。
 
 ## 采集与显示
 
@@ -43,7 +49,7 @@ HUD 的每格 fps 标签**不要**再用“整窗 ARGB 位图 + 每帧 drawImage
 
 **单路模式会停采其余五路**（`--camera N` 或按 `V` 切到 C1–C6）：单路时其余采集线程不再轮询标签、不再发 DMA。改为 GL + RGB565 + 小位图 HUD 之后实测 **6 路 3×2：显示 25.8–26.0 fps、每路采集 24–26 fps、paint ≈24ms**——此时显示已由相机/DMA 速率决定，不再是绘制。
 
-**缩放走 GPU**：合成帧按原始尺寸上传纹理，letterbox 由着色器完成。`[panes]` 里的 `rga=` 现在只表示 dma-heap 合成缓冲是否分配成功（程序内已不再调用 RGA，缩放不需要 CPU 参与）。
+**缩放走 GPU**：合成帧按原始尺寸上传纹理，letterbox 由着色器完成。当前使用拥有像素的QImage与最新画面邮箱，`[panes]`不再输出`rga=`；单格纹理上传会先打包连续行。下文历史性能记录来自融合前的构建。
 
 ### 偶发 DMA 超时与自愈
 
@@ -106,3 +112,6 @@ QT_QPA_PLATFORM=offscreen ./detview --rotate-selftest image.ppm zebra-merged-v3-
 1. 应用内单次 ≈ 纯 NPU `run+io`（24.65）+ ~1.5ms → **推理路径本身没有浪费**；主要差距来自**并发**（6 路采集 + 显示把 `run` 22.9→28、`get` 3.1→5.3）。
 2. **输入按 INT8 直传是慢路径**（`inputs_set` 1.4→16.9ms，整体 +58%），必须走 UINT8；`DET_INT8_IN=1` 可复现该对照。
 3. 待做优化（按收益排序）：`get` 改 int8 输出 + 解码内联反量化（~1.5–2ms）；输入/输出改 `rknn_create_mem`/`rknn_set_io_mem` 零拷贝（可省 `set`，并可能收回 `run` 的 ~2.2ms 差）；`rknn_query` 属性在加载时缓存（0.3ms）。
+## 双目测距原型
+
+独立 C++ demo 位于 [stereo_demo/](stereo_demo/README.md)，保留合成双目、离线图片、FPGA双路输入以及ROI视差测距功能；其算法也已接入TDM目标。真实相机配对、标定参数和同步验证待提供；未标定或实时同步配对未确认时不输出实物米数。
