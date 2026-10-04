@@ -59,6 +59,7 @@
 #include "camera_dma.h"
 #include "frame_metrics.h"
 #include "display_perf.h"
+#include "hdmi_view.h"
 #include "calibration_capture.h"
 #include "stereo_demo/stereo_depth.h"
 
@@ -535,6 +536,7 @@ public:
     /* 当前显示模式（0..5 = 单路，CAM_COUNT = 整幅）：单路时只采那一路，其余停采 */
     void setModePtr(const std::atomic<int> *mode) { mode_ = mode; }
     void setPausedPtr(const std::atomic<bool> *paused) { paused_ = paused; }
+    void setHdmiPtr(const std::atomic<bool> *hdmi) { hdmi_ = hdmi; }
 
 protected:
     void run() override {
@@ -563,6 +565,9 @@ protected:
         while (running_) {
             if (paused_ && paused_->load()) { suspendMeasurement(); msleep(20); continue; }
             const int sourceGeneration = generation_ ? generation_->load() : 0;
+            if (hdmi_ && hdmi_->load() && idx < tdm::hdmiLeftCamera) {
+                suspendMeasurement(); msleep(20); continue;
+            }
             /* 设备模式：整幅时六路全采；单选时只采那一路（其余不发 DMA、不轮询标签） */
             if (mode_) {
                 const int mode = mode_->load();
@@ -602,7 +607,8 @@ protected:
             dmaNsTotal += dmaNs; copyNsTotal += copyNs; ++auditFrames;
             const qint64 completedMs = monotonicMs();
             captureRate.add(completedMs);
-            if (visionSink_ && ((inferPane_ && inferPane_->load() == idx) || (stereoMask_ & (1 << idx))) &&
+            if (visionSink_ && !(hdmi_ && hdmi_->load()) &&
+                ((inferPane_ && inferPane_->load() == idx) || (stereoMask_ & (1 << idx))) &&
                 generation_ && sourceGeneration == generation_->load()) {
                 QImage pixels(IMG_W, IMG_H, QImage::Format_RGB888);
                 const uint16_t *src = reinterpret_cast<const uint16_t *>(frame.constData());
@@ -656,6 +662,7 @@ private:
     const std::atomic<int> *inferPane_ = nullptr;
     const std::atomic<int> *generation_ = nullptr;
     const std::atomic<bool> *paused_ = nullptr;
+    const std::atomic<bool> *hdmi_ = nullptr;
     std::atomic<quint64> *sequence_ = nullptr;
     int stereoMask_ = 0;
     const std::atomic<int> *mode_ = nullptr;
@@ -680,6 +687,7 @@ public:
         std::array<quint32, CAM_COUNT> tags{};
         std::array<int, CAM_COUNT> cameraGenerations{};
         std::array<qint64, CAM_COUNT> rawCapturedMs{};
+        bool hdmiFull = false;   // HDMI 满屏视图（仅 6 路 3x2 布局下由显示端采用）
     };
     DisplayFrame takeDisplay() {
         QMutexLocker lock(&m_displayMutex);
@@ -756,6 +764,7 @@ public:
         QMutexLocker lock(&m_configMutex);
         m_selectedCamera = mode == CAM_COUNT ? (m_options.stereoEnabled() ? m_options.primaryStereoLeft() : 0) : mode;
         m_mode = mode;
+        updateHdmiActive();
     }
     void setSourceGeneration(int generation) {
         QMutexLocker lock(&m_configMutex);
@@ -778,6 +787,10 @@ public:
         QMutexLocker lock(&m_configMutex);
         m_videoLoop = loop;
     }
+    /* auto has no trustworthy source-mode signal: wait for explicit F selection. */
+    void setHdmiPrefer(int mode) { m_hdmiPrefer.store(mode); updateHdmiActive(); }
+    // 手动覆盖（HDMI 满屏热切换）：-1=不覆盖（按 prefer/auto），1=强制满屏，0=强制 6 路
+    void setHdmiOverride(int mode) { m_hdmiOverride.store(mode); updateHdmiActive(); }
     /* 控件尺寸：相机线程据此决定 RGA 缩放目标（letterbox 后的内容尺寸） */
     void setDisplaySize(int w, int h) { m_dispW = w; m_dispH = h; }
 
@@ -812,6 +825,7 @@ protected:
             w.setVisionSink(&m_selectedCamera, &m_sourceGeneration, &m_frameSequence, m_visionSink, stereoMask);
             w.setModePtr(&m_mode);
             w.setPausedPtr(&m_paused);
+            w.setHdmiPtr(&m_hdmiActive);
         }
         for (CameraWorker &w : workers) w.start();
         emit statusMsg("Six-camera DMA ready; 3x2 view, inference uses the selected pane");
@@ -824,6 +838,8 @@ protected:
                                        ? std::max(0, qEnvironmentVariableIntValue("DETVIEW_MIN_MS")) : 16;
         uint64_t lastGen = 0;
         int lastMode = -1, lastDisplayGeneration = -1;
+        uint64_t hdmiLeftSequence = 0, hdmiRightSequence = 0;
+        quint64 hdmiSubmissions = 0;
         /* 诊断：DET_DUMP_COMP=1 时把合成缓冲原样存一张 PNG，用来分辨
            “合成内容错”还是“显示映射错”（两者症状很像） */
         const bool dumpComp = qEnvironmentVariableIsSet("DET_DUMP_COMP");
@@ -878,6 +894,27 @@ protected:
                 }
                 for (int i = 0; i < CAM_COUNT; ++i)
                     if (have[i]) cameraPixels[i] = latest.c[i];
+            }
+            const bool hdmiFull = mode == CAM_COUNT && m_hdmiActive.load();
+            if (hdmiFull) pane = tdm::hdmiInferenceCamera;
+            if (hdmiFull && m_visionSink && camGen[4] != hdmiLeftSequence && camGen[5] != hdmiRightSequence &&
+                tdm::hdmiPairReady(monotonicMs(), rawCaptureTimes[4], rawCaptureTimes[5],
+                                   displayGeneration, cameraGenerations[4], cameraGenerations[5])) {
+                VisionFrame packet;
+                packet.image = tdm::hdmiAnalyticsImage(cameraPixels[4], cameraPixels[5]);
+                packet.camera = tdm::hdmiInferenceCamera;
+                packet.sourceGeneration = displayGeneration;
+                packet.frameId = m_frameSequence.fetch_add(1) + 1;
+                packet.tag = tags[4];
+                packet.capturedMs = qMin(rawCaptureTimes[4], rawCaptureTimes[5]);
+                if (!packet.image.isNull() && m_hdmiActive.load() && displayGeneration == m_sourceGeneration.load()) {
+                    m_visionSink(packet);
+                    hdmiLeftSequence = camGen[4]; hdmiRightSequence = camGen[5];
+                    if (++hdmiSubmissions % 120 == 1)
+                        fprintf(stderr, "[hdmi-infer] generation=%d frames=%llu input=1280x480 content=640x360 pad=140 skew_ms=%lld tags=%u/%u\n",
+                                displayGeneration, (unsigned long long)hdmiSubmissions,
+                                (long long)qAbs(rawCaptureTimes[4] - rawCaptureTimes[5]), tags[4], tags[5]);
+                }
             }
             if (!ready) { msleep(2); continue; }
 
@@ -943,9 +980,11 @@ protected:
             display.rawCapturedMs = rawCaptureTimes;
             display.tags = tags;
             display.cameraGenerations = cameraGenerations;
+            display.hdmiFull = hdmiFull;
             {
                 QMutexLocker lock(&m_configMutex);
-                if (mode == m_mode.load() && pane == m_selectedCamera.load() &&
+                if (mode == m_mode.load() && hdmiFull == m_hdmiActive.load() &&
+                    (hdmiFull || pane == m_selectedCamera.load()) &&
                     displayGeneration == m_sourceGeneration.load() && !m_paused)
                     publishDisplay(std::move(display));
             }
@@ -957,6 +996,11 @@ protected:
     }
 
 private:
+    void updateHdmiActive() {
+        const int overrideMode = m_hdmiOverride.load();
+        m_hdmiActive = m_mode.load() == CAM_COUNT &&
+                       (overrideMode >= 0 ? overrideMode == 1 : m_hdmiPrefer.load() == 1);
+    }
     void runVideo() {
         QString source;
         bool loop;
@@ -1162,6 +1206,9 @@ private:
     std::atomic<int> m_selectedCamera{0};
     std::atomic<int> m_sourceGeneration{0};
     std::atomic<quint64> m_frameSequence{0};
+    std::atomic<int> m_hdmiPrefer{2};   // 0=off 1=on 2=auto（--prefer-hdmifull）
+    std::atomic<int> m_hdmiOverride{-1}; // F 键手动覆盖：-1 无 1 满屏 0 六路
+    std::atomic<bool> m_hdmiActive{false};
     VisionOptions m_options;
     std::function<void(const VisionFrame&)> m_visionSink;
     QString m_videoSource;
@@ -2075,6 +2122,8 @@ public:
 
     void submitCameras(const CameraThread::DisplayFrame& frame) {
         if (m_videoMode || m_paneMask != frame.paneMask || m_pane != frame.pane) m_overlayUpdatedMs = 0;
+        const bool hdmiFull = frame.hdmiFull && frame.paneMask == 0x3F;
+        if (m_hdmiFull != hdmiFull) { m_hdmiFull = hdmiFull; m_overlayUpdatedMs = 0; }
         m_cameraPixels = frame.cameraPixels;
         m_paneMask = frame.paneMask;
         m_pane = frame.pane;
@@ -2381,11 +2430,17 @@ protected:
             cw = video.width();
             ch = video.height();
         } else if (m_haveFrame) {
-            cw = (paneMask == 0x3F) ? GRID_COLS * IMG_W : IMG_W;
-            ch = (paneMask == 0x3F) ? GRID_ROWS * IMG_H : IMG_H;
+            /* HDMI 满屏：内容区是 C5+C6 拼合的 1280x480，而不是 3x2 的 1920x960 */
+            const bool hdmi = paneMask == 0x3F && m_hdmiFull;
+            cw = (paneMask == 0x3F) ? (hdmi ? 2 * IMG_W : GRID_COLS * IMG_W) : IMG_W;
+            ch = (paneMask == 0x3F) ? (hdmi ? IMG_H : GRID_ROWS * IMG_H) : IMG_H;
         }
         if (cw > 0 && ch > 0) {
-            const float ia = (float)cw / (float)ch;
+            /* HDMI 满屏：线上 1280x480 是 16:9 源（720p/1080p）的抽样结果，
+               像素非方形（横向 1.5x、纵向 2.25x 抽样）。按 16:9 显示正好恢复
+               方形像素；按 8:3 原样显示会把画面横向压扁。 */
+            const bool hdmiAspect = !videoMode && paneMask == 0x3F && m_hdmiFull;
+            const float ia = hdmiAspect ? 16.0f / 9.0f : (float)cw / (float)ch;
             const int top = std::min(56, height() / 8);
             const int bottom = std::min(40, height() / 10);
             const int viewHeight = qMax(1, height() - top - bottom);
@@ -2491,6 +2546,14 @@ protected:
                 glDrawArrays(GL_TRIANGLE_STRIP, CAM_COUNT * 4, 4);
             } else {
                 const bool quad = paneMask == 0x3F;
+                if (quad && m_hdmiFull) {
+                    // HDMI 满屏：C5/C6 各占内容区一半（1280x480 合成帧的左右半幅）
+                    const double half = content.width() / 2.0;
+                    drawCamera(tdm::hdmiLeftCamera,
+                               QRectF(content.left(), content.top(), half, content.height()));
+                    drawCamera(tdm::hdmiRightCamera,
+                               QRectF(content.left() + half, content.top(), half, content.height()));
+                } else {
                 for (int c = 0; c < CAM_COUNT; ++c) {
                     if (!quad && c != pane) continue;
                     const QRectF tile = quad ? QRectF(content.left() + (c % GRID_COLS) * content.width() / GRID_COLS,
@@ -2498,6 +2561,7 @@ protected:
                                                       content.width() / GRID_COLS, content.height() / GRID_ROWS)
                                              : content;
                     drawCamera(c, tile);
+                }
                 }
             }
             m_prog.disableAttributeArray(0);
@@ -2510,9 +2574,14 @@ protected:
         QElapsedTimer regionTimer; if (m_perfEnabled) regionTimer.start();
         QRectF paneRect = content;
         if (!videoMode && paneMask == 0x3F) {
-            const double pw = content.width() / GRID_COLS, ph = content.height() / GRID_ROWS;
-            paneRect = QRectF(content.left() + (pane % GRID_COLS) * pw,
-                              content.top() + (pane / GRID_COLS) * ph, pw, ph);
+            if (m_hdmiFull) {
+                // Full HDMI inference spans both optical halves.
+                paneRect = content;
+            } else {
+                const double pw = content.width() / GRID_COLS, ph = content.height() / GRID_ROWS;
+                paneRect = QRectF(content.left() + (pane % GRID_COLS) * pw,
+                                  content.top() + (pane / GRID_COLS) * ph, pw, ph);
+            }
         }
         QList<QRect> hudRegions;
         QFont labelFont; labelFont.setPointSize(11);
@@ -2529,18 +2598,27 @@ protected:
         hudRegions << QRect(0, 0, width(), top) << QRect(0, height() - bottom, width(), bottom);
         if (!content.isEmpty()) {
             const bool quad = !videoMode && paneMask == 0x3F;
-            if (quad) borderRegions(paneRect.adjusted(1, 1, -1, -1), 2);
-            for (int c = 0; c < (quad ? CAM_COUNT : 1); ++c) {
-                const double pw = content.width() / (quad ? GRID_COLS : 1);
-                const double ph = content.height() / (quad ? GRID_ROWS : 1);
-                hudRegions << QRect(int(content.left() + (quad ? c % GRID_COLS * pw : 0) + 6),
-                                    int(content.top() + (quad ? c / GRID_COLS * ph : 0) + 6),
+            const bool hdmi = quad && m_hdmiFull;
+            if (quad && !paneRect.isEmpty()) borderRegions(paneRect.adjusted(1, 1, -1, -1), 2);
+            for (int c = 0; c < (hdmi ? 2 : (quad ? CAM_COUNT : 1)); ++c) {
+                const int camera = hdmi ? (c == 0 ? tdm::hdmiLeftCamera : tdm::hdmiRightCamera) : c;
+                const double pw = content.width() / (hdmi ? 2 : (quad ? GRID_COLS : 1));
+                const double ph = content.height() / (hdmi ? 1 : (quad ? GRID_ROWS : 1));
+                const int col = hdmi ? (camera == tdm::hdmiRightCamera ? 1 : 0)
+                                     : (quad ? camera % GRID_COLS : 0);
+                const int row = hdmi ? 0 : (quad ? camera / GRID_COLS : 0);
+                hudRegions << QRect(int(content.left() + col * pw + 6),
+                                    int(content.top() + row * ph + 6),
                                     int(std::min(280.0, pw - 12)), cameraLabelHeight);
             }
-            if (!laneMask.isNull()) hudRegions << paneRect.toAlignedRect();
-            else {
-                const double sx = paneRect.width() / MODEL_W, sy = paneRect.height() / IMG_H;
-                const double bx = paneRect.left(), by = paneRect.top() - 80 * sy;
+            if (!laneMask.isNull()) {
+                if (!paneRect.isEmpty()) hudRegions << paneRect.toAlignedRect();
+            }
+            else if (!paneRect.isEmpty()) {
+                const double sx = paneRect.width() / MODEL_W;
+                const double sy = paneRect.height() / (m_hdmiFull ? tdm::hdmiAnalyticsHeight : IMG_H);
+                const double bx = paneRect.left();
+                const double by = paneRect.top() - (m_hdmiFull ? tdm::hdmiModelPad : 80) * sy;
                 for (const auto& d : dets) {
                     if (d.validUntilMs > 0 && metricNow > d.validUntilMs) continue;
                     const QRectF box(bx + d.x1 * sx, by + d.y1 * sy,
@@ -2602,16 +2680,21 @@ protected:
            paintGL 里每帧多花 10ms 以上。 */
         {
             const bool quad = (!videoMode && paneMask == 0x3F);
-            const int nLab = quad ? CAM_COUNT : 1;
-            const double pw = content.width() / (quad ? GRID_COLS : 1);
-            const double ph = content.height() / (quad ? GRID_ROWS : 1);
+            const bool hdmi = quad && m_hdmiFull;
+            const int nLab = hdmi ? 2 : (quad ? CAM_COUNT : 1);
+            const double pw = content.width() / (hdmi ? 2 : (quad ? GRID_COLS : 1));
+            const double ph = content.height() / (hdmi ? 1 : (quad ? GRID_ROWS : 1));
             const double ox = content.left(), oy = content.top();
             for (int i = 0; i < nLab; ++i) {
-                const QRectF box(ox + (quad ? (i % GRID_COLS) * pw + 6 : 6),
-                                  oy + (quad ? (i / GRID_COLS) * ph + 6 : 6), std::min(280.0, pw - 12), cameraLabelHeight);
+                const int cameraIndex = hdmi ? (i == 0 ? tdm::hdmiLeftCamera : tdm::hdmiRightCamera)
+                                             : (quad ? i : pane);
+                const int col = hdmi ? (cameraIndex == tdm::hdmiRightCamera ? 1 : 0)
+                                     : (quad ? i % GRID_COLS : 0);
+                const int row = hdmi ? 0 : (quad ? i / GRID_COLS : 0);
+                const QRectF box(ox + col * pw + 6, oy + row * ph + 6,
+                                 std::min(280.0, pw - 12), cameraLabelHeight);
                 if (box.right() > content.right() || box.bottom() > content.bottom())
                     continue;
-                const int cameraIndex = quad ? i : pane;
                 const bool selected = !videoMode && cameraIndex == pane;
                 painter.fillRect(box, selected ? QColor(12, 78, 86, 225) : QColor(12, 22, 34, 210));
                 painter.drawImage(box.left() + 8, box.top() + 3,
@@ -2622,7 +2705,7 @@ protected:
                                                 .arg(m_cameraUploadRates[cameraIndex].rate(metricNow), 0, 'f', 1),
                                             QColor(225, 239, 245), 11));
             }
-            if (!videoMode && paneMask == 0x3F) {
+            if (quad && !paneRect.isEmpty()) {
                 painter.setPen(QPen(QColor(62, 213, 199), 2));
                 painter.drawRect(paneRect.adjusted(1, 1, -1, -1));
             }
@@ -2632,9 +2715,9 @@ protected:
             painter.save();
             painter.setClipRect(paneRect, Qt::IntersectClip);
             const double sx = paneRect.width() / (double)MODEL_W;
-            const double sy = paneRect.height() / (double)IMG_H;
+            const double sy = paneRect.height() / (double)(m_hdmiFull ? tdm::hdmiAnalyticsHeight : IMG_H);
             const double baseX = paneRect.left();
-            const double baseY = paneRect.top() - 80.0 * sy;
+            const double baseY = paneRect.top() - (m_hdmiFull ? tdm::hdmiModelPad : 80) * sy;
             if (!laneMask.isNull())
                 painter.drawImage(QRectF(baseX, baseY, MODEL_W * sx, MODEL_H * sy), laneMask);
             for (const Detection &d : dets) {
@@ -2815,7 +2898,7 @@ private:
                           textImage("Tab  设置  /  监看", accent, 11));
         QString keys = m_help ?
             "Tab 设置   V 切换单路/六路   P 暂停   S 截屏   F 全屏   Q 退出  ·  模型与参数请到设置页" :
-            "V 切换相机     G 六路总览     P 暂停     S 截屏     H 帮助     Tab 设置";
+            "V 切换相机     F HDMI满屏     G 六路总览     P 暂停     S 截屏     H 帮助     Tab 设置";
         if (!m_calibrationLine.isEmpty()) keys = "S 保存左右原图并检查棋盘   D 距离标签   V 切相机（C5为第二组）   G 六路   Tab 设置";
         if (qEnvironmentVariableIsSet("DETVIEW_STEREO_TRIAL_METERS"))
             keys = "试用草稿 · 中央ROI光轴深度Z · 请用静止、有纹理目标 · V 切相机   G 六路   Tab 设置   Q 退出";
@@ -2979,6 +3062,7 @@ private:
     QVector<Detection> m_dets;
     QStringList m_classes;
     int m_paneMask = 0x3F, m_pane = 0;
+    bool m_hdmiFull = false;   // HDMI 满屏视图（C5+C6 拼合 1280x480 铺满内容区）
     double m_dispFps = 0;
     QVector<double> m_camFps = QVector<double>(CAM_COUNT, 0.0);
     std::array<uint64_t, CAM_COUNT> m_sequences{}, m_uploadedSequences{};
@@ -3055,6 +3139,12 @@ public:
                 m_camFps = frame.fps;
                 m_lastFrameMs = QDateTime::currentMSecsSinceEpoch();
                 m_gl->submitCameras(frame);
+                if (m_lastHdmiFull != frame.hdmiFull) {
+                    m_lastHdmiFull = frame.hdmiFull;
+                    m_gl->setStatusLine(frame.hdmiFull ?
+                        "HDMI · 16:9 · YOLO 全画面（F 返回六路）" : "已恢复 6 路监视");
+                    updateHudLines();
+                }
                 if (m_labelTimer.elapsed() >= 300) {
                     m_labelTimer.restart();
                     updateHudLines();
@@ -3229,6 +3319,12 @@ public:
         if (mode >= 0 && mode <= CAM_COUNT)
             onCamChanged(mode);
     }
+    /* --prefer-hdmifull：0=off 1=on 2=auto，转发给采集线程 */
+    void setHdmiPrefer(int mode) {
+        m_hdmiManual = mode == 1;
+        m_camera->setHdmiPrefer(mode);
+        resetVision();
+    }
     bool setRotation(const QStringList &selectors) {
         QVector<ModelInfo> chosen;
         if (!selectRotation(m_models, selectors, chosen)) return false;
@@ -3286,7 +3382,19 @@ private:
             qApp->quit();
             break;
         case Qt::Key_F:
-            setFullscreen(!m_full);
+            // 与全屏共用 F：Shift+F 全屏，单按 F 在 HDMI 满屏/6 路间切换
+            if (e->modifiers() & Qt::ShiftModifier) {
+                setFullscreen(!m_full);
+            } else if (!m_videoMode && m_camMode == CAM_COUNT) {
+                if (e->isAutoRepeat() || m_calibrationMode) break;
+                m_hdmiManual = !m_hdmiManual;
+                m_camera->setHdmiOverride(m_hdmiManual ? 1 : 0);
+                resetVision();
+                m_gl->setStatusLine(m_hdmiManual
+                    ? "HDMI · 16:9 · YOLO 全画面（F 返回六路）"
+                    : "6 路监视（F 键 HDMI 满屏）");
+                updateHudLines();
+            }
             break;
         case Qt::Key_S:
             if (e->isAutoRepeat()) break;
@@ -3393,8 +3501,9 @@ private:
             lane = m_models[m_currentIndex].lane;
             vehicleClasses.insert(m_models[m_currentIndex].path, vehicleTrackingClasses(m_models[m_currentIndex]));
         }
-        const int selected = m_videoMode ? 0 : (m_camMode == CAM_COUNT ?
-            (m_visionOptions.stereoEnabled() ? m_visionOptions.primaryStereoLeft() : 0) : m_camMode);
+        const int selected = m_videoMode ? 0 : (m_hdmiManual && m_camMode == CAM_COUNT ?
+            tdm::hdmiInferenceCamera : (m_camMode == CAM_COUNT ?
+            (m_visionOptions.stereoEnabled() ? m_visionOptions.primaryStereoLeft() : 0) : m_camMode));
         m_vision->configure(m_sourceGeneration, selected, lane, paths, vehicleClasses);
         for (const auto& path : paths) {
             QStringList ids;
@@ -3416,6 +3525,8 @@ private:
         if (index < 0 || index > CAM_COUNT)
             return;
         m_camMode = index;
+        m_hdmiManual = false;
+        m_camera->setHdmiOverride(0);
         m_results.clear();
         m_resultTime.clear();
         m_resultMs.clear();
@@ -3629,7 +3740,9 @@ private:
     }
 
     QString camModeText() const {
-        return m_camMode >= CAM_COUNT ? QString("6 路 3x2") : QString("C%1").arg(m_camMode + 1);
+        if (m_camMode >= CAM_COUNT)
+            return m_lastHdmiFull ? QString("6 路 · HDMI 满屏 (C5+C6)") : QString("6 路 3x2");
+        return QString("C%1").arg(m_camMode + 1);
     }
 
     /* HUD 的模型行与相机/置信度行（状态行由采集/推理事件单独写） */
@@ -3706,6 +3819,8 @@ private:
     bool m_xyxy = false;
     int m_confPct = 25;      /* 与 InferenceThread 默认 conf 一致 */
     int m_camMode = CAM_COUNT;
+    bool m_lastHdmiFull = false;   // 与最近一帧 DisplayFrame.hdmiFull 对齐（HUD 文案用）
+    bool m_hdmiManual = false;     // F 键手动 HDMI 满屏（remote XTest 亦可触发）
     bool m_full = false, m_paused = false, m_helpVisible = false, m_videoMode = false;
     double m_camFps = 0, m_lastMs = 0;
     int m_lastDets = 0;
@@ -3774,6 +3889,7 @@ int main(int argc, char **argv) {
     if (app.arguments().contains("--vision-selftest")) {
         const bool ok = runCalibrationCaptureSelfTest() == 0 && selfTestVehiclePolicy() && CameraThread::selfTestDisplay() && DetView::selfTestRefresh() && tdm::runTrackerSelfTest() == 0 &&
                         tdm::runCameraDmaSelfTest() == 0 && runFrameMetricsSelfTest() == 0 &&
+                        tdm::runHdmiViewSelfTest() == 0 &&
                         VisionPipeline::selfTest();
         fprintf(stderr, ok ? "VISION_SELFTEST_PASS\n" : "VISION_SELFTEST_FAIL\n");
         return ok ? 0 : 2;
@@ -3785,6 +3901,7 @@ int main(int argc, char **argv) {
     }
     if (app.arguments().contains("--camera-dma-selftest")) return tdm::runCameraDmaSelfTest();
     if (app.arguments().contains("--frame-metrics-selftest")) return runFrameMetricsSelfTest();
+    if (app.arguments().contains("--hdmi-selftest")) return tdm::runHdmiViewSelfTest();
     if (app.arguments().contains("--lane-selftest")) {
         const bool ok = InferenceThread::selfTestLane();
         fprintf(stderr, ok ? "LANE_SELFTEST_PASS\n" : "LANE_SELFTEST_FAIL\n");
@@ -3886,6 +4003,7 @@ int main(int argc, char **argv) {
         !QFileInfo(videoSource).isFile()) {
         fprintf(stderr, "video source file does not exist: %s\n", qPrintable(videoSource)); return 2;
     }
+    int hdmiPrefer = 2;   // --prefer-hdmifull：0=off 1=on 2=auto（默认）
     VisionOptions visionOptions;
     try {
         auto integerOption = [&](const QString &name, int fallback) {
@@ -3920,6 +4038,18 @@ int main(int argc, char **argv) {
             visionOptions.stereoDisparities < 16 || visionOptions.stereoDisparities % 16 ||
             visionOptions.stereoDisparities > 128)
             throw std::invalid_argument("Invalid tracking/stereo timing, track count or disparity range");
+        /* --prefer-hdmifull [on|off|auto]：裸参数视为 on。on=6 路布局下强制
+           HDMI 视图及完整画面识别；auto=等待 F 明确选择（接收端没有模式信号）；
+           off=完全保持原有视图逻辑。 */
+        const int hdmiArg = args.indexOf("--prefer-hdmifull");
+        if (hdmiArg >= 0) {
+            const QString value = hdmiArg + 1 < args.size() && !args[hdmiArg + 1].startsWith("--")
+                                      ? args[hdmiArg + 1] : QStringLiteral("on");
+            if (value == QLatin1String("on")) hdmiPrefer = 1;
+            else if (value == QLatin1String("off")) hdmiPrefer = 0;
+            else if (value == QLatin1String("auto")) hdmiPrefer = 2;
+            else throw std::invalid_argument("--prefer-hdmifull requires on|off|auto");
+        }
         const int stereoArg = args.indexOf("--stereo");
         if (stereoArg >= 0) {
             if (stereoArg + 1 >= args.size()) throw std::invalid_argument("--stereo needs LEFT,RIGHT camera IDs");
@@ -4031,6 +4161,7 @@ int main(int argc, char **argv) {
         return 2;
     }
     DetViewController w(models, videoSource, visionOptions);
+    w.setHdmiPrefer(hdmiPrefer);
     const int ai = args.indexOf("--model-index");
     if (ai >= 0 && ai + 1 < args.size()) {
         const int idx = args[ai + 1].toInt();
