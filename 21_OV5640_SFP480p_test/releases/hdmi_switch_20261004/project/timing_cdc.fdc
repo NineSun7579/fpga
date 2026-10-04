@@ -1,0 +1,31 @@
+# PDS compiled vector pins have explicit bit suffixes, e.g.
+# hdmi_done_sync[1:0]/D[0]. Select first-stage inputs, never whole vectors.
+set_false_path -from [get_clocks {cfg_clk}] -to [get_pins -hierarchical -regexp {.*hdmi_done_sync.*/D\[0\]}]
+# HSST PCS status -> free-clock two-stage synchronizers (vendor RTL has
+# sig_async_ff then sig_synced). Only the asynchronous first D is cut.
+set_false_path -from [get_clocks {p_clk2core_tx_2}] -to [get_pins -hierarchical -regexp {pcs_sync.*/D\[0\]}]
+set_false_path -from [get_clocks {p_clk2core_tx_2}] -to [get_pins -hierarchical {*u_hsst*word_align_sync*sig_async_ff*/D*}]
+set_false_path -from [get_clocks {sys_clk}] -to [get_pins -hierarchical -regexp {.*u_mode/request_sync.*/D\[0\]}]
+set_false_path -from [get_clocks {hdmi_sample_clk}] -to [get_pins -hierarchical -regexp {.*u_mode/fault_sync.*/D\[0\]}]
+set_false_path -from [get_clocks {cfg_clk}] -to [get_pins -hierarchical -regexp {.*u_hdmi_capture/ready_sync.*/D\[0\]}]
+# Asynchronous PLL status enters only the first lock synchronizer D pin.
+set_false_path -from [get_pins {u_hdmi_capture.u_input_pll/LOCK}] -to [get_pins -hierarchical -regexp {.*u_hdmi_capture/lock_sync.*/D\[0\]}]
+set_false_path -from [get_clocks {sys_clk}] -to [get_pins -hierarchical -regexp {.*u_sfp_video_tx/ready_sync.*/D\[0\]}]
+set_false_path -from [get_clocks {cmos1_pclk_16bit}] -to [get_pins -hierarchical {*u_cam2_merge*u_afifo*wptr_rd1*/D*}]
+set_false_path -from [get_clocks {mrg_clk}] -to [get_pins -hierarchical {*u_cam2_merge*u_afifo*rptr_wr1*/D*}]
+set_false_path -from [get_clocks {cmos2_pclk_16bit}] -to [get_pins -hierarchical {*u_cam2_merge*u_bfifo*wptr_rd1*/D*}]
+set_false_path -from [get_clocks {mrg_clk}] -to [get_pins -hierarchical {*u_cam2_merge*u_bfifo*rptr_wr1*/D*}]
+set_false_path -from [get_clocks {hdmi_sample_clk}] -to [get_pins -hierarchical {*u_hdmi_capture*u_fifo*wptr_rd1*/D*}]
+set_false_path -from [get_clocks {mrg_clk}] -to [get_pins -hierarchical {*u_hdmi_capture*u_fifo*rptr_wr1*/D*}]
+set_false_path -from [get_clocks {mrg_clk}] -to [get_pins -hierarchical {*u_sfp_video_tx*u_fifo*wptr_rd1*/D*}]
+set_false_path -from [get_clocks {p_clk2core_tx_2}] -to [get_pins -hierarchical {*u_sfp_video_tx*u_fifo*rptr_wr1*/D*}]
+# Only raw request -> first-stage async clear. Stage one's clear is driven by
+# locally clocked stage zero; keep stage-one recovery/removal and D timed.
+set_false_path -to [get_pins -hierarchical -regexp {.*release_q\[0\]/C}]
+# Source-held FWFT memory values become readable only after Gray write
+# pointer traverses two read-domain FFs and registered empty. Only memory
+# launch to receiving domain is cut; write/read ADDRESS paths remain timed.
+set_false_path -from [get_cells -hierarchical {*u_sfp_video_tx*u_fifo*mem*}] -to [get_clocks {p_clk2core_tx_2}]
+set_false_path -from [get_cells -hierarchical {*u_hdmi_capture*u_fifo*mem*}] -to [get_clocks {mrg_clk}]
+set_false_path -from [get_cells -hierarchical {*u_cam2_merge*u_afifo*mem*}] -to [get_clocks {mrg_clk}]
+set_false_path -from [get_cells -hierarchical {*u_cam2_merge*u_bfifo*mem*}] -to [get_clocks {mrg_clk}]
