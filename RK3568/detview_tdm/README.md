@@ -8,6 +8,8 @@
 
 ## 使用
 
+十字路口 HDMI 智能驾驶模拟：`./detview --driving-demo --fullscreen`。方向键选车道，`A` 自动、`X` 停车、`B` 强制行驶。使用与判定规则见 [驾驶模拟](DRIVING_DEMO.md)。
+
 ```sh
 ./detview --rotate-model zebra-rk3568-raw-dfl6,wb_v4_combo
 ./detview --fullscreen --rotate-model zebra-rk3568-raw-dfl6,wb_v4_combo
