@@ -1,6 +1,6 @@
 ﻿// detview - OV5640 live detection UI for RK3568 + Pango FPGA + RKNN
 // Cam path: OV5640 -> DDR3 ping-pong (0x00800000/0x00A00000, RGB565 640x480)
-//           -> PCIe DMA read -> letterbox 640x640 -> RKNN model
+//           -> PCIe DMA read -> canonical 640x640 -> per-model RKNN input geometry
 #include <QApplication>
 #include <QAction>
 #include <QComboBox>
@@ -59,6 +59,11 @@
 #include "camera_dma.h"
 #include "frame_metrics.h"
 #include "display_perf.h"
+#include "hdmi_view.h"
+#include "driving_demo.h"
+#include "driving_overlay.h"
+#include "driving_overlay_validation.h"
+#include "inference_geometry.h"
 #include "calibration_capture.h"
 #include "stereo_demo/stereo_depth.h"
 
@@ -90,7 +95,6 @@ static const unsigned long F2H_CMD = 0xC0000000ul | (4ul << 16) | (0x53ul << 8) 
 
 static const int MODEL_W = 640;
 static const int MODEL_H = 640;
-static const size_t MODEL_SIZE = (size_t)MODEL_W * MODEL_H * 3;
 static const float CONF_THRESH = 0.25f;
 static const float IOU_THRESH = 0.45f;
 
@@ -163,7 +167,39 @@ struct ModelInfo {
     int nc = 1;
     bool xyxy = false;
     bool lane = false;
+    bool trafficlight = false;
 };
+
+static QStringList trafficlightNames() {
+    // Exact package names.json order. Keep raw IDs stable for logs/metadata.
+    return {"tlr_motor_red", "tly_motor_amber", "tlg_motor_green",
+            "tlra_left_red", "tlya_left_amber", "tlga_left_green",
+            "tsra_straight_red", "tsya_straight_amber", "tsga_straight_green",
+            "trra_right_red", "trya_right_amber", "trga_right_green",
+            "tura_uturn_red", "tuya_uturn_amber", "tuga_uturn_green", "tln_lamp_off"};
+}
+
+static QString displayClassName(const QString &name) {
+    static const QStringList ids = trafficlightNames();
+    static const QStringList labels = {"机动车红灯", "机动车黄灯", "机动车绿灯",
+        "左转红灯", "左转黄灯", "左转绿灯", "直行红灯", "直行黄灯", "直行绿灯",
+        "右转红灯", "右转黄灯", "右转绿灯", "掉头红灯", "掉头黄灯", "掉头绿灯", "信号灯熄灭"};
+    const int id = ids.indexOf(name);
+    return id >= 0 ? labels[id] : name;
+}
+
+static bool readModelNames(const QString &path, QStringList &names) {
+    QFile file(path + ".names.json");
+    if (!file.open(QIODevice::ReadOnly)) return false;
+    QJsonParseError error{};
+    const QJsonDocument doc = QJsonDocument::fromJson(file.readAll(), &error);
+    if (error.error != QJsonParseError::NoError || !doc.isArray() || doc.array().isEmpty()) return false;
+    for (const auto &value : doc.array()) {
+        if (!value.isString() || value.toString().trimmed().isEmpty()) return false;
+        names.append(value.toString());
+    }
+    return true;
+}
 
 static bool selectRotation(const QVector<ModelInfo>& models, const QStringList& selectors,
                            QVector<ModelInfo>& chosen) {
@@ -192,7 +228,8 @@ static QVector<ModelInfo> scanModels() {
     const QStringList dirs = {"/root/npu/yolov8n/zebra640", "/root/npu/yolov8n/vehicle640",
                               "/root/npu", "/root/npu/yolo11n", "/root/models/yolo26_rk3568",
                               "/root/npu/tt100k", "/root/npu/tt100k_yolov8n",
-                              "/root/npu/lane_linknet", "/root/npu/whiteboard_3cls"};
+                              "/root/npu/lane_linknet", "/root/npu/whiteboard_3cls",
+                              "/root/npu/trafficlight"};
     for (const QString &d : dirs) {
         QDir dir(d);
         const QStringList files = dir.entryList(QStringList() << "*.rknn", QDir::Files, QDir::Name);
@@ -200,6 +237,9 @@ static QVector<ModelInfo> scanModels() {
             ModelInfo mi;
             mi.path = dir.absoluteFilePath(f);
             const QString lower = f.toLower();
+            QStringList names;
+            const bool hasNames = readModelNames(mi.path, names);
+            const bool trafficlight = lower.contains("trafficlight") || (hasNames && names == trafficlightNames());
             if (lower.startsWith("seg-linknet-lane640-")) {
                 mi.lane = true;
                 mi.nc = lower.contains("multiclass") ? 9 : 2;
@@ -207,6 +247,16 @@ static QVector<ModelInfo> scanModels() {
                     ? (QStringList() << "background" << "lane0" << "lane1" << "lane2"
                                      << "lane3" << "lane4" << "lane5" << "lane6" << "lane7")
                     : (QStringList() << "background" << "lane");
+            } else if (trafficlight) {
+                if (QFileInfo::exists(mi.path + ".names.json") && (!hasNames || names != trafficlightNames())) {
+                    fprintf(stderr, "[trafficlight] reject %s: names sidecar must match package's 16 class IDs\n",
+                            qPrintable(mi.path));
+                    continue;
+                }
+                mi.trafficlight = true;
+                mi.classes = hasNames ? names : trafficlightNames();
+                mi.nc = 16;
+                mi.xyxy = false;
             } else if (lower.contains("tt100k")) {
                 mi.classes = QStringList() << "非机动车" << "机动车" << "靠右侧行驶" << "人行横道"
                                            << "禁止掉头" << "禁止机动车驶入" << "禁止鸣喇叭"
@@ -260,6 +310,10 @@ static QVector<ModelInfo> scanModels() {
             } else {
                 mi.classes = QStringList() << "vehicle";
                 mi.nc = 1;
+            }
+            if (hasNames && !mi.trafficlight && !mi.lane) {
+                mi.classes = names;
+                mi.nc = names.size();
             }
             list.append(mi);
         }
@@ -535,6 +589,7 @@ public:
     /* 当前显示模式（0..5 = 单路，CAM_COUNT = 整幅）：单路时只采那一路，其余停采 */
     void setModePtr(const std::atomic<int> *mode) { mode_ = mode; }
     void setPausedPtr(const std::atomic<bool> *paused) { paused_ = paused; }
+    void setHdmiPtr(const std::atomic<bool> *hdmi) { hdmi_ = hdmi; }
 
 protected:
     void run() override {
@@ -563,6 +618,9 @@ protected:
         while (running_) {
             if (paused_ && paused_->load()) { suspendMeasurement(); msleep(20); continue; }
             const int sourceGeneration = generation_ ? generation_->load() : 0;
+            if (hdmi_ && hdmi_->load() && idx < tdm::hdmiLeftCamera) {
+                suspendMeasurement(); msleep(20); continue;
+            }
             /* 设备模式：整幅时六路全采；单选时只采那一路（其余不发 DMA、不轮询标签） */
             if (mode_) {
                 const int mode = mode_->load();
@@ -602,7 +660,8 @@ protected:
             dmaNsTotal += dmaNs; copyNsTotal += copyNs; ++auditFrames;
             const qint64 completedMs = monotonicMs();
             captureRate.add(completedMs);
-            if (visionSink_ && ((inferPane_ && inferPane_->load() == idx) || (stereoMask_ & (1 << idx))) &&
+            if (visionSink_ && !(hdmi_ && hdmi_->load()) &&
+                ((inferPane_ && inferPane_->load() == idx) || (stereoMask_ & (1 << idx))) &&
                 generation_ && sourceGeneration == generation_->load()) {
                 QImage pixels(IMG_W, IMG_H, QImage::Format_RGB888);
                 const uint16_t *src = reinterpret_cast<const uint16_t *>(frame.constData());
@@ -656,6 +715,7 @@ private:
     const std::atomic<int> *inferPane_ = nullptr;
     const std::atomic<int> *generation_ = nullptr;
     const std::atomic<bool> *paused_ = nullptr;
+    const std::atomic<bool> *hdmi_ = nullptr;
     std::atomic<quint64> *sequence_ = nullptr;
     int stereoMask_ = 0;
     const std::atomic<int> *mode_ = nullptr;
@@ -680,6 +740,7 @@ public:
         std::array<quint32, CAM_COUNT> tags{};
         std::array<int, CAM_COUNT> cameraGenerations{};
         std::array<qint64, CAM_COUNT> rawCapturedMs{};
+        bool hdmiFull = false;   // HDMI 满屏视图（仅 6 路 3x2 布局下由显示端采用）
     };
     DisplayFrame takeDisplay() {
         QMutexLocker lock(&m_displayMutex);
@@ -756,6 +817,7 @@ public:
         QMutexLocker lock(&m_configMutex);
         m_selectedCamera = mode == CAM_COUNT ? (m_options.stereoEnabled() ? m_options.primaryStereoLeft() : 0) : mode;
         m_mode = mode;
+        updateHdmiActive();
     }
     void setSourceGeneration(int generation) {
         QMutexLocker lock(&m_configMutex);
@@ -778,6 +840,10 @@ public:
         QMutexLocker lock(&m_configMutex);
         m_videoLoop = loop;
     }
+    /* auto has no trustworthy source-mode signal: wait for explicit F selection. */
+    void setHdmiPrefer(int mode) { m_hdmiPrefer.store(mode); updateHdmiActive(); }
+    // 手动覆盖（HDMI 满屏热切换）：-1=不覆盖（按 prefer/auto），1=强制满屏，0=强制 6 路
+    void setHdmiOverride(int mode) { m_hdmiOverride.store(mode); updateHdmiActive(); }
     /* 控件尺寸：相机线程据此决定 RGA 缩放目标（letterbox 后的内容尺寸） */
     void setDisplaySize(int w, int h) { m_dispW = w; m_dispH = h; }
 
@@ -812,6 +878,7 @@ protected:
             w.setVisionSink(&m_selectedCamera, &m_sourceGeneration, &m_frameSequence, m_visionSink, stereoMask);
             w.setModePtr(&m_mode);
             w.setPausedPtr(&m_paused);
+            w.setHdmiPtr(&m_hdmiActive);
         }
         for (CameraWorker &w : workers) w.start();
         emit statusMsg("Six-camera DMA ready; 3x2 view, inference uses the selected pane");
@@ -824,6 +891,8 @@ protected:
                                        ? std::max(0, qEnvironmentVariableIntValue("DETVIEW_MIN_MS")) : 16;
         uint64_t lastGen = 0;
         int lastMode = -1, lastDisplayGeneration = -1;
+        uint64_t hdmiLeftSequence = 0, hdmiRightSequence = 0;
+        quint64 hdmiSubmissions = 0;
         /* 诊断：DET_DUMP_COMP=1 时把合成缓冲原样存一张 PNG，用来分辨
            “合成内容错”还是“显示映射错”（两者症状很像） */
         const bool dumpComp = qEnvironmentVariableIsSet("DET_DUMP_COMP");
@@ -878,6 +947,27 @@ protected:
                 }
                 for (int i = 0; i < CAM_COUNT; ++i)
                     if (have[i]) cameraPixels[i] = latest.c[i];
+            }
+            const bool hdmiFull = mode == CAM_COUNT && m_hdmiActive.load();
+            if (hdmiFull) pane = tdm::hdmiInferenceCamera;
+            if (hdmiFull && m_visionSink && camGen[4] != hdmiLeftSequence && camGen[5] != hdmiRightSequence &&
+                tdm::hdmiPairReady(monotonicMs(), rawCaptureTimes[4], rawCaptureTimes[5],
+                                   displayGeneration, cameraGenerations[4], cameraGenerations[5])) {
+                VisionFrame packet;
+                packet.image = tdm::hdmiAnalyticsImage(cameraPixels[4], cameraPixels[5]);
+                packet.camera = tdm::hdmiInferenceCamera;
+                packet.sourceGeneration = displayGeneration;
+                packet.frameId = m_frameSequence.fetch_add(1) + 1;
+                packet.tag = tags[4];
+                packet.capturedMs = qMin(rawCaptureTimes[4], rawCaptureTimes[5]);
+                if (!packet.image.isNull() && m_hdmiActive.load() && displayGeneration == m_sourceGeneration.load()) {
+                    m_visionSink(packet);
+                    hdmiLeftSequence = camGen[4]; hdmiRightSequence = camGen[5];
+                    if (++hdmiSubmissions % 120 == 1)
+                        fprintf(stderr, "[hdmi-infer] generation=%d frames=%llu input=1280x480 content=640x360 pad=140 skew_ms=%lld tags=%u/%u\n",
+                                displayGeneration, (unsigned long long)hdmiSubmissions,
+                                (long long)qAbs(rawCaptureTimes[4] - rawCaptureTimes[5]), tags[4], tags[5]);
+                }
             }
             if (!ready) { msleep(2); continue; }
 
@@ -943,9 +1033,11 @@ protected:
             display.rawCapturedMs = rawCaptureTimes;
             display.tags = tags;
             display.cameraGenerations = cameraGenerations;
+            display.hdmiFull = hdmiFull;
             {
                 QMutexLocker lock(&m_configMutex);
-                if (mode == m_mode.load() && pane == m_selectedCamera.load() &&
+                if (mode == m_mode.load() && hdmiFull == m_hdmiActive.load() &&
+                    (hdmiFull || pane == m_selectedCamera.load()) &&
                     displayGeneration == m_sourceGeneration.load() && !m_paused)
                     publishDisplay(std::move(display));
             }
@@ -957,6 +1049,11 @@ protected:
     }
 
 private:
+    void updateHdmiActive() {
+        const int overrideMode = m_hdmiOverride.load();
+        m_hdmiActive = m_mode.load() == CAM_COUNT &&
+                       (overrideMode >= 0 ? overrideMode == 1 : m_hdmiPrefer.load() == 1);
+    }
     void runVideo() {
         QString source;
         bool loop;
@@ -1162,6 +1259,9 @@ private:
     std::atomic<int> m_selectedCamera{0};
     std::atomic<int> m_sourceGeneration{0};
     std::atomic<quint64> m_frameSequence{0};
+    std::atomic<int> m_hdmiPrefer{2};   // 0=off 1=on 2=auto（--prefer-hdmifull）
+    std::atomic<int> m_hdmiOverride{-1}; // F 键手动覆盖：-1 无 1 满屏 0 六路
+    std::atomic<bool> m_hdmiActive{false};
     VisionOptions m_options;
     std::function<void(const VisionFrame&)> m_visionSink;
     QString m_videoSource;
@@ -1343,6 +1443,94 @@ public:
         return ok;
     }
 
+    static bool selfTestTrafficlight() {
+        InferenceThread t;
+        t.m_nc = 16; t.m_trafficlight = true; t.m_geometry.height = 480;
+        t.m_conf.store(0.65f);
+        const int heights[] = {60, 30, 15}, widths[] = {80, 40, 20};
+        std::vector<std::vector<float>> buffers(6);
+        std::vector<rknn_tensor_attr> attrs(6);
+        std::vector<rknn_output> outs(6);
+        for (int i = 0; i < 6; ++i) {
+            const int s = i % 3, c = i < 3 ? 64 : 16;
+            buffers[i].assign(c * heights[s] * widths[s], -10.0f);
+            attrs[i].index = i; attrs[i].n_dims = 4; attrs[i].fmt = RKNN_TENSOR_NCHW;
+            attrs[i].dims[0] = 1; attrs[i].dims[1] = c;
+            attrs[i].dims[2] = heights[s]; attrs[i].dims[3] = widths[s];
+            attrs[i].n_elems = buffers[i].size();
+            outs[i].buf = buffers[i].data(); outs[i].want_float = 1;
+        }
+        // First class probe has only 0..1 values. The package still requires
+        // sigmoid; detecting logits from this probe would be incorrect.
+        std::fill(buffers[3].begin(), buffers[3].begin() + 60 * 80, 0.05f);
+        const int distances[] = {1, 2, 3, 4};
+        auto candidate = [&](int s, int x, int y, int cls, float logit) {
+            const int plane = heights[s] * widths[s], off = y * widths[s] + x;
+            for (int side = 0; side < 4; ++side)
+                buffers[s][(side * 16 + distances[side]) * plane + off] = 10.0f;
+            buffers[s + 3][cls * plane + off] = logit;
+        };
+        candidate(0, 20, 10, 15, 0.9f);
+        candidate(0, 21, 10, 6, 1.2f); // Overlaps class 15: both must survive.
+        candidate(0, 22, 10, 6, 1.0f); // Same-class overlap must be suppressed.
+        candidate(1, 20, 10, 2, 1.1f);
+        candidate(2, 18, 8, 14, 1.0f);
+        // Deliberately shuffle heads: pairing must use shape, never index.
+        std::swap(attrs[0], attrs[4]); std::swap(outs[0], outs[4]);
+        int failures = 0;
+        auto expect = [&](bool ok, const char *name) {
+            fprintf(stderr, "%s %s\n", ok ? "[ok]" : "[FAIL]", name);
+            failures += !ok;
+        };
+        expect(trafficlightNames().size() == 16 && trafficlightNames()[15] == "tln_lamp_off",
+               "trafficlight metadata retains all 16 stable class IDs");
+        expect(validTrafficlightOutputs(attrs), "shuffled raw DFL6 box64/cls16 shapes are accepted");
+        auto bad = attrs;
+        bad[0].dims[1] = 1;
+        expect(!validTrafficlightOutputs(bad), "class count mismatch is rejected before inference");
+        bad = attrs; bad[0].fmt = RKNN_TENSOR_NHWC;
+        expect(!validTrafficlightOutputs(bad), "unsupported output layout fails closed");
+        bad = attrs; bad[0] = bad[3];
+        expect(!validTrafficlightOutputs(bad), "duplicate head and missing scale are rejected");
+        bad = attrs; bad[0].n_elems = 1;
+        expect(!validTrafficlightOutputs(bad), "inconsistent output element count is rejected");
+        QVector<Detection> dets = t.decode(outs, attrs);
+        expect(dets.size() == 4, "production decoder preserves overlapping different classes and suppresses same class");
+        auto findClass = [&](int cls) -> const Detection * {
+            for (const auto &d : dets) if (d.cls == cls) return &d;
+            return nullptr;
+        };
+        const Detection *off = findClass(15), *p4 = findClass(2), *p5 = findClass(14);
+        expect(off && std::fabs(off->score - sigmoidf(0.9f)) < 1e-5f &&
+               std::fabs(off->x1 - 156) < 0.01f && std::fabs(off->y1 - 68) < 0.01f &&
+               std::fabs(off->x2 - 188) < 0.01f && std::fabs(off->y2 - 116) < 0.01f,
+               "class 15 logits use sigmoid and regmax16 DFL at stride 8");
+        expect(p4 && std::fabs(p4->x1 - 312) < 0.01f && std::fabs(p4->y1 - 136) < 0.01f &&
+               p5 && std::fabs(p5->x1 - 560) < 0.01f && std::fabs(p5->y1 - 208) < 0.01f,
+               "rectangular grids decode stride 16 and 32 without square-height scaling");
+        tdm::restoreCanonicalDetections(dets, t.m_geometry);
+        off = findClass(15);
+        expect(off && std::fabs(off->y1 - 148) < 0.01f && std::fabs(off->y2 - 196) < 0.01f,
+               "production decode result returns to canonical viewer space");
+        std::vector<CandD> overlap = {{0.9f, 10, 20, 30, 40, 0},
+                                      {0.8f, 10, 20, 30, 40, 1}, {0.7f, 10, 20, 30, 40, 1}};
+        QVector<Detection> aware, legacy;
+        auto legacyCands = overlap;
+        nmsAppend(aware, overlap, true); nmsAppend(legacy, legacyCands);
+        expect(aware.size() == 2 && legacy.size() == 1, "trafficlight NMS is class aware; legacy default remains class agnostic");
+        // Candidate limiting must happen after NMS for trafficlight. A cluster
+        // of duplicates must not consume the entire 300-candidate budget.
+        for (auto &buffer : buffers) std::fill(buffer.begin(), buffer.end(), -10.0f);
+        for (int y = 10; y < 25; ++y)
+            for (int x = 5; x < 25; ++x) candidate(0, x, y, 6, 2.0f);
+        candidate(0, 70, 50, 15, 1.0f);
+        dets = t.decode(outs, attrs);
+        expect(findClass(15) && dets.size() <= 300,
+               "production decoder retains lower-score distinct detection after more than 300 candidates");
+        fprintf(stderr, failures ? "TRAFFICLIGHT_DECODER_SELFTEST_FAIL\n" : "TRAFFICLIGHT_DECODER_SELFTEST_PASS\n");
+        return failures == 0;
+    }
+
     void submit(const QImage &img, int sourceGeneration = 0, quint64 frameId = 0) {
         QMutexLocker lock(&m_mutex);
         m_pending = img;
@@ -1388,6 +1576,8 @@ protected:
             QByteArray bytes;
             rknn_context context = 0;
             uint32_t outputs = 0;
+            tdm::InferenceGeometry geometry;
+            std::vector<rknn_tensor_attr> outputAttrs;
         };
         QVector<CachedModel> cache;
         int next = 0;
@@ -1443,14 +1633,42 @@ protected:
                     }
                     rknn_input_output_num ioNum{};
                     if (rknn_query(item.context, RKNN_QUERY_IN_OUT_NUM, &ioNum, sizeof(ioNum)) != 0 ||
-                        ioNum.n_input != 1 || (info.lane && ioNum.n_output != 1)) {
+                        ioNum.n_input != 1 || ioNum.n_output == 0 || (info.lane && ioNum.n_output != 1)) {
                         rknn_destroy(item.context);
                         emit modelLoaded(info.path, false, "unsupported input/output count");
                         continue;
                     }
+                    rknn_tensor_attr inputAttr{};
+                    if (rknn_query(item.context, RKNN_QUERY_INPUT_ATTR, &inputAttr, sizeof(inputAttr)) != 0 ||
+                        !tdm::queryInputGeometry(inputAttr, item.geometry) ||
+                        (info.lane && item.geometry.height != MODEL_H) ||
+                        (info.trafficlight && item.geometry.height != 480)) {
+                        rknn_destroy(item.context);
+                        emit modelLoaded(info.path, false, "unsupported input: require 1x3x640x640 or 1x3x480x640 (trafficlight: 480 high)");
+                        continue;
+                    }
+                    logTensor(info.path, "input", inputAttr);
+                    bool attrsOk = true;
+                    item.outputAttrs.resize(ioNum.n_output);
+                    for (uint32_t i = 0; i < ioNum.n_output; ++i) {
+                        rknn_tensor_attr &attr = item.outputAttrs[i];
+                        attr.index = i;
+                        if (rknn_query(item.context, RKNN_QUERY_OUTPUT_ATTR, &attr, sizeof(attr)) != 0) {
+                            attrsOk = false;
+                            break;
+                        }
+                        logTensor(info.path, "output", attr);
+                    }
+                    if (!attrsOk || (info.trafficlight && !validTrafficlightOutputs(item.outputAttrs))) {
+                        rknn_destroy(item.context);
+                        emit modelLoaded(info.path, false, "unsupported outputs: trafficlight requires box64/cls16 at 60x80,30x40,15x20 NCHW");
+                        continue;
+                    }
                     item.outputs = ioNum.n_output;
                     cache.append(std::move(item));
-                    emit modelLoaded(info.path, true, QString("%1 outputs cached").arg(ioNum.n_output));
+                    m_completed.remove(info.path);
+                    emit modelLoaded(info.path, true, QString("640x%1 RGB, %2 outputs cached")
+                                     .arg(cache.last().geometry.height).arg(ioNum.n_output));
                 }
             }
             if (!frame.isNull() && !cache.isEmpty()) {
@@ -1461,6 +1679,10 @@ protected:
                 m_nc = item.info.nc;
                 m_xyxy = cache.size() == 1 ? m_manualFormat.load() : item.info.xyxy;
                 m_lane = item.info.lane;
+                m_trafficlight = item.info.trafficlight;
+                m_geometry = item.geometry;
+                m_outputAttrs = &item.outputAttrs;
+                m_classNames = item.info.classes;
                 const qint64 runStart = diag ? QDateTime::currentMSecsSinceEpoch() : 0;
                 recordMetric(sourceGeneration, item.info.path, 0);
                 if (!runOnce(frame, item.info.path, sourceGeneration, frameId)) {
@@ -1493,6 +1715,33 @@ protected:
     }
 
 private:
+    static void logTensor(const QString &path, const char *kind, const rknn_tensor_attr &attr) {
+        QStringList dims;
+        for (uint32_t i = 0; i < attr.n_dims; ++i) dims << QString::number(attr.dims[i]);
+        fprintf(stderr, "[model-tensor] model=%s %s[%u] shape=[%s] fmt=%s type=%s quant=%d zp=%d scale=%.9g elems=%u bytes=%u\n",
+                qPrintable(path), kind, attr.index, qPrintable(dims.join(',')),
+                get_format_string(attr.fmt), get_type_string(attr.type), attr.qnt_type,
+                attr.zp, attr.scale, attr.n_elems, attr.size);
+    }
+
+    static bool validTrafficlightOutputs(const std::vector<rknn_tensor_attr> &attrs) {
+        if (attrs.size() != 6) return false;
+        int seen[3][2] = {};
+        const int heights[] = {60, 30, 15}, widths[] = {80, 40, 20};
+        for (const auto &attr : attrs) {
+            if (attr.n_dims != 4 || attr.dims[0] != 1 || attr.fmt != RKNN_TENSOR_NCHW) return false;
+            const int head = attr.dims[1] == 64 ? 0 : (attr.dims[1] == 16 ? 1 : -1);
+            if (head < 0) return false;
+            int scale = -1;
+            for (int s = 0; s < 3; ++s)
+                if (attr.dims[2] == (uint32_t)heights[s] && attr.dims[3] == (uint32_t)widths[s]) scale = s;
+            if (scale < 0 || ++seen[scale][head] != 1 ||
+                attr.n_elems != attr.dims[1] * attr.dims[2] * attr.dims[3]) return false;
+        }
+        for (const auto &scale : seen) if (scale[0] != 1 || scale[1] != 1) return false;
+        return true;
+    }
+
     double recordMetric(int generation, const QString& model, int event) {
         QMutexLocker lock(&m_metricsMutex);
         if (m_metricsGeneration < 0) {
@@ -1519,52 +1768,35 @@ private:
         lap.restart();
     }
     bool runOnce(const QImage &src, const QString &modelPath, int sourceGeneration, quint64 frameId) {
-        if (m_input.size() != (int)MODEL_SIZE)
-            m_input.resize((int)MODEL_SIZE);
+        const int inputBytes = m_geometry.rgbBytes();
         /* DET_BENCH 分段计时：定位应用内比纯 NPU 慢在哪一段
            prep=输入拷贝, set=rknn_inputs_set, run=NPU, get=输出反量化,
            query=输出属性查询, decode=DFL+NMS, release=释放 */
         const bool bench = qEnvironmentVariableIsSet("DET_BENCH");
-        const bool int8In = qEnvironmentVariableIsSet("DET_INT8_IN");
+        const bool int8In = !m_trafficlight && qEnvironmentVariableIsSet("DET_INT8_IN");
         QElapsedTimer lap;
         double tPrep = 0, tSet = 0, tRun = 0, tGet = 0, tQuery = 0, tDecode = 0, tRel = 0;
         if (bench)
             lap.start();
-        /* 相机线程已经给出 640x640 RGB888（letterbox 完成），且不需要 int8 转换时
-           直接把它的缓冲喂给 rknn_inputs_set，省掉一次 1.2MB 拷贝（实测 prep 段
-           0.8~1.3ms）。QImage 是隐式共享的，调用期间 src 一直有效。 */
+        // The square producer contract stays unchanged. Only the network feed
+        // is cropped; restoreCanonicalDetections reverses this after decode.
+        const QImage rgb = tdm::networkRgbFrame(src, m_geometry);
+        if (rgb.isNull()) return false;
         const QImage *feed = nullptr;
-        if (!int8In && src.width() == MODEL_W && src.height() == MODEL_H &&
-            src.format() == QImage::Format_RGB888 && src.bytesPerLine() == MODEL_W * 3) {
-            feed = &src;
-        } else if (src.width() == MODEL_W && src.height() == MODEL_H) {
-            const QImage rgb = src.format() == QImage::Format_RGB888
-                                   ? src
-                                   : src.convertToFormat(QImage::Format_RGB888);
-            if (rgb.bytesPerLine() == MODEL_W * 3)
-                memcpy(m_input.data(), rgb.constBits(), MODEL_SIZE);
-            else
-                for (int y = 0; y < MODEL_H; y++)
-                    memcpy(m_input.data() + y * MODEL_W * 3,
-                           rgb.constBits() + (size_t)y * rgb.bytesPerLine(), MODEL_W * 3);
+        if (!int8In && rgb.bytesPerLine() == m_geometry.width * 3) {
+            feed = &rgb;
         } else {
-            const QImage rgb = src.convertToFormat(QImage::Format_RGB888);
-            // letterbox 640x480 -> 640x640 (vertical pad, gray 114)
-            memset(m_input.data(), 114, 80 * MODEL_W * 3);
-            const int copyBytes = IMG_W * 3;
-            const uint8_t *sp = rgb.constBits();
-            uint8_t *dp = (uint8_t *)m_input.data() + 80 * copyBytes;
-            for (int y = 0; y < IMG_H; y++)
-                memcpy(dp + y * copyBytes, sp + y * IMG_W * 3, copyBytes);
-            memset((uint8_t *)m_input.data() + (80 + IMG_H) * copyBytes, 114,
-                   (MODEL_H - 80 - IMG_H) * copyBytes);
+            m_input.resize(inputBytes);
+            for (int y = 0; y < m_geometry.height; ++y)
+                memcpy(m_input.data() + y * m_geometry.width * 3,
+                       rgb.constScanLine(y), m_geometry.width * 3);
         }
 
         /* 实测：输入按 INT8 直传反而慢得多（inputs_set 1.4ms → 16.9ms，整体 +58%），
            驱动对 UINT8 输入是快路径；默认走 UINT8，DET_INT8_IN=1 仅用于对照。 */
         if (int8In) {
             uint8_t *p = reinterpret_cast<uint8_t *>(m_input.data());
-            for (int i = 0; i < (int)MODEL_SIZE; ++i)
+            for (int i = 0; i < inputBytes; ++i)
                 p[i] = (uint8_t)(p[i] - 128);
         }
         if (bench) markLap(lap, tPrep);
@@ -1572,7 +1804,7 @@ private:
         memset(&input, 0, sizeof(input));
         input.index = 0;
         input.buf = feed ? (void *)feed->constBits() : (void *)m_input.constData();
-        input.size = (uint32_t)MODEL_SIZE;
+        input.size = (uint32_t)inputBytes;
         input.type = int8In ? RKNN_TENSOR_INT8 : RKNN_TENSOR_UINT8;
         input.fmt = RKNN_TENSOR_NHWC;
         QElapsedTimer timer;
@@ -1592,19 +1824,16 @@ private:
         if (rknn_outputs_get(m_ctx, m_nOutput, outs.data(), nullptr) != 0)
             return false;
         if (bench) markLap(lap, tGet);
-        std::vector<rknn_tensor_attr> attrs(m_nOutput);
-        for (uint32_t i = 0; i < m_nOutput; i++) {
-            memset(&attrs[i], 0, sizeof(rknn_tensor_attr));
-            attrs[i].index = i;
-            rknn_query(m_ctx, RKNN_QUERY_OUTPUT_ATTR, &attrs[i], sizeof(rknn_tensor_attr));
-        }
+        const std::vector<rknn_tensor_attr> &attrs = *m_outputAttrs;
         if (bench) markLap(lap, tQuery);
         QImage laneMask;
         QVector<Detection> dets;
         if (m_lane)
             laneMask = decodeLaneMask(outs[0], attrs[0], m_nc);
-        else
+        else {
             dets = decode(outs, attrs);
+            tdm::restoreCanonicalDetections(dets, m_geometry);
+        }
         if (bench) markLap(lap, tDecode);
         rknn_outputs_release(m_ctx, m_nOutput, outs.data());
         if (bench) markLap(lap, tRel);
@@ -1619,6 +1848,15 @@ private:
         if (completed == 1 || completed % 20 == 0)
             fprintf(stderr, "[tdm] model=%s completed=%d ms=%.2f source_generation=%d\n",
                     qPrintable(modelPath), completed, ms, sourceGeneration);
+        if (m_trafficlight && (completed == 1 || completed % 20 == 0)) {
+            fprintf(stderr, "[trafficlight] completed=%d frame=%llu input=640x480 RGB uint8 crop_y=80 canonical_y=network_y+80 detections=%d\n",
+                    completed, (unsigned long long)frameId, dets.size());
+            for (int i = 0; i < std::min(10, dets.size()); ++i) {
+                const auto &d = dets[i];
+                fprintf(stderr, "[trafficlight] cls=%d name=%s score=%.4f canonical_xyxy=(%.2f,%.2f,%.2f,%.2f)\n",
+                        d.cls, qPrintable(m_classNames.value(d.cls)), d.score, d.x1, d.y1, d.x2, d.y2);
+            }
+        }
         if (bench) {
             m_accPrep += tPrep; m_accSet += tSet; m_accRun += tRun; m_accGet += tGet;
             m_accQuery += tQuery; m_accDecode += tDecode; m_accRel += tRel; m_accSplitN++;
@@ -1651,7 +1889,7 @@ private:
         int cls;
     };
 
-    static void nmsAppend(QVector<Detection> &dets, std::vector<CandD> &cands) {
+    static void nmsAppend(QVector<Detection> &dets, std::vector<CandD> &cands, bool classAware = false) {
         std::sort(cands.begin(), cands.end(),
                   [](const CandD &a, const CandD &b) { return a.score > b.score; });
         std::vector<bool> removed(cands.size(), false);
@@ -1663,10 +1901,12 @@ private:
             detection.cls = a.cls; detection.score = a.score;
             detection.x1 = a.x1; detection.y1 = a.y1; detection.x2 = a.x2; detection.y2 = a.y2;
             dets.append(detection);
+            if (classAware && dets.size() >= 300) break;
             for (size_t j = i + 1; j < cands.size(); j++) {
                 if (removed[j])
                     continue;
                 const CandD &b = cands[j];
+                if (classAware && a.cls != b.cls) continue;
                 const float xx1 = std::max(a.x1, b.x1);
                 const float yy1 = std::max(a.y1, b.y1);
                 const float xx2 = std::min(a.x2, b.x2);
@@ -1727,8 +1967,8 @@ private:
         if (scales.empty())
             return false;
 
-        bool sigmoid = false;
-        {
+        bool sigmoid = m_trafficlight; // Package raw-dfl6 class heads always contain logits.
+        if (!m_trafficlight) {
             const Scale &sc = scales[0];
             float mx = -1e9f, mn = 1e9f;
             const int n = std::min(sc.h * sc.w, 2000);
@@ -1770,7 +2010,7 @@ private:
             return true;
         std::sort(cands.begin(), cands.end(),
                   [](const AC &a, const AC &b) { return a.score > b.score; });
-        if (cands.size() > 300)
+        if (!m_trafficlight && cands.size() > 300)
             cands.resize(300);
 
         std::vector<CandD> boxes;
@@ -1778,7 +2018,7 @@ private:
         for (const AC &c : cands) {
             const Scale &sc = scales[c.s];
             const int plane = sc.h * sc.w;
-            const int stride = MODEL_W / sc.w;
+            const float stride = m_geometry.width / (float)sc.w;
             const size_t base = (size_t)c.y * sc.w + c.x;
             float d[4];
             for (int k = 0; k < 4; k++) {
@@ -1803,7 +2043,7 @@ private:
             boxes.push_back({c.score, cx - d[0] * stride, cy - d[1] * stride,
                              cx + d[2] * stride, cy + d[3] * stride, c.cls});
         }
-        nmsAppend(dets, boxes);
+        nmsAppend(dets, boxes, m_trafficlight);
         return true;
     }
 
@@ -1947,6 +2187,10 @@ private:
     bool m_xyxy = false;
     std::atomic<bool> m_manualFormat{false};
     bool m_lane = false;
+    bool m_trafficlight = false;
+    tdm::InferenceGeometry m_geometry;
+    const std::vector<rknn_tensor_attr> *m_outputAttrs = nullptr;
+    QStringList m_classNames;
     std::atomic<float> m_conf{0.25f};
     std::atomic<bool> m_stop{false};
     rknn_context m_ctx = 0;
@@ -2075,6 +2319,8 @@ public:
 
     void submitCameras(const CameraThread::DisplayFrame& frame) {
         if (m_videoMode || m_paneMask != frame.paneMask || m_pane != frame.pane) m_overlayUpdatedMs = 0;
+        const bool hdmiFull = frame.hdmiFull && frame.paneMask == 0x3F;
+        if (m_hdmiFull != hdmiFull) { m_hdmiFull = hdmiFull; m_overlayUpdatedMs = 0; }
         m_cameraPixels = frame.cameraPixels;
         m_paneMask = frame.paneMask;
         m_pane = frame.pane;
@@ -2115,6 +2361,14 @@ public:
         m_dirty = true;
         m_haveFrame = true;
         lock.unlock();
+        update();
+    }
+    void setDrivingSnapshot(const DrivingSnapshot &snapshot, const QString &revisionKey) {
+        if (m_drivingRevisionKey == revisionKey) return;
+        m_drivingSnapshot = snapshot;
+        m_drivingRevisionKey = revisionKey;
+        ++m_detectionRevision;
+        m_overlayUpdatedMs = 0;
         update();
     }
     void setDetections(const QVector<Detection> &dets, const QStringList &classes) {
@@ -2381,11 +2635,17 @@ protected:
             cw = video.width();
             ch = video.height();
         } else if (m_haveFrame) {
-            cw = (paneMask == 0x3F) ? GRID_COLS * IMG_W : IMG_W;
-            ch = (paneMask == 0x3F) ? GRID_ROWS * IMG_H : IMG_H;
+            /* HDMI 满屏：内容区是 C5+C6 拼合的 1280x480，而不是 3x2 的 1920x960 */
+            const bool hdmi = paneMask == 0x3F && m_hdmiFull;
+            cw = (paneMask == 0x3F) ? (hdmi ? 2 * IMG_W : GRID_COLS * IMG_W) : IMG_W;
+            ch = (paneMask == 0x3F) ? (hdmi ? IMG_H : GRID_ROWS * IMG_H) : IMG_H;
         }
         if (cw > 0 && ch > 0) {
-            const float ia = (float)cw / (float)ch;
+            /* HDMI 满屏：线上 1280x480 是 16:9 源（720p/1080p）的抽样结果，
+               像素非方形（横向 1.5x、纵向 2.25x 抽样）。按 16:9 显示正好恢复
+               方形像素；按 8:3 原样显示会把画面横向压扁。 */
+            const bool hdmiAspect = !videoMode && paneMask == 0x3F && m_hdmiFull;
+            const float ia = hdmiAspect ? 16.0f / 9.0f : (float)cw / (float)ch;
             const int top = std::min(56, height() / 8);
             const int bottom = std::min(40, height() / 10);
             const int viewHeight = qMax(1, height() - top - bottom);
@@ -2491,6 +2751,14 @@ protected:
                 glDrawArrays(GL_TRIANGLE_STRIP, CAM_COUNT * 4, 4);
             } else {
                 const bool quad = paneMask == 0x3F;
+                if (quad && m_hdmiFull) {
+                    // HDMI 满屏：C5/C6 各占内容区一半（1280x480 合成帧的左右半幅）
+                    const double half = content.width() / 2.0;
+                    drawCamera(tdm::hdmiLeftCamera,
+                               QRectF(content.left(), content.top(), half, content.height()));
+                    drawCamera(tdm::hdmiRightCamera,
+                               QRectF(content.left() + half, content.top(), half, content.height()));
+                } else {
                 for (int c = 0; c < CAM_COUNT; ++c) {
                     if (!quad && c != pane) continue;
                     const QRectF tile = quad ? QRectF(content.left() + (c % GRID_COLS) * content.width() / GRID_COLS,
@@ -2498,6 +2766,7 @@ protected:
                                                       content.width() / GRID_COLS, content.height() / GRID_ROWS)
                                              : content;
                     drawCamera(c, tile);
+                }
                 }
             }
             m_prog.disableAttributeArray(0);
@@ -2510,11 +2779,18 @@ protected:
         QElapsedTimer regionTimer; if (m_perfEnabled) regionTimer.start();
         QRectF paneRect = content;
         if (!videoMode && paneMask == 0x3F) {
-            const double pw = content.width() / GRID_COLS, ph = content.height() / GRID_ROWS;
-            paneRect = QRectF(content.left() + (pane % GRID_COLS) * pw,
-                              content.top() + (pane / GRID_COLS) * ph, pw, ph);
+            if (m_hdmiFull) {
+                // Full HDMI inference spans both optical halves.
+                paneRect = content;
+            } else {
+                const double pw = content.width() / GRID_COLS, ph = content.height() / GRID_ROWS;
+                paneRect = QRectF(content.left() + (pane % GRID_COLS) * pw,
+                                  content.top() + (pane / GRID_COLS) * ph, pw, ph);
+            }
         }
         QList<QRect> hudRegions;
+        if (m_drivingSnapshot.enabled && m_hdmiFull)
+            hudRegions.append(tdm::drivingOverlayRegions(content));
         QFont labelFont; labelFont.setPointSize(11);
         const int labelImageHeight = QFontMetrics(labelFont).height() + 8;
         const int cameraLabelHeight = std::max(30, labelImageHeight + 3);
@@ -2529,18 +2805,27 @@ protected:
         hudRegions << QRect(0, 0, width(), top) << QRect(0, height() - bottom, width(), bottom);
         if (!content.isEmpty()) {
             const bool quad = !videoMode && paneMask == 0x3F;
-            if (quad) borderRegions(paneRect.adjusted(1, 1, -1, -1), 2);
-            for (int c = 0; c < (quad ? CAM_COUNT : 1); ++c) {
-                const double pw = content.width() / (quad ? GRID_COLS : 1);
-                const double ph = content.height() / (quad ? GRID_ROWS : 1);
-                hudRegions << QRect(int(content.left() + (quad ? c % GRID_COLS * pw : 0) + 6),
-                                    int(content.top() + (quad ? c / GRID_COLS * ph : 0) + 6),
+            const bool hdmi = quad && m_hdmiFull;
+            if (quad && !paneRect.isEmpty()) borderRegions(paneRect.adjusted(1, 1, -1, -1), 2);
+            for (int c = 0; c < (hdmi ? 2 : (quad ? CAM_COUNT : 1)); ++c) {
+                const int camera = hdmi ? (c == 0 ? tdm::hdmiLeftCamera : tdm::hdmiRightCamera) : c;
+                const double pw = content.width() / (hdmi ? 2 : (quad ? GRID_COLS : 1));
+                const double ph = content.height() / (hdmi ? 1 : (quad ? GRID_ROWS : 1));
+                const int col = hdmi ? (camera == tdm::hdmiRightCamera ? 1 : 0)
+                                     : (quad ? camera % GRID_COLS : 0);
+                const int row = hdmi ? 0 : (quad ? camera / GRID_COLS : 0);
+                hudRegions << QRect(int(content.left() + col * pw + 6),
+                                    int(content.top() + row * ph + 6),
                                     int(std::min(280.0, pw - 12)), cameraLabelHeight);
             }
-            if (!laneMask.isNull()) hudRegions << paneRect.toAlignedRect();
-            else {
-                const double sx = paneRect.width() / MODEL_W, sy = paneRect.height() / IMG_H;
-                const double bx = paneRect.left(), by = paneRect.top() - 80 * sy;
+            if (!laneMask.isNull()) {
+                if (!paneRect.isEmpty()) hudRegions << paneRect.toAlignedRect();
+            }
+            else if (!paneRect.isEmpty()) {
+                const double sx = paneRect.width() / MODEL_W;
+                const double sy = paneRect.height() / (m_hdmiFull ? tdm::hdmiAnalyticsHeight : IMG_H);
+                const double bx = paneRect.left();
+                const double by = paneRect.top() - (m_hdmiFull ? tdm::hdmiModelPad : 80) * sy;
                 for (const auto& d : dets) {
                     if (d.validUntilMs > 0 && metricNow > d.validUntilMs) continue;
                     const QRectF box(bx + d.x1 * sx, by + d.y1 * sy,
@@ -2602,16 +2887,21 @@ protected:
            paintGL 里每帧多花 10ms 以上。 */
         {
             const bool quad = (!videoMode && paneMask == 0x3F);
-            const int nLab = quad ? CAM_COUNT : 1;
-            const double pw = content.width() / (quad ? GRID_COLS : 1);
-            const double ph = content.height() / (quad ? GRID_ROWS : 1);
+            const bool hdmi = quad && m_hdmiFull;
+            const int nLab = hdmi ? 2 : (quad ? CAM_COUNT : 1);
+            const double pw = content.width() / (hdmi ? 2 : (quad ? GRID_COLS : 1));
+            const double ph = content.height() / (hdmi ? 1 : (quad ? GRID_ROWS : 1));
             const double ox = content.left(), oy = content.top();
             for (int i = 0; i < nLab; ++i) {
-                const QRectF box(ox + (quad ? (i % GRID_COLS) * pw + 6 : 6),
-                                  oy + (quad ? (i / GRID_COLS) * ph + 6 : 6), std::min(280.0, pw - 12), cameraLabelHeight);
+                const int cameraIndex = hdmi ? (i == 0 ? tdm::hdmiLeftCamera : tdm::hdmiRightCamera)
+                                             : (quad ? i : pane);
+                const int col = hdmi ? (cameraIndex == tdm::hdmiRightCamera ? 1 : 0)
+                                     : (quad ? i % GRID_COLS : 0);
+                const int row = hdmi ? 0 : (quad ? i / GRID_COLS : 0);
+                const QRectF box(ox + col * pw + 6, oy + row * ph + 6,
+                                 std::min(280.0, pw - 12), cameraLabelHeight);
                 if (box.right() > content.right() || box.bottom() > content.bottom())
                     continue;
-                const int cameraIndex = quad ? i : pane;
                 const bool selected = !videoMode && cameraIndex == pane;
                 painter.fillRect(box, selected ? QColor(12, 78, 86, 225) : QColor(12, 22, 34, 210));
                 painter.drawImage(box.left() + 8, box.top() + 3,
@@ -2622,7 +2912,7 @@ protected:
                                                 .arg(m_cameraUploadRates[cameraIndex].rate(metricNow), 0, 'f', 1),
                                             QColor(225, 239, 245), 11));
             }
-            if (!videoMode && paneMask == 0x3F) {
+            if (quad && !paneRect.isEmpty()) {
                 painter.setPen(QPen(QColor(62, 213, 199), 2));
                 painter.drawRect(paneRect.adjusted(1, 1, -1, -1));
             }
@@ -2632,9 +2922,9 @@ protected:
             painter.save();
             painter.setClipRect(paneRect, Qt::IntersectClip);
             const double sx = paneRect.width() / (double)MODEL_W;
-            const double sy = paneRect.height() / (double)IMG_H;
+            const double sy = paneRect.height() / (double)(m_hdmiFull ? tdm::hdmiAnalyticsHeight : IMG_H);
             const double baseX = paneRect.left();
-            const double baseY = paneRect.top() - 80.0 * sy;
+            const double baseY = paneRect.top() - (m_hdmiFull ? tdm::hdmiModelPad : 80) * sy;
             if (!laneMask.isNull())
                 painter.drawImage(QRectF(baseX, baseY, MODEL_W * sx, MODEL_H * sy), laneMask);
             for (const Detection &d : dets) {
@@ -2655,7 +2945,7 @@ protected:
                 painter.drawRect(r);
                 QString label =
                     QString("%1 %2")
-                        .arg(d.cls >= 0 && d.cls < classes.size() ? classes[d.cls]
+                        .arg(d.cls >= 0 && d.cls < classes.size() ? displayClassName(classes[d.cls])
                                                                   : QString::number(d.cls))
                          .arg(d.score, 0, 'f', 2);
                 if (d.trackId)
@@ -2676,6 +2966,8 @@ protected:
                 painter.drawImage(QRect(width() - previewWidth - 8, height() - previewHeight - 8,
                                         previewWidth, previewHeight), m_stereoPreview);
             }
+            if (m_drivingSnapshot.enabled && m_hdmiFull)
+                tdm::paintDrivingOverlay(painter, content, m_drivingSnapshot);
             painter.end();
         }
         if (m_perfEnabled) m_perf.time[tdm::HudRaster].add(rasterTimer.nsecsElapsed() / 1e6);
@@ -2815,7 +3107,7 @@ private:
                           textImage("Tab  设置  /  监看", accent, 11));
         QString keys = m_help ?
             "Tab 设置   V 切换单路/六路   P 暂停   S 截屏   F 全屏   Q 退出  ·  模型与参数请到设置页" :
-            "V 切换相机     G 六路总览     P 暂停     S 截屏     H 帮助     Tab 设置";
+            "V 切换相机     F HDMI满屏     G 六路总览     P 暂停     S 截屏     H 帮助     Tab 设置";
         if (!m_calibrationLine.isEmpty()) keys = "S 保存左右原图并检查棋盘   D 距离标签   V 切相机（C5为第二组）   G 六路   Tab 设置";
         if (qEnvironmentVariableIsSet("DETVIEW_STEREO_TRIAL_METERS"))
             keys = "试用草稿 · 中央ROI光轴深度Z · 请用静止、有纹理目标 · V 切相机   G 六路   Tab 设置   Q 退出";
@@ -2976,9 +3268,12 @@ private:
     QString m_stereoStatus, m_visionLine;
 
     QHash<QString, QImage> m_textCache;
+    DrivingSnapshot m_drivingSnapshot;
+    QString m_drivingRevisionKey;
     QVector<Detection> m_dets;
     QStringList m_classes;
     int m_paneMask = 0x3F, m_pane = 0;
+    bool m_hdmiFull = false;   // HDMI 满屏视图（C5+C6 拼合 1280x480 铺满内容区）
     double m_dispFps = 0;
     QVector<double> m_camFps = QVector<double>(CAM_COUNT, 0.0);
     std::array<uint64_t, CAM_COUNT> m_sequences{}, m_uploadedSequences{};
@@ -3055,6 +3350,12 @@ public:
                 m_camFps = frame.fps;
                 m_lastFrameMs = QDateTime::currentMSecsSinceEpoch();
                 m_gl->submitCameras(frame);
+                if (m_lastHdmiFull != frame.hdmiFull) {
+                    m_lastHdmiFull = frame.hdmiFull;
+                    m_gl->setStatusLine(frame.hdmiFull ?
+                        "HDMI · 16:9 · YOLO 全画面（F 返回六路）" : "已恢复 6 路监视");
+                    updateHudLines();
+                }
                 if (m_labelTimer.elapsed() >= 300) {
                     m_labelTimer.restart();
                     updateHudLines();
@@ -3072,6 +3373,11 @@ public:
                 m_vision->inferenceFailed(frame.sourceGeneration, frame.frameId);
                 return;
             }
+            if (m_drivingEnabled && frame.camera == tdm::hdmiInferenceCamera) {
+                // Bind decisions to the captured frame, not the later GUI callback time.
+                if (m_drivingCaptureTimes.size() >= 32) m_drivingCaptureTimes.clear();
+                m_drivingCaptureTimes.insert(frame.frameId, frame.capturedMs);
+            }
             QImage infer(MODEL_W, MODEL_H, QImage::Format_RGB888);
             infer.fill(QColor(114, 114, 114));
             for (int y = 0; y < IMG_H; ++y)
@@ -3080,6 +3386,7 @@ public:
             m_requestRate.add(monotonicMs());
         });
         connect(m_infer, &InferenceThread::inferenceFailed, this, [this](int generation, quint64 frameId) {
+            m_drivingCaptureTimes.remove(frameId);
             m_vision->inferenceFailed(generation, frameId);
         });
         connect(m_vision, &VisionPipeline::tracksReady, this,
@@ -3159,6 +3466,7 @@ public:
         /* 轮换结果 2 秒过期；过期只影响叠加显示，不影响推理 */
         auto *expiry = new QTimer(this);
         connect(expiry, &QTimer::timeout, this, [this]() {
+            if (m_drivingEnabled) updateDrivingOverlay();
             if (m_rotationEnabled)
                 updateRotationOverlay();
             if (m_visionOptions.stereoEnabled() && monotonicMs() - m_lastStereoMs > 1000)
@@ -3229,6 +3537,12 @@ public:
         if (mode >= 0 && mode <= CAM_COUNT)
             onCamChanged(mode);
     }
+    /* --prefer-hdmifull：0=off 1=on 2=auto，转发给采集线程 */
+    void setHdmiPrefer(int mode) {
+        m_hdmiManual = mode == 1;
+        m_camera->setHdmiPrefer(mode);
+        resetVision();
+    }
     bool setRotation(const QStringList &selectors) {
         QVector<ModelInfo> chosen;
         if (!selectRotation(m_models, selectors, chosen)) return false;
@@ -3236,10 +3550,64 @@ public:
         startRotation(chosen);
         return m_rotationEnabled;
     }
+    bool enableDrivingDemo(DrivingLane lane) {
+        bool signalModel = false;
+        const auto supportsSignals = [](const ModelInfo &model) {
+            return model.classes.contains("tlr_motor_red") && model.classes.contains("tlg_motor_green");
+        };
+        if (m_rotationEnabled) {
+            for (const auto &model : m_rotation) signalModel |= supportsSignals(model);
+        } else if (m_currentIndex >= 0) signalModel = supportsSignals(m_models[m_currentIndex]);
+        if (!signalModel) {
+            fprintf(stderr, "--driving-demo requires an active trafficlight-16cls model\n");
+            return false;
+        }
+        onCamChanged(CAM_COUNT);
+        m_hdmiManual = true;
+        m_camera->setHdmiOverride(1);
+        m_drivingEnabled = true;
+        m_driving.setLane(lane);
+        m_driving.setMode(DrivingMode::Auto);
+        resetVision();
+        m_gl->setStatusLine("智能驾驶模拟 · HDMI 全画面 · 箭头/LED状态叠加");
+        return true;
+    }
     /* --shot N：N 秒后自动截一张 GL 帧缓冲（远程/无人值守验证用），之后继续跑 */
     void takeShot() { onScreenshot(); }
 
 private:
+    void updateDrivingOverlay() {
+        const bool active = m_drivingEnabled && m_hdmiManual && m_camMode == CAM_COUNT && !m_paused;
+        m_driving.setEnabled(active);
+        auto snapshot = m_driving.snapshot(monotonicMs());
+        snapshot.enabled = m_drivingEnabled;
+        if (m_paused) snapshot.reason = "画面已暂停，模拟车辆停车";
+        else if (!m_hdmiManual || m_camMode != CAM_COUNT) snapshot.reason = "等待 HDMI 全画面输入";
+        else if (snapshot.mode == DrivingMode::Stop) snapshot.reason = "人工停车，绿灯也不自动行驶";
+        else if (snapshot.alarm) snapshot.reason = "红灯下强制行驶，请停车";
+        else if (snapshot.warning) snapshot.reason = snapshot.stale ? "信号已过期，仍在强制行驶" : "信号未允许通行，仍在强制行驶";
+        else if (snapshot.conflict) snapshot.reason = "当前车道信号冲突，保持停车";
+        else if (snapshot.stale) snapshot.reason = "信号已过期，等待新识别结果";
+        else switch (snapshot.signal) {
+        case DrivingSignal::Red: snapshot.reason = "红灯停车"; break;
+        case DrivingSignal::Amber: snapshot.reason = "黄灯停车，等待允许通行"; break;
+        case DrivingSignal::Off: snapshot.reason = "信号灯熄灭，保持停车"; break;
+        case DrivingSignal::Green:
+            snapshot.reason = snapshot.moving ? "绿灯允许当前车道通行" : "绿灯连续确认中，暂时停车"; break;
+        case DrivingSignal::Unknown: snapshot.reason = "未确认当前车道信号，保持停车"; break;
+        }
+        const QJsonObject record{{"lane", int(snapshot.lane)}, {"mode", int(snapshot.mode)},
+            {"signal", int(snapshot.signal)}, {"moving", snapshot.moving}, {"alarm", snapshot.alarm},
+            {"warning", snapshot.warning}, {"conflict", snapshot.conflict}, {"stale", snapshot.stale},
+            {"persons", snapshot.personCount}, {"vehicles", snapshot.vehicleCount},
+            {"crosswalks", snapshot.zebraCount}, {"reason", snapshot.reason}};
+        const QString key = QString::fromUtf8(QJsonDocument(record).toJson(QJsonDocument::Compact));
+        m_gl->setDrivingSnapshot(snapshot, key);
+        if (m_drivingEnabled && key != m_lastDrivingKey) {
+            m_lastDrivingKey = key;
+            fprintf(stderr, "[driving] %s\n", qPrintable(key));
+        }
+    }
     void handleKey(QKeyEvent *e) {
         int k = e->key();
         if (k == Qt::Key_Escape && e->isAutoRepeat()) return;
@@ -3274,6 +3642,21 @@ private:
                 }
             }
         }
+        if (m_drivingEnabled && !m_gl->settingsVisible()) {
+            bool handled = true;
+            if (e->isAutoRepeat() && (k == Qt::Key_Left || k == Qt::Key_Up || k == Qt::Key_Right ||
+                                     k == Qt::Key_A || k == Qt::Key_X || k == Qt::Key_B)) return;
+            switch (k) {
+            case Qt::Key_Left: m_driving.setLane(DrivingLane::Left); break;
+            case Qt::Key_Up: m_driving.setLane(DrivingLane::Straight); break;
+            case Qt::Key_Right: m_driving.setLane(DrivingLane::Right); break;
+            case Qt::Key_A: m_driving.setMode(DrivingMode::Auto); break;
+            case Qt::Key_X: m_driving.setMode(DrivingMode::Stop); break;
+            case Qt::Key_B: m_driving.setMode(DrivingMode::ForcedGo); break;
+            default: handled = false; break;
+            }
+            if (handled) { updateDrivingOverlay(); return; }
+        }
         if (k >= Qt::Key_1 && k <= Qt::Key_9) {
             const int idx = k - Qt::Key_1;
             if (idx < m_models.size())
@@ -3286,7 +3669,19 @@ private:
             qApp->quit();
             break;
         case Qt::Key_F:
-            setFullscreen(!m_full);
+            // 与全屏共用 F：Shift+F 全屏，单按 F 在 HDMI 满屏/6 路间切换
+            if (e->modifiers() & Qt::ShiftModifier) {
+                setFullscreen(!m_full);
+            } else if (!m_videoMode && m_camMode == CAM_COUNT) {
+                if (e->isAutoRepeat() || m_calibrationMode) break;
+                m_hdmiManual = !m_hdmiManual;
+                m_camera->setHdmiOverride(m_hdmiManual ? 1 : 0);
+                resetVision();
+                m_gl->setStatusLine(m_hdmiManual
+                    ? "HDMI · 16:9 · YOLO 全画面（F 返回六路）"
+                    : "6 路监视（F 键 HDMI 满屏）");
+                updateHudLines();
+            }
             break;
         case Qt::Key_S:
             if (e->isAutoRepeat()) break;
@@ -3371,6 +3766,9 @@ private:
         }
     }
     void resetVision() {
+        m_driving.resetPerception();
+        m_drivingCaptureTimes.clear();
+        if (m_drivingEnabled) updateDrivingOverlay();
         if (m_visionOptions.stereoVehicleTrial)
             m_gl->setCalibrationLine("单车辆试用 · 等待新车辆与同帧测距");
         ++m_sourceGeneration;
@@ -3393,8 +3791,9 @@ private:
             lane = m_models[m_currentIndex].lane;
             vehicleClasses.insert(m_models[m_currentIndex].path, vehicleTrackingClasses(m_models[m_currentIndex]));
         }
-        const int selected = m_videoMode ? 0 : (m_camMode == CAM_COUNT ?
-            (m_visionOptions.stereoEnabled() ? m_visionOptions.primaryStereoLeft() : 0) : m_camMode);
+        const int selected = m_videoMode ? 0 : (m_hdmiManual && m_camMode == CAM_COUNT ?
+            tdm::hdmiInferenceCamera : (m_camMode == CAM_COUNT ?
+            (m_visionOptions.stereoEnabled() ? m_visionOptions.primaryStereoLeft() : 0) : m_camMode));
         m_vision->configure(m_sourceGeneration, selected, lane, paths, vehicleClasses);
         for (const auto& path : paths) {
             QStringList ids;
@@ -3416,6 +3815,8 @@ private:
         if (index < 0 || index > CAM_COUNT)
             return;
         m_camMode = index;
+        m_hdmiManual = false;
+        m_camera->setHdmiOverride(0);
         m_results.clear();
         m_resultTime.clear();
         m_resultMs.clear();
@@ -3431,9 +3832,20 @@ private:
     }
 
     void onDets(QString modelPath, int sourceGeneration, quint64 frameId,
-                QVector<Detection> dets, double fps, double ms) {
+                 QVector<Detection> dets, double fps, double ms) {
         if (sourceGeneration != m_sourceGeneration)
             return;
+        if (m_drivingEnabled && m_hdmiManual && m_camMode == CAM_COUNT && !m_paused) {
+            const qint64 capturedMs = m_drivingCaptureTimes.take(frameId);
+            if (capturedMs > 0) {
+                for (const auto &model : m_models) {
+                    if (model.path != modelPath) continue;
+                    m_driving.observe(model.classes, dets, capturedMs, monotonicMs());
+                    break;
+                }
+                updateDrivingOverlay();
+            }
+        }
         if (QCoreApplication::arguments().contains("--tracker-debug")) {
             QJsonArray boxes;
             for (const auto& d : dets) boxes.append(QJsonObject{{"class", d.cls}, {"score", double(d.score)},
@@ -3629,7 +4041,9 @@ private:
     }
 
     QString camModeText() const {
-        return m_camMode >= CAM_COUNT ? QString("6 路 3x2") : QString("C%1").arg(m_camMode + 1);
+        if (m_camMode >= CAM_COUNT)
+            return m_lastHdmiFull ? QString("6 路 · HDMI 满屏 (C5+C6)") : QString("6 路 3x2");
+        return QString("C%1").arg(m_camMode + 1);
     }
 
     /* HUD 的模型行与相机/置信度行（状态行由采集/推理事件单独写） */
@@ -3696,6 +4110,10 @@ private:
     bool m_rotationEnabled = false;
     int m_currentIndex = -1;
     QHash<QString, QVector<Detection>> m_results;
+    bool m_drivingEnabled = false;
+    DrivingDemo m_driving;
+    QHash<quint64, qint64> m_drivingCaptureTimes;
+    QString m_lastDrivingKey;
     QHash<QString, qint64> m_resultTime;
     QHash<QString, double> m_resultMs;
     QHash<QString, double> m_resultFps;
@@ -3706,6 +4124,8 @@ private:
     bool m_xyxy = false;
     int m_confPct = 25;      /* 与 InferenceThread 默认 conf 一致 */
     int m_camMode = CAM_COUNT;
+    bool m_lastHdmiFull = false;   // 与最近一帧 DisplayFrame.hdmiFull 对齐（HUD 文案用）
+    bool m_hdmiManual = false;     // F 键手动 HDMI 满屏（remote XTest 亦可触发）
     bool m_full = false, m_paused = false, m_helpVisible = false, m_videoMode = false;
     double m_camFps = 0, m_lastMs = 0;
     int m_lastDets = 0;
@@ -3761,6 +4181,12 @@ int main(int argc, char **argv) {
     qRegisterMetaType<VisionFrame>("VisionFrame");
     cv::setNumThreads(2);
     if (app.arguments().contains("--calibration-capture-selftest")) return runCalibrationCaptureSelfTest();
+    if (app.arguments().contains("--driving-selftest")) return runDrivingDemoSelfTest();
+    const int drivingOverlayTest = app.arguments().indexOf("--driving-overlay-selftest");
+    if (drivingOverlayTest >= 0) {
+        if (drivingOverlayTest + 1 >= app.arguments().size()) return 2;
+        return runDrivingOverlayValidation(app.arguments()[drivingOverlayTest + 1]);
+    }
     if (app.arguments().contains("--tracker-benchmark")) {
         const auto benchmarkArgs = app.arguments();
         const int capAt = benchmarkArgs.indexOf("--track-template-side");
@@ -3774,6 +4200,7 @@ int main(int argc, char **argv) {
     if (app.arguments().contains("--vision-selftest")) {
         const bool ok = runCalibrationCaptureSelfTest() == 0 && selfTestVehiclePolicy() && CameraThread::selfTestDisplay() && DetView::selfTestRefresh() && tdm::runTrackerSelfTest() == 0 &&
                         tdm::runCameraDmaSelfTest() == 0 && runFrameMetricsSelfTest() == 0 &&
+                        tdm::runHdmiViewSelfTest() == 0 &&
                         VisionPipeline::selfTest();
         fprintf(stderr, ok ? "VISION_SELFTEST_PASS\n" : "VISION_SELFTEST_FAIL\n");
         return ok ? 0 : 2;
@@ -3783,8 +4210,15 @@ int main(int argc, char **argv) {
         fprintf(stderr, ok ? "DFL_SELFTEST_PASS\n" : "DFL_SELFTEST_FAIL\n");
         return ok ? 0 : 2;
     }
+    if (app.arguments().contains("--trafficlight-selftest")) {
+        const bool geometryOk = tdm::runInferenceGeometrySelfTest() == 0;
+        const bool decoderOk = InferenceThread::selfTestTrafficlight();
+        fprintf(stderr, geometryOk && decoderOk ? "TRAFFICLIGHT_SELFTEST_PASS\n" : "TRAFFICLIGHT_SELFTEST_FAIL\n");
+        return geometryOk && decoderOk ? 0 : 2;
+    }
     if (app.arguments().contains("--camera-dma-selftest")) return tdm::runCameraDmaSelfTest();
     if (app.arguments().contains("--frame-metrics-selftest")) return runFrameMetricsSelfTest();
+    if (app.arguments().contains("--hdmi-selftest")) return tdm::runHdmiViewSelfTest();
     if (app.arguments().contains("--lane-selftest")) {
         const bool ok = InferenceThread::selfTestLane();
         fprintf(stderr, ok ? "LANE_SELFTEST_PASS\n" : "LANE_SELFTEST_FAIL\n");
@@ -3886,6 +4320,13 @@ int main(int argc, char **argv) {
         !QFileInfo(videoSource).isFile()) {
         fprintf(stderr, "video source file does not exist: %s\n", qPrintable(videoSource)); return 2;
     }
+    int hdmiPrefer = 2;   // --prefer-hdmifull：0=off 1=on 2=auto（默认）
+    const bool drivingDemo = args.contains("--driving-demo");
+    if (drivingDemo && (!videoSource.isEmpty() || args.contains("--calibration-capture") ||
+                        args.contains("--stereo") || args.contains("--stereo-config"))) {
+        fprintf(stderr, "--driving-demo requires the full C5+C6 HDMI input without stereo/calibration capture\n");
+        return 2;
+    }
     VisionOptions visionOptions;
     try {
         auto integerOption = [&](const QString &name, int fallback) {
@@ -3897,7 +4338,7 @@ int main(int argc, char **argv) {
             if (!ok) throw std::invalid_argument(qPrintable(name + " requires an integer"));
             return value;
         };
-        visionOptions.tracking = !args.contains("--no-tracking") && !args.contains("--calibration-capture");
+        visionOptions.tracking = !drivingDemo && !args.contains("--no-tracking") && !args.contains("--calibration-capture");
         visionOptions.stereoTrialMeters = args.contains("--stereo-trial-meters");
         visionOptions.stereoVehicleTrial = args.contains("--stereo-vehicle-trial");
         if (visionOptions.stereoVehicleTrial) visionOptions.stereoTrialMeters = true;
@@ -3920,6 +4361,18 @@ int main(int argc, char **argv) {
             visionOptions.stereoDisparities < 16 || visionOptions.stereoDisparities % 16 ||
             visionOptions.stereoDisparities > 128)
             throw std::invalid_argument("Invalid tracking/stereo timing, track count or disparity range");
+        /* --prefer-hdmifull [on|off|auto]：裸参数视为 on。on=6 路布局下强制
+           HDMI 视图及完整画面识别；auto=等待 F 明确选择（接收端没有模式信号）；
+           off=完全保持原有视图逻辑。 */
+        const int hdmiArg = args.indexOf("--prefer-hdmifull");
+        if (hdmiArg >= 0) {
+            const QString value = hdmiArg + 1 < args.size() && !args[hdmiArg + 1].startsWith("--")
+                                      ? args[hdmiArg + 1] : QStringLiteral("on");
+            if (value == QLatin1String("on")) hdmiPrefer = 1;
+            else if (value == QLatin1String("off")) hdmiPrefer = 0;
+            else if (value == QLatin1String("auto")) hdmiPrefer = 2;
+            else throw std::invalid_argument("--prefer-hdmifull requires on|off|auto");
+        }
         const int stereoArg = args.indexOf("--stereo");
         if (stereoArg >= 0) {
             if (stereoArg + 1 >= args.size()) throw std::invalid_argument("--stereo needs LEFT,RIGHT camera IDs");
@@ -4024,13 +4477,20 @@ int main(int argc, char **argv) {
         return 2;
     }
     const int rotateArg = args.indexOf("--rotate-model");
-    const QStringList rotationSelectors = rotateArg >= 0 ? args[rotateArg + 1].split(',') : QStringList();
+    if (rotateArg >= 0 && (rotateArg + 1 >= args.size() || args[rotateArg + 1].startsWith("--"))) {
+        fprintf(stderr, "--rotate-model needs a model list\n"); return 2;
+    }
+    const bool defaultDrivingModels = drivingDemo && rotateArg < 0 &&
+                                      !args.contains("--model") && !args.contains("--model-index");
+    const QStringList rotationSelectors = rotateArg >= 0 ? args[rotateArg + 1].split(',') :
+        (defaultDrivingModels ? QStringList{"trafficlight-16cls", "wb_v4_combo"} : QStringList());
     QVector<ModelInfo> rotationModels;
-    if (rotateArg >= 0 && !selectRotation(models, rotationSelectors, rotationModels)) {
+    if ((rotateArg >= 0 || defaultDrivingModels) && !selectRotation(models, rotationSelectors, rotationModels)) {
         fprintf(stderr, "--rotate-model needs 2-4 unique YOLO model substrings\n");
         return 2;
     }
     DetViewController w(models, videoSource, visionOptions);
+    w.setHdmiPrefer(hdmiPrefer);
     const int ai = args.indexOf("--model-index");
     if (ai >= 0 && ai + 1 < args.size()) {
         const int idx = args[ai + 1].toInt();
@@ -4047,7 +4507,7 @@ int main(int argc, char **argv) {
             }
         }
     }
-    if (rotateArg >= 0 && !w.setRotation(rotationSelectors)) {
+    if ((rotateArg >= 0 || defaultDrivingModels) && !w.setRotation(rotationSelectors)) {
         fprintf(stderr, "--rotate-model needs 2-4 unique YOLO model substrings\n");
         return 2;
     }
@@ -4072,6 +4532,19 @@ int main(int argc, char **argv) {
         if (cam < 1 || cam > CAM_COUNT)
             return 2;
         w.setCameraMode(cam - 1);   // C1..C6 单路
+    }
+    if (drivingDemo) {
+        DrivingLane lane = DrivingLane::Straight;
+        const int laneArg = args.indexOf("--driving-lane");
+        if (laneArg >= 0) {
+            const QString value = laneArg + 1 < args.size() ? args[laneArg + 1] : QString();
+            if (value == "left") lane = DrivingLane::Left;
+            else if (value == "right") lane = DrivingLane::Right;
+            else if (value != "straight") {
+                fprintf(stderr, "--driving-lane requires left|straight|right\n"); return 2;
+            }
+        }
+        if (!w.enableDrivingDemo(lane)) return 2;
     }
     return app.exec();
 }
