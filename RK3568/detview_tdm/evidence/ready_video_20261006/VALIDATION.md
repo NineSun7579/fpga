@@ -10,7 +10,7 @@ but its real screenshot showed camera imagery with C5 stale and C6 about41fps.
 This cannot be claimed as a valid HDMI intersection input. At the user's request,
 the final demonstration uses an existing local road video instead.
 
-Input: `/userdata/linaro/ready_video_samples/trafficlight_demo.mp4`, existing
+Control-test input: `/userdata/linaro/ready_video_samples/trafficlight_demo.mp4`, existing
 20-second 640x480,30fps asset. Despite its filename it shows road vehicles; the
 observed segment has no applicable traffic-light detections. Its source content
 occupies y60..420; explicit `--driving-video-padded480` removes the known gray
@@ -38,7 +38,7 @@ Build/checks:
 
 Deployment: `/userdata/detview-driving-demo/detview-driving-demo`.
 Launcher: `/userdata/detview-driving-demo/run_driving_demo.sh`.
-Final observed PID5136, supervisor5102; default laneStraight, modeAuto.
+Restart-test PID5136, supervisor5102; default laneStraight, modeAuto.
 
 Launcher native `bash -n` passed. Actual supervised restart was exercised twice:
 viewer4225→4987→5136. The second restart had no input arguments and retained
@@ -62,3 +62,13 @@ sudo -n bash /userdata/detview-driving-demo/run_driving_demo.sh stop
 
 Keyboard: Left/Up/Right lane selection; A Auto; X Stop; B ForcedGo; S screenshot.
 F switches HDMI/six-view only in FPGA capture mode, not in local-video mode.
+
+Final playback update: the20-second asset includes repeated frames. To leave a
+moving real-road demonstration, the launcher was restarted with the existing
+80.3-second `/userdata/linaro/detview-video-work/media/VID_20260912_151339_480p30.mp4`.
+Decoded-frame MD5s at0/5/10/15seconds are all distinct. Source640x480 also has
+known60-row top/bottom padding, removed by the same explicit option.
+Final PID5908, supervisor5874, laneStraight/Auto. `road_video_auto.png` is the
+actual final-viewer framebuffer with vehicle boxes; about29 decoded frames/s.
+This source is saved in launcher state and retained on an argument-free restart.
+Red-light video acceptance remains pending; no simulated light-color key was added.

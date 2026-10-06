@@ -14,7 +14,7 @@
 
 ```sh
 sudo -n bash /userdata/detview-driving-demo/run_driving_demo.sh restart \
-  --video /userdata/linaro/ready_video_samples/trafficlight_demo.mp4 \
+  --video /userdata/linaro/detview-video-work/media/VID_20260912_151339_480p30.mp4 \
   --video-loop --driving-video-padded480
 ```
 
