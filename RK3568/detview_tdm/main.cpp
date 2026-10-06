@@ -185,7 +185,11 @@ static QString displayClassName(const QString &name) {
         "左转红灯", "左转黄灯", "左转绿灯", "直行红灯", "直行黄灯", "直行绿灯",
         "右转红灯", "右转黄灯", "右转绿灯", "掉头红灯", "掉头黄灯", "掉头绿灯", "信号灯熄灭"};
     const int id = ids.indexOf(name);
-    return id >= 0 ? labels[id] : name;
+    if (id >= 0) return labels[id];
+    if (name == "person") return "行人";
+    if (name == "vehicle") return "车辆";
+    if (name == "zebra" || name == "crosswalk") return "斑马线";
+    return name;
 }
 
 static bool readModelNames(const QString &path, QStringList &names) {
@@ -1075,8 +1079,13 @@ private:
             if (loop) args += {"-stream_loop", "-1"};
             args.append("-re");
         }
-        args += {"-i", source, "-an", "-vf",
-                 "scale=640:480:force_original_aspect_ratio=decrease:flags=fast_bilinear,pad=640:480:(ow-iw)/2:(oh-ih)/2:color=0x727272",
+        const bool drivingVideo = QCoreApplication::arguments().contains("--driving-demo");
+        QString videoFilter = drivingVideo ?
+            "scale=640:360:force_original_aspect_ratio=decrease:flags=fast_bilinear,pad=640:360:(ow-iw)/2:(oh-ih)/2:color=0x727272,pad=640:480:0:60:color=0x727272" :
+            "scale=640:480:force_original_aspect_ratio=decrease:flags=fast_bilinear,pad=640:480:(ow-iw)/2:(oh-ih)/2:color=0x727272";
+        if (drivingVideo && QCoreApplication::arguments().contains("--driving-video-padded480"))
+            videoFilter.prepend("crop=640:360:0:60,");
+        args += {"-i", source, "-an", "-vf", videoFilter,
                  "-pix_fmt", "rgb24", "-f", "rawvideo", "pipe:1"};
         decoder.start("ffmpeg", args, QIODevice::ReadOnly);
         if (!decoder.waitForStarted(5000)) {
@@ -2789,7 +2798,7 @@ protected:
             }
         }
         QList<QRect> hudRegions;
-        if (m_drivingSnapshot.enabled && m_hdmiFull)
+        if (m_drivingSnapshot.enabled && (m_hdmiFull || videoMode))
             hudRegions.append(tdm::drivingOverlayRegions(content));
         QFont labelFont; labelFont.setPointSize(11);
         const int labelImageHeight = QFontMetrics(labelFont).height() + 8;
@@ -2823,9 +2832,10 @@ protected:
             }
             else if (!paneRect.isEmpty()) {
                 const double sx = paneRect.width() / MODEL_W;
-                const double sy = paneRect.height() / (m_hdmiFull ? tdm::hdmiAnalyticsHeight : IMG_H);
+                const bool wideDriving = m_hdmiFull || (videoMode && m_drivingSnapshot.enabled);
+                const double sy = paneRect.height() / (wideDriving ? tdm::hdmiAnalyticsHeight : IMG_H);
                 const double bx = paneRect.left();
-                const double by = paneRect.top() - (m_hdmiFull ? tdm::hdmiModelPad : 80) * sy;
+                const double by = paneRect.top() - (wideDriving ? tdm::hdmiModelPad : 80) * sy;
                 for (const auto& d : dets) {
                     if (d.validUntilMs > 0 && metricNow > d.validUntilMs) continue;
                     const QRectF box(bx + d.x1 * sx, by + d.y1 * sy,
@@ -2922,9 +2932,10 @@ protected:
             painter.save();
             painter.setClipRect(paneRect, Qt::IntersectClip);
             const double sx = paneRect.width() / (double)MODEL_W;
-            const double sy = paneRect.height() / (double)(m_hdmiFull ? tdm::hdmiAnalyticsHeight : IMG_H);
+            const bool wideDriving = m_hdmiFull || (videoMode && m_drivingSnapshot.enabled);
+            const double sy = paneRect.height() / (double)(wideDriving ? tdm::hdmiAnalyticsHeight : IMG_H);
             const double baseX = paneRect.left();
-            const double baseY = paneRect.top() - (m_hdmiFull ? tdm::hdmiModelPad : 80) * sy;
+            const double baseY = paneRect.top() - (wideDriving ? tdm::hdmiModelPad : 80) * sy;
             if (!laneMask.isNull())
                 painter.drawImage(QRectF(baseX, baseY, MODEL_W * sx, MODEL_H * sy), laneMask);
             for (const Detection &d : dets) {
@@ -2966,7 +2977,7 @@ protected:
                 painter.drawImage(QRect(width() - previewWidth - 8, height() - previewHeight - 8,
                                         previewWidth, previewHeight), m_stereoPreview);
             }
-            if (m_drivingSnapshot.enabled && m_hdmiFull)
+            if (m_drivingSnapshot.enabled && (m_hdmiFull || videoMode))
                 tdm::paintDrivingOverlay(painter, content, m_drivingSnapshot);
             painter.end();
         }
@@ -3345,11 +3356,22 @@ public:
             const auto frame = m_camera->takeDisplay();
             if (frame.generation != m_sourceGeneration || (frame.video && frame.image.isNull())) return;
             m_gl->observeFrame(frame);
-            if (frame.video) onImage(frame.image, frame.fps);
+            if (frame.video) {
+                if (m_drivingEnabled) {
+                    m_drivingVideoCapturedMs = frame.capturedMs[0];
+                    updateDrivingOverlay();
+                }
+                onImage(frame.image, frame.fps);
+            }
             else {
                 m_camFps = frame.fps;
                 m_lastFrameMs = QDateTime::currentMSecsSinceEpoch();
                 m_gl->submitCameras(frame);
+                if (m_drivingEnabled && frame.hdmiFull) {
+                    m_drivingInputCapturedMs = {{frame.rawCapturedMs[4], frame.rawCapturedMs[5]}};
+                    m_drivingInputGenerations = {{frame.cameraGenerations[4], frame.cameraGenerations[5]}};
+                    updateDrivingOverlay();
+                }
                 if (m_lastHdmiFull != frame.hdmiFull) {
                     m_lastHdmiFull = frame.hdmiFull;
                     m_gl->setStatusLine(frame.hdmiFull ?
@@ -3373,7 +3395,7 @@ public:
                 m_vision->inferenceFailed(frame.sourceGeneration, frame.frameId);
                 return;
             }
-            if (m_drivingEnabled && frame.camera == tdm::hdmiInferenceCamera) {
+            if (m_drivingEnabled && (frame.camera == tdm::hdmiInferenceCamera || m_videoMode)) {
                 // Bind decisions to the captured frame, not the later GUI callback time.
                 if (m_drivingCaptureTimes.size() >= 32) m_drivingCaptureTimes.clear();
                 m_drivingCaptureTimes.insert(frame.frameId, frame.capturedMs);
@@ -3562,14 +3584,17 @@ public:
             fprintf(stderr, "--driving-demo requires an active trafficlight-16cls model\n");
             return false;
         }
-        onCamChanged(CAM_COUNT);
-        m_hdmiManual = true;
-        m_camera->setHdmiOverride(1);
+        if (!m_videoMode) {
+            onCamChanged(CAM_COUNT);
+            m_hdmiManual = true;
+            m_camera->setHdmiOverride(1);
+        }
         m_drivingEnabled = true;
         m_driving.setLane(lane);
         m_driving.setMode(DrivingMode::Auto);
         resetVision();
-        m_gl->setStatusLine("智能驾驶模拟 · HDMI 全画面 · 箭头/LED状态叠加");
+        m_gl->setStatusLine(m_videoMode ? "智能驾驶模拟 · 本地视频输入 · 真实模型识别" :
+                            "智能驾驶模拟 · HDMI 全画面 · 箭头/LED状态叠加");
         return true;
     }
     /* --shot N：N 秒后自动截一张 GL 帧缓冲（远程/无人值守验证用），之后继续跑 */
@@ -3577,12 +3602,23 @@ public:
 
 private:
     void updateDrivingOverlay() {
-        const bool active = m_drivingEnabled && m_hdmiManual && m_camMode == CAM_COUNT && !m_paused;
+        const bool active = m_drivingEnabled && (m_videoMode || (m_hdmiManual && m_camMode == CAM_COUNT)) && !m_paused;
+        const bool pairAvailable = tdm::hdmiPairReady(monotonicMs(),
+            m_drivingInputCapturedMs[0], m_drivingInputCapturedMs[1], m_sourceGeneration,
+            m_drivingInputGenerations[0], m_drivingInputGenerations[1]);
+        // UI tolerates normal half-to-half DMA skew; missing/stale halves block motion.
+        const bool inputAvailable = m_videoMode ? (m_drivingVideoCapturedMs > 0 &&
+            monotonicMs() - m_drivingVideoCapturedMs <= 500) :
+            (pairAvailable || (m_lastDrivingInputPairMs > 0 && monotonicMs() - m_lastDrivingInputPairMs <= 200));
+        if (pairAvailable) m_lastDrivingInputPairMs = monotonicMs();
+        m_driving.setInputAvailable(inputAvailable);
         m_driving.setEnabled(active);
         auto snapshot = m_driving.snapshot(monotonicMs());
         snapshot.enabled = m_drivingEnabled;
         if (m_paused) snapshot.reason = "画面已暂停，模拟车辆停车";
-        else if (!m_hdmiManual || m_camMode != CAM_COUNT) snapshot.reason = "等待 HDMI 全画面输入";
+        else if (!m_videoMode && (!m_hdmiManual || m_camMode != CAM_COUNT)) snapshot.reason = "等待 HDMI 全画面输入";
+        else if (!inputAvailable) snapshot.reason = m_videoMode ? "视频输入已停止，模拟车辆停车" :
+            "C5/C6 输入缺失或不同步，停止识别与模拟行驶";
         else if (snapshot.mode == DrivingMode::Stop) snapshot.reason = "人工停车，绿灯也不自动行驶";
         else if (snapshot.alarm) snapshot.reason = "红灯下强制行驶，请停车";
         else if (snapshot.warning) snapshot.reason = snapshot.stale ? "信号已过期，仍在强制行驶" : "信号未允许通行，仍在强制行驶";
@@ -3599,6 +3635,8 @@ private:
         const QJsonObject record{{"lane", int(snapshot.lane)}, {"mode", int(snapshot.mode)},
             {"signal", int(snapshot.signal)}, {"moving", snapshot.moving}, {"alarm", snapshot.alarm},
             {"warning", snapshot.warning}, {"conflict", snapshot.conflict}, {"stale", snapshot.stale},
+            {"input_available", snapshot.inputAvailable},
+            {"input_source", m_videoMode ? "local_video" : "C5C6"},
             {"persons", snapshot.personCount}, {"vehicles", snapshot.vehicleCount},
             {"crosswalks", snapshot.zebraCount}, {"reason", snapshot.reason}};
         const QString key = QString::fromUtf8(QJsonDocument(record).toJson(QJsonDocument::Compact));
@@ -3759,7 +3797,7 @@ private:
     void onImage(QImage frame, double fps) {
         m_camFps = fps;
         m_lastFrameMs = QDateTime::currentMSecsSinceEpoch();
-        m_gl->submitImage(frame, fps);
+        m_gl->submitImage(m_drivingEnabled ? frame.copy(0, 60, 640, 360) : frame, fps);
         if (m_labelTimer.elapsed() >= 300) {
             m_labelTimer.restart();
             updateHudLines();
@@ -3767,6 +3805,10 @@ private:
     }
     void resetVision() {
         m_driving.resetPerception();
+        m_drivingInputCapturedMs = {};
+        m_drivingInputGenerations = {};
+        m_lastDrivingInputPairMs = 0;
+        m_drivingVideoCapturedMs = 0;
         m_drivingCaptureTimes.clear();
         if (m_drivingEnabled) updateDrivingOverlay();
         if (m_visionOptions.stereoVehicleTrial)
@@ -3835,7 +3877,7 @@ private:
                  QVector<Detection> dets, double fps, double ms) {
         if (sourceGeneration != m_sourceGeneration)
             return;
-        if (m_drivingEnabled && m_hdmiManual && m_camMode == CAM_COUNT && !m_paused) {
+        if (m_drivingEnabled && (m_videoMode || (m_hdmiManual && m_camMode == CAM_COUNT)) && !m_paused) {
             const qint64 capturedMs = m_drivingCaptureTimes.take(frameId);
             if (capturedMs > 0) {
                 for (const auto &model : m_models) {
@@ -3950,7 +3992,8 @@ private:
                 continue;
             const int offset = labels.size();
             for (const QString &cls : model.classes)
-                labels.append(QString("%1:%2").arg(name, cls));
+                labels.append(m_drivingEnabled ? displayClassName(cls) :
+                              QString("%1:%2").arg(name, displayClassName(cls)));
             for (Detection det : m_results.value(model.path)) {
                 det.cls += offset;
                 all.append(det);
@@ -4113,6 +4156,10 @@ private:
     bool m_drivingEnabled = false;
     DrivingDemo m_driving;
     QHash<quint64, qint64> m_drivingCaptureTimes;
+    std::array<qint64, 2> m_drivingInputCapturedMs{};
+    std::array<int, 2> m_drivingInputGenerations{};
+    qint64 m_lastDrivingInputPairMs = 0;
+    qint64 m_drivingVideoCapturedMs = 0;
     QString m_lastDrivingKey;
     QHash<QString, qint64> m_resultTime;
     QHash<QString, double> m_resultMs;
@@ -4322,9 +4369,9 @@ int main(int argc, char **argv) {
     }
     int hdmiPrefer = 2;   // --prefer-hdmifull：0=off 1=on 2=auto（默认）
     const bool drivingDemo = args.contains("--driving-demo");
-    if (drivingDemo && (!videoSource.isEmpty() || args.contains("--calibration-capture") ||
+    if (drivingDemo && (args.contains("--calibration-capture") ||
                         args.contains("--stereo") || args.contains("--stereo-config"))) {
-        fprintf(stderr, "--driving-demo requires the full C5+C6 HDMI input without stereo/calibration capture\n");
+        fprintf(stderr, "--driving-demo cannot combine with stereo/calibration capture\n");
         return 2;
     }
     VisionOptions visionOptions;

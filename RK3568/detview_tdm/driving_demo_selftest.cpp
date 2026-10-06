@@ -367,6 +367,33 @@ int runDrivingDemoSelfTest() {
         demo.observe(motor, {detection(motor, "tlg_motor_green", 0.79f)}, 1301, 1301);
         c.check(!demo.snapshot(1301).moving, "configured confidence threshold respected");
     }
+    {
+        DrivingDemo demo;
+        demo.setEnabled(true);
+        stableMotor(demo, 1000);
+        c.check(demo.snapshot(1200).moving, "fresh HDMI begins with confirmed green motion");
+        demo.setInputAvailable(false);
+        auto state = demo.snapshot(1201);
+        c.check(!state.inputAvailable && !state.moving && state.signal == DrivingSignal::Unknown,
+                "lost HDMI half clears perception and stops automatic motion");
+        demo.setMode(DrivingMode::ForcedGo);
+        state = demo.snapshot(1202);
+        c.check(!state.moving && !state.alarm, "forced movement cannot bypass missing HDMI input");
+        c.check(!observe(demo, motor, {"tlr_motor_red"}, 1300),
+                "late inference cannot restore unavailable HDMI input");
+        demo.setInputAvailable(true);
+        demo.setMode(DrivingMode::Auto);
+        observe(demo, motor, {"tlg_motor_green"}, 1400);
+        c.check(!demo.snapshot(1400).moving, "recovered HDMI needs fresh green confirmation");
+        observe(demo, motor, {"tlg_motor_green"}, 1600);
+        c.check(demo.snapshot(1600).moving, "recovered input can resume after confirmation");
+        observe(demo, motor, {"tlr_motor_red"}, 1601);
+        demo.setMode(DrivingMode::ForcedGo);
+        c.check(demo.snapshot(1601).alarm, "forced red still alarms with valid HDMI input");
+        demo.setInputAvailable(false);
+        c.check(!demo.snapshot(1602).moving && !demo.snapshot(1602).alarm,
+                "input loss clears stale red alarm and simulated movement");
+    }
     if (c.failures) {
         std::cerr << "DRIVING_DEMO_SELFTEST_FAILED: " << c.failures << '/' << c.total << '\n';
         return 1;

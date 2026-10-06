@@ -2,6 +2,35 @@
 
 `--driving-demo` 使用 C5+C6 的完整 HDMI 画面，叠加模拟车辆的车道、行驶方向、停车状态及闯红灯报警。程序输出用于视频演示，不连接真实车辆执行器。
 
+## 现有功能演示范围
+
+本版先完成赛题3的十字路口模拟：识别人、车、斑马线和信号灯，按键选择车道或车辆行为，用图像箭头和模拟 LED 状态表示行驶，用红色边框报警。虚实线变道、停止线和导航识别不包含在本版验收范围。
+
+50K 先选择 HDMI（Key2/L15），电脑播放测试视频。查看器的 F 键只切显示与推理布局，不能代替 50K 的输入选择。C5/C6 任一半幅缺失、过期或不同步时，画面提示输入异常，自动及强制模式均暂停模拟行驶；恢复后绿灯重新确认。
+
+## 启动与维护
+
+也可使用现成视频模拟输入，仍由真实模型识别人、车、斑马线与信号灯，不访问 PCIe：
+
+```sh
+sudo -n bash /userdata/detview-driving-demo/run_driving_demo.sh restart \
+  --video /userdata/linaro/ready_video_samples/trafficlight_demo.mp4 \
+  --video-loop --driving-video-padded480
+```
+
+`--driving-video-padded480` 仅用于已知 640×480 视频且有效图像为中间 640×360、上下各60行灰边的素材；其他视频不要添加该参数。视频模式保持16:9显示与检测框映射，画面及日志标明本地视频来源。缺少红灯片段的道路视频只能验证已有类别识别与操作，不能据此宣称实景红灯报警验收通过。
+
+部署后的入口为 `/userdata/detview-driving-demo/run_driving_demo.sh`：
+
+```sh
+sudo -n bash /userdata/detview-driving-demo/run_driving_demo.sh start
+sudo -n bash /userdata/detview-driving-demo/run_driving_demo.sh status
+sudo -n bash /userdata/detview-driving-demo/run_driving_demo.sh restart
+sudo -n bash /userdata/detview-driving-demo/run_driving_demo.sh stop
+```
+
+入口检查模型、采集设备及已有占用者；保留每次运行日志。异常退出时仅重启本程序，不改 FPGA 位流或重载驱动。不安装开机启动。其他采集程序占用设备时拒绝启动，避免两个程序争用 DMA。
+
 ```sh
 ./detview --driving-demo --fullscreen --no-tracking \
   --rotate-model trafficlight-16cls,wb_v4_combo

@@ -81,6 +81,11 @@ void DrivingDemo::resetPerception() {
     clearGreen();
 }
 
+void DrivingDemo::setInputAvailable(bool available) {
+    if (inputAvailable_ != available) resetPerception();
+    inputAvailable_ = available;
+}
+
 int DrivingDemo::observationTier(const Observation& observation, int* mask) const {
     const int selected = direction(lane_);
     if (selected < 0) { *mask = 0; return 0; }
@@ -145,7 +150,8 @@ DrivingDemo::Evidence DrivingDemo::evidence(qint64 nowMs) const {
 }
 
 bool DrivingDemo::observe(const QStringList& classes, const QVector<Detection>& detections,
-                          qint64 capturedMs, qint64 nowMs) {
+                           qint64 capturedMs, qint64 nowMs) {
+    if (!inputAvailable_) return false;
     if (nowMs < 0 || nowMs < lastNowMs_) return false;
     lastNowMs_ = nowMs;
     // Age existing evidence even when the incoming capture is rejected.
@@ -198,6 +204,7 @@ bool DrivingDemo::greenConfirmed() const {
 DrivingSnapshot DrivingDemo::snapshot(qint64 nowMs) {
     DrivingSnapshot result;
     result.enabled = enabled_;
+    result.inputAvailable = inputAvailable_;
     result.lane = lane_;
     result.mode = mode_;
     result.modelCount = observations_.size();
@@ -230,7 +237,8 @@ DrivingSnapshot DrivingDemo::snapshot(qint64 nowMs) {
             QStringLiteral("green awaiting distinct samples and hold time");
         break;
     }
-    if (!enabled_) result.reason = QStringLiteral("demo disabled; ") + perception;
+    if (!inputAvailable_) result.reason = QStringLiteral("HDMI input unavailable; simulated motion inhibited");
+    else if (!enabled_) result.reason = QStringLiteral("demo disabled; ") + perception;
     else if (mode_ == DrivingMode::Stop) result.reason = QStringLiteral("manual stop; ") + perception;
     else if (mode_ == DrivingMode::ForcedGo) {
         result.moving = true;

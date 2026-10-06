@@ -145,6 +145,7 @@ void paintPanel(QPainter& painter, const DrivingSnapshot& snapshot) {
     }
 
     QString reason = snapshot.reason.simplified();
+    if (!snapshot.inputAvailable && reason.isEmpty()) reason = QStringLiteral("输入不可用，模拟车辆停车");
     if (reason.isEmpty()) {
         if (snapshot.alarm) reason = QStringLiteral("红灯下强制行驶");
         else if (warning) reason = QStringLiteral("信号未确认，强制行驶存在风险");

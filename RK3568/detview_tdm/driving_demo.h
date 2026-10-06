@@ -23,6 +23,7 @@ struct DrivingSnapshot {
     bool warning = false;     // ForcedGo against amber/off/unknown.
     bool conflict = false;
     bool stale = false;
+    bool inputAvailable = true;
     QString reason;
     int personCount = 0;
     int vehicleCount = 0;
@@ -39,6 +40,8 @@ public:
     void setEnabled(bool enabled);
     void setLane(DrivingLane lane);
     void setMode(DrivingMode mode);
+    // Missing/stale HDMI half prevents simulated motion, including ForcedGo.
+    void setInputAvailable(bool available);
     // Returns false for negative/future/stale/duplicate/out-of-order timestamps.
     // Accepted captures must increase globally, including across model rotation.
     bool observe(const QStringList& classes, const QVector<Detection>& detections,
@@ -70,6 +73,7 @@ private:
 
     DrivingDemoConfig config_;
     bool enabled_ = false;
+    bool inputAvailable_ = true;
     DrivingLane lane_ = DrivingLane::Straight;
     DrivingMode mode_ = DrivingMode::Auto;
     QVector<Observation> observations_;
