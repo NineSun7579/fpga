@@ -1,0 +1,42 @@
+{
+  "name": "MVP accuracy-first round1",
+  "architecture": "YOLOv8n",
+  "input": [
+    1,
+    3,
+    480,
+    640
+  ],
+  "classes": [
+    "person",
+    "vehicle",
+    "zebra",
+    "traffic_light",
+    "traffic_sign"
+  ],
+  "rider_policy": "vehicle",
+  "target": "rk3568",
+  "precision": "int8",
+  "reg_max": 16,
+  "output_order": [
+    "box_p3",
+    "box_p4",
+    "box_p5",
+    "cls_p3",
+    "cls_p4",
+    "cls_p5"
+  ],
+  "float_model_sha256": "b418d1e662e661616866a0961a4401345fca89410fe8797740e79f2905bde272",
+  "rknn_sha256": "6cdfe6c8d834e2b99994633b483e048819a79c440562a2ea1ccbc55947be03e2",
+  "thresholds": {
+    "0": 0.35,
+    "1": 0.45,
+    "2": 0.25,
+    "3": 0.35,
+    "4": 0.4
+  },
+  "thresholds_recalibrated_after_quantization": false,
+  "validation": "raw PT/ONNX/INT8 AP and fixed per-class threshold simulator checks; no new target-board accuracy or speed test",
+  "previous_WebDAV_package_unchanged": true,
+  "shared_MVP_plus_updated": false
+}
