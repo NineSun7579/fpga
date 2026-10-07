@@ -1,9 +1,10 @@
 ﻿// detview - OV5640 live detection UI for RK3568 + Pango FPGA + RKNN
 // Cam path: OV5640 -> DDR3 ping-pong (0x00800000/0x00A00000, RGB565 640x480)
-//           -> PCIe DMA read -> letterbox 640x640 -> RKNN model
+//           -> PCIe DMA read -> canonical 640x640 -> per-model RKNN input geometry
 #include <QApplication>
 #include <QAction>
 #include <QComboBox>
+#include <QCryptographicHash>
 #include <QCheckBox>
 #include <QHash>
 #include <QMenu>
@@ -31,6 +32,7 @@
 #include <QScreen>
 #include <QSlider>
 #include <QThread>
+#include <QTemporaryDir>
 #include <QVBoxLayout>
 #include <QWaitCondition>
 #include <QWidget>
@@ -46,6 +48,7 @@
 #include <fcntl.h>
 #include <functional>
 #include <memory>
+#include <map>
 #include <stdexcept>
 #include <sys/ioctl.h>
 #include <sys/mman.h>
@@ -55,10 +58,15 @@
 
 #include "vision_types.h"
 #include "vision_pipeline.h"
+#include "detection_temporal_filter.h"
 #include "template_tracker.h"
 #include "camera_dma.h"
 #include "frame_metrics.h"
 #include "display_perf.h"
+#include "hdmi_view.h"
+#include "inference_geometry.h"
+#include "mvp_decode.h"
+#include "mvp_round1_policy.h"
 #include "calibration_capture.h"
 #include "stereo_demo/stereo_depth.h"
 
@@ -90,7 +98,6 @@ static const unsigned long F2H_CMD = 0xC0000000ul | (4ul << 16) | (0x53ul << 8) 
 
 static const int MODEL_W = 640;
 static const int MODEL_H = 640;
-static const size_t MODEL_SIZE = (size_t)MODEL_W * MODEL_H * 3;
 static const float CONF_THRESH = 0.25f;
 static const float IOU_THRESH = 0.45f;
 
@@ -163,7 +170,200 @@ struct ModelInfo {
     int nc = 1;
     bool xyxy = false;
     bool lane = false;
+    bool trafficlight = false;
+    bool mvpDetect = false;
+    bool sharedUfld = false;
+    bool independentUfld = false;
+    mvp::LaneContract laneContract;
+    mvp::Round1Policy round1Policy;
+    QString deploymentSha;
+    QString deploymentError;
 };
+
+static QStringList mvpNames() { return {"person", "vehicle", "zebra", "traffic_light", "traffic_sign"}; }
+
+// Only the delivered R1 manifest is supported. An unknown sidecar fails closed.
+static bool parseRound1Manifest(const QJsonObject& o, ModelInfo& info, QString& reason) {
+    info.round1Policy.enabled = false;
+    auto fail = [&](const char* message) { reason = message; return false; };
+    if (o.value("name").toString() != "MVP accuracy-first round1")
+        return fail("unsupported deployment profile name");
+    if (!info.mvpDetect || info.sharedUfld || info.independentUfld || info.classes != mvpNames() || info.nc != 5)
+        return fail("R1 profile requires the five-class MVP raw6 detector");
+    QJsonArray classes;
+    for (const auto& name : mvpNames()) classes.append(name);
+    if (o.value("classes").toArray() != classes || o.value("input").toArray() != QJsonArray{1,3,480,640} ||
+        o.value("reg_max").toDouble(-1) != 16 || o.value("architecture").toString() != "YOLOv8n" ||
+        o.value("target").toString() != "rk3568" || o.value("precision").toString() != "int8" ||
+        o.value("output_order").toArray() != QJsonArray{"box_p3","box_p4","box_p5","cls_p3","cls_p4","cls_p5"})
+        return fail("R1 deployment input/classes/raw6 contract mismatch");
+    info.deploymentSha = o.value("rknn_sha256").toString();
+    if (info.deploymentSha != mvp::Round1Policy::rknnSha ||
+        o.value("float_model_sha256").toString() != mvp::Round1Policy::floatSha)
+        return fail("R1 deployment model SHA does not match supported release");
+    const auto thresholds = o.value("thresholds").toObject();
+    if (thresholds.size() != 5) return fail("R1 deployment requires exactly five numeric class thresholds");
+    for (int c=0;c<5;++c) {
+        const auto value = thresholds.value(QString::number(c));
+        if (!value.isDouble() || !std::isfinite(value.toDouble()) ||
+            value.toDouble() < 0 || value.toDouble() > 1 ||
+            std::fabs(value.toDouble()-info.round1Policy.thresholds[c]) > 1e-7)
+            return fail("R1 deployment threshold mismatch (expected .35/.45/.25/.35/.40)");
+        info.round1Policy.thresholds[c] = float(value.toDouble());
+    }
+    info.round1Policy.enabled = true;
+    reason.clear();
+    return true;
+}
+
+static bool readRound1Deployment(ModelInfo& info, QString& reason) {
+    info.round1Policy = mvp::Round1Policy{};
+    info.deploymentSha.clear();
+    reason.clear();
+    QFile file(info.path + ".deployment.json");
+    if (!file.exists()) {
+        if (QFileInfo(info.path).fileName().toLower() == "mvp_accuracy_round1_rk3568_int8.rknn") {
+            reason = "MVP-R1 requires its .deployment.json sidecar";
+            return false;
+        }
+        return true;
+    }
+    if (!file.open(QIODevice::ReadOnly)) { reason = "cannot open deployment sidecar"; return false; }
+    QJsonParseError error{};
+    const auto doc = QJsonDocument::fromJson(file.readAll(),&error);
+    if (error.error != QJsonParseError::NoError || !doc.isObject()) {
+        reason = "invalid deployment sidecar JSON"; return false;
+    }
+    return parseRound1Manifest(doc.object(),info,reason);
+}
+
+static bool verifyRound1Bytes(const ModelInfo& info, const QByteArray& bytes, QString& reason) {
+    if (!info.round1Policy.enabled) return true;
+    const auto actual = QCryptographicHash::hash(bytes,QCryptographicHash::Sha256).toHex();
+    if (mvp::Round1Policy::matchesSha(info.deploymentSha.toStdString(),actual.toStdString())) return true;
+    reason = QString("MVP-R1 RKNN SHA256 mismatch: expected %1, got %2")
+        .arg(info.deploymentSha,QString::fromLatin1(actual));
+    return false;
+}
+
+static bool selfTestRound1Metadata() {
+    QJsonArray classes;
+    for (const auto& name : mvpNames()) classes.append(name);
+    QJsonObject thresholds;
+    const mvp::Round1Policy policy;
+    for (int c=0;c<5;++c) thresholds.insert(QString::number(c),double(policy.thresholds[c]));
+    const QJsonObject valid{{"name","MVP accuracy-first round1"},{"architecture","YOLOv8n"},
+        {"input",QJsonArray{1,3,480,640}},{"classes",classes},{"target","rk3568"},
+        {"precision","int8"},{"reg_max",16},
+        {"output_order",QJsonArray{"box_p3","box_p4","box_p5","cls_p3","cls_p4","cls_p5"}},
+        {"rknn_sha256",mvp::Round1Policy::rknnSha},{"float_model_sha256",mvp::Round1Policy::floatSha},
+        {"thresholds",thresholds}};
+    int failures=0;
+    auto expect=[&](bool ok,const char* message) {
+        fprintf(stderr,"[mvp-round1-metadata] %s %s\n",ok?"OK":"FAIL",message); failures+=!ok;
+    };
+    ModelInfo model; model.mvpDetect=true; model.classes=mvpNames(); model.nc=5;
+    QString reason;
+    expect(!model.round1Policy.enabled,"model default keeps legacy policy");
+    expect(parseRound1Manifest(valid,model,reason) && model.round1Policy.enabled,"delivered manifest format accepted");
+    expect(!verifyRound1Bytes(model,QByteArray("old RKNN model bytes"),reason) && reason.contains("SHA256 mismatch"),
+           "actual model bytes hashed and wrong checksum rejected");
+    auto reject=[&](const QJsonObject& object,const char* message) {
+        expect(!parseRound1Manifest(object,model,reason) && !model.round1Policy.enabled && !reason.isEmpty(),message);
+    };
+    auto bad=valid; bad.insert("name","unknown profile"); reject(bad,"unknown profile rejected");
+    bad=valid; bad.insert("rknn_sha256",QString(64,'0')); reject(bad,"old or unknown model identity rejected");
+    bad=valid; bad.insert("input",QJsonArray{1,3,640,640}); reject(bad,"square input rejected");
+    bad=valid; bad.insert("classes",QJsonArray{"vehicle","person","zebra","traffic_light","traffic_sign"});
+    reject(bad,"class reordering rejected");
+    bad=valid; bad.insert("reg_max",8); reject(bad,"wrong regmax rejected");
+    auto badThresholds=thresholds; badThresholds.remove("2");
+    bad=valid; bad.insert("thresholds",badThresholds); reject(bad,"missing threshold rejected without default");
+    badThresholds=thresholds; badThresholds.insert("0","0.35");
+    bad=valid; bad.insert("thresholds",badThresholds); reject(bad,"string threshold rejected");
+    badThresholds=thresholds; badThresholds.insert("5",.5);
+    bad=valid; bad.insert("thresholds",badThresholds); reject(bad,"extra class threshold rejected");
+    badThresholds=thresholds; badThresholds.insert("1",.25);
+    bad=valid; bad.insert("thresholds",badThresholds); reject(bad,"guessed uniform thresholds rejected");
+    ModelInfo shared=model; shared.sharedUfld=true;
+    expect(!parseRound1Manifest(valid,shared,reason),"R1 cannot be applied to old shared detector");
+    QTemporaryDir directory;
+    expect(directory.isValid(),"temporary metadata directory available");
+    if (directory.isValid()) {
+        model.path=directory.path()+"/MVP_accuracy_round1_rk3568_int8.rknn";
+        expect(!readRound1Deployment(model,reason) && !model.round1Policy.enabled,"R1 missing sidecar rejected");
+        QFile sidecar(model.path+".deployment.json");
+        auto write=[&](const QByteArray& bytes) {
+            if (!sidecar.open(QIODevice::WriteOnly|QIODevice::Truncate)) return false;
+            const bool ok=sidecar.write(bytes)==bytes.size(); sidecar.close(); return ok;
+        };
+        expect(write(QJsonDocument(valid).toJson()) && readRound1Deployment(model,reason) && model.round1Policy.enabled,
+               "sidecar file parsed in production reader");
+        expect(write("{broken") && !readRound1Deployment(model,reason) && !model.round1Policy.enabled,
+               "malformed sidecar rejected");
+        model.path=directory.path()+"/MVP_rk3568_int8.rknn";
+        expect(readRound1Deployment(model,reason) && !model.round1Policy.enabled &&
+               verifyRound1Bytes(model,QByteArray("legacy bytes"),reason),"old model without sidecar stays unchanged");
+    }
+    fprintf(stderr,failures?"MVP_ROUND1_METADATA_SELFTEST_FAIL\n":"MVP_ROUND1_METADATA_SELFTEST_PASS\n");
+    return failures==0;
+}
+
+static bool readMvpLaneContract(const QString& path, mvp::LaneContract& contract) {
+    QFile file(path + ".lane.json");
+    if (!file.exists()) return true; // Exact delivered anchors are also compiled in.
+    if (!file.open(QIODevice::ReadOnly)) return false;
+    QJsonParseError error{};
+    const QJsonDocument doc = QJsonDocument::fromJson(file.readAll(), &error);
+    if (error.error != QJsonParseError::NoError || !doc.isObject()) return false;
+    const auto object = doc.object();
+    if (object.value("input_hw").toArray() != QJsonArray{480,640} ||
+        object.value("decode").toString() != "argmax_endpoint" ||
+        object.value("grid_row").toInt() != 64 || object.value("grid_col").toInt() != 48 ||
+        object.value("num_lanes").toInt() != 8) return false;
+    auto load = [&](const char* key, auto& target) {
+        const auto array = object.value(key).toArray();
+        if (array.size() != int(target.size())) return false;
+        for (int i=0;i<array.size();++i) {
+            if (!array[i].isDouble() || !std::isfinite(array[i].toDouble()) ||
+                std::fabs(array[i].toDouble()-target[i]) > 0.001) return false;
+            target[i] = float(array[i].toDouble());
+        }
+        return true;
+    };
+    return load("row_anchors",contract.rows) && load("col_anchors",contract.cols);
+}
+
+static QStringList trafficlightNames() {
+    // Exact package names.json order. Keep raw IDs stable for logs/metadata.
+    return {"tlr_motor_red", "tly_motor_amber", "tlg_motor_green",
+            "tlra_left_red", "tlya_left_amber", "tlga_left_green",
+            "tsra_straight_red", "tsya_straight_amber", "tsga_straight_green",
+            "trra_right_red", "trya_right_amber", "trga_right_green",
+            "tura_uturn_red", "tuya_uturn_amber", "tuga_uturn_green", "tln_lamp_off"};
+}
+
+static QString displayClassName(const QString &name) {
+    static const QStringList ids = trafficlightNames();
+    static const QStringList labels = {"机动车红灯", "机动车黄灯", "机动车绿灯",
+        "左转红灯", "左转黄灯", "左转绿灯", "直行红灯", "直行黄灯", "直行绿灯",
+        "右转红灯", "右转黄灯", "右转绿灯", "掉头红灯", "掉头黄灯", "掉头绿灯", "信号灯熄灭"};
+    const int id = ids.indexOf(name);
+    return id >= 0 ? labels[id] : name;
+}
+
+static bool readModelNames(const QString &path, QStringList &names) {
+    QFile file(path + ".names.json");
+    if (!file.open(QIODevice::ReadOnly)) return false;
+    QJsonParseError error{};
+    const QJsonDocument doc = QJsonDocument::fromJson(file.readAll(), &error);
+    if (error.error != QJsonParseError::NoError || !doc.isArray() || doc.array().isEmpty()) return false;
+    for (const auto &value : doc.array()) {
+        if (!value.isString() || value.toString().trimmed().isEmpty()) return false;
+        names.append(value.toString());
+    }
+    return true;
+}
 
 static bool selectRotation(const QVector<ModelInfo>& models, const QStringList& selectors,
                            QVector<ModelInfo>& chosen) {
@@ -192,7 +392,8 @@ static QVector<ModelInfo> scanModels() {
     const QStringList dirs = {"/root/npu/yolov8n/zebra640", "/root/npu/yolov8n/vehicle640",
                               "/root/npu", "/root/npu/yolo11n", "/root/models/yolo26_rk3568",
                               "/root/npu/tt100k", "/root/npu/tt100k_yolov8n",
-                              "/root/npu/lane_linknet", "/root/npu/whiteboard_3cls"};
+                              "/root/npu/lane_linknet", "/root/npu/whiteboard_3cls",
+                              "/root/npu/trafficlight", "/root/npu/mvp"};
     for (const QString &d : dirs) {
         QDir dir(d);
         const QStringList files = dir.entryList(QStringList() << "*.rknn", QDir::Files, QDir::Name);
@@ -200,13 +401,43 @@ static QVector<ModelInfo> scanModels() {
             ModelInfo mi;
             mi.path = dir.absoluteFilePath(f);
             const QString lower = f.toLower();
-            if (lower.startsWith("seg-linknet-lane640-")) {
+            QStringList names;
+            const bool hasNames = readModelNames(mi.path, names);
+            const bool trafficlight = lower.contains("trafficlight") || (hasNames && names == trafficlightNames());
+            if (lower == "mvp_rk3568_int8.rknn" || lower == "mvp_accuracy_round1_rk3568_int8.rknn" ||
+                lower == "mvp_plus_shared_rk3568_fp16.rknn" ||
+                lower == "lane_ufldv2_480x640_rk3568_fp16.rknn") {
+                mi.independentUfld = lower.startsWith("lane_ufldv2_");
+                mi.sharedUfld = lower.startsWith("mvp_plus_shared_");
+                mi.mvpDetect = !mi.independentUfld;
+                if (mi.mvpDetect && QFileInfo::exists(mi.path + ".names.json") &&
+                    (!hasNames || names != mvpNames())) {
+                    fprintf(stderr,"[mvp] reject %s: expected five stable coarse class IDs\n",qPrintable(mi.path));
+                    continue;
+                }
+                if ((mi.sharedUfld || mi.independentUfld) && !readMvpLaneContract(mi.path,mi.laneContract)) {
+                    fprintf(stderr,"[mvp] reject %s: invalid lane contract sidecar\n",qPrintable(mi.path));
+                    continue;
+                }
+                mi.classes = mi.independentUfld ? QStringList{"lane0","lane1","lane2","lane3","lane4","lane5","lane6","lane7"} : mvpNames();
+                mi.nc = mi.independentUfld ? 8 : 5;
+            } else if (lower.startsWith("seg-linknet-lane640-")) {
                 mi.lane = true;
                 mi.nc = lower.contains("multiclass") ? 9 : 2;
                 mi.classes = mi.nc == 9
                     ? (QStringList() << "background" << "lane0" << "lane1" << "lane2"
                                      << "lane3" << "lane4" << "lane5" << "lane6" << "lane7")
                     : (QStringList() << "background" << "lane");
+            } else if (trafficlight) {
+                if (QFileInfo::exists(mi.path + ".names.json") && (!hasNames || names != trafficlightNames())) {
+                    fprintf(stderr, "[trafficlight] reject %s: names sidecar must match package's 16 class IDs\n",
+                            qPrintable(mi.path));
+                    continue;
+                }
+                mi.trafficlight = true;
+                mi.classes = hasNames ? names : trafficlightNames();
+                mi.nc = 16;
+                mi.xyxy = false;
             } else if (lower.contains("tt100k")) {
                 mi.classes = QStringList() << "非机动车" << "机动车" << "靠右侧行驶" << "人行横道"
                                            << "禁止掉头" << "禁止机动车驶入" << "禁止鸣喇叭"
@@ -261,6 +492,11 @@ static QVector<ModelInfo> scanModels() {
                 mi.classes = QStringList() << "vehicle";
                 mi.nc = 1;
             }
+            if (hasNames && !mi.trafficlight && !mi.lane && !mi.mvpDetect && !mi.independentUfld) {
+                mi.classes = names;
+                mi.nc = names.size();
+            }
+            readRound1Deployment(mi,mi.deploymentError);
             list.append(mi);
         }
     }
@@ -270,7 +506,7 @@ static QVector<ModelInfo> scanModels() {
 static QVector<int> vehicleTrackingClasses(const ModelInfo& model) {
     QVector<int> result;
     // TT100K labels such as "机动车" describe signs, not vehicle observations.
-    if (model.lane || model.path.contains("tt100k", Qt::CaseInsensitive)) return result;
+    if (model.lane || model.independentUfld || model.path.contains("tt100k", Qt::CaseInsensitive)) return result;
     static const QStringList objects = {"vehicle", "car", "truck", "bus", "motorcycle"};
     for (int c = 0; c < model.classes.size(); ++c)
         if (objects.contains(model.classes[c].trimmed().toLower())) result.append(c);
@@ -535,6 +771,7 @@ public:
     /* 当前显示模式（0..5 = 单路，CAM_COUNT = 整幅）：单路时只采那一路，其余停采 */
     void setModePtr(const std::atomic<int> *mode) { mode_ = mode; }
     void setPausedPtr(const std::atomic<bool> *paused) { paused_ = paused; }
+    void setHdmiPtr(const std::atomic<bool> *hdmi) { hdmi_ = hdmi; }
 
 protected:
     void run() override {
@@ -563,6 +800,9 @@ protected:
         while (running_) {
             if (paused_ && paused_->load()) { suspendMeasurement(); msleep(20); continue; }
             const int sourceGeneration = generation_ ? generation_->load() : 0;
+            if (hdmi_ && hdmi_->load() && idx < tdm::hdmiLeftCamera) {
+                suspendMeasurement(); msleep(20); continue;
+            }
             /* 设备模式：整幅时六路全采；单选时只采那一路（其余不发 DMA、不轮询标签） */
             if (mode_) {
                 const int mode = mode_->load();
@@ -602,7 +842,8 @@ protected:
             dmaNsTotal += dmaNs; copyNsTotal += copyNs; ++auditFrames;
             const qint64 completedMs = monotonicMs();
             captureRate.add(completedMs);
-            if (visionSink_ && ((inferPane_ && inferPane_->load() == idx) || (stereoMask_ & (1 << idx))) &&
+            if (visionSink_ && !(hdmi_ && hdmi_->load()) &&
+                ((inferPane_ && inferPane_->load() == idx) || (stereoMask_ & (1 << idx))) &&
                 generation_ && sourceGeneration == generation_->load()) {
                 QImage pixels(IMG_W, IMG_H, QImage::Format_RGB888);
                 const uint16_t *src = reinterpret_cast<const uint16_t *>(frame.constData());
@@ -656,6 +897,7 @@ private:
     const std::atomic<int> *inferPane_ = nullptr;
     const std::atomic<int> *generation_ = nullptr;
     const std::atomic<bool> *paused_ = nullptr;
+    const std::atomic<bool> *hdmi_ = nullptr;
     std::atomic<quint64> *sequence_ = nullptr;
     int stereoMask_ = 0;
     const std::atomic<int> *mode_ = nullptr;
@@ -680,6 +922,7 @@ public:
         std::array<quint32, CAM_COUNT> tags{};
         std::array<int, CAM_COUNT> cameraGenerations{};
         std::array<qint64, CAM_COUNT> rawCapturedMs{};
+        bool hdmiFull = false;   // HDMI 满屏视图（仅 6 路 3x2 布局下由显示端采用）
     };
     DisplayFrame takeDisplay() {
         QMutexLocker lock(&m_displayMutex);
@@ -756,6 +999,7 @@ public:
         QMutexLocker lock(&m_configMutex);
         m_selectedCamera = mode == CAM_COUNT ? (m_options.stereoEnabled() ? m_options.primaryStereoLeft() : 0) : mode;
         m_mode = mode;
+        updateHdmiActive();
     }
     void setSourceGeneration(int generation) {
         QMutexLocker lock(&m_configMutex);
@@ -778,6 +1022,10 @@ public:
         QMutexLocker lock(&m_configMutex);
         m_videoLoop = loop;
     }
+    /* auto has no trustworthy source-mode signal: wait for explicit F selection. */
+    void setHdmiPrefer(int mode) { m_hdmiPrefer.store(mode); updateHdmiActive(); }
+    // 手动覆盖（HDMI 满屏热切换）：-1=不覆盖（按 prefer/auto），1=强制满屏，0=强制 6 路
+    void setHdmiOverride(int mode) { m_hdmiOverride.store(mode); updateHdmiActive(); }
     /* 控件尺寸：相机线程据此决定 RGA 缩放目标（letterbox 后的内容尺寸） */
     void setDisplaySize(int w, int h) { m_dispW = w; m_dispH = h; }
 
@@ -812,6 +1060,7 @@ protected:
             w.setVisionSink(&m_selectedCamera, &m_sourceGeneration, &m_frameSequence, m_visionSink, stereoMask);
             w.setModePtr(&m_mode);
             w.setPausedPtr(&m_paused);
+            w.setHdmiPtr(&m_hdmiActive);
         }
         for (CameraWorker &w : workers) w.start();
         emit statusMsg("Six-camera DMA ready; 3x2 view, inference uses the selected pane");
@@ -824,6 +1073,8 @@ protected:
                                        ? std::max(0, qEnvironmentVariableIntValue("DETVIEW_MIN_MS")) : 16;
         uint64_t lastGen = 0;
         int lastMode = -1, lastDisplayGeneration = -1;
+        uint64_t hdmiLeftSequence = 0, hdmiRightSequence = 0;
+        quint64 hdmiSubmissions = 0;
         /* 诊断：DET_DUMP_COMP=1 时把合成缓冲原样存一张 PNG，用来分辨
            “合成内容错”还是“显示映射错”（两者症状很像） */
         const bool dumpComp = qEnvironmentVariableIsSet("DET_DUMP_COMP");
@@ -878,6 +1129,27 @@ protected:
                 }
                 for (int i = 0; i < CAM_COUNT; ++i)
                     if (have[i]) cameraPixels[i] = latest.c[i];
+            }
+            const bool hdmiFull = mode == CAM_COUNT && m_hdmiActive.load();
+            if (hdmiFull) pane = tdm::hdmiInferenceCamera;
+            if (hdmiFull && m_visionSink && camGen[4] != hdmiLeftSequence && camGen[5] != hdmiRightSequence &&
+                tdm::hdmiPairReady(monotonicMs(), rawCaptureTimes[4], rawCaptureTimes[5],
+                                   displayGeneration, cameraGenerations[4], cameraGenerations[5])) {
+                VisionFrame packet;
+                packet.image = tdm::hdmiAnalyticsImage(cameraPixels[4], cameraPixels[5]);
+                packet.camera = tdm::hdmiInferenceCamera;
+                packet.sourceGeneration = displayGeneration;
+                packet.frameId = m_frameSequence.fetch_add(1) + 1;
+                packet.tag = tags[4];
+                packet.capturedMs = qMin(rawCaptureTimes[4], rawCaptureTimes[5]);
+                if (!packet.image.isNull() && m_hdmiActive.load() && displayGeneration == m_sourceGeneration.load()) {
+                    m_visionSink(packet);
+                    hdmiLeftSequence = camGen[4]; hdmiRightSequence = camGen[5];
+                    if (++hdmiSubmissions % 120 == 1)
+                        fprintf(stderr, "[hdmi-infer] generation=%d frames=%llu input=1280x480 content=640x360 pad=140 skew_ms=%lld tags=%u/%u\n",
+                                displayGeneration, (unsigned long long)hdmiSubmissions,
+                                (long long)qAbs(rawCaptureTimes[4] - rawCaptureTimes[5]), tags[4], tags[5]);
+                }
             }
             if (!ready) { msleep(2); continue; }
 
@@ -943,9 +1215,11 @@ protected:
             display.rawCapturedMs = rawCaptureTimes;
             display.tags = tags;
             display.cameraGenerations = cameraGenerations;
+            display.hdmiFull = hdmiFull;
             {
                 QMutexLocker lock(&m_configMutex);
-                if (mode == m_mode.load() && pane == m_selectedCamera.load() &&
+                if (mode == m_mode.load() && hdmiFull == m_hdmiActive.load() &&
+                    (hdmiFull || pane == m_selectedCamera.load()) &&
                     displayGeneration == m_sourceGeneration.load() && !m_paused)
                     publishDisplay(std::move(display));
             }
@@ -957,6 +1231,11 @@ protected:
     }
 
 private:
+    void updateHdmiActive() {
+        const int overrideMode = m_hdmiOverride.load();
+        m_hdmiActive = m_mode.load() == CAM_COUNT &&
+                       (overrideMode >= 0 ? overrideMode == 1 : m_hdmiPrefer.load() == 1);
+    }
     void runVideo() {
         QString source;
         bool loop;
@@ -1162,6 +1441,9 @@ private:
     std::atomic<int> m_selectedCamera{0};
     std::atomic<int> m_sourceGeneration{0};
     std::atomic<quint64> m_frameSequence{0};
+    std::atomic<int> m_hdmiPrefer{2};   // 0=off 1=on 2=auto（--prefer-hdmifull）
+    std::atomic<int> m_hdmiOverride{-1}; // F 键手动覆盖：-1 无 1 满屏 0 六路
+    std::atomic<bool> m_hdmiActive{false};
     VisionOptions m_options;
     std::function<void(const VisionFrame&)> m_visionSink;
     QString m_videoSource;
@@ -1343,6 +1625,208 @@ public:
         return ok;
     }
 
+    static bool selfTestTrafficlight() {
+        InferenceThread t;
+        t.m_nc = 16; t.m_trafficlight = true; t.m_geometry.height = 480;
+        t.m_conf.store(0.65f);
+        const int heights[] = {60, 30, 15}, widths[] = {80, 40, 20};
+        std::vector<std::vector<float>> buffers(6);
+        std::vector<rknn_tensor_attr> attrs(6);
+        std::vector<rknn_output> outs(6);
+        for (int i = 0; i < 6; ++i) {
+            const int s = i % 3, c = i < 3 ? 64 : 16;
+            buffers[i].assign(c * heights[s] * widths[s], -10.0f);
+            attrs[i].index = i; attrs[i].n_dims = 4; attrs[i].fmt = RKNN_TENSOR_NCHW;
+            attrs[i].dims[0] = 1; attrs[i].dims[1] = c;
+            attrs[i].dims[2] = heights[s]; attrs[i].dims[3] = widths[s];
+            attrs[i].n_elems = buffers[i].size();
+            outs[i].buf = buffers[i].data(); outs[i].want_float = 1;
+        }
+        // First class probe has only 0..1 values. The package still requires
+        // sigmoid; detecting logits from this probe would be incorrect.
+        std::fill(buffers[3].begin(), buffers[3].begin() + 60 * 80, 0.05f);
+        const int distances[] = {1, 2, 3, 4};
+        auto candidate = [&](int s, int x, int y, int cls, float logit) {
+            const int plane = heights[s] * widths[s], off = y * widths[s] + x;
+            for (int side = 0; side < 4; ++side)
+                buffers[s][(side * 16 + distances[side]) * plane + off] = 10.0f;
+            buffers[s + 3][cls * plane + off] = logit;
+        };
+        candidate(0, 20, 10, 15, 0.9f);
+        candidate(0, 21, 10, 6, 1.2f); // Overlaps class 15: both must survive.
+        candidate(0, 22, 10, 6, 1.0f); // Same-class overlap must be suppressed.
+        candidate(1, 20, 10, 2, 1.1f);
+        candidate(2, 18, 8, 14, 1.0f);
+        // Deliberately shuffle heads: pairing must use shape, never index.
+        std::swap(attrs[0], attrs[4]); std::swap(outs[0], outs[4]);
+        int failures = 0;
+        auto expect = [&](bool ok, const char *name) {
+            fprintf(stderr, "%s %s\n", ok ? "[ok]" : "[FAIL]", name);
+            failures += !ok;
+        };
+        expect(trafficlightNames().size() == 16 && trafficlightNames()[15] == "tln_lamp_off",
+               "trafficlight metadata retains all 16 stable class IDs");
+        expect(validTrafficlightOutputs(attrs), "shuffled raw DFL6 box64/cls16 shapes are accepted");
+        auto bad = attrs;
+        bad[0].dims[1] = 1;
+        expect(!validTrafficlightOutputs(bad), "class count mismatch is rejected before inference");
+        bad = attrs; bad[0].fmt = RKNN_TENSOR_NHWC;
+        expect(!validTrafficlightOutputs(bad), "unsupported output layout fails closed");
+        bad = attrs; bad[0] = bad[3];
+        expect(!validTrafficlightOutputs(bad), "duplicate head and missing scale are rejected");
+        bad = attrs; bad[0].n_elems = 1;
+        expect(!validTrafficlightOutputs(bad), "inconsistent output element count is rejected");
+        QVector<Detection> dets = t.decode(outs, attrs);
+        expect(dets.size() == 4, "production decoder preserves overlapping different classes and suppresses same class");
+        auto findClass = [&](int cls) -> const Detection * {
+            for (const auto &d : dets) if (d.cls == cls) return &d;
+            return nullptr;
+        };
+        const Detection *off = findClass(15), *p4 = findClass(2), *p5 = findClass(14);
+        expect(off && std::fabs(off->score - sigmoidf(0.9f)) < 1e-5f &&
+               std::fabs(off->x1 - 156) < 0.01f && std::fabs(off->y1 - 68) < 0.01f &&
+               std::fabs(off->x2 - 188) < 0.01f && std::fabs(off->y2 - 116) < 0.01f,
+               "class 15 logits use sigmoid and regmax16 DFL at stride 8");
+        expect(p4 && std::fabs(p4->x1 - 312) < 0.01f && std::fabs(p4->y1 - 136) < 0.01f &&
+               p5 && std::fabs(p5->x1 - 560) < 0.01f && std::fabs(p5->y1 - 208) < 0.01f,
+               "rectangular grids decode stride 16 and 32 without square-height scaling");
+        tdm::restoreCanonicalDetections(dets, t.m_geometry);
+        off = findClass(15);
+        expect(off && std::fabs(off->y1 - 148) < 0.01f && std::fabs(off->y2 - 196) < 0.01f,
+               "production decode result returns to canonical viewer space");
+        std::vector<CandD> overlap = {{0.9f, 10, 20, 30, 40, 0},
+                                      {0.8f, 10, 20, 30, 40, 1}, {0.7f, 10, 20, 30, 40, 1}};
+        QVector<Detection> aware, legacy;
+        auto legacyCands = overlap;
+        nmsAppend(aware, overlap, true); nmsAppend(legacy, legacyCands);
+        expect(aware.size() == 2 && legacy.size() == 1, "trafficlight NMS is class aware; legacy default remains class agnostic");
+        // Candidate limiting must happen after NMS for trafficlight. A cluster
+        // of duplicates must not consume the entire 300-candidate budget.
+        for (auto &buffer : buffers) std::fill(buffer.begin(), buffer.end(), -10.0f);
+        for (int y = 10; y < 25; ++y)
+            for (int x = 5; x < 25; ++x) candidate(0, x, y, 6, 2.0f);
+        candidate(0, 70, 50, 15, 1.0f);
+        dets = t.decode(outs, attrs);
+        expect(findClass(15) && dets.size() <= 300,
+               "production decoder retains lower-score distinct detection after more than 300 candidates");
+        fprintf(stderr, failures ? "TRAFFICLIGHT_DECODER_SELFTEST_FAIL\n" : "TRAFFICLIGHT_DECODER_SELFTEST_PASS\n");
+        return failures == 0;
+    }
+
+    static bool selfTestMvp() {
+        InferenceThread t;
+        t.m_nc=5; t.m_mvpDetect=true; t.m_geometry.height=480; t.m_conf.store(0.65f);
+        std::vector<std::vector<float>> buffers(10);
+        std::vector<rknn_tensor_attr> attrs(10);
+        std::vector<rknn_output> outs(10);
+        const unsigned dims[10][3]={{64,60,80},{64,30,40},{64,15,20},{5,60,80},{5,30,40},{5,15,20},{64,24,8},{48,32,8},{2,24,8},{2,32,8}};
+        for(int i=0;i<10;++i) {
+            auto& a=attrs[i]; a.n_dims=4; a.fmt=RKNN_TENSOR_NCHW; a.dims[0]=1; a.n_elems=1;
+            for(int d=0;d<3;++d) {a.dims[d+1]=dims[i][d];a.n_elems*=dims[i][d];}
+            buffers[i].assign(a.n_elems,-10);
+            outs[i].buf=buffers[i].data(); outs[i].want_float=1;
+        }
+        // The first class is entirely 0..1, defeating the old logits heuristic.
+        std::fill(buffers[3].begin(),buffers[3].begin()+60*80,0.05f);
+        auto candidate=[&](int x,int cls,float score) {
+            const int plane=60*80,off=10*80+x;
+            const int distance[4]={1,2,3,4};
+            for(int side=0;side<4;++side) buffers[0][(side*16+distance[side])*plane+off]=10;
+            buffers[3][cls*plane+off]=score;
+        };
+        candidate(20,4,0.9f); candidate(21,1,1.2f); candidate(22,1,1.0f);
+        // Lane rank4 tensors would be wrongly paired by generic spatial DFL search.
+        std::fill(buffers[6].begin(),buffers[6].end(),20);
+        std::fill(buffers[8].begin(),buffers[8].end(),20);
+        int failures=0;
+        auto expect=[&](bool ok,const char* text) { if(!ok) { ++failures;fprintf(stderr,"[mvp-selftest] FAIL %s\n",text); } };
+        expect(mvpNames()==QStringList({"person","vehicle","zebra","traffic_light","traffic_sign"}),"stable coarse five names");
+        expect(mvp::validOutputs(attrs,mvp::Kind::Shared),"box-first runtime shapes accepted");
+        auto dets=t.decode(outs,attrs);
+        expect(dets.size()==2,"raw10 ignores lane heads; class-aware NMS retains two classes");
+        for(const auto& d:dets) if(d.cls==4) {
+            expect(std::fabs(d.score-sigmoidf(0.9f))<1e-5f && std::fabs(d.x1-156)<0.01f &&
+                   std::fabs(d.y1-68)<0.01f && std::fabs(d.y2-116)<0.01f,"raw sigmoid/DFL exact coordinates");
+        }
+        tdm::restoreCanonicalDetections(dets,t.m_geometry);
+        for(const auto& d:dets) if(d.cls==4) expect(std::fabs(d.y1-148)<0.01f,"DFL canonical +80");
+        // Shared compiler's interleaved detector order must give identical values.
+        const int order[6]={0,3,1,4,2,5};
+        auto reorderedAttrs=attrs; auto reorderedOuts=outs;
+        for(int i=0;i<6;++i) {reorderedAttrs[i]=attrs[order[i]];reorderedOuts[i]=outs[order[i]];}
+        expect(mvp::validOutputs(reorderedAttrs,mvp::Kind::Shared),"interleaved shared shapes accepted");
+        const auto shared=t.decode(reorderedOuts,reorderedAttrs);
+        expect(shared.size()==2,"interleaved shared decoder retains detections");
+        const auto raw6=t.decode(std::vector<rknn_output>(outs.begin(),outs.begin()+6),
+                                 std::vector<rknn_tensor_attr>(attrs.begin(),attrs.begin()+6));
+        expect(raw6.size()==shared.size(),"raw6 and raw10 detection counts agree");
+        fprintf(stderr,failures?"MVP_DFL_SELFTEST_FAIL\n":"MVP_DFL_SELFTEST_PASS\n");
+        return failures==0;
+    }
+
+    static bool selfTestRound1() {
+        InferenceThread t;
+        t.m_nc=5; t.m_mvpDetect=true; t.m_geometry.height=480;
+        t.m_mvpPolicy.enabled=true; t.m_conf.store(.95f); // UI uniform value must be ignored.
+        const unsigned dims[6][3]={{64,60,80},{64,30,40},{64,15,20},{5,60,80},{5,30,40},{5,15,20}};
+        std::vector<std::vector<float>> buffers(6);
+        std::vector<rknn_tensor_attr> attrs(6);
+        std::vector<rknn_output> outs(6);
+        for(int i=0;i<6;++i) {
+            auto& a=attrs[i]; a.n_dims=4; a.fmt=RKNN_TENSOR_NCHW; a.dims[0]=1; a.n_elems=1;
+            for(int d=0;d<3;++d) {a.dims[d+1]=dims[i][d];a.n_elems*=dims[i][d];}
+            buffers[i].assign(a.n_elems,-20);
+            outs[i].buf=buffers[i].data(); outs[i].want_float=1;
+        }
+        auto clear=[&]() {for(auto& b:buffers) std::fill(b.begin(),b.end(),-20);};
+        auto candidate=[&](int x,int y,int cls,float probability,int distance=1) {
+            const int plane=60*80,off=y*80+x;
+            for(int side=0;side<4;++side) buffers[0][(side*16+distance)*plane+off]=20;
+            buffers[3][cls*plane+off]=std::log(probability/(1-probability));
+        };
+        int failures=0;
+        auto expect=[&](bool ok,const char* message) {
+            fprintf(stderr,"[mvp-round1-selftest] %s %s\n",ok?"OK":"FAIL",message); failures+=!ok;
+        };
+        candidate(10,10,0,.4f); candidate(10,10,1,.39f); // One argmax, never multilabel.
+        candidate(20,10,1,.4f); candidate(30,10,2,.3f);
+        candidate(40,10,3,.36f); candidate(50,10,4,.41f);
+        auto dets=t.decode(outs,attrs);
+        expect(dets.size()==4 && std::none_of(dets.begin(),dets.end(),[](const auto& d){return d.cls==1;}),
+               ".4 person passes, .4 vehicle fails, .3 zebra passes; all five thresholds and full argmax");
+        t.m_mvpPolicy.enabled=false; t.m_conf.store(.25f);
+        dets=t.decode(outs,attrs);
+        expect(dets.size()==5,"old MVP retains uniform .25 policy");
+        clear(); candidate(10,10,2,.0012f); candidate(20,10,2,.0009f);
+        dets.clear(); t.tryDecodeDfl(outs,attrs,mvp::Round1Policy::candidateFloor,dets);
+        expect(dets.size()==1 && std::fabs(dets[0].score-.0012f)<1e-7f,
+               "production raw candidate stage retains .0012 and rejects .0009");
+        t.m_mvpPolicy.enabled=true;
+        dets=t.decode(outs,attrs);
+        expect(dets.empty(),"rare low-score candidate filtered only after NMS");
+        std::vector<CandD> boxes={{.8f,0,0,10,10,0},{.7f,2.5f,0,12.5f,10,0},{.6f,0,0,10,10,1}};
+        auto oldBoxes=boxes; QVector<Detection> r1,old;
+        nmsAppend(r1,boxes,true,mvp::Round1Policy::nmsIou); nmsAppend(old,oldBoxes,true);
+        expect(r1.size()==3 && old.size()==2,"R1 IoU .7 preserves .6 overlap and different classes; legacy IoU .45");
+        clear();
+        for(int y=0;y<15;++y) for(int x=0;x<20;++x) candidate(x*3,y*3,1,.4f);
+        candidate(75,55,2,.3f);
+        dets=t.decode(outs,attrs);
+        expect(dets.empty(),"global NMS top300 occurs BEFORE class thresholds (no replenishment)");
+        clear();
+        for(int y=10;y<25;++y) for(int x=5;x<30;++x) candidate(x,y,1,.8f,15);
+        candidate(75,55,2,.3f);
+        dets=t.decode(outs,attrs);
+        expect(std::any_of(dets.begin(),dets.end(),[](const auto& d){return d.cls==2;}) && dets.size()<=300,
+               "more than 300 overlapping candidates never truncate before NMS");
+        expect(!mvp::Round1Policy::matchesSha(mvp::Round1Policy::rknnSha,std::string(64,'0')) &&
+               !mvp::Round1Policy::matchesSha(std::string(64,'0'),std::string(64,'0')) &&
+               mvp::Round1Policy::matchesSha(mvp::Round1Policy::rknnSha,mvp::Round1Policy::rknnSha),
+               "SHA binding rejects wrong bytes and wrong manifest identity");
+        fprintf(stderr,failures?"MVP_ROUND1_DECODER_SELFTEST_FAIL\n":"MVP_ROUND1_DECODER_SELFTEST_PASS\n");
+        return failures==0;
+    }
+
     void submit(const QImage &img, int sourceGeneration = 0, quint64 frameId = 0) {
         QMutexLocker lock(&m_mutex);
         m_pending = img;
@@ -1378,6 +1862,8 @@ signals:
     void detectionsReady(QString modelPath, int sourceGeneration, quint64 frameId, QVector<Detection> dets,
                          double inferFps, double inferMs);
     void laneMaskReady(QImage mask, int sourceGeneration, quint64 frameId, double inferFps, double inferMs);
+    void mvpResultReady(QString modelPath, QImage points, int sourceGeneration, quint64 frameId,
+                        QVector<Detection> dets, int pointCount, double inferFps, double inferMs);
     void inferenceFailed(int sourceGeneration, quint64 frameId);
     void modelLoaded(QString path, bool ok, QString info);
 
@@ -1388,6 +1874,8 @@ protected:
             QByteArray bytes;
             rknn_context context = 0;
             uint32_t outputs = 0;
+            tdm::InferenceGeometry geometry;
+            std::vector<rknn_tensor_attr> outputAttrs;
         };
         QVector<CachedModel> cache;
         int next = 0;
@@ -1435,6 +1923,13 @@ protected:
                         continue;
                     }
                     item.bytes = file.readAll();
+                    QString deploymentReason;
+                    // Re-read metadata and hash the exact bytes passed to rknn_init.
+                    if (!readRound1Deployment(item.info,deploymentReason) ||
+                        !verifyRound1Bytes(item.info,item.bytes,deploymentReason)) {
+                        emit modelLoaded(info.path,false,deploymentReason);
+                        continue;
+                    }
                     const int ret = rknn_init(&item.context, item.bytes.data(),
                                               (uint32_t)item.bytes.size(), 0, nullptr);
                     if (ret != 0) {
@@ -1443,14 +1938,49 @@ protected:
                     }
                     rknn_input_output_num ioNum{};
                     if (rknn_query(item.context, RKNN_QUERY_IN_OUT_NUM, &ioNum, sizeof(ioNum)) != 0 ||
-                        ioNum.n_input != 1 || (info.lane && ioNum.n_output != 1)) {
+                        ioNum.n_input != 1 || ioNum.n_output == 0 || (info.lane && ioNum.n_output != 1)) {
                         rknn_destroy(item.context);
                         emit modelLoaded(info.path, false, "unsupported input/output count");
                         continue;
                     }
+                    rknn_tensor_attr inputAttr{};
+                    if (rknn_query(item.context, RKNN_QUERY_INPUT_ATTR, &inputAttr, sizeof(inputAttr)) != 0 ||
+                        !tdm::queryInputGeometry(inputAttr, item.geometry) ||
+                        (info.lane && item.geometry.height != MODEL_H) ||
+                        ((info.trafficlight || info.mvpDetect || info.independentUfld) && item.geometry.height != 480)) {
+                        rknn_destroy(item.context);
+                        emit modelLoaded(info.path, false, "unsupported input: require 1x3x640x640 or 1x3x480x640 (trafficlight: 480 high)");
+                        continue;
+                    }
+                    logTensor(info.path, "input", inputAttr);
+                    bool attrsOk = true;
+                    item.outputAttrs.resize(ioNum.n_output);
+                    for (uint32_t i = 0; i < ioNum.n_output; ++i) {
+                        rknn_tensor_attr &attr = item.outputAttrs[i];
+                        attr.index = i;
+                        if (rknn_query(item.context, RKNN_QUERY_OUTPUT_ATTR, &attr, sizeof(attr)) != 0) {
+                            attrsOk = false;
+                            break;
+                        }
+                        logTensor(info.path, "output", attr);
+                    }
+                    if (!attrsOk || (info.trafficlight && !validTrafficlightOutputs(item.outputAttrs))) {
+                        rknn_destroy(item.context);
+                        emit modelLoaded(info.path, false, "unsupported outputs: trafficlight requires box64/cls16 at 60x80,30x40,15x20 NCHW");
+                        continue;
+                    }
+                    if ((info.mvpDetect || info.independentUfld) &&
+                        !mvp::validOutputs(item.outputAttrs, info.independentUfld ? mvp::Kind::Independent :
+                            (info.sharedUfld ? mvp::Kind::Shared : mvp::Kind::Detection))) {
+                        rknn_destroy(item.context);
+                        emit modelLoaded(info.path,false,"MVP output contract mismatch: require exact NCHW raw6/raw10/raw4 shapes");
+                        continue;
+                    }
                     item.outputs = ioNum.n_output;
                     cache.append(std::move(item));
-                    emit modelLoaded(info.path, true, QString("%1 outputs cached").arg(ioNum.n_output));
+                    m_completed.remove(info.path);
+                    emit modelLoaded(info.path, true, QString("640x%1 RGB, %2 outputs cached")
+                                     .arg(cache.last().geometry.height).arg(ioNum.n_output));
                 }
             }
             if (!frame.isNull() && !cache.isEmpty()) {
@@ -1461,6 +1991,15 @@ protected:
                 m_nc = item.info.nc;
                 m_xyxy = cache.size() == 1 ? m_manualFormat.load() : item.info.xyxy;
                 m_lane = item.info.lane;
+                m_trafficlight = item.info.trafficlight;
+                m_mvpDetect = item.info.mvpDetect;
+                m_mvpPolicy = item.info.round1Policy;
+                m_sharedUfld = item.info.sharedUfld;
+                m_independentUfld = item.info.independentUfld;
+                m_laneContract = item.info.laneContract;
+                m_geometry = item.geometry;
+                m_outputAttrs = &item.outputAttrs;
+                m_classNames = item.info.classes;
                 const qint64 runStart = diag ? QDateTime::currentMSecsSinceEpoch() : 0;
                 recordMetric(sourceGeneration, item.info.path, 0);
                 if (!runOnce(frame, item.info.path, sourceGeneration, frameId)) {
@@ -1493,6 +2032,33 @@ protected:
     }
 
 private:
+    static void logTensor(const QString &path, const char *kind, const rknn_tensor_attr &attr) {
+        QStringList dims;
+        for (uint32_t i = 0; i < attr.n_dims; ++i) dims << QString::number(attr.dims[i]);
+        fprintf(stderr, "[model-tensor] model=%s %s[%u] shape=[%s] fmt=%s type=%s quant=%d zp=%d scale=%.9g elems=%u bytes=%u\n",
+                qPrintable(path), kind, attr.index, qPrintable(dims.join(',')),
+                get_format_string(attr.fmt), get_type_string(attr.type), attr.qnt_type,
+                attr.zp, attr.scale, attr.n_elems, attr.size);
+    }
+
+    static bool validTrafficlightOutputs(const std::vector<rknn_tensor_attr> &attrs) {
+        if (attrs.size() != 6) return false;
+        int seen[3][2] = {};
+        const int heights[] = {60, 30, 15}, widths[] = {80, 40, 20};
+        for (const auto &attr : attrs) {
+            if (attr.n_dims != 4 || attr.dims[0] != 1 || attr.fmt != RKNN_TENSOR_NCHW) return false;
+            const int head = attr.dims[1] == 64 ? 0 : (attr.dims[1] == 16 ? 1 : -1);
+            if (head < 0) return false;
+            int scale = -1;
+            for (int s = 0; s < 3; ++s)
+                if (attr.dims[2] == (uint32_t)heights[s] && attr.dims[3] == (uint32_t)widths[s]) scale = s;
+            if (scale < 0 || ++seen[scale][head] != 1 ||
+                attr.n_elems != attr.dims[1] * attr.dims[2] * attr.dims[3]) return false;
+        }
+        for (const auto &scale : seen) if (scale[0] != 1 || scale[1] != 1) return false;
+        return true;
+    }
+
     double recordMetric(int generation, const QString& model, int event) {
         QMutexLocker lock(&m_metricsMutex);
         if (m_metricsGeneration < 0) {
@@ -1519,52 +2085,35 @@ private:
         lap.restart();
     }
     bool runOnce(const QImage &src, const QString &modelPath, int sourceGeneration, quint64 frameId) {
-        if (m_input.size() != (int)MODEL_SIZE)
-            m_input.resize((int)MODEL_SIZE);
+        const int inputBytes = m_geometry.rgbBytes();
         /* DET_BENCH 分段计时：定位应用内比纯 NPU 慢在哪一段
            prep=输入拷贝, set=rknn_inputs_set, run=NPU, get=输出反量化,
            query=输出属性查询, decode=DFL+NMS, release=释放 */
         const bool bench = qEnvironmentVariableIsSet("DET_BENCH");
-        const bool int8In = qEnvironmentVariableIsSet("DET_INT8_IN");
+        const bool int8In = !m_trafficlight && !m_mvpDetect && !m_independentUfld && qEnvironmentVariableIsSet("DET_INT8_IN");
         QElapsedTimer lap;
         double tPrep = 0, tSet = 0, tRun = 0, tGet = 0, tQuery = 0, tDecode = 0, tRel = 0;
         if (bench)
             lap.start();
-        /* 相机线程已经给出 640x640 RGB888（letterbox 完成），且不需要 int8 转换时
-           直接把它的缓冲喂给 rknn_inputs_set，省掉一次 1.2MB 拷贝（实测 prep 段
-           0.8~1.3ms）。QImage 是隐式共享的，调用期间 src 一直有效。 */
+        // The square producer contract stays unchanged. Only the network feed
+        // is cropped; restoreCanonicalDetections reverses this after decode.
+        const QImage rgb = tdm::networkRgbFrame(src, m_geometry);
+        if (rgb.isNull()) return false;
         const QImage *feed = nullptr;
-        if (!int8In && src.width() == MODEL_W && src.height() == MODEL_H &&
-            src.format() == QImage::Format_RGB888 && src.bytesPerLine() == MODEL_W * 3) {
-            feed = &src;
-        } else if (src.width() == MODEL_W && src.height() == MODEL_H) {
-            const QImage rgb = src.format() == QImage::Format_RGB888
-                                   ? src
-                                   : src.convertToFormat(QImage::Format_RGB888);
-            if (rgb.bytesPerLine() == MODEL_W * 3)
-                memcpy(m_input.data(), rgb.constBits(), MODEL_SIZE);
-            else
-                for (int y = 0; y < MODEL_H; y++)
-                    memcpy(m_input.data() + y * MODEL_W * 3,
-                           rgb.constBits() + (size_t)y * rgb.bytesPerLine(), MODEL_W * 3);
+        if (!int8In && rgb.bytesPerLine() == m_geometry.width * 3) {
+            feed = &rgb;
         } else {
-            const QImage rgb = src.convertToFormat(QImage::Format_RGB888);
-            // letterbox 640x480 -> 640x640 (vertical pad, gray 114)
-            memset(m_input.data(), 114, 80 * MODEL_W * 3);
-            const int copyBytes = IMG_W * 3;
-            const uint8_t *sp = rgb.constBits();
-            uint8_t *dp = (uint8_t *)m_input.data() + 80 * copyBytes;
-            for (int y = 0; y < IMG_H; y++)
-                memcpy(dp + y * copyBytes, sp + y * IMG_W * 3, copyBytes);
-            memset((uint8_t *)m_input.data() + (80 + IMG_H) * copyBytes, 114,
-                   (MODEL_H - 80 - IMG_H) * copyBytes);
+            m_input.resize(inputBytes);
+            for (int y = 0; y < m_geometry.height; ++y)
+                memcpy(m_input.data() + y * m_geometry.width * 3,
+                       rgb.constScanLine(y), m_geometry.width * 3);
         }
 
         /* 实测：输入按 INT8 直传反而慢得多（inputs_set 1.4ms → 16.9ms，整体 +58%），
            驱动对 UINT8 输入是快路径；默认走 UINT8，DET_INT8_IN=1 仅用于对照。 */
         if (int8In) {
             uint8_t *p = reinterpret_cast<uint8_t *>(m_input.data());
-            for (int i = 0; i < (int)MODEL_SIZE; ++i)
+            for (int i = 0; i < inputBytes; ++i)
                 p[i] = (uint8_t)(p[i] - 128);
         }
         if (bench) markLap(lap, tPrep);
@@ -1572,7 +2121,7 @@ private:
         memset(&input, 0, sizeof(input));
         input.index = 0;
         input.buf = feed ? (void *)feed->constBits() : (void *)m_input.constData();
-        input.size = (uint32_t)MODEL_SIZE;
+        input.size = (uint32_t)inputBytes;
         input.type = int8In ? RKNN_TENSOR_INT8 : RKNN_TENSOR_UINT8;
         input.fmt = RKNN_TENSOR_NHWC;
         QElapsedTimer timer;
@@ -1592,24 +2141,62 @@ private:
         if (rknn_outputs_get(m_ctx, m_nOutput, outs.data(), nullptr) != 0)
             return false;
         if (bench) markLap(lap, tGet);
-        std::vector<rknn_tensor_attr> attrs(m_nOutput);
-        for (uint32_t i = 0; i < m_nOutput; i++) {
-            memset(&attrs[i], 0, sizeof(rknn_tensor_attr));
-            attrs[i].index = i;
-            rknn_query(m_ctx, RKNN_QUERY_OUTPUT_ATTR, &attrs[i], sizeof(rknn_tensor_attr));
+        const std::vector<rknn_tensor_attr> &attrs = *m_outputAttrs;
+        if (m_mvpDetect || m_independentUfld) {
+            for(size_t i=0;i<outs.size();++i) {
+                if(!outs[i].buf || outs[i].size < attrs[i].n_elems*sizeof(float)) {
+                    fprintf(stderr,"[mvp] invalid want_float output[%zu] buffer\n",i);
+                    rknn_outputs_release(m_ctx,m_nOutput,outs.data());
+                    return false;
+                }
+            }
         }
         if (bench) markLap(lap, tQuery);
         QImage laneMask;
         QVector<Detection> dets;
+        int lanePointCount = 0;
+        bool laneOk = true;
         if (m_lane)
             laneMask = decodeLaneMask(outs[0], attrs[0], m_nc);
-        else
+        else if (!m_independentUfld) {
             dets = decode(outs, attrs);
+            tdm::restoreCanonicalDetections(dets, m_geometry);
+        }
+        if (m_sharedUfld || m_independentUfld) {
+            const int offset = m_sharedUfld ? 6 : 0;
+            std::array<const float*,4> tensors{};
+            for(int i=0;i<4;++i) {
+                if (!outs[offset+i].buf || outs[offset+i].size < attrs[offset+i].n_elems*sizeof(float)) laneOk=false;
+                tensors[i] = static_cast<const float*>(outs[offset+i].buf);
+            }
+            std::vector<mvp::Point> points;
+            laneOk = laneOk && mvp::decodePoints(tensors,m_laneContract,points);
+            if (laneOk) {
+                laneMask = QImage(640,640,QImage::Format_ARGB32_Premultiplied);
+                laneMask.fill(Qt::transparent);
+                QPainter painter(&laneMask);
+                painter.setRenderHint(QPainter::Antialiasing);
+                const QColor colors[8] = {QColor(255,80,80),QColor(80,255,80),QColor(80,180,255),QColor(255,220,60),QColor(255,80,255),QColor(60,255,255),QColor(255,150,60),QColor(180,130,255)};
+                for(const auto& point:points) {
+                    painter.setPen(QPen(colors[point.lane],1.5));
+                    painter.setBrush(Qt::NoBrush);
+                    if(point.row) painter.drawEllipse(QPointF(point.x,point.y),2.5,2.5);
+                    else {
+                        painter.drawLine(QPointF(point.x-3,point.y),QPointF(point.x+3,point.y));
+                        painter.drawLine(QPointF(point.x,point.y-3),QPointF(point.x,point.y+3));
+                    }
+                }
+                lanePointCount = int(points.size());
+            }
+        }
         if (bench) markLap(lap, tDecode);
         rknn_outputs_release(m_ctx, m_nOutput, outs.data());
         if (bench) markLap(lap, tRel);
         const double ms = timer.nsecsElapsed() / 1e6;
         const int completed = ++m_completed[modelPath];
+        if ((m_mvpDetect || m_independentUfld) && (completed == 1 || completed % 20 == 0))
+            fprintf(stderr,"[mvp] model=%s frame=%llu input=640x480 RGB uint8 /255 crop_y=80 detections=%d lane_points=%d decode_ok=%d\n",
+                    qPrintable(modelPath),(unsigned long long)frameId,dets.size(),lanePointCount,int(laneOk));
         if (qEnvironmentVariableIsSet("DET_BENCH")) {
             timespec stamp{};
             clock_gettime(CLOCK_MONOTONIC, &stamp);
@@ -1619,6 +2206,15 @@ private:
         if (completed == 1 || completed % 20 == 0)
             fprintf(stderr, "[tdm] model=%s completed=%d ms=%.2f source_generation=%d\n",
                     qPrintable(modelPath), completed, ms, sourceGeneration);
+        if (m_trafficlight && (completed == 1 || completed % 20 == 0)) {
+            fprintf(stderr, "[trafficlight] completed=%d frame=%llu input=640x480 RGB uint8 crop_y=80 canonical_y=network_y+80 detections=%d\n",
+                    completed, (unsigned long long)frameId, dets.size());
+            for (int i = 0; i < std::min(10, dets.size()); ++i) {
+                const auto &d = dets[i];
+                fprintf(stderr, "[trafficlight] cls=%d name=%s score=%.4f canonical_xyxy=(%.2f,%.2f,%.2f,%.2f)\n",
+                        d.cls, qPrintable(m_classNames.value(d.cls)), d.score, d.x1, d.y1, d.x2, d.y2);
+            }
+        }
         if (bench) {
             m_accPrep += tPrep; m_accSet += tSet; m_accRun += tRun; m_accGet += tGet;
             m_accQuery += tQuery; m_accDecode += tDecode; m_accRel += tRel; m_accSplitN++;
@@ -1634,9 +2230,11 @@ private:
                 m_accSplitN = 0;
             }
         }
-        if (m_lane && laneMask.isNull()) return false;
+        if (!laneOk || (m_lane && laneMask.isNull())) return false;
         const double completedFps = recordMetric(sourceGeneration, modelPath, 1);
-        if (m_lane) {
+        if (m_sharedUfld || m_independentUfld) {
+            emit mvpResultReady(modelPath,laneMask,sourceGeneration,frameId,dets,lanePointCount,completedFps,ms);
+        } else if (m_lane) {
             emit laneMaskReady(laneMask, sourceGeneration, frameId, completedFps, ms);
         } else {
             emit detectionsReady(modelPath, sourceGeneration, frameId, dets, completedFps, ms);
@@ -1651,7 +2249,8 @@ private:
         int cls;
     };
 
-    static void nmsAppend(QVector<Detection> &dets, std::vector<CandD> &cands) {
+    static void nmsAppend(QVector<Detection> &dets, std::vector<CandD> &cands, bool classAware = false,
+                          float iouThresh = IOU_THRESH) {
         std::sort(cands.begin(), cands.end(),
                   [](const CandD &a, const CandD &b) { return a.score > b.score; });
         std::vector<bool> removed(cands.size(), false);
@@ -1663,10 +2262,12 @@ private:
             detection.cls = a.cls; detection.score = a.score;
             detection.x1 = a.x1; detection.y1 = a.y1; detection.x2 = a.x2; detection.y2 = a.y2;
             dets.append(detection);
+            if (classAware && dets.size() >= 300) break;
             for (size_t j = i + 1; j < cands.size(); j++) {
                 if (removed[j])
                     continue;
                 const CandD &b = cands[j];
+                if (classAware && a.cls != b.cls) continue;
                 const float xx1 = std::max(a.x1, b.x1);
                 const float yy1 = std::max(a.y1, b.y1);
                 const float xx2 = std::min(a.x2, b.x2);
@@ -1676,7 +2277,7 @@ private:
                 const float inter = w * h;
                 const float ai = (a.x2 - a.x1) * (a.y2 - a.y1);
                 const float bj = (b.x2 - b.x1) * (b.y2 - b.y1);
-                if (inter / (ai + bj - inter + 1e-6f) > IOU_THRESH)
+                if (inter / (ai + bj - inter + 1e-6f) > iouThresh)
                     removed[j] = true;
             }
         }
@@ -1693,6 +2294,7 @@ private:
         };
         std::vector<Item> items;
         for (size_t i = 0; i < outs.size(); i++) {
+            if (m_mvpDetect && i >= 6) break; // raw10 lane tensors are never DFL candidates.
             if (attrs[i].n_dims != 4)
                 continue;
             items.push_back({(const float *)outs[i].buf, (int)attrs[i].dims[1],
@@ -1727,8 +2329,8 @@ private:
         if (scales.empty())
             return false;
 
-        bool sigmoid = false;
-        {
+        bool sigmoid = m_trafficlight || m_mvpDetect; // Delivered raw heads always contain logits.
+        if (!m_trafficlight && !m_mvpDetect) {
             const Scale &sc = scales[0];
             float mx = -1e9f, mn = 1e9f;
             const int n = std::min(sc.h * sc.w, 2000);
@@ -1770,7 +2372,7 @@ private:
             return true;
         std::sort(cands.begin(), cands.end(),
                   [](const AC &a, const AC &b) { return a.score > b.score; });
-        if (cands.size() > 300)
+        if (!m_trafficlight && !m_mvpDetect && cands.size() > 300)
             cands.resize(300);
 
         std::vector<CandD> boxes;
@@ -1778,7 +2380,7 @@ private:
         for (const AC &c : cands) {
             const Scale &sc = scales[c.s];
             const int plane = sc.h * sc.w;
-            const int stride = MODEL_W / sc.w;
+            const float stride = m_geometry.width / (float)sc.w;
             const size_t base = (size_t)c.y * sc.w + c.x;
             float d[4];
             for (int k = 0; k < 4; k++) {
@@ -1803,14 +2405,16 @@ private:
             boxes.push_back({c.score, cx - d[0] * stride, cy - d[1] * stride,
                              cx + d[2] * stride, cy + d[3] * stride, c.cls});
         }
-        nmsAppend(dets, boxes);
+        nmsAppend(dets, boxes, m_trafficlight || m_mvpDetect,
+                  m_mvpPolicy.enabled ? mvp::Round1Policy::nmsIou : IOU_THRESH);
+        m_mvpPolicy.filterAfterNms(dets);
         return true;
     }
 
     QVector<Detection> decode(const std::vector<rknn_output> &outs,
                               const std::vector<rknn_tensor_attr> &attrs) {
         QVector<Detection> dets;
-        const float confThresh = m_conf.load();
+        const float confThresh = m_mvpPolicy.enabled ? mvp::Round1Policy::candidateFloor : m_conf.load();
         if (outs.empty())
             return dets;
         if (tryDecodeDfl(outs, attrs, confThresh, dets))
@@ -1947,6 +2551,13 @@ private:
     bool m_xyxy = false;
     std::atomic<bool> m_manualFormat{false};
     bool m_lane = false;
+    bool m_trafficlight = false;
+    bool m_mvpDetect = false, m_sharedUfld = false, m_independentUfld = false;
+    mvp::Round1Policy m_mvpPolicy;
+    mvp::LaneContract m_laneContract;
+    tdm::InferenceGeometry m_geometry;
+    const std::vector<rknn_tensor_attr> *m_outputAttrs = nullptr;
+    QStringList m_classNames;
     std::atomic<float> m_conf{0.25f};
     std::atomic<bool> m_stop{false};
     rknn_context m_ctx = 0;
@@ -2035,6 +2646,11 @@ public:
         const auto cleared = view.m_detectionRevision;
         view.setDetections({}, {"a", "b"});
         if (view.m_detectionRevision != cleared) return false;
+        view.setLaneMask(mask);
+        view.setDetections({d}, {"a", "b"});
+        if (view.m_laneMask.cacheKey() != mask.cacheKey()) return false;
+        view.setDetections({}, {"a", "b"});
+        if (view.m_laneMask.cacheKey() != mask.cacheKey()) return false;
         view.setCalibrationLine("单车辆试用 Z=2.00 米", monotonicMs() - 1);
         view.refreshExpiredContent();
         if (view.m_calibrationLine.contains("Z=") || view.m_calibrationExpiresMs != 0) return false;
@@ -2075,6 +2691,8 @@ public:
 
     void submitCameras(const CameraThread::DisplayFrame& frame) {
         if (m_videoMode || m_paneMask != frame.paneMask || m_pane != frame.pane) m_overlayUpdatedMs = 0;
+        const bool hdmiFull = frame.hdmiFull && frame.paneMask == 0x3F;
+        if (m_hdmiFull != hdmiFull) { m_hdmiFull = hdmiFull; m_overlayUpdatedMs = 0; }
         m_cameraPixels = frame.cameraPixels;
         m_paneMask = frame.paneMask;
         m_pane = frame.pane;
@@ -2381,11 +2999,17 @@ protected:
             cw = video.width();
             ch = video.height();
         } else if (m_haveFrame) {
-            cw = (paneMask == 0x3F) ? GRID_COLS * IMG_W : IMG_W;
-            ch = (paneMask == 0x3F) ? GRID_ROWS * IMG_H : IMG_H;
+            /* HDMI 满屏：内容区是 C5+C6 拼合的 1280x480，而不是 3x2 的 1920x960 */
+            const bool hdmi = paneMask == 0x3F && m_hdmiFull;
+            cw = (paneMask == 0x3F) ? (hdmi ? 2 * IMG_W : GRID_COLS * IMG_W) : IMG_W;
+            ch = (paneMask == 0x3F) ? (hdmi ? IMG_H : GRID_ROWS * IMG_H) : IMG_H;
         }
         if (cw > 0 && ch > 0) {
-            const float ia = (float)cw / (float)ch;
+            /* HDMI 满屏：线上 1280x480 是 16:9 源（720p/1080p）的抽样结果，
+               像素非方形（横向 1.5x、纵向 2.25x 抽样）。按 16:9 显示正好恢复
+               方形像素；按 8:3 原样显示会把画面横向压扁。 */
+            const bool hdmiAspect = !videoMode && paneMask == 0x3F && m_hdmiFull;
+            const float ia = hdmiAspect ? 16.0f / 9.0f : (float)cw / (float)ch;
             const int top = std::min(56, height() / 8);
             const int bottom = std::min(40, height() / 10);
             const int viewHeight = qMax(1, height() - top - bottom);
@@ -2491,6 +3115,14 @@ protected:
                 glDrawArrays(GL_TRIANGLE_STRIP, CAM_COUNT * 4, 4);
             } else {
                 const bool quad = paneMask == 0x3F;
+                if (quad && m_hdmiFull) {
+                    // HDMI 满屏：C5/C6 各占内容区一半（1280x480 合成帧的左右半幅）
+                    const double half = content.width() / 2.0;
+                    drawCamera(tdm::hdmiLeftCamera,
+                               QRectF(content.left(), content.top(), half, content.height()));
+                    drawCamera(tdm::hdmiRightCamera,
+                               QRectF(content.left() + half, content.top(), half, content.height()));
+                } else {
                 for (int c = 0; c < CAM_COUNT; ++c) {
                     if (!quad && c != pane) continue;
                     const QRectF tile = quad ? QRectF(content.left() + (c % GRID_COLS) * content.width() / GRID_COLS,
@@ -2498,6 +3130,7 @@ protected:
                                                       content.width() / GRID_COLS, content.height() / GRID_ROWS)
                                              : content;
                     drawCamera(c, tile);
+                }
                 }
             }
             m_prog.disableAttributeArray(0);
@@ -2510,9 +3143,14 @@ protected:
         QElapsedTimer regionTimer; if (m_perfEnabled) regionTimer.start();
         QRectF paneRect = content;
         if (!videoMode && paneMask == 0x3F) {
-            const double pw = content.width() / GRID_COLS, ph = content.height() / GRID_ROWS;
-            paneRect = QRectF(content.left() + (pane % GRID_COLS) * pw,
-                              content.top() + (pane / GRID_COLS) * ph, pw, ph);
+            if (m_hdmiFull) {
+                // Full HDMI inference spans both optical halves.
+                paneRect = content;
+            } else {
+                const double pw = content.width() / GRID_COLS, ph = content.height() / GRID_ROWS;
+                paneRect = QRectF(content.left() + (pane % GRID_COLS) * pw,
+                                  content.top() + (pane / GRID_COLS) * ph, pw, ph);
+            }
         }
         QList<QRect> hudRegions;
         QFont labelFont; labelFont.setPointSize(11);
@@ -2529,18 +3167,27 @@ protected:
         hudRegions << QRect(0, 0, width(), top) << QRect(0, height() - bottom, width(), bottom);
         if (!content.isEmpty()) {
             const bool quad = !videoMode && paneMask == 0x3F;
-            if (quad) borderRegions(paneRect.adjusted(1, 1, -1, -1), 2);
-            for (int c = 0; c < (quad ? CAM_COUNT : 1); ++c) {
-                const double pw = content.width() / (quad ? GRID_COLS : 1);
-                const double ph = content.height() / (quad ? GRID_ROWS : 1);
-                hudRegions << QRect(int(content.left() + (quad ? c % GRID_COLS * pw : 0) + 6),
-                                    int(content.top() + (quad ? c / GRID_COLS * ph : 0) + 6),
+            const bool hdmi = quad && m_hdmiFull;
+            if (quad && !paneRect.isEmpty()) borderRegions(paneRect.adjusted(1, 1, -1, -1), 2);
+            for (int c = 0; c < (hdmi ? 2 : (quad ? CAM_COUNT : 1)); ++c) {
+                const int camera = hdmi ? (c == 0 ? tdm::hdmiLeftCamera : tdm::hdmiRightCamera) : c;
+                const double pw = content.width() / (hdmi ? 2 : (quad ? GRID_COLS : 1));
+                const double ph = content.height() / (hdmi ? 1 : (quad ? GRID_ROWS : 1));
+                const int col = hdmi ? (camera == tdm::hdmiRightCamera ? 1 : 0)
+                                     : (quad ? camera % GRID_COLS : 0);
+                const int row = hdmi ? 0 : (quad ? camera / GRID_COLS : 0);
+                hudRegions << QRect(int(content.left() + col * pw + 6),
+                                    int(content.top() + row * ph + 6),
                                     int(std::min(280.0, pw - 12)), cameraLabelHeight);
             }
-            if (!laneMask.isNull()) hudRegions << paneRect.toAlignedRect();
-            else {
-                const double sx = paneRect.width() / MODEL_W, sy = paneRect.height() / IMG_H;
-                const double bx = paneRect.left(), by = paneRect.top() - 80 * sy;
+            if (!laneMask.isNull()) {
+                if (!paneRect.isEmpty()) hudRegions << paneRect.toAlignedRect();
+            }
+            else if (!paneRect.isEmpty()) {
+                const double sx = paneRect.width() / MODEL_W;
+                const double sy = paneRect.height() / (m_hdmiFull ? tdm::hdmiAnalyticsHeight : IMG_H);
+                const double bx = paneRect.left();
+                const double by = paneRect.top() - (m_hdmiFull ? tdm::hdmiModelPad : 80) * sy;
                 for (const auto& d : dets) {
                     if (d.validUntilMs > 0 && metricNow > d.validUntilMs) continue;
                     const QRectF box(bx + d.x1 * sx, by + d.y1 * sy,
@@ -2602,16 +3249,21 @@ protected:
            paintGL 里每帧多花 10ms 以上。 */
         {
             const bool quad = (!videoMode && paneMask == 0x3F);
-            const int nLab = quad ? CAM_COUNT : 1;
-            const double pw = content.width() / (quad ? GRID_COLS : 1);
-            const double ph = content.height() / (quad ? GRID_ROWS : 1);
+            const bool hdmi = quad && m_hdmiFull;
+            const int nLab = hdmi ? 2 : (quad ? CAM_COUNT : 1);
+            const double pw = content.width() / (hdmi ? 2 : (quad ? GRID_COLS : 1));
+            const double ph = content.height() / (hdmi ? 1 : (quad ? GRID_ROWS : 1));
             const double ox = content.left(), oy = content.top();
             for (int i = 0; i < nLab; ++i) {
-                const QRectF box(ox + (quad ? (i % GRID_COLS) * pw + 6 : 6),
-                                  oy + (quad ? (i / GRID_COLS) * ph + 6 : 6), std::min(280.0, pw - 12), cameraLabelHeight);
+                const int cameraIndex = hdmi ? (i == 0 ? tdm::hdmiLeftCamera : tdm::hdmiRightCamera)
+                                             : (quad ? i : pane);
+                const int col = hdmi ? (cameraIndex == tdm::hdmiRightCamera ? 1 : 0)
+                                     : (quad ? i % GRID_COLS : 0);
+                const int row = hdmi ? 0 : (quad ? i / GRID_COLS : 0);
+                const QRectF box(ox + col * pw + 6, oy + row * ph + 6,
+                                 std::min(280.0, pw - 12), cameraLabelHeight);
                 if (box.right() > content.right() || box.bottom() > content.bottom())
                     continue;
-                const int cameraIndex = quad ? i : pane;
                 const bool selected = !videoMode && cameraIndex == pane;
                 painter.fillRect(box, selected ? QColor(12, 78, 86, 225) : QColor(12, 22, 34, 210));
                 painter.drawImage(box.left() + 8, box.top() + 3,
@@ -2622,7 +3274,7 @@ protected:
                                                 .arg(m_cameraUploadRates[cameraIndex].rate(metricNow), 0, 'f', 1),
                                             QColor(225, 239, 245), 11));
             }
-            if (!videoMode && paneMask == 0x3F) {
+            if (quad && !paneRect.isEmpty()) {
                 painter.setPen(QPen(QColor(62, 213, 199), 2));
                 painter.drawRect(paneRect.adjusted(1, 1, -1, -1));
             }
@@ -2632,15 +3284,15 @@ protected:
             painter.save();
             painter.setClipRect(paneRect, Qt::IntersectClip);
             const double sx = paneRect.width() / (double)MODEL_W;
-            const double sy = paneRect.height() / (double)IMG_H;
+            const double sy = paneRect.height() / (double)(m_hdmiFull ? tdm::hdmiAnalyticsHeight : IMG_H);
             const double baseX = paneRect.left();
-            const double baseY = paneRect.top() - 80.0 * sy;
+            const double baseY = paneRect.top() - (m_hdmiFull ? tdm::hdmiModelPad : 80) * sy;
             if (!laneMask.isNull())
                 painter.drawImage(QRectF(baseX, baseY, MODEL_W * sx, MODEL_H * sy), laneMask);
             for (const Detection &d : dets) {
                 if (d.validUntilMs > 0 && monotonicMs() > d.validUntilMs) continue;
                 auto expireAt = [&](qint64 deadline) {
-                    if (deadline > hudNow && (m_overlayExpiresMs == 0 || deadline < m_overlayExpiresMs))
+                    if (deadline > 0 && deadline >= hudNow && (m_overlayExpiresMs == 0 || deadline < m_overlayExpiresMs))
                         m_overlayExpiresMs = deadline;
                 };
                 expireAt(d.validUntilMs);
@@ -2655,7 +3307,7 @@ protected:
                 painter.drawRect(r);
                 QString label =
                     QString("%1 %2")
-                        .arg(d.cls >= 0 && d.cls < classes.size() ? classes[d.cls]
+                        .arg(d.cls >= 0 && d.cls < classes.size() ? displayClassName(classes[d.cls])
                                                                   : QString::number(d.cls))
                          .arg(d.score, 0, 'f', 2);
                 if (d.trackId)
@@ -2815,7 +3467,7 @@ private:
                           textImage("Tab  设置  /  监看", accent, 11));
         QString keys = m_help ?
             "Tab 设置   V 切换单路/六路   P 暂停   S 截屏   F 全屏   Q 退出  ·  模型与参数请到设置页" :
-            "V 切换相机     G 六路总览     P 暂停     S 截屏     H 帮助     Tab 设置";
+            "V 切换相机     F HDMI满屏     G 六路总览     P 暂停     S 截屏     H 帮助     Tab 设置";
         if (!m_calibrationLine.isEmpty()) keys = "S 保存左右原图并检查棋盘   D 距离标签   V 切相机（C5为第二组）   G 六路   Tab 设置";
         if (qEnvironmentVariableIsSet("DETVIEW_STEREO_TRIAL_METERS"))
             keys = "试用草稿 · 中央ROI光轴深度Z · 请用静止、有纹理目标 · V 切相机   G 六路   Tab 设置   Q 退出";
@@ -2878,7 +3530,9 @@ private:
             }
             text(QRect(62, rect.y() + 7, 154, 30), labels[row], row == m_settingRow ? accent : muted, 17);
             text(QRect(226, rect.y() + 2, 364, 26), m_settingValues.value(row), ink, 18, true);
-            const QString hint = row == 4 && m_settingValues.value(row) == "按各模型配置" ?
+            const QString hint = row == 2 && m_settingValues.value(row).startsWith("R1") ?
+                "固定: P35 V45 Z25 TL35 TS40% · NMS .7 · ± 不调整" :
+                row == 4 && m_settingValues.value(row) == "按各模型配置" ?
                 "轮换时使用各模型的坐标格式" : hints[row];
             text(QRect(226, rect.y() + 28, 364, 20), hint, muted, 12);
         }
@@ -2979,6 +3633,7 @@ private:
     QVector<Detection> m_dets;
     QStringList m_classes;
     int m_paneMask = 0x3F, m_pane = 0;
+    bool m_hdmiFull = false;   // HDMI 满屏视图（C5+C6 拼合 1280x480 铺满内容区）
     double m_dispFps = 0;
     QVector<double> m_camFps = QVector<double>(CAM_COUNT, 0.0);
     std::array<uint64_t, CAM_COUNT> m_sequences{}, m_uploadedSequences{};
@@ -2999,6 +3654,11 @@ private:
 
 /* 轮换模型在界面上的短名：去掉 det-/yolov8n- 前缀与 -rk3568 之后的量化后缀 */
 static QString shortModelName(const QString &path) {
+    const QString file = QFileInfo(path).fileName().toLower();
+    if(file == "mvp_rk3568_int8.rknn") return "MVP";
+    if(file == "mvp_accuracy_round1_rk3568_int8.rknn") return "MVP-R1";
+    if(file == "mvp_plus_shared_rk3568_fp16.rknn") return "MVP+ UFLD";
+    if(file == "lane_ufldv2_480x640_rk3568_fp16.rknn") return "UFLDv2";
     QString n = QFileInfo(path).completeBaseName();
     const int cut = n.indexOf("-rk3568");
     if (cut > 0)
@@ -3018,6 +3678,8 @@ public:
     DetViewController(const QVector<ModelInfo> &models, const QString &videoSource,
                       const VisionOptions &visionOptions)
          : m_models(models), m_visionOptions(visionOptions) {
+        m_temporalEnabled = !QCoreApplication::arguments().contains("--no-temporal-filter");
+        m_boxFilterDebug = QCoreApplication::arguments().contains("--box-filter-debug");
         m_calibrationMode = qEnvironmentVariableIsSet("DETVIEW_CALIBRATION_CAPTURE");
         m_gl = new DetView();
         m_gl->setGeometry(QGuiApplication::primaryScreen()->geometry());
@@ -3055,6 +3717,12 @@ public:
                 m_camFps = frame.fps;
                 m_lastFrameMs = QDateTime::currentMSecsSinceEpoch();
                 m_gl->submitCameras(frame);
+                if (m_lastHdmiFull != frame.hdmiFull) {
+                    m_lastHdmiFull = frame.hdmiFull;
+                    m_gl->setStatusLine(frame.hdmiFull ?
+                        "HDMI · 16:9 · YOLO 全画面（F 返回六路）" : "已恢复 6 路监视");
+                    updateHudLines();
+                }
                 if (m_labelTimer.elapsed() >= 300) {
                     m_labelTimer.restart();
                     updateHudLines();
@@ -3066,6 +3734,24 @@ public:
         });
         connect(m_infer, &InferenceThread::detectionsReady, this, &DetViewController::onDets);
         connect(m_infer, &InferenceThread::laneMaskReady, this, &DetViewController::onLaneMask);
+        connect(m_infer, &InferenceThread::mvpResultReady, this,
+                [this](QString path,QImage mask,int generation,quint64 frameId,QVector<Detection> dets,
+                       int pointCount,double fps,double ms) {
+            if(generation != m_sourceGeneration || m_currentIndex < 0 ||
+                m_models[m_currentIndex].path != path) return;
+            m_lastLaneMs = monotonicMs();
+            m_lastLanePoints = pointCount;
+            m_gl->setLaneMask(mask);
+            if(m_currentIndex >= 0 && m_models[m_currentIndex].independentUfld) {
+                m_vision->inferenceFailed(generation,frameId); // Release lane-only scheduler slot.
+                m_lastMs = ms;
+                m_lastDets = 0;
+                m_gl->setDetections({},m_classes);
+                updateHudLines();
+            } else {
+                onDets(path,generation,frameId,dets,fps,ms);
+            }
+        });
         connect(m_infer, &InferenceThread::modelLoaded, this, &DetViewController::onModelLoaded);
         connect(m_vision, &VisionPipeline::inferenceRequested, this, [this](VisionFrame frame) {
             if (frame.sourceGeneration != m_sourceGeneration || m_paused || m_calibrationMode) {
@@ -3082,9 +3768,14 @@ public:
         connect(m_infer, &InferenceThread::inferenceFailed, this, [this](int generation, quint64 frameId) {
             m_vision->inferenceFailed(generation, frameId);
         });
+        connect(m_vision, &VisionPipeline::acceptedDetectorResult, this,
+                [this](QString model, int generation, quint64 frameId, QVector<Detection> dets, qint64 acceptedMs) {
+            if (generation != m_sourceGeneration || !selectedDetectionModel(model)) return;
+            observeBoxes(model, frameId, dets, acceptedMs);
+        });
         connect(m_vision, &VisionPipeline::tracksReady, this,
                 [this](QString model, int generation, quint64 frameId, QVector<Detection> dets, double ms) {
-            if (generation != m_sourceGeneration) return;
+            if (generation != m_sourceGeneration || !selectedDetectionModel(model)) return;
             if (QCoreApplication::arguments().contains("--tracker-debug") &&
                 monotonicMs() - m_trackerDebugMs >= 250) {
                 m_trackerDebugMs = monotonicMs();
@@ -3106,6 +3797,7 @@ public:
                     {"update_ms", ms}, {"boxes", boxes}};
                 fprintf(stderr, "[tracker-debug] %s\n", QJsonDocument(record).toJson(QJsonDocument::Compact).constData());
             }
+            dets = presentationBoxes(model, dets, monotonicMs());
             if (m_rotationEnabled) {
                 m_lastTrackMs = monotonicMs();
                 m_results[model] = dets;
@@ -3113,6 +3805,7 @@ public:
                 updateRotationOverlay();
             } else if (m_currentIndex >= 0 && m_models[m_currentIndex].path == model) {
                 m_lastTrackMs = monotonicMs();
+                m_lastDets = dets.size();
                 m_gl->setDetections(dets, m_classes);
             }
             m_trackingMs = ms;
@@ -3163,7 +3856,11 @@ public:
                 updateRotationOverlay();
             if (m_visionOptions.stereoEnabled() && monotonicMs() - m_lastStereoMs > 1000)
                 m_gl->setStereoPreview({}, "双目：等待新帧，旧距离已失效");
-            if (monotonicMs() - m_lastLaneMs > 2000) m_gl->setLaneMask({});
+            if (m_lastLaneMs > 0 && monotonicMs() - m_lastLaneMs > 2000) {
+                m_gl->setLaneMask({});
+                m_lastLaneMs = 0;
+                m_lastLanePoints = 0;
+            }
             updateHudLines();
             if (m_statsTimer.elapsed() >= 5000) {
                 const double seconds = m_statsTimer.elapsed() / 1000.0;
@@ -3229,6 +3926,12 @@ public:
         if (mode >= 0 && mode <= CAM_COUNT)
             onCamChanged(mode);
     }
+    /* --prefer-hdmifull：0=off 1=on 2=auto，转发给采集线程 */
+    void setHdmiPrefer(int mode) {
+        m_hdmiManual = mode == 1;
+        m_camera->setHdmiPrefer(mode);
+        resetVision();
+    }
     bool setRotation(const QStringList &selectors) {
         QVector<ModelInfo> chosen;
         if (!selectRotation(m_models, selectors, chosen)) return false;
@@ -3286,7 +3989,19 @@ private:
             qApp->quit();
             break;
         case Qt::Key_F:
-            setFullscreen(!m_full);
+            // 与全屏共用 F：Shift+F 全屏，单按 F 在 HDMI 满屏/6 路间切换
+            if (e->modifiers() & Qt::ShiftModifier) {
+                setFullscreen(!m_full);
+            } else if (!m_videoMode && m_camMode == CAM_COUNT) {
+                if (e->isAutoRepeat() || m_calibrationMode) break;
+                m_hdmiManual = !m_hdmiManual;
+                m_camera->setHdmiOverride(m_hdmiManual ? 1 : 0);
+                resetVision();
+                m_gl->setStatusLine(m_hdmiManual
+                    ? "HDMI · 16:9 · YOLO 全画面（F 返回六路）"
+                    : "6 路监视（F 键 HDMI 满屏）");
+                updateHudLines();
+            }
             break;
         case Qt::Key_S:
             if (e->isAutoRepeat()) break;
@@ -3374,6 +4089,10 @@ private:
         if (m_visionOptions.stereoVehicleTrial)
             m_gl->setCalibrationLine("单车辆试用 · 等待新车辆与同帧测距");
         ++m_sourceGeneration;
+        m_boxFilters.clear();
+        m_boxPresentationAssociations.clear();
+        m_boxObservationCounts.clear();
+        m_boxSourceFrames.clear();
         m_infer->resetMetrics(m_sourceGeneration);
         m_requestRate.reset(monotonicMs());
         m_gl->resetRates();
@@ -3390,11 +4109,12 @@ private:
             }
         } else if (m_currentIndex >= 0) {
             paths.append(m_models[m_currentIndex].path);
-            lane = m_models[m_currentIndex].lane;
+            lane = m_models[m_currentIndex].lane || m_models[m_currentIndex].independentUfld;
             vehicleClasses.insert(m_models[m_currentIndex].path, vehicleTrackingClasses(m_models[m_currentIndex]));
         }
-        const int selected = m_videoMode ? 0 : (m_camMode == CAM_COUNT ?
-            (m_visionOptions.stereoEnabled() ? m_visionOptions.primaryStereoLeft() : 0) : m_camMode);
+        const int selected = m_videoMode ? 0 : (m_hdmiManual && m_camMode == CAM_COUNT ?
+            tdm::hdmiInferenceCamera : (m_camMode == CAM_COUNT ?
+            (m_visionOptions.stereoEnabled() ? m_visionOptions.primaryStereoLeft() : 0) : m_camMode));
         m_vision->configure(m_sourceGeneration, selected, lane, paths, vehicleClasses);
         for (const auto& path : paths) {
             QStringList ids;
@@ -3408,14 +4128,148 @@ private:
         m_resultTime.clear();
         m_gl->setDetections({}, m_classes);
         m_gl->setLaneMask({});
-        m_lastStereoMs = m_lastTrackMs = 0;
+        m_lastStereoMs = m_lastTrackMs = m_lastLaneMs = 0;
+        m_lastLanePoints = 0;
         m_gl->setStereoPreview({}, m_visionOptions.stereoEnabled() ? "双目：等待配对帧" : QString());
+    }
+
+    bool selectedDetectionModel(const QString& path) const {
+        if (m_rotationEnabled) {
+            for (const auto& model : m_rotation)
+                if (model.path == path) return !model.independentUfld;
+            return false;
+        }
+        return m_currentIndex >= 0 && m_currentIndex < m_models.size() &&
+            m_models[m_currentIndex].path == path && !m_models[m_currentIndex].independentUfld;
+    }
+
+    void observeBoxes(const QString& model, quint64 frameId,
+                      const QVector<Detection>& raw, qint64 acceptedMs) {
+        // Only distinct accepted detector frames count toward confirmation.
+        const auto previous = m_boxSourceFrames.constFind(model);
+        if (previous != m_boxSourceFrames.constEnd() && frameId <= previous.value()) return;
+        m_boxSourceFrames[model] = frameId;
+        const quint64 observations = ++m_boxObservationCounts[model];
+        std::vector<Detection> visible(raw.begin(), raw.end());
+        if (m_temporalEnabled) {
+            // Tracking intentionally samples the detector at a lower cadence.
+            // Its visibility must bridge that cadence rather than blink every
+            // time the 250ms scheduler interval exceeds the 180ms video grace.
+            const qint64 modelCount = m_rotationEnabled ? std::max(1, m_rotation.size()) : 1;
+            bool trackingCadence = m_visionOptions.tracking;
+            for (const auto& info : m_models)
+                if (info.path == model && (info.lane || info.independentUfld)) trackingCadence = false;
+            const qint64 holdMs = trackingCadence ?
+                std::max<qint64>(180, std::min<qint64>(1500,
+                    qint64(m_visionOptions.detectionIntervalMs) * modelCount + 80)) : 180;
+            auto filter = m_boxFilters.find(model);
+            if (filter == m_boxFilters.end()) {
+                tdm::TemporalDetectionFilter<Detection>::Config config;
+                config.retentionMs = holdMs;
+                config.maximumObservationGapMs = std::max<qint64>(600, holdMs + 180);
+                filter = m_boxFilters.emplace(model,
+                    tdm::TemporalDetectionFilter<Detection>(config)).first;
+            }
+            // Give the renderer an expiry even if the camera stops and no
+            // subsequent tracksReady callback asks visible() to prune it.
+            for (auto& d : visible)
+                d.validUntilMs = d.validUntilMs > 0 ?
+                    std::min(d.validUntilMs, acceptedMs + holdMs) : acceptedMs + holdMs;
+            // Queued worker timestamps can precede the last GUI paint. Use
+            // GUI monotonic time for state progression, retaining the worker
+            // deadline above so a queued old reply cannot gain extra lifetime.
+            visible = filter->second.process(visible, frameId, monotonicMs());
+        }
+        const int hidden = std::max(0, raw.size() - int(visible.size()));
+        if (m_boxFilterDebug) {
+            auto boxes = [](const auto& detections) {
+                QJsonArray result;
+                for (const auto& d : detections)
+                    result.append(QJsonObject{{"class", d.cls}, {"score", double(d.score)},
+                        {"x1", double(d.x1)}, {"y1", double(d.y1)},
+                        {"x2", double(d.x2)}, {"y2", double(d.y2)},
+                        {"valid_until_ms", double(d.validUntilMs)}});
+                return result;
+            };
+            const QJsonObject record{{"model", QFileInfo(model).fileName()},
+                {"generation", m_sourceGeneration}, {"source_frame", QString::number(frameId)},
+                {"accepted_ms", double(acceptedMs)}, {"enabled", m_temporalEnabled},
+                {"observed", double(observations)}, {"raw", raw.size()},
+                {"visible", int(visible.size())}, {"hidden", hidden},
+                {"raw_boxes", boxes(raw)}, {"filtered_boxes", boxes(visible)}};
+            fprintf(stderr, "[box-filter] %s\n", QJsonDocument(record).toJson(QJsonDocument::Compact).constData());
+        } else if (observations <= 3 || observations % 20 == 0) {
+            fprintf(stderr, "[box-filter] model=%s observed=%llu raw=%d visible=%d hidden=%d enabled=%d\n",
+                qPrintable(QFileInfo(model).fileName()), (unsigned long long)observations,
+                raw.size(), int(visible.size()), hidden, int(m_temporalEnabled));
+        }
+    }
+
+    static double presentationIou(const Detection& a, const Detection& b) {
+        const double w = std::max(0.0, double(std::min(a.x2, b.x2) - std::max(a.x1, b.x1)));
+        const double h = std::max(0.0, double(std::min(a.y2, b.y2) - std::max(a.y1, b.y1)));
+        const double areaA = std::max(0.0, double(a.x2 - a.x1)) * std::max(0.0, double(a.y2 - a.y1));
+        const double areaB = std::max(0.0, double(b.x2 - b.x1)) * std::max(0.0, double(b.y2 - b.y1));
+        const double total = areaA + areaB - w * h;
+        return total > 0 ? w * h / total : 0;
+    }
+
+    QVector<Detection> presentationBoxes(const QString& model,
+                                        const QVector<Detection>& candidates, qint64 now) {
+        if (!m_temporalEnabled) return candidates;
+        const auto filter = m_boxFilters.find(model);
+        if (filter == m_boxFilters.end()) return {};
+        const auto stable = filter->second.visible(now);
+        const auto previous = m_boxPresentationAssociations[model];
+        QVector<BoxPresentationAssociation> associations;
+        std::vector<bool> previousUsed(size_t(previous.size()), false);
+        QVector<Detection> result;
+        std::vector<bool> used(size_t(candidates.size()), false);
+        for (const auto& observed : stable) {
+            if (observed.validUntilMs > 0 && now > observed.validUntilMs) continue;
+            int best = -1;
+            double bestOverlap = 0.25;
+            int binding = -1;
+            double bindingOverlap = 0.25;
+            for (int i = 0; i < previous.size(); ++i) {
+                if (previousUsed[size_t(i)] || previous[i].observed.cls != observed.cls) continue;
+                const double overlap = std::max(presentationIou(observed, previous[i].observed),
+                                                presentationIou(observed, previous[i].displayed));
+                if (overlap >= bindingOverlap) { binding = i; bindingOverlap = overlap; }
+            }
+            const uint64_t boundTrack = binding >= 0 ? previous[binding].displayed.trackId : 0;
+            for (int i = 0; i < candidates.size(); ++i) {
+                const auto& candidate = candidates[i];
+                if (used[size_t(i)] || candidate.cls != observed.cls ||
+                    (candidate.validUntilMs > 0 && now > candidate.validUntilMs)) continue;
+                if (boundTrack && candidate.trackId == boundTrack) { best = i; break; }
+                const double overlap = presentationIou(observed, candidate);
+                if (overlap >= bestOverlap) { best = i; bestOverlap = overlap; }
+            }
+            Detection display = observed;
+            if (best >= 0) {
+                used[size_t(best)] = true;
+                // Keep live tracker geometry, prediction and depth metadata;
+                // neither tracking nor redraws can renew detector visibility.
+                display = candidates[best];
+                if (observed.validUntilMs > 0)
+                    display.validUntilMs = display.validUntilMs > 0 ?
+                        std::min(display.validUntilMs, observed.validUntilMs) : observed.validUntilMs;
+            }
+            result.append(display);
+            if (binding >= 0) previousUsed[size_t(binding)] = true;
+            associations.append({observed, display});
+        }
+        m_boxPresentationAssociations[model] = std::move(associations);
+        return result;
     }
 
     void onCamChanged(int index) {
         if (index < 0 || index > CAM_COUNT)
             return;
         m_camMode = index;
+        m_hdmiManual = false;
+        m_camera->setHdmiOverride(0);
         m_results.clear();
         m_resultTime.clear();
         m_resultMs.clear();
@@ -3554,7 +4408,20 @@ private:
         updateHudLines();
     }
 
+    bool round1Selected() const {
+        if (m_rotationEnabled) {
+            for (const auto& model : m_rotation) if (model.round1Policy.enabled) return true;
+            return false;
+        }
+        return m_currentIndex >= 0 && m_currentIndex < m_models.size() &&
+            m_models[m_currentIndex].round1Policy.enabled;
+    }
+
     void onConfChanged(int pct) {
+        if (round1Selected()) {
+            m_gl->setStatusLine("MVP-R1 类阈值固定: P35 V45 Z25 TL35 TS40%; NMS 0.7 (± 不调整)");
+            return;
+        }
         m_confPct = std::min(95, std::max(5, pct));
         m_infer->setConf(m_confPct / 100.0f);
         resetVision();
@@ -3629,7 +4496,9 @@ private:
     }
 
     QString camModeText() const {
-        return m_camMode >= CAM_COUNT ? QString("6 路 3x2") : QString("C%1").arg(m_camMode + 1);
+        if (m_camMode >= CAM_COUNT)
+            return m_lastHdmiFull ? QString("6 路 · HDMI 满屏 (C5+C6)") : QString("6 路 3x2");
+        return QString("C%1").arg(m_camMode + 1);
     }
 
     /* HUD 的模型行与相机/置信度行（状态行由采集/推理事件单独写） */
@@ -3646,15 +4515,24 @@ private:
             modelLine = QString("轮换 %1 款: %2").arg(m_rotation.size()).arg(per.join("  "));
         } else if (m_currentIndex >= 0 && m_currentIndex < m_models.size()) {
             const ModelInfo &info = m_models[m_currentIndex];
-            modelLine = QString("模型: %1").arg(QFileInfo(info.path).fileName());
+            modelLine = QString("模型: %1").arg(shortModelName(info.path));
             if (m_lastMs > 0)
                 modelLine += QString("   处理 %1 ms  %2").arg(m_lastMs, 0, 'f', 1)
-                    .arg(info.lane ? QString("lane mask") : QString("检测 %1").arg(m_lastDets));
+                    .arg(info.independentUfld ? QString("lane points") :
+                         (info.lane ? QString("lane mask") : QString("检测 %1").arg(m_lastDets)));
+            if(info.sharedUfld || info.independentUfld) modelLine += QString("  车道点 %1").arg(m_lastLanePoints);
         }
+        if (m_temporalEnabled && (m_rotationEnabled || (m_currentIndex >= 0 &&
+            !m_models[m_currentIndex].independentUfld &&
+            (!m_models[m_currentIndex].lane || m_models[m_currentIndex].sharedUfld))))
+            modelLine += "  框稳定 3次确认";
         m_gl->setModelLine(modelLine);
-        m_gl->setConfLine(QString("%1 | conf %2 | %3 | 新画面 %4 fps | NPU 请求 %5 / 完成 %6 fps")
+        const bool fixedR1 = round1Selected();
+        const QString confText = fixedR1 ? QString("R1 person .35 vehicle .45 zebra .25 TL .35 TS .40 / NMS .7") :
+            QString("conf %1").arg(m_confPct / 100.0, 0, 'f', 2);
+        m_gl->setConfLine(QString("%1 | %2 | %3 | 新画面 %4 fps | NPU 请求 %5 / 完成 %6 fps")
                               .arg(camModeText())
-                              .arg(m_confPct / 100.0, 0, 'f', 2)
+                               .arg(confText)
                               .arg(m_xyxy ? "xyxy" : "cxcywh")
                               .arg(m_gl->newFrameRate(), 0, 'f', 1)
                               .arg(m_requestRate.rate(monotonicMs()), 0, 'f', 1)
@@ -3679,12 +4557,12 @@ private:
                     .arg(m_visionOptions.maxTracks).arg(m_visionOptions.trackingMaxDetectionAgeMs)
                     .arg(m_visionOptions.trackingIntervalMs) :
                     QString("模板追踪已关闭"))
-            .arg(stereoDescriptions.isEmpty() ? QString("双目测距未启用") : stereoDescriptions.join("；"));
+             .arg(stereoDescriptions.isEmpty() ? QString("双目测距未启用") : stereoDescriptions.join("；"));
         const QString throughput = QString("NPU 请求 %1 / 完成 %2 次/秒\n处理 %3 ms · 追踪 %4 ms")
             .arg(m_requestRate.rate(monotonicMs()), 0, 'f', 0).arg(npu.completed, 0, 'f', 0)
             .arg(m_lastMs, 0, 'f', 1).arg(m_trackingMs, 0, 'f', 1);
         m_gl->setSettings({activeModel, m_videoMode ? "视频源" : camModeText(),
-                           QString("%1 %").arg(m_confPct), rotation,
+                            fixedR1 ? QString("R1 类阈值固定") : QString("%1 %").arg(m_confPct), rotation,
                            m_rotationEnabled ? "按各模型配置" : (m_xyxy ? "xyxy" : "cxcywh"),
                            m_paused ? "已暂停" : "运行中"},
                           modelNames, m_currentIndex, pipeline, throughput, monitor);
@@ -3696,16 +4574,24 @@ private:
     bool m_rotationEnabled = false;
     int m_currentIndex = -1;
     QHash<QString, QVector<Detection>> m_results;
+    std::map<QString, tdm::TemporalDetectionFilter<Detection>> m_boxFilters;
+    struct BoxPresentationAssociation { Detection observed; Detection displayed; };
+    QHash<QString, QVector<BoxPresentationAssociation>> m_boxPresentationAssociations;
+    QHash<QString, quint64> m_boxObservationCounts, m_boxSourceFrames;
+    bool m_temporalEnabled = true, m_boxFilterDebug = false;
     QHash<QString, qint64> m_resultTime;
     QHash<QString, double> m_resultMs;
     QHash<QString, double> m_resultFps;
     int m_visibleDets = 0;
+    int m_lastLanePoints = 0;
     double m_rotInferFps = 0;
     tdm::FrameRate m_requestRate;
     int m_sourceGeneration = 0;
     bool m_xyxy = false;
     int m_confPct = 25;      /* 与 InferenceThread 默认 conf 一致 */
     int m_camMode = CAM_COUNT;
+    bool m_lastHdmiFull = false;   // 与最近一帧 DisplayFrame.hdmiFull 对齐（HUD 文案用）
+    bool m_hdmiManual = false;     // F 键手动 HDMI 满屏（remote XTest 亦可触发）
     bool m_full = false, m_paused = false, m_helpVisible = false, m_videoMode = false;
     double m_camFps = 0, m_lastMs = 0;
     int m_lastDets = 0;
@@ -3760,6 +4646,7 @@ int main(int argc, char **argv) {
     qRegisterMetaType<QVector<double>>("QVector<double>");
     qRegisterMetaType<VisionFrame>("VisionFrame");
     cv::setNumThreads(2);
+    if (app.arguments().contains("--temporal-selftest")) return tdm::runDetectionTemporalSelfTest();
     if (app.arguments().contains("--calibration-capture-selftest")) return runCalibrationCaptureSelfTest();
     if (app.arguments().contains("--tracker-benchmark")) {
         const auto benchmarkArgs = app.arguments();
@@ -3774,6 +4661,7 @@ int main(int argc, char **argv) {
     if (app.arguments().contains("--vision-selftest")) {
         const bool ok = runCalibrationCaptureSelfTest() == 0 && selfTestVehiclePolicy() && CameraThread::selfTestDisplay() && DetView::selfTestRefresh() && tdm::runTrackerSelfTest() == 0 &&
                         tdm::runCameraDmaSelfTest() == 0 && runFrameMetricsSelfTest() == 0 &&
+                        tdm::runHdmiViewSelfTest() == 0 &&
                         VisionPipeline::selfTest();
         fprintf(stderr, ok ? "VISION_SELFTEST_PASS\n" : "VISION_SELFTEST_FAIL\n");
         return ok ? 0 : 2;
@@ -3783,8 +4671,27 @@ int main(int argc, char **argv) {
         fprintf(stderr, ok ? "DFL_SELFTEST_PASS\n" : "DFL_SELFTEST_FAIL\n");
         return ok ? 0 : 2;
     }
+    if (app.arguments().contains("--trafficlight-selftest")) {
+        const bool geometryOk = tdm::runInferenceGeometrySelfTest() == 0;
+        const bool decoderOk = InferenceThread::selfTestTrafficlight();
+        fprintf(stderr, geometryOk && decoderOk ? "TRAFFICLIGHT_SELFTEST_PASS\n" : "TRAFFICLIGHT_SELFTEST_FAIL\n");
+        return geometryOk && decoderOk ? 0 : 2;
+    }
     if (app.arguments().contains("--camera-dma-selftest")) return tdm::runCameraDmaSelfTest();
     if (app.arguments().contains("--frame-metrics-selftest")) return runFrameMetricsSelfTest();
+    if (app.arguments().contains("--hdmi-selftest")) return tdm::runHdmiViewSelfTest();
+    if (app.arguments().contains("--mvp-round1-selftest")) {
+        const bool metadata = selfTestRound1Metadata();
+        const bool decoder = InferenceThread::selfTestRound1();
+        return metadata && decoder ? 0 : 1;
+    }
+    if (app.arguments().contains("--mvp-selftest")) {
+        const int points = mvp::runSelfTest();
+        const bool dfl = InferenceThread::selfTestMvp();
+        const bool round1 = InferenceThread::selfTestRound1();
+        const bool metadata = selfTestRound1Metadata();
+        return points == 0 && dfl && round1 && metadata ? 0 : 1;
+    }
     if (app.arguments().contains("--lane-selftest")) {
         const bool ok = InferenceThread::selfTestLane();
         fprintf(stderr, ok ? "LANE_SELFTEST_PASS\n" : "LANE_SELFTEST_FAIL\n");
@@ -3886,6 +4793,7 @@ int main(int argc, char **argv) {
         !QFileInfo(videoSource).isFile()) {
         fprintf(stderr, "video source file does not exist: %s\n", qPrintable(videoSource)); return 2;
     }
+    int hdmiPrefer = 2;   // --prefer-hdmifull：0=off 1=on 2=auto（默认）
     VisionOptions visionOptions;
     try {
         auto integerOption = [&](const QString &name, int fallback) {
@@ -3920,6 +4828,18 @@ int main(int argc, char **argv) {
             visionOptions.stereoDisparities < 16 || visionOptions.stereoDisparities % 16 ||
             visionOptions.stereoDisparities > 128)
             throw std::invalid_argument("Invalid tracking/stereo timing, track count or disparity range");
+        /* --prefer-hdmifull [on|off|auto]：裸参数视为 on。on=6 路布局下强制
+           HDMI 视图及完整画面识别；auto=等待 F 明确选择（接收端没有模式信号）；
+           off=完全保持原有视图逻辑。 */
+        const int hdmiArg = args.indexOf("--prefer-hdmifull");
+        if (hdmiArg >= 0) {
+            const QString value = hdmiArg + 1 < args.size() && !args[hdmiArg + 1].startsWith("--")
+                                      ? args[hdmiArg + 1] : QStringLiteral("on");
+            if (value == QLatin1String("on")) hdmiPrefer = 1;
+            else if (value == QLatin1String("off")) hdmiPrefer = 0;
+            else if (value == QLatin1String("auto")) hdmiPrefer = 2;
+            else throw std::invalid_argument("--prefer-hdmifull requires on|off|auto");
+        }
         const int stereoArg = args.indexOf("--stereo");
         if (stereoArg >= 0) {
             if (stereoArg + 1 >= args.size()) throw std::invalid_argument("--stereo needs LEFT,RIGHT camera IDs");
@@ -4031,6 +4951,7 @@ int main(int argc, char **argv) {
         return 2;
     }
     DetViewController w(models, videoSource, visionOptions);
+    w.setHdmiPrefer(hdmiPrefer);
     const int ai = args.indexOf("--model-index");
     if (ai >= 0 && ai + 1 < args.size()) {
         const int idx = args[ai + 1].toInt();

@@ -69,6 +69,7 @@ struct Log {
     QVector<qint64> requestedAt;
     struct Output { QString model; int generation; quint64 id; QVector<Detection> boxes; };
     QVector<Output> outputs;
+    QVector<Output> accepted;
     QStringList stereo;
     struct StereoOutput { int generation; quint64 id; bool preview; QString status; qint64 at; };
     QVector<StereoOutput> stereoOutputs;
@@ -78,6 +79,10 @@ struct Log {
         QObject::connect(&p, &VisionPipeline::inferenceRequested, &p, [this](VisionFrame f) {
             QMutexLocker lock(&mutex); requests.push_back(f); requestedAt.push_back(testNow());
         }, Qt::DirectConnection);
+        QObject::connect(&p, &VisionPipeline::acceptedDetectorResult, &p,
+            [this](QString m, int gen, quint64 id, QVector<Detection> boxes, qint64) {
+                QMutexLocker lock(&mutex); accepted.push_back({m, gen, id, boxes});
+            }, Qt::DirectConnection);
         QObject::connect(&p, &VisionPipeline::tracksReady, &p,
             [this](QString m, int gen, quint64 id, QVector<Detection> boxes, double) {
                 QMutexLocker lock(&mutex); outputs.push_back({m, gen, id, boxes});
@@ -95,6 +100,7 @@ struct Log {
     int count() { QMutexLocker lock(&mutex); return requests.size(); }
     VisionFrame request(int i) { QMutexLocker lock(&mutex); return requests[i]; }
     int outputCount() { QMutexLocker lock(&mutex); return outputs.size(); }
+    int acceptedCount() { QMutexLocker lock(&mutex); return accepted.size(); }
     bool hasOutput(const QString& model, int generation, quint64 id, bool requireTarget = false) {
         QMutexLocker lock(&mutex);
         for (const auto& o : outputs) if (o.model == model && o.generation == generation && o.id == id &&
@@ -194,6 +200,13 @@ bool VisionPipeline::selfTest() {
                 !std::isfinite(d.depthMeters) && d.depthCapturedMs == 0 && d.x1 == raw.x1 && d.y1 == raw.y1 &&
                 d.validUntilMs == source.capturedMs + 650, "evicted raw reply preserves source TTL and clears tracking/depth");
         }
+        {
+            QMutexLocker lock(&log.mutex);
+            ok &= check(log.accepted.size() == 1 && log.accepted[0].id == source.frameId &&
+                log.accepted[0].boxes.size() == 1 && !log.accepted[0].boxes[0].predicted &&
+                log.accepted[0].boxes[0].validUntilMs == source.capturedMs + 650,
+                "accepted detector evidence is emitted once with authoritative source TTL");
+        }
         if (options.tracking) {
             pipeline.submitFrame(frame(10, generation, 0, 24));
             ok &= check(until([&] { return log.hasOutput(model, generation, 10, true); }, 100), "history fallback persists on subsequent tracking frame");
@@ -205,6 +218,8 @@ bool VisionPipeline::selfTest() {
             Log::Output expired;
             return log.latest(model, generation, expired) && expired.boxes.isEmpty();
         }, 450), "evicted raw reply expires while capture freezes including no-tracking");
+        ok &= check(log.acceptedCount() == 1,
+            "tracking frames and timer expiry never emit detector confirmation evidence");
         pipeline.stop(); pipeline.wait();
     }
     {

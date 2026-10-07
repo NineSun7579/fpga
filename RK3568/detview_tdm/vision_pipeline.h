@@ -26,6 +26,9 @@ public:
     static bool selfTest();
 signals:
     void inferenceRequested(VisionFrame frame);
+    // One authoritative detector observation, before tracker/depth publication.
+    void acceptedDetectorResult(QString modelPath, int sourceGeneration, quint64 sourceFrame,
+                                QVector<Detection> detections, qint64 acceptedMs);
     void tracksReady(QString modelPath, int sourceGeneration, quint64 frameId,
                      QVector<Detection> detections, double matchingMs);
     void stereoReady(int sourceGeneration, quint64 leftFrameId, QImage disparity,

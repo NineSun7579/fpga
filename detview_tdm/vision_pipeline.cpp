@@ -411,6 +411,15 @@ struct VisionPipeline::Impl {
                 if (!classes.contains(detections[i].cls) || i == best) selected.push_back(detections[i]);
             detections = std::move(selected);
         }
+        // Presentation observes sanitized copies only. Tracker correction and
+        // depth measurement continue to consume the original detector policy.
+        QVector<Detection> observed;
+        if (now <= validUntil) {
+            observed.reserve(detections.size());
+            for (const auto& d : detections) observed.push_back(cleanRaw(d));
+        }
+        emit q->acceptedDetectorResult(value.model, value.request.generation,
+                                      value.request.frameId, std::move(observed), now);
         // Every authoritative reply invalidates earlier boxes' depth before
         // attempting an exact-source cache lookup, including no-tracking.
         for (auto& state : stereoStates)
