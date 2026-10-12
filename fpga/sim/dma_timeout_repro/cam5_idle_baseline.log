@@ -1,0 +1,80 @@
+# do cam5_idle_baseline.do
+# Model Technology ModelSim SE-64 vlog 10.6e Compiler 2018.06 Jun 23 2018
+# Start time: 13:22:40 on Oct 08,2026
+# vlog -work work_cam5_idle_baseline -sv ../../source/axi_dma/axi_dma_write.v ../../source/axi_dma/stream_pipe.v cam5_idle_recovery_before.v ../../source/ov5640/ov5640_ddr/ov5640_ddr_w.v ../../source/ov5640/ov5640_ddr/ov5640_ddr_w_ctrl.v ../../source/ov5640/ov5640_ddr/ov5640_ddr_w_en.v fifo_models.sv tb_cam5_idle_recovery.sv 
+# -- Compiling module axi_dma_write
+# -- Compiling module stream_pipe
+# -- Compiling module ov5640_ddr
+# -- Compiling module ov5640_ddr_w
+# -- Compiling module ov5640_ddr_w_ctrl
+# -- Compiling module ov5640_ddr_w_en
+# -- Compiling module ov5640_ddr_fifo_DRM
+# -- Compiling module ov5640_ddr_fifo
+# -- Compiling module tb_cam5_idle_recovery
+# 
+# Top level modules:
+# 	tb_cam5_idle_recovery
+# End time: 13:22:41 on Oct 08,2026, Elapsed time: 0:00:01
+# Errors: 0, Warnings: 0
+# vsim -voptargs="+acc" work_cam5_idle_baseline.tb_cam5_idle_recovery 
+# Start time: 13:22:41 on Oct 08,2026
+# ** Warning: (vsim-8891) All optimizations are turned off because the -novopt switch is in effect. This will cause your simulation to run very slowly. If you are using this switch to preserve visibility for Debug or PLI features please see the User's Manual section on Preserving Object Visibility with vopt.
+# //  ModelSim SE-64 10.6e Jun 23 2018
+# //
+# //  Copyright 1991-2018 Mentor Graphics Corporation
+# //  All Rights Reserved.
+# //
+# //  ModelSim SE-64 and its associated documentation contain trade
+# //  secrets and commercial or financial information that are the property of
+# //  Mentor Graphics Corporation and are privileged, confidential,
+# //  and exempt from disclosure under the Freedom of Information Act,
+# //  5 U.S.C. Section 552. Furthermore, this information
+# //  is prohibited from disclosure under the Trade Secrets Act,
+# //  18 U.S.C. Section 1905.
+# //
+# Loading sv_std.std
+# Loading work_cam5_idle_baseline.tb_cam5_idle_recovery
+# Loading work_cam5_idle_baseline.ov5640_ddr
+# Loading work_cam5_idle_baseline.ov5640_ddr_w_en
+# Loading work_cam5_idle_baseline.ov5640_ddr_w
+# Loading work_cam5_idle_baseline.ov5640_ddr_fifo_DRM
+# Loading work_cam5_idle_baseline.ov5640_ddr_fifo
+# Loading work_cam5_idle_baseline.ov5640_ddr_w_ctrl
+# Loading work_cam5_idle_baseline.axi_dma_write
+# Loading work_cam5_idle_baseline.stream_pipe
+# ** Warning: (vsim-3017) tb_cam5_idle_recovery.sv(19): [TFMPC] - Too few port connections. Expected 35, found 32.
+#    Time: 0 ps  Iteration: 0  Instance: /tb_cam5_idle_recovery/camera File: cam5_idle_recovery_before.v
+# ** Warning: (vsim-3722) tb_cam5_idle_recovery.sv(19): [TFMPC] - Missing connection for port 'dbg_fault_snapshot'.
+# ** Warning: (vsim-3722) tb_cam5_idle_recovery.sv(19): [TFMPC] - Missing connection for port 'dbg_reject_counts'.
+# ** Warning: (vsim-3722) tb_cam5_idle_recovery.sv(19): [TFMPC] - Missing connection for port 'dbg_input_pixels'.
+# PASS complete frame seq=1 all 512 pixels including (0,0), bank=00010000
+# ABORT t=6245000 state=4 pixels=13
+# PASS short frame at next SOF aborts, no tag/req/counter; packer/FIFOs flushed
+# PASS complete frame seq=2 all 512 pixels including (0,0), bank=00020000
+# ABORT t=13065000 state=4 pixels=11
+# PASS missing data watchdog abort without another SOF
+# PASS complete frame seq=3 all 512 pixels including (0,0), bank=00010000
+# ABORT t=21165000 state=4 pixels=129
+# PASS abort during AW stall retains AW and drains accepted burst
+# PASS complete frame seq=4 all 512 pixels including (0,0), bank=00020000
+# ABORT t=32915000 state=4 pixels=203
+# PASS FIFO overflow + W/B backpressure; no premature flush/publication
+# PASS complete frame seq=5 all 512 pixels including (0,0), bank=00010000
+# ABORT t=40485000 state=4 pixels=155
+# PASS payload BRESP error prevents tag
+# PASS complete frame seq=6 all 512 pixels including (0,0), bank=00020000
+# ABORT t=55515000 state=6 pixels=512
+# PASS tag BRESP error does not publish req/count/bank
+# PASS complete frame seq=7 all 512 pixels including (0,0), bank=00010000
+# PASS complete frame seq=8 all 512 pixels including (0,0), bank=00020000
+# PASS complete frame seq=9 all 512 pixels including (0,0), bank=00010000
+# ABORT t=73185000 state=4 pixels=13
+# PASS dirty bank request invalidated; last good bank remains valid after abort
+# PASS complete frame seq=10 all 512 pixels including (0,0), bank=00020000
+# PASS tag B backpressure longer than WD_LIMIT never publishes early
+# ** Fatal: idle complete capture remains permanently closed
+#    Time: 80420 ns  Scope: tb_cam5_idle_recovery File: tb_cam5_idle_recovery.sv Line: 172
+# ** Note: $finish    : tb_cam5_idle_recovery.sv(172)
+#    Time: 80420 ns  Iteration: 1  Instance: /tb_cam5_idle_recovery
+# End time: 13:22:45 on Oct 08,2026, Elapsed time: 0:00:04
+# Errors: 1, Warnings: 5

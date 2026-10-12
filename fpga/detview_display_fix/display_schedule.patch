@@ -1,0 +1,111 @@
+--- main.cpp.original
++++ main.cpp
+@@ -1068,9 +1068,10 @@
+         // composite, row copies, or GLES2 tile packing in the display pipeline.
+         std::array<QByteArray, CAM_COUNT> cameraPixels;
+         uint64_t lastCamGen[CAM_COUNT] = {};
+-        // Same 16ms submit pacing as current camview, including composition time.
++        // Pace owned display snapshots near the 40 fps cameras. Publishing
++        // faster adds mailbox replacements without making GPU paints fresher.
+         const int minIntervalMs = qEnvironmentVariableIsSet("DETVIEW_MIN_MS")
+-                                       ? std::max(0, qEnvironmentVariableIntValue("DETVIEW_MIN_MS")) : 16;
++                                       ? std::max(0, qEnvironmentVariableIntValue("DETVIEW_MIN_MS")) : 24;
+         uint64_t lastGen = 0;
+         int lastMode = -1, lastDisplayGeneration = -1;
+         uint64_t hdmiLeftSequence = 0, hdmiRightSequence = 0;
+@@ -2604,6 +2605,8 @@
+         });
+         m_textureRing = qEnvironmentVariableIsSet("DETVIEW_TEXTURE_RING") ?
+             qBound(1, qEnvironmentVariableIntValue("DETVIEW_TEXTURE_RING"), kTextureRing) : 1;
++        m_hudStatsIntervalMs = qEnvironmentVariableIsSet("DETVIEW_HUD_STATS_MS") ?
++            qBound(100, qEnvironmentVariableIntValue("DETVIEW_HUD_STATS_MS"), 5000) : 1000;
+         /* camview [SURF]：先按屏幕尺寸建表面，避免交换链残留旧尺寸 */
+         const QRect sg = QGuiApplication::primaryScreen()->geometry();
+         resize(sg.size());
+@@ -2773,7 +2776,7 @@
+         }
+         const qint64 now = monotonicMs();
+         const bool expired = m_overlayExpiresMs > 0 && now > m_overlayExpiresMs;
+-        const bool periodic = now - m_overlayUpdatedMs >= 300;
++        const bool periodic = now - m_overlayUpdatedMs >= m_hudStatsIntervalMs;
+         if (expired || periodic) update();
+     }
+     void reportPerformance() {
+@@ -2830,7 +2833,9 @@
+         update();
+     }
+     void setHelpVisible(bool on) {
++        if (m_help == on) return;
+         m_help = on;
++        m_overlayUpdatedMs = 0;
+         update();
+     }
+     bool settingsVisible() const { return m_settingsVisible; }
+@@ -3216,7 +3221,7 @@
+         // transitions force a costly synchronization on this Mali stack.
+         const qint64 hudNow = monotonicMs();
+         const bool repaintHud = m_overlaySettings || m_overlaySize != size() ||
+-            m_overlayDetections != m_detectionRevision || hudNow - m_overlayUpdatedMs >= 300 ||
++            m_overlayDetections != m_detectionRevision || hudNow - m_overlayUpdatedMs >= m_hudStatsIntervalMs ||
+             (m_overlayExpiresMs > 0 && hudNow > m_overlayExpiresMs);
+         if (m_perfEnabled) m_perf.time[tdm::HudRegions].add(regionTimer.nsecsElapsed() / 1e6);
+         if (repaintHud) {
+@@ -3224,7 +3229,7 @@
+             rasterTimer.start(); ++m_perf.hudRebuilds;
+             if (m_overlaySettings || m_overlaySize != size()) ++m_perf.hudLayout;
+             if (m_overlayDetections != m_detectionRevision) ++m_perf.hudRevision;
+-            if (hudNow - m_overlayUpdatedMs >= 300) ++m_perf.hudPeriodic;
++            if (hudNow - m_overlayUpdatedMs >= m_hudStatsIntervalMs) ++m_perf.hudPeriodic;
+             if (m_overlayExpiresMs > 0 && hudNow > m_overlayExpiresMs) ++m_perf.hudExpired;
+         }
+         m_overlayExpiresMs = 0;
+@@ -3390,13 +3395,20 @@
+             for (const QRect& r : unionRegion) {
+                 if (r.isEmpty()) continue;
+                 QElapsedTimer pack; if (m_perfEnabled) pack.start();
+-                const QImage tile = image.copy(r);
++                // GLES2 needs tightly packed rows. Retain one upload buffer
++                // instead of allocating and releasing a QImage for each region.
++                const int rowBytes = r.width() * 4;
++                const int tileBytes = rowBytes * r.height();
++                if (m_uploadTile.size() < tileBytes) m_uploadTile.resize(tileBytes);
++                for (int row = 0; row < r.height(); ++row)
++                    memcpy(m_uploadTile.data() + row * rowBytes,
++                           image.constScanLine(r.y() + row) + r.x() * 4, rowBytes);
+                 if (m_perfEnabled) {
+                     packMs += pack.nsecsElapsed() / 1e6;
+                     ++m_perf.hudUploadRects; m_perf.hudUploadBytes += uint64_t(r.width()) * r.height() * 4;
+                 }
+                 glTexSubImage2D(GL_TEXTURE_2D, 0, r.x(), r.y(), r.width(), r.height(),
+-                                GL_RGBA, GL_UNSIGNED_BYTE, tile.constBits());
++                                GL_RGBA, GL_UNSIGNED_BYTE, m_uploadTile.constData());
+             }
+         }
+         if (m_perfEnabled) {
+@@ -3599,6 +3611,7 @@
+     bool m_overlaySettings = false;
+     quint64 m_overlayRevision = 0, m_detectionRevision = 0, m_overlayDetections = 0;
+     qint64 m_overlayUpdatedMs = 0;
++    int m_hudStatsIntervalMs = 1000; // Metrics are one-second rolling rates.
+     qint64 m_overlayExpiresMs = 0;
+     int m_overlayRow = -1;
+     GLuint m_cameraTextures[CAM_COUNT][kTextureRing] = {};
+@@ -4613,6 +4626,18 @@
+ };
+ 
+ int main(int argc, char **argv) {
++    // Avoid Qt's extra deferred-update delay for the live camera display.
++    // Keep an explicit environment override for comparison or other displays.
++    if (!qEnvironmentVariableIsSet("QT_QPA_UPDATE_IDLE_TIME"))
++        qputenv("QT_QPA_UPDATE_IDLE_TIME", "0");
++    fprintf(stderr, "[display-config] update_idle_ms=%s texture_ring=%d publish_min_ms=%d hud_stats_ms=%d\n",
++            qgetenv("QT_QPA_UPDATE_IDLE_TIME").constData(),
++            qEnvironmentVariableIsSet("DETVIEW_TEXTURE_RING") ?
++                qBound(1, qEnvironmentVariableIntValue("DETVIEW_TEXTURE_RING"), 3) : 1,
++            qEnvironmentVariableIsSet("DETVIEW_MIN_MS") ?
++                std::max(0, qEnvironmentVariableIntValue("DETVIEW_MIN_MS")) : 24,
++            qEnvironmentVariableIsSet("DETVIEW_HUD_STATS_MS") ?
++                qBound(100, qEnvironmentVariableIntValue("DETVIEW_HUD_STATS_MS"), 5000) : 1000);
+     /* camview 同款：强制 Mali EGL/ES2，避免 GLX 回落到 llvmpipe 软件渲染 */
+     qputenv("QT_XCB_GL_INTEGRATION", "xcb_egl");
+     qputenv("QT_OPENGL", "es2");

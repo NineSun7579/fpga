@@ -1,0 +1,139 @@
+--- original/fpga_v8_capture_control_axil_arm_v2.v
++++ candidate/fpga_v8_capture_control_axil_arm_v2.v
+@@ -51,7 +51,6 @@
+     reg [31:0] rejected_claims,bad_acks,rejected_configs;
+     reg [31:0] accepted_configs,accepted_claims,accepted_releases;
+     wire commit = rst_n && aw_held && w_held && !s_axil_bvalid && pending==NONE;
+-    wire [31:0] wr_offset=aw_addr-LOCAL_BASE;
+     wire wr_in_range=PARAM_OK && aw_addr>=LOCAL_BASE &&
+         {1'b0,aw_addr}<({1'b0,LOCAL_BASE}+33'h80) && aw_addr[1:0]==0;
+     wire doorbell=w_strb[0] && w_data[0];
+@@ -66,13 +65,13 @@
+     // READY-independent, single-edge request from immutable holding slots.
+     // This asserts lease_block BEFORE that edge's wrapper SOF admission.
+     // READY is sampled only in the sequential dispatch decision below.
+-    assign config_valid=commit && wr_in_range && wr_offset==32'h10 &&
++    assign config_valid=commit && wr_in_range && aw_addr==(LOCAL_BASE+32'h10) &&
+         doorbell && !host_bound;
+     assign config_generation=staged_generation;
+-    assign host_ready=commit && wr_in_range && wr_offset==32'h14 &&
++    assign host_ready=commit && wr_in_range && aw_addr==(LOCAL_BASE+32'h14) &&
+         w_strb[0] && !host_bound && host_valid &&
+         w_data=={31'd0,host_bank};
+-    assign host_release_valid=commit && wr_in_range && wr_offset==32'h50 &&
++    assign host_release_valid=commit && wr_in_range && aw_addr==(LOCAL_BASE+32'h50) &&
+         doorbell && key_match && host_release_ready;
+     assign host_release_camera=bound_camera;
+     assign host_release_bank=bound_bank;
+@@ -101,40 +100,40 @@
+         input [31:0] addr;
+         begin
+             read_register=0;
+-            if(valid_read(addr)) case(addr-LOCAL_BASE)
+-                32'h00: read_register=32'h4341504c; // CAPL
+-                32'h04: read_register={21'd0,(host_valid && host_bank),epoch_start,host_release_ready,config_ready,
++            if(valid_read(addr)) case(addr)
++                (LOCAL_BASE+32'h00): read_register=32'h4341504c; // CAPL
++                (LOCAL_BASE+32'h04): read_register={21'd0,(host_valid && host_bank),epoch_start,host_release_ready,config_ready,
+                     (pending==RELEASE_WAIT),(pending==ARM_WAIT),host_valid,
+                     host_bound,protocol_fault,config_ok,armed};
+-                32'h08: read_register=32'h00010000;
+-                32'h0c: read_register=staged_generation;
+-                32'h10: read_register=0;
+-                32'h14,32'h18: read_register=host_bound ? {31'd0,bound_bank} : 32'hffffffff;
+-                32'h1c: read_register=host_bound ? bound_seq : 0;
+-                32'h20: read_register=host_bound ? bound_generation : 0;
+-                32'h24: read_register=host_bound ? bound_length : 0;
+-                32'h28: read_register=host_bound ? bound_addr : 0;
+-                32'h2c: read_register=host_bound ? {29'd0,bound_camera} : 0;
+-                32'h30: read_register=host_bound ? bound_token[31:0] : 0;
+-                32'h34: read_register=host_bound ? bound_token[63:32] : 0;
+-                32'h38: read_register=ack_bank;
+-                32'h3c: read_register=ack_seq;
+-                32'h40: read_register=ack_generation;
+-                32'h44: read_register=ack_token_low;
+-                32'h48: read_register=ack_token_high;
+-                32'h4c: read_register=ack_camera;
+-                32'h50: read_register=0;
+-                32'h54: read_register=rejected_claims;
+-                32'h58: read_register=bad_acks;
+-                32'h5c: read_register=rejected_configs;
+-                32'h60: read_register=published_count;
+-                32'h64: read_register=failed_count;
+-                32'h68: read_register=rejected_release_count;
+-                32'h6c: read_register={28'd0,bank1_state,bank0_state};
+-                32'h70: read_register=accepted_generation;
+-                32'h74: read_register=accepted_configs;
+-                32'h78: read_register=accepted_releases;
+-                32'h7c: read_register=accepted_claims;
++                (LOCAL_BASE+32'h08): read_register=32'h00010000;
++                (LOCAL_BASE+32'h0c): read_register=staged_generation;
++                (LOCAL_BASE+32'h10): read_register=0;
++                (LOCAL_BASE+32'h14),(LOCAL_BASE+32'h18): read_register=host_bound ? {31'd0,bound_bank} : 32'hffffffff;
++                (LOCAL_BASE+32'h1c): read_register=host_bound ? bound_seq : 0;
++                (LOCAL_BASE+32'h20): read_register=host_bound ? bound_generation : 0;
++                (LOCAL_BASE+32'h24): read_register=host_bound ? bound_length : 0;
++                (LOCAL_BASE+32'h28): read_register=host_bound ? bound_addr : 0;
++                (LOCAL_BASE+32'h2c): read_register=host_bound ? {29'd0,bound_camera} : 0;
++                (LOCAL_BASE+32'h30): read_register=host_bound ? bound_token[31:0] : 0;
++                (LOCAL_BASE+32'h34): read_register=host_bound ? bound_token[63:32] : 0;
++                (LOCAL_BASE+32'h38): read_register=ack_bank;
++                (LOCAL_BASE+32'h3c): read_register=ack_seq;
++                (LOCAL_BASE+32'h40): read_register=ack_generation;
++                (LOCAL_BASE+32'h44): read_register=ack_token_low;
++                (LOCAL_BASE+32'h48): read_register=ack_token_high;
++                (LOCAL_BASE+32'h4c): read_register=ack_camera;
++                (LOCAL_BASE+32'h50): read_register=0;
++                (LOCAL_BASE+32'h54): read_register=rejected_claims;
++                (LOCAL_BASE+32'h58): read_register=bad_acks;
++                (LOCAL_BASE+32'h5c): read_register=rejected_configs;
++                (LOCAL_BASE+32'h60): read_register=published_count;
++                (LOCAL_BASE+32'h64): read_register=failed_count;
++                (LOCAL_BASE+32'h68): read_register=rejected_release_count;
++                (LOCAL_BASE+32'h6c): read_register={28'd0,bank1_state,bank0_state};
++                (LOCAL_BASE+32'h70): read_register=accepted_generation;
++                (LOCAL_BASE+32'h74): read_register=accepted_configs;
++                (LOCAL_BASE+32'h78): read_register=accepted_releases;
++                (LOCAL_BASE+32'h7c): read_register=accepted_claims;
+                 default: read_register=0;
+             endcase
+         end
+@@ -160,13 +159,13 @@
+                 aw_held<=0;w_held<=0;
+                 s_axil_bvalid<=1;s_axil_bresp<=0;
+                 if(!wr_in_range) s_axil_bresp<=2;
+-                else case(wr_offset)
+-                    32'h0c: staged_generation<=merge_bytes(staged_generation,w_data,w_strb);
+-                    32'h10: if(doorbell) begin
++                else case(aw_addr)
++                    (LOCAL_BASE+32'h0c): staged_generation<=merge_bytes(staged_generation,w_data,w_strb);
++                    (LOCAL_BASE+32'h10): if(doorbell) begin
+                         if(config_valid && config_ready) begin pending<=ARM_WAIT;s_axil_bvalid<=0;end
+                         else begin s_axil_bresp<=2;rejected_configs<=rejected_configs+1'b1;end
+                     end
+-                    32'h14: if(w_strb[0]) begin
++                    (LOCAL_BASE+32'h14): if(w_strb[0]) begin
+                         if(host_ready) begin
+                             host_bound<=1;bound_bank<=host_bank;
+                             bound_seq<=host_seq;bound_generation<=host_generation;
+@@ -175,13 +174,13 @@
+                             accepted_claims<=accepted_claims+1'b1;
+                         end else begin s_axil_bresp<=2;rejected_claims<=rejected_claims+1'b1;end
+                     end
+-                    32'h38: ack_bank<=merge_bytes(ack_bank,w_data,w_strb);
+-                    32'h3c: ack_seq<=merge_bytes(ack_seq,w_data,w_strb);
+-                    32'h40: ack_generation<=merge_bytes(ack_generation,w_data,w_strb);
+-                    32'h44: ack_token_low<=merge_bytes(ack_token_low,w_data,w_strb);
+-                    32'h48: ack_token_high<=merge_bytes(ack_token_high,w_data,w_strb);
+-                    32'h4c: ack_camera<=merge_bytes(ack_camera,w_data,w_strb);
+-                    32'h50: if(doorbell) begin
++                    (LOCAL_BASE+32'h38): ack_bank<=merge_bytes(ack_bank,w_data,w_strb);
++                    (LOCAL_BASE+32'h3c): ack_seq<=merge_bytes(ack_seq,w_data,w_strb);
++                    (LOCAL_BASE+32'h40): ack_generation<=merge_bytes(ack_generation,w_data,w_strb);
++                    (LOCAL_BASE+32'h44): ack_token_low<=merge_bytes(ack_token_low,w_data,w_strb);
++                    (LOCAL_BASE+32'h48): ack_token_high<=merge_bytes(ack_token_high,w_data,w_strb);
++                    (LOCAL_BASE+32'h4c): ack_camera<=merge_bytes(ack_camera,w_data,w_strb);
++                    (LOCAL_BASE+32'h50): if(doorbell) begin
+                         if(host_release_valid) begin pending<=RELEASE_WAIT;s_axil_bvalid<=0;end
+                         else begin s_axil_bresp<=2;bad_acks<=bad_acks+1'b1;end
+                     end

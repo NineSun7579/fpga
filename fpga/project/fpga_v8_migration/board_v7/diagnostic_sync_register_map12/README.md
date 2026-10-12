@@ -1,0 +1,9 @@
+# PCF 检查适用范围修正
+
+map11已完成基线映射和实际图导出，之后控制器对无位置约束的baseline也要求有PCF文件而失败。该失败保留。
+
+本次准备输入和所有独立单元/复位/时钟/链/元数据复用检查与map11一致。只有site臂必须有原生PCF；baseline记录PCF缺失但仍必须完成真实映射与图导出。site仍必须实际单元PCF绑定和映射PAP_LOC属性均存在，不能用baseline的可选PCF规则绕过位置门禁。尚无方法或生产PASS。
+
+吸收独立map10审查：固定arm/stage ADF和native路径，交叉核验export ADF/dump/parser/graph hash；复制后验证syn.adf/snr.db；记录实际Tcl、clock/site和映射输入hash并验证操作前后不漂移。PCF以Tcl splitlist解析，PAP_LOC按ATTRIBUTE/STRING精确解析，拒绝相似子串和同一单元冲突site。键NOT_PAP_LOC与site CLMA_33_4500反例已本地验证拒绝。
+
+baseline_packing要求实际映射图存在ff目标下的gopSRL2且独立单元检查失败，不把任意semantic FAIL当作打包。已有通用audit_library的未知类型/缓冲根源路径仍需要结果后独立审查，PASS_METHOD_ONLY不可直接用于生产放行。

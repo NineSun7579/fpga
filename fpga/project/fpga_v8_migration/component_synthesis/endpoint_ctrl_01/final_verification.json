@@ -1,0 +1,288 @@
+{
+  "timestamp": "2026-10-05T10:58:27.191342+08:00",
+  "projects": {
+    "ddr_adapter_01": {
+      "top": "fpga_v8_ddr_adapter",
+      "resources": {
+        "lut": 370,
+        "registers": 158,
+        "distributed_ram_luts": 139,
+        "logic_luts": 231,
+        "latches": 0,
+        "drm": 0.0,
+        "apm": 0.0,
+        "io_bits": 781
+      },
+      "audit_pass": true,
+      "sources": [
+        {
+          "path": "../../ddr_adapter_contract/fpga_v8_ddr_adapter.v",
+          "bytes": 7666,
+          "sha256": "5b84936d95c74e10bec28734172b49a175e1a17725bc73b3fade9ae089a5e2b8",
+          "ascii": true,
+          "unchanged": true
+        },
+        {
+          "path": "../../../ipcore/ddr_fifo16_w/ddr_fifo16_w.v",
+          "bytes": 3759,
+          "sha256": "d5deeb12d206e7707a0629d911848f2f0af53abcfa71ae3ce16c230cf7013948",
+          "ascii": true,
+          "unchanged": true
+        },
+        {
+          "path": "../../../ipcore/ddr_fifo16_w/rtl/ipm_distributed_fifo_ctr_v1_1_ddr_fifo16_w.v",
+          "bytes": 12380,
+          "sha256": "e0c9990effd8907e68e329d76e28517a044821af16e8f644b2713099a958d4b5",
+          "ascii": true,
+          "unchanged": true
+        },
+        {
+          "path": "../../../ipcore/ddr_fifo16_w/rtl/ipm_distributed_fifo_v1_4_ddr_fifo16_w.v",
+          "bytes": 4296,
+          "sha256": "1e266d686b505166952ad8c3ee4a4948d96d355a862fc003c4a7c09b65bb7d24",
+          "ascii": true,
+          "unchanged": true
+        },
+        {
+          "path": "../../../ipcore/ddr_fifo16_w/rtl/ipm_distributed_sdpram_v1_3_ddr_fifo16_w.v",
+          "bytes": 3607,
+          "sha256": "d8936a8be42dd14679c99330cd2c162f6d193399a2af2ba15a73f5ac48936b12",
+          "ascii": true,
+          "unchanged": true
+        },
+        {
+          "path": "../../../ipcore/ddr_fifo16_r/ddr_fifo16_r.v",
+          "bytes": 3570,
+          "sha256": "d91a12b84d41250e0553769e9d786d6f55cd9af6f96e46c62dd499daec683436",
+          "ascii": true,
+          "unchanged": true
+        },
+        {
+          "path": "../../../ipcore/ddr_fifo16_r/rtl/ipm_distributed_fifo_ctr_v1_1_ddr_fifo16_r.v",
+          "bytes": 12380,
+          "sha256": "d94f42312d53f3be3e0cb9f5570fd8367e6d79783c9a0c7a6c949dcc673c8a33",
+          "ascii": true,
+          "unchanged": true
+        },
+        {
+          "path": "../../../ipcore/ddr_fifo16_r/rtl/ipm_distributed_fifo_v1_4_ddr_fifo16_r.v",
+          "bytes": 4296,
+          "sha256": "5f5ee9c450ffaf137829c576ebf224895d6e414535c683a5cae886afcc646052",
+          "ascii": true,
+          "unchanged": true
+        },
+        {
+          "path": "../../../ipcore/ddr_fifo16_r/rtl/ipm_distributed_sdpram_v1_3_ddr_fifo16_r.v",
+          "bytes": 3607,
+          "sha256": "a4186aa66fae0382599413af25772867891b41d7b67c48ade920021e515250e2",
+          "ascii": true,
+          "unchanged": true
+        }
+      ],
+      "warning_review": {
+        "scope": "Read-only review of emitted PDS diagnostics and the nine pinned source files",
+        "compile_warning_count": 19,
+        "synthesis_invocation_warning_count": 837,
+        "error_count": 0,
+        "constant_probe_loop": {
+          "count_per_invocation": 18,
+          "status": "Retained compiler diagnostic; no source locations or functional-equivalence proof"
+        },
+        "unused_fifo_logic": {
+          "dangling_warning_entries": 7,
+          "actual_removed_signals": [
+            "read SYN_CTRL.syn_almost_empty",
+            "read SYN_CTRL.syn_almost_full",
+            "read wr_water_level[4:0]",
+            "read rd_water_level[4:0]",
+            "write SYN_CTRL.syn_almost_empty",
+            "write SYN_CTRL.syn_almost_full",
+            "write rd_water_level[4:0]"
+          ],
+          "reason": "Adapter leaves both almost-full/empty pairs open; generated read wrapper disables both water outputs and write wrapper disables read water output",
+          "write_water_level": "Connected to adapter top and used to wait for all promised W beats before vendor AW; retained"
+        },
+        "constant_cleanup": {
+          "constant_warning_entries": 9,
+          "other_dangling_warning_entries": 9,
+          "signals": [
+            "ar_addr[3:0]",
+            "aw_addr[3:0]",
+            "s_bresp[0]"
+          ],
+          "reason": "Accepted requests require 16-byte alignment; B is OKAY or SLVERR"
+        },
+        "max_fanout_cell_not_replicated": {
+          "count": 2,
+          "cell": "lutcarry N112.lt_3",
+          "net": "N112",
+          "reported_threshold": 10000,
+          "status": "Unresolved physical optimization diagnostic; no timing acceptance"
+        },
+        "max_fanout_not_honored": {
+          "count": 10,
+          "nets": [
+            "N106_0",
+            "fifo_rst_1",
+            "N138_0",
+            "N134_0",
+            "N117_0"
+          ],
+          "count_per_net": 2,
+          "status": "Unresolved physical optimization diagnostic; no RTL or constraints changed"
+        },
+        "physical_io_excess": {
+          "count": 1,
+          "virtual_bits": 781,
+          "package_pins": 285
+        },
+        "unconstrained_virtual_outputs": 386,
+        "unconstrained_virtual_inputs": 394,
+        "latch_width_missing_module_diagnostics": 0,
+        "drm": 0,
+        "fifo_storage_mapping": "138 GTP_RAM32X2DP plus 1 GTP_RAM32X1DP, 139 distributed RAM LUTs included in 370 total LUTs",
+        "source_or_ip_edits": false,
+        "synthesized_functional_equivalence_proven": false
+      },
+      "all_sources_unchanged_ascii": true,
+      "artifacts_unchanged": true
+    },
+    "endpoint_ctrl_01": {
+      "top": "fpga_v8_endpoint_ctrl_synth",
+      "resources": {
+        "lut": 1008,
+        "registers": 1127,
+        "distributed_ram_luts": 0,
+        "logic_luts": 1008,
+        "latches": 0,
+        "drm": 0.0,
+        "apm": 0.0,
+        "io_bits": 740
+      },
+      "audit_pass": true,
+      "sources": [
+        {
+          "path": "fpga_v8_endpoint_ctrl_synth.v",
+          "bytes": 7351,
+          "sha256": "d6abd0f29f1da0f732a1d6b624ae434789ba4b207c7aae43b58baf201758ab4c",
+          "ascii": true,
+          "unchanged": true
+        },
+        {
+          "path": "../../cooperative_endpoint/fpga_v8_coop_axi128_endpoint.v",
+          "bytes": 8510,
+          "sha256": "5ea714da5ed63168615f0f9162cb6a773a5ef5780f6fa5a33e2c3fce7cfafc1e",
+          "ascii": true,
+          "unchanged": true
+        },
+        {
+          "path": "../../cooperative_control/fpga_v8_coop_control_axil.v",
+          "bytes": 15684,
+          "sha256": "fec948ff58fbc4fb7f4e70483d8182d052aaa5932c1fd53c0d40930e72a6a2ae",
+          "ascii": true,
+          "unchanged": true
+        }
+      ],
+      "warning_review": {
+        "scope": "Read-only review of emitted PDS diagnostics, endpoint source and mapped netlist",
+        "compile_warning_count": 22,
+        "synthesis_invocation_warning_count": 908,
+        "error_count": 0,
+        "undriven_function_net": {
+          "diagnostic": "Verilog-2021: Net eligible.addr_end_1 in fpga_v8_coop_axi128_endpoint does not have a driver, tie it to 0",
+          "count_per_invocation": 1,
+          "source": "../../cooperative_endpoint/fpga_v8_coop_axi128_endpoint.v",
+          "reported_line": 81,
+          "observed_source": "reg [32:0] addr_end is assigned unconditionally at line 83 to {1'b0, addr} + 33'd16, then compared with BASE_ADDR + WINDOW_BYTES at line 87",
+          "call_sites": [
+            143,
+            175
+          ],
+          "mapped_names_retained": false,
+          "status": "Unresolved PDS elaboration diagnostic in address-bound eligibility logic; source assignment exists, but effect of generated addr_end_1 tie-off was not established",
+          "acceptance": "Compile and mapped-resource evidence only; not proof of synthesized address-rejection behavior",
+          "rtl_edit_or_simulation_rerun": false
+        },
+        "constant_probe_loop": {
+          "count_per_invocation": 20,
+          "status": "Retained compiler diagnostic without source locations"
+        },
+        "constant_cleanup": {
+          "constant_warning_entries": 8,
+          "dangling_warning_entries": 137,
+          "dangling_groups": {
+            "endpoint_awprot_and_arprot_vectors": 2,
+            "endpoint_rdata_high_96_bits": 96,
+            "controller_cmd_dst_addr_constant_bits": 30,
+            "controller_bresp_and_rresp_low_bits": 2,
+            "controller_aw_addr_high_bits": 2,
+            "endpoint_bresp_and_rresp_low_bits": 2,
+            "endpoint_ar_addr_high_bits": 2,
+            "endpoint_aw_burst_low_bit": 1
+          },
+          "reasons": "Controller does not consume PROT; endpoint returns 32-bit data zero-extended to 128; fixed bank defaults constrain destination bits; responses are OKAY/SLVERR; local addresses are shifted by two; eligible endpoint accepts BURST 0 or 1",
+          "dynamic_controller_inputs": "All descriptor, bridge status, command readiness and source-release readiness exposed with no tie-offs",
+          "note": "These known optimization groups do not explain or dismiss the separate undriven-function-net warning"
+        },
+        "name_conflict_rename": {
+          "count": 1,
+          "from": "control/active_bank",
+          "to": "control/active_bank_rnmt"
+        },
+        "physical_io_excess": {
+          "count": 1,
+          "virtual_bits": 740,
+          "package_pins": 285
+        },
+        "unconstrained_virtual_outputs": 422,
+        "unconstrained_virtual_inputs": 317,
+        "latch_width_missing_module_diagnostics": 0,
+        "source_edits": false,
+        "synthesized_functional_equivalence_proven": false
+      },
+      "all_sources_unchanged_ascii": true,
+      "artifacts_unchanged": true
+    }
+  },
+  "all_historical_files_unchanged": true,
+  "historical_file_count": 244,
+  "sequential_stage_intervals": [
+    {
+      "stage": "compile",
+      "started": "2026-10-05T10:17:18.307234+08:00",
+      "finished": "2026-10-05T10:17:21.628201+08:00",
+      "returncode": 0,
+      "cwd": "C:\\Users\\NineSun\\Desktop\\ov56401\\project\\fpga_v8_migration\\component_synthesis\\ddr_adapter_01"
+    },
+    {
+      "stage": "synthesize",
+      "started": "2026-10-05T10:17:22.820111+08:00",
+      "finished": "2026-10-05T10:17:32.489570+08:00",
+      "returncode": 0,
+      "cwd": "C:\\Users\\NineSun\\Desktop\\ov56401\\project\\fpga_v8_migration\\component_synthesis\\ddr_adapter_01"
+    },
+    {
+      "stage": "compile",
+      "started": "2026-10-05T10:29:53.482664+08:00",
+      "finished": "2026-10-05T10:29:57.448099+08:00",
+      "returncode": 0,
+      "cwd": "C:\\Users\\NineSun\\Desktop\\ov56401\\project\\fpga_v8_migration\\component_synthesis\\endpoint_ctrl_01"
+    },
+    {
+      "stage": "synthesize",
+      "started": "2026-10-05T10:29:58.648800+08:00",
+      "finished": "2026-10-05T10:30:11.749702+08:00",
+      "returncode": 0,
+      "cwd": "C:\\Users\\NineSun\\Desktop\\ov56401\\project\\fpga_v8_migration\\component_synthesis\\endpoint_ctrl_01"
+    }
+  ],
+  "all_four_stages_sequential": true,
+  "report": {
+    "path": "REPORT.md",
+    "bytes": 16824,
+    "sha256": "49bc14d953bc620f304f5ab26cf4d7c92113a906aefa6ad6e626f9efd8646a9c"
+  },
+  "report_links_exist": true,
+  "wrapper_module_unique": true,
+  "verification_pass": true
+}

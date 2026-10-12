@@ -1,0 +1,35 @@
+--- C:\Users\NineSun\Desktop\ov56401\project\fpga_v8_migration\capture_endpoint\fpga_v8_capture_control_axil.v
++++ C:\Users\NineSun\Desktop\ov56401\project\fpga_v8_migration\capture_arm_contract\fpga_v8_capture_control_axil_arm_v2.v
+@@ -1,7 +1,7 @@
+ `timescale 1ns/1ps
+ // Isolated Verilog-2001 candidate. All ports share clk and common reset.
+ // Manager port names match fpga_v8_capture_lease exactly; invert rst_n for rst.
+-module fpga_v8_capture_control_axil #(
++module fpga_v8_capture_control_axil_arm_v2 #(
+     parameter [31:0] LOCAL_BASE = 32'h00000100
+ ) (
+     input wire clk, input wire rst_n,
+@@ -63,11 +63,11 @@
+     assign s_axil_awready=rst_n && !aw_held && !s_axil_bvalid && pending==NONE;
+     assign s_axil_wready=rst_n && !w_held && !s_axil_bvalid && pending==NONE;
+     assign s_axil_arready=rst_n && (!s_axil_rvalid || s_axil_rready);
+-    // Ready-dependent, single-edge dispatch from immutable holding slots.
++    // READY-independent, single-edge request from immutable holding slots.
+     // This asserts lease_block BEFORE that edge's wrapper SOF admission.
+-    // No unaccepted valid is queued, so a busy ARM cannot strand host ACK.
++    // READY is sampled only in the sequential dispatch decision below.
+     assign config_valid=commit && wr_in_range && wr_offset==32'h10 &&
+-        doorbell && !host_bound && config_ready;
++        doorbell && !host_bound;
+     assign config_generation=staged_generation;
+     assign host_ready=commit && wr_in_range && wr_offset==32'h14 &&
+         w_strb[0] && !host_bound && host_valid &&
+@@ -163,7 +163,7 @@
+                 else case(wr_offset)
+                     32'h0c: staged_generation<=merge_bytes(staged_generation,w_data,w_strb);
+                     32'h10: if(doorbell) begin
+-                        if(config_valid) begin pending<=ARM_WAIT;s_axil_bvalid<=0;end
++                        if(config_valid && config_ready) begin pending<=ARM_WAIT;s_axil_bvalid<=0;end
+                         else begin s_axil_bresp<=2;rejected_configs<=rejected_configs+1'b1;end
+                     end
+                     32'h14: if(w_strb[0]) begin

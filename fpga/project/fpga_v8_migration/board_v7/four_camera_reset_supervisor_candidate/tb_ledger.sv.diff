@@ -1,0 +1,48 @@
+--- C:\Users\NineSun\Desktop\ov56401\project\fpga_v8_migration\board_v7\four_camera_recovery_review\tb_ledger.sv
++++ tb_ledger.sv
+@@ -1,6 +1,6 @@
+ `timescale 1ns/1ps
+ module review_writer_case #(parameter ID=1)(output reg finished=0,output integer errors=0);
+-reg clk=0,rst=1,cmd_valid=0,abort_req=0,dvalid=0,awr=0,wr=0,bv=0;
++reg clk=0,rst=1,cmd_valid=0,fault_in=0,dvalid=0,awr=0,wr=0,bv=0;
+ always #5 clk=~clk;
+ reg [31:0] cmd_len=512;
+ wire cr,dr,done,ab,av,wv,wl,br;
+@@ -8,6 +8,19 @@
+ wire [127:0] wd; wire [15:0] ws;
+ reg [127:0] din=128'h12345678;
+ reg [15:0] available=32;
++wire abort_req;wire [3:0] broadcast_abort;
++assign abort_req=broadcast_abort[0];
++
++reg cold_req=0;
++always @(negedge clk) cold_req<=!rst;
++wire session_fault,supervisor_cold;
++four_camera_reset_supervisor #(.CLOCK_LIMIT(10000)) supervisor(
++ .clk(clk),.epoch_reset(rst),.cold_request(cold_req),.source_clk({4{clk}}),
++ .i2c_start_en(4'hf),.cam_init_done(4'hf),.ov_rst_n(4'hf),.video_reset(rst),
++ .boundary_fault({3'd0,fault_in}),.capture_abort_req(4'd0),.writer_abort(4'd0),
++ .camera_session_fault(session_fault),.transport_abort(broadcast_abort),.cold_system_reset(supervisor_cold));
++
++
+ axi_dma_write_tc04 #(.WAIT_FOR_DATA(1),.WD_LIMIT(24'd1000),.BURST_LEN(16)) dut(
+  .clk(clk),.rst(rst),.cmd_valid(cmd_valid),.cmd_ready(cr),.cmd_addr(32'h800000),.cmd_len(cmd_len),.cmd_id(4'(ID)),
+  .data_in_available(available),.abort_req(abort_req),.data_in_abort(ab),.data_in(din),.data_in_keep(16'hffff),
+@@ -37,14 +50,14 @@
+ end
+ task tick; @(negedge clk); endtask
+ task reset_case;
+- rst=1;cmd_valid=0;abort_req=0;dvalid=0;available=32;awr=0;wr=0;bv=0;
+- repeat(5) tick();rst=0;repeat(3) tick();
++ rst=1;cmd_valid=0;fault_in=0;dvalid=0;available=32;awr=0;wr=0;bv=0;
++ repeat(5) tick();rst=0;repeat(40) tick();
+ endtask
+ task command;
+  cmd_valid=1; @(posedge clk); while(!cr) @(posedge clk); tick();cmd_valid=0;
+ endtask
+ task fault;
+- abort_req=1;dvalid=0;available=0;
++ fault_in=1;dvalid=0;available=0;
+ endtask
+ initial begin
+  for(which=0;which<8;which++) begin

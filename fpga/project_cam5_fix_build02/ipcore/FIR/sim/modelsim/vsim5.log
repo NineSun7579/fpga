@@ -1,0 +1,110 @@
+# vsim -c -novopt work.tb_fir_probe -l vsim5.log -do "run -all; quit -f" 
+# Start time: 01:24:12 on Sep 26,2026
+# ** Warning: (vsim-8891) All optimizations are turned off because the -novopt switch is in effect. This will cause your simulation to run very slowly. If you are using this switch to preserve visibility for Debug or PLI features please see the User's Manual section on Preserving Object Visibility with vopt.
+# //  ModelSim SE-64 10.6e Jun 23 2018
+# //
+# //  Copyright 1991-2018 Mentor Graphics Corporation
+# //  All Rights Reserved.
+# //
+# //  ModelSim SE-64 and its associated documentation contain trade
+# //  secrets and commercial or financial information that are the property of
+# //  Mentor Graphics Corporation and are privileged, confidential,
+# //  and exempt from disclosure under the Freedom of Information Act,
+# //  5 U.S.C. Section 552. Furthermore, this information
+# //  is prohibited from disclosure under the Trade Secrets Act,
+# //  18 U.S.C. Section 1905.
+# //
+# Loading work.tb_fir_probe
+# Loading work.GTP_GRS
+# Loading work.FIR
+# Loading work.ipsxe_fir_core_v1_2_FIR
+# Loading work.GTP_APM_E2
+# Loading work.ipsxe_fir_data_pipeline
+# Loading work.ipsxe_fir_distributed_shiftregister
+# Loading work.ipsxe_fir_distributed_sdpram
+# run -all
+# === FIR probe start ===
+# === TEST1: constant 32 x8 (expect u_sum=128 / s_sum=-128) ===
+# IN  115000 v=1 d=32(0x20) l=0
+# IN  135000 v=1 d=32(0x20) l=0
+# IN  155000 v=1 d=32(0x20) l=0
+# IN  175000 v=1 d=32(0x20) l=0
+# IN  195000 v=1 d=32(0x20) l=0
+# IN  215000 v=1 d=32(0x20) l=0
+# OUT 225000 v=1 d=-32 u=2016 l=0  (bin=11111100000)
+# IN  235000 v=1 d=32(0x20) l=0
+# OUT 245000 v=1 d=-96 u=1952 l=0  (bin=11110100000)
+# IN  255000 v=1 d=32(0x20) l=0
+# === TEST2: ramp 0..15 back-to-back ===
+# OUT 265000 v=1 d=-160 u=1888 l=0  (bin=11101100000)
+# IN  275000 v=1 d=0(0x00) l=0
+# OUT 285000 v=1 d=-192 u=1856 l=0  (bin=11101000000)
+# IN  295000 v=1 d=1(0x01) l=0
+# OUT 305000 v=1 d=-192 u=1856 l=0  (bin=11101000000)
+# IN  315000 v=1 d=2(0x02) l=0
+# OUT 325000 v=1 d=-192 u=1856 l=0  (bin=11101000000)
+# IN  335000 v=1 d=3(0x03) l=0
+# OUT 345000 v=1 d=-192 u=1856 l=0  (bin=11101000000)
+# IN  355000 v=1 d=4(0x04) l=0
+# OUT 365000 v=1 d=-192 u=1856 l=0  (bin=11101000000)
+# IN  375000 v=1 d=5(0x05) l=0
+# OUT 385000 v=1 d=-160 u=1888 l=0  (bin=11101100000)
+# IN  395000 v=1 d=6(0x06) l=0
+# OUT 405000 v=1 d=-95 u=1953 l=0  (bin=11110100001)
+# IN  415000 v=1 d=7(0x07) l=0
+# OUT 425000 v=1 d=-28 u=2020 l=0  (bin=11111100100)
+# IN  435000 v=1 d=8(0x08) l=0
+# OUT 445000 v=1 d=9 u=9 l=0  (bin=00000001001)
+# IN  455000 v=1 d=9(0x09) l=0
+# OUT 465000 v=1 d=15 u=15 l=0  (bin=00000001111)
+# IN  475000 v=1 d=10(0x0a) l=0
+# OUT 485000 v=1 d=21 u=21 l=0  (bin=00000010101)
+# IN  495000 v=1 d=11(0x0b) l=0
+# OUT 505000 v=1 d=27 u=27 l=0  (bin=00000011011)
+# IN  515000 v=1 d=12(0x0c) l=0
+# OUT 525000 v=1 d=33 u=33 l=0  (bin=00000100001)
+# IN  535000 v=1 d=13(0x0d) l=0
+# OUT 545000 v=1 d=39 u=39 l=0  (bin=00000100111)
+# IN  555000 v=1 d=14(0x0e) l=0
+# OUT 565000 v=1 d=45 u=45 l=0  (bin=00000101101)
+# IN  575000 v=1 d=15(0x0f) l=0
+# === TEST3: step 0 then 63 with GAP=10 between beats ===
+# OUT 585000 v=1 d=51 u=51 l=0  (bin=00000110011)
+# IN  595000 v=1 d=0(0x00) l=0
+# OUT 605000 v=1 d=57 u=57 l=0  (bin=00000111001)
+# OUT 625000 v=1 d=63 u=63 l=0  (bin=00000111111)
+# IN  715000 v=1 d=63(0x3f) l=0
+# OUT 745000 v=1 d=69 u=69 l=0  (bin=00001000101)
+# IN  835000 v=1 d=63(0x3f) l=0
+# OUT 865000 v=1 d=75 u=75 l=0  (bin=00001001011)
+# IN  955000 v=1 d=0(0x00) l=0
+# === TEST4: tlast with a single beat ===
+# IN  975000 v=1 d=10(0x0a) l=1
+# OUT 985000 v=1 d=81 u=81 l=0  (bin=00001010001)
+# OUT 1005000 v=1 d=71 u=71 l=0  (bin=00001000111)
+# OUT 1015000 v=1 d=43 u=43 l=0  (bin=00000101011)
+# IN  1025000 v=1 d=10(0x0a) l=0
+# OUT 1025000 v=1 d=12 u=12 l=0  (bin=00000001100)
+# === TEST5: long gap (hblank-like, 150 cycles) mid-stream ===
+# OUT 1035000 v=1 d=-4 u=2044 l=0  (bin=11111111100)
+# IN  1045000 v=1 d=40(0x28) l=0
+# OUT 1045000 v=1 d=7 u=7 l=1  (bin=00000000111)
+# IN  1065000 v=1 d=40(0x28) l=0
+# IN  1085000 v=1 d=40(0x28) l=0
+# IN  1105000 v=1 d=40(0x28) l=0
+# IN  1125000 v=1 d=40(0x28) l=0
+# OUT 1135000 v=1 d=60 u=60 l=0  (bin=00000111100)
+# OUT 1155000 v=1 d=26 u=26 l=0  (bin=00000011010)
+# IN  2645000 v=1 d=41(0x29) l=0
+# IN  2665000 v=1 d=41(0x29) l=0
+# OUT 2675000 v=1 d=-42 u=2006 l=0  (bin=11111010110)
+# IN  2685000 v=1 d=41(0x29) l=0
+# OUT 2695000 v=1 d=-110 u=1938 l=0  (bin=11110010010)
+# IN  2705000 v=1 d=41(0x29) l=0
+# OUT 2715000 v=1 d=-144 u=1904 l=0  (bin=11101110000)
+# OUT 2735000 v=1 d=-144 u=1904 l=0  (bin=11101110000)
+# === DONE n_in=39 n_out=35 ===
+# ** Note: $finish    : tb_fir_probe.v(93)
+#    Time: 3010 ns  Iteration: 1  Instance: /tb_fir_probe
+# End time: 01:24:13 on Sep 26,2026, Elapsed time: 0:00:01
+# Errors: 0, Warnings: 1

@@ -1,0 +1,212 @@
+{
+  "status": "PASS",
+  "seed": "0x3dd2026",
+  "python": "C:\\Users\\NineSun\\anaconda3\\python.exe",
+  "modelsim": "C:\\modeltech64_10.6e\\win64",
+  "output_ports": [
+    "s_awready",
+    "s_wready",
+    "s_bid",
+    "s_bresp",
+    "s_bvalid",
+    "s_arready",
+    "s_rid",
+    "s_rdata",
+    "s_rresp",
+    "s_rlast",
+    "s_rvalid",
+    "v_awid",
+    "v_awaddr",
+    "v_awlen",
+    "v_awvalid",
+    "v_wdata",
+    "v_wstrb",
+    "v_arid",
+    "v_araddr",
+    "v_arlen",
+    "v_arvalid",
+    "error_flags",
+    "write_water_level",
+    "write_fifo_full",
+    "write_fifo_empty",
+    "read_fifo_full",
+    "read_fifo_empty",
+    "write_busy",
+    "read_busy"
+  ],
+  "comparison": "all public outputs, including invalid payloads, case inequality before/after clock and after stimulus",
+  "boundary_cases": [
+    {
+      "raw_limit": "0x10000000",
+      "effective_limit": "0x10000000",
+      "vectors": 78928
+    },
+    {
+      "raw_limit": "0x1000",
+      "effective_limit": "0x1000",
+      "vectors": 13392
+    },
+    {
+      "raw_limit": "0x100010",
+      "effective_limit": "0x100010",
+      "vectors": 13392
+    },
+    {
+      "raw_limit": "0x100ff0",
+      "effective_limit": "0x100ff0",
+      "vectors": 13392
+    },
+    {
+      "raw_limit": "0x10",
+      "effective_limit": "0x10",
+      "vectors": 13392
+    },
+    {
+      "raw_limit": "0xff0",
+      "effective_limit": "0xff0",
+      "vectors": 13392
+    },
+    {
+      "raw_limit": "0x0",
+      "effective_limit": "0x0",
+      "vectors": 13392
+    },
+    {
+      "raw_limit": "0x1",
+      "effective_limit": "0x1",
+      "vectors": 13392
+    },
+    {
+      "raw_limit": "0x100001",
+      "effective_limit": "0x100001",
+      "vectors": 13392
+    },
+    {
+      "raw_limit": "0x10001000",
+      "effective_limit": "0x10001000",
+      "vectors": 13392
+    },
+    {
+      "raw_limit": "0xfffffff0",
+      "effective_limit": "0xfffffff0",
+      "vectors": 13392
+    },
+    {
+      "raw_limit": "0xffffffff",
+      "effective_limit": "0xffffffff",
+      "vectors": 13392
+    },
+    {
+      "raw_limit": "0x110000000",
+      "effective_limit": "0x10000000",
+      "vectors": 13392
+    },
+    {
+      "raw_limit": "0x100000000",
+      "effective_limit": "0x0",
+      "vectors": 13392
+    },
+    {
+      "raw_limit": "0x100000010",
+      "effective_limit": "0x10",
+      "vectors": 13392
+    }
+  ],
+  "total_boundary_vectors": 266416,
+  "runs": [
+    {
+      "top": "tb_adapter_boundary",
+      "markers": [
+        "BOUNDARY_PASS raw_limit=0000000000001000 effective_limit=00001000 vectors=13392 legal=69 rejected=13323 public_samples=53591",
+        "BOUNDARY_PASS raw_limit=0000000000100010 effective_limit=00100010 vectors=13392 legal=107 rejected=13285 public_samples=53591",
+        "BOUNDARY_PASS raw_limit=0000000000100ff0 effective_limit=00100ff0 vectors=13392 legal=150 rejected=13242 public_samples=53591",
+        "BOUNDARY_PASS raw_limit=0000000000000010 effective_limit=00000010 vectors=13392 legal=6 rejected=13386 public_samples=53591",
+        "BOUNDARY_PASS raw_limit=0000000000000ff0 effective_limit=00000ff0 vectors=13392 legal=67 rejected=13325 public_samples=53591",
+        "BOUNDARY_PASS raw_limit=0000000000000000 effective_limit=00000000 vectors=13392 legal=0 rejected=13392 public_samples=53591",
+        "BOUNDARY_PASS raw_limit=0000000000000001 effective_limit=00000001 vectors=13392 legal=0 rejected=13392 public_samples=53591",
+        "BOUNDARY_PASS raw_limit=0000000000100001 effective_limit=00100001 vectors=13392 legal=0 rejected=13392 public_samples=53591",
+        "BOUNDARY_PASS raw_limit=0000000010001000 effective_limit=10001000 vectors=13392 legal=0 rejected=13392 public_samples=53591",
+        "BOUNDARY_PASS raw_limit=00000000fffffff0 effective_limit=fffffff0 vectors=13392 legal=0 rejected=13392 public_samples=53591",
+        "BOUNDARY_PASS raw_limit=00000000ffffffff effective_limit=ffffffff vectors=13392 legal=0 rejected=13392 public_samples=53591",
+        "BOUNDARY_PASS raw_limit=0000000110000000 effective_limit=10000000 vectors=13392 legal=138 rejected=13254 public_samples=53591",
+        "BOUNDARY_PASS raw_limit=0000000100000000 effective_limit=00000000 vectors=13392 legal=0 rejected=13392 public_samples=53591",
+        "BOUNDARY_PASS raw_limit=0000000100000010 effective_limit=00000010 vectors=13392 legal=6 rejected=13386 public_samples=53591",
+        "BOUNDARY_PASS raw_limit=0000000010000000 effective_limit=10000000 vectors=78928 legal=4087 rejected=74841 public_samples=315735",
+        "ALL_BOUNDARY_PASS"
+      ]
+    },
+    {
+      "top": "tb_ddr_adapter_contract",
+      "markers": [
+        "VENDOR_ID_FAULT_PASS accepted_awid=4 vendor_wid=12 returned_bid=4 bresp=SLVERR",
+        "RANDOM_TRANSACTION_PASS bursts_each_direction=128 seed=03dd2026 public_samples=33743",
+        "ADAPTER_DIRECTED_PASS writes=140 read_words=1087 original_read_words=17 unsupported_rejections=12 common_resets=16 cycles=11248"
+      ]
+    }
+  ],
+  "source_sha256": {
+    "ipcore/ddr_fifo16_w/ddr_fifo16_w.v": "d5deeb12d206e7707a0629d911848f2f0af53abcfa71ae3ce16c230cf7013948",
+    "ipcore/ddr_fifo16_w/rtl/ipm_distributed_fifo_ctr_v1_1_ddr_fifo16_w.v": "e0c9990effd8907e68e329d76e28517a044821af16e8f644b2713099a958d4b5",
+    "ipcore/ddr_fifo16_w/rtl/ipm_distributed_fifo_v1_4_ddr_fifo16_w.v": "1e266d686b505166952ad8c3ee4a4948d96d355a862fc003c4a7c09b65bb7d24",
+    "ipcore/ddr_fifo16_w/rtl/ipm_distributed_sdpram_v1_3_ddr_fifo16_w.v": "d8936a8be42dd14679c99330cd2c162f6d193399a2af2ba15a73f5ac48936b12",
+    "ipcore/ddr_fifo16_r/ddr_fifo16_r.v": "d91a12b84d41250e0553769e9d786d6f55cd9af6f96e46c62dd499daec683436",
+    "ipcore/ddr_fifo16_r/rtl/ipm_distributed_fifo_ctr_v1_1_ddr_fifo16_r.v": "d94f42312d53f3be3e0cb9f5570fd8367e6d79783c9a0c7a6c949dcc673c8a33",
+    "ipcore/ddr_fifo16_r/rtl/ipm_distributed_fifo_v1_4_ddr_fifo16_r.v": "5f5ee9c450ffaf137829c576ebf224895d6e414535c683a5cae886afcc646052",
+    "ipcore/ddr_fifo16_r/rtl/ipm_distributed_sdpram_v1_3_ddr_fifo16_r.v": "a4186aa66fae0382599413af25772867891b41d7b67c48ade920021e515250e2",
+    "fpga_v8_migration/whole_candidate_v4_route_01/rtl/fpga_v8_ddr_adapter.v": "5b84936d95c74e10bec28734172b49a175e1a17725bc73b3fade9ae089a5e2b8",
+    "fpga_v8_migration/timing_correction_03/rtl/fpga_v8_ddr_adapter_tc03.v": "f0498521d27b0c0205b2e64a4bb2343fe3023dd0651f1854e2b6ed266baa5a62",
+    "fpga_v8_migration/timing_correction_03/run_adapter_tests.py": "4f3619a0529aa757602f3158cbb7106c081b67616fadf78a3e869530c60c470c",
+    "fpga_v8_migration/ddr_adapter_contract/tb_ddr_adapter_contract.sv": "674e9a2d0b28d8bbd0969c687db3d3cab2701b72a602edac5ca3d7d7d3bfed36",
+    "fpga_v8_migration/ddr_adapter_contract/fpga_v8_vendor_ddr_stub.sv": "bcf1e64c5f3224d08510358fcbc6028a5d8f1cc6925cc879b4ab281d26f0cb02",
+    "fpga_v8_migration/ddr_adapter_contract/fpga_v8_top_read_route_snapshot.v": "5d929cd5bdae8d55ed4c99e268c11ad90c8d9315283fb1c705ca9391968465d7",
+    "source/top.v": "dca00ca2ecbc0b1418a32fc9abb09c673e522960a0150ef568f1e528a1681347",
+    "fpga_v8_migration/whole_candidate_v4_route_01/evidence/all_reported_failing_paths.json": "13606f9f51543e7ab4b4bd3a191a5382e48eaa253faf66397f6a59b39ec87d0c",
+    "fpga_v8_migration/whole_candidate_v4_route_01/rtl/axi_dma_write_tc02.v": "9d6f2ac5b9974781a9c7a4aee8932e6a1bfd819ed5d98bc4bf7109c72da84e47"
+  },
+  "artifact_sha256": {
+    "boundary_0.hex": "468de95a05a613ec7a5f90b1cfd7b1cf20e602d672bc952319b44145c746b113",
+    "boundary_1.hex": "fb862179665d44947036572d832761e98f81e7deb1ad860402df813b55c13c20",
+    "boundary_10.hex": "ddeeb92833c65b23bea74587357b5d8907b80610a68f927797dd41f1edaed634",
+    "boundary_11.hex": "e3e83888f375802ec827949f917d688631fff4af01b354736f67dd18827335ff",
+    "boundary_12.hex": "49268bae6b9c05c656c36b643ee6be61973e6477c64e21b729fd19d2f94befbc",
+    "boundary_13.hex": "07c5329f4b7eda887390fc3e1fb395c231fed8b639d104dddc6d69225f75d86e",
+    "boundary_14.hex": "cad8f4c464c3b97dd8393905f2f28370363e995a2e8101ecced8f936243880b1",
+    "boundary_2.hex": "4b0ab28650806874902b26d26f9fb1a3c92549162064fe8d7f406258da411017",
+    "boundary_3.hex": "85020872dafea8643beab4a1787830311307b82b1abd4a49fd8b14f06128cd87",
+    "boundary_4.hex": "603d94cd67252bde379f2ec672a2dadecaefbf8a6362d5f56de4945b16be319d",
+    "boundary_5.hex": "088c491df7546b6faabe949c719f13b50c933b8c2acb9bc0dad2d42f34bf33e5",
+    "boundary_6.hex": "533eaf15a7c2e8f0a67d78784be194d88764a81eac0eb04dce4ddd46b5b5c46f",
+    "boundary_7.hex": "6bb2f18e8d06034c5f37e2646960b713756893f8d320c6e1ce7ff45d9e99d848",
+    "boundary_8.hex": "8485c477afb0f6d9b94351b6cafebf1c500be158d3c5713e15b8066f4d22cdba",
+    "boundary_9.hex": "10319a4b0d5f076225cea8dbd25995470fcb650170cb53feaa51a3f3faa5a5de",
+    "compile_rtl.log": "a2162a0d148b25dac34112141707f5f59e442939f8bb0d2b4c42b1c649f30b95",
+    "compile_tb.log": "b68f0b7ba4a294b72f3bc03631f340dec9a1bf0902fc3341b344bfd7e92174e3",
+    "read_trace.txt": "bee350fa1c5c9d73f24e06a00f3fc5c82e26b03881e11f7f12fe5b4dc890e8f8",
+    "run.do": "db29139610ffe9076a0227bd912df8ed2ee7ccd5b9a4e5648e75caae709b1b21",
+    "tb_adapter_boundary.console.log": "312cd047266b8d44b2ca75ef6de864399c1b3a91406b1f0bc298fc903c80c07b",
+    "tb_adapter_boundary.sv": "ff1fd6df66574fd71169c2d08bdabf1ad938b0952860a9e8dcf97d4706cc5530",
+    "tb_adapter_boundary.transcript.log": "386730b2d6a2cf99f6e298c83472ab7f00ad731d51dc423194c85e78b6e5ad45",
+    "tb_adapter_contract_diff.sv": "c12a27098476174d74728958e10ce17cb5bf62b840453b567a39a5aa7dd8c4ed",
+    "tb_ddr_adapter_contract.console.log": "ab56cc20a4d633fce0f39c94916a331e47be9e68d926f4abb7befc2b8cffb655",
+    "tb_ddr_adapter_contract.transcript.log": "d7a6cd68da61a783e4894dd2d2ee81e6a2c06d528a75d9d82ebebcf1f6b1bded",
+    "v4_awlen_full_detail.txt": "a981cc7de3859a58ed04fd9c23e35d9c60fce71650554107868a4935d626f724",
+    "vendor_trace.txt": "e8c16ecd1b41f1395edc9d927a585cad9aaf74b5cc195c6654807185d2d2f947",
+    "vlib.log": "d8f40ef11d20a33e26687e7671abe0fe68f08d4818d8e196d540602b3d0d832b"
+  },
+  "dependency_hashes_unchanged": true,
+  "state_and_fifo_wiring_byte_equal": true,
+  "v4_path": {
+    "Endpoint": "ov5640_axi_dma_write/len[28]/opit_0_AQ_perm/CE",
+    "Path Group": "ddrphy_sysclk",
+    "Path Type": "max (slow corner)",
+    "Slack": -0.051,
+    "Startpoint": "u_v8_cooperative_core/write_arbiter/awlen_reg[5]/opit_0_inv_L6Q_perm/CLK",
+    "number": 13
+  },
+  "limitations": [
+    "No PDS/synthesis/place-route run; timing gain unmeasured.",
+    "Actual unmodified generated FIFO RTL; DDR controller uses existing behavioral scheduling stub.",
+    "Finite deterministic two-state request stimuli; no formal proof or unknown-input equivalence claim.",
+    "Wide override values intentionally truncate to original 32-bit parameter semantics."
+  ]
+}

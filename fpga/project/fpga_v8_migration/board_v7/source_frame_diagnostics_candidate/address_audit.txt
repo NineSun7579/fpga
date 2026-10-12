@@ -1,0 +1,64 @@
+Address evidence from frozen candidate; byte-level search.
+Proposed NEW exact decode: 0x20001000..0x200013ff.
+NOT reachable safely through the current low-bit decoder: upstream exact interception required.
+rtl/ovreg_axil_decode_tc01.v:4: module ovreg_axil_decode_tc01 #(parameter ADDR_SEL_LSB=8)(
+rtl/ovreg_axil_decode_tc01.v:46:     wire motion_aw=(s_awaddr[31:8]==24'h200008);
+rtl/ovreg_axil_decode_tc01.v:47:     wire motion_ar=(s_araddr[31:8]==24'h200008);
+rtl/ovreg_axil_decode_tc01.v:49:     generate if (ADDR_SEL_LSB==8) begin : default_route
+rtl/ovreg_axil_decode_tc01.v:54:         assign aw_live[0]=!page34 && (s_awaddr[9:8]==2'b00) && !motion_aw;
+rtl/ovreg_axil_decode_tc01.v:57:         assign aw_live=route_mask(motion_aw?4'h1:s_awaddr[ADDR_SEL_LSB+3:ADDR_SEL_LSB]);
+rtl/ovreg_axil_decode_tc01.v:65:     wire cdc_read=(s_araddr[31:11]==(32'h20000000>>11)) &&
+rtl/ovreg_axil_decode_tc01.v:69:     wire [3:0] ar_route=motion_ar?4'h1:cdc_read?{s_araddr[11:9],1'b0}:
+rtl/ovreg_axil_decode_tc01.v:70:                          s_araddr[ADDR_SEL_LSB+3:ADDR_SEL_LSB];
+rtl/fpga_v8_coop_axil_router.v:78:                 wr_route<=s_axil_awaddr>=32'h100;
+rtl/fpga_v8_coop_axil_router.v:91:                 rd_route<=s_axil_araddr>=32'h100;rs<=SEND;
+rtl/fpga_v8_coop_axi128_endpoint.v:6:     parameter [31:0] BASE_ADDR = 32'h40010000,
+rtl/fpga_v8_coop_axi128_endpoint.v:86:                 addr[11:0] <= 12'hff0 && addr >= BASE_ADDR &&
+rtl/fpga_v8_cooperative_top_v2_rfg01.v:570: // --- CAM segment (decoder m0, addr[8]=0: 0x2000_0000~0x2000_00FF -> ov5640_reg) ---
+rtl/fpga_v8_cooperative_top_v2_rfg01.v:584: // --- cam2 register window (M01 sub-window 0x2000_0200~0x02FF) ---
+rtl/fpga_v8_cooperative_top_v2_rfg01.v:598: // --- cam3 register window (M01 sub-window 0x2000_0400~0x04FF) ---
+rtl/fpga_v8_cooperative_top_v2_rfg01.v:612: // --- cam4 register window (M01 sub-window 0x2000_0600~0x07FF) ---
+rtl/fpga_v8_cooperative_top_v2_rfg01.v:656: // --- PREP segment (decoder m1, addr[8]=1: 0x2000_0100~0x2000_01FF -> prep_regs) ---
+rtl/fpga_v8_cooperative_top_v2_rfg01.v:1214: // --- CAM3 (FMC 3rd OV5640, BASE_ADDR 0x2000_0400, 640x480, raw passthrough) ---
+rtl/fpga_v8_cooperative_top_v2_rfg01.v:1245: // ---- CAM2 (FMC 2nd OV5640, BASE_ADDR 0x2000_0200, 640x480) ----
+rtl/fpga_v8_cooperative_top_v2_rfg01.v:1247:     .BASE_ADDR       (32'h2000_0200),
+rtl/fpga_v8_cooperative_top_v2_rfg01.v:1314: // ---- CAM3 (FMC 3rd OV5640, BASE_ADDR 0x2000_0400, 640x480, raw passthrough:
+rtl/fpga_v8_cooperative_top_v2_rfg01.v:1317:     .BASE_ADDR       (32'h2000_0400),
+rtl/fpga_v8_cooperative_top_v2_rfg01.v:1386: // --- CAM4 (FMC 4th OV5640, BASE_ADDR 0x2000_0600, 640x480, raw passthrough:
+rtl/fpga_v8_cooperative_top_v2_rfg01.v:1418:     .BASE_ADDR       (32'h2000_0600),
+rtl/fpga_v8_cooperative_top_v2_rfg01.v:2046: //     .BUFFER1 (32'h0A1C_2000)
+rtl/fpga_v8_cooperative_top_v2_rfg01.v:3182:     .OUTPUT_BANK1_ADDR(32'h08200000),
+rtl/fpga_v8_cooperative_top_v2_rfg01.v:3422:     .BASE_ADDR(32'h40010000),
+rtl/fpga_v8_capture_control_axil_arm_v2.v:55:     wire wr_in_range=PARAM_OK && aw_addr>=LOCAL_BASE &&
+rtl/fpga_v8_capture_control_axil_arm_v2.v:96:             valid_read=PARAM_OK && addr>=LOCAL_BASE &&
+inputs/source/ov5640/ov5640_reg.v:3:     parameter BASE_ADDR = 32'h2000_0000,
+inputs/source/ov5640/ov5640_reg.v:87: localparam REG_ACK       = BASE_ADDR + 32'h00;
+inputs/source/ov5640/ov5640_reg.v:88: localparam REG_CAM_EN    = BASE_ADDR + 32'h40;
+inputs/source/ov5640/ov5640_reg.v:92: localparam REG_DLY_STEP  = BASE_ADDR + 32'h30;
+inputs/source/ov5640/ov5640_reg.v:93: localparam REG_CAM_ADDR_1= BASE_ADDR + 32'h80;
+inputs/source/ov5640/ov5640_reg.v:94: localparam REG_CAM_ADDR_2= BASE_ADDR + 32'hc0;
+inputs/source/ov5640/ov5640_reg.v:97: localparam REG_DBG_PCLK_CNT  = BASE_ADDR + 32'h10;
+inputs/source/ov5640/ov5640_reg.v:98: localparam REG_DBG_VSYNCS    = BASE_ADDR + 32'h20;
+inputs/source/ov5640/ov5640_reg.v:99: localparam REG_DBG_CAM_WORDS = BASE_ADDR + 32'h30;
+inputs/source/ov5640/ov5640_reg.v:100: localparam REG_DBG_AXI_STICKY= BASE_ADDR + 32'h50;
+inputs/source/ov5640/ov5640_reg.v:101: localparam REG_DBG_I2C_ID    = BASE_ADDR + 32'h60;
+inputs/source/ov5640/ov5640_reg.v:102: localparam REG_DBG_SYS       = BASE_ADDR + 32'h70;
+inputs/source/ov5640/ov5640_reg.v:103: localparam REG_DBG_HREF_RAW  = BASE_ADDR + 32'h90;
+inputs/source/ov5640/ov5640_reg.v:104: localparam REG_DBG_BEAT_CNT  = BASE_ADDR + 32'ha0;
+inputs/source/ov5640/ov5640_reg.v:105: localparam REG_DBG_BEAT_LAST = BASE_ADDR + 32'hf0;
+inputs/source/ov5640/ov5640_reg.v:106: localparam REG_DBG_XDMA_REQ  = BASE_ADDR + 32'hb0;
+inputs/source/ov5640/ov5640_reg.v:107: localparam REG_DBG_VSYNC_RAW = BASE_ADDR + 32'he0;
+inputs/source/ov5640/ov5640_reg.v:108: localparam REG_DBG_AXI_NOW   = BASE_ADDR + 32'hd0;
+inputs/source/ov5640/ov5640_reg.v:111: localparam REG_DBG_ZDIN      = BASE_ADDR + 32'h50;
+inputs/source/ov5640/ov5640_reg.v:112: localparam REG_DBG_ZOUT      = BASE_ADDR + 32'h90;
+inputs/source/ov5640/ov5640_reg.v:114: localparam REG_I2C_CMD  = BASE_ADDR + 32'h100;
+inputs/source/ov5640/ov5640_reg.v:115: localparam REG_I2C_RD   = BASE_ADDR + 32'h110;
+inputs/source/ov5640/ov5640_reg.v:116: localparam REG_I2C_STAT = BASE_ADDR + 32'h120;
+inputs/source/preprocess/prep_regs.v:2: // prep_regs.v : 棰勫�勭悊/浼犺緭 鎵╁睍瀵勫瓨鍣ㄧ粍 (AXI-Lite 浠庢満, BAR 0x2000_0000 绐楀彛)
+inputs/source/preprocess/prep_regs.v:205:     wire motion_write_page = (aw_addr[31:8] == 24'h200008);
+inputs/source/preprocess/prep_regs.v:206:     wire motion_read_page = (ar_addr[31:8] == 24'h200008);
+inputs/source/preprocess/prep_regs.v:210:         .wr_en(wr_fire && motion_write_page), .wr_offset(woff),
+inputs/source/preprocess/prep_regs.v:235:                 if (!motion_write_page) begin
+inputs/source/preprocess/prep_regs.v:312:         if (motion_read_page) rdata_mux = motion_rdata;
+Existing literal assignments in proposed range: 0
+Literal absence alone is NOT a decode proof; legacy alias warning above is mandatory.

@@ -1,0 +1,1 @@
+Get-CimInstance Win32_Process -ErrorAction Stop | Where-Object {$_.Name -match '^(pds|pds_shell|pnr|ta|bitgen|pne|ppc|ppp|synth|cdt_js|cdt_cfg|cdt_cfg_shell|programmer)\.exe$'} | Select-Object ProcessId,Name,CommandLine | ConvertTo-Json -Compress

@@ -1,0 +1,144 @@
+{
+  "status": "complete",
+  "remote": "/userdata/linaro/rgb888_trial_1791561582715191600",
+  "baseline": {
+    "new_paint_fps": 38.61896051436742,
+    "swap_fps": 41.02852286367384,
+    "npu_completed_fps": 3.8947368421052633,
+    "cameras": {
+      "1": 44.60421052631579,
+      "2": 44.83947368421053,
+      "3": 25.74157894736842,
+      "4": 25.739473684210527,
+      "5": 40.32736842105263,
+      "6": 40.36052631578948
+    }
+  },
+  "warmup": 10,
+  "pairs": 240,
+  "model_sha256": "be7ee818eef1cb916c9706580a1b58426fc047c60df12b80d341646dfbbd2cf9",
+  "batch_sha256": "81eb0c05b40eff2887f1b81770fece6beafedc25f77fd1bbfbebe487e9dbb192",
+  "original_sha256": "fcb2e44d5b97d9857e72610d543300e747dcc4a822e8797bbf5d5418ddd01122",
+  "viewer_sha256": "73613d525541939ea493a9bb87eeeae10879c4a08eede36a7ee298777fb32100",
+  "sources": {
+    "D:\\race\\fpga\\git\\fpga\\fpga\\fpga_zero_copy_delivery\\host\\background_thumbnail_reader.hpp": "bb66f6fa6ea134f52704b29a964c4137af48d2a520ea318b4a90b04eeca373a0",
+    "D:\\race\\fpga\\git\\fpga\\fpga\\fpga_zero_copy_delivery\\host\\bound_rknn.hpp": "b729f9e016e27333c33c7a5d6da22304d11391ee65c25a14a50d69a9191a6268",
+    "D:\\race\\fpga\\git\\fpga\\fpga\\fpga_zero_copy_delivery\\host\\pcie_session.hpp": "5fa796db14f175f2f0dc6f203265b79b289f73991054a25e6cc7f1e40c54bef0",
+    "D:\\race\\fpga\\git\\fpga\\fpga\\fpga_zero_copy_delivery\\host\\shared_consumer.hpp": "6cfc794f64f1697a62d4cc96f8023e64145551ed1cbf80ed504913867125eecb",
+    "D:\\race\\fpga\\git\\fpga\\fpga\\fpga_zero_copy_delivery\\host\\paired_pointer.cpp": "cf7c7074dbda361f275f0fa33785e4d9d192485f3a396135c8cdc12d21fef77d",
+    "D:\\race\\fpga\\git\\fpga\\fpga\\display_latency_delivery\\src\\rknn_api.h": "c48e11a6f41b451a5fd1e4ad774ea60252d3d94f78bee9b21ea3d21b21deba9a",
+    "D:\\race\\fpga\\git\\fpga\\fpga\\fpga_zero_copy_delivery\\driver\\pango_zc_uapi.h": "a1648d4f46767c6e3a1b174ee309f449bf792423e48d0ff9324332275aa46934",
+    "D:\\race\\ov56401\\project\\fpga_v8_migration\\cooperative_linux_transport\\driver_abi.hpp": "89207f03748efb479419c68ec415394a5fc7272378973db6b1ff4b447ca7b884"
+  },
+  "original_owner": {
+    "pid": 2688,
+    "state": "R",
+    "starttime": "23927",
+    "exe": "/userdata/detview-hdmifull/detview-hdmifull",
+    "sha256": "73613d525541939ea493a9bb87eeeae10879c4a08eede36a7ee298777fb32100",
+    "cmdline": "/userdata/detview-hdmifull/detview-hdmifull --model MVP_accuracy_round1 --fullscreen "
+  },
+  "quit_receipt": {
+    "pid": 2688,
+    "window": 48234502,
+    "key": "q",
+    "method": "XSendEvent"
+  },
+  "summaries": {
+    "paired_pointer": {
+      "pairs": 240,
+      "identity": {
+        "kind": "identity",
+        "input_mode": "borrowed coherent RX pointer with inputs_set; not DMA-BUF zero-copy",
+        "input_slot": 2097152,
+        "output_comparison": "native output byte parity"
+      },
+      "input_parity": true,
+      "output_parity": true,
+      "scope": "paired inference stage FPS; excludes viewer/rendering throughput",
+      "arm": "RGB conversion only; inputs_set on both paths",
+      "claim_ms": 2.064323266666667,
+      "raw_dma_copy_ms": 6.6942035041666665,
+      "cpu_preprocess_ms": 3.3826976458333333,
+      "fpga_to_rx_slot_ms": 9.987088400000001,
+      "cpu_rknn_ms": 26.18969310416667,
+      "fpga_rknn_ms": 36.89294109583333,
+      "cpu_inputs_set_ms": 0.720215525,
+      "fpga_submit_or_lease_ms": 11.37921,
+      "release_ms": 0.6713782416666666,
+      "cpu_total_ms": 39.0022957625,
+      "fpga_total_ms": 49.61573100416667,
+      "cpu_path_process_cpu_ms": 13.525640479166666,
+      "fpga_path_process_cpu_ms": 16.368392341666667,
+      "cpu_stage_fps": 25.639516352816386,
+      "fpga_stage_fps": 20.154898048685833,
+      "stage_fps_change_percent": -21.391270524212104
+    },
+    "paired_shared": {
+      "pairs": 240,
+      "identity": {
+        "kind": "identity",
+        "input_mode": "PCIe RX DMA-BUF bound to RKNN input, no input memcpy or inputs_set",
+        "baseline_init_flags": 0,
+        "shared_init_flags": 16384,
+        "input_slot": 2097152,
+        "output_comparison": "native output byte parity"
+      },
+      "input_parity": true,
+      "output_parity": true,
+      "scope": "paired inference stage FPS; excludes viewer/rendering throughput",
+      "arm": "shared DMA-BUF",
+      "claim_ms": 2.3890382208333336,
+      "raw_dma_copy_ms": 7.1494972,
+      "cpu_preprocess_ms": 3.2349129916666666,
+      "fpga_to_rx_slot_ms": 10.231420525,
+      "cpu_rknn_ms": 26.614614029166667,
+      "fpga_rknn_ms": 26.288737358333332,
+      "cpu_inputs_set_ms": 0.7030553666666666,
+      "fpga_submit_or_lease_ms": 0.028359445833333333,
+      "release_ms": 0.8541854,
+      "cpu_total_ms": 40.24224784166667,
+      "fpga_total_ms": 39.76338150416667,
+      "cpu_path_process_cpu_ms": 14.001991391666667,
+      "fpga_path_process_cpu_ms": 6.1834737125000006,
+      "cpu_stage_fps": 24.849506516994406,
+      "fpga_stage_fps": 25.148766583023466,
+      "stage_fps_change_percent": 1.2042897746255
+    }
+  },
+  "launch_pid": 5650,
+  "restored_owner": {
+    "pid": 5650,
+    "state": "S",
+    "starttime": "120797",
+    "exe": "/userdata/detview-hdmifull/detview-hdmifull",
+    "sha256": "73613d525541939ea493a9bb87eeeae10879c4a08eede36a7ee298777fb32100",
+    "cmdline": "/userdata/detview-hdmifull/detview-hdmifull --model MVP_accuracy_round1 --fullscreen "
+  },
+  "remote_log": "/userdata/linaro/rgb888_trial_1791561582715191600/restored_acceptance.log",
+  "restored_metrics": {
+    "new_paint_fps": 34.04329028789194,
+    "swap_fps": 35.02439035203562,
+    "npu_completed_fps": 3.9047619047619047,
+    "cameras": {
+      "1": 41.91954545454546,
+      "2": 43.166363636363634,
+      "3": 25.69727272727273,
+      "4": 25.701818181818183,
+      "5": 39.37772727272728,
+      "6": 39.48318181818182
+    }
+  },
+  "restored_baseline_ratios": {
+    "new_paint_fps": 0.8815175197485392,
+    "swap_fps": 0.8536595496847825,
+    "npu_completed_fps": 1.0025740025740024,
+    "camera_1": 0.9398113980700001,
+    "camera_2": 0.9626866706859663,
+    "camera_3": 0.9982788072096789,
+    "camera_4": 0.9985370523556804,
+    "camera_5": 0.9764516955728358,
+    "camera_6": 0.9782623127671051
+  },
+  "min_fps_ratio": 0.85
+}

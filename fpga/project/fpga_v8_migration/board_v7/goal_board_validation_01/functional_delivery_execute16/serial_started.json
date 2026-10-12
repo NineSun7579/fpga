@@ -1,0 +1,18 @@
+﻿{
+    "goal_complete":  false,
+    "utc":  "2026-10-07T10:34:55.7703703Z",
+    "processes":  [
+                      {
+                          "ProcessId":  44000,
+                          "CreationDate":  "\/Date(1791368291338)\/",
+                          "Name":  "python.exe",
+                          "CommandLine":  "\"C:\\Users\\NineSun\\anaconda3\\python.exe\" -B -u project/fpga_v8_migration/board_v7/build04_functional_route04/resume_hold_limit15.py"
+                      },
+                      {
+                          "ProcessId":  85996,
+                          "CreationDate":  "\/Date(1791368301465)\/",
+                          "Name":  "powershell.exe",
+                          "CommandLine":  "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.EXE -NoLogo -NoProfile -NonInteractive -Command \"$taskHold = @(Get-CimInstance Win32_Process -Filter \\\"Name=\u0027python.exe\u0027\\\" | Where-Object { $_.CommandLine -like \u0027*build04_functional_route04*resume_hold_limit15.py*\u0027 }); if ($taskHold.Count -ne 1) { throw \u0027Expected one hold repair build process\u0027 }; $taskHold | Select-Object ProcessId,CreationDate,CommandLine | ConvertTo-Json -Compress | Set-Content -Encoding UTF8 \u0027project/fpga_v8_migration/board_v7/goal_board_validation_01/functional_delivery_execute15/build_process_identity.json\u0027; Wait-Process -Id $taskHold[0].ProcessId -ErrorAction SilentlyContinue; if (-not (Test-Path \u0027project/fpga_v8_migration/board_v7/build04_functional_route04/BIT_MANIFEST.json\u0027)) { throw \u0027Hold repair finished without qualified bit; no programming\u0027 }; \u0026 \u0027C:\\Users\\NineSun\\anaconda3\\python.exe\u0027 -B -u \u0027project/fpga_v8_migration/board_v7/goal_board_validation_01/functional_delivery_execute15/runner.py\u0027 1\u003e \u0027project/fpga_v8_migration/board_v7/goal_board_validation_01/functional_delivery_execute15/execution.stdout.log\u0027 2\u003e \u0027project/fpga_v8_migration/board_v7/goal_board_validation_01/functional_delivery_execute15/execution.stderr.log\u0027; $taskDelivery15Code=$LASTEXITCODE; Get-Content \u0027project/fpga_v8_migration/board_v7/goal_board_validation_01/functional_delivery_execute15/execution.stdout.log\u0027 -Tail 12; Get-Content \u0027project/fpga_v8_migration/board_v7/goal_board_validation_01/functional_delivery_execute15/execution.stderr.log\u0027 -Tail 12; exit $taskDelivery15Code\""
+                      }
+                  ]
+}

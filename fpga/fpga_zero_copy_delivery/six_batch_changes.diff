@@ -1,0 +1,441 @@
+--- integrated_six\source\delivery\delivery_regs.v
++++ integrated_six_batch\source\delivery\delivery_regs.v
+@@ -154,7 +154,7 @@
+                     BASE+32'h70: s_rdata<=last_cycles;
+                     BASE+32'h80: s_rdata<=WIDTH*HEIGHT*2;
+                     BASE+32'h90: s_rdata<=jobs_done;
+-                    BASE+32'ha0: s_rdata<=32'h7; // RGB, thumbnail, six-camera ownership
++                    BASE+32'ha0: s_rdata<=32'hf; // RGB, thumbnail, six-camera ownership, register snapshot
+                     BASE+32'hb0: s_rdata<={31'd0,selected_mode};
+                     BASE+32'hc0: s_rdata<={29'd0,held ? lease_camera : selected_camera};
+                     BASE+32'hd0: s_rdata<={31'd0,held ? lease_bank : selected_bank};
+--- integrated_six\source\pcie_dma\pcie_fifo.v
++++ integrated_six_batch\source\pcie_dma\pcie_fifo.v
+@@ -701,7 +701,11 @@
+ 
+ 
+ //----------- Burst Length Calculation ----------
+-wire [3:0] r_burst_len = (read_beats_remain >= 32'd16) ? 4'd15 :
++// The delivery AXI-Lite converter retires exactly one 128-bit beat.
++wire delivery_register_read = r_cur_addr >= 32'h40020000 &&
++                              r_cur_addr <= 32'h40020120;
++wire [3:0] r_burst_len = delivery_register_read ? 4'd0 :
++                          (read_beats_remain >= 32'd16) ? 4'd15 :
+                           (read_beats_remain[3:0] == 4'd0) ? 4'd15 :
+                           (read_beats_remain[3:0] - 4'd1);
+ 
+--- integrated_six\project\project.pds
++++ integrated_six_batch\project\project.pds
+@@ -971,17 +971,17 @@
+             (_gci_state (_integer 2))
+             (_option top_module (_string "top"))
+             (_db_output
+-                (_file "compile/top_comp.adf"
++                (_file "../../integrated_six/project/compile/top_comp.adf"
+                     (_format adif)
+                     (_timespec "2026-10-09T07:11:46")
+                 )
+             )
+             (_output
+-                (_file "compile/top.cmr"
++                (_file "../../integrated_six/project/compile/top.cmr"
+                     (_format verilog)
+                     (_timespec "2026-10-09T07:11:46")
+                 )
+-                (_file "compile/cmr.db"
++                (_file "../../integrated_six/project/compile/cmr.db"
+                     (_format text)
+                     (_timespec "2026-10-09T07:11:46")
+                 )
+@@ -996,25 +996,25 @@
+             (_gci_state (_integer 2))
+             (_option selected_syn_tool_opt (_integer 2))
+             (_db_output
+-                (_file "synthesize/top_syn.adf"
++                (_file "../../integrated_six/project/synthesize/top_syn.adf"
+                     (_format adif)
+                     (_timespec "2026-10-09T07:14:30")
+                 )
+             )
+             (_output
+-                (_file "synthesize/top_syn.vm"
++                (_file "../../integrated_six/project/synthesize/top_syn.vm"
+                     (_format structural_verilog)
+                     (_timespec "2026-10-09T07:14:34")
+                 )
+-                (_file "synthesize/top_controlsets.txt"
++                (_file "../../integrated_six/project/synthesize/top_controlsets.txt"
+                     (_format text)
+                     (_timespec "2026-10-09T07:13:22")
+                 )
+-                (_file "synthesize/snr.db"
++                (_file "../../integrated_six/project/synthesize/snr.db"
+                     (_format text)
+                     (_timespec "2026-10-09T07:14:38")
+                 )
+-                (_file "synthesize/top.snr"
++                (_file "../../integrated_six/project/synthesize/top.snr"
+                     (_format text)
+                     (_timespec "2026-10-09T07:14:38")
+                 )
+@@ -1035,21 +1035,21 @@
+         (_command cmd_devmap
+             (_gci_state (_integer 2))
+             (_db_output
+-                (_file "device_map/top_map.adf"
++                (_file "../../integrated_six/project/device_map/top_map.adf"
+                     (_format adif)
+                     (_timespec "2026-10-09T07:15:17")
+                 )
+             )
+             (_output
+-                (_file "device_map/top_dmr.prt"
++                (_file "../../integrated_six/project/device_map/top_dmr.prt"
+                     (_format text)
+                     (_timespec "2026-10-09T07:14:48")
+                 )
+-                (_file "device_map/top.dmr"
++                (_file "../../integrated_six/project/device_map/top.dmr"
+                     (_format text)
+                     (_timespec "2026-10-09T07:15:17")
+                 )
+-                (_file "device_map/dmr.db"
++                (_file "../../integrated_six/project/device_map/dmr.db"
+                     (_format text)
+                     (_timespec "2026-10-09T07:15:17")
+                 )
+@@ -1073,33 +1073,33 @@
+         (_command cmd_pnr
+             (_gci_state (_integer 2))
+             (_db_output
+-                (_file "place_route/top_pnr.adf"
++                (_file "../../integrated_six/project/place_route/top_pnr.adf"
+                     (_format adif)
+                     (_timespec "2026-10-09T07:22:11")
+                 )
+             )
+             (_output
+-                (_file "place_route/clock_utilization.txt"
++                (_file "../../integrated_six/project/place_route/clock_utilization.txt"
+                     (_format text)
+                     (_timespec "2026-10-09T07:20:53")
+                 )
+-                (_file "place_route/top_plc.adf"
++                (_file "../../integrated_six/project/place_route/top_plc.adf"
+                     (_format adif)
+                     (_timespec "2026-10-09T07:17:17")
+                 )
+-                (_file "place_route/top.prr"
++                (_file "../../integrated_six/project/place_route/top.prr"
+                     (_format text)
+                     (_timespec "2026-10-09T07:22:12")
+                 )
+-                (_file "place_route/top_prr.prt"
++                (_file "../../integrated_six/project/place_route/top_prr.prt"
+                     (_format text)
+                     (_timespec "2026-10-09T07:20:53")
+                 )
+-                (_file "place_route/top_pnr.netlist"
++                (_file "../../integrated_six/project/place_route/top_pnr.netlist"
+                     (_format text)
+                     (_timespec "2026-10-09T07:22:11")
+                 )
+-                (_file "place_route/prr.db"
++                (_file "../../integrated_six/project/place_route/prr.db"
+                     (_format text)
+                     (_timespec "2026-10-09T07:22:12")
+                 )
+@@ -1115,17 +1115,17 @@
+             (_gci_state (_integer 2))
+             (_attribute _auto_exe_lock (_switch OFF))
+             (_db_output
+-                (_file "report_timing/top_rtp.adf"
++                (_file "../../integrated_six/project/report_timing/top_rtp.adf"
+                     (_format adif)
+                     (_timespec "2026-10-09T07:22:39")
+                 )
+             )
+             (_output
+-                (_file "report_timing/top.rtr"
++                (_file "../../integrated_six/project/report_timing/top.rtr"
+                     (_format text)
+                     (_timespec "2026-10-09T07:22:43")
+                 )
+-                (_file "report_timing/rtr.db"
++                (_file "../../integrated_six/project/report_timing/rtr.db"
+                     (_format text)
+                     (_timespec "2026-10-09T07:22:43")
+                 )
+@@ -1139,19 +1139,19 @@
+             (_attribute _auto_exe_lock (_switch OFF))
+             (_attribute _auto_exe (_switch OFF))
+             (_output
+-                (_file "report_power/top.ppr"
++                (_file "../../integrated_six/project/report_power/top.ppr"
+                     (_format text)
+                     (_timespec "2026-10-09T07:23:20")
+                 )
+-                (_file "report_power/top.pps"
++                (_file "../../integrated_six/project/report_power/top.pps"
+                     (_format text)
+                     (_timespec "2026-10-09T07:23:19")
+                 )
+-                (_file "report_power/top.ppf"
++                (_file "../../integrated_six/project/report_power/top.ppf"
+                     (_format text)
+                     (_timespec "2026-10-09T07:23:19")
+                 )
+-                (_file "report_power/ppr.db"
++                (_file "../../integrated_six/project/report_power/ppr.db"
+                     (_format text)
+                     (_timespec "2026-10-09T07:23:20")
+                 )
+@@ -1162,19 +1162,19 @@
+             (_attribute _auto_exe_lock (_switch OFF))
+             (_attribute _auto_exe (_switch OFF))
+             (_output
+-                (_file "generate_netlist/top_sim.v"
++                (_file "../../integrated_six/project/generate_netlist/top_sim.v"
+                     (_format verilog)
+                     (_timespec "2026-10-09T07:23:56")
+                 )
+-                (_file "generate_netlist/top_sta.sdf"
++                (_file "../../integrated_six/project/generate_netlist/top_sta.sdf"
+                     (_format text)
+                     (_timespec "2026-10-09T07:24:06")
+                 )
+-                (_file "generate_netlist/gnr.db"
++                (_file "../../integrated_six/project/generate_netlist/gnr.db"
+                     (_format text)
+                     (_timespec "2026-10-09T07:24:08")
+                 )
+-                (_file "generate_netlist/top.gnr"
++                (_file "../../integrated_six/project/generate_netlist/top.gnr"
+                     (_format text)
+                     (_timespec "2026-10-09T07:24:08")
+                 )
+@@ -1185,19 +1185,19 @@
+         (_command cmd_gen_bitstream
+             (_gci_state (_integer 2))
+             (_output
+-                (_file "generate_bitstream/top.sbit"
++                (_file "../../integrated_six/project/generate_bitstream/top.sbit"
+                     (_format text)
+                     (_timespec "2026-10-09T07:24:38")
+                 )
+-                (_file "generate_bitstream/top.smsk"
++                (_file "../../integrated_six/project/generate_bitstream/top.smsk"
+                     (_format text)
+                     (_timespec "2026-10-09T07:24:38")
+                 )
+-                (_file "generate_bitstream/bgr.db"
++                (_file "../../integrated_six/project/generate_bitstream/bgr.db"
+                     (_format text)
+                     (_timespec "2026-10-09T07:24:39")
+                 )
+-                (_file "generate_bitstream/top.bgr"
++                (_file "../../integrated_six/project/generate_bitstream/top.bgr"
+                     (_format text)
+                     (_timespec "2026-10-09T07:24:39")
+                 )
+--- six_camera_viewer_src\main.cpp
++++ six_camera_batch_viewer_src\main.cpp
+@@ -711,6 +711,19 @@
+         bool read(uint32_t offset, uint32_t& value) {
+             return dev.cameraTagLocked(thumbnail::Base + offset, value);
+         }
++        bool readSnapshot(void* output, size_t count) {
++            if (!output || count != thumbnail::SnapshotBytes ||
++                !sixdma::scratchRange(sixdma::Metadata, count)) return false;
++            DmaOp op{};
++            op.offset_addr = sixdma::Metadata;
++            op.ddr3_addr = thumbnail::Base;
++            op.total_length = uint32_t(count);
++            if (dev.ioctlTmo(F2H_CMD, &op, 2) != 0) return false;
++            if (op.offset_addr != sixdma::Metadata || op.ddr3_addr != thumbnail::Base ||
++                op.total_length != count) return false;
++            std::memcpy(output, dev.rx_ + sixdma::Metadata, count);
++            return true;
++        }
+         bool write(uint32_t offset, uint32_t value) {
+             std::memset(dev.tx_, 0, 16);
+             std::memcpy(dev.tx_, &value, sizeof(value));
+--- six_camera_viewer_src\thumbnail_delivery.h
++++ six_camera_batch_viewer_src\thumbnail_delivery.h
+@@ -12,6 +12,7 @@
+ constexpr uint32_t Caps = 0xa0, Mode = 0xb0, Camera = 0xc0, OutputBank = 0xd0;
+ constexpr uint32_t SourceSequence = 0xe0, Supported = 0xf0;
+ constexpr uint32_t Bank0 = 0x100, Bank1 = 0x110, Freeze = 0x120;
++constexpr uint32_t SnapshotCap = 8, SnapshotBytes = 304;
+ constexpr uint32_t RequiredCaps = 7; // existing RGB/thumbnail + bit2 (value 4)
+ constexpr uint32_t SupportedMask = 0x3f, ErrorMask = 0x70;
+ constexpr uint32_t RgbDestination = 0x0a000000;
+@@ -59,16 +60,33 @@
+ // the existing fd/mutex; errors quarantine without destructor cleanup/release.
+ template<class Transport> class Reader {
+     Transport& io;
++    bool batch = false, snapshotValid = false;
++    uint32_t snapshot[SnapshotBytes / sizeof(uint32_t)]{};
++    void invalidate() { snapshotValid = false; }
++    void refresh() {
++        if (!batch) return;
++        invalidate();
++        if (!io.readSnapshot(snapshot, SnapshotBytes))
++            io.quarantine("six thumbnail snapshot DMA failed");
++        snapshotValid = true;
++    }
+     uint32_t get(uint32_t reg) {
++        if (batch) {
++            if (!snapshotValid) refresh();
++            check(reg <= Freeze && !(reg & 15), "six thumbnail snapshot offset");
++            return snapshot[reg / sizeof(uint32_t)];
++        }
+         uint32_t value = 0;
+         if (!io.read(reg, value)) io.quarantine("six thumbnail MMIO read failed");
+         return value;
+     }
+     void check(bool ok, const char* reason) { if (!ok) io.quarantine(reason); }
+     void put(uint32_t reg, uint32_t value) {
++        invalidate();
+         if (!io.write(reg, value)) io.quarantine("six thumbnail MMIO write failed");
+     }
+     uint32_t status() {
++        refresh();
+         const auto value = get(Status);
+         check(!(value & ErrorMask), "six thumbnail error/config/quarantine");
+         return value;
+@@ -82,6 +100,7 @@
+         io.quarantine("six thumbnail lease/completion deadline");
+     }
+     void configuration(int camera, int bank) {
++        refresh();
+         check(get(Camera) == uint32_t(camera) && get(OutputBank) == uint32_t(bank) &&
+               get(Mode) == 1 && get(Destination) == Destinations[camera][bank] &&
+               get(OutputBytes) == Bytes && get(Bank0) == SourceBanks[camera][0] &&
+@@ -109,7 +128,11 @@
+     bool read(int camera, int bank, void* destination, size_t capacity, uint32_t& tag) {
+         check(camera >= 0 && camera < 6 && bank >= 0 && bank < 2 && destination && capacity == Bytes,
+               "six thumbnail argument/size");
+-        check(get(SignatureReg) == Signature && (get(Caps) & RequiredCaps) == RequiredCaps &&
++        batch = false;
++        invalidate();
++        const auto signature = get(SignatureReg), caps = get(Caps);
++        batch = (caps & SnapshotCap) != 0;
++        check(signature == Signature && (caps & RequiredCaps) == RequiredCaps &&
+               get(Supported) == SupportedMask, "six thumbnail capability/bitmap unsupported");
+         check((status() & 7) == 0 && get(Freeze) == 0 && get(Mode) == 0 &&
+               get(Camera) == 4 && get(OutputBank) == 0 && get(Destination) == RgbDestination &&
+@@ -135,10 +158,12 @@
+         identity(camera, bank, epoch, source, tag);
+         uint32_t sourceTag = 0;
+         check(io.readTag(source + RawBytes, sourceTag) && sourceTag == tag, "six thumbnail source tag mismatch");
++        invalidate(); // RAW tag DMA has reused metadata scratch.
+         put(Command, 3); wait(15, 11);
+         check(get(Jobs) == uint32_t(jobs + 1), "six thumbnail jobs mismatch");
+         identity(camera, bank, epoch, source, tag); // validate byte count BEFORE copy
+         check(io.readPixels(Destinations[camera][bank], Bytes, destination), "six thumbnail pixel DMA failed");
++        invalidate(); // Never carry a snapshot over payload DMA.
+         identity(camera, bank, epoch, source, tag);
+         check(io.readTag(source + RawBytes, sourceTag) && sourceTag == tag, "six thumbnail frozen tag changed");
+         restore();
+--- six_camera_viewer_src\thumbnail_delivery_selftest.cpp
++++ six_camera_batch_viewer_src\thumbnail_delivery_selftest.cpp
+@@ -11,6 +11,26 @@
+ namespace {
+ struct Stopped : std::runtime_error { using std::runtime_error::runtime_error; };
+ struct Fake {
++    static bool defaultBatch;
++    bool batching = defaultBatch;
++    int snapshots = 0, failSnapshot = 0, mutateSnapshot = 0;
++    uint32_t mutateReg = 0, mutateValue = 0;
++    std::vector<uint32_t> snapshotStates;
++    bool readSnapshot(void* output, size_t count) {
++        if (!batching) throw std::logic_error("snapshot sent to old hardware");
++        if (!output || count != SnapshotBytes) throw std::logic_error("snapshot size");
++        ++snapshots;
++        snapshotStates.push_back(state);
++        if (snapshots == failSnapshot) return false;
++        std::memset(output, 0, count);
++        auto* words = static_cast<uint32_t*>(output);
++        for (uint32_t reg = 0; reg <= Freeze; reg += 16) {
++            if (reg == Command || reg == 0x70) continue;
++            if (!read(reg, words[reg / 4])) return false;
++        }
++        if (snapshots == mutateSnapshot) words[mutateReg / 4] = mutateValue;
++        return true;
++    }
+     uint32_t mode = 0, camera = 4, bank = 0, state = 0, epoch = 42, jobs = 9, tag = 123;
+     int64_t clock = 0;
+     int reads = 0, writes = 0, copies = 0, releases = 0, restores = 0;
+@@ -27,7 +47,7 @@
+         if (++reads == failRead) return false;
+         switch (reg) {
+         case SignatureReg: value = badSignature ? 0 : Signature; break;
+-        case Caps: value = badCaps ? 3 : RequiredCaps; break;
++        case Caps: value = badCaps ? 3 : (RequiredCaps | (batching ? SnapshotCap : 0)); break;
+         case Supported: value = badBitmap ? 0x1f : SupportedMask; break;
+         case Status: value = state; break;
+         case Mode: value = mode; break;
+@@ -99,6 +119,7 @@
+     }
+     [[noreturn]] void quarantine(const char* reason) { throw Stopped(reason); }
+ };
++bool Fake::defaultBatch = false;
+ }
+ int runSelfTest() {
+     int failures = 0, cases = 0;
+@@ -112,6 +133,8 @@
+         try { return Reader<Fake>(io).read(camera, bank, buffer.data() + 16, capacity, tag) ? 1 : 0; }
+         catch (const Stopped&) { return -1; }
+     };
++    for (bool batchMode : {false, true}) {
++    Fake::defaultBatch = batchMode;
+     Fake healthy;
+     for (int camera = 0; camera < 6; ++camera) for (int bank = 0; bank < 2; ++bank) {
+         Fake io;
+@@ -180,6 +203,45 @@
+         Fake io; io.failWrite = n;
+         expect(execute(io) == -1, "each MMIO write failure quarantines");
+     }
++    if (batchMode) {
++        expect(healthy.snapshots > 0 && healthy.copies == 1, "caps bit3 enables snapshot transport");
++        std::fprintf(stderr, "BATCH_HEALTHY snapshots=%d scalar_or_model_reads=%d states=", healthy.snapshots, healthy.reads);
++        for (auto state : healthy.snapshotStates) std::fprintf(stderr, "%u,", state);
++        std::fprintf(stderr, "\n");
++        for (int n = 1; n <= healthy.snapshots; ++n) {
++            Fake io; io.failSnapshot = n;
++            expect(execute(io) == -1, "each snapshot failure quarantines");
++        }
++        // Corrupt every field used in idle, selector, held, completed, post-copy,
++        // and restore validation. Fresh snapshots must expose each mutation.
++        struct Mutation { int snapshot; uint32_t reg, value; int maxCopies; };
++        const Mutation mutations[] = {
++            {1, Supported, 0x1f, 0}, {2, InputBytes, RawBytes+16, 0},
++            {2, Status, 0x40, 0}, {2, Mode, 1, 0}, {2, Camera, 0, 0},
++            {2, OutputBank, 1, 0}, {2, Destination, RgbDestination+16, 0},
++            {2, OutputBytes, RgbBytes+16, 0}, {2, Freeze, 4, 0},
++            {3, Camera, 1, 0}, {3, OutputBank, 1, 0}, {3, Mode, 0, 0},
++            {3, Destination, Destinations[0][0]+16, 0}, {3, OutputBytes, Bytes+16, 0},
++            {3, Bank0, SourceBanks[0][0]+16, 0}, {3, Bank1, SourceBanks[0][1]+16, 0},
++            {4, Freeze, 4, 0}, {5, Source, 0xdead0000, 0},
++            {6, Epoch, 99, 0}, {6, SourceSequence, 999, 0}, {6, Freeze, 0, 0},
++            {7, Bank0, 0xdead0000, 0}, {8, Jobs, 99, 0},
++            {9, Epoch, 99, 0}, {9, SourceSequence, 999, 0}, {9, Freeze, 0, 0},
++            {10, OutputBytes, Bytes+16, 0},
++            {11, Epoch, 99, 1}, {11, SourceSequence, 999, 1}, {11, Freeze, 0, 1},
++            {12, Bank1, 0xdead0000, 1}, {13, Freeze, 4, 1},
++            {14, Mode, 1, 1}, {14, Camera, 0, 1}, {14, OutputBank, 1, 1},
++            {14, Destination, RgbDestination+16, 1}, {14, OutputBytes, RgbBytes+16, 1}
++        };
++        for (const auto& mutation : mutations) {
++            Fake io; io.mutateSnapshot = mutation.snapshot;
++            io.mutateReg = mutation.reg; io.mutateValue = mutation.value;
++            int result = execute(io);
++            if (result != -1) std::fprintf(stderr, "MUTATION_MISSED snapshot=%d reg=%x\n", mutation.snapshot, mutation.reg);
++            expect(result == -1 && io.copies <= mutation.maxCopies, "stage snapshot mutation quarantines before unsafe copy");
++        }
++    } else expect(healthy.snapshots == 0, "caps7 preserves scalar fallback");
++    } // both scalar fallback and batching run the entire existing fault suite
+     Cursor raw, display;
+     raw.reset(10); display.reset(10); raw.commit(100); display.commit(102);
+     expect(raw.tag == 100 && display.tag == 102 && raw.newer(101) && !display.newer(101),

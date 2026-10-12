@@ -1,0 +1,522 @@
+--- checked/fpga_infer_input.h
++++ lead/fpga_infer_input.h
+@@ -10,6 +10,7 @@
+ #include <vector>
+ #include <string>
+ #include <optional>
++#include "prefetch_config.h"
+ 
+ namespace scheme2 {
+ constexpr uint32_t Window = 0x800000, Offset = 0x400000;
+@@ -35,6 +36,7 @@
+     bool armed = false, occupied = false;
+     int camera = -1, generation = -1;
+     Selection next, selected;
++    int64_t armedMs = -1;
+ public:
+     void publish(Selection value) {
+         std::lock_guard<std::mutex> lock(mutex);
+@@ -46,14 +48,16 @@
+         std::lock_guard<std::mutex> lock(mutex);
+         return bool(next) && value.revision == next.revision;
+     }
+-    void arm(int c, int g) {
++    void arm(int c, int g, int64_t timestamp = -1) {
+         std::lock_guard<std::mutex> lock(mutex);
+         if (occupied || !next) return;
++        if (!armed || c != camera || g != generation) armedMs = timestamp;
+         armed = true; camera = c; generation = g; selected = next;
+     }
+-    Selection claim(int c, int g) {
++    Selection claim(int c, int g, PrefetchTiming* timing = nullptr) {
+         std::lock_guard<std::mutex> lock(mutex);
+         if (!armed || occupied || c != camera || g != generation) return {};
++        if (timing) timing->arm = armedMs;
+         armed = false; occupied = true; return selected;
+     }
+     void retire(std::optional<Selection> value = {}) {
+@@ -68,6 +72,8 @@
+ inline Admission& admission() { static Admission value; return value; }
+ 
+ struct Input {
++    // Capture writes before publication; controller writes request before emit.
++    PrefetchTiming timing;
+     int fd = -1, height = 0, camera = -1, sourceGeneration = 0;
+     uint32_t tag = 0, epoch = 0, source = 0;
+     Selection selection;
+--- checked/inference_cadence.h
++++ lead/inference_cadence.h
+@@ -6,13 +6,13 @@
+ // Prefetch changes only input preparation. Submission still uses the original
+ // timestamp of the last emitted request, including urgent and bypass policies.
+ struct InferenceCadence {
+-    static constexpr int64_t PrefetchLeadMs = 120;
+     static bool due(int64_t now, int64_t lastRequest, int64_t interval, bool bypass) {
+         return bypass || lastRequest < 0 || now - lastRequest >= interval;
+     }
+-    static bool mayArm(int64_t now, int64_t lastRequest, int64_t interval, bool bypass) {
++    static bool mayArm(int64_t now, int64_t lastRequest, int64_t interval, bool bypass,
++                       int64_t leadMs = 30) {
+         return bypass || lastRequest < 0 ||
+-            now - lastRequest >= interval - std::min(interval, PrefetchLeadMs);
++            now - lastRequest >= interval - std::min(interval, std::max(int64_t(0), leadMs));
+     }
+ };
+ }
+--- checked/LEAD_PREFETCH_REVIEW.md
++++ lead/LEAD_PREFETCH_REVIEW.md
+@@ -0,0 +1,47 @@
++# Isolated configurable lead candidate
++
++Copied from candidate_prefetch_checked_viewer, excluding local builds and build
++outputs. No board calls, deployment, RTL/driver changes or commits. The display30
++baseline and every existing candidate are preserved. Earlier copied review notes
++describe their respective ancestors; this note describes the current delta.
++
++The fixed 120 ms lead had measured age p95 204 ms versus OFF 138 ms. This candidate
++makes preparation lead configurable; it claims no performance gain.
++DETVIEW_FPGA_PREFETCH_LEAD_MS defaults to 30, accepts ASCII decimal 0..120
++(leading zeros allowed), and rejects signs, empty input, overflow, junk, and any
++leading/trailing whitespace. Invalid input warns once and uses zero lead without
++terminating production. Effective lead is clamped to the current interval.
++The parser is reached only inside the RGB-enabled preparation branch. Request
++cadence still uses the actual submission timestamp and original urgent/bypass
++policies. Admission, model revision, stop/ready, exact history and overflow/latest
++RAW handling are otherwise unchanged.
++
++DETVIEW_FPGA_PREFETCH_TIMING=1 opts into CLOCK_MONOTONIC millisecond timestamps
++for arm, claim, hold_command, hold_validated, release, publish, and request. Arm
++belongs to the first successful arm under the admission mutex. The capture job
++carries the stages until Input construction, then copies them into plain int64_t
++fields before publication. The controller writes request and logs source frame ID,
++generation, camera (zero based), and tag before inferenceRequested. No other
++thread reads the request timestamp. Disabled instrumentation performs no extra
++clock calls, logging or DMA. hold_validated is after the full lease/tag identity
++validation; release is after verified release and default selector restoration.
++Only completed frames actually submitted produce a timing record; cancelled or
++unpublished captures have no source-ID timing log.
++
++Validation: run bash local_prefetch_check.sh on a Linux host with Qt5. It tests
++parser policy, lead 0/30/50/120 cadence boundaries including short/urgent intervals
++and bypass, acquisition-delay clocks, lifetime, model revision, and actual wrapped
++PangoDev protocol with timing OFF/ON and verification. Fixed RAW/RGB DMA count
++assertions remain. Protocol timestamps use the production monotonicMs().
++The full vision_pipeline_selftest requires OpenCV; if the host lacks it, this is
++explicitly pending together with the ARM build/full pipeline run. Host syscall
++fixtures cannot establish board behavior or performance. No board run is authorized
++by this candidate's creation.
++
++Observed local validation: local_prefetch_check.sh passed, including default,
++valid and invalid environment subprocesses, warning-once and RGB-OFF silence,
++protocol timing OFF/ON, classes syntax and native verification fixtures.
++local_fair_negative_check.py and local_short_hold_negative_check.py passed (old
++lock-held polling and pre-release copy ordering are rejected). The full pipeline
++build was attempted in WSL and failed because opencv4.pc and OpenCV headers are
++absent. ARM compilation and full pipeline tests remain pending for the parent.
+--- checked/local_fair_check.sh
++++ lead/local_fair_check.sh
+@@ -12,6 +12,7 @@
+     -Wl,--wrap=open,--wrap=close,--wrap=raise,--wrap=mmap,--wrap=munmap,--wrap=ioctl
+ ./local_build/protocol_test > local_build/protocol_off.log 2>&1
+ DETVIEW_FPGA_INFER_RGB=1 ./local_build/protocol_test > local_build/protocol_on.log 2>&1
++DETVIEW_FPGA_INFER_RGB=1 DETVIEW_FPGA_PREFETCH_TIMING=1 ./local_build/protocol_test > local_build/protocol_timing.log 2>&1
+ DETVIEW_FPGA_INFER_RGB=1 DETVIEW_FPGA_INFER_VERIFY=1 ./local_build/protocol_test > local_build/protocol_verify.log 2>&1
+ g++ -std=c++17 -fPIC -pthread -I. -fsyntax-only local_build/main_classes.cpp \
+     $(pkg-config --cflags Qt5Core Qt5Gui Qt5Widgets Qt5OpenGL) > local_build/syntax.log 2>&1
+--- checked/local_prefetch_check.sh
++++ lead/local_prefetch_check.sh
+@@ -5,4 +5,23 @@
+ python3 local_prefetch_preservation.py
+ g++ -std=c++17 -O2 -pthread prefetch_selftest.cpp -o local_build/prefetch_selftest
+ ./local_build/prefetch_selftest | tee local_build/prefetch.log
++python3 - <<'PY'
++import os, subprocess
++for value, expected in [(None, 30), ('0', 0), ('30', 30), ('50', 50), ('120', 120),
++                        ('-1', 0), ('121', 0), ('30 ', 0), ('9999999999999999999999999999', 0)]:
++    env = dict(os.environ, DETVIEW_FPGA_INFER_RGB='1')
++    env.pop('DETVIEW_FPGA_PREFETCH_LEAD_MS', None)
++    if value is not None: env['DETVIEW_FPGA_PREFETCH_LEAD_MS'] = value
++    p = subprocess.run(['./local_build/prefetch_selftest', '--config'], env=env,
++                       capture_output=True, text=True, check=True)
++    assert p.stdout.strip() == f'lead_ms={expected}'
++    invalid = value in ('-1', '121', '30 ', '9999999999999999999999999999')
++    assert p.stderr.count('[fpga-prefetch]') == int(invalid), p.stderr
++env = dict(os.environ, DETVIEW_FPGA_INFER_RGB='0', DETVIEW_FPGA_PREFETCH_LEAD_MS='invalid',
++           DETVIEW_FPGA_PREFETCH_TIMING='1')
++p = subprocess.run(['./local_build/prefetch_selftest', '--config'], env=env,
++                   capture_output=True, text=True, check=True)
++assert p.stdout.strip() == 'RGB_OFF' and not p.stderr
++print('PREFETCH_ENV_DEFAULT_FAIL_CLOSED_WARN_ONCE_OFF_PASS')
++PY
+ bash local_fair_check.sh
+--- checked/local_prefetch_preservation.py
++++ lead/local_prefetch_preservation.py
+@@ -1,27 +1,26 @@
+-"""Audit the checked candidate against its isolated live source."""
++"""Verify the isolated lead candidate against its checked parent."""
+ from pathlib import Path
+-import hashlib
+ import json
+-
+ root = Path(__file__).resolve().parent
+-source = root.parent / "candidate_prefetch_live_viewer"
+-changed = sorted(
+-    str(p.relative_to(source))
+-    for p in source.rglob("*")
+-    if p.is_file() and "local_build" not in p.relative_to(source).parts
+-    and p.read_bytes() != (root / p.relative_to(source)).read_bytes()
+-)
+-assert changed == ["local_prefetch_preservation.py", "vision_pipeline.cpp",
+-                   "vision_pipeline.h", "vision_pipeline_selftest.cpp"], changed
+-receipt = {
+-    "changed_copied_files": changed,
+-    "main_cpp_sha256": hashlib.sha256((root / "main.cpp").read_bytes()).hexdigest(),
+-    "main_cpp_matches_short_hold": False,
+-    "main_cpp_matches_live": (root / "main.cpp").read_bytes() == (source / "main.cpp").read_bytes(),
+-    "added_files": ["CHECKED_PREFETCH_REVIEW.md"],
+-}
+-(root / "local_build").mkdir(exist_ok=True)
+-(root / "local_build" / "source_preservation.json").write_text(
+-    json.dumps(receipt, indent=2), encoding="utf-8"
+-)
+-print(json.dumps(receipt))
++source = root.parent / "candidate_prefetch_checked_viewer"
++excluded = {"local_build", "local_builds", "build", "__pycache__"}
++def files(base):
++    return {str(p.relative_to(base)): p for p in base.rglob("*") if p.is_file()
++            and not any(part in excluded or part.startswith("build-") for part in p.relative_to(base).parts)}
++old, new = files(source), files(root)
++changed = sorted(name for name in old.keys() & new.keys() if old[name].read_bytes() != new[name].read_bytes())
++expected = sorted(["fpga_infer_input.h", "inference_cadence.h", "local_fair_check.sh", "local_prefetch_check.sh",
++    "local_prefetch_preservation.py", "local_short_hold_negative_check.py", "main.cpp", "prefetch_selftest.cpp",
++    "scheme2_protocol_test_body.h", "vision_pipeline.cpp"])
++assert changed == expected, changed
++assert not old.keys() - new.keys()
++assert sorted(new.keys() - old.keys()) == ["LEAD_PREFETCH_REVIEW.md", "prefetch_config.h"]
++main = (root / "main.cpp").read_text(encoding="utf-8-sig")
++pipeline = (root / "vision_pipeline.cpp").read_text(encoding="utf-8-sig")
++assert "scheme2::enabled() && scheme2::prefetchTimingEnabled()" in main
++assert "scheme2::prefetchLeadMs()" in pipeline
++assert "lastRequestMs = now; ++requests;" in pipeline
++assert "if (timing) timing->holdCommand = monotonicMs();" in main
++assert "if (timing) input->timing = *timing;" in main
++print(json.dumps({"changed_files": changed, "added_files": sorted(new.keys() - old.keys()),
++    "result": "LEAD_PREFETCH_PRESERVATION_PASS"}, indent=2))
+--- checked/local_short_hold_negative_check.py
++++ lead/local_short_hold_negative_check.py
+@@ -12,6 +12,9 @@
+ start = "class PangoDev {"
+ end = "volatile sig_atomic_t PangoDev::timeoutHit_ = 0;"
+ old_class = fair[fair.index(start):fair.index(end) + len(end)]
++# Accept the new optional argument so rejection tests copy order, not compilation.
++old_class = old_class.replace("std::shared_ptr<scheme2::Input>& input) {",
++    "std::shared_ptr<scheme2::Input>& input, scheme2::PrefetchTiming* = nullptr) {")
+ mutant = protocol[:protocol.index(start)] + old_class + protocol[protocol.index(end) + len(end):]
+ source = build / "short_hold_old_order.cpp"
+ source.write_text(mutant)
+@@ -22,7 +25,7 @@
+     str(source), "-o", str(binary), *flags,
+     "-Wl,--wrap=open,--wrap=close,--wrap=raise,--wrap=mmap,--wrap=munmap,--wrap=ioctl"], check=True)
+ resource.setrlimit(resource.RLIMIT_CORE, (0, 0))
+-env = dict(os.environ, DETVIEW_FPGA_INFER_RGB="1")
++env = dict(os.environ, DETVIEW_FPGA_INFER_RGB="1", DETVIEW_FPGA_PREFETCH_TIMING="0")
+ result = subprocess.run([str(binary)], env=env, capture_output=True, text=True, timeout=15)
+ (build / "short_hold_negative.log").write_text(result.stdout + result.stderr)
+ assert result.returncode != 0
+--- checked/main.cpp
++++ lead/main.cpp
+@@ -701,7 +701,8 @@
+ 
+     int cameraReadFpga(int camera, int generation, int height, bool delivered, uint32_t last,
+                        void* output, uint32_t& selected, qint64& dmaNs, qint64& copyNs,
+-                       qint64& capturedMs, std::shared_ptr<scheme2::Input>& input) {
++                       qint64& capturedMs, std::shared_ptr<scheme2::Input>& input,
++                       scheme2::PrefetchTiming* timing = nullptr) {
+         tdm::FairDmaGuard lock(dmaMutex_.get());
+         if (!shared_ || shared_->consumerHeld) scheme2Quarantine("admission/transport mismatch");
+         constexpr uint32_t base = 0x40020000;
+@@ -761,6 +762,7 @@
+                   "RGB destination overlaps writable camera bank");
+         }
+         const uint32_t epoch = reg(0x50);
++        if (timing) timing->holdCommand = monotonicMs();
+         write(0x20, 1);
+         if (!poll(false, 0)) { scheme2::admission().retire(); return 0; }
+         const uint32_t source = reg(0x30), sequence = reg(0xe0);
+@@ -775,6 +777,7 @@
+                   "same-frame lease identity changed");
+         };
+         validate();
++        if (timing) timing->holdValidated = monotonicMs();
+         if (delivered && !tdm::newerCameraTag(sequence, last)) {
+             write(0x20, 0); write(0xc0, 4); write(0xd0, 0);
+             scheme2::admission().retire(); return 0;
+@@ -796,6 +799,7 @@
+         write(0xc0, 4); write(0xd0, 0);
+         check(reg(0xc0) == 4 && reg(0xd0) == 0 && reg(0x120) == 0 &&
+                reg(0x40) == 0x0a000000, "camera defaults restore failed");
++        if (timing) timing->release = monotonicMs();
+         lock.unlock();
+         // RAW F2H and its commit-tag check already completed under the hold.
+         // This worker owns its host RX slot until this call returns; register
+@@ -806,6 +810,7 @@
+         tdm::copyCameraPixels(output, rx_ + tdm::cameraSlotOffset(camera), FRAME_BYTES);
+         copyNs = timer.nsecsElapsed();
+         input = std::make_shared<scheme2::Input>();
++        if (timing) input->timing = *timing;
+         input->fd = shared_->sharedFd; input->base = rx_; input->height = height;
+         if (scheme2::verify()) input->goldenRgb = scheme2::golden(output, height);
+         input->camera = camera; input->sourceGeneration = generation; input->tag = sequence;
+@@ -1050,11 +1055,14 @@
+             uint32_t selectedTag = 0;
+             qint64 dmaNs = 0, copyNs = 0, capturedMs = 0;
+             std::shared_ptr<scheme2::Input> fpgaInput;
++            scheme2::PrefetchTiming timing;
++            auto* timingPtr = scheme2::enabled() && scheme2::prefetchTimingEnabled() ? &timing : nullptr;
+             const scheme2::Selection selection = scheme2::enabled() && inferPane_ && inferPane_->load() == idx &&
+-                !(hdmi_ && hdmi_->load()) ? scheme2::admission().claim(idx, sourceGeneration) : scheme2::Selection{};
++                !(hdmi_ && hdmi_->load()) ? scheme2::admission().claim(idx, sourceGeneration, timingPtr) : scheme2::Selection{};
++            if (selection && timingPtr) timing.claim = monotonicMs();
+             const int result = selection ?
+                 dev_->cameraReadFpga(idx, sourceGeneration, selection.height, delivered, deliveredTag,
+-                    frame.data(), selectedTag, dmaNs, copyNs, capturedMs, fpgaInput) :
++                    frame.data(), selectedTag, dmaNs, copyNs, capturedMs, fpgaInput, timingPtr) :
+                 dev_->cameraRead(idx, base[idx][0], base[idx][1], delivered, deliveredTag,
+                     frame.data(), selectedTag, dmaNs, copyNs, capturedMs);
+             if (fpgaInput) fpgaInput->selection = selection;
+@@ -1093,6 +1101,7 @@
+                 const tdm::InferAge age{packet.frameId, sourceGeneration, idx, selectedTag, capturedMs};
+                 tdm::inferAgeEvent("capture_RAW_DMA_complete", age, capturedMs);
+                 tdm::inferAgeEvent("publish", age);
++                if (packet.fpgaInput && timingPtr) packet.fpgaInput->timing.publish = monotonicMs();
+                 visionSink_(packet);
+             }
+             QMutexLocker lock(&frames_->mutex);
+--- checked/prefetch_config.h
++++ lead/prefetch_config.h
+@@ -0,0 +1,49 @@
++#pragma once
++#include <cstdint>
++#include <cstdio>
++#include <cstdlib>
++#include <cstring>
++
++namespace scheme2 {
++struct LeadConfig { int64_t milliseconds; bool valid; };
++// Strict ASCII decimal: signs, empty strings and all whitespace are rejected.
++// Bound before multiplication so arbitrarily long input cannot overflow.
++inline LeadConfig parsePrefetchLead(const char* text) {
++    if (!text) return {30, true};
++    if (!*text) return {0, false};
++    int64_t value = 0;
++    for (const char* p = text; *p; ++p) {
++        if (*p < '0' || *p > '9') return {0, false};
++        const int digit = *p - '0';
++        if (value > (120 - digit) / 10) return {0, false};
++        value = value * 10 + digit;
++    }
++    return {value, true};
++}
++// Call only inside the RGB-enabled branch. Initialization and warning happen once.
++inline int64_t prefetchLeadMs() {
++    static const LeadConfig value = [] {
++        const auto parsed = parsePrefetchLead(std::getenv("DETVIEW_FPGA_PREFETCH_LEAD_MS"));
++        if (!parsed.valid) std::fprintf(stderr,
++            "[fpga-prefetch] invalid DETVIEW_FPGA_PREFETCH_LEAD_MS; using lead_ms=0 (expected decimal 0..120, no whitespace)\n");
++        return parsed;
++    }();
++    return value.milliseconds;
++}
++inline bool prefetchTimingEnabled() {
++    static const bool value = [] {
++        const char* p = std::getenv("DETVIEW_FPGA_PREFETCH_TIMING");
++        return p && std::strcmp(p, "1") == 0;
++    }();
++    return value;
++}
++struct PrefetchTiming {
++    int64_t arm = -1, claim = -1, holdCommand = -1, holdValidated = -1;
++    int64_t release = -1, publish = -1, request = -1;
++    bool ordered() const {
++        return arm >= 0 && arm <= claim && claim <= holdCommand &&
++            holdCommand <= holdValidated && holdValidated <= release &&
++            release <= publish && publish <= request;
++    }
++};
++}
+--- checked/prefetch_selftest.cpp
++++ lead/prefetch_selftest.cpp
+@@ -9,7 +9,7 @@
+ // Virtual clock models a busy acquisition thread, conversion readiness and
+ // synchronous worker completion. It uses the production cadence decisions and
+ // production single-slot Admission; it does not model Qt or board latency.
+-static void clockFixture(int acquisitionDelay, bool prefetch) {
++static void clockFixture(int acquisitionDelay, bool prefetch, int64_t lead = 30) {
+     scheme2::Admission gate;
+     gate.publish({480, "raw", 1});
+     int64_t last = -1, readyAt = -1, finishedAt = -1;
+@@ -20,7 +20,7 @@
+             pending = false;
+             gate.retire(scheme2::Selection{480, "raw", 1});
+         }
+-        if (!pending && (prefetch ? InferenceCadence::mayArm(now, last, 250, false) :
++        if (!pending && (prefetch ? InferenceCadence::mayArm(now, last, 250, false, lead) :
+                                     InferenceCadence::due(now, last, 250, false))) {
+             gate.arm(2, 7);
+             if (gate.claim(2, 7)) {
+@@ -33,23 +33,57 @@
+         if (!pending && ready && InferenceCadence::due(now, last, 250, false)) {
+             if (last >= 0) {
+                 assert(now - last >= 250);
+-                assert(now - last == (prefetch ? 250 : 250 + acquisitionDelay));
++                assert(now - last == 250 + std::max(int64_t(0), int64_t(acquisitionDelay) - (prefetch ? lead : 0)));
+             }
+             last = now; // same submission clock as original, never capture time
+             pending = true; ready = false; finishedAt = now + 45; ++submitted;
+         }
+     }
+     assert(conversions >= submitted && conversions <= submitted + 1);
+-    assert(submitted == (2000 - acquisitionDelay) / (250 + (prefetch ? 0 : acquisitionDelay)) + 1);
++    assert(submitted == (2000 - acquisitionDelay) / (250 + std::max(int64_t(0), int64_t(acquisitionDelay) - (prefetch ? lead : 0))) + 1);
+ }
+ 
+-int main() {
++int main(int argc, char**) {
++    if (argc > 1) {
++        // Process-local cached environment parser: two reads, at most one warning.
++        if (!scheme2::enabled()) { std::puts("RGB_OFF"); return 0; }
++        const auto first = scheme2::prefetchLeadMs();
++        assert(first == scheme2::prefetchLeadMs());
++        std::printf("lead_ms=%lld\n", static_cast<long long>(first));
++        return 0;
++    }
+     for (int delay : {40, 60, 100, 120}) {
+         clockFixture(delay, false);
+-        clockFixture(delay, true);
++        for (int lead : {0, 30, 50, 120}) clockFixture(delay, true, lead);
+     }
+-    assert(!InferenceCadence::mayArm(1129, 1000, 250, false));
+-    assert(InferenceCadence::mayArm(1130, 1000, 250, false));
++    for (int lead : {0, 30, 50, 120}) for (int interval : {1, 20, 50, 100, 250}) {
++        const int boundary = 1000 + interval - std::min(interval, lead);
++        assert(!InferenceCadence::mayArm(boundary - 1, 1000, interval, false, lead));
++        assert(InferenceCadence::mayArm(boundary, 1000, interval, false, lead));
++        assert(!InferenceCadence::due(999 + interval, 1000, interval, false));
++        assert(InferenceCadence::due(1000 + interval, 1000, interval, false));
++        assert(InferenceCadence::mayArm(1000, 1000, interval, true, lead));
++        assert(InferenceCadence::mayArm(0, -1, interval, false, lead));
++    }
++    assert(scheme2::parsePrefetchLead(nullptr).milliseconds == 30);
++    for (const char* value : {"0", "30", "50", "120", "00030"}) {
++        const auto parsed = scheme2::parsePrefetchLead(value);
++        assert(parsed.valid && parsed.milliseconds == std::atoi(value));
++    }
++    for (const char* value : {"", "-1", "+30", "121", " 30", "30 ", "30\n", "30\t", "30x", "999999999999999999999999999999999999999"}) {
++        const auto parsed = scheme2::parsePrefetchLead(value);
++        assert(!parsed.valid && parsed.milliseconds == 0);
++    }
++    // Timestamp belongs to the successful arm, not repeated cooldown polls.
++    scheme2::Admission timingGate;
++    timingGate.publish({480, "timed", 1});
++    timingGate.arm(2, 7, 100); timingGate.arm(2, 7, 110);
++    scheme2::PrefetchTiming t;
++    assert(!timingGate.claim(3, 7, &t) && t.arm == -1);
++    assert(timingGate.claim(2, 7, &t) && t.arm == 100);
++    t.claim = 120; t.holdCommand = 130; t.holdValidated = 140;
++    t.release = 150; t.publish = 160; t.request = 170;
++    assert(t.ordered()); t.release = 139; assert(!t.ordered());
+     assert(!InferenceCadence::due(1249, 1000, 250, false));
+     assert(InferenceCadence::due(1250, 1000, 250, false));
+     assert(!InferenceCadence::due(1099, 1000, 100, false)); // urgent still bounded
+--- checked/scheme2_protocol_test_body.h
++++ lead/scheme2_protocol_test_body.h
+@@ -214,8 +214,11 @@
+         assert(dev.regWrite(address, 0x12345678));
+     for (int height : {480, 640}) for (int camera = 0; camera < 6; ++camera) {
+         scheme2::admission().publish({height,"model",1});
+-        scheme2::admission().arm(camera, 7);
+-        assert(scheme2::admission().claim(camera, 7).height == height);
++        scheme2::PrefetchTiming timing;
++        auto* timingPtr = scheme2::prefetchTimingEnabled() ? &timing : nullptr;
++        scheme2::admission().arm(camera, 7, timingPtr ? monotonicMs() : -1);
++        assert(scheme2::admission().claim(camera, 7, timingPtr).height == height);
++        if (timingPtr) timing.claim = monotonicMs();
+         std::vector<uint8_t> raw(scheme2::RawBytes);
+         uint32_t tag = 0; qint64 dma = 0, copy = 0, capture = 0;
+         std::shared_ptr<scheme2::Input> input;
+@@ -227,7 +230,24 @@
+             scratchServed = true;
+         });
+         selectedCamera = camera; shortHoldCopyProbe = true;
+-        assert(dev.cameraReadFpga(camera, 7, height, false, 0, raw.data(), tag, dma, copy, capture, input) == 1);
++        const int beforeRaw = rawReads, beforeRgb = rgbReads;
++        assert(dev.cameraReadFpga(camera, 7, height, false, 0, raw.data(), tag, dma, copy, capture, input, timingPtr) == 1);
++        // Selected RAW plus the existing nested disjoint-camera copy probe.
++        assert(rawReads == beforeRaw + 2 && rgbReads == beforeRgb);
++        if (timingPtr) {
++            // Actual wrapped PangoDev supplied these stages, before Input exists.
++            assert(timing.arm <= timing.claim && timing.claim <= timing.holdCommand);
++            assert(timing.holdCommand <= timing.holdValidated && timing.holdValidated <= capture);
++            assert(capture <= timing.release && timing.release <= monotonicMs());
++            assert(input->timing.release == timing.release && input->timing.arm == timing.arm);
++            input->timing.publish = monotonicMs();
++            input->timing.request = monotonicMs();
++            assert(input->timing.ordered());
++        } else {
++            assert(input->timing.arm == -1 && input->timing.claim == -1 &&
++                input->timing.holdCommand == -1 && input->timing.holdValidated == -1 &&
++                input->timing.release == -1 && input->timing.publish == -1 && input->timing.request == -1);
++        }
+         metadataCaller.join(); assert(scratchServed); delayFreeze = false;
+         assert(input && input->tag == tag && input->camera == camera && input->sourceGeneration == 7);
+         assert(input->height == height && input->base == rx.data() && input->fd == 101);
+@@ -276,4 +296,5 @@
+     std::puts("scheme2 actual PangoDev mode0 RAW/RGB acquisition + lease contract PASS (6 cameras, both geometries)");
+     std::puts("fair actual FPGA poll yields transport to waiting metadata caller PASS (12 acquisitions)");
+     std::puts("short hold actual RAW copy after conversion/release/default restore, disjoint DMA and sole admission PASS (12 acquisitions)");
+-}
++    std::puts("prefetch timing actual PangoDev ordering and unchanged RAW/deferred RGB DMA counts PASS (12 acquisitions)");
++}
+--- checked/vision_pipeline.cpp
++++ lead/vision_pipeline.cpp
+@@ -645,10 +645,11 @@
+             // request and no model rotation are created by this preparation.
+             if (scheme2::enabled() && frame.cameraAcquisition &&
+                 (!frame.fpgaInput || frame.fpgaInput->dispatched.load()) &&
+-                tdm::InferenceCadence::mayArm(now, lastRequestMs, interval, bypass)) {
++                tdm::InferenceCadence::mayArm(now, lastRequestMs, interval, bypass, scheme2::prefetchLeadMs())) {
+                 QMutexLocker lock(&mutex);
+                 if (!stopping && config.epoch == active.epoch && !pending)
+-                    scheme2::admission().arm(active.camera, active.generation);
++                    scheme2::admission().arm(active.camera, active.generation,
++                        scheme2::prefetchTimingEnabled() ? now : -1);
+             }
+              ++perf.rejectInterval; return;
+         }
+@@ -659,7 +660,8 @@
+             if (scheme2::enabled() && frame.cameraAcquisition &&
+                 (frame.fpgaInput || scheme2::admission().available())) {
+                 if (!frame.fpgaInput) {
+-                    scheme2::admission().arm(active.camera, active.generation);
++                    scheme2::admission().arm(active.camera, active.generation,
++                        scheme2::prefetchTimingEnabled() ? now : -1);
+                     return;
+                 }
+             }
+@@ -680,6 +682,16 @@
+         }
+         lastRequestMs = now; ++requests;
+         if (live(active.epoch)) {
++            if (frame.fpgaInput && scheme2::prefetchTimingEnabled()) {
++                auto& t = frame.fpgaInput->timing;
++                t.request = monotonicMs();
++                std::fprintf(stderr, "[fpga-prefetch-timing] frame=%llu generation=%d camera=%d tag=%u arm=%lld claim=%lld hold_command=%lld hold_validated=%lld release=%lld publish=%lld request=%lld ordered=%d\n",
++                    static_cast<unsigned long long>(frame.frameId), frame.sourceGeneration, frame.camera, frame.tag,
++                    static_cast<long long>(t.arm), static_cast<long long>(t.claim),
++                    static_cast<long long>(t.holdCommand), static_cast<long long>(t.holdValidated),
++                    static_cast<long long>(t.release), static_cast<long long>(t.publish),
++                    static_cast<long long>(t.request), int(t.ordered()));
++            }
+             tdm::inferAgeEvent("request", {frame.frameId, frame.sourceGeneration, frame.camera, frame.tag, frame.capturedMs});
+             try { emit q->inferenceRequested(frame); }
+             catch (...) {

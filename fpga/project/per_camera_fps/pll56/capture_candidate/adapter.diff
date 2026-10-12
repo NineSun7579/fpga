@@ -1,0 +1,38 @@
+--- seed1/motion_stream_adapter.v
++++ candidate/motion_stream_adapter.v
+@@ -92,7 +92,6 @@
+             source_sequence <= 0; active_sequence <= 0; publish_sequence <= 0;
+             overflow_reset <= 0; overflow_count <= 0;
+             error_pending <= 0; publish_error <= 0; short_frame_count <= 0;
+-            motion_record <= 0;
+         end else begin
+             vs_q <= vsync;
+             // Count at the source edge, even if queued starts are later dropped.
+@@ -150,13 +149,21 @@
+                 tail_seen <= 1;
+                 if (excess) begin tail_bad <= 1; error_pending <= 1; end
+             end
+-            // Detector valid is a pulse; snapshot every field together.
+-            if (strobe) motion_record <= {
+-                bitmap_word, 16'b0, maxy_word, miny_word, maxx_word, minx_word,
+-                8'b0, sample_word, block_word,
+-                29'b0, publish_error, bbox_valid, comparison_valid, publish_sequence
+-            };
+             end
+         end
+     end
++
++    // Exact Boolean expansion of strobe && !overflow_reset && !overflow.
++    // Keep record capture independent of the event-control priority mux.
++    // No flag is retimed; capture and overflow suppression use this same edge.
++    wire record_capture = strobe && !overflow_reset &&
++        ((queued != 16) || pop || (!rise && (!acquired || !pixel_valid)));
++    always @(posedge clk or negedge rst_n) begin
++        if (!rst_n) motion_record <= 0;
++        else if (record_capture) motion_record <= {
++            bitmap_word, 16'b0, maxy_word, miny_word, maxx_word, minx_word,
++            8'b0, sample_word, block_word,
++            29'b0, publish_error, bbox_valid, comparison_valid, publish_sequence
++        };
++    end
+ endmodule

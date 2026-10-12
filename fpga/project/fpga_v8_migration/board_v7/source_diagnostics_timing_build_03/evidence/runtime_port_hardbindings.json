@@ -1,0 +1,530 @@
+[
+  {
+    "reference": "review_templates/build02_latest_runtime/controller02.py.txt",
+    "line": 1,
+    "text": "\"\"\"Authorized serial build02: gate map01, fresh graph derivation, PNR/STA, local bit only.\"\"\"",
+    "status": "MAIN_REVIEW_PORT_REQUIRED"
+  },
+  {
+    "reference": "review_templates/build02_latest_runtime/controller02.py.txt",
+    "line": 45,
+    "text": "      {'ProcessId':1,'ParentProcessId':0,'Name':'python.exe','CommandLine':'python project/fpga_v8_migration/board_v7/diagnostic_sync_register_map_01/run.py'},",
+    "status": "MAIN_REVIEW_PORT_REQUIRED"
+  },
+  {
+    "reference": "review_templates/build02_latest_runtime/controller02.py.txt",
+    "line": 49,
+    "text": "      {'ProcessId':5,'ParentProcessId':0,'Name':'python.exe','CommandLine':'python project/fpga_v8_migration/board_v7/diagnostic_sync_register_map_01/recover.py'},",
+    "status": "MAIN_REVIEW_PORT_REQUIRED"
+  },
+  {
+    "reference": "review_templates/build02_latest_runtime/controller02.py.txt",
+    "line": 56,
+    "text": "                'map_recover_lifecycle_tracked':True,'build01_resume_lifecycle_tracked':True,'tools_empty_does_not_release_live_controller':True})",
+    "status": "MAIN_REVIEW_PORT_REQUIRED"
+  },
+  {
+    "reference": "review_templates/build02_latest_runtime/controller02.py.txt",
+    "line": 57,
+    "text": "    say('EXECUTABLE_PREPARED_WAIT_MAP01','\u53ef\u6267\u884c build02 \u5df2\u51c6\u5907\uff1b\u7b49\u5f85 map01 \u6700\u7ec8\u5b9e\u964560\u72ec\u7acb\u7aef\u70b9\u5ba1\u8ba1\u548c\u524d\u5e8f\u63a7\u5236\u5668\u6536\u5c3e\u3002')",
+    "status": "MAIN_REVIEW_PORT_REQUIRED"
+  },
+  {
+    "reference": "review_templates/build02_latest_runtime/controller02.py.txt",
+    "line": 70,
+    "text": "            flow.record('queue_build02.json',{'time':time.time(),'map_gate':gate,'busy':busy,'observers_excluded':observers,",
+    "status": "MAIN_REVIEW_PORT_REQUIRED"
+  },
+  {
+    "reference": "review_templates/build02_latest_runtime/controller02.py.txt",
+    "line": 71,
+    "text": "               'map_controller_full_path':'diagnostic_sync_register_map_01/run.py, recover.py or audit_final.py; build01/resume_actual_graph.py',",
+    "status": "MAIN_REVIEW_PORT_REQUIRED"
+  },
+  {
+    "reference": "review_templates/build02_latest_runtime/controller02.py.txt",
+    "line": 75,
+    "text": "            flow.record('blocked_reason.json',{'status':'REFUSED_LAUNCH','reason_zh':'map01 \u672a\u901a\u8fc7\u771f\u5b9e\u72ec\u7acb\u7aef\u70b9\u95e8\u7981\uff0c\u62d2\u7edd\u542f\u52a8 build02',",
+    "status": "MAIN_REVIEW_PORT_REQUIRED"
+  },
+  {
+    "reference": "review_templates/build02_latest_runtime/controller02.py.txt",
+    "line": 76,
+    "text": "                'evidence':gate,'pds_started_by_build02':False,'time':time.time()})",
+    "status": "MAIN_REVIEW_PORT_REQUIRED"
+  },
+  {
+    "reference": "review_templates/build02_latest_runtime/controller02.py.txt",
+    "line": 86,
+    "text": "    lease=kernel.CreateMutexW(None,True,'Global\\\\ov56401_build02_controller')",
+    "status": "MAIN_REVIEW_PORT_REQUIRED"
+  },
+  {
+    "reference": "review_templates/build02_latest_runtime/controller02.py.txt",
+    "line": 89,
+    "text": "    require(lease and not existed,'Another build02 controller is already queued/running; refuse duplicate')",
+    "status": "MAIN_REVIEW_PORT_REQUIRED"
+  },
+  {
+    "reference": "review_templates/build02_latest_runtime/controller02.py.txt",
+    "line": 102,
+    "text": "        protected=load(BOARD/'source_diagnostics_route_01/build01_guard.json')",
+    "status": "MAIN_REVIEW_PORT_REQUIRED"
+  },
+  {
+    "reference": "review_templates/build02_latest_runtime/controller02.py.txt",
+    "line": 104,
+    "text": "        say('START_AUTHORIZED_LOCAL_PHYSICAL','\u524d\u5e8f\u5df2\u6536\u5c3e\uff0cmap01 \u5b9e\u9645 PASS60\uff1b\u5f00\u59cb\u72ec\u7acb build02 \u65b0\u7269\u7406\u56fe\u6784\u5efa\u3002')",
+    "status": "MAIN_REVIEW_PORT_REQUIRED"
+  },
+  {
+    "reference": "review_templates/build02_latest_runtime/controller02.py.txt",
+    "line": 149,
+    "text": "        say('FAILED_OR_BLOCKED_EVIDENCE_PRESERVED','build02 \u505c\u6b62\uff1a'+str(exc)+'\uff1b\u8bc1\u636e\u4fdd\u7559\u5728 '+str(E/'failure.txt'))",
+    "status": "MAIN_REVIEW_PORT_REQUIRED"
+  },
+  {
+    "reference": "review_templates/build02_latest_runtime/physical_flow.py.txt",
+    "line": 14,
+    "text": "from preflight import HERE, BOARD, BASE, load, save, sha, require, verify, frozen_guard",
+    "status": "MAIN_REVIEW_PORT_REQUIRED"
+  },
+  {
+    "reference": "review_templates/build02_latest_runtime/physical_flow.py.txt",
+    "line": 19,
+    "text": "ORIGIN = BOARD / 'physical_subagent_evidence_01/fixed_06/physical_exact_09/actual/analysis'",
+    "status": "MAIN_REVIEW_PORT_REQUIRED"
+  },
+  {
+    "reference": "review_templates/build02_latest_runtime/physical_flow.py.txt",
+    "line": 45,
+    "text": "        map_controller=bool(re.search(r\"diagnostic_sync_register_map_01/(?:run|audit_final|recover)\\.py(?:\\s|[\\\"']|$)\",normalized))",
+    "status": "MAIN_REVIEW_PORT_REQUIRED"
+  },
+  {
+    "reference": "review_templates/build02_latest_runtime/physical_flow.py.txt",
+    "line": 46,
+    "text": "        build01_resume=bool(re.search(r\"source_diagnostics_timing_build_01/resume_actual_graph\\.py(?:\\s|[\\\"']|$)\",normalized))",
+    "status": "MAIN_REVIEW_PORT_REQUIRED"
+  },
+  {
+    "reference": "review_templates/build02_latest_runtime/physical_flow.py.txt",
+    "line": 47,
+    "text": "        other_build02='source_diagnostics_timing_build_02/runtime/controller02.py' in normalized",
+    "status": "MAIN_REVIEW_PORT_REQUIRED"
+  },
+  {
+    "reference": "review_templates/build02_latest_runtime/physical_flow.py.txt",
+    "line": 54,
+    "text": "        elif executor and (prior or map_controller or build01_resume or other_build02) and re.search(r'(?i)\\bpython(?:\\.exe)?\\b|\\\\python(?:w)?\\.exe', command):",
+    "status": "MAIN_REVIEW_PORT_REQUIRED"
+  },
+  {
+    "reference": "review_templates/build02_latest_runtime/physical_flow.py.txt",
+    "line": 89,
+    "text": "    guard = load(BOARD / 'source_diagnostics_route_01/build01_guard.json')",
+    "status": "MAIN_REVIEW_PORT_REQUIRED"
+  },
+  {
+    "reference": "review_templates/build02_latest_runtime/physical_flow.py.txt",
+    "line": 126,
+    "text": "    source = BOARD / 'source_diagnostics_timing_build_01/constraints_candidate'",
+    "status": "MAIN_REVIEW_PORT_REQUIRED"
+  },
+  {
+    "reference": "review_templates/build02_latest_runtime/physical_flow.py.txt",
+    "line": 133,
+    "text": "            require(path.read_bytes() == (BASE / 'physical_constraints_exact_09' / name).read_bytes(), 'Nonclock constraint changed')",
+    "status": "MAIN_REVIEW_PORT_REQUIRED"
+  },
+  {
+    "reference": "review_templates/build02_latest_runtime/physical_flow.py.txt",
+    "line": 142,
+    "text": "           'generator': str(BOARD / 'physical_subagent_evidence_01/generate_exact11.py'),",
+    "status": "MAIN_REVIEW_PORT_REQUIRED"
+  },
+  {
+    "reference": "review_templates/build02_latest_runtime/physical_flow.py.txt",
+    "line": 143,
+    "text": "           'generator_sha256': sha(BOARD / 'physical_subagent_evidence_01/generate_exact11.py'),",
+    "status": "MAIN_REVIEW_PORT_REQUIRED"
+  },
+  {
+    "reference": "review_templates/build02_latest_runtime/physical_flow.py.txt",
+    "line": 204,
+    "text": "    path = BOARD / 'physical_subagent_evidence_01/generate_exact11.py'",
+    "status": "MAIN_REVIEW_PORT_REQUIRED"
+  },
+  {
+    "reference": "review_templates/build02_latest_runtime/physical_flow.py.txt",
+    "line": 214,
+    "text": "    raw = (BASE / 'inputs/source/constraints/clock.fdc').read_bytes()",
+    "status": "MAIN_REVIEW_PORT_REQUIRED"
+  },
+  {
+    "reference": "review_templates/build02_latest_runtime/physical_flow.py.txt",
+    "line": 276,
+    "text": "    path = BOARD / 'physical_subagent_evidence_01/summarize_exact11.py'",
+    "status": "MAIN_REVIEW_PORT_REQUIRED"
+  },
+  {
+    "reference": "review_templates/build02_latest_runtime/physical_flow.py.txt",
+    "line": 330,
+    "text": "    \"\"\"Reuse reviewed topology/parameter checks as pure code with ONLY build02 output sinks.\"\"\"",
+    "status": "MAIN_REVIEW_PORT_REQUIRED"
+  },
+  {
+    "reference": "review_templates/build02_latest_runtime/physical_flow.py.txt",
+    "line": 332,
+    "text": "    src=BOARD/'diagnostic_sync_register_map_01/run.py'",
+    "status": "MAIN_REVIEW_PORT_REQUIRED"
+  },
+  {
+    "reference": "review_templates/build02_latest_runtime/physical_flow.py.txt",
+    "line": 336,
+    "text": "    detail_src=BOARD/'diagnostic_sync_register_map_01/audit_final.py'",
+    "status": "MAIN_REVIEW_PORT_REQUIRED"
+  },
+  {
+    "reference": "review_templates/build02_latest_runtime/preflight.py.txt",
+    "line": 6,
+    "text": "BASE=BOARD/'source_diagnostics_route_02'",
+    "status": "MAIN_REVIEW_PORT_REQUIRED"
+  },
+  {
+    "reference": "review_templates/build02_latest_runtime/preflight.py.txt",
+    "line": 7,
+    "text": "spec=importlib.util.spec_from_file_location('build02_preparation',HERE/'preflight.py')",
+    "status": "MAIN_REVIEW_PORT_REQUIRED"
+  },
+  {
+    "reference": "review_templates/build02_latest_runtime/preflight.py.txt",
+    "line": 9,
+    "text": "load=PREP.load;sha=PREP.sha;require=PREP.require",
+    "status": "MAIN_REVIEW_PORT_REQUIRED"
+  },
+  {
+    "reference": "review_templates/build02_latest_runtime/preflight.py.txt",
+    "line": 14,
+    "text": "    lists=[PREP.REG/v/'compile.f' for v in ['baseline','primitive']]",
+    "status": "MAIN_REVIEW_PORT_REQUIRED"
+  },
+  {
+    "reference": "review_templates/build02_latest_runtime/preflight.py.txt",
+    "line": 18,
+    "text": "        compilation.update(str((PREP.REG/v/n).resolve()) for n in ['tb_sdt.sv','scenario.vh','compare_monitor.vh'])",
+    "status": "MAIN_REVIEW_PORT_REQUIRED"
+  },
+  {
+    "reference": "review_templates/build02_latest_runtime/preflight.py.txt",
+    "line": 20,
+    "text": "                       (BOARD/'source_diagnostics_top_candidate/vendor.f').read_text().splitlines() if line.strip())",
+    "status": "MAIN_REVIEW_PORT_REQUIRED"
+  },
+  {
+    "reference": "review_templates/build02_latest_runtime/preflight.py.txt",
+    "line": 21,
+    "text": "    frozen=load(PREP.REG/'frozen_inputs.json')",
+    "status": "MAIN_REVIEW_PORT_REQUIRED"
+  },
+  {
+    "reference": "review_templates/build02_latest_runtime/preflight.py.txt",
+    "line": 22,
+    "text": "    sealed=load(PREP.REG/'hashlog.json')",
+    "status": "MAIN_REVIEW_PORT_REQUIRED"
+  },
+  {
+    "reference": "review_templates/build02_latest_runtime/preflight.py.txt",
+    "line": 23,
+    "text": "    require(len(sealed)==123,'Regression seal inventory changed');PREP.check_hashes(PREP.REG,sealed)",
+    "status": "MAIN_REVIEW_PORT_REQUIRED"
+  },
+  {
+    "reference": "review_templates/build02_latest_runtime/preflight.py.txt",
+    "line": 24,
+    "text": "    audit=load(PREP.REG/'audit.json');results=load(PREP.REG/'results.json')",
+    "status": "MAIN_REVIEW_PORT_REQUIRED"
+  },
+  {
+    "reference": "review_templates/build02_latest_runtime/preflight.py.txt",
+    "line": 28,
+    "text": "        log=(PREP.REG/variant/'simulation.log').read_bytes()",
+    "status": "MAIN_REVIEW_PORT_REQUIRED"
+  },
+  {
+    "reference": "review_templates/build02_latest_runtime/preflight.py.txt",
+    "line": 31,
+    "text": "        with gzip.open(PREP.REG/variant/'comparison.trace.gz','rb') as stream:",
+    "status": "MAIN_REVIEW_PORT_REQUIRED"
+  },
+  {
+    "reference": "review_templates/build02_latest_runtime/preflight.py.txt",
+    "line": 43,
+    "text": "        rel=file.relative_to(PREP.BASE) if file.is_relative_to(PREP.BASE) else None",
+    "status": "MAIN_REVIEW_PORT_REQUIRED"
+  },
+  {
+    "reference": "review_templates/build02_latest_runtime/preflight.py.txt",
+    "line": 50,
+    "text": "        allowed=allowed or file==(BOARD/'physical_subagent_evidence_01/fixed_06/physical_exact_11/physical_target_bindings.json').resolve()",
+    "status": "MAIN_REVIEW_PORT_REQUIRED"
+  },
+  {
+    "reference": "review_templates/build02_latest_runtime/preflight.py.txt",
+    "line": 59,
+    "text": "            sealed={n.replace('\\\\','/'):h for n,h in load(PREP.REG/'hashlog.json').items()}",
+    "status": "MAIN_REVIEW_PORT_REQUIRED"
+  },
+  {
+    "reference": "review_templates/build02_latest_runtime/preflight.py.txt",
+    "line": 60,
+    "text": "            expected=sealed.get(p.relative_to(PREP.REG).as_posix()) if p.is_relative_to(PREP.REG) else None",
+    "status": "MAIN_REVIEW_PORT_REQUIRED"
+  },
+  {
+    "reference": "review_templates/build02_latest_runtime/preflight.py.txt",
+    "line": 63,
+    "text": "    manifest=load(HERE/'manifest.json');PREP.check_hashes(HERE,manifest['local_hashes'])",
+    "status": "MAIN_REVIEW_PORT_REQUIRED"
+  },
+  {
+    "reference": "review_templates/build02_latest_runtime/preflight.py.txt",
+    "line": 64,
+    "text": "    frozen_copy=load(HERE/'evidence/build01_frozen_inputs.json');PREP.check_hashes(PREP.BASE,frozen_copy)",
+    "status": "MAIN_REVIEW_PORT_REQUIRED"
+  },
+  {
+    "reference": "review_templates/build02_latest_runtime/preflight.py.txt",
+    "line": 65,
+    "text": "    require({n for n,h in manifest['local_hashes'].items() if h!=frozen_copy[n]}==set(PREP.REPLACEMENTS),'Copy has more than the two primitive changes')",
+    "status": "MAIN_REVIEW_PORT_REQUIRED"
+  },
+  {
+    "reference": "review_templates/build02_latest_runtime/preflight.py.txt",
+    "line": 66,
+    "text": "    require(PREP.scan(manifest['registered_sources'])==manifest['binding_scan'],'Top/source binding drift')",
+    "status": "MAIN_REVIEW_PORT_REQUIRED"
+  },
+  {
+    "reference": "review_templates/build02_latest_runtime/preflight.py.txt",
+    "line": 67,
+    "text": "    require(PREP.optimization_gate()==manifest['optimization_gate'],'Three optimization evidence drift')",
+    "status": "MAIN_REVIEW_PORT_REQUIRED"
+  },
+  {
+    "reference": "review_templates/build02_latest_runtime/preflight.py.txt",
+    "line": 69,
+    "text": "    for rel in PREP.REPLACEMENTS:",
+    "status": "MAIN_REVIEW_PORT_REQUIRED"
+  },
+  {
+    "reference": "review_templates/build02_latest_runtime/preflight.py.txt",
+    "line": 70,
+    "text": "        require((HERE/rel).read_bytes()==(PREP.REG/'primitive/rtl'/Path(rel).name).read_bytes(),'Integrated primitive not regression input')",
+    "status": "MAIN_REVIEW_PORT_REQUIRED"
+  },
+  {
+    "reference": "review_templates/build02_latest_runtime/preflight.py.txt",
+    "line": 71,
+    "text": "        active=(PREP.BASE/rel).read_bytes();reference=(PREP.REG/'baseline/rtl'/Path(rel).name).read_bytes()",
+    "status": "MAIN_REVIEW_PORT_REQUIRED"
+  },
+  {
+    "reference": "review_templates/build02_latest_runtime/preflight.py.txt",
+    "line": 73,
+    "text": "        bridges.append({'path':rel,'build01_sha256':sha(PREP.BASE/rel),'regressed_baseline_sha256':sha(PREP.REG/'baseline/rtl'/Path(rel).name),",
+    "status": "MAIN_REVIEW_PORT_REQUIRED"
+  },
+  {
+    "reference": "review_templates/build02_latest_runtime/preflight.py.txt",
+    "line": 76,
+    "text": "             'report_sha256':sha(PREP.REG/'REPORT.md'),'regression_code_sha256':sha(PREP.REG/'run.py'),",
+    "status": "MAIN_REVIEW_PORT_REQUIRED"
+  },
+  {
+    "reference": "review_templates/build02_latest_runtime/preflight.py.txt",
+    "line": 86,
+    "text": "    hashes=load(HERE/'evidence/build01_frozen_inputs.json');PREP.check_hashes(PREP.BASE,hashes);return hashes",
+    "status": "MAIN_REVIEW_PORT_REQUIRED"
+  },
+  {
+    "reference": "review_templates/build02_latest_runtime/preflight.py.txt",
+    "line": 88,
+    "text": "    reconcile();m=load(HERE/'manifest.json');PREP.check_hashes(HERE,m['local_hashes'])",
+    "status": "MAIN_REVIEW_PORT_REQUIRED"
+  },
+  {
+    "reference": "review_templates/build02_latest_runtime/preflight.py.txt",
+    "line": 91,
+    "text": "    p=PREP.MAP/'evidence/final_result.json'",
+    "status": "MAIN_REVIEW_PORT_REQUIRED"
+  },
+  {
+    "reference": "review_templates/build02_latest_runtime/preflight.py.txt",
+    "line": 95,
+    "text": "            topology=PREP.MAP/'evidence/mapping_topology.json'",
+    "status": "MAIN_REVIEW_PORT_REQUIRED"
+  },
+  {
+    "reference": "review_templates/build02_latest_runtime/preflight.py.txt",
+    "line": 109,
+    "text": "        src=PREP.MAP/'run.py';text=src.read_text(encoding='utf8')",
+    "status": "MAIN_REVIEW_PORT_REQUIRED"
+  },
+  {
+    "reference": "review_templates/build02_latest_runtime/preflight.py.txt",
+    "line": 112,
+    "text": "        srcdetail=PREP.MAP/'audit_final.py';text=srcdetail.read_text(encoding='utf8')",
+    "status": "MAIN_REVIEW_PORT_REQUIRED"
+  },
+  {
+    "reference": "review_templates/build02_latest_runtime/preflight.py.txt",
+    "line": 117,
+    "text": "            art=load(PREP.MAP/f'evidence/{stage}_artifact.json')",
+    "status": "MAIN_REVIEW_PORT_REQUIRED"
+  },
+  {
+    "reference": "review_templates/build02_latest_runtime/preflight.py.txt",
+    "line": 120,
+    "text": "            graphpath=PREP.MAP/f'evidence/{stage}/analysis/graph.json';g=load(graphpath)",
+    "status": "MAIN_REVIEW_PORT_REQUIRED"
+  },
+  {
+    "reference": "review_templates/build02_latest_runtime/preflight.py.txt",
+    "line": 121,
+    "text": "            export=load(PREP.MAP/f'evidence/{stage}_export_hashes.json')",
+    "status": "MAIN_REVIEW_PORT_REQUIRED"
+  },
+  {
+    "reference": "review_templates/build02_latest_runtime/preflight.py.txt",
+    "line": 123,
+    "text": "            ref=load(PREP.MAP/'evidence/synthesis/analysis/graph.json') if stage=='mapping' else None",
+    "status": "MAIN_REVIEW_PORT_REQUIRED"
+  },
+  {
+    "reference": "review_templates/build02_latest_runtime/preflight.py.txt",
+    "line": 129,
+    "text": "        inputs=load(PREP.MAP/'evidence/input_hashes.json')",
+    "status": "MAIN_REVIEW_PORT_REQUIRED"
+  },
+  {
+    "reference": "review_templates/build02_latest_runtime/preflight.py.txt",
+    "line": 130,
+    "text": "        PREP.check_hashes(PREP.MAP,{n:h for n,h in inputs.items() if n!='project.pds'})",
+    "status": "MAIN_REVIEW_PORT_REQUIRED"
+  },
+  {
+    "reference": "review_templates/build02_latest_runtime/preflight.py.txt",
+    "line": 131,
+    "text": "        for rel in PREP.REPLACEMENTS:require((PREP.MAP/rel).read_bytes()==(HERE/rel).read_bytes(),'Mapped primitive differs from integrated bytes')",
+    "status": "MAIN_REVIEW_PORT_REQUIRED"
+  },
+  {
+    "reference": "review_templates/build02_latest_runtime/prepare_local_delivery.py.txt",
+    "line": 18,
+    "text": "    return {'audit_fixed':str(BOARD/'physical_subagent_evidence_01/audit_fixed.py'),",
+    "status": "MAIN_REVIEW_PORT_REQUIRED"
+  },
+  {
+    "reference": "review_templates/build02_latest_runtime/prepare_local_delivery.py.txt",
+    "line": 22,
+    "text": "            'consumer':str(BOARD/'goal_board_validation_01/new_program_candidate.py'),",
+    "status": "MAIN_REVIEW_PORT_REQUIRED"
+  },
+  {
+    "reference": "review_templates/build02_latest_runtime/prepare_local_delivery.py.txt",
+    "line": 23,
+    "text": "            'routed_connection':str(BOARD/'goal_board_validation_01/routed_connection.py'),",
+    "status": "MAIN_REVIEW_PORT_REQUIRED"
+  },
+  {
+    "reference": "review_templates/build02_latest_runtime/prepare_local_delivery.py.txt",
+    "line": 27,
+    "text": "            'routed_truth_reference':str(BOARD/'build01_binding_review01/review.py'),",
+    "status": "MAIN_REVIEW_PORT_REQUIRED"
+  },
+  {
+    "reference": "review_templates/build02_latest_runtime/prepare_local_delivery.py.txt",
+    "line": 30,
+    "text": "            'assembler':str(BOARD/'goal_board_validation_01/new_prepare_delivery.py')}",
+    "status": "MAIN_REVIEW_PORT_REQUIRED"
+  },
+  {
+    "reference": "review_templates/build02_latest_runtime/prepare_local_delivery.py.txt",
+    "line": 103,
+    "text": "    guard = load(BOARD / 'source_diagnostics_route_01/build01_guard.json')",
+    "status": "MAIN_REVIEW_PORT_REQUIRED"
+  },
+  {
+    "reference": "review_templates/build02_latest_runtime/prepare_local_delivery.py.txt",
+    "line": 166,
+    "text": "    script = BOARD / 'goal_board_validation_01/new_prepare_delivery.py'",
+    "status": "MAIN_REVIEW_PORT_REQUIRED"
+  },
+  {
+    "reference": "review_templates/build02_latest_runtime/prepare_local_delivery.py.txt",
+    "line": 213,
+    "text": "    consumer = BOARD / 'goal_board_validation_01/new_program_candidate.py'",
+    "status": "MAIN_REVIEW_PORT_REQUIRED"
+  },
+  {
+    "reference": "review_templates/build02_latest_runtime/routed_acceptance.py.txt",
+    "line": 19,
+    "text": "    result=truth_proof(graph,sg,manifest,BOARD/'build01_binding_review01/review.py')",
+    "status": "MAIN_REVIEW_PORT_REQUIRED"
+  },
+  {
+    "reference": "review_templates/build02_latest_runtime/routed_acceptance.py.txt",
+    "line": 66,
+    "text": "    source_path = BOARD / 'physical_subagent_evidence_01/audit_fixed.py'",
+    "status": "MAIN_REVIEW_PORT_REQUIRED"
+  },
+  {
+    "reference": "review_templates/build02_latest_runtime/routed_acceptance.py.txt",
+    "line": 75,
+    "text": "    cf.BASE, cf.HERE, cf.PDS, cf.OUT = BOARD, HERE, PDS, EVIDENCE",
+    "status": "MAIN_REVIEW_PORT_REQUIRED"
+  },
+  {
+    "reference": "review_templates/build02_latest_runtime/verify_identity_adapter.py.txt",
+    "line": 1,
+    "text": "\"\"\"Read-only actual build01 calibration and negative tests; no PDS or acceptance.\"\"\"",
+    "status": "MAIN_REVIEW_PORT_REQUIRED"
+  },
+  {
+    "reference": "review_templates/build02_latest_runtime/verify_identity_adapter.py.txt",
+    "line": 11,
+    "text": "    e=BOARD/'source_diagnostics_timing_build_01/evidence'",
+    "status": "MAIN_REVIEW_PORT_REQUIRED"
+  },
+  {
+    "reference": "review_templates/build02_latest_runtime/verify_identity_adapter.py.txt",
+    "line": 17,
+    "text": "    result=truth_proof(g,sg,m,BOARD/'build01_binding_review01/review.py')",
+    "status": "MAIN_REVIEW_PORT_REQUIRED"
+  },
+  {
+    "reference": "review_templates/build02_latest_runtime/verify_identity_adapter.py.txt",
+    "line": 18,
+    "text": "    require(result['passed'],'Actual old build01 all2048 function calibration failed')",
+    "status": "MAIN_REVIEW_PORT_REQUIRED"
+  },
+  {
+    "reference": "review_templates/build02_latest_runtime/verify_identity_adapter.py.txt",
+    "line": 19,
+    "text": "    result['calibration_only']=True;result['build02_physical_pass']=False",
+    "status": "MAIN_REVIEW_PORT_REQUIRED"
+  },
+  {
+    "reference": "review_templates/build02_latest_runtime/verify_identity_adapter.py.txt",
+    "line": 57,
+    "text": "    fixture=[{'ProcessId':1,'ParentProcessId':0,'Name':'python.exe','CommandLine':'python x/diagnostic_sync_register_map_01/recover.py'},",
+    "status": "MAIN_REVIEW_PORT_REQUIRED"
+  },
+  {
+    "reference": "review_templates/build02_latest_runtime/verify_identity_adapter.py.txt",
+    "line": 66,
+    "text": "           'truth_producer_sha256':sha(TOOLS/'routed_identity.py'),'build02_fresh_graph_test':'PENDING',",
+    "status": "MAIN_REVIEW_PORT_REQUIRED"
+  }
+]

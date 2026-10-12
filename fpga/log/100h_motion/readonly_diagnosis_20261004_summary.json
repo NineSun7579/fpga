@@ -1,0 +1,68 @@
+{
+  "scope": "Read-only SSH /proc, sysfs, existing logs and source; no FPGA programming, configuration changes, DMA device opens, viewer lifecycle changes, or duplicate deployment worker",
+  "raw_report": "readonly_diagnosis_20261004.json",
+  "sample_seconds": 30.149245738983154,
+  "viewer": {
+    "pid": 95911,
+    "starttime": "20049099",
+    "exe_sha256": "0d717a430e46e13d61553bf74c5ea7f13aff5c69db8587136aa227b5705ad153",
+    "identity_matches_recovery_resume": true,
+    "identity_matches_predeployment_capture_binary": true,
+    "threads": 20,
+    "cpu_percent_one_core_basis": 264.68,
+    "sole_dma_owner": true,
+    "performance_environment": {
+      "QT_QPA_PLATFORM": "xcb",
+      "DETVIEW_SWAP_INTERVAL": "0",
+      "DETVIEW_TEXTURE_RING": "1",
+      "DISPLAY": ":0"
+    },
+    "renderer": "Mali-G52",
+    "opencv_source_thread_limit": 2,
+    "argv_stereo_scale": 0.5,
+    "argv_stereo_interval_ms": 250
+  },
+  "system": {
+    "cpu_frequency_khz": 1992000,
+    "cpu_governor": "ondemand",
+    "gpu_frequency_hz": 800000000,
+    "npu_frequency_hz": 900000000,
+    "memory_frequency_hz": 1560000000,
+    "soc_temperature_celsius": 66.25,
+    "gpu_temperature_celsius": 60.555,
+    "available_memory_kb": 1177328,
+    "swap_total_kb": 0,
+    "major_fault_delta": 0,
+    "xorg_cpu_percent_one_core_basis": 33.47,
+    "aggregate_cpu_idle_percent_approx": 11.86,
+    "context_switches_per_second_approx": 11503.5,
+    "pango_irq_per_second": 928.48,
+    "gpu_irq_per_second": [844.57, 603.66],
+    "irq_cpu_ticks_delta": 0,
+    "softirq_cpu_ticks_delta": 24,
+    "sample_total_cpu_ticks": 11868,
+    "heavy_external_build_or_calibration_process_observed": false,
+    "pressure_interface": "unavailable"
+  },
+  "rollback": {
+    "existing_worker_status": "recovery_unhealthy",
+    "completed_local_time": "2026-10-04 22:17:08",
+    "restored_bitstream_sha256": "e3da6e1fbc7d0bb2abcc2ee57342906e395fb74cecd1f3163e9ada33e89e96f7",
+    "first_120_second_observation": "all six delivered means 3.02-4.16 fps; inference 0-8 fps",
+    "later_same_pid_observation": "capture approximately 26-43 fps, display approximately 20-22 fps, NPU approximately 10-12 fps; no restart by diagnostic agent",
+    "later_display_costs": "camera upload mean 7.8-9.2 ms; HUD raster mean 12.4-16.1 ms per rebuild; HUD upload mean 11.2-16.1 ms per rebuild; paint mean 19.8-26.6 ms",
+    "later_stereo_cost": "200-267 ms mean per computation; 9-11 successful pairs per 5 seconds"
+  },
+  "slow_period_evidence": [
+    "Recovery camera3 delivered=2.20 fps, read=432.477 ms, DMA=1.562 ms, copy=424.606 ms",
+    "Recovery camera4 delivered=1.11 fps, read=878.879 ms, DMA=1.272 ms, copy=870.662 ms",
+    "Recovery camera5 delivered=1.60 fps, read=615.494 ms, DMA=1.593 ms, copy=11.494 ms",
+    "Same recovery process later has copy approximately 8-11 ms and DMA approximately 1.2-1.6 ms"
+  ],
+  "interpretation": {
+    "high_confidence": "Severe intermittent host-side wall-time stalls exist with the restored old image and same preserved viewer binary; individual frame DMA is fast in the recorded slow intervals. Current lower display rate has substantial rendering/HUD and stereo costs.",
+    "moderate_confidence": "Host scheduling, serialized DMA-lock waits, mapped-memory copy latency, or other application synchronization can explain variable read/copy wall times. Current CPU workload is substantial but cannot retrospectively identify the earlier stall cause.",
+    "not_established": "Exact root cause of the earlier multi-hundred-ms copy stalls; FPGA candidate causality; transient thermal throttling or interrupt storm during the earlier slow window; complete environment equivalence with the parent-provided older 121-second healthy baseline.",
+    "next_specific_diagnostic": "When slowdown recurs, collect synchronized per-thread CPU/runqueue wait deltas and frequency/IRQ snapshots against the same PID and existing display/capture log intervals. A read-only thread profile can distinguish CPU execution from descheduling or mutex waits; profile before any configuration or FPGA changes."
+  }
+}

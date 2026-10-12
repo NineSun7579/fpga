@@ -1,0 +1,95 @@
+{
+  "tests": [
+    {
+      "option": "--vision-selftest",
+      "exit_code": 0,
+      "stdout": "arm_release_ver: g24p0-00eac0, rk_so_ver: 7\nCALIBRATION_CAPTURE_SELFTEST_PASS\n  moving texture, light changes, periodic refresh: PASS\n  three-scale template search: PASS\n  constant-template and duplicate-peak rejection: PASS\n  predicted-frame limit, occlusion loss, immutable detection TTL: PASS\n  same-class one-to-one association, correction, model-local replacement: PASS\n  deep-copy isolation, source replay, time guards, global ID uniqueness: PASS\n  image edges/size reset, validation, bounded tracks, owned image pixels: PASS\n  capped large fast/odd/edge motion, stable sizes, scale/reference: PASS\n  capped deep-copy replay, occlusion and periodic-peak rejection: PASS\n  same-observation exclusion, real overlap/classes, timing reset, cap validation: PASS\n  cap16/48/128 huge/thin phase coverage, whole-box detail verification: PASS\nTRACKER_SELFTEST_PASS\nCAMERA_DMA_SELFTEST_PASS\nFRAME_METRICS_SELFTEST_PASS (216 checks)\nVISION_SELFTEST_PASS\n",
+      "stderr": "VEHICLE_TRACKING_POLICY_SELFTEST_PASS\nDISPLAY_REFRESH_SELFTEST_PASS\nVISION_SELFTEST_PASS\n"
+    },
+    {
+      "option": "--camera-dma-selftest",
+      "exit_code": 0,
+      "stdout": "CAMERA_DMA_SELFTEST_PASS\n",
+      "stderr": ""
+    },
+    {
+      "option": "--dfl-selftest",
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": "[dfl-selftest] got n=1 box=(156.0,68.0,188.0,116.0) score=0.90 cls=0\n[dfl-selftest] expect box=(156.0,68.0,188.0,116.0) score=0.90\n[dfl-selftest] got n=1 box=(156.0,68.0,188.0,116.0) score=0.90 cls=0\n[dfl-selftest] expect box=(156.0,68.0,188.0,116.0) score=0.90\nDFL_SELFTEST_PASS\n"
+    }
+  ],
+  "files": {
+    "Makefile": {
+      "sha256": "6545c71af80a9dec904fc9f6bca7da27bfe517a06e23f27a7272fcb13d11a4cf",
+      "size": 28924
+    },
+    "main.o": {
+      "sha256": "7908de15dabad36da0b5d62ee91e46326f35eb1da6da1ec8ca53832cafe0983b",
+      "size": 636984
+    },
+    "vision_pipeline.o": {
+      "sha256": "8cac40d7ee74cfdf2f7b89c230171bf020dac533ead69b50a4384d2092c17a87",
+      "size": 267488
+    },
+    "moc_predefs.h": {
+      "sha256": "b24e8a444197bf8955bf56e80acbb53ffdcd1532277d159afb864a7953fa2e70",
+      "size": 16146
+    },
+    "/userdata/linaro/detview-todo-work/sdk/rknn_api.h": {
+      "sha256": "c48e11a6f41b451a5fd1e4ad774ea60252d3d94f78bee9b21ea3d21b21deba9a",
+      "size": 35707
+    }
+  },
+  "tools": {
+    "qmake": {
+      "exit_code": 0,
+      "stdout": "QMake version 3.1\nUsing Qt version 5.15.8 in /usr/lib/aarch64-linux-gnu\n",
+      "stderr": ""
+    },
+    "compiler": {
+      "exit_code": 0,
+      "stdout": "g++ (Debian 12.2.0-14) 12.2.0\nCopyright (C) 2022 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n",
+      "stderr": ""
+    },
+    "opencv": {
+      "exit_code": 0,
+      "stdout": "4.6.0\n",
+      "stderr": ""
+    }
+  },
+  "binary_sha256_after": "946bcb0dc3b7740ad8bb4e7db2da510573f4d019de99ca264635625622a656ba",
+  "source_sha256_after": {
+    "calibration_capture.cpp": "69806455bcf2bd972954696da2ecf4ae1af26c173f4ea98b33bd6d9612ddf5d2",
+    "calibration_capture.h": "01cd113aca966cae21d0f7473fa4b56e82a99bfd1867a527491d427bd479cc98",
+    "camera_dma.h": "29267367a7f449b77375c62a5fbfecdb6a091aea0b36b10c0cb60cc33e0541f0",
+    "camera_dma_selftest.cpp": "afa545452cb968875248ceaf824559332c1b87cab55e18e8ff4678629288a964",
+    "detview.pro": "785fdbf9098de32a5102ca042992f3d43d03d98ef339cd5f3bb73f7a0c5b497f",
+    "display_perf.h": "f4e95b21259f36660fb9521f9563550a33a2755d504e4cf0f52f335afc35f576",
+    "frame_metrics.h": "2029487f5a7b4be8e8c208fa75376321386dcfe9465537686027fd824e44895b",
+    "frame_metrics_selftest.cpp": "6d8648e4f8ffd70c47d7515a1995d7b6e4ced24fd8af361031deac365ca626b1",
+    "main.cpp": "6b98975944f9ab2ff776e2891f7ff22d3085699d69503ca78027464e0e9ccce3",
+    "rknn_api.h": "c48e11a6f41b451a5fd1e4ad774ea60252d3d94f78bee9b21ea3d21b21deba9a",
+    "stall_timing.h": "529a5a0eab424206bf146ffba50bc275506cb18e0cb72ca3a36b8f955e1e3290",
+    "stereo_demo/main.cpp": "ad4eb86aa65cfea68a50a9a1c4438c963000ccf7b276f1ef196dceb3f1d5a701",
+    "stereo_demo/pango_stereo_source.cpp": "83c03486c2212b1665bab4e2c8c8ede0755784f37696ca8efae6ebcaefc00be9",
+    "stereo_demo/pango_stereo_source.h": "b734609266b3b7abe5967bd8b53817348b22fb084abff7077f7371e8e57ef579",
+    "stereo_demo/stereo_depth.cpp": "c586fa8bbd6ac02f0b6af70ee660af1b1ec0bfa5491eefa7f0994e339819c61d",
+    "stereo_demo/stereo_depth.h": "1bb98992bea24ba785d5812e612d53cf7957c3e79b4f043abc71c4793bf7b4c7",
+    "stereo_demo/stereo_pairing.h": "565a76258bc2a0a70d78486c20814b308b74c5396a48a90d485f54d23bcc243a",
+    "stereo_demo/stereo_selftest.cpp": "d690e30a60947ee525677b4fc5eec4476eab25f0270d1cf42b457ed5b707117a",
+    "template_tracker.cpp": "c75b547b617df13986e7cc82af98ebb6ef5fd99bf633630d200fda0a869441fa",
+    "template_tracker.h": "c130f6ac04002c832974e0751dc4577d93a208163880d7055a52ec9ae8abb581",
+    "template_tracker_selftest.cpp": "5fca10d66997b16cae8badf388e5903e8f9abe807078b4113e0c7903eacd02ea",
+    "vision_pipeline.cpp": "d2d6c738681113b1aa3f320b4c48f024f4f8372854899d0a3ededfea786ce01d",
+    "vision_pipeline.h": "d452f53704cff9706899d485a5169dd0c321cf0fa94d1dbdde882634740e1d99",
+    "vision_pipeline_selftest.cpp": "31d432eb11f0f78690e0334289153edc6f664b2e6ab655e460a288790ca70718",
+    "vision_types.h": "07f8486e2dcc43d7ff7a65c36d804fcf5729a3e60c03de6b6259dd3fc9ca9a4d"
+  },
+  "reused_verified_selftests": true,
+  "ssh_exit_code": 0,
+  "ssh_stderr": "",
+  "build_receipt": "C:\\Users\\NineSun\\Desktop\\ov56401\\project\\performance_100h\\builds\\0e25307aa770116c\\receipt.json",
+  "captured_unix_s": 1791136199.066382,
+  "status": "verified"
+}

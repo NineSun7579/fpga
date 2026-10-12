@@ -1,0 +1,112 @@
+{
+  "status": "PASS",
+  "scope": "pure host contracts and actual-manager/control-chain fixture; no physical DMA/frame validation",
+  "compiler": "MSVC 19 C++17 /W4 /WX",
+  "counts": {
+    "cases": 88,
+    "checks": 6225,
+    "writes": 248,
+    "reads": 2575,
+    "dma": 28
+  },
+  "commands": [
+    [
+      "cmd.exe",
+      "/d",
+      "/c",
+      "C:\\Users\\NineSun\\Desktop\\ov56401\\project\\fpga_v8_migration\\capture_host\\build_local_selftest.cmd"
+    ],
+    [
+      "C:\\Users\\NineSun\\Desktop\\ov56401\\project\\fpga_v8_migration\\capture_host\\artifacts\\capture_host_selftest.exe",
+      "--fixture",
+      "C:\\Users\\NineSun\\Desktop\\ov56401\\project\\fpga_v8_migration\\capture_host\\artifacts\\host.fixture"
+    ],
+    [
+      "C:\\Users\\NineSun\\Desktop\\ov56401\\project\\fpga_v8_migration\\capture_host\\artifacts\\capture_host_selftest.exe",
+      "--map"
+    ],
+    [
+      "C:\\modeltech64_10.6e\\win64\\vlib.exe",
+      "work_capture_host"
+    ],
+    [
+      "C:\\modeltech64_10.6e\\win64\\vlog.exe",
+      "-work",
+      "work_capture_host",
+      "C:\\Users\\NineSun\\Desktop\\ov56401\\project\\fpga_v8_migration\\cooperative_endpoint\\fpga_v8_coop_axi128_endpoint.v",
+      "C:\\Users\\NineSun\\Desktop\\ov56401\\project\\fpga_v8_migration\\cooperative_control\\fpga_v8_coop_control_axil.v",
+      "C:\\Users\\NineSun\\Desktop\\ov56401\\project\\fpga_v8_migration\\capture_lease\\fpga_v8_capture_lease.v",
+      "C:\\Users\\NineSun\\Desktop\\ov56401\\project\\fpga_v8_migration\\capture_endpoint\\fpga_v8_capture_control_axil.v",
+      "C:\\Users\\NineSun\\Desktop\\ov56401\\project\\fpga_v8_migration\\capture_endpoint\\fpga_v8_coop_axil_router.v"
+    ],
+    [
+      "C:\\modeltech64_10.6e\\win64\\vlog.exe",
+      "-sv",
+      "-work",
+      "work_capture_host",
+      "C:\\Users\\NineSun\\Desktop\\ov56401\\project\\fpga_v8_migration\\capture_host\\artifacts\\tb_fpga_v8_capture_host_fixture.sv"
+    ],
+    [
+      "C:\\modeltech64_10.6e\\win64\\vsim.exe",
+      "-c",
+      "-onfinish",
+      "stop",
+      "work_capture_host.tb_fpga_v8_capture_host_fixture",
+      "-do",
+      "run -all; quit -f"
+    ]
+  ],
+  "crossfixture": {
+    "status": "PASS",
+    "registers_checked": 32,
+    "operations": 318,
+    "public_events": 2295,
+    "fixture_counts": {
+      "R": 280,
+      "W": 30,
+      "S": 2,
+      "P": 2,
+      "F": 4,
+      "E": 1,
+      "D": 2
+    },
+    "planned_dma_records": [
+      {
+        "address": 25165824,
+        "reserved_rx_offset": 4096,
+        "bytes": 614400
+      },
+      {
+        "address": 134217728,
+        "reserved_rx_offset": 618496,
+        "bytes": 1228800
+      },
+      {
+        "address": 27262976,
+        "reserved_rx_offset": 4096,
+        "bytes": 614400
+      },
+      {
+        "address": 136314880,
+        "reserved_rx_offset": 618496,
+        "bytes": 1228800
+      }
+    ]
+  },
+  "protected_files": 83,
+  "protected_hashes_unchanged": true,
+  "candidate_hashes": {
+    "build_local_selftest.cmd": "f05bde56948eae77a64254c2b0d40360878f31fe23b3b65669b9b638052131ed",
+    "capture_host_protocol.hpp": "7c386e04e93b7ba13b6589f0c9e3dcb4d57c330371eada9b1c3c33431e205b98",
+    "capture_host_selftest.cpp": "a26d3643f819f9e9fcb47c58bbf665e1d6f19447b9efb02f196736ccb1316819",
+    "host_api.json": "6ed7228d86f5d3f19f54679056ab8ab929c13c61cbed269ab8fb89abcc65785c",
+    "README.md": "6175bb8978a427036a306b1145b324e8ab1419e33b73b86f5456f1c08195af1c",
+    "run_capture_host_tests.py": "6152d3c2c981deed770de465d86dfe32c350c875f194bdc8ac34b362fd86fd74",
+    "VALIDATION.md": "0c4e9c3acaf6463eaeffc6236cbb15f18d96b11e16c4ca41c579bef004a53005"
+  },
+  "trace_hashes": {
+    "host.fixture": "6140eb6fb395b7be6b6e91393c1a5eb6edf48824e9a2bfe24d191c01ef73934c",
+    "actual.trace": "91cbf18a837598ac8dfde4805fb384aed7d3ecd307366906b68a9a5c7001fa2f",
+    "expected.trace": "974af37ca8a0ad0ca274b6242d677a4552c108b99a49fde056e1f94fc118b156"
+  }
+}

@@ -1,0 +1,99 @@
+Startpoint  : ov5640_top/u_cam_fir3/out_pixel[15]/opit_0_AQ/CLK
+Endpoint    : ov5640_top/u_motion_tap/events_7/ram32x2d/DIH
+Path Group  : ddrphy_sysclk
+Path Type   : min (slow corner)
+Path Class  : sequential timing path
+Clock Skew  :    0.029  (Capture Clock Delay - Launch Clock Delay + Clock Pessimism Removal)
+  Capture Clock Delay     :  5.587
+  Launch Clock Delay      :  4.173
+  Clock Pessimism Removal :  -1.385
+
+ Location                          Delay Type             Incr        Path         Logical Resource 
+----------------------------------------------------------------------------------------------------
+
+ Clock ddrphy_sysclk (rising edge)                       0.000       0.000 r                        
+ V4                                                      0.000       0.000 r       free_clk (port)  
+                                   net (fanout=1)        0.106       0.106         free_clk         
+ IOBD_372_468/PAD                                                                  free_clk_ibuf/opit_0/I
+ IOBD_372_468/DIN                  td                    0.954       1.060 r       free_clk_ibuf/opit_0/O
+                                   net (fanout=1)        0.000       1.060         free_clk_ibuf/ntD
+ IOLHR_364_468/DI                                                                  free_clk_ibuf/opit_1/DI
+ IOLHR_364_468/DI_TO_CLK           td                    0.091       1.151 r       free_clk_ibuf/opit_1/DI_TO_CLK
+                                   net (fanout=281)      0.247       1.398         nt_free_clk      
+ MRCKB_361_456/CLKIN_P                                                             ddr3/u_ddrphy_top/u_clkbufm/clkbufm_inst/CLKIN_P
+ MRCKB_361_456/CLKOUT_U_P          td                    0.126       1.524 r       ddr3/u_ddrphy_top/u_clkbufm/clkbufm_inst/CLKOUT_P
+                                   net (fanout=2)        0.367       1.891         ddr3/u_ddrphy_top/pll_refclk
+ RCKB_363_456/CLKIN                                                                ddr3/u_ddrphy_top/ddrphy_slice_top/i_dqs_bank[0].u_clkbufr/goprclk/CLKIN
+ RCKB_363_456/CLKOUT               td                    0.149       2.040 r       ddr3/u_ddrphy_top/ddrphy_slice_top/i_dqs_bank[0].u_clkbufr/goprclk/CLKOUT
+                                   net (fanout=1)        0.383       2.423         ddr3/u_ddrphy_top/ddrphy_slice_top/ppll_clkin [0]
+ PPLL_367_307/CLK_IN0                                                              ddr3/u_ddrphy_top/ddrphy_slice_top/i_dqs_bank[0].ddrphy_ppll/u_ppll/ppll_inst/CLKIN1
+ PPLL_367_307/CLKOUTPHY            td                    0.026       2.449 r       ddr3/u_ddrphy_top/ddrphy_slice_top/i_dqs_bank[0].ddrphy_ppll/u_ppll/ppll_inst/CLKOUTPHY
+                                   net (fanout=36)       0.000       2.449         ddr3/u_ddrphy_top/phy_ioclk_fb
+ DDRPHY_IOCLK_DIV_368_310/CLKIN                                                    ddr3/u_ddrphy_top/ddrphy_slice_top/i_dqs_bank[0].u_ddrphy_ioclkdiv/ddrphy_ioclk_div_inst/CLKIN
+ DDRPHY_IOCLK_DIV_368_310/CLKOUT   td                    0.101       2.550 r       ddr3/u_ddrphy_top/ddrphy_slice_top/i_dqs_bank[0].u_ddrphy_ioclkdiv/ddrphy_ioclk_div_inst/CLKOUT
+                                   net (fanout=35)       0.000       2.550         ddr3/u_ddrphy_top/phy_sysclk_fb
+ DDRPHY_CPD_369_466/PPLL_SYSCLK                                            r       ddr3/u_ddrphy_top/u_ddrphy_cpd/cpd_inst/CLK_PHY
+ GPLL_367_463/CLKOUT0                                   -0.306       2.244 r       ddr3/u_ddrphy_top/ddrphy_gpll/u_gpll/gpll_inst/CLKOUT0
+                                   net (fanout=1)        0.642       2.886         ddr3/u_ddrphy_top/gpll_clkout0
+ USCM_215_576/CLKIN0                                                               ddr3/u_ddrphy_top/u_sysclk_bufg/gopclkbufg/CLK
+ USCM_215_576/CLKOUT               td                    0.143       3.029 r       ddr3/u_ddrphy_top/u_sysclk_bufg/gopclkbufg/CLKOUT
+                                   net (fanout=8)        0.515       3.544         axi_clk          
+ HCKB_213_474/CLKIN                                                                HCKBROUTE_56/CLKIN
+ HCKB_213_474/CLKOUT               td                    0.245       3.789 r       HCKBROUTE_56/CLKOUT
+                                   net (fanout=3397)     0.384       4.173         ntR11544         
+ CLMA_75_462/CLK                                                           r       ov5640_top/u_cam_fir3/out_pixel[15]/opit_0_AQ/CLK
+
+ CLMA_75_462/Q1                    tco                   0.174       4.347 r       ov5640_top/u_cam_fir3/out_pixel[15]/opit_0_AQ/Q
+                                   net (fanout=3)        0.091       4.438         ov5640_top/kf_video_data [15]
+ CLMS_75_463/BD                                                            r       ov5640_top/u_motion_tap/events_7/ram32x2d/DIH
+
+ Data arrival time                                                   4.438         Logic Levels: 0  
+                                                                                   Logic: 0.174ns(65.660%), Route: 0.091ns(34.340%)
+----------------------------------------------------------------------------------------------------
+
+ Clock ddrphy_sysclk (rising edge)                       0.000       0.000 r                        
+ V4                                                      0.000       0.000 r       free_clk (port)  
+                                   net (fanout=1)        0.106       0.106         free_clk         
+ IOBD_372_468/PAD                                                                  free_clk_ibuf/opit_0/I
+ IOBD_372_468/DIN                  td                    1.117       1.223 r       free_clk_ibuf/opit_0/O
+                                   net (fanout=1)        0.000       1.223         free_clk_ibuf/ntD
+ IOLHR_364_468/DI                                                                  free_clk_ibuf/opit_1/DI
+ IOLHR_364_468/DI_TO_CLK           td                    0.105       1.328 r       free_clk_ibuf/opit_1/DI_TO_CLK
+                                   net (fanout=281)      0.294       1.622         nt_free_clk      
+ MRCKB_361_456/CLKIN_P                                                             ddr3/u_ddrphy_top/u_clkbufm/clkbufm_inst/CLKIN_P
+ MRCKB_361_456/CLKOUT_U_P          td                    0.148       1.770 r       ddr3/u_ddrphy_top/u_clkbufm/clkbufm_inst/CLKOUT_P
+                                   net (fanout=2)        0.432       2.202         ddr3/u_ddrphy_top/pll_refclk
+ RCKB_363_456/CLKIN                                                                ddr3/u_ddrphy_top/ddrphy_slice_top/i_dqs_bank[0].u_clkbufr/goprclk/CLKIN
+ RCKB_363_456/CLKOUT               td                    0.177       2.379 r       ddr3/u_ddrphy_top/ddrphy_slice_top/i_dqs_bank[0].u_clkbufr/goprclk/CLKOUT
+                                   net (fanout=1)        0.450       2.829         ddr3/u_ddrphy_top/ddrphy_slice_top/ppll_clkin [0]
+ PPLL_367_307/CLK_IN0                                                              ddr3/u_ddrphy_top/ddrphy_slice_top/i_dqs_bank[0].ddrphy_ppll/u_ppll/ppll_inst/CLKIN1
+ PPLL_367_307/CLKOUTPHY            td                    0.037       2.866 r       ddr3/u_ddrphy_top/ddrphy_slice_top/i_dqs_bank[0].ddrphy_ppll/u_ppll/ppll_inst/CLKOUTPHY
+                                   net (fanout=36)       0.000       2.866         ddr3/u_ddrphy_top/phy_ioclk_fb
+ DDRPHY_IOCLK_DIV_368_310/CLKIN                                                    ddr3/u_ddrphy_top/ddrphy_slice_top/i_dqs_bank[0].u_ddrphy_ioclkdiv/ddrphy_ioclk_div_inst/CLKIN
+ DDRPHY_IOCLK_DIV_368_310/CLKOUT   td                    0.123       2.989 r       ddr3/u_ddrphy_top/ddrphy_slice_top/i_dqs_bank[0].u_ddrphy_ioclkdiv/ddrphy_ioclk_div_inst/CLKOUT
+                                   net (fanout=35)       0.000       2.989         ddr3/u_ddrphy_top/phy_sysclk_fb
+ DDRPHY_CPD_369_466/PPLL_SYSCLK                                            r       ddr3/u_ddrphy_top/u_ddrphy_cpd/cpd_inst/CLK_PHY
+ GPLL_367_463/CLKOUT0                                    0.334       3.323 r       ddr3/u_ddrphy_top/ddrphy_gpll/u_gpll/gpll_inst/CLKOUT0
+                                   net (fanout=1)        0.753       4.076         ddr3/u_ddrphy_top/gpll_clkout0
+ USCM_215_576/CLKIN0                                                               ddr3/u_ddrphy_top/u_sysclk_bufg/gopclkbufg/CLK
+ USCM_215_576/CLKOUT               td                    0.168       4.244 r       ddr3/u_ddrphy_top/u_sysclk_bufg/gopclkbufg/CLKOUT
+                                   net (fanout=8)        0.602       4.846         axi_clk          
+ HCKB_213_474/CLKIN                                                                HCKBROUTE_56/CLKIN
+ HCKB_213_474/CLKOUT               td                    0.287       5.133 r       HCKBROUTE_56/CLKOUT
+                                   net (fanout=3397)     0.454       5.587         ntR11544         
+ CLMS_75_463/CLK                                                           r       ov5640_top/u_motion_tap/events_7/ram32x2d/CLK
+ clock pessimism                                        -1.385       4.202                          
+ clock uncertainty                                       0.000       4.202                          
+
+ Hold time                                               0.264       4.466                          
+
+ Data required time                                                  4.466                          
+----------------------------------------------------------------------------------------------------
+ Data required time                                                  4.466                          
+ Data arrival time                                                   4.438                          
+----------------------------------------------------------------------------------------------------
+ Slack (VIOLATED)                                                   -0.028                          
+====================================================================================================
+
+====================================================================================================
+

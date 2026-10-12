@@ -1,0 +1,172 @@
+*** Begin Patch
+*** Update File: C:/Users/NineSun/Desktop/ov56401/project/fpga_v8_migration/cooperative_axi/fpga_v8_raw_frame_axi.v
+@@
+-    parameter [ID_WIDTH-1:0] AXI_ID = 1
++    parameter [ID_WIDTH-1:0] AXI_ID = 1,
++    parameter [31:0] DDR_ADDRESS_LIMIT = 32'h10000000
+@@
+-    localparam [63:0] DDR_LIMIT = 64'h0000000020000000;
++    // Live top.v forwards only [27:0] to DDR; the 512 MiB decode aliases.
++    localparam [63:0] DDR_LIMIT = {32'd0, DDR_ADDRESS_LIMIT};
+@@
+-                           (ID_WIDTH >= 1) && (SRC_BUS_BYTES <= DDR_LIMIT) &&
++                           (ID_WIDTH >= 1) && (DDR_ADDRESS_LIMIT != 0) &&
++                           (DDR_ADDRESS_LIMIT[3:0] == 0) &&
++                           (DDR_ADDRESS_LIMIT <= 32'h10000000) &&
++                           (SRC_BUS_BYTES <= DDR_LIMIT) &&
+*** Update File: C:/Users/NineSun/Desktop/ov56401/project/fpga_v8_migration/cooperative_axi/tb_fpga_v8_raw_frame_axi.v
+@@
+     parameter [ID_WIDTH-1:0] AXI_ID = 1;
++    parameter [31:0] DDR_ADDRESS_LIMIT = 32'h10000000;
+@@
+-        .TOP_ROWS(TOP_ROWS), .ID_WIDTH(ID_WIDTH), .AXI_ID(AXI_ID)
++        .TOP_ROWS(TOP_ROWS), .ID_WIDTH(ID_WIDTH), .AXI_ID(AXI_ID),
++        .DDR_ADDRESS_LIMIT(DDR_ADDRESS_LIMIT)
+@@
+     integer r_bubbles = 0, b_bubbles = 0;
++    integer rejected_commands = 0;
+@@
+                     $fatal(1, "bad AR attributes/address");
++                if ({32'd0, araddr} + 16 > {32'd0, DDR_ADDRESS_LIMIT})
++                    $fatal(1, "AR exceeds configured physical DDR limit");
+@@
+                     $fatal(1, "bad AW attributes/address");
++                if ({32'd0, awaddr} + 16 > {32'd0, DDR_ADDRESS_LIMIT})
++                    $fatal(1, "AW exceeds configured physical DDR limit");
+@@
+-            if (!cmd_error || !error || busy || done || arvalid || awvalid ||
++            if (!cmd_error || !error || busy || done || arvalid || awvalid || wvalid ||
+                 completed_frame_id != old_completed) $fatal(1, "invalid command not rejected");
+             @(negedge clk); cmd_valid = 0;
+-            repeat (3) tick;
++            repeat (3) begin
++                tick;
++                if (busy || done || arvalid || awvalid || wvalid)
++                    $fatal(1, "invalid address emitted AXI traffic");
++            end
+             if (cmd_error || !error || !cmd_ready) $fatal(1, "command error pulse/sticky contract");
++            rejected_commands = rejected_commands + 1;
++            $display("ADDRESS_REJECT_PASS src=%h dst=%h limit=%h", src, dst, DDR_ADDRESS_LIMIT);
+@@
+-            // A pending second command must not overwrite the active snapshot.
+             cmd_valid = 1;
+@@
+-            $display("FRAME_PASS seed=%0d fault=%0d bytes=%0d AR=%0d B=%0d cycles=%0d delayed_last_B=%0d",
+-                     seed, expect_error, OUT_BYTES, ar_count, b_count, frame_cycles, final_b_wait_cycles);
++            $display("FRAME_PASS seed=%0d fault=%0d bytes=%0d AR=%0d B=%0d cycles=%0d delayed_last_B=%0d src=%h dst=%h",
++                     seed, expect_error, OUT_BYTES, ar_count, b_count, frame_cycles, final_b_wait_cycles,
++                     test_src, test_dst);
+@@
+-            reject_command(32'h20000000, 32'h01000000);
+-            reject_command(32'h1000, 32'h20000000);
+-            reject_command(32'h20000000 - SRC_BUS_BYTES + 16, 32'h01000000);
+-            reject_command(32'h1000, 32'h20000000 - DST_BUS_BYTES + 16);
++            reject_command(DDR_ADDRESS_LIMIT, 32'h01000000);
++            reject_command(32'h1000, DDR_ADDRESS_LIMIT);
++            reject_command(DDR_ADDRESS_LIMIT - SRC_BUS_BYTES + 16, 32'h01000000);
++            reject_command(32'h1000, DDR_ADDRESS_LIMIT - DST_BUS_BYTES + 16);
+             reject_command(32'hfffffff0, 32'h01000000);
+             reject_command(32'h1000, 32'hfffffff0);
++            // Crossbar decode is not the physical DDR addressability limit.
++            reject_command(32'h20000000, 32'h01000000);
++            reject_command(32'h1000, 32'h20000000);
++            reject_command(32'h10001000, 32'h01000000);
++            reject_command(32'h1000, 32'h10001000);
+@@
+-            // Exact upper limit and adjacent, disjoint ranges are legal.
+-            start_frame(8, 0, 32'h20000000 - SRC_BUS_BYTES, 32'h01000000);
++            start_frame(8, 0, DDR_ADDRESS_LIMIT - SRC_BUS_BYTES, 32'h01000000);
+@@
+                 finish_frame(10 + phase, 0);
+             end
++            start_frame(15, 0, 32'h1000, DDR_ADDRESS_LIMIT - DST_BUS_BYTES);
++            finish_frame(15, 0);
+         end else begin
+@@
+-        $display("AXI_RAW_PASS frames=%0d ar_stalls=%0d aw_stalls=%0d w_stalls=%0d r_bubbles=%0d b_bubbles=%0d",
+-                 frames_checked, ar_stalls, aw_stalls, w_stalls, r_bubbles, b_bubbles);
++        $display("AXI_RAW_PASS frames=%0d rejected=%0d limit=%h ar_stalls=%0d aw_stalls=%0d w_stalls=%0d r_bubbles=%0d b_bubbles=%0d",
++                 frames_checked, rejected_commands, DDR_ADDRESS_LIMIT,
++                 ar_stalls, aw_stalls, w_stalls, r_bubbles, b_bubbles);
+*** Update File: C:/Users/NineSun/Desktop/ov56401/project/fpga_v8_migration/cooperative_axi/tb_fpga_v8_raw_axi_config.v
+@@
+-    wire [3:0] cmd_ready, cmd_error, busy, done, error, arvalid, awvalid, wvalid;
++    wire [7:0] cmd_ready, cmd_error, busy, done, error, arvalid, awvalid, wvalid;
+     genvar n;
+-    generate for (n = 0; n < 4; n = n + 1) begin: invalid_geometry
+-        // Zero width, negative padding, top out of bounds, footprint overflow.
++    generate for (n = 0; n < 8; n = n + 1) begin: invalid_config
++        // Four geometry failures, then zero/unaligned/512 MiB limits and a
++        // valid aligned limit that is too small for the bus footprint.
++        localparam [31:0] TEST_LIMIT = n == 4 ? 32'd0 :
++                                         n == 5 ? 32'h08000001 :
++                                         n == 6 ? 32'h20000000 :
++                                         n == 7 ? 32'h00000010 : 32'h10000000;
+@@
+-            .TOP_ROWS(n == 2 ? 3 : 0)
++            .TOP_ROWS(n == 2 ? 3 : 0), .DDR_ADDRESS_LIMIT(TEST_LIMIT)
+@@
+             .m_axi_write_bid(4'd1), .m_axi_write_bresp(2'd0), .m_axi_write_bvalid(1'b0)
+         );
++        // Check CONFIG_OK itself: otherwise addresses outside a bad limit
++        // could reject even if the illegal override were silently accepted.
++        initial begin
++            #1;
++            if (dut.CONFIG_OK !== 1'b0)
++                $fatal(1, "invalid parameter configuration accepted: case=%0d limit=%h", n, TEST_LIMIT);
++            $display("CONFIG_REJECT_PASS case=%0d limit=%h", n, TEST_LIMIT);
++        end
+@@
+-        if (cmd_ready !== 4'hf) $fatal(1, "invalid configurations must accept rejection");
++        if (cmd_ready !== 8'hff) $fatal(1, "invalid configurations must accept rejection");
+@@
+-        if (cmd_error !== 4'hf || error !== 4'hf || busy !== 0 || done !== 0 ||
++        if (cmd_error !== 8'hff || error !== 8'hff || busy !== 0 || done !== 0 ||
+             arvalid !== 0 || awvalid !== 0 || wvalid !== 0)
+-            $fatal(1, "invalid geometry not rejected before AXI traffic");
++            $fatal(1, "invalid configuration not rejected before AXI traffic");
+@@
+-            if (cmd_error !== 0 || error !== 4'hf || cmd_ready !== 4'hf ||
++            if (cmd_error !== 0 || error !== 8'hff || cmd_ready !== 8'hff ||
+                 busy !== 0 || done !== 0 || arvalid !== 0 || awvalid !== 0 || wvalid !== 0)
+-                $fatal(1, "invalid geometry pulse/sticky/idle contract");
++                $fatal(1, "invalid configuration pulse/sticky/idle contract");
+@@
+-        $display("AXI_CONFIG_PASS cases=4");
++        $display("AXI_CONFIG_PASS cases=8");
+*** Update File: C:/Users/NineSun/Desktop/ov56401/project/fpga_v8_migration/cooperative_axi/run_tests.py
+@@
+ def run_case(name: str, geometry: tuple[int, int, int, int], full: bool,
+-             id_width: int = 4, axi_id: int = 1):
++             id_width: int = 4, axi_id: int = 1, limit: int = 0x10000000):
+@@
+-    seeds = range(1 if full else 15)
++    seeds = range(1 if full else 16)
+@@
+     command.extend((f"-gFULL={int(full)}", f"-gID_WIDTH={id_width}", f"-gAXI_ID={axi_id}",
++                    f"-gDDR_ADDRESS_LIMIT={limit}",
+                     f"+VECTORS={vectors.as_posix()}", f"+OUTPUT={output.as_posix()}"))
+@@
+     markers = [line.removeprefix("# ") for line in transcript.splitlines()
+-               if "FRAME_PASS" in line or "RESET_PASS" in line or "AXI_RAW_PASS" in line]
++               if "FRAME_PASS" in line or "RESET_PASS" in line or "AXI_RAW_PASS" in line
++               or "ADDRESS_REJECT_PASS" in line]
++    if not full and sum("ADDRESS_REJECT_PASS" in line for line in markers) != 15:
++        raise AssertionError(f"Missing address rejection coverage: {name}")
+@@
+     return {"name": name, "geometry": geometry, "id_width": id_width, "axi_id": axi_id,
++            "ddr_address_limit": f"0x{limit:08x}",
+@@
+-    if "AXI_CONFIG_PASS" not in transcript or "** Error" in transcript or "** Fatal" in transcript:
++    if "AXI_CONFIG_PASS cases=8" not in transcript or "** Error" in transcript or "** Fatal" in transcript:
+@@
+-    print(f"PASS invalid_config: 4 parameter rejections, {seconds:.2f}s", flush=True)
+-    return {"cases": 4, "simulation_seconds": round(seconds, 3),
++    print(f"PASS invalid_config: 8 parameter rejections, {seconds:.2f}s", flush=True)
++    return {"cases": 8, "simulation_seconds": round(seconds, 3),
+@@
+     results = [run_case("small_4x3", (4, 3, 5, 1), False),
+-               run_case("overflow_1x1", (1, 1, 6, 2), False, 3, 3)]
++               run_case("overflow_1x1", (1, 1, 6, 2), False, 3, 3),
++               run_case("smaller_limit_4x3", (4, 3, 5, 1), False, limit=0x02000000)]
+*** End Patch

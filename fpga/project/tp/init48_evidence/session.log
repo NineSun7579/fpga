@@ -1,0 +1,26 @@
+pkill -9 -x run_camview.sh || true
+
+pkill -9 -x camview || true
+
+sleep 2; rmmod pango_pci_driver; echo 1 > /sys/bus/pci/devices/0002:21:00.0/remove
+
+echo 1 > /sys/bus/pci/rescan; sleep 3; insmod /root/ov5640/pango_pci_driver.ko; sleep 3; test -L /sys/bus/pci/devices/0002:21:00.0/driver
+
+python3 -u /tmp/verify_init48_board.py
+PCLK_Hz VSYNC_s FRAMES_s [[84002260.02124223, 44.984472574651846, 2.6657465229423316], [84001475.39732939, 44.97256617997212, 2.6650409588131625], [48000643.44274103, 25.97588844436396, 2.6641936866014317]]
+
+rmmod pango_pci_driver; insmod /root/ov5640/pango_pci_driver.ko; sleep 2; test -L /sys/bus/pci/devices/0002:21:00.0/driver
+
+rm -f /tmp/camview.lock; setsid nohup /root/ov5640/run_camview.sh > /tmp/camview.log 2>&1 < /dev/null &
+
+sleep 10; pgrep -a -x camview
+4320 ./camview
+
+DISPLAY=:0 XAUTHORITY=/var/run/lightdm/root/:0 /root/ov5640/qshot/qshot /tmp/init48_screen.png 900
+OK 900x506 209693
+QStandardPaths: XDG_RUNTIME_DIR not set, defaulting to '/tmp/runtime-root'
+
+DISPLAY=:0 XAUTHORITY=/var/run/lightdm/root/:0 /root/ov5640/qshot/qshot /tmp/init48_screen.png 900
+OK 900x506 166662
+QStandardPaths: XDG_RUNTIME_DIR not set, defaulting to '/tmp/runtime-root'
+

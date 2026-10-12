@@ -1,0 +1,62 @@
+--- read_only_original/graph_adapter.py
++++ external_review/graph_adapter.py
+@@ -33,6 +33,33 @@
+     base={'bmsWIDEBUF','bmsBUF','GTP_INBUF','GTP_CLKBUFG','GTP_CLKBUF','GTP_CLKBUFH'}
+     return typ in base or (clock and typ in {'bmsWIDEINV','bmsINV','GTP_INV'})
+ 
++KEEPBUF_WIDTHS={'bmsKEEPBUF':32,'bmsKEEPBUF_Cell_1':1,'bmsKEEPBUF_Cell_2':3,
++    'bmsKEEPBUF_Cell_3':2,'bmsKEEPBUF_Cell_4':17,'bmsKEEPBUF_Cell_5':128,
++    'bmsKEEPBUF_Cell_6':16,'bmsKEEPBUF_Cell_7':8,'bmsKEEPBUF_Cell_8':4,
++    'bmsKEEPBUF_Cell_9':5,'bmsKEEPBUF_Cell_10':10,'bmsKEEPBUF_Cell_11':12,
++    'bmsKEEPBUF_Cell_12':7,'bmsKEEPBUF_Cell_13':28}
++def strict_keepbuf(record):
++    # Exact observed specialization, not a prefix whitelist. Official bmsPrim.v:
++    # WIDTH vector I -> Z via assign Z=I; no state, enable, inversion or clock.
++    require(record['type'] in KEEPBUF_WIDTHS,'Unknown KEEPBUF specialization')
++    width=KEEPBUF_WIDTHS[record['type']]
++    params={}
++    def walk(v):
++        if isinstance(v,list):
++            if v and v[0]=='PARAMETER':
++                require(v[1]=='WIDTH','Unknown KEEPBUF parameter')
++                require(v[2]==['DATATYPE','INTEGER'] and v[3]==['INTEGER',str(width)] and len(v)==4,'Nonidentity KEEPBUF WIDTH')
++                params[v[1]]=width
++            elif v and v[0]=='PARAMETERMAP':
++                for x in v[1:]:walk(x)
++            else:
++                for x in v:walk(x)
++    walk(record.get('default_parameters',[]));walk(record.get('parameters',[]))
++    require(params=={'WIDTH':width},'Missing KEEPBUF WIDTH')
++    schema={f'{p}[{i}]':{'direction':d,'clock':False} for i in range(width) for p,d in [('I','INPUT'),('Z','OUTPUT')]}
++    require(record['ports']==schema,'Nonidentity KEEPBUF schema')
++    return True
++
+ class Resolver:
+     def __init__(self,g):
+         self.g=g;self.pr=g['primitives'];self.pn=g['pin_net'];self.np=g['netpins'];self.alias=g['net_aliases']
+@@ -40,7 +67,8 @@
+         return [p for p in self.np.get(n,[]) if self.pr[p.rsplit('/',1)[0]]['ports'][p.rsplit('/',1)[1]]['direction']=='OUTPUT']
+     def identity_input(self,output,clock=False):
+         cell,port=output.rsplit('/',1);r=self.pr[cell]
+-        if re.fullmatch(r'bmsKEEPBUF_Cell_\d+',r['type']):
++        if r['type'] in KEEPBUF_WIDTHS:
++            strict_keepbuf(r)
+             match=re.fullmatch(r'Z\[(\d+)\]',port)
+             require(match is not None,'Unsupported vector KEEPBUF output: '+output)
+             index=match[1];pin=cell+'/I['+index+']'
+@@ -174,6 +202,15 @@
+                     require(output in self.pn,'Unconnected clock route output')
+                     edges[cell]={'cell':cell,'type':r['type'],'pins':[inputpin,output],'polarity':'identity'}
+                     queue.append(self.pn[output])
++                elif r['type']=='bmsKEEPBUF_Cell_1':
++                    strict_keepbuf(r)
++                    output=cell+'/Z[0]';inputpin=self.identity_input(output,clock=True)
++                    require(pin==inputpin,'Clock on wrong KEEPBUF lane: '+pin)
++                    connected=output in self.pn
++                    if connected:require(self.drivers(self.pn[output])==[output],'KEEPBUF output has additional driver')
++                    else:require(not any(output in pp for pp in self.np.values()),'Inconsistent unconnected KEEPBUF output')
++                    edges[cell]={'cell':cell,'type':r['type'],'pins':[inputpin,output],'polarity':'identity','WIDTH':1,'official_model':'bmsPrim.v: assign Z = I','output_connected':connected,'disposition':'identity_forward' if connected else 'identity_terminal_no_output_net_no_storage'}
++                    if connected:queue.append(self.pn[output])
+                 elif transparent(r,clock=True):
+                     ins=[p for p,x in r['ports'].items() if x['direction']=='INPUT']
+                     outs=[p for p,x in r['ports'].items() if x['direction']=='OUTPUT']

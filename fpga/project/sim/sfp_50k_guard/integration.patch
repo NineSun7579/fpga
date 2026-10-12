@@ -1,0 +1,116 @@
+--- a/sfp_video_tx.v
++++ b/sfp_video_tx.v
+@@ -32,7 +32,7 @@
+ //////////////////////////////////////////////////////////////////////////////////
+ `define UD #1
+ 
+-module sfp_video_tx (
++module sfp_video_tx #(parameter TX_GE_SKIP_ENABLE=1) (
+     //  (25MHz)
+     input                    vid_clk        ,   // ʱ (PLL clkout0, 25MHz)
+     input                    vid_rst_n      ,
+@@ -131,14 +131,49 @@
+     end
+     wire [31:0] idle_word = {8'hBC, 1'b0, last_hs, last_vs, 5'b0, 8'h28, 8'hBC};
+ 
++
++    // Isolated 50K guard experiment. Three-word lookahead; FIFO pops unchanged.
++    reg [31:0] txd_producer, gd0,gd1,gd2;
++    reg [3:0] txk_producer, gk0,gk1,gk2;
++    reg [31:0] last_ctrl;
++    reg [4:0] idle_phase;
++    wire redundant=(gk2==9 && gd2==last_ctrl);
++    wire following_controls=(gk1==9 && gk0==9 && txk_producer==9 &&
++        gd1==gd2 && gd0==gd2 && txd_producer==gd2);
++    always @(posedge fab_clk or negedge fab_rst_n) begin
++        if(!fab_rst_n) begin
++            gd0<=32'hbc0028bc;gd1<=32'hbc0028bc;gd2<=32'hbc0028bc;
++            gk0<=9;gk1<=9;gk2<=9;last_ctrl<=32'hbc0028bc;idle_phase<=0;
++            txd<=32'hbc0028bc;txk<=9;
++        end else if(!payload_go) begin
++            // Drop queued wire words on lost readiness, just as producer does.
++            gd0<=consume_head?ctrl_word:idle_word;gd1<=consume_head?ctrl_word:idle_word;
++            gd2<=consume_head?ctrl_word:idle_word;gk0<=9;gk1<=9;gk2<=9;
++            txd<=consume_head?ctrl_word:idle_word;txk<=9;
++            last_ctrl<=consume_head?ctrl_word:idle_word;idle_phase<=0;
++        end else begin
++            gd0<=txd_producer;gd1<=gd0;gd2<=gd1;
++            gk0<=txk_producer;gk1<=gk0;gk2<=gk1;
++            idle_phase<=idle_phase+1'b1;
++            txd<=gd2;txk<=gk2;
++            // The guard contains valid K28.5/D31.7 bytes; old RX ignores K=5.
++            // Ending in D removes trailing-control K28.5 -> payload D16.2.
++            if(redundant && gk1==0) begin txd<=32'hffbcffbc;txk<=5;end
++            // Dedicated configured GE skip pairs, well before next payload.
++            // Two complete BC/28 controls remain for old phase reacquisition.
++            else if(TX_GE_SKIP_ENABLE && redundant && following_controls && idle_phase==0 && gd2[22:21]==0)
++                begin txd<=32'h50bc50bc;txk<=5;end
++            if(gk2==9)last_ctrl<=gd2;
++        end
++    end
+     // [CTC FIX] FIFO pop control: pause at skip beat
+ 
+     // [Rev4.3 2026-09-30] DIAG ģʽƳ: ָԭЭƵ ( 100H sfp_video_rx )
+ 
+     always @(posedge fab_clk or negedge fab_rst_n) begin
+         if (!fab_rst_n) begin
+-            txd        <= `UD 32'hBC0028BC;
+-            txk        <= `UD 4'b1001;
++            txd_producer        <= `UD 32'hBC0028BC;
++            txk_producer        <= `UD 4'b1001;
+             pix_pend   <= `UD 1'b0;
+             pix0       <= `UD 16'b0;
+             wait_frame <= `UD 1'b1;
+@@ -146,15 +181,15 @@
+         else begin
+             if (!payload_go) begin
+                 // ·δ: ֻп (FIFO  empty )
+-                txd <= `UD (consume_head ? ctrl_word : idle_word);
+-                txk <= `UD 4'b1001;
++                txd_producer <= `UD (consume_head ? ctrl_word : idle_word);
++                txk_producer <= `UD 4'b1001;
+                 pix_pend <= `UD 1'b0;
+                 wait_frame <= `UD 1'b1;
+             end
+             else if (consume_head) begin
+                 if (wait_frame) begin
+-                    txd <= `UD ctrl_word;
+-                    txk <= `UD ctrl_k;
++                    txd_producer <= `UD ctrl_word;
++                    txk_producer <= `UD ctrl_k;
+                     pix_pend <= `UD 1'b0;
+                     if (head_vs && !head_de)
+                         wait_frame <= `UD 1'b0;
+@@ -164,24 +199,24 @@
+                         pix_pend <= `UD 1'b1;      // ǰ, 
+                         pix0     <= `UD head_q[15:0];
+                     end
+-                    txd <= `UD ctrl_word;          // ڼ䷢(Я vs/hs)
+-                    txk <= `UD ctrl_k;
++                    txd_producer <= `UD ctrl_word;          // ڼ䷢(Я vs/hs)
++                    txk_producer <= `UD ctrl_k;
+                 end
+                 else begin
+                     pix_pend <= `UD 1'b0;          // Rev3.1fix1: ַ(ԭ head_de ʹ pix0 , żظ); βԶ
+                     if (head_de) begin
+-                        txd <= `UD {head_q[15:0], pix0};  // : {pix1,pix0}
+-                        txk <= `UD 4'b0000;
++                        txd_producer <= `UD {head_q[15:0], pix0};  // : {pix1,pix0}
++                        txk_producer <= `UD 4'b0000;
+                     end
+                     else begin
+-                        txd <= `UD ctrl_word;
+-                        txk <= `UD ctrl_k;
++                        txd_producer <= `UD ctrl_word;
++                        txk_producer <= `UD ctrl_k;
+                     end
+                 end
+             end
+             else begin
+-                txd <= `UD idle_word;              // FIFO : п
+-                txk <= `UD 4'b1001;
++                txd_producer <= `UD idle_word;              // FIFO : п
++                txk_producer <= `UD 4'b1001;
+             end
+         end
+     end

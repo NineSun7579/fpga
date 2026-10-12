@@ -1,0 +1,12 @@
+puts "NATIVE_QUERY08_BEGIN"
+puts "NATIVE_QUERY08_COMMANDS [info commands]"
+foreach pattern {*mailbox* *host_bank* *source_diagnostics* *req_sync*} {
+ set objects [get_pins -hierarchical $pattern]
+ puts "NATIVE_QUERY08_PATTERN $pattern SIZE [llength $objects] VALUES $objects"
+}
+foreach pattern {.*mailbox.* .*host_bank.*} {
+ set objects [get_pins -hierarchical -regexp $pattern]
+ puts "NATIVE_QUERY08_REGEXP $pattern SIZE [llength $objects] VALUES $objects"
+}
+puts "NATIVE_QUERY08_END"
+error "NATIVE_QUERY08_INTENTIONAL_STOP: query evidence only, no synthesis/map/bit acceptance"

@@ -1,0 +1,8 @@
+{
+  "captured_utc": "2026-10-06T23:30:17.150555+00:00",
+  "command": "python3 - <<'PY'\nfrom pathlib import Path\nimport json\nnode=Path('/sys/firmware/devicetree/base/pcie@fe280000');result={'node':str(node),'properties':{}}\nfor f in node.iterdir():\n if f.is_file():result['properties'][f.name]={'hex':f.read_bytes().hex()}\nroot=Path('/usr/src/linux-headers-6.1-rockchip');result['header_candidates']=[str(p) for pattern in ['drivers/pci/controller/*rockchip*','drivers/pci/controller/dwc/*rockchip*','include/generated/utsrelease.h','include/config/kernel.release'] for p in root.glob(pattern)]\nprint(json.dumps(result,indent=2))\nPY",
+  "exit_code": 0,
+  "stdout_sha256": "583a28bf9e313a1fce7776ec5ea72123d4301d7a2c8a725a375cfd666ba7a5ff",
+  "device_opened": false,
+  "reset_executed": false
+}

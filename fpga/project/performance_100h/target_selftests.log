@@ -1,0 +1,42 @@
+mkdir -p /userdata/linaro/100h_performance/build_456e73cd99c3ed4e/preprocess_test && cd /userdata/linaro/100h_performance/build_456e73cd99c3ed4e/preprocess_test && qmake ../src/inference_preprocess_selftest.pro && make -j2 && ./inference_preprocess_selftest
+exit=0
+Info: creating stash file /userdata/linaro/100h_performance/build_456e73cd99c3ed4e/preprocess_test/.qmake.stash
+g++ -c -pipe -O2 -std=gnu++1z -Wall -Wextra -D_REENTRANT -fPIC -DQT_NO_DEBUG -DQT_GUI_LIB -DQT_CORE_LIB -I../src -I. -I/usr/include/aarch64-linux-gnu/qt5 -I/usr/include/aarch64-linux-gnu/qt5/QtGui -I/usr/include/aarch64-linux-gnu/qt5/QtCore -I. -I/usr/lib/aarch64-linux-gnu/qt5/mkspecs/linux-g++ -o inference_preprocess_selftest.o ../src/inference_preprocess_selftest.cpp
+g++ -Wl,-O1 -o inference_preprocess_selftest inference_preprocess_selftest.o   /usr/lib/aarch64-linux-gnu/libQt5Gui.so /usr/lib/aarch64-linux-gnu/libQt5Core.so -lGL -lpthread   
+PREPROCESS_SELFTEST_PASS: baseline bytes, reuse, padding, stride, square transitions, malformed inputs
+
+env QT_QPA_PLATFORM=offscreen /userdata/linaro/100h_performance/build_456e73cd99c3ed4e/build/detview --vision-selftest
+exit=0
+DISPLAY_REFRESH_SELFTEST_PASS
+  moving texture, light changes, periodic refresh: PASS
+  three-scale template search: PASS
+  constant-template and duplicate-peak rejection: PASS
+  predicted-frame limit, occlusion loss, immutable detection TTL: PASS
+  same-class one-to-one association, correction, model-local replacement: PASS
+  deep-copy isolation, source replay, time guards, global ID uniqueness: PASS
+  image edges/size reset, validation, bounded tracks, owned image pixels: PASS
+TRACKER_SELFTEST_PASS
+CAMERA_DMA_SELFTEST_PASS
+FRAME_METRICS_SELFTEST_PASS (216 checks)
+VISION_SELFTEST_PASS
+VISION_SELFTEST_PASS
+
+env QT_QPA_PLATFORM=offscreen /userdata/linaro/100h_performance/build_456e73cd99c3ed4e/build/detview --dfl-selftest
+exit=0
+[dfl-selftest] got n=1 box=(156.0,68.0,188.0,116.0) score=0.90 cls=0
+[dfl-selftest] expect box=(156.0,68.0,188.0,116.0) score=0.90
+[dfl-selftest] got n=1 box=(156.0,68.0,188.0,116.0) score=0.90 cls=0
+[dfl-selftest] expect box=(156.0,68.0,188.0,116.0) score=0.90
+DFL_SELFTEST_PASS
+
+env QT_QPA_PLATFORM=offscreen /userdata/linaro/100h_performance/build_456e73cd99c3ed4e/build/detview --lane-selftest
+exit=0
+LANE_SELFTEST_PASS
+
+env QT_QPA_PLATFORM=offscreen /userdata/linaro/100h_performance/build_456e73cd99c3ed4e/build/detview --camera-dma-selftest
+exit=0
+CAMERA_DMA_SELFTEST_PASS
+
+env QT_QPA_PLATFORM=offscreen /userdata/linaro/100h_performance/build_456e73cd99c3ed4e/build/detview --frame-metrics-selftest
+exit=0
+FRAME_METRICS_SELFTEST_PASS (216 checks)

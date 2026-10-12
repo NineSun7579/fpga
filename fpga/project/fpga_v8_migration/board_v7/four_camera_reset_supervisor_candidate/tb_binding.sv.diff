@@ -1,0 +1,42 @@
+--- C:\Users\NineSun\Desktop\ov56401\project\fpga_v8_migration\board_v7\four_camera_recovery_review\tb_binding.sv
++++ tb_binding.sv
+@@ -4,16 +4,27 @@
+ always #5 clk=~clk;
+ always #6 cam=~cam;
+ reg [15:0] pixel=0;
+-wire fault;
++wire fault,local_fault,supervisor_cold;wire [3:0] broadcast_abort;
++assign fault=broadcast_abort[0];
+ GTP_GRS GRS_INST(.GRS_N(1'b1));
+ // Actual sticky fault source; source pixels below enter at the DDR wrapper boundary.
+-cdc_recovery boundary(.system_reset(rst),.cam_clk(cam),.cam_rst(rst),.video_clk(clk),
+- .video_rst(rst|local_req),.s_data(16'b0),.s_valid(1'b0),.s_hsync(1'b0),.s_vsync(1'b0),.boundary_fault(fault));
++cdc_recovery boundary(.system_reset(supervisor_cold),.cam_clk(cam),.cam_rst(rst),.video_clk(clk),
++ .video_rst(rst|local_req),.s_data(16'b0),.s_valid(1'b0),.s_hsync(1'b0),.s_vsync(1'b0),.boundary_fault(local_fault));
+ wire abort_req,ab,done,cv,cr,dv,dr;
+ wire [15:0] available;
+ wire [127:0] data;
+ wire [31:0] ca,cl;
+ wire [1:0] req;
++reg cold_req=0;
++always @(negedge clk) cold_req<=!rst;
++wire session_fault;
++four_camera_reset_supervisor #(.CLOCK_LIMIT(10000)) supervisor(
++ .clk(clk),.epoch_reset(rst),.cold_request(cold_req),.source_clk({4{clk}}),
++ .i2c_start_en(4'hf),.cam_init_done(4'hf),.ov_rst_n(4'hf),.video_reset(rst),
++ .boundary_fault({3'd0,local_fault}),.capture_abort_req({3'd0,abort_req}),.writer_abort({3'd0,ab}),
++ .camera_session_fault(session_fault),.transport_abort(broadcast_abort),.cold_system_reset(supervisor_cold));
++
++
+ ddr_recovery #(.CAM_DATA_LEN(32)) ddr(.axi_clk(clk),.axi_rst(rst),
+  .transport_abort(fault),.dma_abort(ab),.dma_abort_req(abort_req),.dma_done(done),.axi_cam_en(1'b1),
+  .cam_data_addr_1(32'h800000),.cam_data_addr_2(32'ha00000),.cam_data_len(6'd32),
+@@ -66,7 +77,7 @@
+ initial begin
+  for(which=0;which<11;which++) begin
+   rst=1;local_req=0;sv=0;pvalid=0;awr=0;wr=0;bv=0;
+-  repeat(30) tick();rst=0;repeat(30) tick();
++  repeat(30) tick();rst=0;repeat(60) tick();
+   fork
+    pixels();
+    begin

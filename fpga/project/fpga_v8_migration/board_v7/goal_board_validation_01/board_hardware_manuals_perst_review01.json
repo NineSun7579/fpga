@@ -1,0 +1,74 @@
+[
+  {
+    "source": "C:\\Users\\NineSun\\Downloads\\RK3568_MES2L50H_100H_硬件使用手册_v1.1.pdf",
+    "source_sha256": "fe7017cc64fdad56ece2bed92391a9071b2d0b8fb92bdc195baea0d987b395f5",
+    "pages": 34,
+    "extracted_text": "project\\fpga_v8_migration\\board_v7\\goal_board_validation_01\\board_hardware_manual01_extracted.txt",
+    "matches": [
+      {
+        "page": 4,
+        "text": "深圳市小眼睛科技有限公司\n- 1 -\n1. FPGA 开发系统介绍\n1.1. 开发系统概述\nRK3568_MES2L50H/RK3568_MES2L100H 是一款基于瑞芯微 RK3568J 处理器+紫光\n同创 Logos-2 PG2L50H/PG2L100H FPGA 设计的异构多核全国产工业板卡，RK3568J 与\nPG2L50H/PG2L100H 之间支持 PCIe、FSPI、I2C 接口通信。开发板采用核心板+扩展板\n结构，核心板与扩展板之间通过 LB3524-G120P-WOR 和 LB3524-G120S-WOR 板对板\n连接器相连。核心板可直接用于二次开发，普遍适用于通信、图像视频处理、数据分析、\n网络信息安全、仪器仪表等行业产品。\n核心板的瑞芯微 RK3568J（Cortex-A55x4）四核处理器与时钟、电源、复位电路、\nDDR4 和 eMMC 构成最小系统，搭载 Linux/Harmony 系统，其中 ARM Cortex-A55 主频\n高达 1.8GHz，超强性能，接口丰富，无论是解码还是显示都是一流，是您在人机交互、\n工控项目上的新选择。自带深度神经网络单元（NPU），性能达 1.0 TOPS，能够满足深\n度学习的项目需求。\n核 心 板 的 FPGA 采 用 紫 光 同 创 28nm 工 艺 logos2 系 列 的 PG2L50H-6IFBG484\n/PG2L100H-6IFBG484，核心板 FPGA 部分主要由 FPGA+1 颗 DDR3+2 颗 FLASH+电源及\n复位电路组成，承担了 FPGA 最小系统运行及高速数据处理及存储功能。DDR3 数据带\n宽可达（1066Mbps*16），满足高速多路数据存储的需求；另外 PG2L50H/PG2L100H-\nFPGA 带有 4 路 HSST 高速收发器，每路速度高达 6.6Gbps，非常适用于光纤通信与 PCIe\n通信。"
+      },
+      {
+        "page": 6,
+        "text": "深圳市小眼睛科技有限公司\n- 3 -\nRK3568 外设资源：\nARM JTAG *1 USB2.0 *3\nUART(DEBUG) *1 OTG3.0 *1\nDDR4 *1 RS485 *2\neMMC *1 RS232 *1\nTF 卡接口 *1 TTL *1\nMIPI *1 CAN *2\nHDMI OUT *1 耳机接口 *1\n1000M 网口 *2 喇叭接口 *1\nANT 接口 *1 MIC 接口 *1\nMini PCI-E(4G) *1 40pin 扩展 IO *1\nMini SIM *1 ARM KEY *4\nFAN *1 LED *2"
+      },
+      {
+        "page": 7,
+        "text": "深圳市小眼睛科技有限公司\n- 4 -\n2. FPGA 系统概述\n2.1. 系统描述\n2.1.1. FPGA\nFPGA 型号为 PG2L50H-6IFBG484/PG2L100H-6IFBG484，属于紫光同创 logos2 系列\n产品，速度等级为 6，温度范围：工业级（-40~100℃），FBG 封装，管脚数目 484。\nPG2L50H-6IFBG484 主要参数如下：\n资源 参数\n逻辑资源\n触发器（FF） 71600\nLUT6 35800\n等效 LUT4 53700\nRAM 资源\n分布式 RAM（Kbit） 594\n块 RAM 数量（36K/块） 85\n块 RAM（Kbit） 3060\n时钟资源\nGPLL 5\nPPLL 5\n硬核资源\nAPM（25*18 乘法器） 120\nADC 1\nAES 1\nHSST（6.6G） 4\nPCIE Gen2*4 1\nIO 资源 用户 IO 250"
+      },
+      {
+        "page": 8,
+        "text": "深圳市小眼睛科技有限公司\n- 5 -\nPG2L100H-6IFBG484 主要参数如下：\n资源 参数\n逻辑资源\n触发器（FF） 133200\nLUT6 66600\n等效 LUT4 99900\nRAM 资源\n分布式 RAM（Kbit） 1244\n块 RAM 数量（36K/块） 155\n块 RAM（Kbit） 5580\n时钟资源\nGPLL 5\nPPLL 6\n硬核资源\nAPM（25*18 乘法器） 240\nADC 1\nAES 1\nHSST（6.6G） 4\nPCIE Gen2*4 1\nIO 资源 用户 IO 285"
+      },
+      {
+        "page": 11,
+        "text": "深圳市小眼睛科技有限公司\n- 8 -\n2.1.2.3.HSST 时钟\n在核心板上采用 PI6C557-05BLE 时钟芯片，由晶振输出 25MHZ，倍频后输出 100MHZ\n的差分时钟提供到 FPGA 的 HSST 时钟以及 RK 端的 PCIe 的时钟信号。\n信号 描述 FPGA 管脚\nHSSTREFCLK0_CP_QR3 HSST 参考时钟 P 端 F6\nHSSTREFCLK0_CN_QR3 HSST 参考时钟 N 端 E6\n2.1.3. 上电 IO Status\n在 Logos2 器件上有一个功能复用 IO，控制从上电完成后到进入用户模式之前中所\n有用户 IO 的弱上拉电阻是否使能。此管脚在配置之前或是配置过程中，该引脚不允许\n悬空，此 IO 在上电后的对应功能如下：\n（1）“0”，使能所有用户 IO 内部上拉电阻。\n（2）“1”，不使能所有用户 IO 内部上拉电阻。\n将此管脚的功能默认接 GND，用户可根据需求，自行焊接电阻选择上电后初始的\nIO 状态，也可以由 RK 端控制。"
+      },
+      {
+        "page": 13,
+        "text": "深圳市小眼睛科技有限公司\n- 10 -\nDDR3 的具体管脚分配如下：\n注：ddr3_addr[15]为预留管脚，该 DDR3 器件的有效地址信号为 ddr3_addr[14:0]\n信号名称 FPGA 管脚 信号名称 FPGA 管脚\nddr3_addr[0] T1 ddr3_addr[15] Y3\nddr3_addr[1] U1 ddr3_ba[0] AA3\nddr3_addr[2] U2 ddr3_ba[1] AA5\nddr3_addr[3] V2 ddr3_ba[2] AB5\nddr3_addr[4] R3 ddr3_cas_n U6\nddr3_addr[5] R2 ddr3_ck_n AA4\nddr3_addr[6] W2 ddr3_ck_p Y4\nddr3_addr[7] Y2 ddr3_cke W4\nddr3_addr[8] W1 ddr3_cs_n V5\nddr3_addr[9] Y1 ddr3_odt R6\nddr3_addr[10] U3 ddr3_ras_n W5\nddr3_addr[11] AA1 ddr3_reset_n T3\nddr3_addr[12] AB1 ddr3_we_n W6\nddr3_addr[13] AB3 ddr3_dm[0] N5\nddr3_addr[14] AB2 ddr3_dm[1] L5\nddr3_dq[0] P6 ddr3_dq[8] J6\nddr3_dq[1] M5 ddr3_dq[9] K6\nddr3_dq[2] M6 ddr3_dq[10] M2\nddr3_dq[3] N2 ddr3_dq[11] M3\nddr3_dq[4] P2 ddr3_dq[12] K3\nddr3_dq[5] P1 ddr3_dq[13] L3\nddr3_dq[6] R1 ddr3_dq[14] J4\nddr3_dq[7] N4 ddr3_dq[15] K4\nddr3_dqs_p[0] P5 ddr3_dqs_n[0] P4\nddr3_dqs_p[1] M1 ddr3_dqs_n[1] L1"
+      },
+      {
+        "page": 15,
+        "text": "深圳市小眼睛科技有限公司\n- 12 -\n2.1.7. SFP2RGMII 网口\n底板采用裕太微电子的 YT8521SH-CA，用于网络连接。该芯片集成以太网收发器，\n提供 10/100/1000Mbps 自适应以太网接口，FPGA 通过 BANK L4 和 YT8521SH-CA 通信。\n具体的管脚分配如下所示：\n信号名称 描述 FPGA 管脚 YT8521SH Pin\nRGMII2_RXCLK 接收时钟线 D19 28\nRGMII2_RXDV 接收控制线 H19 27\nRGMII2_RXD[3] 接收数据线 3 G20 23\nRGMII2_RXD[2] 接收数据线 2 H20 24\nRGMII2_RXD[1] 接收数据线 1 H22 25\nRGMII2_RXD[0] 接收数据线 0 J22 26\nRGMII2_TXCLK 发送时钟线 J20 21\nRGMII2_TXEN 发送控制线 J21 20\nRGMII2_TXD[3] 发送数据线 3 K21 16\nRGMII2_TXD[2] 发送数据线 2 K22 17\nRGMII2_TXD[1] 发送数据线 1 M21 18\nRGMII2_TXD[0] 发送数据线 0 L21 19\nRGMII2_MDC 控制总线时钟 H17 14\nRGMII2_MDIO 控制总线数据 H18 15\nRGMII2_RESETn 复位控制线，低有效 H15 13"
+      },
+      {
+        "page": 18,
+        "text": "深圳市小眼睛科技有限公司\n- 15 -\n具体管脚分配如下：\n信号 描述 FPGA 管脚\nKEY0\n按键控制信号\nM15\nKEY1 M16\n2.1.11. LED 灯\n开发板上扩展有 2 个用户 LED 灯，连接在 PG2L50H/PGL100H 的 bank L4 上，FPGA\n输出高电平时 LED 灯亮。核心板上也有一个用户 LED。\n扩展板上 LED 灯功能电路图如下图所示：\nLED 灯电路图"
+      },
+      {
+        "page": 26,
+        "text": "深圳市小眼睛科技有限公司\n- 23 -\n3. FPGA 与 RK 通信的引脚\nRK 与 FPGA 之间通过 PCIe、FSPI、I2C0 以及部分 GPIO 相连，其具体 IO 如下表所\n示:\nRK 端引脚 FPGA 端引脚\n芯片引脚号 IO 名称 芯片引脚号 IO 名称\nB21\nGPIO1_B3_d G11 CFG_DONE\nC20 GPIO1_A6_d N12 RSTN\nB20 GPIO1_A7_d U12 INIT_FLAG_N\nA19 GPIO1_A2_d P20 SIO_L5_00\nB19 GPIO1_A3_d U22 DIFFIO_L5_G0_02P_DQS_IO_ST\nAF24 I2C0_SCL_PMIC P19 DIFFIO_L5_G0_04P_D6\n(I2C_SCL)\nAB21 I2C0_SDA_PMIC R19 DIFFIO_L5_G0_04N_D7\n(I2C_SDA)\nA22 FSPI_CLK L19 DIFFIO_L4_G2_13P_GSCLK\n(FSPI_CLK)\nC23 FSPI_CS0n L20 DIFFIO_L4_G2_13N_GSCLK\n(FSPI_CS0n)"
+      },
+      {
+        "page": 27,
+        "text": "深圳市小眼睛科技有限公司\n- 24 -\nC24 FSPI_D0 N22 DIFFIO_L4_G2_14P_GSCLK\n(FSPI_D0)\nD23 FSPI_D1 M22 DIFFIO_L4_G2_14N_GSCLK\n(FSPI_D1)\nF20 FSPI_D2 M18 DIFFIO_L4_G2_15P_GSCLK\n(FSPI_D2)\nA27 FSPI_D3 L18 DIFFIO_L4_G2_15N_GSCLK\n(FSPI_D3)\nAA27 PCIE30_TX0P D9 PCIE_RX0_P\nAA28 PCIE30_TX0N C9 PCIE_RX0_N\nAB27 PCIE30_TX1P B10 PCIE_RX1_P\nAB28 PCIE30_TX1N A10 PCIE_RX1_N\nAC27 PCIE30_RX0P D7 PCIE_TX0_P\nAC28 PCIE30_RX0N C7 PCIE_TX0_N\nAD27 PCIE30_RX1P B6 PCIE_TX1_P\nAD28 PCIE30_RX1N A6 PCIE_TX1_N\n4. ARM 系统概述\n4.1 系统描述\nRK3568J 是一颗高性能、低功耗的四核应用处理器芯片，它内置了多种功能强大的嵌\n入式硬件引擎， 为高端应用提供了优异的性能，RK3568J 为工业级，工作温度范围为\n-40°C~85°C。\nRK3568 的主要参数如下："
+      }
+    ]
+  },
+  {
+    "source": "C:\\Users\\NineSun\\Downloads\\Documents\\RK3568PG2L50H100H主板产品手册.pdf",
+    "source_sha256": "362f41517e160ae38853363aea7c1005b3cf5f3805a05ea7db56856a291d7d93",
+    "pages": 21,
+    "extracted_text": "project\\fpga_v8_migration\\board_v7\\goal_board_validation_01\\board_hardware_manual02_extracted.txt",
+    "matches": [
+      {
+        "page": 8,
+        "text": "网址： http://www.meyesemi.com/ 电话：17665247134 邮箱：support@meyesemi.com\n第二章 基本功能列表\nRK3568 主要功能参数\n板卡尺寸 220*150mm\nCPU RK3568，四核64 位Cortex-A55，最高主频 2.0GHz\nGPU\nARMG522EE\n支持OpenGLES1.1/2.0/3.2，OpenCL2.0，Vulkan1.1\n内嵌高性能2D 加速硬件\nNPU 支持1T 算力\n操作系统 Linux/HarmonyOS/Android11.0\n内存/存储 标配2GB（4GB 可选）/标配32GB（16GB/64GB 可选）\nHDMI 输出 1路 ，标准Type-A 母座 ，最高支持4Kx2K@60Hz 的分辨率\nMIPI 输出 1路，可直接驱动多种分辨率的MIPI 接口液晶屏，实测已支持720*1280的分辨率\n音频输入/输出 喇叭输出（支持左右声道输出 ，默认6W ，可配置10W，需要改电阻）、MICIN*1\n耳机输出 支持一路三/四段耳机插入\nUSB 接口\n1路USB3.0 OTG\n3路USB HOST\n串口\n1路RS232\n1路TTL\n2路RS485\nI2C 接口 1路，可接I2C 接口的TP 或外设\n网络支持\n1、支持10/100/1000M 自适应以太网\n2、内置Wi-Fi ，支持蓝牙\n3、内置MINIPCI-E 接口，可支持4G 上网，不支持模拟或数字通话\n存储 支持U 盘、TF 卡扩展存储\nRTC 实时时钟 支持低功耗\n系统升级 支持本地USB 升级\nCAN 接口 2路CAN 接口"
+      },
+      {
+        "page": 15,
+        "text": "网址： http://www.meyesemi.com/ 电话：17665247134 邮箱：support@meyesemi.com\n10 GND 地线 地线\n注意事项：\n1、板卡支持接入I2C 接口的TP 屏，接入前请确认触摸屏的接口是I2C 的还是USB 的。\n2、接口中的I2C 及RST、INT 电平为3.3V，如果接入1.8V 电平的触摸屏，需做好电平转换。\n3、连接前请注意线序的电气定义是否匹配，需先连接好触摸屏后再上电，不允许带电拔插使用。\n3.2.7 喇叭接口（4pin/2.0mm）\n功能描述：此接口可以接外置扬声器。\n序号 定义 属性 描述\n4 OUTP-L 输出 音频输出左+\n3 OUTN-L 输出 音频输出左-\n2 OUTN-R 输出 音频输出右-\n1 OUTP-R 输出 音频输出右+\n注意事项：\n1、此为双喇叭连接，在使用单喇叭的时候是pin1 与pin2 一组，pin3 与pin4 一组，不要搞错。\n2、喇叭的使用，需先连接好喇叭后再开机，不允许带电拔插使用。\n3、喇叭接口的默认输出功率为8R/6W，如使用4R 的喇叭需注意功率相应降低一半使用。\n4、功放芯片的最大可支持功率到8R/10W，需定制硬件实现。\n5、使用时务必测量实际最大输出功率应小于实际喇叭额定功率。\n3.2.8MIPI 接口（40pin/0.5mm）\n功能描述：支持接入MIPI 屏的接口\n序号 定义 属性 描述\n1 VDD_1V8 电源 1.8V 输入\n2 VDD_3V3 电源\n3.3V 输入\n3 VDD_3V3 电源\n4 NC NC NC\n5 Reset 输出 屏复位信号，高电平3.3V\n6 NC NC NC\n7 GND 地线 地线\n8 MIPI_D0N 输出 MIPIPortLane0negativeoutput\n9 MIPI_D0P 输出 MIPIPortLane0positiveoutput\n10 GND 地线 地线\n11 MIPI_D1N 输出 MIPIPortLane1negativeoutput"
+      },
+      {
+        "page": 18,
+        "text": "网址： http://www.meyesemi.com/ 电话：17665247134 邮箱：support@meyesemi.com\n37 GPIO 输入/出 IO\n38 GPIO 输入/出 IO\n39 3.3V 电源 3.3V 输出\n40 3.3V 电源 3.3V 输出\n3.3 其它一些标准接口以及功能\n接口 标准 参数描述\n存储接口\nTF 卡\n采用SD3.0 接口规范，最高支持Class10，最低写入/读取速度\n为10MB/s，容量最大可以支持128GB\nUSB TYPE-A\nUSB2.0，最高支持480Mbps/s 传输速率（60MB/s）USB3.0，\n最高支持5.0Gbps/s 传输速率（500MB/s）\n以太网接口 RJ45 接口 支持10/100/1000M 有线网络\nHDMI 接口 HDMI TYPE-A\nHDMI1.4，2.0\n支持多种分辨率，1920x1080，1280x720，720x576，720x480\n等\n耳机接口 3.5mm 支持左右双声道，支持MIC 录音\n4G 接口 Mini PCI-E\n支持Cat1、Cat44G 模块进行网络通信\nCat1：下行峰值约10Mbps，上行峰值5Mbps\nCat4：下行峰值150Mbps，上行50Mbps\n接口默认电压3.8V，供电电流3A\nSIM 卡接口 Mini SIM\nMiniSIM 卡尺寸规格：25mmx15mm\n执行标准：ISO/IEC7810:2003，ID-000\n第四章 电气性能\n项目 最小 典型 最大\n电源参数\n电压 -- 12V --\n纹波 -- -- 50mV\n电流 3A\n电源电流（HDMI 输出，\n未接其它外设）\n工作电流 250mA 380mA\n待机电流 22mA 30mA\n电源电流（MIPI）\n3.3V 工作电流 400mA 1.5A\n5V 工作电流 550mA 2A\n12V 工作电流 580mA 2A\n总输出 电流 -- -- 3A\n环境\n相对湿度 -- -- 80%\n工作温度 0℃ -- 60℃\n存储温度 -40℃ 80℃"
+      },
+      {
+        "page": 20,
+        "text": "网址： http://www.meyesemi.com/ 电话：17665247134 邮箱：support@meyesemi.com\n第六章 可配置参数表（差异点）\n类型 标准 选配\nDDR\n2G  2G \n4G  4G \n8G  8G \nEMMC\n16  16 \n32  32 \n64  64 \nWiFi+BT\n2.4G+BT  2.4G+BT \n5G+BT  5G+BT \n4G/PCIE  \n5G/M.2  \nETH/RJ45  \nSATA3.0  \nMIPI  \neDP  \nHDMI  \nUSB*4  \nTTL*1  \nRS232*1  \nRS485*2  \nCAN*2  \nHdmiin  \nTF  \nMIPICAM  "
+      }
+    ]
+  }
+]

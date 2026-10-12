@@ -1,0 +1,393 @@
+Startpoint  : cam2_ov5640_top/ov5640/cmos_capture/temp_cnt[0]/opit_0_L6QL5Q_perm/CLK
+Endpoint    : cam2_ov5640_top/ov5640/cmos_capture/cmos_data_t[15]/opit_0/D
+Path Group  : cmos2_pclk
+Path Type   : min (slow corner)
+Path Class  : sequential timing path
+Clock Skew  :    2.063  (Capture Clock Delay - Launch Clock Delay + Clock Pessimism Removal)
+  Capture Clock Delay     :  7.318
+  Launch Clock Delay      :  4.354
+  Clock Pessimism Removal :  -0.901
+
+ Location                          Delay Type             Incr        Path         Logical Resource 
+----------------------------------------------------------------------------------------------------
+
+ Clock cmos2_pclk (rising edge)                          0.000       0.000 r                        
+ P16                                                     0.000       0.000 r       cmos2_pclk (port)
+                                   net (fanout=1)        0.064       0.064         cmos2_pclk       
+ IOBD_0_318/DIN                    td                    0.730       0.794 r       cmos2_pclk_ibuf/opit_0/O
+                                   net (fanout=1)        0.000       0.794         cmos2_pclk_ibuf/ntD
+ IOLHR_16_318/DI_TO_CLK            td                    0.091       0.885 r       cmos2_pclk_ibuf/opit_1/DI_TO_CLK
+                                   net (fanout=1)        2.191       3.076         nt_cmos2_pclk    
+ USCM_215_585/CLKOUT               td                    0.143       3.219 r       clkbufg_4/gopclkbufg/CLKOUT
+                                   net (fanout=4)        0.515       3.734         ntclkbufg_4      
+ HCKB_213_474/CLKOUT               td                    0.245       3.979 r       HCKBROUTE_11/CLKOUT
+                                   net (fanout=199)      0.375       4.354         ntR8721          
+ CLMA_207_360/CLK                                                          r       cam2_ov5640_top/ov5640/cmos_capture/temp_cnt[0]/opit_0_L6QL5Q_perm/CLK
+
+ CLMA_207_360/Q1                   tco                   0.158       4.512 f       cam2_ov5640_top/ov5640/cmos_capture/temp_cnt[0]/opit_0_L6QL5Q_perm/L6Q
+                                   net (fanout=1)        0.441       4.953         cam2_ov5640_top/ov5640/cmos_capture/cam_data_temp [7]
+ CLMA_219_360/M0                                                           f       cam2_ov5640_top/ov5640/cmos_capture/cmos_data_t[15]/opit_0/D
+
+ Data arrival time                                                   4.953         Logic Levels: 0  
+                                                                                   Logic: 0.158ns(26.377%), Route: 0.441ns(73.623%)
+----------------------------------------------------------------------------------------------------
+
+ Clock cmos2_pclk (rising edge)                          0.000       0.000 r                        
+ P16                                                     0.000       0.000 r       cmos2_pclk (port)
+                                   net (fanout=1)        0.064       0.064         cmos2_pclk       
+ IOBD_0_318/DIN                    td                    0.855       0.919 r       cmos2_pclk_ibuf/opit_0/O
+                                   net (fanout=1)        0.000       0.919         cmos2_pclk_ibuf/ntD
+ IOLHR_16_318/DI_TO_CLK            td                    0.105       1.024 r       cmos2_pclk_ibuf/opit_1/DI_TO_CLK
+                                   net (fanout=1)        2.928       3.952         nt_cmos2_pclk    
+ USCM_215_585/CLKOUT               td                    0.168       4.120 r       clkbufg_4/gopclkbufg/CLKOUT
+                                   net (fanout=4)        0.602       4.722         ntclkbufg_4      
+ HCKB_213_495/CLKOUT               td                    0.287       5.009 r       HCKBROUTE_12/CLKOUT
+                                   net (fanout=86)       0.711       5.720         ntR8723          
+ CLMA_219_469/CR1                  td                    0.227       5.947 r       CLKROUTE_1004/CR 
+                                   net (fanout=4)        1.371       7.318         ntR8722          
+ CLMA_219_360/CLK                                                          r       cam2_ov5640_top/ov5640/cmos_capture/cmos_data_t[15]/opit_0/CLK
+ clock pessimism                                        -0.901       6.417                          
+ clock uncertainty                                       0.002       6.419                          
+
+ Hold time                                              -0.049       6.370                          
+
+ Data required time                                                  6.370                          
+----------------------------------------------------------------------------------------------------
+ Data required time                                                  6.370                          
+ Data arrival time                                                   4.953                          
+----------------------------------------------------------------------------------------------------
+ Slack (VIOLATED)                                                   -1.417                          
+
+
+Startpoint  : cam6_ov5640_ddr/flush_count[2]/opit_0_L5Q_perm/CLK
+Endpoint    : cam6_axi_dma_write/wd_cnt[12]/opit_0_AQ_perm/RS
+Path Group  : ddrphy_sysclk
+Path Type   : max (slow corner)
+Path Class  : sequential timing path
+Clock Skew  :    -0.203  (Capture Clock Delay - Launch Clock Delay + Clock Pessimism Removal)
+  Capture Clock Delay     :  4.171
+  Launch Clock Delay      :  5.589
+  Clock Pessimism Removal :  1.215
+
+ Location                          Delay Type             Incr        Path         Logical Resource 
+----------------------------------------------------------------------------------------------------
+
+ Clock ddrphy_sysclk (rising edge)                       0.000       0.000 r                        
+ V4                                                      0.000       0.000 r       free_clk (port)  
+                                   net (fanout=1)        0.106       0.106         free_clk         
+ IOBD_372_468/DIN                  td                    1.117       1.223 r       free_clk_ibuf/opit_0/O
+                                   net (fanout=1)        0.000       1.223         free_clk_ibuf/ntD
+ IOLHR_364_468/DI_TO_CLK           td                    0.105       1.328 r       free_clk_ibuf/opit_1/DI_TO_CLK
+                                   net (fanout=226)      0.294       1.622         nt_free_clk      
+ MRCKB_361_456/CLKOUT_U_P          td                    0.148       1.770 r       ddr3/u_ddrphy_top/u_clkbufm/clkbufm_inst/CLKOUT_P
+                                   net (fanout=2)        0.432       2.202         ddr3/u_ddrphy_top/pll_refclk
+ RCKB_363_456/CLKOUT               td                    0.177       2.379 r       ddr3/u_ddrphy_top/ddrphy_slice_top/i_dqs_bank[0].u_clkbufr/goprclk/CLKOUT
+                                   net (fanout=1)        0.450       2.829         ddr3/u_ddrphy_top/ddrphy_slice_top/ppll_clkin [0]
+ PPLL_367_307/CLKOUTPHY            td                    0.037       2.866 r       ddr3/u_ddrphy_top/ddrphy_slice_top/i_dqs_bank[0].ddrphy_ppll/u_ppll/ppll_inst/CLKOUTPHY
+                                   net (fanout=36)       0.000       2.866         ddr3/u_ddrphy_top/phy_ioclk_fb
+ DDRPHY_IOCLK_DIV_368_310/CLKOUT   td                    0.123       2.989 r       ddr3/u_ddrphy_top/ddrphy_slice_top/i_dqs_bank[0].u_ddrphy_ioclkdiv/ddrphy_ioclk_div_inst/CLKOUT
+                                   net (fanout=35)       0.000       2.989         ddr3/u_ddrphy_top/phy_sysclk_fb
+ GPLL_367_463/CLKOUT0                                    0.334       3.323 r       ddr3/u_ddrphy_top/ddrphy_gpll/u_gpll/gpll_inst/CLKOUT0
+                                   net (fanout=1)        0.753       4.076         ddr3/u_ddrphy_top/gpll_clkout0
+ USCM_215_576/CLKOUT               td                    0.168       4.244 r       ddr3/u_ddrphy_top/u_sysclk_bufg/gopclkbufg/CLKOUT
+                                   net (fanout=7)        0.602       4.846         axi_clk          
+ HCKB_213_476/CLKOUT               td                    0.287       5.133 r       HCKBROUTE_44/CLKOUT
+                                   net (fanout=1542)     0.456       5.589         ntR8831          
+ CLMS_207_607/CLK                                                          r       cam6_ov5640_ddr/flush_count[2]/opit_0_L5Q_perm/CLK
+
+ CLMS_207_607/CR2                  tco                   0.249       5.838 r       cam6_ov5640_ddr/flush_count[2]/opit_0_L5Q_perm/L5Q
+                                   net (fanout=1)        1.238       7.076         cam6_ov5640_ddr/flush_count [2]
+ CLMA_207_606/CR2                  td                    0.222       7.298 r       CLKROUTE_15/CR   
+                                   net (fanout=1)        0.122       7.420         ntR7757          
+ CLMS_207_607/Y2                   td                    0.108       7.528 r       cam6_ov5640_ddr/flush_count[2]/opit_0_L5Q_perm/L6
+                                   net (fanout=22)       0.946       8.474         six_flush[5]     
+ CLMS_201_499/Y2                   td                    0.224       8.698 r       cam6_ov5640_ddr/N17/gateop_LUT6DL5_perm/L6
+                                   net (fanout=60)       0.426       9.124         cam6_ov5640_ddr/N17
+ CLMS_207_511/CR2                  td                    0.220       9.344 r       cam6_ov5640_ddr/N140_8[9]/gateop_LUT6DL5_perm/L5
+                                   net (fanout=2)        0.688      10.032         cam6_s_data_available[8]
+ CLMA_207_474/CR1                  td                    0.329      10.361 r       cam6_axi_dma_write/N178.eq_5/gateop_l6l5_perm/L5
+                                   net (fanout=1)        1.620      11.981         _N19             
+ CLMA_339_474/Y0                   td                    0.074      12.055 r       cam6_axi_dma_write/N417_9/LUT6_inst_perm/L6
+                                   net (fanout=24)       0.717      12.772         cam6_axi_dma_write/N417
+ CLMS_339_433/RS                                                           r       cam6_axi_dma_write/wd_cnt[12]/opit_0_AQ_perm/RS
+
+ Data arrival time                                                  12.772         Logic Levels: 6  
+                                                                                   Logic: 1.426ns(19.852%), Route: 5.757ns(80.148%)
+----------------------------------------------------------------------------------------------------
+
+ Clock ddrphy_sysclk (rising edge)                       7.619       7.619 r                        
+ V4                                                      0.000       7.619 r       free_clk (port)  
+                                   net (fanout=1)        0.106       7.725         free_clk         
+ IOBD_372_468/DIN                  td                    0.954       8.679 r       free_clk_ibuf/opit_0/O
+                                   net (fanout=1)        0.000       8.679         free_clk_ibuf/ntD
+ IOLHR_364_468/DI_TO_CLK           td                    0.091       8.770 r       free_clk_ibuf/opit_1/DI_TO_CLK
+                                   net (fanout=226)      0.247       9.017         nt_free_clk      
+ MRCKB_361_456/CLKOUT_U_P          td                    0.126       9.143 r       ddr3/u_ddrphy_top/u_clkbufm/clkbufm_inst/CLKOUT_P
+                                   net (fanout=2)        0.367       9.510         ddr3/u_ddrphy_top/pll_refclk
+ RCKB_363_456/CLKOUT               td                    0.149       9.659 r       ddr3/u_ddrphy_top/ddrphy_slice_top/i_dqs_bank[0].u_clkbufr/goprclk/CLKOUT
+                                   net (fanout=1)        0.383      10.042         ddr3/u_ddrphy_top/ddrphy_slice_top/ppll_clkin [0]
+ PPLL_367_307/CLKOUTPHY            td                    0.026      10.068 r       ddr3/u_ddrphy_top/ddrphy_slice_top/i_dqs_bank[0].ddrphy_ppll/u_ppll/ppll_inst/CLKOUTPHY
+                                   net (fanout=36)       0.000      10.068         ddr3/u_ddrphy_top/phy_ioclk_fb
+ DDRPHY_IOCLK_DIV_368_310/CLKOUT   td                    0.101      10.169 r       ddr3/u_ddrphy_top/ddrphy_slice_top/i_dqs_bank[0].u_ddrphy_ioclkdiv/ddrphy_ioclk_div_inst/CLKOUT
+                                   net (fanout=35)       0.000      10.169         ddr3/u_ddrphy_top/phy_sysclk_fb
+ GPLL_367_463/CLKOUT0                                   -0.306       9.863 r       ddr3/u_ddrphy_top/ddrphy_gpll/u_gpll/gpll_inst/CLKOUT0
+                                   net (fanout=1)        0.642      10.505         ddr3/u_ddrphy_top/gpll_clkout0
+ USCM_215_576/CLKOUT               td                    0.143      10.648 r       ddr3/u_ddrphy_top/u_sysclk_bufg/gopclkbufg/CLKOUT
+                                   net (fanout=7)        0.515      11.163         axi_clk          
+ HCKB_213_496/CLKOUT               td                    0.245      11.408 r       HCKBROUTE_43/CLKOUT
+                                   net (fanout=3505)     0.382      11.790         ntR8830          
+ CLMS_339_433/CLK                                                          r       cam6_axi_dma_write/wd_cnt[12]/opit_0_AQ_perm/CLK
+ clock pessimism                                         1.215      13.005                          
+ clock uncertainty                                      -0.150      12.855                          
+
+ Setup time                                             -0.244      12.611                          
+
+ Data required time                                                 12.611                          
+----------------------------------------------------------------------------------------------------
+ Data required time                                                 12.611                          
+ Data arrival time                                                  12.772                          
+----------------------------------------------------------------------------------------------------
+ Slack (VIOLATED)                                                   -0.161                          
+
+
+Startpoint  : cam6_ov5640_ddr/flush_count[2]/opit_0_L5Q_perm/CLK
+Endpoint    : cam6_axi_dma_write/wd_cnt[4]/opit_0_AQ_perm/RS
+Path Group  : ddrphy_sysclk
+Path Type   : max (slow corner)
+Path Class  : sequential timing path
+Clock Skew  :    -0.201  (Capture Clock Delay - Launch Clock Delay + Clock Pessimism Removal)
+  Capture Clock Delay     :  4.173
+  Launch Clock Delay      :  5.589
+  Clock Pessimism Removal :  1.215
+
+ Location                          Delay Type             Incr        Path         Logical Resource 
+----------------------------------------------------------------------------------------------------
+
+ Clock ddrphy_sysclk (rising edge)                       0.000       0.000 r                        
+ V4                                                      0.000       0.000 r       free_clk (port)  
+                                   net (fanout=1)        0.106       0.106         free_clk         
+ IOBD_372_468/DIN                  td                    1.117       1.223 r       free_clk_ibuf/opit_0/O
+                                   net (fanout=1)        0.000       1.223         free_clk_ibuf/ntD
+ IOLHR_364_468/DI_TO_CLK           td                    0.105       1.328 r       free_clk_ibuf/opit_1/DI_TO_CLK
+                                   net (fanout=226)      0.294       1.622         nt_free_clk      
+ MRCKB_361_456/CLKOUT_U_P          td                    0.148       1.770 r       ddr3/u_ddrphy_top/u_clkbufm/clkbufm_inst/CLKOUT_P
+                                   net (fanout=2)        0.432       2.202         ddr3/u_ddrphy_top/pll_refclk
+ RCKB_363_456/CLKOUT               td                    0.177       2.379 r       ddr3/u_ddrphy_top/ddrphy_slice_top/i_dqs_bank[0].u_clkbufr/goprclk/CLKOUT
+                                   net (fanout=1)        0.450       2.829         ddr3/u_ddrphy_top/ddrphy_slice_top/ppll_clkin [0]
+ PPLL_367_307/CLKOUTPHY            td                    0.037       2.866 r       ddr3/u_ddrphy_top/ddrphy_slice_top/i_dqs_bank[0].ddrphy_ppll/u_ppll/ppll_inst/CLKOUTPHY
+                                   net (fanout=36)       0.000       2.866         ddr3/u_ddrphy_top/phy_ioclk_fb
+ DDRPHY_IOCLK_DIV_368_310/CLKOUT   td                    0.123       2.989 r       ddr3/u_ddrphy_top/ddrphy_slice_top/i_dqs_bank[0].u_ddrphy_ioclkdiv/ddrphy_ioclk_div_inst/CLKOUT
+                                   net (fanout=35)       0.000       2.989         ddr3/u_ddrphy_top/phy_sysclk_fb
+ GPLL_367_463/CLKOUT0                                    0.334       3.323 r       ddr3/u_ddrphy_top/ddrphy_gpll/u_gpll/gpll_inst/CLKOUT0
+                                   net (fanout=1)        0.753       4.076         ddr3/u_ddrphy_top/gpll_clkout0
+ USCM_215_576/CLKOUT               td                    0.168       4.244 r       ddr3/u_ddrphy_top/u_sysclk_bufg/gopclkbufg/CLKOUT
+                                   net (fanout=7)        0.602       4.846         axi_clk          
+ HCKB_213_476/CLKOUT               td                    0.287       5.133 r       HCKBROUTE_44/CLKOUT
+                                   net (fanout=1542)     0.456       5.589         ntR8831          
+ CLMS_207_607/CLK                                                          r       cam6_ov5640_ddr/flush_count[2]/opit_0_L5Q_perm/CLK
+
+ CLMS_207_607/CR2                  tco                   0.249       5.838 r       cam6_ov5640_ddr/flush_count[2]/opit_0_L5Q_perm/L5Q
+                                   net (fanout=1)        1.238       7.076         cam6_ov5640_ddr/flush_count [2]
+ CLMA_207_606/CR2                  td                    0.222       7.298 r       CLKROUTE_15/CR   
+                                   net (fanout=1)        0.122       7.420         ntR7757          
+ CLMS_207_607/Y2                   td                    0.108       7.528 r       cam6_ov5640_ddr/flush_count[2]/opit_0_L5Q_perm/L6
+                                   net (fanout=22)       0.946       8.474         six_flush[5]     
+ CLMS_201_499/Y2                   td                    0.224       8.698 r       cam6_ov5640_ddr/N17/gateop_LUT6DL5_perm/L6
+                                   net (fanout=60)       0.426       9.124         cam6_ov5640_ddr/N17
+ CLMS_207_511/CR2                  td                    0.220       9.344 r       cam6_ov5640_ddr/N140_8[9]/gateop_LUT6DL5_perm/L5
+                                   net (fanout=2)        0.688      10.032         cam6_s_data_available[8]
+ CLMA_207_474/CR1                  td                    0.329      10.361 r       cam6_axi_dma_write/N178.eq_5/gateop_l6l5_perm/L5
+                                   net (fanout=1)        1.620      11.981         _N19             
+ CLMA_339_474/Y0                   td                    0.074      12.055 r       cam6_axi_dma_write/N417_9/LUT6_inst_perm/L6
+                                   net (fanout=24)       0.596      12.651         cam6_axi_dma_write/N417
+ CLMS_339_421/RS                                                           r       cam6_axi_dma_write/wd_cnt[4]/opit_0_AQ_perm/RS
+
+ Data arrival time                                                  12.651         Logic Levels: 6  
+                                                                                   Logic: 1.426ns(20.193%), Route: 5.636ns(79.807%)
+----------------------------------------------------------------------------------------------------
+
+ Clock ddrphy_sysclk (rising edge)                       7.619       7.619 r                        
+ V4                                                      0.000       7.619 r       free_clk (port)  
+                                   net (fanout=1)        0.106       7.725         free_clk         
+ IOBD_372_468/DIN                  td                    0.954       8.679 r       free_clk_ibuf/opit_0/O
+                                   net (fanout=1)        0.000       8.679         free_clk_ibuf/ntD
+ IOLHR_364_468/DI_TO_CLK           td                    0.091       8.770 r       free_clk_ibuf/opit_1/DI_TO_CLK
+                                   net (fanout=226)      0.247       9.017         nt_free_clk      
+ MRCKB_361_456/CLKOUT_U_P          td                    0.126       9.143 r       ddr3/u_ddrphy_top/u_clkbufm/clkbufm_inst/CLKOUT_P
+                                   net (fanout=2)        0.367       9.510         ddr3/u_ddrphy_top/pll_refclk
+ RCKB_363_456/CLKOUT               td                    0.149       9.659 r       ddr3/u_ddrphy_top/ddrphy_slice_top/i_dqs_bank[0].u_clkbufr/goprclk/CLKOUT
+                                   net (fanout=1)        0.383      10.042         ddr3/u_ddrphy_top/ddrphy_slice_top/ppll_clkin [0]
+ PPLL_367_307/CLKOUTPHY            td                    0.026      10.068 r       ddr3/u_ddrphy_top/ddrphy_slice_top/i_dqs_bank[0].ddrphy_ppll/u_ppll/ppll_inst/CLKOUTPHY
+                                   net (fanout=36)       0.000      10.068         ddr3/u_ddrphy_top/phy_ioclk_fb
+ DDRPHY_IOCLK_DIV_368_310/CLKOUT   td                    0.101      10.169 r       ddr3/u_ddrphy_top/ddrphy_slice_top/i_dqs_bank[0].u_ddrphy_ioclkdiv/ddrphy_ioclk_div_inst/CLKOUT
+                                   net (fanout=35)       0.000      10.169         ddr3/u_ddrphy_top/phy_sysclk_fb
+ GPLL_367_463/CLKOUT0                                   -0.306       9.863 r       ddr3/u_ddrphy_top/ddrphy_gpll/u_gpll/gpll_inst/CLKOUT0
+                                   net (fanout=1)        0.642      10.505         ddr3/u_ddrphy_top/gpll_clkout0
+ USCM_215_576/CLKOUT               td                    0.143      10.648 r       ddr3/u_ddrphy_top/u_sysclk_bufg/gopclkbufg/CLKOUT
+                                   net (fanout=7)        0.515      11.163         axi_clk          
+ HCKB_213_496/CLKOUT               td                    0.245      11.408 r       HCKBROUTE_43/CLKOUT
+                                   net (fanout=3505)     0.384      11.792         ntR8830          
+ CLMS_339_421/CLK                                                          r       cam6_axi_dma_write/wd_cnt[4]/opit_0_AQ_perm/CLK
+ clock pessimism                                         1.215      13.007                          
+ clock uncertainty                                      -0.150      12.857                          
+
+ Setup time                                             -0.244      12.613                          
+
+ Data required time                                                 12.613                          
+----------------------------------------------------------------------------------------------------
+ Data required time                                                 12.613                          
+ Data arrival time                                                  12.651                          
+----------------------------------------------------------------------------------------------------
+ Slack (VIOLATED)                                                   -0.038                          
+
+
+Startpoint  : cam6_ov5640_ddr/flush_count[2]/opit_0_L5Q_perm/CLK
+Endpoint    : cam6_axi_dma_write/wd_cnt[16]/opit_0_AQ_perm/RS
+Path Group  : ddrphy_sysclk
+Path Type   : max (slow corner)
+Path Class  : sequential timing path
+Clock Skew  :    -0.204  (Capture Clock Delay - Launch Clock Delay + Clock Pessimism Removal)
+  Capture Clock Delay     :  4.170
+  Launch Clock Delay      :  5.589
+  Clock Pessimism Removal :  1.215
+
+ Location                          Delay Type             Incr        Path         Logical Resource 
+----------------------------------------------------------------------------------------------------
+
+ Clock ddrphy_sysclk (rising edge)                       0.000       0.000 r                        
+ V4                                                      0.000       0.000 r       free_clk (port)  
+                                   net (fanout=1)        0.106       0.106         free_clk         
+ IOBD_372_468/DIN                  td                    1.117       1.223 r       free_clk_ibuf/opit_0/O
+                                   net (fanout=1)        0.000       1.223         free_clk_ibuf/ntD
+ IOLHR_364_468/DI_TO_CLK           td                    0.105       1.328 r       free_clk_ibuf/opit_1/DI_TO_CLK
+                                   net (fanout=226)      0.294       1.622         nt_free_clk      
+ MRCKB_361_456/CLKOUT_U_P          td                    0.148       1.770 r       ddr3/u_ddrphy_top/u_clkbufm/clkbufm_inst/CLKOUT_P
+                                   net (fanout=2)        0.432       2.202         ddr3/u_ddrphy_top/pll_refclk
+ RCKB_363_456/CLKOUT               td                    0.177       2.379 r       ddr3/u_ddrphy_top/ddrphy_slice_top/i_dqs_bank[0].u_clkbufr/goprclk/CLKOUT
+                                   net (fanout=1)        0.450       2.829         ddr3/u_ddrphy_top/ddrphy_slice_top/ppll_clkin [0]
+ PPLL_367_307/CLKOUTPHY            td                    0.037       2.866 r       ddr3/u_ddrphy_top/ddrphy_slice_top/i_dqs_bank[0].ddrphy_ppll/u_ppll/ppll_inst/CLKOUTPHY
+                                   net (fanout=36)       0.000       2.866         ddr3/u_ddrphy_top/phy_ioclk_fb
+ DDRPHY_IOCLK_DIV_368_310/CLKOUT   td                    0.123       2.989 r       ddr3/u_ddrphy_top/ddrphy_slice_top/i_dqs_bank[0].u_ddrphy_ioclkdiv/ddrphy_ioclk_div_inst/CLKOUT
+                                   net (fanout=35)       0.000       2.989         ddr3/u_ddrphy_top/phy_sysclk_fb
+ GPLL_367_463/CLKOUT0                                    0.334       3.323 r       ddr3/u_ddrphy_top/ddrphy_gpll/u_gpll/gpll_inst/CLKOUT0
+                                   net (fanout=1)        0.753       4.076         ddr3/u_ddrphy_top/gpll_clkout0
+ USCM_215_576/CLKOUT               td                    0.168       4.244 r       ddr3/u_ddrphy_top/u_sysclk_bufg/gopclkbufg/CLKOUT
+                                   net (fanout=7)        0.602       4.846         axi_clk          
+ HCKB_213_476/CLKOUT               td                    0.287       5.133 r       HCKBROUTE_44/CLKOUT
+                                   net (fanout=1542)     0.456       5.589         ntR8831          
+ CLMS_207_607/CLK                                                          r       cam6_ov5640_ddr/flush_count[2]/opit_0_L5Q_perm/CLK
+
+ CLMS_207_607/CR2                  tco                   0.249       5.838 r       cam6_ov5640_ddr/flush_count[2]/opit_0_L5Q_perm/L5Q
+                                   net (fanout=1)        1.238       7.076         cam6_ov5640_ddr/flush_count [2]
+ CLMA_207_606/CR2                  td                    0.222       7.298 r       CLKROUTE_15/CR   
+                                   net (fanout=1)        0.122       7.420         ntR7757          
+ CLMS_207_607/Y2                   td                    0.108       7.528 r       cam6_ov5640_ddr/flush_count[2]/opit_0_L5Q_perm/L6
+                                   net (fanout=22)       0.946       8.474         six_flush[5]     
+ CLMS_201_499/Y2                   td                    0.224       8.698 r       cam6_ov5640_ddr/N17/gateop_LUT6DL5_perm/L6
+                                   net (fanout=60)       0.426       9.124         cam6_ov5640_ddr/N17
+ CLMS_207_511/CR2                  td                    0.220       9.344 r       cam6_ov5640_ddr/N140_8[9]/gateop_LUT6DL5_perm/L5
+                                   net (fanout=2)        0.688      10.032         cam6_s_data_available[8]
+ CLMA_207_474/CR1                  td                    0.329      10.361 r       cam6_axi_dma_write/N178.eq_5/gateop_l6l5_perm/L5
+                                   net (fanout=1)        1.620      11.981         _N19             
+ CLMA_339_474/Y0                   td                    0.074      12.055 r       cam6_axi_dma_write/N417_9/LUT6_inst_perm/L6
+                                   net (fanout=24)       0.580      12.635         cam6_axi_dma_write/N417
+ CLMS_339_439/RS                                                           r       cam6_axi_dma_write/wd_cnt[16]/opit_0_AQ_perm/RS
+
+ Data arrival time                                                  12.635         Logic Levels: 6  
+                                                                                   Logic: 1.426ns(20.238%), Route: 5.620ns(79.762%)
+----------------------------------------------------------------------------------------------------
+
+ Clock ddrphy_sysclk (rising edge)                       7.619       7.619 r                        
+ V4                                                      0.000       7.619 r       free_clk (port)  
+                                   net (fanout=1)        0.106       7.725         free_clk         
+ IOBD_372_468/DIN                  td                    0.954       8.679 r       free_clk_ibuf/opit_0/O
+                                   net (fanout=1)        0.000       8.679         free_clk_ibuf/ntD
+ IOLHR_364_468/DI_TO_CLK           td                    0.091       8.770 r       free_clk_ibuf/opit_1/DI_TO_CLK
+                                   net (fanout=226)      0.247       9.017         nt_free_clk      
+ MRCKB_361_456/CLKOUT_U_P          td                    0.126       9.143 r       ddr3/u_ddrphy_top/u_clkbufm/clkbufm_inst/CLKOUT_P
+                                   net (fanout=2)        0.367       9.510         ddr3/u_ddrphy_top/pll_refclk
+ RCKB_363_456/CLKOUT               td                    0.149       9.659 r       ddr3/u_ddrphy_top/ddrphy_slice_top/i_dqs_bank[0].u_clkbufr/goprclk/CLKOUT
+                                   net (fanout=1)        0.383      10.042         ddr3/u_ddrphy_top/ddrphy_slice_top/ppll_clkin [0]
+ PPLL_367_307/CLKOUTPHY            td                    0.026      10.068 r       ddr3/u_ddrphy_top/ddrphy_slice_top/i_dqs_bank[0].ddrphy_ppll/u_ppll/ppll_inst/CLKOUTPHY
+                                   net (fanout=36)       0.000      10.068         ddr3/u_ddrphy_top/phy_ioclk_fb
+ DDRPHY_IOCLK_DIV_368_310/CLKOUT   td                    0.101      10.169 r       ddr3/u_ddrphy_top/ddrphy_slice_top/i_dqs_bank[0].u_ddrphy_ioclkdiv/ddrphy_ioclk_div_inst/CLKOUT
+                                   net (fanout=35)       0.000      10.169         ddr3/u_ddrphy_top/phy_sysclk_fb
+ GPLL_367_463/CLKOUT0                                   -0.306       9.863 r       ddr3/u_ddrphy_top/ddrphy_gpll/u_gpll/gpll_inst/CLKOUT0
+                                   net (fanout=1)        0.642      10.505         ddr3/u_ddrphy_top/gpll_clkout0
+ USCM_215_576/CLKOUT               td                    0.143      10.648 r       ddr3/u_ddrphy_top/u_sysclk_bufg/gopclkbufg/CLKOUT
+                                   net (fanout=7)        0.515      11.163         axi_clk          
+ HCKB_213_496/CLKOUT               td                    0.245      11.408 r       HCKBROUTE_43/CLKOUT
+                                   net (fanout=3505)     0.381      11.789         ntR8830          
+ CLMS_339_439/CLK                                                          r       cam6_axi_dma_write/wd_cnt[16]/opit_0_AQ_perm/CLK
+ clock pessimism                                         1.215      13.004                          
+ clock uncertainty                                      -0.150      12.854                          
+
+ Setup time                                             -0.244      12.610                          
+
+ Data required time                                                 12.610                          
+----------------------------------------------------------------------------------------------------
+ Data required time                                                 12.610                          
+ Data arrival time                                                  12.635                          
+----------------------------------------------------------------------------------------------------
+ Slack (VIOLATED)                                                   -0.025                          
+
+
+Startpoint  : cam2_ov5640_top/ov5640/cmos_capture/temp_cnt[0]/opit_0_L6QL5Q_perm/CLK
+Endpoint    : cam2_ov5640_top/ov5640/cmos_capture/cmos_data_t[15]/opit_0/D
+Path Group  : cmos2_pclk
+Path Type   : min (fast corner)
+Path Class  : sequential timing path
+Clock Skew  :    1.238  (Capture Clock Delay - Launch Clock Delay + Clock Pessimism Removal)
+  Capture Clock Delay     :  4.522
+  Launch Clock Delay      :  2.818
+  Clock Pessimism Removal :  -0.466
+
+ Location                          Delay Type             Incr        Path         Logical Resource 
+----------------------------------------------------------------------------------------------------
+
+ Clock cmos2_pclk (rising edge)                          0.000       0.000 r                        
+ P16                                                     0.000       0.000 r       cmos2_pclk (port)
+                                   net (fanout=1)        0.064       0.064         cmos2_pclk       
+ IOBD_0_318/DIN                    td                    0.445       0.509 r       cmos2_pclk_ibuf/opit_0/O
+                                   net (fanout=1)        0.000       0.509         cmos2_pclk_ibuf/ntD
+ IOLHR_16_318/DI_TO_CLK            td                    0.073       0.582 r       cmos2_pclk_ibuf/opit_1/DI_TO_CLK
+                                   net (fanout=1)        1.363       1.945         nt_cmos2_pclk    
+ USCM_215_585/CLKOUT               td                    0.097       2.042 r       clkbufg_4/gopclkbufg/CLKOUT
+                                   net (fanout=4)        0.328       2.370         ntclkbufg_4      
+ HCKB_213_474/CLKOUT               td                    0.195       2.565 r       HCKBROUTE_11/CLKOUT
+                                   net (fanout=199)      0.253       2.818         ntR8721          
+ CLMA_207_360/CLK                                                          r       cam2_ov5640_top/ov5640/cmos_capture/temp_cnt[0]/opit_0_L6QL5Q_perm/CLK
+
+ CLMA_207_360/Q1                   tco                   0.103       2.921 r       cam2_ov5640_top/ov5640/cmos_capture/temp_cnt[0]/opit_0_L6QL5Q_perm/L6Q
+                                   net (fanout=1)        0.324       3.245         cam2_ov5640_top/ov5640/cmos_capture/cam_data_temp [7]
+ CLMA_219_360/M0                                                           r       cam2_ov5640_top/ov5640/cmos_capture/cmos_data_t[15]/opit_0/D
+
+ Data arrival time                                                   3.245         Logic Levels: 0  
+                                                                                   Logic: 0.103ns(24.122%), Route: 0.324ns(75.878%)
+----------------------------------------------------------------------------------------------------
+
+ Clock cmos2_pclk (rising edge)                          0.000       0.000 r                        
+ P16                                                     0.000       0.000 r       cmos2_pclk (port)
+                                   net (fanout=1)        0.064       0.064         cmos2_pclk       
+ IOBD_0_318/DIN                    td                    0.521       0.585 r       cmos2_pclk_ibuf/opit_0/O
+                                   net (fanout=1)        0.000       0.585         cmos2_pclk_ibuf/ntD
+ IOLHR_16_318/DI_TO_CLK            td                    0.087       0.672 r       cmos2_pclk_ibuf/opit_1/DI_TO_CLK
+                                   net (fanout=1)        1.721       2.393         nt_cmos2_pclk    
+ USCM_215_585/CLKOUT               td                    0.115       2.508 r       clkbufg_4/gopclkbufg/CLKOUT
+                                   net (fanout=4)        0.385       2.893         ntclkbufg_4      
+ HCKB_213_495/CLKOUT               td                    0.233       3.126 r       HCKBROUTE_12/CLKOUT
+                                   net (fanout=86)       0.456       3.582         ntR8723          
+ CLMA_219_469/CR1                  td                    0.135       3.717 r       CLKROUTE_1004/CR 
+                                   net (fanout=4)        0.805       4.522         ntR8722          
+ CLMA_219_360/CLK                                                          r       cam2_ov5640_top/ov5640/cmos_capture/cmos_data_t[15]/opit_0/CLK
+ clock pessimism                                        -0.466       4.056                          
+ clock uncertainty                                       0.002       4.058                          
+
+ Hold time                                              -0.025       4.033                          
+
+ Data required time                                                  4.033                          
+----------------------------------------------------------------------------------------------------
+ Data required time                                                  4.033                          
+ Data arrival time                                                   3.245                          
+----------------------------------------------------------------------------------------------------
+ Slack (VIOLATED)                                                   -0.788                          

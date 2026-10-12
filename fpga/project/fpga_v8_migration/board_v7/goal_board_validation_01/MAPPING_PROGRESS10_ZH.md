@@ -1,0 +1,20 @@
+# 防打包方法最新实测边界
+
+交付目标仍为合格新bitstream、实际SRAM烧录回执与DONE、烧录后RK3568至少两组截图及真实帧/运行进展，所有条目尚未完成。
+
+- map06：实际综合化简到无CE的GTP_DFF_C，原审计只认CE=1导致FAIL。官方primitive端口/时钟语义已核实；map07修正审计并用真实compile/synthesis图校准，未验证类型的无CE反例被拒。
+- map07：实际基线dev_map完成，export_fdc因无工程上下文FAIL。
+- map08：实际基线dev_map完成；open_project脚本预解析失败、export_fdc上下文问题仍未解决。
+- map09：基线实际映射完成并导出；site臂明确ConstraintEditor-0048，impl_devCQ0无效。它源于PLACE实现注释，不能作为有效PAP_LOC symbol。没有site方法PASS。
+- map10：仅指定两个不同CLMA site，复用hash绑定的真实map09综合产物并重新审计，执行两臂真实映射。尚无最终结果；即使方法成功，也不能替代生产28sync+32reset的60独立存储端点及完整签核。
+- map10实际结果更新：复用工程字节门禁因PDS自动回写元数据FAIL，未跑映射。map11显式记录元数据、严格比较其余工程token流，完成基线实际映射/图导出，随后因baseline无PCF而控制器FAIL。map12将PCF强制门禁限定site臂，并吸收独立审查补强真实复用身份、实际映射输入hash、精确Tcl/ATTRIBUTE位置解析及冲突拒绝。map12正在运行，没有方法或生产PASS。
+- map12实际结果更新：actual_final_result.json为PASS_METHOD_ONLY，baseline实际gopSRL2且ff1独立实例消失；site臂实际ff0/opit_0与ff1/opit_0各为gopQ，INIT=0/GRS=TRUE、异步清零、正时钟/复位极性、CE禁用、Q0→D1均通过。原生PCF精确绑定CLMA_33_450/CLMA_45_462，两单元映射PAP_LOC精确一致。已启动独立复核gopQ类型及实际clock/reset路径；该结果不能替代生产60或签核。
+- production60_target_prepare01/target_inventory.json绑定60个map02真实综合实例与build03显式primitive声明，28sync/32reset；site_candidate_plan.json从attempt03原生PLACE抽取60个互不重复的历史合法CLMA FF site，排除现存显式固定位置。仅为候选方案，尚未应用或证明新生产位置/时序。完整build04隔离源库存复制及真实compile/synthesis/export已交独立执行，不修改冻结build03。
+- map12独立复核independent_review01/independent_result.json实际316项、0失败，hash为73046f8ae1292180d1d2c12dcfe6540270104ec76366906805ac137efd7ea74e。精确gopQ/gopSRL2类型、gopCLKBUFG完整参数、复位/CE及两级端点均核验。baseline是打包保留两级，不能把独立端点失败称作逻辑第二级消失。
+- production60_site_DRAFT.lcf已生成，60个后端LCF对象及site与独立语法参考、候选清单精确相等。尚未应用到build04；必须先绑定新完整综合图并取得真实60级映射结果。草案不能作为生产PASS。
+- build04实际compile/synthesis/fulltop导出及每阶段60精确语义审计PASS，28sync/32reset，零失败；741源与build03字节一致、186登记一致、build03完整874文件未改变。BUILD04_RESULT_ZH.md及evidence/runtime/final_receipt_review.json保存真实阶段身份。已启动mapping60_01：先绑定全部草案target到新综合图，再实际隔离dev_map/export/PCF与PAP_LOC/60独立端点审计。尚无生产mapping或PNR/bit放行。
+- mapping60_01实际Device Map已退出0，rejected_lines/native_errors均为空，日志和dmr.db hash已留mapping_receipt.json。完整mapped ADF导出仍执行；60 mapped端点、PCF/PAP_LOC及独立审计结果尚未得到，不能将命令成功称为生产门禁PASS。后续布局布线与精确预算传递方案在build04_route_prepare01隔离准备，不修改当前受guard保护的build04。
+
+IO report02/03命令发现和help实际完成；report04副本工程打开/导出FAIL，原件hash未漂移；report05 CLI -project_file_path被拒（进程退出0仍为失败）；report06 -project与-file互斥FAIL。不能将这些结果当作bank正常。site_symbol02的show_device尝试超时，无完成/报告，不能作接口成功证据。
+
+独立生产路径探索只证明map02综合目标与build03源码60个显式实例角色对应；candidate源码不完全相同，不能继承map02完整综合PASS。旧route只有40条相关PLACE并包含SRL，不存在60独立FF历史位置证据。新生产必须从真实新综合与映射逐级核对。

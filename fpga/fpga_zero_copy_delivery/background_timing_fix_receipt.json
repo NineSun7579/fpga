@@ -1,0 +1,275 @@
+{
+  "objective": "one AXI-clock coherent passive tap stage before six background producers",
+  "candidate_rtl_changes_only": [
+    "integrated_six_background/source/delivery/background_producer.v",
+    "integrated_six_background/source/delivery/background_six.v"
+  ],
+  "source_sha256": {
+    "background_six.v": "bd8a79dda9a857cd88add8ffb62eeb8b4eab076a828158d1f5cc6870c3f27fdb",
+    "background_producer.v": "c9d5dbe7e510743847589da76f1b72830dca4adbacf683b999d67ae2e5a2af52"
+  },
+  "canonical_generated_identical": true,
+  "existing_protected_hashes_unchanged": 257,
+  "baseline_receipt_hashes_preserved": 319,
+  "extra_protected_hashes_unchanged": 130,
+  "raw_replay_identical": true,
+  "main_suite_pass": true,
+  "extra_suite_pass": true,
+  "actual_chain_one_clock_tuple_phase_checked": true,
+  "geometry_guard": "WIDTH>=2 && HEIGHT>=2 && WIDTH%2==0 && HEIGHT%2==0",
+  "source_throughput": "one tuple per AXI clock; no ready or source feedback",
+  "tap_latency_axi_clocks": 1,
+  "source_sequence": "sampled with SOF for +1 prediction and with publication for equality; uint32 wrap preserved",
+  "register_ABI_preserved": true,
+  "constraints_unchanged": true,
+  "DDR_clock_MHz": 131.25,
+  "pds_run": false,
+  "board_access": false,
+  "commit_created": false,
+  "post_change_timing": "parent rebuild required",
+  "pre_change_timing_report_sha256": "f3c73d50b92570134dd2aa8d0c10ecb1ef40b78407ef86c3b5fbb1efb831d6ab",
+  "project_receipt_handling": "all input/configuration bytes match generator after line-ending, timestamp and generated-comment normalization; PDS runtime command outputs excluded; project untouched",
+  "pass_logs": {
+    "sim_six_background/adapter.log": {
+      "sha256": "988ed300aeb1f9eb57d40e0397243ff0b7cf1fa7659be2fcb18c651e0f76fce2",
+      "pass_lines": [
+        "# PASS background adapter fault=0: MMIO, full records, shared RGB pixels, six fairness, finalB, disable, quarantine"
+      ]
+    },
+    "sim_six_background/adapter_fault.log": {
+      "sha256": "63faa1f7e879f6f2c7c776f8bba074faa96ea0815a0d647d43e22e6cb11259ad",
+      "pass_lines": [
+        "# PASS background adapter fault=1: MMIO, full records, shared RGB pixels, six fairness, finalB, disable, quarantine"
+      ]
+    },
+    "sim_six_background/baseline_raw.log": {
+      "sha256": "2e6b27a0c9b3de8f2369e8b0ddb71b7054c962f147303f76a8b83a7ef2ff12f6",
+      "pass_lines": [
+        "# PASS complete frame seq=1 all 512 pixels including (0,0), bank=00010000",
+        "# PASS short frame at next SOF aborts, no tag/req/counter; packer/FIFOs flushed",
+        "# PASS complete frame seq=2 all 512 pixels including (0,0), bank=00020000",
+        "# PASS missing data watchdog abort without another SOF",
+        "# PASS complete frame seq=3 all 512 pixels including (0,0), bank=00010000",
+        "# PASS abort during AW stall retains AW and drains accepted burst",
+        "# PASS complete frame seq=4 all 512 pixels including (0,0), bank=00020000",
+        "# PASS FIFO overflow + W/B backpressure; no premature flush/publication",
+        "# PASS complete frame seq=5 all 512 pixels including (0,0), bank=00010000",
+        "# PASS payload BRESP error prevents tag",
+        "# PASS complete frame seq=6 all 512 pixels including (0,0), bank=00020000",
+        "# PASS tag BRESP error does not publish req/count/bank",
+        "# PASS complete frame seq=7 all 512 pixels including (0,0), bank=00010000",
+        "# PASS complete frame seq=8 all 512 pixels including (0,0), bank=00020000",
+        "# PASS complete frame seq=9 all 512 pixels including (0,0), bank=00010000",
+        "# PASS dirty bank request invalidated; last good bank remains valid after abort",
+        "# PASS complete frame seq=10 all 512 pixels including (0,0), bank=00020000",
+        "# PASS tag B backpressure longer than WD_LIMIT never publishes early",
+        "# PASS FRAME RECOVERY success=10 abort=7 AW=61 B=61 zero-strobe filler=75"
+      ]
+    },
+    "sim_six_background/candidate_raw.log": {
+      "sha256": "1ee243212e377faf6324ff999868d039dab03b91e71f29a027215b13dd5f9a18",
+      "pass_lines": [
+        "# PASS complete frame seq=1 all 512 pixels including (0,0), bank=00010000",
+        "# PASS short frame at next SOF aborts, no tag/req/counter; packer/FIFOs flushed",
+        "# PASS complete frame seq=2 all 512 pixels including (0,0), bank=00020000",
+        "# PASS missing data watchdog abort without another SOF",
+        "# PASS complete frame seq=3 all 512 pixels including (0,0), bank=00010000",
+        "# PASS abort during AW stall retains AW and drains accepted burst",
+        "# PASS complete frame seq=4 all 512 pixels including (0,0), bank=00020000",
+        "# PASS FIFO overflow + W/B backpressure; no premature flush/publication",
+        "# PASS complete frame seq=5 all 512 pixels including (0,0), bank=00010000",
+        "# PASS payload BRESP error prevents tag",
+        "# PASS complete frame seq=6 all 512 pixels including (0,0), bank=00020000",
+        "# PASS tag BRESP error does not publish req/count/bank",
+        "# PASS complete frame seq=7 all 512 pixels including (0,0), bank=00010000",
+        "# PASS complete frame seq=8 all 512 pixels including (0,0), bank=00020000",
+        "# PASS complete frame seq=9 all 512 pixels including (0,0), bank=00010000",
+        "# PASS dirty bank request invalidated; last good bank remains valid after abort",
+        "# PASS complete frame seq=10 all 512 pixels including (0,0), bank=00020000",
+        "# PASS tag B backpressure longer than WD_LIMIT never publishes early",
+        "# PASS FRAME RECOVERY success=10 abort=7 AW=61 B=61 zero-strobe filler=75"
+      ]
+    },
+    "sim_six_background/component.log": {
+      "sha256": "fcccbd5d833874751b8ccdbb7a5c6f91b962cdc418f143b879794f7a34cc2f58",
+      "pass_lines": [
+        "# PASS background: six fairness, RGB565, full tail, RAW barrier, disable drain, sequence0, badB, overflow, deadline"
+      ]
+    },
+    "sim_six_background/full_component.log": {
+      "sha256": "860d33e22f94e5841eb12654c881a6c363034d3a7daacad5a1aacbd1468314dd",
+      "pass_lines": [
+        "# PASS background: six fairness, RGB565, full tail, RAW barrier, disable drain, sequence0, badB, overflow, deadline"
+      ]
+    },
+    "sim_six_background/geometry.log": {
+      "sha256": "b44bf5fbd34db835450ab2ee7dd3baa40e0daa1c5a4e0cbe818adbccb3f26f34",
+      "pass_lines": [
+        "# PASS background geometry: odd/zero width/height reject admission"
+      ]
+    },
+    "sim_six_background/ordinary_compile.log": {
+      "sha256": "2e104d992f4580a6ea9370560496ac25900720494f42270b75661be6a68e7024",
+      "pass_lines": []
+    },
+    "sim_six_background/partial_component.log": {
+      "sha256": "ff3460b9274876e3f537067df3233e2ababa27bc8e73b6ddd49ba18a5bf10ebb",
+      "pass_lines": [
+        "# PASS background: six fairness, RGB565, full tail, RAW barrier, disable drain, sequence0, badB, overflow, deadline"
+      ]
+    },
+    "sim_six_background/sof_pixel.log": {
+      "sha256": "df4e20559566772452bd374b2653a610327d67314620be94bb8f544a4fe1a0e6",
+      "pass_lines": [
+        "# PASS background: six fairness, RGB565, full tail, RAW barrier, disable drain, sequence0, badB, overflow, deadline"
+      ]
+    },
+    "sim_six_background/sof_pixel_minimum.log": {
+      "sha256": "e185d814ffb9fa0de31dda2891d7917dcd5cd8e0d3b72d105c5ebdc4799a6273",
+      "pass_lines": [
+        "# PASS background: six fairness, RGB565, full tail, RAW barrier, disable drain, sequence0, badB, overflow, deadline"
+      ]
+    },
+    "sim_six_background/sof_pixel_partial.log": {
+      "sha256": "ae472f19a52a3b2b3fc45ba4d2f835686754c6abb817fc79bbb8a7f64f2eb97b",
+      "pass_lines": [
+        "# PASS background: six fairness, RGB565, full tail, RAW barrier, disable drain, sequence0, badB, overflow, deadline"
+      ]
+    },
+    "sim_six_background/transport.log": {
+      "sha256": "d9a7ccb848c25efa49d50ba892c98f21f73f6c29803adc6aa55fa71d37164c1d",
+      "pass_lines": [
+        "# ENGINE_PASS base=40020000 bytes=304 beats=19 addresses=19 FIFO_writes=19",
+        "# ENGINE_PASS base=40020120 bytes=16 beats=1 addresses=1 FIFO_writes=1",
+        "# ENGINE_PASS base=40020130 bytes=16 beats=1 addresses=1 FIFO_writes=1",
+        "# ENGINE_PASS base=40020180 bytes=16 beats=1 addresses=1 FIFO_writes=1",
+        "# ENGINE_PASS base=40020200 bytes=384 beats=24 addresses=24 FIFO_writes=24",
+        "# ENGINE_PASS base=40020370 bytes=16 beats=1 addresses=1 FIFO_writes=1",
+        "# ENGINE_PASS base=40020380 bytes=304 beats=19 addresses=2 FIFO_writes=19",
+        "# ENGINE_PASS base=00800000 bytes=16 beats=1 addresses=1 FIFO_writes=1",
+        "# ENGINE_PASS base=00800000 bytes=17 beats=2 addresses=1 FIFO_writes=2",
+        "# ENGINE_PASS base=00800000 bytes=32 beats=2 addresses=1 FIFO_writes=2",
+        "# ENGINE_PASS base=00800000 bytes=255 beats=16 addresses=1 FIFO_writes=16",
+        "# ENGINE_PASS base=00800000 bytes=256 beats=16 addresses=1 FIFO_writes=16",
+        "# ENGINE_PASS base=00800000 bytes=257 beats=17 addresses=2 FIFO_writes=17",
+        "# ENGINE_PASS base=00800000 bytes=304 beats=19 addresses=2 FIFO_writes=19",
+        "# ENGINE_PASS base=0a280000 bytes=153600 beats=9600 addresses=600 FIFO_writes=9600",
+        "# ENGINE_PASS base=00800000 bytes=614400 beats=38400 addresses=2400 FIFO_writes=38400",
+        "# ENGINE_PASS base=00800000 bytes=614416 beats=38401 addresses=2401 FIFO_writes=38401",
+        "# ENGINE_PASS base=0a000000 bytes=1228800 beats=76800 addresses=4800 FIFO_writes=76800",
+        "# SIX_BATCH_ENGINE_PASS ar_stalls=5120 r_stalls=54452 capacity_stalls=47677"
+      ]
+    },
+    "sim_six_background_extra/fault_0.log": {
+      "sha256": "537140ce0f0251c667bbdac2b57a36b9678e98336113c030b6775dfaf9b5bbe4",
+      "pass_lines": [
+        "# EXTRA_FAULT_PASS case=0 cause=0 stage=0 AW=1 B=1"
+      ]
+    },
+    "sim_six_background_extra/fault_1.log": {
+      "sha256": "81a3b536174e56b763e599ad475860ab8a087f9c8a171b6ca74535d6de293483",
+      "pass_lines": [
+        "# EXTRA_FAULT_PASS case=1 cause=0 stage=1 AW=1 B=1"
+      ]
+    },
+    "sim_six_background_extra/fault_2.log": {
+      "sha256": "66b1d108d93dc07fdbc66a8225221e09e4474b19743b70289ff29815c0874277",
+      "pass_lines": [
+        "# EXTRA_FAULT_PASS case=2 cause=0 stage=2 AW=1 B=1"
+      ]
+    },
+    "sim_six_background_extra/fault_3.log": {
+      "sha256": "92b50b037090a49998d903d1fe46186cd50e92795d4bb9bc207309f5dccc9722",
+      "pass_lines": [
+        "# EXTRA_FAULT_PASS case=3 cause=0 stage=3 AW=2 B=2"
+      ]
+    },
+    "sim_six_background_extra/fault_4.log": {
+      "sha256": "a5a7c4c89a5002d4fa19a171956e3823ccb8c735efd8f6a2a5a1b009aaa01a9a",
+      "pass_lines": [
+        "# EXTRA_FAULT_PASS case=4 cause=1 stage=0 AW=1 B=1"
+      ]
+    },
+    "sim_six_background_extra/fault_5.log": {
+      "sha256": "5f0309def9845239de648d1b0f2bcb4d2d57683c2e75280401b1df6986477e50",
+      "pass_lines": [
+        "# EXTRA_FAULT_PASS case=5 cause=1 stage=1 AW=1 B=1"
+      ]
+    },
+    "sim_six_background_extra/fault_6.log": {
+      "sha256": "60874b2cdf624cee47b574c892a22e1a98e99cc00363819656b3211a8eb7244f",
+      "pass_lines": [
+        "# EXTRA_FAULT_PASS case=6 cause=1 stage=2 AW=1 B=1"
+      ]
+    },
+    "sim_six_background_extra/fault_7.log": {
+      "sha256": "1c02259dbe2bcc5370040796a67bddec340e55621c91f7be1d067bea6e5ddbb8",
+      "pass_lines": [
+        "# EXTRA_FAULT_PASS case=7 cause=1 stage=3 AW=2 B=2"
+      ]
+    },
+    "sim_six_background_extra/fifo.log": {
+      "sha256": "b8dea72d8c6161fa40ec35a520d8e46323b99c298b5dd6a187f19cec6aed1bbf",
+      "pass_lines": [
+        "# EXTRA_FIFO_PASS full_push_pop=1 full_push_without_pop=1"
+      ]
+    },
+    "sim_six_background_extra/full_raw_chain.log": {
+      "sha256": "ddc93bd3afa75950e91ed2b92c79d65a5ec0f562a7c52026788c04025ae35a92",
+      "pass_lines": [
+        "# PASS complete frame seq=1 all 307200 pixels including (0,0), bank=00010000",
+        "# PASS complete frame seq=2 all 307200 pixels including (0,0), bank=00100000",
+        "# EXTRA_FULL_RAW_FAILED_TAG_PASS counter=00000002 invalid_guard=00000008 predicted_retry_sequence=3",
+        "# PASS complete frame seq=3 all 307200 pixels including (0,0), bank=00010000",
+        "# PASS complete frame seq=0 all 307200 pixels including (0,0), bank=00100000",
+        "# EXTRA_FULL_RAW_CHAIN_PASS successes=4 failed_tag=1 background_AW=3004 B=3004 tags=4 RAW_AW=12005 RAW_B=12005 wrap_counter=00000000 successful_flush_exports=4",
+        "# EXTRA_FULL_TAP_PHASE_PASS edges=1536340 sofs=5 publications=4 fault_cycles=1 latency=1"
+      ]
+    },
+    "sim_six_background_extra/memory.log": {
+      "sha256": "e2d5518c812ef22c59f7c9ae06fb8ddd63f796250d1c3f18b21173082b823e4b",
+      "pass_lines": [
+        "# EXTRA_MEMORY_READ_PASS camera=1 bank=0 bytes=153616 beats=9601 AR=601 FIFO=9601 tag=1",
+        "# EXTRA_MEMORY_READ_PASS camera=1 bank=1 bytes=153616 beats=9601 AR=601 FIFO=9601 tag=2",
+        "# EXTRA_MEMORY_READ_PASS camera=2 bank=0 bytes=153616 beats=9601 AR=601 FIFO=9601 tag=1",
+        "# EXTRA_MEMORY_READ_PASS camera=2 bank=1 bytes=153616 beats=9601 AR=601 FIFO=9601 tag=2",
+        "# EXTRA_MEMORY_READ_PASS camera=3 bank=0 bytes=153616 beats=9601 AR=601 FIFO=9601 tag=1",
+        "# EXTRA_MEMORY_READ_PASS camera=3 bank=1 bytes=153616 beats=9601 AR=601 FIFO=9601 tag=2",
+        "# EXTRA_MEMORY_READ_PASS camera=4 bank=0 bytes=153616 beats=9601 AR=601 FIFO=9601 tag=1",
+        "# EXTRA_MEMORY_READ_PASS camera=4 bank=1 bytes=153616 beats=9601 AR=601 FIFO=9601 tag=2",
+        "# EXTRA_MEMORY_READ_PASS camera=5 bank=0 bytes=153616 beats=9601 AR=601 FIFO=9601 tag=1",
+        "# EXTRA_MEMORY_READ_PASS camera=5 bank=1 bytes=153616 beats=9601 AR=601 FIFO=9601 tag=2",
+        "# EXTRA_MEMORY_READ_PASS camera=6 bank=0 bytes=153616 beats=9601 AR=601 FIFO=9601 tag=1",
+        "# EXTRA_MEMORY_READ_PASS camera=6 bank=1 bytes=153616 beats=9601 AR=601 FIFO=9601 tag=2",
+        "# EXTRA_MEMORY_PASS reads=12 AW=7212 B=7212 tags=12 words=921696 poison_gap_units=921600 ARstall=3613 Rstall=38390 capacitystall=33600"
+      ]
+    },
+    "sim_six_background_extra/raw_chain.log": {
+      "sha256": "04c5a75cd216b211c4df7b46264ed90e896fbcf05098f511c26a71b0da555952",
+      "pass_lines": [
+        "# PASS complete frame seq=1 all 512 pixels including (0,0), bank=00010000",
+        "# PASS short frame at next SOF aborts, no tag/req/counter; packer/FIFOs flushed",
+        "# PASS complete frame seq=2 all 512 pixels including (0,0), bank=00020000",
+        "# PASS missing data watchdog abort without another SOF",
+        "# PASS complete frame seq=3 all 512 pixels including (0,0), bank=00010000",
+        "# PASS abort during AW stall retains AW and drains accepted burst",
+        "# PASS complete frame seq=4 all 512 pixels including (0,0), bank=00020000",
+        "# PASS FIFO overflow + W/B backpressure; no premature flush/publication",
+        "# PASS complete frame seq=5 all 512 pixels including (0,0), bank=00010000",
+        "# PASS payload BRESP error prevents tag",
+        "# PASS complete frame seq=6 all 512 pixels including (0,0), bank=00020000",
+        "# PASS tag BRESP error does not publish req/count/bank",
+        "# PASS complete frame seq=7 all 512 pixels including (0,0), bank=00010000",
+        "# PASS complete frame seq=8 all 512 pixels including (0,0), bank=00020000",
+        "# PASS complete frame seq=9 all 512 pixels including (0,0), bank=00010000",
+        "# PASS dirty bank request invalidated; last good bank remains valid after abort",
+        "# PASS complete frame seq=10 all 512 pixels including (0,0), bank=00020000",
+        "# PASS tag B backpressure longer than WD_LIMIT never publishes early",
+        "# PASS FRAME RECOVERY success=10 abort=7 AW=61 B=61 zero-strobe filler=75",
+        "# PASS complete frame seq=0 all 512 pixels including (0,0), bank=00010000",
+        "# EXTRA_RAW_CHAIN_PASS successes=11 background_AW=23 B=23 tags=11 RAW_AW=66 RAW_B=66 wrap_counter=00000000 successful_flush_exports=11",
+        "# EXTRA_TAP_PHASE_PASS edges=8314 sofs=18 publications=11 fault_cycles=497 latency=1"
+      ]
+    }
+  }
+}

@@ -1,0 +1,20 @@
+PASS independent eligibility transition algebra check (Python)
+Geometries (WIDTH,HEIGHT,SAMPLE_STEP):
+1,1,1
+5,3,1
+7,5,3
+1,7,2
+9,1,2
+3,2,5
+16,8,4
+17,11,3
+640,480,4
+transition_checks=9843248
+
+Enumerated active/inactive states along each legal pixel progression (including
+the terminal count), and all sixteen frame_start/frame_end/pixel_valid/rst_n
+combinations. Derived original post-edge active/count/x/y and checked TC05
+post-edge eligibility against the state predicate. Reset wins globally, start
+wins over end, inactive end and stalled state hold, and last pixel invalidates
+eligibility. This algebra check supplements actual ModelSim RTL regressions;
+it is not synthesis/STA or a formal HDL proof.

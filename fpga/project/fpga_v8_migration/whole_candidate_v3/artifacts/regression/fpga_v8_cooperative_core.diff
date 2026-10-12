@@ -1,0 +1,34 @@
+--- audited_v2/fpga_v8_cooperative_core.v
++++ candidate/fpga_v8_cooperative_core_rfg01.v
+@@ -1,7 +1,7 @@
+ `timescale 1ns/1ps
+ // Isolated internal-IO integration candidate. All interfaces share core_clk.
+ // Packed camera slot i is [i*FIELD_WIDTH +: FIELD_WIDTH], m0 is least significant.
+-module fpga_v8_cooperative_core #(
++module fpga_v8_cooperative_core_rfg01 #(
+     parameter integer WIDTH = 640,
+     parameter integer HEIGHT = 480,
+     parameter integer OUT_HEIGHT = 640,
+@@ -126,7 +126,8 @@
+     input wire [3:0] m_axi_write_bid,
+     input wire [1:0] m_axi_write_bresp,
+     input wire m_axi_write_bvalid,
+-    output wire m_axi_write_bready
++    output wire m_axi_write_bready,
++    input wire session_fault
+ );
+     localparam [31:0] OUTPUT_LENGTH = 32'd3 * WIDTH * OUT_HEIGHT;
+     wire cmd_valid, cmd_ready;
+@@ -156,10 +157,11 @@
+     assign bridge_bresp = all_bresp[13:12];
+     assign bridge_bvalid = all_bvalid[6];
+ 
+-    fpga_v8_coop_control_axil #(
++    fpga_v8_coop_control_axil_rfg01 #(
+         .OUTPUT_BANK0_ADDR(OUTPUT_BANK0_ADDR), .OUTPUT_BANK1_ADDR(OUTPUT_BANK1_ADDR),
+         .OUTPUT_LENGTH(OUTPUT_LENGTH)
+     ) control (
++        .session_fault(session_fault),
+         .core_clk(core_clk), .rst_n(rst_n),
+         .input_valid(input_valid), .input_ready(input_ready),
+         .input_raw_valid(input_raw_valid), .input_src_addr(input_src_addr),

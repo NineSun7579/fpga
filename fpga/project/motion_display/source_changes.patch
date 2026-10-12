@@ -1,0 +1,70 @@
+--- motion_scheduling/main.cpp
++++ motion_display/main.cpp
+@@ -62,6 +62,7 @@
+ #include "capture_pacing.h"
+ #include "frame_metrics.h"
+ #include "display_perf.h"
++#include "hud_upload.h"
+ #include "inference_preprocess.h"
+ #include "stereo_demo/stereo_depth.h"
+ 
+@@ -1950,6 +1951,8 @@
+ public:
+     DetView() {
+         setTitle("detview");
++        fprintf(stderr, "[hud-upload] batch=%d call_bytes=%lld max_extra_percent=25\n",
++                int(m_hudBatch), static_cast<long long>(m_hudCallPixels * 4));
+         m_perfEnabled = !qEnvironmentVariableIsSet("DETVIEW_PERF") ||
+                         qEnvironmentVariableIntValue("DETVIEW_PERF") != 0;
+         m_perfStartedMs = monotonicMs();
+@@ -2681,6 +2684,20 @@
+             QRegion unionRegion;
+             for (const auto& region : regions) unionRegion += region;
+             unionRegion &= image.rect();
++            if (m_hudBatch) {
++                const QList<QRect> tiles = hudupload::coalesce(unionRegion, image.rect(), m_hudCallPixels);
++                QElapsedTimer pack; if (m_perfEnabled) pack.start();
++                hudupload::packedTiles(image, tiles, m_hudPacked, [&](const QRect& r, const unsigned char* bytes) {
++                    if (m_perfEnabled) packMs += pack.nsecsElapsed() / 1e6;
++                    glTexSubImage2D(GL_TEXTURE_2D, 0, r.x(), r.y(), r.width(), r.height(),
++                                    GL_RGBA, GL_UNSIGNED_BYTE, bytes);
++                    if (m_perfEnabled) {
++                        ++m_perf.hudUploadRects;
++                        m_perf.hudUploadBytes += uint64_t(r.width()) * r.height() * 4;
++                        pack.restart();
++                    }
++                });
++            } else {
+             for (const QRect& r : unionRegion) {
+                 if (r.isEmpty()) continue;
+                 QElapsedTimer pack; if (m_perfEnabled) pack.start();
+@@ -2691,6 +2708,7 @@
+                 }
+                 glTexSubImage2D(GL_TEXTURE_2D, 0, r.x(), r.y(), r.width(), r.height(),
+                                 GL_RGBA, GL_UNSIGNED_BYTE, tile.constBits());
++            }
+             }
+         }
+         if (m_perfEnabled) {
+@@ -2882,6 +2900,13 @@
+     bool m_vertexValid[CAM_COUNT + 2] = {};
+     QSize m_overlaySize;
+     QImage m_rasterOverlay;
++    const bool m_hudBatch = qgetenv("DETVIEW_HUD_BATCH") == "1";
++    const qint64 m_hudCallPixels = [] {
++        bool ok = false;
++        const qint64 bytes = qgetenv("DETVIEW_HUD_CALL_BYTES").toLongLong(&ok);
++        return ok && bytes >= 0 ? bytes / 4 : qint64(512);
++    }();
++    std::vector<unsigned char> m_hudPacked;
+     QList<QRect> m_previousHudRegions;
+     bool m_overlaySettings = false;
+     quint64 m_overlayRevision = 0, m_detectionRevision = 0, m_overlayDetections = 0;
+@@ -3604,6 +3629,7 @@
+     qRegisterMetaType<QVector<double>>("QVector<double>");
+     qRegisterMetaType<VisionFrame>("VisionFrame");
+     cv::setNumThreads(2);
++    if (app.arguments().contains("--hud-upload-selftest")) return hudupload::runSelfTest();
+     if (app.arguments().contains("--tracker-benchmark"))
+         return tdm::runTrackerBenchmark();
+     if (app.arguments().contains("--motion-policy-selftest")) return runMotionPolicySelfTest();

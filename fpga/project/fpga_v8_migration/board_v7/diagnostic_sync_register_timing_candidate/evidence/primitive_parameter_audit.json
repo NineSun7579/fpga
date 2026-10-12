@@ -1,0 +1,914 @@
+{
+  "original_netlist": "C:\\Users\\NineSun\\Desktop\\ov56401\\project\\fpga_v8_migration\\board_v7\\physical_subagent_evidence_01\\fixed_06\\physical_exact_11\\actual\\synthesis_export\\synthesis_dump.v",
+  "netlist_sha256": "58d8cbef46169a662078dd8d09601493dbe5a64f5a6fa6fee8a7574266de6af2",
+  "original_stage_count": 60,
+  "original_sync_count": 28,
+  "original_reset_count": 32,
+  "primitive_definition_sync": 7,
+  "primitive_definition_reset": 8,
+  "all_original_INIT_GRS_and_reset_type_checked": true,
+  "CE_equivalence": "Original unconditional DFF_P/C becomes DFF_PE/CE with CE=1; any existing CE asserted constant checked.",
+  "original_stages": [
+    {
+      "name": "ack_sync[0]",
+      "type": "GTP_DFF_C",
+      "line": 795767,
+      "parameters": {
+        "GRS_EN": "\"TRUE\"",
+        "INIT": "1'b0"
+      },
+      "ports": {
+        "Q": "ack_sync[0]",
+        "C": "cr[1]",
+        "CLK": "nt_cmos1_pclk",
+        "D": "ack"
+      }
+    },
+    {
+      "name": "ack_sync[1]",
+      "type": "GTP_DFF_C",
+      "line": 795779,
+      "parameters": {
+        "GRS_EN": "\"TRUE\"",
+        "INIT": "1'b0"
+      },
+      "ports": {
+        "Q": "ack_sync[1]",
+        "C": "cr[1]",
+        "CLK": "nt_cmos1_pclk",
+        "D": "ack_sync[0]"
+      }
+    },
+    {
+      "name": "cr[0]",
+      "type": "GTP_DFF_P",
+      "line": 795981,
+      "parameters": {
+        "GRS_EN": "\"TRUE\"",
+        "INIT": "1'b1"
+      },
+      "ports": {
+        "Q": "cr[0]",
+        "CLK": "nt_cmos1_pclk",
+        "D": "1'b0",
+        "P": "reset_any"
+      }
+    },
+    {
+      "name": "cr[1]",
+      "type": "GTP_DFF_P",
+      "line": 795992,
+      "parameters": {
+        "GRS_EN": "\"TRUE\"",
+        "INIT": "1'b1"
+      },
+      "ports": {
+        "Q": "cr[1]",
+        "CLK": "nt_cmos1_pclk",
+        "D": "cr[0]",
+        "P": "reset_any"
+      }
+    },
+    {
+      "name": "hr[0]",
+      "type": "GTP_DFF_P",
+      "line": 800347,
+      "parameters": {
+        "GRS_EN": "\"TRUE\"",
+        "INIT": "1'b1"
+      },
+      "ports": {
+        "Q": "hr[0]",
+        "CLK": "host_clk",
+        "D": "1'b0",
+        "P": "reset_any"
+      }
+    },
+    {
+      "name": "hr[1]",
+      "type": "GTP_DFF_P",
+      "line": 800357,
+      "parameters": {
+        "GRS_EN": "\"TRUE\"",
+        "INIT": "1'b1"
+      },
+      "ports": {
+        "Q": "hr[1]",
+        "CLK": "host_clk",
+        "D": "hr[0]",
+        "P": "reset_any"
+      }
+    },
+    {
+      "name": "overrun_sync[0]",
+      "type": "GTP_DFF_C",
+      "line": 804943,
+      "parameters": {
+        "GRS_EN": "\"TRUE\"",
+        "INIT": "1'b0"
+      },
+      "ports": {
+        "Q": "overrun_sync[0]",
+        "C": "hr[1]",
+        "CLK": "host_clk",
+        "D": "sticky_overrun"
+      }
+    },
+    {
+      "name": "overrun_sync[1]",
+      "type": "GTP_DFF_C",
+      "line": 804953,
+      "parameters": {
+        "GRS_EN": "\"TRUE\"",
+        "INIT": "1'b0"
+      },
+      "ports": {
+        "Q": "overrun",
+        "C": "hr[1]",
+        "CLK": "host_clk",
+        "D": "overrun_sync[0]"
+      }
+    },
+    {
+      "name": "req_sync[0]",
+      "type": "GTP_DFF_C",
+      "line": 806668,
+      "parameters": {
+        "GRS_EN": "\"TRUE\"",
+        "INIT": "1'b0"
+      },
+      "ports": {
+        "Q": "req_sync[0]",
+        "C": "hr[1]",
+        "CLK": "host_clk",
+        "D": "request"
+      }
+    },
+    {
+      "name": "req_sync[1]",
+      "type": "GTP_DFF_C",
+      "line": 806678,
+      "parameters": {
+        "GRS_EN": "\"TRUE\"",
+        "INIT": "1'b0"
+      },
+      "ports": {
+        "Q": "req_sync[1]",
+        "C": "hr[1]",
+        "CLK": "host_clk",
+        "D": "req_sync[0]"
+      }
+    },
+    {
+      "name": "req_sync[2]",
+      "type": "GTP_DFF_C",
+      "line": 806688,
+      "parameters": {
+        "GRS_EN": "\"TRUE\"",
+        "INIT": "1'b0"
+      },
+      "ports": {
+        "Q": "req_sync[2]",
+        "C": "hr[1]",
+        "CLK": "host_clk",
+        "D": "req_sync[1]"
+      }
+    },
+    {
+      "name": "ack_sync[0]",
+      "type": "GTP_DFF_C",
+      "line": 815677,
+      "parameters": {
+        "GRS_EN": "\"TRUE\"",
+        "INIT": "1'b0"
+      },
+      "ports": {
+        "Q": "ack_sync[0]",
+        "C": "cr[1]",
+        "CLK": "nt_cmos2_pclk",
+        "D": "ack"
+      }
+    },
+    {
+      "name": "ack_sync[1]",
+      "type": "GTP_DFF_C",
+      "line": 815689,
+      "parameters": {
+        "GRS_EN": "\"TRUE\"",
+        "INIT": "1'b0"
+      },
+      "ports": {
+        "Q": "ack_sync[1]",
+        "C": "cr[1]",
+        "CLK": "nt_cmos2_pclk",
+        "D": "ack_sync[0]"
+      }
+    },
+    {
+      "name": "cr[0]",
+      "type": "GTP_DFF_P",
+      "line": 815894,
+      "parameters": {
+        "GRS_EN": "\"TRUE\"",
+        "INIT": "1'b1"
+      },
+      "ports": {
+        "Q": "cr[0]",
+        "CLK": "nt_cmos2_pclk",
+        "D": "1'b0",
+        "P": "reset_any"
+      }
+    },
+    {
+      "name": "cr[1]",
+      "type": "GTP_DFF_P",
+      "line": 815905,
+      "parameters": {
+        "GRS_EN": "\"TRUE\"",
+        "INIT": "1'b1"
+      },
+      "ports": {
+        "Q": "cr[1]",
+        "CLK": "nt_cmos2_pclk",
+        "D": "cr[0]",
+        "P": "reset_any"
+      }
+    },
+    {
+      "name": "hr[0]",
+      "type": "GTP_DFF_P",
+      "line": 820252,
+      "parameters": {
+        "GRS_EN": "\"TRUE\"",
+        "INIT": "1'b1"
+      },
+      "ports": {
+        "Q": "hr[0]",
+        "CLK": "host_clk",
+        "D": "1'b0",
+        "P": "reset_any"
+      }
+    },
+    {
+      "name": "hr[1]",
+      "type": "GTP_DFF_P",
+      "line": 820262,
+      "parameters": {
+        "GRS_EN": "\"TRUE\"",
+        "INIT": "1'b1"
+      },
+      "ports": {
+        "Q": "hr[1]",
+        "CLK": "host_clk",
+        "D": "hr[0]",
+        "P": "reset_any"
+      }
+    },
+    {
+      "name": "overrun_sync[0]",
+      "type": "GTP_DFF_C",
+      "line": 824852,
+      "parameters": {
+        "GRS_EN": "\"TRUE\"",
+        "INIT": "1'b0"
+      },
+      "ports": {
+        "Q": "overrun_sync[0]",
+        "C": "hr[1]",
+        "CLK": "host_clk",
+        "D": "sticky_overrun"
+      }
+    },
+    {
+      "name": "overrun_sync[1]",
+      "type": "GTP_DFF_C",
+      "line": 824862,
+      "parameters": {
+        "GRS_EN": "\"TRUE\"",
+        "INIT": "1'b0"
+      },
+      "ports": {
+        "Q": "overrun",
+        "C": "hr[1]",
+        "CLK": "host_clk",
+        "D": "overrun_sync[0]"
+      }
+    },
+    {
+      "name": "req_sync[0]",
+      "type": "GTP_DFF_C",
+      "line": 826577,
+      "parameters": {
+        "GRS_EN": "\"TRUE\"",
+        "INIT": "1'b0"
+      },
+      "ports": {
+        "Q": "req_sync[0]",
+        "C": "hr[1]",
+        "CLK": "host_clk",
+        "D": "request"
+      }
+    },
+    {
+      "name": "req_sync[1]",
+      "type": "GTP_DFF_C",
+      "line": 826587,
+      "parameters": {
+        "GRS_EN": "\"TRUE\"",
+        "INIT": "1'b0"
+      },
+      "ports": {
+        "Q": "req_sync[1]",
+        "C": "hr[1]",
+        "CLK": "host_clk",
+        "D": "req_sync[0]"
+      }
+    },
+    {
+      "name": "req_sync[2]",
+      "type": "GTP_DFF_C",
+      "line": 826597,
+      "parameters": {
+        "GRS_EN": "\"TRUE\"",
+        "INIT": "1'b0"
+      },
+      "ports": {
+        "Q": "req_sync[2]",
+        "C": "hr[1]",
+        "CLK": "host_clk",
+        "D": "req_sync[1]"
+      }
+    },
+    {
+      "name": "ack_sync[0]",
+      "type": "GTP_DFF_C",
+      "line": 835194,
+      "parameters": {
+        "GRS_EN": "\"TRUE\"",
+        "INIT": "1'b0"
+      },
+      "ports": {
+        "Q": "ack_sync[0]",
+        "C": "cr[1]",
+        "CLK": "nt_cmos3_pclk",
+        "D": "ack"
+      }
+    },
+    {
+      "name": "ack_sync[1]",
+      "type": "GTP_DFF_C",
+      "line": 835206,
+      "parameters": {
+        "GRS_EN": "\"TRUE\"",
+        "INIT": "1'b0"
+      },
+      "ports": {
+        "Q": "ack_sync[1]",
+        "C": "cr[1]",
+        "CLK": "nt_cmos3_pclk",
+        "D": "ack_sync[0]"
+      }
+    },
+    {
+      "name": "cr[0]",
+      "type": "GTP_DFF_P",
+      "line": 835357,
+      "parameters": {
+        "GRS_EN": "\"TRUE\"",
+        "INIT": "1'b1"
+      },
+      "ports": {
+        "Q": "cr[0]",
+        "CLK": "nt_cmos3_pclk",
+        "D": "1'b0",
+        "P": "reset_any"
+      }
+    },
+    {
+      "name": "cr[1]",
+      "type": "GTP_DFF_P",
+      "line": 835368,
+      "parameters": {
+        "GRS_EN": "\"TRUE\"",
+        "INIT": "1'b1"
+      },
+      "ports": {
+        "Q": "cr[1]",
+        "CLK": "nt_cmos3_pclk",
+        "D": "cr[0]",
+        "P": "reset_any"
+      }
+    },
+    {
+      "name": "hr[0]",
+      "type": "GTP_DFF_P",
+      "line": 839713,
+      "parameters": {
+        "GRS_EN": "\"TRUE\"",
+        "INIT": "1'b1"
+      },
+      "ports": {
+        "Q": "hr[0]",
+        "CLK": "host_clk",
+        "D": "1'b0",
+        "P": "reset_any"
+      }
+    },
+    {
+      "name": "hr[1]",
+      "type": "GTP_DFF_P",
+      "line": 839723,
+      "parameters": {
+        "GRS_EN": "\"TRUE\"",
+        "INIT": "1'b1"
+      },
+      "ports": {
+        "Q": "hr[1]",
+        "CLK": "host_clk",
+        "D": "hr[0]",
+        "P": "reset_any"
+      }
+    },
+    {
+      "name": "overrun_sync[0]",
+      "type": "GTP_DFF_C",
+      "line": 844514,
+      "parameters": {
+        "GRS_EN": "\"TRUE\"",
+        "INIT": "1'b0"
+      },
+      "ports": {
+        "Q": "overrun_sync[0]",
+        "C": "hr[1]",
+        "CLK": "host_clk",
+        "D": "sticky_overrun"
+      }
+    },
+    {
+      "name": "overrun_sync[1]",
+      "type": "GTP_DFF_C",
+      "line": 844524,
+      "parameters": {
+        "GRS_EN": "\"TRUE\"",
+        "INIT": "1'b0"
+      },
+      "ports": {
+        "Q": "overrun",
+        "C": "hr[1]",
+        "CLK": "host_clk",
+        "D": "overrun_sync[0]"
+      }
+    },
+    {
+      "name": "req_sync[0]",
+      "type": "GTP_DFF_C",
+      "line": 846229,
+      "parameters": {
+        "GRS_EN": "\"TRUE\"",
+        "INIT": "1'b0"
+      },
+      "ports": {
+        "Q": "req_sync[0]",
+        "C": "hr[1]",
+        "CLK": "host_clk",
+        "D": "request"
+      }
+    },
+    {
+      "name": "req_sync[1]",
+      "type": "GTP_DFF_C",
+      "line": 846239,
+      "parameters": {
+        "GRS_EN": "\"TRUE\"",
+        "INIT": "1'b0"
+      },
+      "ports": {
+        "Q": "req_sync[1]",
+        "C": "hr[1]",
+        "CLK": "host_clk",
+        "D": "req_sync[0]"
+      }
+    },
+    {
+      "name": "req_sync[2]",
+      "type": "GTP_DFF_C",
+      "line": 846249,
+      "parameters": {
+        "GRS_EN": "\"TRUE\"",
+        "INIT": "1'b0"
+      },
+      "ports": {
+        "Q": "req_sync[2]",
+        "C": "hr[1]",
+        "CLK": "host_clk",
+        "D": "req_sync[1]"
+      }
+    },
+    {
+      "name": "ack_sync[0]",
+      "type": "GTP_DFF_C",
+      "line": 854825,
+      "parameters": {
+        "GRS_EN": "\"TRUE\"",
+        "INIT": "1'b0"
+      },
+      "ports": {
+        "Q": "ack_sync[0]",
+        "C": "cr[1]",
+        "CLK": "nt_cmos4_pclk",
+        "D": "ack"
+      }
+    },
+    {
+      "name": "ack_sync[1]",
+      "type": "GTP_DFF_C",
+      "line": 854837,
+      "parameters": {
+        "GRS_EN": "\"TRUE\"",
+        "INIT": "1'b0"
+      },
+      "ports": {
+        "Q": "ack_sync[1]",
+        "C": "cr[1]",
+        "CLK": "nt_cmos4_pclk",
+        "D": "ack_sync[0]"
+      }
+    },
+    {
+      "name": "cr[0]",
+      "type": "GTP_DFF_P",
+      "line": 854982,
+      "parameters": {
+        "GRS_EN": "\"TRUE\"",
+        "INIT": "1'b1"
+      },
+      "ports": {
+        "Q": "cr[0]",
+        "CLK": "nt_cmos4_pclk",
+        "D": "1'b0",
+        "P": "reset_any"
+      }
+    },
+    {
+      "name": "cr[1]",
+      "type": "GTP_DFF_P",
+      "line": 854993,
+      "parameters": {
+        "GRS_EN": "\"TRUE\"",
+        "INIT": "1'b1"
+      },
+      "ports": {
+        "Q": "cr[1]",
+        "CLK": "nt_cmos4_pclk",
+        "D": "cr[0]",
+        "P": "reset_any"
+      }
+    },
+    {
+      "name": "hr[0]",
+      "type": "GTP_DFF_P",
+      "line": 859337,
+      "parameters": {
+        "GRS_EN": "\"TRUE\"",
+        "INIT": "1'b1"
+      },
+      "ports": {
+        "Q": "hr[0]",
+        "CLK": "host_clk",
+        "D": "1'b0",
+        "P": "reset_any"
+      }
+    },
+    {
+      "name": "hr[1]",
+      "type": "GTP_DFF_P",
+      "line": 859347,
+      "parameters": {
+        "GRS_EN": "\"TRUE\"",
+        "INIT": "1'b1"
+      },
+      "ports": {
+        "Q": "hr[1]",
+        "CLK": "host_clk",
+        "D": "hr[0]",
+        "P": "reset_any"
+      }
+    },
+    {
+      "name": "overrun_sync[0]",
+      "type": "GTP_DFF_C",
+      "line": 864138,
+      "parameters": {
+        "GRS_EN": "\"TRUE\"",
+        "INIT": "1'b0"
+      },
+      "ports": {
+        "Q": "overrun_sync[0]",
+        "C": "hr[1]",
+        "CLK": "host_clk",
+        "D": "sticky_overrun"
+      }
+    },
+    {
+      "name": "overrun_sync[1]",
+      "type": "GTP_DFF_C",
+      "line": 864148,
+      "parameters": {
+        "GRS_EN": "\"TRUE\"",
+        "INIT": "1'b0"
+      },
+      "ports": {
+        "Q": "overrun",
+        "C": "hr[1]",
+        "CLK": "host_clk",
+        "D": "overrun_sync[0]"
+      }
+    },
+    {
+      "name": "req_sync[0]",
+      "type": "GTP_DFF_C",
+      "line": 865853,
+      "parameters": {
+        "GRS_EN": "\"TRUE\"",
+        "INIT": "1'b0"
+      },
+      "ports": {
+        "Q": "req_sync[0]",
+        "C": "hr[1]",
+        "CLK": "host_clk",
+        "D": "request"
+      }
+    },
+    {
+      "name": "req_sync[1]",
+      "type": "GTP_DFF_C",
+      "line": 865863,
+      "parameters": {
+        "GRS_EN": "\"TRUE\"",
+        "INIT": "1'b0"
+      },
+      "ports": {
+        "Q": "req_sync[1]",
+        "C": "hr[1]",
+        "CLK": "host_clk",
+        "D": "req_sync[0]"
+      }
+    },
+    {
+      "name": "req_sync[2]",
+      "type": "GTP_DFF_C",
+      "line": 865873,
+      "parameters": {
+        "GRS_EN": "\"TRUE\"",
+        "INIT": "1'b0"
+      },
+      "ports": {
+        "Q": "req_sync[2]",
+        "C": "hr[1]",
+        "CLK": "host_clk",
+        "D": "req_sync[1]"
+      }
+    },
+    {
+      "name": "cameras[0].reset_pipe[0]",
+      "type": "GTP_DFF_P",
+      "line": 872648,
+      "parameters": {
+        "GRS_EN": "\"TRUE\"",
+        "INIT": "1'b1"
+      },
+      "ports": {
+        "Q": "\\cameras[0].reset_pipe [0] ",
+        "CLK": "clk",
+        "D": "1'b0",
+        "P": "\\cameras[0].source/reset_any "
+      }
+    },
+    {
+      "name": "cameras[0].reset_pipe[1]",
+      "type": "GTP_DFF_P",
+      "line": 872658,
+      "parameters": {
+        "GRS_EN": "\"TRUE\"",
+        "INIT": "1'b1"
+      },
+      "ports": {
+        "Q": "\\cameras[0].reset_pipe [1] ",
+        "CLK": "clk",
+        "D": "\\cameras[0].reset_pipe [0] ",
+        "P": "\\cameras[0].source/reset_any "
+      }
+    },
+    {
+      "name": "cameras[0].reset_pipe[2]",
+      "type": "GTP_DFF_P",
+      "line": 872668,
+      "parameters": {
+        "GRS_EN": "\"TRUE\"",
+        "INIT": "1'b1"
+      },
+      "ports": {
+        "Q": "\\cameras[0].reset_pipe [2] ",
+        "CLK": "clk",
+        "D": "\\cameras[0].reset_pipe [1] ",
+        "P": "\\cameras[0].source/reset_any "
+      }
+    },
+    {
+      "name": "cameras[0].reset_pipe[3]",
+      "type": "GTP_DFF_P",
+      "line": 872678,
+      "parameters": {
+        "GRS_EN": "\"TRUE\"",
+        "INIT": "1'b1"
+      },
+      "ports": {
+        "Q": "\\cameras[0].reset_pipe [3] ",
+        "CLK": "clk",
+        "D": "\\cameras[0].reset_pipe [2] ",
+        "P": "\\cameras[0].source/reset_any "
+      }
+    },
+    {
+      "name": "cameras[1].reset_pipe[0]",
+      "type": "GTP_DFF_P",
+      "line": 872714,
+      "parameters": {
+        "GRS_EN": "\"TRUE\"",
+        "INIT": "1'b1"
+      },
+      "ports": {
+        "Q": "\\cameras[1].reset_pipe [0] ",
+        "CLK": "clk",
+        "D": "1'b0",
+        "P": "\\cameras[1].source/reset_any "
+      }
+    },
+    {
+      "name": "cameras[1].reset_pipe[1]",
+      "type": "GTP_DFF_P",
+      "line": 872724,
+      "parameters": {
+        "GRS_EN": "\"TRUE\"",
+        "INIT": "1'b1"
+      },
+      "ports": {
+        "Q": "\\cameras[1].reset_pipe [1] ",
+        "CLK": "clk",
+        "D": "\\cameras[1].reset_pipe [0] ",
+        "P": "\\cameras[1].source/reset_any "
+      }
+    },
+    {
+      "name": "cameras[1].reset_pipe[2]",
+      "type": "GTP_DFF_P",
+      "line": 872734,
+      "parameters": {
+        "GRS_EN": "\"TRUE\"",
+        "INIT": "1'b1"
+      },
+      "ports": {
+        "Q": "\\cameras[1].reset_pipe [2] ",
+        "CLK": "clk",
+        "D": "\\cameras[1].reset_pipe [1] ",
+        "P": "\\cameras[1].source/reset_any "
+      }
+    },
+    {
+      "name": "cameras[1].reset_pipe[3]",
+      "type": "GTP_DFF_P",
+      "line": 872744,
+      "parameters": {
+        "GRS_EN": "\"TRUE\"",
+        "INIT": "1'b1"
+      },
+      "ports": {
+        "Q": "\\cameras[1].reset_pipe [3] ",
+        "CLK": "clk",
+        "D": "\\cameras[1].reset_pipe [2] ",
+        "P": "\\cameras[1].source/reset_any "
+      }
+    },
+    {
+      "name": "cameras[2].reset_pipe[0]",
+      "type": "GTP_DFF_P",
+      "line": 872780,
+      "parameters": {
+        "GRS_EN": "\"TRUE\"",
+        "INIT": "1'b1"
+      },
+      "ports": {
+        "Q": "\\cameras[2].reset_pipe [0] ",
+        "CLK": "clk",
+        "D": "1'b0",
+        "P": "\\cameras[2].source/reset_any "
+      }
+    },
+    {
+      "name": "cameras[2].reset_pipe[1]",
+      "type": "GTP_DFF_P",
+      "line": 872790,
+      "parameters": {
+        "GRS_EN": "\"TRUE\"",
+        "INIT": "1'b1"
+      },
+      "ports": {
+        "Q": "\\cameras[2].reset_pipe [1] ",
+        "CLK": "clk",
+        "D": "\\cameras[2].reset_pipe [0] ",
+        "P": "\\cameras[2].source/reset_any "
+      }
+    },
+    {
+      "name": "cameras[2].reset_pipe[2]",
+      "type": "GTP_DFF_P",
+      "line": 872800,
+      "parameters": {
+        "GRS_EN": "\"TRUE\"",
+        "INIT": "1'b1"
+      },
+      "ports": {
+        "Q": "\\cameras[2].reset_pipe [2] ",
+        "CLK": "clk",
+        "D": "\\cameras[2].reset_pipe [1] ",
+        "P": "\\cameras[2].source/reset_any "
+      }
+    },
+    {
+      "name": "cameras[2].reset_pipe[3]",
+      "type": "GTP_DFF_P",
+      "line": 872810,
+      "parameters": {
+        "GRS_EN": "\"TRUE\"",
+        "INIT": "1'b1"
+      },
+      "ports": {
+        "Q": "\\cameras[2].reset_pipe [3] ",
+        "CLK": "clk",
+        "D": "\\cameras[2].reset_pipe [2] ",
+        "P": "\\cameras[2].source/reset_any "
+      }
+    },
+    {
+      "name": "cameras[3].reset_pipe[0]",
+      "type": "GTP_DFF_P",
+      "line": 872848,
+      "parameters": {
+        "GRS_EN": "\"TRUE\"",
+        "INIT": "1'b1"
+      },
+      "ports": {
+        "Q": "\\cameras[3].reset_pipe [0] ",
+        "CLK": "clk",
+        "D": "1'b0",
+        "P": "\\cameras[3].source/reset_any "
+      }
+    },
+    {
+      "name": "cameras[3].reset_pipe[1]",
+      "type": "GTP_DFF_P",
+      "line": 872858,
+      "parameters": {
+        "GRS_EN": "\"TRUE\"",
+        "INIT": "1'b1"
+      },
+      "ports": {
+        "Q": "\\cameras[3].reset_pipe [1] ",
+        "CLK": "clk",
+        "D": "\\cameras[3].reset_pipe [0] ",
+        "P": "\\cameras[3].source/reset_any "
+      }
+    },
+    {
+      "name": "cameras[3].reset_pipe[2]",
+      "type": "GTP_DFF_P",
+      "line": 872868,
+      "parameters": {
+        "GRS_EN": "\"TRUE\"",
+        "INIT": "1'b1"
+      },
+      "ports": {
+        "Q": "\\cameras[3].reset_pipe [2] ",
+        "CLK": "clk",
+        "D": "\\cameras[3].reset_pipe [1] ",
+        "P": "\\cameras[3].source/reset_any "
+      }
+    },
+    {
+      "name": "cameras[3].reset_pipe[3]",
+      "type": "GTP_DFF_P",
+      "line": 872878,
+      "parameters": {
+        "GRS_EN": "\"TRUE\"",
+        "INIT": "1'b1"
+      },
+      "ports": {
+        "Q": "\\cameras[3].reset_pipe [3] ",
+        "CLK": "clk",
+        "D": "\\cameras[3].reset_pipe [2] ",
+        "P": "\\cameras[3].source/reset_any "
+      }
+    }
+  ],
+  "physical_mapping_verified": false
+}

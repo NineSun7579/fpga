@@ -1,0 +1,69 @@
+arm_release_ver: g24p0-00eac0, rk_so_ver: 7
+CALIBRATION_CAPTURE_SELFTEST_PASS
+  moving texture, light changes, periodic refresh: PASS
+  three-scale template search: PASS
+  constant-template and duplicate-peak rejection: PASS
+  predicted-frame limit, occlusion loss, immutable detection TTL: PASS
+  same-class one-to-one association, correction, model-local replacement: PASS
+  deep-copy isolation, source replay, time guards, global ID uniqueness: PASS
+  image edges/size reset, validation, bounded tracks, owned image pixels: PASS
+  capped large fast/odd/edge motion, stable sizes, scale/reference: PASS
+  capped deep-copy replay, occlusion and periodic-peak rejection: PASS
+  same-observation exclusion, real overlap/classes, timing reset, cap validation: PASS
+  cap16/48/128 huge/thin phase coverage, whole-box detail verification: PASS
+TRACKER_SELFTEST_PASS
+CAMERA_DMA_SELFTEST_PASS
+FRAME_METRICS_SELFTEST_PASS (216 checks)
+VISION_SELFTEST_PASS
+[display-latency-config] late_latch=1 trace=0 clock=CLOCK_MONOTONIC start=host_dma_return end=gl_call_return
+[display-config] update_idle_ms=0 texture_ring=1 publish_min_ms=24 hud_stats_ms=1000
+QStandardPaths: XDG_RUNTIME_DIR not set, defaulting to '/tmp/runtime-root'
+DISPLAY_LATE_LATCH_SELFTEST_PASS
+[display-latency-config] late_latch=1 trace=0 clock=CLOCK_MONOTONIC start=host_dma_return end=gl_call_return
+[display-config] update_idle_ms=0 texture_ring=1 publish_min_ms=24 hud_stats_ms=1000
+QStandardPaths: XDG_RUNTIME_DIR not set, defaulting to '/tmp/runtime-root'
+VEHICLE_TRACKING_POLICY_SELFTEST_PASS
+DISPLAY_LATE_LATCH_SELFTEST_PASS
+DISPLAY_REFRESH_SELFTEST_PASS
+[ok] full HDMI uses the existing analytics image contract
+[ok] both HDMI halves reach inference in left-to-right order
+[ok] 16:9 image has exactly 60 rows of padding on each side
+[ok] missing right half is rejected
+[ok] fresh pair is accepted
+[ok] stale half is rejected
+[ok] excessive capture skew is rejected
+[ok] pre-toggle half is rejected
+[ok] cross-seam box maps onto the full 1920x1080 image
+HDMI_VIEW_SELFTEST_PASS
+VISION_SELFTEST_PASS
+[display-latency-config] late_latch=1 trace=0 clock=CLOCK_MONOTONIC start=host_dma_return end=gl_call_return
+[display-config] update_idle_ms=0 texture_ring=1 publish_min_ms=24 hud_stats_ms=1000
+QStandardPaths: XDG_RUNTIME_DIR not set, defaulting to '/tmp/runtime-root'
+[mvp-round1-metadata] OK model default keeps legacy policy
+[mvp-round1-metadata] OK delivered manifest format accepted
+[mvp-round1-metadata] OK actual model bytes hashed and wrong checksum rejected
+[mvp-round1-metadata] OK unknown profile rejected
+[mvp-round1-metadata] OK old or unknown model identity rejected
+[mvp-round1-metadata] OK square input rejected
+[mvp-round1-metadata] OK class reordering rejected
+[mvp-round1-metadata] OK wrong regmax rejected
+[mvp-round1-metadata] OK missing threshold rejected without default
+[mvp-round1-metadata] OK string threshold rejected
+[mvp-round1-metadata] OK extra class threshold rejected
+[mvp-round1-metadata] OK guessed uniform thresholds rejected
+[mvp-round1-metadata] OK R1 cannot be applied to old shared detector
+[mvp-round1-metadata] OK temporary metadata directory available
+[mvp-round1-metadata] OK R1 missing sidecar rejected
+[mvp-round1-metadata] OK sidecar file parsed in production reader
+[mvp-round1-metadata] OK malformed sidecar rejected
+[mvp-round1-metadata] OK old model without sidecar stays unchanged
+MVP_ROUND1_METADATA_SELFTEST_PASS
+[mvp-round1-selftest] OK .4 person passes, .4 vehicle fails, .3 zebra passes; all five thresholds and full argmax
+[mvp-round1-selftest] OK old MVP retains uniform .25 policy
+[mvp-round1-selftest] OK production raw candidate stage retains .0012 and rejects .0009
+[mvp-round1-selftest] OK rare low-score candidate filtered only after NMS
+[mvp-round1-selftest] OK R1 IoU .7 preserves .6 overlap and different classes; legacy IoU .45
+[mvp-round1-selftest] OK global NMS top300 occurs BEFORE class thresholds (no replenishment)
+[mvp-round1-selftest] OK more than 300 overlapping candidates never truncate before NMS
+[mvp-round1-selftest] OK SHA binding rejects wrong bytes and wrong manifest identity
+MVP_ROUND1_DECODER_SELFTEST_PASS

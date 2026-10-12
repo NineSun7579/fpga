@@ -1,0 +1,88 @@
+"""Future remote helper, supplied through SSH stdin. No action without explicit mode.
+
+Managed producer admission is persisted as execute-bit removal on the reviewed ELF
+inventory, with original modes/hashes in a root-owned ledger. This does not claim
+to constrain arbitrary privileged programs; exclusive operator control remains
+part of the independent preflight. No processes are signalled by this helper.
+"""
+import hashlib
+import json
+import os
+import stat
+from pathlib import Path
+
+LEDGER = Path('/var/lib/fpga-recovery-actual06/admission.json')
+
+def digest(p):
+    return hashlib.sha256(Path(p).read_bytes()).hexdigest()
+
+def owners():
+    device=Path('/dev/pango_pci_driver')
+    target=device.stat().st_rdev
+    rows=[]
+    errors=[]
+    for p in Path('/proc').iterdir():
+        if not p.name.isdigit(): continue
+        try:
+            for fd in (p/'fd').iterdir():
+                try:
+                    s=fd.stat()
+                    if stat.S_ISCHR(s.st_mode) and s.st_rdev==target:
+                        rows.append(dict(pid=p.name,fd=fd.name))
+                except FileNotFoundError: pass
+            maps=(p/'maps').read_text()
+            if '/dev/pango' in maps or '/dev/xdma' in maps:
+                rows.append(dict(pid=p.name,mapping=True))
+        except FileNotFoundError: pass
+        except OSError as e: errors.append(dict(pid=p.name,error=type(e).__name__))
+    return rows,errors
+
+def main(mode, inventory):
+    assert os.geteuid()==0
+    assert inventory and all(x['path'].startswith('/userdata/') and x.get('sha256') for x in inventory)
+    # Never stop MP4 or any other process. Running reviewed producer => fail closed.
+    for p in Path('/proc').iterdir():
+        if not p.name.isdigit(): continue
+        try:
+            exe=os.readlink(p/'exe')
+            argv=[x.decode(errors='replace') for x in (p/'cmdline').read_bytes().split(b'\0') if x]
+            if (exe[:-10] if exe.endswith(' (deleted)') else exe) in {x['path'] for x in inventory} or ('driving-demo' in ' '.join(argv) and not any('\n' in a for a in argv)):
+                print(json.dumps(dict(running_producer=p.name,argv=argv,exe=exe,exe_sha256=digest(p/'exe'),stat=(p/'stat').read_text(),boot_id=Path('/proc/sys/kernel/random/boot_id').read_text().strip())))
+                raise RuntimeError('Exact current argv/starttime review required; no automatic signal')
+        except FileNotFoundError: pass
+    if mode=='hold':
+        assert not LEDGER.exists(), 'Existing ledger: verify or explicitly release it'
+        rows=[]
+        for entry in inventory:
+            p=Path(entry['path'])
+            assert not p.is_symlink() and p.is_file() and p.read_bytes()[:4]==b'\x7fELF'
+            assert digest(p)==entry['sha256']
+            rows.append(dict(path=str(p),sha256=entry['sha256'],original_mode=stat.S_IMODE(p.stat().st_mode)))
+        LEDGER.parent.mkdir(mode=0o700,parents=True,exist_ok=True)
+        assert LEDGER.parent.stat().st_uid==0 and not (LEDGER.parent.stat().st_mode & 0o022)
+        fd=os.open(str(LEDGER),os.O_CREAT|os.O_EXCL|os.O_WRONLY,0o600)
+        with os.fdopen(fd,'w') as f: json.dump(rows,f,indent=2); f.flush(); os.fsync(f.fileno())
+        for row in rows: os.chmod(row['path'],row['original_mode'] & ~0o111)
+        for row in rows:
+            fd=os.open(row['path'],os.O_RDONLY)
+            try: os.fsync(fd)
+            finally: os.close(fd)
+        fd=os.open(str(LEDGER.parent),os.O_RDONLY|os.O_DIRECTORY)
+        try: os.fsync(fd)
+        finally: os.close(fd)
+        fd=os.open(str(LEDGER.parent.parent),os.O_RDONLY|os.O_DIRECTORY)
+        try: os.fsync(fd)
+        finally: os.close(fd)
+    assert LEDGER.stat().st_uid==0 and not (LEDGER.stat().st_mode & 0o077)
+    rows=json.loads(LEDGER.read_text())
+    assert {(r['path'],r['sha256']) for r in rows}=={(r['path'],r['sha256']) for r in inventory}
+    for row in rows:
+        assert digest(row['path'])==row['sha256']
+        if mode=='release': os.chmod(row['path'],row['original_mode'])
+        else: assert not (Path(row['path']).stat().st_mode & 0o111)
+    if mode=='release': LEDGER.unlink()
+    held,errors=owners()
+    print(json.dumps(dict(mode=mode,ledger=str(LEDGER),inventory=rows,holders=held,scan_errors=errors,device_opened=False,accepted=False)))
+    assert not held and not errors
+
+# Controller appends main(mode, concrete_hash_bound_inventory) to stdin source.

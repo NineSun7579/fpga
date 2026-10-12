@@ -1,0 +1,849 @@
+--- baseline/main.cpp
++++ candidate/main.cpp
+@@ -71,6 +71,31 @@
+ #include "stereo_demo/stereo_depth.h"
+ 
+ #include "rknn_api.h"
++#include "scheme2_uapi.h"
++#include "scheme2_verify.h"
++#include "scheme2_contract.h"
++
++[[noreturn]] static void scheme2Quarantine(const char* reason) {
++    fprintf(stderr, "[scheme2] QUARANTINE pid=%d: %s; parent must quiesce hardware\n", int(getpid()), reason);
++    fflush(stderr);
++    raise(SIGSTOP);
++    for (;;) pause();
++}
++
++struct Scheme2Transport {
++    int fd = -1, sharedFd = -1;
++    uint8_t* tx = nullptr;
++    uint8_t* rx = nullptr;
++    std::shared_ptr<QMutex> mutex;
++    bool consumerHeld = false;
++    ~Scheme2Transport() {
++        if (consumerHeld) scheme2Quarantine("transport teardown with active consumer");
++        if (sharedFd >= 0) ::close(sharedFd);
++        if (tx && tx != MAP_FAILED) munmap(tx, scheme2::Window);
++        if (rx && rx != MAP_FAILED) munmap(rx, scheme2::Window);
++        if (fd >= 0) ::close(fd);
++    }
++};
+ 
+ #include <rga/im2d.h>
+ #include <rga/rga.h>
+@@ -541,27 +566,38 @@
+             err_ = "open driver failed";
+             return false;
+         }
++        if (scheme2::enabled()) {
++            shared_ = std::make_shared<Scheme2Transport>();
++            shared_->fd = fd_;
++            shared_->mutex = dmaMutex_;
++        }
+         DmaOp a{};
+         a.cmd = 0;
+-        a.total_length = 4 * 1024 * 1024;
++        a.total_length = windowBytes();
+         if (ioctlTmo(MAP_CMD, &a, 3) != 0) {
+             err_ = "map tx failed";
+             return false;
+         }
+         DmaOp b{};
+         b.cmd = 1;
+-        b.total_length = 4 * 1024 * 1024;
++        b.total_length = windowBytes();
+         if (ioctlTmo(MAP_CMD, &b, 3) != 0) {
+             err_ = "map rx failed";
+             return false;
+         }
+-        tx_ = (uint8_t *)mmap(nullptr, 4 * 1024 * 1024, PROT_READ | PROT_WRITE, MAP_SHARED, fd_, 0);
+-        rx_ = (uint8_t *)mmap(nullptr, 4 * 1024 * 1024, PROT_READ | PROT_WRITE, MAP_SHARED, fd_,
++        tx_ = (uint8_t *)mmap(nullptr, windowBytes(), PROT_READ | PROT_WRITE, MAP_SHARED, fd_, 0);
++        rx_ = (uint8_t *)mmap(nullptr, windowBytes(), PROT_READ | PROT_WRITE, MAP_SHARED, fd_,
+                               1024 * 1024);
++        if (shared_) { shared_->tx = tx_; shared_->rx = rx_; }
+         if (tx_ == MAP_FAILED || rx_ == MAP_FAILED) {
+             err_ = "mmap failed";
+             return false;
+         }
++        if (shared_) {
++            pz_export_rx request{}; request.version = 1;
++            shared_->sharedFd = ::ioctl(fd_, PZ_EXPORT_RX, &request);
++            if (shared_->sharedFd < 0) { err_ = "8MiB RX DMA-BUF export required"; return false; }
++        }
+         return true;
+     }
+ 
+@@ -569,7 +605,8 @@
+     static volatile sig_atomic_t timeoutHit_;
+ 
+     bool regWrite(uint32_t addr, uint32_t val) {
+-        QMutexLocker dmaLock(&dmaMutex_);
++        QMutexLocker dmaLock(dmaMutex_.get());
++        if (shared_ && shared_->consumerHeld) return false;
+         if (!tx_)
+             return false;
+         memcpy(tx_, &val, 4);
+@@ -581,7 +618,8 @@
+     }
+ 
+     bool regRead(uint32_t addr, uint32_t &val) {
+-        QMutexLocker dmaLock(&dmaMutex_);
++        QMutexLocker dmaLock(dmaMutex_.get());
++        if (shared_ && shared_->consumerHeld) return false;
+         DmaOp op{};
+         op.offset_addr = tdm::cameraScratchOffset;
+         op.ddr3_addr = addr;
+@@ -597,8 +635,9 @@
+        上层线程会保留上一帧并在下一次帧标签变化时重试。 */
+     bool ddrRead(uint32_t addr, uint32_t len, void *out) {
+         if (len > tdm::cameraAllocationBytes || (!out && len)) return false;
+-        QMutexLocker dmaLock(&dmaMutex_);
++        QMutexLocker dmaLock(dmaMutex_.get());
+         uint8_t* destination = static_cast<uint8_t*>(out);
++        if (shared_ && shared_->consumerHeld) return false;
+         for (uint32_t copied = 0; copied < len;) {
+             const uint32_t bytes = std::min(len - copied,
+                 tdm::cameraAllocationBytes - tdm::cameraScratchOffset);
+@@ -628,7 +667,8 @@
+                    void* output, uint32_t& selected, qint64& dmaNs, qint64& copyNs,
+                    qint64& capturedMs) {
+         if (camera < 0 || camera >= CAM_COUNT) return -1;
+-        QMutexLocker lock(&dmaMutex_);
++        QMutexLocker lock(dmaMutex_.get());
++        if (shared_ && shared_->consumerHeld) return 0;
+         uint32_t a = 0, b = 0;
+         if (!cameraTagLocked(ping + FRAME_BYTES, a) || !cameraTagLocked(pong + FRAME_BYTES, b)) return -1;
+         const int bank = tdm::newestCameraBank(a, b, delivered, last);
+@@ -653,6 +693,152 @@
+         return 1;
+     }
+ 
++    int cameraReadFpga(int camera, int generation, int height, bool delivered, uint32_t last,
++                       void* output, uint32_t& selected, qint64& dmaNs, qint64& copyNs,
++                       qint64& capturedMs, std::shared_ptr<scheme2::Input>& input) {
++        QMutexLocker lock(dmaMutex_.get());
++        if (!shared_ || shared_->consumerHeld) scheme2Quarantine("admission/transport mismatch");
++        constexpr uint32_t base = 0x40020000;
++        auto check = [](bool ok, const char* why) { if (!ok) scheme2Quarantine(why); };
++        auto read = [&](uint32_t address, uint32_t size, uint32_t offset) {
++            DmaOp op{}; op.ddr3_addr = address; op.total_length = size; op.offset_addr = offset;
++            check(ioctlTmo(F2H_CMD, &op, 3) == 0, "F2H failed");
++            std::atomic_thread_fence(std::memory_order_seq_cst);
++        };
++        auto reg = [&](uint32_t offset) { uint32_t value = 0;
++            check(cameraTagLocked(base + offset, value), "register read failed"); return value; };
++        auto write = [&](uint32_t offset, uint32_t value) {
++            memset(tx_, 0, 16); memcpy(tx_, &value, 4);
++            DmaOp op{}; op.ddr3_addr = base + offset; op.total_length = 16;
++            check(ioctlTmo(H2F_CMD, &op, 3) == 0, "register write failed");
++        };
++        auto poll = [&](bool converted, uint32_t jobs) {
++            QElapsedTimer deadline; deadline.start();
++            for (;;) {
++                const uint32_t status = reg(0x10);
++                check(!(status & 0x70), "FPGA error/config/quarantine");
++                if (converted ? ((status & 0x7f) == 0x0b && reg(0x90) == uint32_t(jobs + 1)) :
++                    ((status & 0x77) == 3)) return true;
++                if (deadline.elapsed() >= 3000) {
++                    if (!converted && status == 1 && reg(0x120) == 2) {
++                        write(0x20, 0);
++                        check((reg(0x10) & 0x7f) == 0 && reg(0x120) == 0,
++                              "unpublished hold release failed");
++                        write(0xc0, 4); write(0xd0, 0);
++                        check(reg(0xc0) == 4 && reg(0xd0) == 0 && reg(0xb0) == 0,
++                              "unpublished selector restore failed");
++                        return false;
++                    }
++                    scheme2Quarantine("uncertain FPGA admission/conversion deadline");
++                }
++                QThread::msleep(1);
++            }
++        };
++        check(reg(0) == 0x444c5632 && (reg(0xa0) & 7) == 7 && reg(0xf0) == 0x3f &&
++              reg(0x80) == FRAME_BYTES && (reg(0x10) & 0x77) == 0 && reg(0xb0) == 0 &&
++              reg(0xc0) == 4 && reg(0xd0) == 0 && reg(0x120) == 0, "six-camera idle contract mismatch");
++        write(0xc0, camera); write(0xd0, 0);
++        const uint32_t destination = camera == 4 ? 0x0a000000 : 0x0b000000 + camera * 0x400000;
++        check(reg(0x40) == destination && reg(0x60) == scheme2::SquareBytes &&
++              reg(0x100) == 0x00800000u + camera * 0x400000u &&
++              reg(0x110) == 0x00a00000u + camera * 0x400000u, "mode0 selector readback mismatch");
++        // Audit the writable physical camera-bank configuration as the validated host does.
++        for (uint32_t c = 0; c < 4; ++c) for (uint32_t offset : {0x80u, 0xc0u}) {
++            uint32_t address = 0;
++            check(cameraTagLocked(0x20000000 + c * 0x200 + offset, address), "bank audit failed");
++            const uint64_t end = uint64_t(address) + 0x200000;
++            check(end <= 0x10000000 && (end <= destination || address >= destination + scheme2::SquareBytes),
++                  "RGB destination overlaps writable camera bank");
++        }
++        const uint32_t epoch = reg(0x50);
++        write(0x20, 1);
++        if (!poll(false, 0)) { scheme2::admission().retire(); return 0; }
++        const uint32_t source = reg(0x30), sequence = reg(0xe0);
++        auto validate = [&] {
++            uint32_t tag = 0;
++            check((reg(0x10) & 0x77) == 3 && reg(0x30) == source && reg(0x50) == uint32_t(epoch + 1) &&
++                  reg(0xe0) == sequence && reg(0xc0) == uint32_t(camera) && reg(0xd0) == 0 &&
++                  reg(0xb0) == 0 && reg(0x40) == destination && reg(0x60) == scheme2::SquareBytes &&
++                  reg(0x120) == 4 && (source == 0x00800000u + camera * 0x400000u ||
++                  source == 0x00a00000u + camera * 0x400000u) &&
++                  cameraTagLocked(source + FRAME_BYTES, tag) && tag == sequence,
++                  "same-frame lease identity changed");
++        };
++        validate();
++        if (delivered && !tdm::newerCameraTag(sequence, last)) {
++            write(0x20, 0); write(0xc0, 4); write(0xd0, 0);
++            scheme2::admission().retire(); return 0;
++        }
++        QElapsedTimer timer; timer.start();
++        read(source, FRAME_BYTES + 16, tdm::cameraSlotOffset(camera));
++        dmaNs = timer.nsecsElapsed(); capturedMs = monotonicMs();
++        uint32_t rawTag = 0;
++        memcpy(&rawTag, rx_ + tdm::cameraSlotOffset(camera) + FRAME_BYTES, 4);
++        check(rawTag == sequence, "RAW commit tag differs from RGB lease");
++        timer.restart();
++        tdm::copyCameraPixels(output, rx_ + tdm::cameraSlotOffset(camera), FRAME_BYTES);
++        copyNs = timer.nsecsElapsed();
++        const uint32_t jobs = reg(0x90);
++        write(0x20, 3); poll(true, jobs); validate();
++        // RGB destination is now immutable under this sole converter owner.
++        // Retire the camera hold before BEGIN globally excludes DMA, then make
++        // the RGB payload the final F2H publication (scratch reads change ready).
++        write(0x20, 0);
++        check((reg(0x10) & 7) == 0, "camera release failed");
++        write(0xc0, 4); write(0xd0, 0);
++        check(reg(0xc0) == 4 && reg(0xd0) == 0 && reg(0x120) == 0 &&
++              reg(0x40) == 0x0a000000, "camera defaults restore failed");
++        input = std::make_shared<scheme2::Input>();
++        input->fd = shared_->sharedFd; input->base = rx_; input->height = height;
++        if (scheme2::verify()) input->goldenRgb = scheme2::golden(output, height);
++        input->camera = camera; input->sourceGeneration = generation; input->tag = sequence;
++        input->epoch = epoch + 1; input->source = source; input->backing = shared_;
++        input->uncertain = [] { scheme2Quarantine("consumer unwound without verified completion"); };
++        auto transport = shared_;
++        auto lease = std::make_shared<pz_lease>();
++        auto beganMs = std::make_shared<qint64>(0);
++        std::weak_ptr<scheme2::Input> weak = input;
++        input->begin = [transport, lease, beganMs, weak, destination, height, camera, sequence, epoch] {
++            QMutexLocker guard(transport->mutex.get());
++            if (transport->consumerHeld) scheme2Quarantine("overlapping synchronous consumer");
++            DmaOp op{}; op.ddr3_addr = destination + scheme2::crop(height);
++            op.total_length = scheme2::bytes(height); op.offset_addr = scheme2::Offset;
++            if (::ioctl(transport->fd, F2H_CMD, &op) != 0) scheme2Quarantine("deferred RGB F2H failed");
++            std::atomic_thread_fence(std::memory_order_seq_cst);
++            if (scheme2::verify()) {
++            auto owner = weak.lock();
++            if (!owner) scheme2Quarantine("input owner lost before consumption");
++            const auto& goldenRgb = owner->goldenRgb;
++            const size_t bad = scheme2::mismatch(goldenRgb.data(), transport->rx + scheme2::Offset, goldenRgb.size());
++            if (bad != goldenRgb.size()) {
++                fprintf(stderr, "[scheme2-verify-input] FAIL camera=%d tag=%u height=%d byte=%zu expected=%u actual=%u\n",
++                    camera + 1, sequence, height, bad, goldenRgb[bad], transport->rx[scheme2::Offset + bad]);
++                scheme2Quarantine("same-frame RGB input byte parity failed");
++            }
++            static std::atomic<unsigned> count{0};
++            const unsigned passed = ++count;
++            fprintf(stderr, "[scheme2-verify-input] PASS camera=%d tag=%u epoch=%u height=%d bytes=%zu count=%u performance_sample=0\n",
++                    camera + 1, sequence, epoch + 1, height, goldenRgb.size(), passed);
++            if (passed == scheme2::verifyCount())
++                fprintf(stderr, "[scheme2-verify] INPUT_COUNT_REACHED count=%u required=%u output_parity_pending=1 performance_sample=0\n", passed, scheme2::verifyCount());
++            }
++            lease->version = 1; lease->offset = scheme2::Offset; lease->length = scheme2::SquareBytes;
++            if (::ioctl(transport->fd, PZ_BEGIN, lease.get()) != 0 || !lease->token)
++                scheme2Quarantine("deferred PZ_BEGIN failed");
++            transport->consumerHeld = true; *beganMs = monotonicMs();
++        };
++        input->end = [transport, lease, beganMs, camera, sequence, epoch, height]() mutable {
++            QMutexLocker guard(transport->mutex.get());
++            if (::ioctl(transport->fd, PZ_END, lease.get()) != 0) scheme2Quarantine("PZ_END failed");
++            transport->consumerHeld = false;
++            if (!scheme2::verify()) fprintf(stderr, "[scheme2] camera=%d tag=%u epoch=%u height=%d payload_bytes=%u lease_hold_ms=%lld\n",
++                    camera + 1, sequence, epoch + 1, height, scheme2::bytes(height),
++                    static_cast<long long>(monotonicMs() - *beganMs));
++        };
++        selected = sequence;
++        return 1;
++    }
++
+     const char *lastErr() const { return err_; }
+ 
+ private:
+@@ -699,6 +885,7 @@
+        所以"退出进程 + 重新打开"本身就等于恢复，不需要 rmmod/insmod。连续失败到阈值就
+        主动退出（硬退出，避免卡住的线程拖延），交给守护脚本 run_detview.sh 重启。 */
+     void noteFailure() {
++        if (scheme2::enabled()) scheme2Quarantine("DMA ioctl failed; automatic reopen prohibited");
+         const int n = ++failures_;
+         if (n < kRecoverAfterFailures)
+             return;
+@@ -707,7 +894,8 @@
+         ::_exit(3);
+     }
+     void close() {
+-        if (fd_ >= 0)
++        if (shared_) shared_.reset();
++        else if (fd_ >= 0)
+             ::close(fd_);
+         fd_ = -1;
+     }
+@@ -715,7 +903,9 @@
+     int fd_ = -1;
+     uint8_t *tx_ = nullptr;
+     uint8_t *rx_ = nullptr;
+-    QMutex dmaMutex_;   // 保护 tx_/rx_ 与 DMA ioctl（四路采集线程共用）
++    std::shared_ptr<QMutex> dmaMutex_ = std::make_shared<QMutex>();
++    std::shared_ptr<Scheme2Transport> shared_;
++    uint32_t windowBytes() const { return scheme2::enabled() ? scheme2::Window : 0x400000; }
+     static const int kRecoverAfterFailures = 6;   // 连续失败几次就退出，让守护脚本重启
+     std::atomic<int> failures_{0};
+ };
+@@ -825,8 +1015,15 @@
+             if (!frame.isDetached()) frame = QByteArray(FRAME_BYTES, Qt::Uninitialized);
+             uint32_t selectedTag = 0;
+             qint64 dmaNs = 0, copyNs = 0, capturedMs = 0;
+-            const int result = dev_->cameraRead(idx, base[idx][0], base[idx][1], delivered, deliveredTag,
+-                                                frame.data(), selectedTag, dmaNs, copyNs, capturedMs);
++            std::shared_ptr<scheme2::Input> fpgaInput;
++            const scheme2::Selection selection = scheme2::enabled() && inferPane_ && inferPane_->load() == idx &&
++                !(hdmi_ && hdmi_->load()) ? scheme2::admission().claim(idx, sourceGeneration) : scheme2::Selection{};
++            const int result = selection ?
++                dev_->cameraReadFpga(idx, sourceGeneration, selection.height, delivered, deliveredTag,
++                    frame.data(), selectedTag, dmaNs, copyNs, capturedMs, fpgaInput) :
++                dev_->cameraRead(idx, base[idx][0], base[idx][1], delivered, deliveredTag,
++                    frame.data(), selectedTag, dmaNs, copyNs, capturedMs);
++            if (fpgaInput) fpgaInput->selection = selection;
+             if (result == 0) { msleep(6); continue; }
+             if (result == 2) { ++unstable; msleep(1); continue; }
+             if (result < 0) {
+@@ -851,6 +1048,8 @@
+                     rgb565ToRgb888Line(reinterpret_cast<const uint8_t *>(src + (size_t)y * IMG_W),
+                                        IMG_W, pixels.scanLine(y));
+                 VisionFrame packet;
++                packet.fpgaInput = std::move(fpgaInput);
++                packet.cameraAcquisition = true;
+                 packet.image = std::move(pixels);
+                 packet.frameId = sequence_->fetch_add(1) + 1;
+                 packet.camera = idx;
+@@ -878,7 +1077,7 @@
+             const qint64 auditNow = monotonicMs();
+             if (auditNow - auditStartMs >= 5000) {
+                 const double seconds = (auditNow - auditStartMs) / 1000.0;
+-                fprintf(stderr, "[capture] camera=%d delivered_fps=%.2f tag_advance_rate=%.2f read_ms=%.3f frame_dma_ms=%.3f copy_ms=%.3f unstable=%llu\n",
++                if (!scheme2::verify()) fprintf(stderr, "[capture] camera=%d delivered_fps=%.2f tag_advance_rate=%.2f read_ms=%.3f frame_dma_ms=%.3f copy_ms=%.3f unstable=%llu\n",
+                         idx + 1, auditFrames / seconds, sequenceAdvance / seconds,
+                         readNs / 1e6 / auditFrames, dmaNsTotal / 1e6 / auditFrames,
+                         copyNsTotal / 1e6 / auditFrames, (unsigned long long)unstable);
+@@ -1828,9 +2027,12 @@
+         return failures==0;
+     }
+ 
+-    void submit(const QImage &img, int sourceGeneration = 0, quint64 frameId = 0) {
++    void submit(const QImage &img, int sourceGeneration = 0, quint64 frameId = 0,
++                std::shared_ptr<scheme2::Input> fpgaInput = {}) {
+         QMutexLocker lock(&m_mutex);
+         m_pending = img;
++        if (m_pendingFpga) m_pendingFpga->complete(); // superseded before synchronous run starts
++        m_pendingFpga = std::move(fpgaInput);
+         m_pendingGeneration = sourceGeneration;
+         m_pendingFrameId = frameId;
+         m_hasPending = true;
+@@ -1838,6 +2040,7 @@
+     }
+     void setModel(const ModelInfo &info) {
+         QMutexLocker lock(&m_mutex);
++        if (scheme2::enabled()) scheme2::admission().publish({0, {}, ++m_modelRevision});
+         m_selection = {info};
+         m_manualFormat = info.xyxy;
+         m_modelChanged = true;
+@@ -1845,6 +2048,7 @@
+     }
+     void setModels(const QVector<ModelInfo> &models) {
+         QMutexLocker lock(&m_mutex);
++        if (scheme2::enabled()) scheme2::admission().publish({0, {}, ++m_modelRevision});
+         m_selection = models;
+         m_modelChanged = true;
+         m_cond.wakeOne();
+@@ -1877,11 +2081,16 @@
+             uint32_t outputs = 0;
+             tdm::InferenceGeometry geometry;
+             std::vector<rknn_tensor_attr> outputAttrs;
++            rknn_context sharedContext = 0;
++            rknn_tensor_attr inputAttr{};
++            rknn_tensor_mem* inputMem = nullptr;
++            std::shared_ptr<void> backing;
++            uint64_t revision = 0;
+         };
+         QVector<CachedModel> cache;
+         int next = 0;
+         /* 诊断（DET_BENCH）：每秒统计“等帧时间”与“单次运行时间”，判断推理线程是否被饿着 */
+-        const bool diag = qEnvironmentVariableIsSet("DET_BENCH");
++        const bool diag = qEnvironmentVariableIsSet("DET_BENCH") && !scheme2::verify();
+         QElapsedTimer diagTimer;
+         if (diag)
+             diagTimer.start();
+@@ -1897,13 +2106,16 @@
+             const bool reload = m_modelChanged;
+             /* 只在型号切换时拷贝列表：原来每轮都深拷贝（含 29 个类名的 QStringList） */
+             QVector<ModelInfo> selected;
++            const uint64_t revision = m_modelRevision;
+             if (reload)
+                 selected = m_selection;
+             QImage frame;
++            std::shared_ptr<scheme2::Input> fpgaInput;
+             int sourceGeneration = m_pendingGeneration;
+             const quint64 frameId = m_pendingFrameId;
+             if (m_hasPending) {
+                 frame = m_pending;
++                fpgaInput = std::move(m_pendingFpga);
+                 m_hasPending = false;
+             }
+             m_modelChanged = false;
+@@ -1912,12 +2124,18 @@
+                 diagWaitMs += QDateTime::currentMSecsSinceEpoch() - waitStart;
+ 
+             if (reload) {
+-                for (CachedModel &old : cache) rknn_destroy(old.context);
++                scheme2::admission().publish({0, {}, revision});
++                for (CachedModel &old : cache) {
++                    if (old.inputMem) rknn_destroy_mem(old.sharedContext, old.inputMem);
++                    if (old.sharedContext) rknn_destroy(old.sharedContext);
++                    rknn_destroy(old.context);
++                }
+                 cache.clear();
+                 next = 0;
+                 for (const ModelInfo &info : selected) {
+                     CachedModel item;
+                     item.info = info;
++                    item.revision = revision;
+                     QFile file(info.path);
+                     if (!file.open(QIODevice::ReadOnly)) {
+                         emit modelLoaded(info.path, false, "open failed");
+@@ -1954,6 +2172,7 @@
+                         continue;
+                     }
+                     logTensor(info.path, "input", inputAttr);
++                    item.inputAttr = inputAttr;
+                     bool attrsOk = true;
+                     item.outputAttrs.resize(ioNum.n_output);
+                     for (uint32_t i = 0; i < ioNum.n_output; ++i) {
+@@ -1978,16 +2197,76 @@
+                         continue;
+                     }
+                     item.outputs = ioNum.n_output;
++                    if (scheme2::enabled()) {
++                        bool supported = rknn_init(&item.sharedContext, item.bytes.data(), uint32_t(item.bytes.size()),
++                            RKNN_FLAG_DISABLE_FLUSH_INPUT_MEM_CACHE, nullptr) == 0;
++                        rknn_input_output_num sharedIo{};
++                        rknn_tensor_attr sharedInput{};
++                        supported = supported && rknn_query(item.sharedContext, RKNN_QUERY_IN_OUT_NUM, &sharedIo, sizeof(sharedIo)) == 0 &&
++                            sharedIo.n_input == 1 && sharedIo.n_output == item.outputs &&
++                            rknn_query(item.sharedContext, RKNN_QUERY_INPUT_ATTR, &sharedInput, sizeof(sharedInput)) == 0 &&
++                            scheme2::sameTensor(item.inputAttr, sharedInput) && scheme2::packedInput(sharedInput, item.geometry.height);
++                        for (uint32_t i = 0; supported && i < item.outputs; ++i) {
++                            rknn_tensor_attr attr{}; attr.index = i;
++                            supported = rknn_query(item.sharedContext, RKNN_QUERY_OUTPUT_ATTR, &attr, sizeof(attr)) == 0 &&
++                                scheme2::sameTensor(item.outputAttrs[i], attr);
++                        }
++                        if (!supported) {
++                            if (item.sharedContext) rknn_destroy(item.sharedContext);
++                            item.sharedContext = 0;
++                            fprintf(stderr, "[scheme2] CPU_ROUTE model=%s reason=coherent-contract-unsupported\n", qPrintable(info.path));
++                        }
++                    }
+                     cache.append(std::move(item));
+                     m_completed.remove(info.path);
+                     emit modelLoaded(info.path, true, QString("640x%1 RGB, %2 outputs cached")
+                                      .arg(cache.last().geometry.height).arg(ioNum.n_output));
+                 }
+             }
++            auto selectionFor = [&](int index) {
++                const auto& model = cache[index];
++                return scheme2::Selection{model.sharedContext ? model.geometry.height : 0,
++                    model.info.path.toStdString(), model.revision};
++            };
++            if (reload && !cache.isEmpty()) scheme2::admission().publish(selectionFor(next));
+             if (!frame.isNull() && !cache.isEmpty()) {
+                 CachedModel &item = cache[next];
+-                next = (next + 1) % cache.size();
+                 m_ctx = item.context;
++                m_boundInput = false;
++                if (fpgaInput) {
++                    if (fpgaInput->height != item.geometry.height || fpgaInput->sourceGeneration != sourceGeneration ||
++                        fpgaInput->selection.model != item.info.path.toStdString() || fpgaInput->selection.revision != item.revision ||
++                        fpgaInput->selection.revision != m_modelRevision.load() ||
++                        !item.sharedContext) {
++                        fprintf(stderr, "[scheme2] rejecting model/source change during acquisition\n");
++                        fpgaInput->complete();
++                        emit inferenceFailed(sourceGeneration, frameId);
++                        continue;
++                    }
++                    // Keep the conventional context for video/HDMI. The coherent
++                    // context uses the exact same model and output decoder contract.
++                    if (!item.inputMem) {
++                        item.backing = fpgaInput->backing;
++                        item.inputMem = rknn_create_mem_from_fd(item.sharedContext, fpgaInput->fd,
++                            fpgaInput->base, scheme2::bytes(fpgaInput->height), scheme2::Offset);
++                        if (!item.inputMem) {
++                            rknn_destroy(item.sharedContext); item.sharedContext = 0;
++                            scheme2::admission().publish({0, item.info.path.toStdString(), item.revision});
++                            fpgaInput->complete(); emit inferenceFailed(sourceGeneration, frameId); continue;
++                        }
++                        auto attr = item.inputAttr;
++                        attr.type = RKNN_TENSOR_UINT8; attr.fmt = RKNN_TENSOR_NHWC; attr.pass_through = 0;
++                        if (rknn_set_io_mem(item.sharedContext, item.inputMem, &attr) != 0) {
++                            rknn_destroy_mem(item.sharedContext, item.inputMem); item.inputMem = nullptr;
++                            rknn_destroy(item.sharedContext); item.sharedContext = 0;
++                            scheme2::admission().publish({0, item.info.path.toStdString(), item.revision});
++                            fpgaInput->complete(); emit inferenceFailed(sourceGeneration, frameId); continue;
++                        }
++                    }
++                    if (item.backing != fpgaInput->backing) scheme2Quarantine("DMA-BUF generation changed");
++                    m_ctx = item.sharedContext;
++                    m_boundInput = true;
++                }
+                 m_nOutput = item.outputs;
+                 m_nc = item.info.nc;
+                 m_xyxy = cache.size() == 1 ? m_manualFormat.load() : item.info.xyxy;
+@@ -2003,15 +2282,42 @@
+                 m_classNames = item.info.classes;
+                 const qint64 runStart = diag ? QDateTime::currentMSecsSinceEpoch() : 0;
+                 recordMetric(sourceGeneration, item.info.path, 0);
++                m_verifyOutputs.clear();
++                if (fpgaInput && scheme2::verify()) {
++                    rknn_input reference{};
++                    reference.buf = fpgaInput->goldenRgb.data();
++                    reference.size = uint32_t(fpgaInput->goldenRgb.size());
++                    reference.type = RKNN_TENSOR_UINT8; reference.fmt = RKNN_TENSOR_NHWC;
++                    if (reference.size != uint32_t(item.geometry.rgbBytes()) ||
++                        rknn_inputs_set(item.context, 1, &reference) != 0 || rknn_run(item.context, nullptr) != 0)
++                        scheme2Quarantine("CPU golden reference run failed");
++                    m_verifyOutputs = verifyNativeOutputs(item.context, item.outputAttrs);
++                    m_verifyCamera = fpgaInput->camera;
++                    m_verifyTag = fpgaInput->tag;
++                }
++                if (fpgaInput) {
++                    QMutexLocker admissionLock(&m_mutex);
++                    // Setters cannot publish a new model revision between this
++                    // final acceptance and synchronous F2H+BEGIN consumption.
++                    if (fpgaInput->selection.revision != m_modelRevision.load() || m_stop) {
++                        fpgaInput->complete(); emit inferenceFailed(sourceGeneration, frameId); continue;
++                    }
++                    fpgaInput->consume(); fpgaInput->start();
++                }
+                 if (!runOnce(frame, item.info.path, sourceGeneration, frameId)) {
++                    if (fpgaInput) scheme2Quarantine("bound RKNN operation failed; cannot assert consumer completion");
+                     recordMetric(sourceGeneration, item.info.path, 2);
+                     emit inferenceFailed(sourceGeneration, frameId);
+                 }
++                next = (next + 1) % cache.size();
++                if (fpgaInput) { fpgaInput->nextSelection = selectionFor(next); fpgaInput->complete(); }
++                else scheme2::admission().publish(selectionFor(next));
+                 if (diag) {
+                     diagRunMs += QDateTime::currentMSecsSinceEpoch() - runStart;
+                     ++diagRuns;
+                 }
+             } else if (!frame.isNull()) {
++                if (fpgaInput) fpgaInput->complete();
+                 emit inferenceFailed(sourceGeneration, frameId);
+             }
+             if (diag && diagTimer.isValid() && diagTimer.elapsed() >= 1000 && diagRuns > 0) {
+@@ -2028,7 +2334,13 @@
+                 diagTimer.restart();
+             }
+         }
+-        for (CachedModel &item : cache) rknn_destroy(item.context);
++        m_pendingFpga.reset();
++        scheme2::admission().publish({0, {}, m_modelRevision});
++        for (CachedModel &item : cache) {
++            if (item.inputMem) rknn_destroy_mem(item.sharedContext, item.inputMem);
++            if (item.sharedContext) rknn_destroy(item.sharedContext);
++            rknn_destroy(item.context);
++        }
+         m_ctx = 0;
+     }
+ 
+@@ -2060,7 +2372,30 @@
+         return true;
+     }
+ 
++    static std::vector<std::vector<uint8_t>> verifyNativeOutputs(rknn_context context,
++                                                               const std::vector<rknn_tensor_attr>& attrs) {
++        std::vector<rknn_output> outputs(attrs.size());
++        for (size_t i = 0; i < outputs.size(); ++i) outputs[i].index = uint32_t(i);
++        // want_float=0: exact allocated native bytes, no float tolerance.
++        if (rknn_outputs_get(context, uint32_t(outputs.size()), outputs.data(), nullptr) != 0)
++            scheme2Quarantine("native parity outputs_get failed");
++        std::vector<std::vector<uint8_t>> result;
++        for (size_t i = 0; i < outputs.size(); ++i) {
++            if (!outputs[i].buf || !outputs[i].size || outputs[i].size != attrs[i].size) {
++                fprintf(stderr, "[scheme2-verify-output] UNSUPPORTED output=%zu returned_bytes=%u attr_bytes=%u\n",
++                        i, outputs[i].size, attrs[i].size);
++                scheme2Quarantine("native packed output size unsupported; parity not passed");
++            }
++            const auto* data = static_cast<const uint8_t*>(outputs[i].buf);
++            result.emplace_back(data, data + outputs[i].size);
++        }
++        if (rknn_outputs_release(context, uint32_t(outputs.size()), outputs.data()) != 0)
++            scheme2Quarantine("native parity outputs_release failed");
++        return result;
++    }
++
+     double recordMetric(int generation, const QString& model, int event) {
++        if (scheme2::verify()) return 0; // parity overhead is never a performance sample
+         QMutexLocker lock(&m_metricsMutex);
+         if (m_metricsGeneration < 0) {
+             m_metricsGeneration = generation;
+@@ -2090,7 +2425,7 @@
+         /* DET_BENCH 分段计时：定位应用内比纯 NPU 慢在哪一段
+            prep=输入拷贝, set=rknn_inputs_set, run=NPU, get=输出反量化,
+            query=输出属性查询, decode=DFL+NMS, release=释放 */
+-        const bool bench = qEnvironmentVariableIsSet("DET_BENCH");
++        const bool bench = qEnvironmentVariableIsSet("DET_BENCH") && !scheme2::verify();
+         const bool int8In = !m_trafficlight && !m_mvpDetect && !m_independentUfld && qEnvironmentVariableIsSet("DET_INT8_IN");
+         QElapsedTimer lap;
+         double tPrep = 0, tSet = 0, tRun = 0, tGet = 0, tQuery = 0, tDecode = 0, tRel = 0;
+@@ -2098,10 +2433,12 @@
+             lap.start();
+         // The square producer contract stays unchanged. Only the network feed
+         // is cropped; restoreCanonicalDetections reverses this after decode.
+-        const QImage rgb = tdm::networkRgbFrame(src, m_geometry);
+-        if (rgb.isNull()) return false;
++        const QImage rgb = m_boundInput ? QImage() : tdm::networkRgbFrame(src, m_geometry);
++        if (!m_boundInput && rgb.isNull()) return false;
+         const QImage *feed = nullptr;
+-        if (!int8In && rgb.bytesPerLine() == m_geometry.width * 3) {
++        if (m_boundInput) {
++            // FPGA already produced packed RGB888 in the imported RX slot.
++        } else if (!int8In && rgb.bytesPerLine() == m_geometry.width * 3) {
+             feed = &rgb;
+         } else {
+             m_input.resize(inputBytes);
+@@ -2112,7 +2449,7 @@
+ 
+         /* 实测：输入按 INT8 直传反而慢得多（inputs_set 1.4ms → 16.9ms，整体 +58%），
+            驱动对 UINT8 输入是快路径；默认走 UINT8，DET_INT8_IN=1 仅用于对照。 */
+-        if (int8In) {
++        if (int8In && !m_boundInput) {
+             uint8_t *p = reinterpret_cast<uint8_t *>(m_input.data());
+             for (int i = 0; i < inputBytes; ++i)
+                 p[i] = (uint8_t)(p[i] - 128);
+@@ -2127,11 +2464,35 @@
+         input.fmt = RKNN_TENSOR_NHWC;
+         QElapsedTimer timer;
+         timer.start();
+-        if (rknn_inputs_set(m_ctx, 1, &input) != 0)
++        if (!m_boundInput && rknn_inputs_set(m_ctx, 1, &input) != 0)
+             return false;
+         if (bench) markLap(lap, tSet);
+         if (rknn_run(m_ctx, nullptr) != 0)
+             return false;
++        if (m_boundInput && scheme2::verify()) {
++            const auto actual = verifyNativeOutputs(m_ctx, *m_outputAttrs);
++            if (actual.size() != m_verifyOutputs.size()) scheme2Quarantine("native output count mismatch");
++            size_t total = 0;
++            for (size_t i = 0; i < actual.size(); ++i) {
++                if (actual[i].size() != m_verifyOutputs[i].size()) scheme2Quarantine("native output byte size mismatch");
++                const size_t bad = scheme2::mismatch(actual[i].data(), m_verifyOutputs[i].data(), actual[i].size());
++                if (bad != actual[i].size()) {
++                    fprintf(stderr, "[scheme2-verify-output] FAIL model=%s camera=%d tag=%u frame=%llu output=%zu byte=%zu expected=%u actual=%u\n",
++                        qPrintable(modelPath), m_verifyCamera + 1, m_verifyTag, (unsigned long long)frameId,
++                        i, bad, m_verifyOutputs[i][bad], actual[i][bad]);
++                    scheme2Quarantine("exact native output parity failed");
++                }
++                total += actual[i].size();
++            }
++            const unsigned count = ++m_verifyCompleted;
++            fprintf(stderr, "[scheme2-verify-output] PASS model=%s camera=%d tag=%u frame=%llu height=%d outputs=%zu bytes=%zu want_float=0 exact=1 count=%u performance_sample=0\n",
++                qPrintable(modelPath), m_verifyCamera + 1, m_verifyTag, (unsigned long long)frameId,
++                m_geometry.height, actual.size(), total, count);
++            if (count == scheme2::verifyCount())
++                fprintf(stderr, "[scheme2-verify] OUTPUT_COUNT_REACHED count=%u required=%u input_and_native_exact=1 performance_sample=0\n", count, scheme2::verifyCount());
++            // A separate run supplies the unchanged want_float=1 decoder path.
++            if (rknn_run(m_ctx, nullptr) != 0) scheme2Quarantine("decoder run after native parity failed");
++        }
+         if (bench) markLap(lap, tRun);
+         std::vector<rknn_output> outs(m_nOutput);
+         for (uint32_t i = 0; i < m_nOutput; i++) {
+@@ -2191,14 +2552,15 @@
+             }
+         }
+         if (bench) markLap(lap, tDecode);
+-        rknn_outputs_release(m_ctx, m_nOutput, outs.data());
++        const int releaseResult = rknn_outputs_release(m_ctx, m_nOutput, outs.data());
++        if (m_boundInput && releaseResult != 0) scheme2Quarantine("bound output release failed");
+         if (bench) markLap(lap, tRel);
+-        const double ms = timer.nsecsElapsed() / 1e6;
++        const double ms = scheme2::verify() ? 0 : timer.nsecsElapsed() / 1e6;
+         const int completed = ++m_completed[modelPath];
+         if ((m_mvpDetect || m_independentUfld) && (completed == 1 || completed % 20 == 0))
+             fprintf(stderr,"[mvp] model=%s frame=%llu input=640x480 RGB uint8 /255 crop_y=80 detections=%d lane_points=%d decode_ok=%d\n",
+                     qPrintable(modelPath),(unsigned long long)frameId,dets.size(),lanePointCount,int(laneOk));
+-        if (qEnvironmentVariableIsSet("DET_BENCH")) {
++        if (qEnvironmentVariableIsSet("DET_BENCH") && !scheme2::verify()) {
+             timespec stamp{};
+             clock_gettime(CLOCK_MONOTONIC, &stamp);
+             fprintf(stderr, "[tdm_bench] t=%.6f model=%s ms=%.3f\n",
+@@ -2542,6 +2904,13 @@
+     QMutex m_mutex;
+     QWaitCondition m_cond;
+     QImage m_pending;
++    std::shared_ptr<scheme2::Input> m_pendingFpga;
++    bool m_boundInput = false;
++    std::vector<std::vector<uint8_t>> m_verifyOutputs;
++    int m_verifyCamera = -1;
++    uint32_t m_verifyTag = 0;
++    unsigned m_verifyCompleted = 0;
++    std::atomic<uint64_t> m_modelRevision{0};
+     int m_pendingGeneration = 0;
+     quint64 m_pendingFrameId = 0;
+     bool m_hasPending = false;
+@@ -3768,15 +4137,24 @@
+         connect(m_infer, &InferenceThread::modelLoaded, this, &DetViewController::onModelLoaded);
+         connect(m_vision, &VisionPipeline::inferenceRequested, this, [this](VisionFrame frame) {
+             if (frame.sourceGeneration != m_sourceGeneration || m_paused || m_calibrationMode) {
++                if (frame.fpgaInput) frame.fpgaInput->complete(); // never submitted to RKNN
+                 m_vision->inferenceFailed(frame.sourceGeneration, frame.frameId);
++                return;
++            }
++            if (frame.fpgaInput) {
++                if (frame.fpgaInput->camera != frame.camera || frame.fpgaInput->tag != frame.tag ||
++                    frame.fpgaInput->sourceGeneration != frame.sourceGeneration)
++                    scheme2Quarantine("RAW/RGB packet identity mismatch");
++                m_infer->submit(frame.image, frame.sourceGeneration, frame.frameId, frame.fpgaInput);
++                if (!scheme2::verify()) m_requestRate.add(monotonicMs());
+                 return;
+             }
+             QImage infer(MODEL_W, MODEL_H, QImage::Format_RGB888);
+             infer.fill(QColor(114, 114, 114));
+             for (int y = 0; y < IMG_H; ++y)
+                 memcpy(infer.scanLine(y + 80), frame.image.constScanLine(y), IMG_W * 3);
+-            m_infer->submit(infer, frame.sourceGeneration, frame.frameId);
+-            m_requestRate.add(monotonicMs());
++            m_infer->submit(infer, frame.sourceGeneration, frame.frameId, frame.fpgaInput);
++            if (!scheme2::verify()) m_requestRate.add(monotonicMs());
+         });
+         connect(m_infer, &InferenceThread::inferenceFailed, this, [this](int generation, quint64 frameId) {
+             m_vision->inferenceFailed(generation, frameId);
+@@ -3875,7 +4253,7 @@
+                 m_lastLanePoints = 0;
+             }
+             updateHudLines();
+-            if (m_statsTimer.elapsed() >= 5000) {
++            if (!scheme2::verify() && m_statsTimer.elapsed() >= 5000) {
+                 const double seconds = m_statsTimer.elapsed() / 1000.0;
+                 m_statsTimer.restart();
+                 const auto paints = m_gl->takePaintStats();
+@@ -4626,6 +5004,19 @@
+ };
+ 
+ int main(int argc, char **argv) {
++    for (int i = 1; i < argc; ++i) {
++        if (std::strcmp(argv[i], "--fpga-infer-verify") == 0) qputenv("DETVIEW_FPGA_INFER_VERIFY", "1");
++        if (std::strcmp(argv[i], "--fpga-infer-verify-count") == 0 && i + 1 < argc)
++            qputenv("DETVIEW_FPGA_INFER_VERIFY_COUNT", argv[++i]);
++    }
++    if (scheme2::verify()) {
++        if (!scheme2::enabled()) {
++            fprintf(stderr, "[scheme2-verify] ERROR requires DETVIEW_FPGA_INFER_RGB=1\n");
++            return 2;
++        }
++        fprintf(stderr, "[scheme2-verify] ENABLED required_count=%u native_exact=1 decoder_want_float=1 performance_sample=0\n", scheme2::verifyCount());
++        qunsetenv("DET_BENCH");
++    }
+     // Avoid Qt's extra deferred-update delay for the live camera display.
+     // Keep an explicit environment override for comparison or other displays.
+     if (!qEnvironmentVariableIsSet("QT_QPA_UPDATE_IDLE_TIME"))
+--- baseline/vision_pipeline.cpp
++++ candidate/vision_pipeline.cpp
+@@ -497,7 +497,7 @@
+         if (frame.camera != active.camera || frame.frameId <= currentFrame || frame.sourceGeneration != active.generation ||
+             now < frame.capturedMs || now - frame.capturedMs > 1000) return;
+         if (currentCapturedMs >= 0 && frame.capturedMs < currentCapturedMs) return;
+-        if (options.tracking && !active.lane && currentCapturedMs >= 0 &&
++        if (!frame.fpgaInput && options.tracking && !active.lane && currentCapturedMs >= 0 &&
+             frame.capturedMs - currentCapturedMs < options.trackingIntervalMs) {
+             if (lastSkippedFrame != frame.frameId) {
+                 ++perf.skippedTrackingFrames; lastSkippedFrame = frame.frameId;
+@@ -556,6 +556,14 @@
+             QMutexLocker lock(&mutex);
+             if (stopping || config.epoch != active.epoch) { ++perf.rejectConfig; return; }
+             if (pending) { ++perf.rejectPending; return; }
++            if (scheme2::enabled() && frame.cameraAcquisition &&
++                (frame.fpgaInput || scheme2::admission().available())) {
++                if (!frame.fpgaInput) {
++                    scheme2::admission().arm(active.camera, active.generation);
++                    return;
++                }
++                if (frame.fpgaInput->dispatched.exchange(true)) return;
++            }
+             const auto latest = frameSlots.find(active.camera);
+             const bool newer = latest != frameSlots.end() && !latest->second.empty() &&
+                 latest->second.back().frameId > frame.frameId;
+@@ -909,6 +917,7 @@
+     d->config.models = models; d->config.models.removeDuplicates();
+     d->config.vehicleClasses = vehicleClasses;
+     d->frameSlots.clear(); d->highWater.clear(); d->pending.reset(); d->reply.reset();
++    if (scheme2::enabled()) scheme2::admission().disarm();
+     d->changed.wakeOne();
+ }
+ void VisionPipeline::submitFrame(const VisionFrame& frame) {
+@@ -922,6 +931,10 @@
+     if (previous != d->highWater.end() && frame.frameId <= previous->second) return;
+     d->highWater[frame.camera] = frame.frameId;
+     auto& slot = d->frameSlots[frame.camera];
++    // Keep the admitted frame until the worker has dispatched its exact RAW
++    // snapshot. Ordinary tracking ingress must not evict its shared RGB input.
++    if (!slot.empty() && slot.back().fpgaInput &&
++        !slot.back().fpgaInput->dispatched.load()) return;
+     // VisionFrame contract guarantees an owned image; implicit QImage sharing
+     // keeps ingress cheap and ownership alive while worker snapshots use it.
+     slot.push_back(frame);
+@@ -969,6 +982,11 @@
+             d->prune(now);
+             if (reply) d->acceptReply(*reply, now);
+             auto selected = frames.find(config.camera);
++            if (selected != frames.end() && !selected->second.empty()) {
++                const auto& candidate = selected->second.back();
++                if (candidate.fpgaInput && now - candidate.capturedMs > 1000 &&
++                    !candidate.fpgaInput->dispatched.exchange(true)) candidate.fpgaInput->complete();
++            }
+             if (selected != frames.end() && !selected->second.empty())
+                 d->processFrame(selected->second.back(), now);
+             d->expireFrozenTracks(now);
+--- baseline/vision_types.h
++++ candidate/vision_types.h
+@@ -8,6 +8,7 @@
+ #include <cstdint>
+ #include <limits>
+ #include <vector>
++#include "fpga_infer_input.h"
+ 
+ struct Detection {
+     int cls = 0;
+@@ -33,6 +34,8 @@
+     int sourceGeneration = 0;
+     quint32 tag = 0;
+     qint64 capturedMs = 0; // CLOCK_MONOTONIC host DMA read completion, not exposure time
++    std::shared_ptr<scheme2::Input> fpgaInput;
++    bool cameraAcquisition = false;
+ };
+ Q_DECLARE_METATYPE(VisionFrame)
+ 
+--- baseline/detview.pro
++++ candidate/detview.pro
+@@ -2,12 +2,12 @@
+ CONFIG   += c++17
+ CONFIG   += link_pkgconfig
+ PKGCONFIG += opencv4
+-TARGET = detview
++TARGET = detview_scheme2_candidate
+ TEMPLATE  = app
+ SOURCES  += main.cpp vision_pipeline.cpp vision_pipeline_selftest.cpp template_tracker.cpp \
+             template_tracker_selftest.cpp stereo_demo/stereo_depth.cpp camera_dma_selftest.cpp \
+             frame_metrics_selftest.cpp calibration_capture.cpp hdmi_view_selftest.cpp inference_geometry_selftest.cpp mvp_decode_selftest.cpp detection_temporal_filter_selftest.cpp
+-HEADERS += vision_types.h vision_pipeline.h template_tracker.h stereo_demo/stereo_depth.h \
++HEADERS += fpga_infer_input.h scheme2_uapi.h scheme2_verify.h scheme2_contract.h vision_types.h vision_pipeline.h template_tracker.h stereo_demo/stereo_depth.h \
+            stereo_demo/stereo_pairing.h camera_dma.h frame_metrics.h display_perf.h calibration_capture.h \
+            hdmi_view.h inference_geometry.h mvp_decode.h mvp_round1_policy.h detection_temporal_filter.h
+ LIBS += -lrknnrt -lrga

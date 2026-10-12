@@ -1,0 +1,104 @@
+--- frozen/fpga_v8_pcie_dma_controller_h2f.v
++++ candidate/fpga_v8_pcie_dma_controller_h2f.v
+@@ -12,7 +12,7 @@
+ // Library:
+ // Filename:ips2l_pcie_dma_controller.v
+ //////////////////////////////////////////////////////////////////////////////
+-module ips2l_pcie_dma_controller #(
++module fpga_v8_pcie_dma_controller_h2f #(
+     parameter                           DEVICE_TYPE = 3'd0      ,   //3'd0:EP,3'd1:Legacy EP,3'd4:RC
+     parameter                           ADDR_WIDTH  = 4'd10
+ )(
+@@ -117,6 +117,7 @@
+ reg                 dma_ddr3_addr_cfg_done;
+ 
+ // [鏂板�瀅 Chunk Loop FSM 鍐呴儴淇″彿
++reg [31:0] h2f_chunk_host_high;
+ reg     [31:0]      dma_total_length;
+ reg                 dma_total_length_vld;
+ reg                 dma_total_length_cfg_done;
+@@ -616,10 +617,24 @@
+ assign chunk_boundary_limit = chunk_near_boundary ?
+                               (32'h1000 - {20'd0, chunk_host_addr[11:0]}) :  // 鏈�瀵归綈: 4096 - offset
+                               32'h1000;                                       // 瀵归綈: 鏈�澶�4096
+-assign chunk_cur_size      = (chunk_rem_bytes[31:CHUNK_SIZE_LOG2] == 0) ?
+-                              chunk_rem_bytes :  CHUNK_SIZE_MAX;// 鏈�鍚庝竴涓猚hunk: 鐩存帴鐢ㄥ墿浣欏瓧鑺� (蹇呯劧<=boundary_limit)
+-                            //   (chunk_boundary_limit < CHUNK_SIZE_MAX ? chunk_boundary_limit : CHUNK_SIZE_MAX);
+-assign is_last_chunk       = (chunk_rem_bytes <= CHUNK_SIZE_MAX);
++wire [31:0] h2f_chunk_capacity = (chunk_boundary_limit < CHUNK_SIZE_MAX) ? chunk_boundary_limit : CHUNK_SIZE_MAX;
++wire [31:0] h2f_chunk_size = (chunk_rem_bytes < h2f_chunk_capacity) ? chunk_rem_bytes : h2f_chunk_capacity;
++// CMD is latched on this same edge. Select its incoming direction for the
++// first length, keeping F2H outputs identical from command acceptance onward.
++wire h2f_length_cmd_is_write = (device_ep && dma_cmd_reg_vld) ? dma_wr_data[24] :
++    (device_rc && apb_cmd_reg_vld) ? apb_pwdata[24] : dma_wr_rd_cmd_flag;
++assign chunk_cur_size = !dma_wr_rd_cmd_flag ? h2f_chunk_size :
++    ((chunk_rem_bytes[31:CHUNK_SIZE_LOG2] == 0) ? chunk_rem_bytes : CHUNK_SIZE_MAX);
++assign is_last_chunk = !dma_wr_rd_cmd_flag ? (chunk_rem_bytes <= chunk_cur_size) :
++                                           (chunk_rem_bytes <= CHUNK_SIZE_MAX);
++wire [32:0] h2f_host_low_next = {1'b0,chunk_host_addr}+{1'b0,chunk_cur_size};
++always @(posedge clk or negedge rst_n) begin
++    if (!rst_n) h2f_chunk_host_high <= 0;
++    else if (total_length_cfg_done)
++        h2f_chunk_host_high <= device_ep ? dma_cmd_h_addr : apb_cmd_h_addr;
++    else if (chunk_done && chunk_loop_active && !dma_wr_rd_cmd_flag)
++        h2f_chunk_host_high <= h2f_chunk_host_high + h2f_host_low_next[32];
++end
+ 
+ // Initialize internal chunk variables on TOTAL_LENGTH write
+ // Update them on each chunk boundary
+@@ -684,7 +699,8 @@
+     else if (chunk_done_d1 && chunk_loop_active && !is_final_chunk_d1)
+         o_ddr3_length <= chunk_cur_size;
+     else if (total_length_cfg_done)
+-        o_ddr3_length <= (total_length_val <= CHUNK_SIZE_MAX) ? total_length_val : CHUNK_SIZE_MAX;
++        o_ddr3_length <= !h2f_length_cmd_is_write ? h2f_chunk_size :
++            ((total_length_val <= CHUNK_SIZE_MAX) ? total_length_val : CHUNK_SIZE_MAX);
+ end
+ 
+ // o_req_addr: first chunk uses register value; subsequent chunks use accumulated host address
+@@ -705,10 +721,12 @@
+     if (!rst_n)
+         o_req_length <= 10'd0;
+     else if (chunk_done_d1 && chunk_loop_active && !is_final_chunk_d1) begin
+-        o_req_length <= {1'b0, chunk_cur_size[11:2]};  // chunk_cur_size/4 = DW 鏁�
++        o_req_length <= !dma_wr_rd_cmd_flag ? ((chunk_cur_size+32'd3)>>2) : {1'b0, chunk_cur_size[11:2]};  // chunk_cur_size/4 = DW 鏁�
+     end
+     else if (cmd_reg_cfg_done) begin
+-        if (device_ep)
++        if (!dma_wr_rd_cmd_flag && chunk_loop_active)
++            o_req_length <= ((chunk_cur_size+32'd3)>>2);
++        else if (device_ep)
+             o_req_length <= dma_cmd_reg[9:0]; // 椹卞姩鍐欑殑鏄� DW
+         else if (device_rc && apb_length_cfg_done)
+             o_req_length <= apb_cmd_length[9:0];       // RC 鍐欑殑鏄� DW 鏁�
+@@ -739,6 +757,8 @@
+ always @(posedge clk or negedge rst_n) begin
+     if (!rst_n)
+         o_req_addr[63:32] <= 32'd0;
++    else if (!dma_wr_rd_cmd_flag && chunk_loop_active)
++        o_req_addr[63:32] <= h2f_chunk_host_high;
+     else if (l_addr_cfg_done)
+         o_req_addr[63:32] <= device_ep ? dma_cmd_h_addr : apb_cmd_h_addr;
+ end
+@@ -902,7 +922,10 @@
+ 
+ assign target_addr  = ~l_addr_cfg_done ? 13'd0 : (req_l_addr[12:0] + total_data);
+ 
+-assign cross_4kb_boundary = ~l_addr_cfg_done ? 1'b0 :
++assign cross_4kb_boundary = (!dma_wr_rd_cmd_flag && chunk_loop_active) ?
++        ((chunk_host_addr[1:0] != 0) || (chunk_cur_size == 0) ||
++         (chunk_cur_size > chunk_boundary_limit)) :
++                            ~l_addr_cfg_done ? 1'b0 :
+                             (target_addr[12] == req_l_addr[12]) ? 1'b0 : |target_addr[11:0];
+ 
+ //4-KB boundary flag
+@@ -975,7 +998,8 @@
+ // 娉ㄦ剰: 鍦� chunk_done 涓婂崌娌挎椂鍒�, chunk_rem_bytes 灏氭湭琚�鏇存柊 (always鍧楁寜椤哄簭鎵ц��)
+ // 姝ゆ椂 chunk_rem_bytes 浠嶈〃绀哄綋鍓� chunk 鐨勫墿浣欏瓧鑺傛暟.
+ // 褰� (chunk_rem_bytes <= CHUNK_SIZE_MAX) 鏃�, 褰撳墠 chunk 灏辨槸鏈�鍚庝竴涓�.
+-wire is_final_chunk = (chunk_rem_bytes <= CHUNK_SIZE_MAX);
++wire is_final_chunk = !dma_wr_rd_cmd_flag ? (chunk_rem_bytes <= chunk_cur_size) :
++                                          (chunk_rem_bytes <= CHUNK_SIZE_MAX);
+ 
+ // 5b. is_final_chunk 寤惰繜涓�鎷�: 鍦� chunk_done 涓婂崌娌挎墍鍦ㄥ懆鏈�, is_final_chunk 宸茬粡鍦�
+ // 鍚屼竴闈為樆濉炶祴鍊肩殑鍚屼竴 always 鍧椾腑鍙樹负 false.

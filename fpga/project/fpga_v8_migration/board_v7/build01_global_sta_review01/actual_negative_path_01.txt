@@ -1,0 +1,81 @@
+Startpoint  : cam2_ov5640_top/ov5640/cmos_frame_vsync_r/opit_0_inv/CLK
+Endpoint    : source_diagnostics/cameras[1].source/cg/q[10]/opit_0/D
+Path Group  : cmos2_pclk
+Path Type   : max (slow corner)
+Path Class  : sequential timing path
+Clock Skew  :    1.500  (Capture Clock Delay - Launch Clock Delay + Clock Pessimism Removal)
+  Capture Clock Delay     :  5.911
+  Launch Clock Delay      :  5.083
+  Clock Pessimism Removal :  0.672
+
+ Location                          Delay Type             Incr        Path         Logical Resource 
+----------------------------------------------------------------------------------------------------
+
+ Clock cmos2_pclk (falling edge)                         5.952       5.952 f                        
+ P16                                                     0.000       5.952 f       cmos2_pclk (port)
+                                   net (fanout=1)        0.064       6.016         cmos2_pclk       
+ IOBD_0_318/PAD                                                                    cmos2_pclk_ibuf/opit_0/I
+ IOBD_0_318/DIN                    td                    0.756       6.772 f       cmos2_pclk_ibuf/opit_0/O
+                                   net (fanout=1)        0.000       6.772         cmos2_pclk_ibuf/ntD
+ IOLHR_16_318/DI                                                                   cmos2_pclk_ibuf/opit_1/DI
+ IOLHR_16_318/DI_TO_CLK            td                    0.105       6.877 f       cmos2_pclk_ibuf/opit_1/DI_TO_CLK
+                                   net (fanout=1)        2.640       9.517         nt_cmos2_pclk    
+ USCM_215_585/CLKIN0                                                               clkbufg_4/gopclkbufg/CLK
+ USCM_215_585/CLKOUT               td                    0.168       9.685 f       clkbufg_4/gopclkbufg/CLKOUT
+                                   net (fanout=3)        0.602      10.287         ntclkbufg_4      
+ HCKB_213_466/CLKIN                                                                HCKBROUTE_10/CLKIN
+ HCKB_213_466/CLKOUT               td                    0.287      10.574 f       HCKBROUTE_10/CLKOUT
+                                   net (fanout=517)      0.461      11.035         ntR12751         
+ CLMA_45_522/CLK                                                           f       cam2_ov5640_top/ov5640/cmos_frame_vsync_r/opit_0_inv/CLK
+
+ CLMA_45_522/Q0                    tco                   0.204      11.239 r       cam2_ov5640_top/ov5640/cmos_frame_vsync_r/opit_0_inv/Q
+                                   net (fanout=8)        0.983      12.222         diag_capture_vsync[1]
+ CLMA_81_607/A4                                                                    source_diagnostics/cameras[1].source/N8/gateop_perm/I4
+ CLMA_81_607/Y0                    td                    0.096      12.318 r       source_diagnostics/cameras[1].source/N8/gateop_perm/Y
+                                   net (fanout=174)      0.484      12.802         source_diagnostics/cameras[1].source/edge_vs
+ CLMA_63_594/A3                                                                    source_diagnostics/cameras[1].source/N35/LUT6D_inst_perm/I3
+ CLMA_63_594/Y0                    td                    0.108      12.910 r       source_diagnostics/cameras[1].source/N35/LUT6D_inst_perm/L6
+                                   net (fanout=4)        0.437      13.347         source_diagnostics/cameras[1].source/N35
+ CLMA_63_624/C4                                                                    source_diagnostics/cameras[1].source/cg/N80[2]_2/LUT6_inst_perm/I4
+ CLMA_63_624/Y2                    td                    0.096      13.443 r       source_diagnostics/cameras[1].source/cg/N80[2]_2/LUT6_inst_perm/L6
+                                   net (fanout=1)        5.842      19.285         source_diagnostics/cameras[1].source/cg/N80 [2]
+ CLMA_63_636/M3                                                            r       source_diagnostics/cameras[1].source/cg/q[10]/opit_0/D
+
+ Data arrival time                                                  19.285         Logic Levels: 3  
+                                                                                   Logic: 0.504ns(6.109%), Route: 7.746ns(93.891%)
+----------------------------------------------------------------------------------------------------
+
+ Clock cmos2_pclk (rising edge)                         11.905      11.905 r                        
+ P16                                                     0.000      11.905 r       cmos2_pclk (port)
+                                   net (fanout=1)        0.064      11.969         cmos2_pclk       
+ IOBD_0_318/PAD                                                                    cmos2_pclk_ibuf/opit_0/I
+ IOBD_0_318/DIN                    td                    0.730      12.699 r       cmos2_pclk_ibuf/opit_0/O
+                                   net (fanout=1)        0.000      12.699         cmos2_pclk_ibuf/ntD
+ IOLHR_16_318/DI                                                                   cmos2_pclk_ibuf/opit_1/DI
+ IOLHR_16_318/DI_TO_CLK            td                    0.091      12.790 r       cmos2_pclk_ibuf/opit_1/DI_TO_CLK
+                                   net (fanout=1)        2.033      14.823         nt_cmos2_pclk    
+ USCM_215_585/CLKIN0                                                               clkbufg_4/gopclkbufg/CLK
+ USCM_215_585/CLKOUT               td                    0.143      14.966 r       clkbufg_4/gopclkbufg/CLKOUT
+                                   net (fanout=3)        0.515      15.481         ntclkbufg_4      
+ HCKB_213_516/CLKIN                                                                HCKBROUTE_11/CLKIN
+ HCKB_213_516/CLKOUT               td                    0.245      15.726 r       HCKBROUTE_11/CLKOUT
+                                   net (fanout=513)      0.520      16.246         ntR12752         
+ CLMA_51_834/M1                                                                    CLKROUTE_1247/M  
+ CLMA_51_834/CR1                   td                    0.194      16.440 r       CLKROUTE_1247/CR 
+                                   net (fanout=4)        1.376      17.816         ntR12758         
+ CLMA_63_636/CLK                                                           r       source_diagnostics/cameras[1].source/cg/q[10]/opit_0/CLK
+ clock pessimism                                         0.672      18.488                          
+ clock uncertainty                                      -0.052      18.436                          
+
+ Setup time                                             -0.033      18.403                          
+
+ Data required time                                                 18.403                          
+----------------------------------------------------------------------------------------------------
+ Data required time                                                 18.403                          
+ Data arrival time                                                  19.285                          
+----------------------------------------------------------------------------------------------------
+ Slack (VIOLATED)                                                   -0.882                          
+====================================================================================================
+
+====================================================================================================
+

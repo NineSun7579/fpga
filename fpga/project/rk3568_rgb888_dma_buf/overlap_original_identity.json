@@ -1,0 +1,44 @@
+{
+  "identity": {
+    "pid": 2028,
+    "starttime": "4002",
+    "sha256": "73613d525541939ea493a9bb87eeeae10879c4a08eede36a7ee298777fb32100",
+    "exe": "/userdata/detview-hdmifull/detview-hdmifull"
+  },
+  "argv": [
+    "/userdata/detview-hdmifull/detview-hdmifull",
+    "--model",
+    "MVP_accuracy_round1",
+    "--fullscreen"
+  ],
+  "env": {
+    "SHELL": "/bin/bash",
+    "SUDO_GID": "1000",
+    "SUDO_COMMAND": "/usr/bin/bash -c python3 -c 'REMOTE='\"'\"'/userdata/linaro/ov56401-original-resume-1791567539336861500'\"'\"'\n\nimport os,hashlib,subprocess,json\nexe='\"'\"'/userdata/detview-hdmifull/detview-hdmifull'\"'\"'\nassert open('\"'\"'/proc/sys/kernel/random/boot_id'\"'\"').read().strip()=='\"'\"'644568c5-2252-4240-87b0-d0810cbc4131'\"'\"','\"'\"'Boot changed; SRAM recovery required'\"'\"'\nassert hashlib.sha256(open(exe,'\"'\"'rb'\"'\"').read()).hexdigest()=='\"'\"'73613d525541939ea493a9bb87eeeae10879c4a08eede36a7ee298777fb32100'\"'\"'\nowners=subprocess.run(['\"'\"'fuser'\"'\"','\"'\"'/dev/pango_pci_driver'\"'\"'],stdout=subprocess.PIPE,stderr=subprocess.PIPE)\nassert owners.returncode==1 and not owners.stdout.strip(), '\"'\"'Device owner exists'\"'\"'\nassert open('\"'\"'/sys/module/pango_zc/refcnt'\"'\"').read().strip()=='\"'\"'0'\"'\"'\nos.makedirs(REMOTE+'\"'\"'/tmp'\"'\"')\nenv=dict(os.environ,DISPLAY='\"'\"':0'\"'\"',XAUTHORITY='\"'\"'/home/linaro/.Xauthority'\"'\"',TMPDIR=REMOTE+'\"'\"'/tmp'\"'\"',XDG_RUNTIME_DIR='\"'\"'/run/user/1000'\"'\"')\nfor key in ('\"'\"'DETVIEW_FPGA_INFER_RGB'\"'\"','\"'\"'DETVIEW_FPGA_INFER_VERIFY'\"'\"'):env.pop(key,None)\nlog=open(REMOTE+'\"'\"'/original.log'\"'\"','\"'\"'wb'\"'\"')\nprocess=subprocess.Popen([exe,'\"'\"'--model'\"'\"','\"'\"'MVP_accuracy_round1'\"'\"','\"'\"'--fullscreen'\"'\"'],cwd='\"'\"'/userdata/detview-hdmifull'\"'\"',env=env,stdin=subprocess.DEVNULL,stdout=log,stderr=subprocess.STDOUT,start_new_session=True)\nprint(json.dumps({'\"'\"'pid'\"'\"':process.pid,'\"'\"'remote'\"'\"':REMOTE,'\"'\"'scope'\"'\"':'\"'\"'unchanged original runtime restart; no programming or module swap'\"'\"'}))\n'",
+    "SUDO_USER": "linaro",
+    "PWD": "/home/linaro",
+    "LOGNAME": "root",
+    "HOME": "/root",
+    "LANG": "zh_CN.UTF-8",
+    "TERM": "unknown",
+    "USER": "root",
+    "SHLVL": "0",
+    "PATH": "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+    "SUDO_UID": "1000",
+    "MAIL": "/var/mail/root",
+    "_": "/usr/bin/python3",
+    "DISPLAY": ":0",
+    "XAUTHORITY": "/var/run/lightdm/root/:0",
+    "TMPDIR": "/userdata/linaro/ov56401-reboot-original-1791612116928269934/tmp",
+    "XDG_RUNTIME_DIR": "/run/user/1000",
+    "QT_QPA_PLATFORM": "xcb",
+    "QT_XCB_GL_INTEGRATION": "xcb_egl"
+  },
+  "uid": 0,
+  "gid": 0,
+  "groups": [
+    0
+  ],
+  "cwd": "/userdata/detview-hdmifull",
+  "boot_id": "19abd024-aaa0-462a-bcc9-214658d0c23c"
+}

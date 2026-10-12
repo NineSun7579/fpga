@@ -1,0 +1,455 @@
+--- 
++++ 
+@@ -80,6 +80,99 @@
+     output                              axi_rready      /* synthesis PAP_MARK_DEBUG="true" */,
+     output wire startup_idle_axi, startup_idle_pcie
+ );
++wire fifo_rx_almost_full;
++wire rx_retirement_epoch_rst;
++reg rx_retire_axi_rst1, rx_retire_axi_rst2;
++reg rx_retire_pcie_rst1, rx_retire_pcie_rst2;
++reg rx_retired_toggle;
++reg rx_retired_sync1, rx_retired_sync2;
++reg rx_retired_seen;
++wire    [31:0]              fpga_ddr3_addr   ;
++wire    [31:0]              fpga_ddr3_length ;
++wire    [31:0]              fpga_ddr3_total_length ;
++wire                        mrd_rx_busy;
++wire                        fpga_rx_clk_en   ;
++wire     [ADDR_WIDTH-1:0]   fpga_rx_addr     ;
++wire     [127:0]            fpga_rx_data     ;
++reg                         mrd_rx_busy_r    ;
++wire                        mrd_rx_falling   ;
++reg                         fpga_rx_clk_en_r ;
++reg     [ADDR_WIDTH-1:0]    fpga_rx_addr_r   ;
++localparam S_DATA_WRY_IDLE   = 1'd0;
++localparam S_DATA_WRY_CHECK  = 1'd1;
++reg  data_wry_state;
++reg  data_wry_state_next;
++reg fpga_data_valid_pulse;
++wire fpga_data_valid;
++wire [31:0] total_beats    /* synthesis PAP_MARK_DEBUG="true" */;
++wire [31:0] dma_total_beats/* synthesis PAP_MARK_DEBUG="true" */;
++reg [31:0] rx_cnt;
++reg [31:0] rx_bytes_total, rx_chunk_bytes;
++reg [127:0] rx_pack_data, rx_fifo_write_data;
++reg [4:0] rx_pack_bytes;
++reg rx_fifo_write_en, rx_copy_active, rx_transaction_complete;
++reg fpga_rx_clk_en_d;
++reg fpga_rx_done;
++reg [4:0] rx_input_bytes;
++wire [127:0] rx_input_mask;
++wire [255:0] rx_merge_data;
++wire [5:0] rx_merge_bytes;
++wire                        mwr_tx_busy                ;
++wire                        fpga_data_ready            ;
++wire                        fpga_tx_done               ;
++wire                        fpga_tx_clk_en             ;
++wire     [ADDR_WIDTH-1:0]   fpga_tx_addr               /* synthesis PAP_MARK_DEBUG="true" */;
++wire     [127:0]            fpga_tx_data               ;
++wire [127:0] fifo_rx_data /* synthesis PAP_MARK_DEBUG="true" */;
++wire         fifo_rx_empty/* synthesis PAP_MARK_DEBUG="true" */;
++wire         fifo_rx_rd_en/* synthesis PAP_MARK_DEBUG="true" */;
++wire [9 : 0] fifo_rx_water_level;
++wire [31:0] last_beat_bytes/* synthesis PAP_MARK_DEBUG="true" */;
++wire [15:0] last_beat_strb /* synthesis PAP_MARK_DEBUG="true" */;
++localparam S_IDLE=3'd0, S_ADDR_SEND=3'd1, S_WDATA_SEND=3'd2;
++localparam S_BRESP_WAIT=3'd3, S_WRITW_DATA=3'd4;
++reg [2:0] state;
++reg [31:0] cur_addr, beats_remain;
++reg [15:0] cur_strb;
++reg [4:0] burst_beats, reads_issued, wbeat_cnt;
++reg [1:0] rx_w_queue_count;
++reg [127:0] rx_w_q0, rx_w_q1;
++reg rx_read_pending, axi_b_resp_error;
++wire rx_w_fire;
++wire rx_b_fire;
++wire [2:0] rx_reserved_after_pop;
++wire         fifo_tx_empty/* synthesis PAP_MARK_DEBUG="true" */;
++wire [9 : 0] fifo_tx_water_level/* synthesis PAP_MARK_DEBUG="true" */;
++wire         fifo_tx_almost_full/* synthesis PAP_MARK_DEBUG="true" */;
++wire full/* synthesis PAP_MARK_DEBUG="true" */;
++wire  mwr_tx_busy_rising /* synthesis PAP_MARK_DEBUG="true" */;
++reg  mwr_tx_busy_d;
++localparam S_DATA_RDY_IDLE   = 1'd0;
++localparam S_DATA_RDY_CHECK  = 1'd1;
++reg  data_rdy_state;
++reg  data_rdy_state_next;
++reg fpga_data_ready_r;
++reg  [31:0] tx_cnt/* synthesis PAP_MARK_DEBUG="true" */;
++reg  [31:0] tx_beat_cnt/* synthesis PAP_MARK_DEBUG="true" */;
++reg        fpga_tx_done_r;
++reg tx_runing;
++reg tx_runing_axi;
++reg tx_runing_axi_d1;
++reg tx_runing_axi_d2;
++wire tx_runing_axi_rising;
++reg [31:0] r_cur_addr;
++reg [31:0] read_beats_remain /* synthesis PAP_MARK_DEBUG="true" */;
++reg        read_started /* synthesis PAP_MARK_DEBUG="true" */;
++localparam R_IDLE       = 2'd0;
++localparam R_ADDR_SEND  = 2'd1;
++localparam R_DATA_WAIT  = 2'd2;
++localparam R_DONE       = 2'd3;
++reg [1:0] r_state/* synthesis PAP_MARK_DEBUG="true" */;
++reg [1:0] r_next;
++wire [3:0] r_burst_len;
++reg  fifo_tx_wr_en;
++reg  [127:0] fifo_tx_wr_data;
++
+ assign startup_idle_axi = (state == S_IDLE) && !rx_read_pending &&
+     (rx_w_queue_count == 0) && (r_state == R_IDLE) && !read_started;
+ assign startup_idle_pcie = !mrd_rx_busy && !mwr_tx_busy && !rx_copy_active &&
+@@ -89,10 +182,10 @@
+ // Included as text by the isolated candidate generator, after the FIFO ports.
+ // This handshake requires COORDINATED PCIe + AXI fabric/endpoint reset.
+ // Independent link/CPU reset is not a supported pending-DMA cleanup path.
+-wire rx_retirement_epoch_rst = axi_rst | fifo_pcie_rst;
++assign rx_retirement_epoch_rst = axi_rst | fifo_pcie_rst;
+ // Assert both new handshake domains asynchronously, release in each clock.
+-(* ASYNC_REG = "TRUE" *) reg rx_retire_axi_rst1, rx_retire_axi_rst2;
+-(* ASYNC_REG = "TRUE" *) reg rx_retire_pcie_rst1, rx_retire_pcie_rst2;
++(* ASYNC_REG = "TRUE" *) 
++(* ASYNC_REG = "TRUE" *) 
+ always @(posedge axi_clk or posedge rx_retirement_epoch_rst) begin
+     if (rx_retirement_epoch_rst) begin
+         rx_retire_axi_rst1 <= 1'b1;
+@@ -111,9 +204,9 @@
+         rx_retire_pcie_rst2 <= rx_retire_pcie_rst1;
+     end
+ end
+-reg rx_retired_toggle;
+-(* ASYNC_REG = "TRUE" *) reg rx_retired_sync1, rx_retired_sync2;
+-reg rx_retired_seen;
++
++(* ASYNC_REG = "TRUE" *) 
++
+ 
+ // One persistent credit for each complete H2F transaction. Intermediate
+ // chunks and intermediate bursts cannot produce a credit. BRESP errors still
+@@ -154,19 +247,19 @@
+ // CPU --> FPGA RX FIFO
+ //----------------------------------------
+ 
+-wire    [31:0]              fpga_ddr3_addr   ;              //rx
+-wire    [31:0]              fpga_ddr3_length ;              //rx
+-wire    [31:0]              fpga_ddr3_total_length ;        //tx
+-
+-wire                        mrd_rx_busy;
+-wire                        fpga_rx_clk_en   ;
+-wire     [ADDR_WIDTH-1:0]   fpga_rx_addr     ;
+-wire     [127:0]            fpga_rx_data     ;
+-reg                         mrd_rx_busy_r    ;
+-wire                        mrd_rx_falling   ;
++              //rx
++              //rx
++        //tx
++
++
++
++
++
++
++
+ // reg                         mrd_rx_rase      ;
+-reg                         fpga_rx_clk_en_r ;
+-reg     [ADDR_WIDTH-1:0]    fpga_rx_addr_r   ;
++
++
+ 
+ 
+ // mrd_rx_busy falling edge detection
+@@ -182,10 +275,10 @@
+ assign mrd_rx_falling = mrd_rx_busy_r & ~mrd_rx_busy;
+ 
+ ////////////////////////////////////////
+-localparam S_DATA_WRY_IDLE   = 1'd0;
+-localparam S_DATA_WRY_CHECK  = 1'd1;
+-reg  data_wry_state;
+-reg  data_wry_state_next;
++
++
++
++
+ always @(posedge fifo_pcie_clk or posedge fifo_pcie_rst) begin
+     if (fifo_pcie_rst) begin
+         data_wry_state <= S_DATA_WRY_IDLE;
+@@ -202,7 +295,7 @@
+     endcase
+ end
+ 
+-reg fpga_data_valid_pulse;
++
+ always @(posedge fifo_pcie_clk or posedge fifo_pcie_rst) begin
+     if (fifo_pcie_rst) begin
+         fpga_data_valid_pulse <= 1'b0;
+@@ -211,25 +304,25 @@
+         fpga_data_valid_pulse <= ((data_wry_state == S_DATA_WRY_CHECK) && !fifo_rx_almost_full) ;
+     end
+ end
+-wire fpga_data_valid;
++
+ assign fpga_data_valid = fpga_data_valid_pulse;
+ 
+ ///////////////////////////////////////////////
+-wire [31:0] total_beats    /* synthesis PAP_MARK_DEBUG="true" */;
++
+ assign total_beats     = (fpga_ddr3_length[31:4] + |fpga_ddr3_length[3:0]);  // ceil(len/16)
+-wire [31:0] dma_total_beats/* synthesis PAP_MARK_DEBUG="true" */;
++
+ assign dma_total_beats = (fpga_ddr3_total_length[31:4] + |fpga_ddr3_total_length[3:0]);  // ceil(len/16)
+ // H2F chunk RAM reads have one clock latency. Keep partial 128-bit words
+ // across chunks, so a 4092-byte intermediate chunk contributes 255 full words
+ // and 12 carry bytes, never a padded word in the middle of a transfer.
+-reg [31:0] rx_cnt;
+-reg [31:0] rx_bytes_total, rx_chunk_bytes;
+-reg [127:0] rx_pack_data, rx_fifo_write_data;
+-reg [4:0] rx_pack_bytes;
+-reg rx_fifo_write_en, rx_copy_active, rx_transaction_complete;
+-reg fpga_rx_clk_en_d;
+-reg fpga_rx_done;
+-reg [4:0] rx_input_bytes;
++
++
++
++
++
++
++
++
+ always @(posedge fifo_pcie_clk or posedge fifo_pcie_rst) begin
+     if (fifo_pcie_rst) rx_input_bytes <= 0;
+     else if (fpga_rx_clk_en_r)
+@@ -237,10 +330,10 @@
+                            fpga_ddr3_length[3:0] != 0) ?
+                            {1'b0,fpga_ddr3_length[3:0]} : 5'd16;
+ end
+-wire [127:0] rx_input_mask = {128{1'b1}} >> ((32'd16-rx_input_bytes)*8);
+-wire [255:0] rx_merge_data = {128'd0,rx_pack_data} |
++assign rx_input_mask = {128{1'b1}} >> ((32'd16-rx_input_bytes)*8);
++assign rx_merge_data = {128'd0,rx_pack_data} |
+     ({128'd0,(fpga_rx_data & rx_input_mask)} << (rx_pack_bytes*8));
+-wire [5:0] rx_merge_bytes = {1'b0,rx_pack_bytes}+{1'b0,rx_input_bytes};
++assign rx_merge_bytes = {1'b0,rx_pack_bytes}+{1'b0,rx_input_bytes};
+ assign fpga_rx_clk_en = fpga_rx_clk_en_r;
+ assign fpga_rx_addr = fpga_rx_addr_r;
+ 
+@@ -309,12 +402,12 @@
+ 
+ 
+ //////////////tx/////////////////
+-wire                        mwr_tx_busy                ;
+-wire                        fpga_data_ready            ;
+-wire                        fpga_tx_done               ;
+-wire                        fpga_tx_clk_en             ;
+-wire     [ADDR_WIDTH-1:0]   fpga_tx_addr               /* synthesis PAP_MARK_DEBUG="true" */;
+-wire     [127:0]            fpga_tx_data               ;
++
++
++
++
++
++
+ 
+ 
+ fpga_v8_pango_pcie_top_h2f_rfg01 #(
+@@ -363,10 +456,10 @@
+ 
+ 
+ 
+-wire [127:0] fifo_rx_data /* synthesis PAP_MARK_DEBUG="true" */;
+-wire         fifo_rx_empty/* synthesis PAP_MARK_DEBUG="true" */;
+-wire         fifo_rx_rd_en/* synthesis PAP_MARK_DEBUG="true" */;
+-wire [9 : 0] fifo_rx_water_level;
++
++
++
++
+ 
+ pcie_rx_fifo pcie_rx_fifo (
+   .wr_clk       (fifo_pcie_clk      ),
+@@ -388,8 +481,8 @@
+ 
+ // 绐佸彂鍙傛暟璁＄畻
+ 
+-wire [31:0] last_beat_bytes/* synthesis PAP_MARK_DEBUG="true" */;
+-wire [15:0] last_beat_strb /* synthesis PAP_MARK_DEBUG="true" */;
++
++
+ 
+ assign last_beat_bytes = |fpga_ddr3_total_length[3:0] ? fpga_ddr3_total_length[3:0] : 32'd16;
+ 
+@@ -421,18 +514,18 @@
+ // One outstanding AXI burst. Every FIFO read reserves a response slot before
+ // the synchronous RAM is clocked. The pending bit is the one-clock read
+ // latency; the two-word queue holds returned data across arbitrary W stalls.
+-localparam S_IDLE=3'd0, S_ADDR_SEND=3'd1, S_WDATA_SEND=3'd2;
+-localparam S_BRESP_WAIT=3'd3, S_WRITW_DATA=3'd4;
+-reg [2:0] state;
+-reg [31:0] cur_addr, beats_remain;
+-reg [15:0] cur_strb;
+-reg [4:0] burst_beats, reads_issued, wbeat_cnt;
+-reg [1:0] rx_w_queue_count;
+-reg [127:0] rx_w_q0, rx_w_q1;
+-reg rx_read_pending, axi_b_resp_error;
+-wire rx_w_fire = axi_wvalid && axi_wready;
+-wire rx_b_fire = axi_bvalid && axi_bready && (axi_bid == {AXI_ID_LEN{1'b0}});
+-wire [2:0] rx_reserved_after_pop = {1'b0,rx_w_queue_count} +
++
++
++
++
++
++
++
++
++
++assign rx_w_fire = axi_wvalid && axi_wready;
++assign rx_b_fire = axi_bvalid && axi_bready && (axi_bid == {AXI_ID_LEN{1'b0}});
++assign rx_reserved_after_pop = {1'b0,rx_w_queue_count} +
+                                 {2'b0,rx_read_pending} - {2'b0,rx_w_fire};
+ assign fifo_rx_rd_en = (state == S_WDATA_SEND) && !fifo_rx_empty &&
+                       (reads_issued < burst_beats) && (rx_reserved_after_pop < 2);
+@@ -511,10 +604,10 @@
+ 
+ 
+ ////////////////////////////////////////////////////////////////////////
+-wire         fifo_tx_empty/* synthesis PAP_MARK_DEBUG="true" */;
+-wire [9 : 0] fifo_tx_water_level/* synthesis PAP_MARK_DEBUG="true" */;
+-wire         fifo_tx_almost_full/* synthesis PAP_MARK_DEBUG="true" */;
+-wire full/* synthesis PAP_MARK_DEBUG="true" */;
++
++
++
++
+ pcie_tx_fifo pcie_tx_fifo (
+   .wr_clk       (axi_clk            ),
+   .wr_rst       (axi_rst            ),
+@@ -538,8 +631,8 @@
+ ////////////////////////////////////////////////////////////////////////
+ // FPGA --> CPU TX Data Ready Logic
+ ////////////////////////////////////////////////////////////////////////
+-wire  mwr_tx_busy_rising /* synthesis PAP_MARK_DEBUG="true" */;
+-reg  mwr_tx_busy_d;
++
++
+ always @(posedge fifo_pcie_clk or posedge fifo_pcie_rst) begin
+     if (fifo_pcie_rst) begin
+         mwr_tx_busy_d <= 1'b0;
+@@ -549,10 +642,10 @@
+ end
+ assign mwr_tx_busy_rising = ~mwr_tx_busy_d & mwr_tx_busy;
+ 
+-localparam S_DATA_RDY_IDLE   = 1'd0;
+-localparam S_DATA_RDY_CHECK  = 1'd1;
+-reg  data_rdy_state;
+-reg  data_rdy_state_next;
++
++
++
++
+ always @(posedge fifo_pcie_clk or posedge fifo_pcie_rst) begin
+     if (fifo_pcie_rst) begin
+         data_rdy_state <= S_DATA_RDY_IDLE;
+@@ -570,7 +663,7 @@
+     endcase
+ end
+ 
+-reg fpga_data_ready_r;
++
+ always @(posedge fifo_pcie_clk or posedge fifo_pcie_rst) begin
+     if (fifo_pcie_rst) begin
+         fpga_data_ready_r <= 1'b0;
+@@ -588,9 +681,9 @@
+ ////////////////////////////////////////////////////////////////////////
+ // FPGA --> CPU TX Done Logic
+ ////////////////////////////////////////////////////////////////////////
+-reg  [31:0] tx_cnt/* synthesis PAP_MARK_DEBUG="true" */;  //鎬绘搷浣渂eat鏁�
+-reg  [31:0] tx_beat_cnt/* synthesis PAP_MARK_DEBUG="true" */;
+-reg        fpga_tx_done_r;
++  //鎬绘搷浣渂eat鏁�
++
++
+ 
+ always @(posedge fifo_pcie_clk or posedge fifo_pcie_rst) begin
+     if (fifo_pcie_rst) begin
+@@ -636,7 +729,7 @@
+ //====================================================
+ // AXI Read Interface Logic
+ //====================================================
+-reg tx_runing;
++
+ always @(posedge fifo_pcie_clk or posedge fifo_pcie_rst) begin
+     if (fifo_pcie_rst) begin
+         tx_runing <= 1'b0;
+@@ -651,9 +744,9 @@
+ 
+ 
+ //----------- CDC: tx_runing from fifo_pcie_clk to axi_clk ----------
+-reg tx_runing_axi;
+-reg tx_runing_axi_d1;
+-reg tx_runing_axi_d2;
++
++
++
+ always @(posedge axi_clk or posedge axi_rst) begin
+     if (axi_rst) begin
+         tx_runing_axi   <= 1'b0;
+@@ -666,12 +759,12 @@
+     end
+ end
+ 
+-wire tx_runing_axi_rising = tx_runing_axi_d1 && ~tx_runing_axi_d2;
++assign tx_runing_axi_rising = tx_runing_axi_d1 && ~tx_runing_axi_d2;
+ 
+ //----------- Read Start & Base Address Latch ----------
+-reg [31:0] r_cur_addr;
+-reg [31:0] read_beats_remain /* synthesis PAP_MARK_DEBUG="true" */;
+-reg        read_started /* synthesis PAP_MARK_DEBUG="true" */;
++
++
++
+ 
+ always @(posedge axi_clk or posedge axi_rst) begin
+     if (axi_rst) begin
+@@ -717,13 +810,13 @@
+ end
+ 
+ //----------- Read Address State Machine ----------
+-localparam R_IDLE       = 2'd0;
+-localparam R_ADDR_SEND  = 2'd1;
+-localparam R_DATA_WAIT  = 2'd2;
+-localparam R_DONE       = 2'd3;
+-
+-reg [1:0] r_state/* synthesis PAP_MARK_DEBUG="true" */;
+-reg [1:0] r_next;
++
++
++
++
++
++
++
+ 
+ 
+ always @(posedge axi_clk or posedge axi_rst) begin
+@@ -745,7 +838,7 @@
+ 
+ 
+ //----------- Burst Length Calculation ----------
+-wire [3:0] r_burst_len = (read_beats_remain >= 32'd16) ? 4'd15 :
++assign r_burst_len = (read_beats_remain >= 32'd16) ? 4'd15 :
+                           (read_beats_remain[3:0] == 4'd0) ? 4'd15 :
+                           (read_beats_remain[3:0] - 4'd1);
+ 
+@@ -778,8 +871,8 @@
+ assign axi_rready = (r_state == R_DATA_WAIT);
+ 
+ //----------- FIFO Write Interface ----------
+-reg  fifo_tx_wr_en;
+-reg  [127:0] fifo_tx_wr_data;
++
++
+ 
+ 
+ always @(posedge axi_clk or posedge axi_rst) begin

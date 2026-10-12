@@ -1,0 +1,28 @@
+sudo -n python3 - <<'PY'
+from pathlib import Path
+import subprocess,os
+print('BOOT',Path('/proc/sys/kernel/random/boot_id').read_text())
+for name in ['rk-pcie','rockchip-pcie']:
+ p=Path('/sys/bus/platform/drivers')/name;print('DRIVER',name,[(x.name,os.path.realpath(x)) for x in p.iterdir()])
+for p in Path('/proc/device-tree').glob('pcie@*'):
+ print('PCIE_DT',p.name,[(x.name,x.read_bytes().hex()) for x in p.iterdir() if x.name in ['status','compatible','reg','linux,pci-domain','phys']])
+for f in ['/proc/iomem','/proc/interrupts','/sys/kernel/debug/devices_deferred']:
+ try:print('FILE',f,Path(f).read_text())
+ except OSError as e:print(e)
+for root in ['/usr/src','/lib/modules/6.1.99','/userdata/linaro/projects/fpga/RK3568']:
+ print('SOURCE_ROOT',root)
+ r=subprocess.run(['find',root,'-maxdepth','5','-name','*pcie*'],capture_output=True);print(r.returncode,r.stdout.decode(),r.stderr.decode())
+owners=[]
+for p in Path('/proc').iterdir():
+ if not p.name.isdigit():continue
+ try:
+  for fd in (p/'fd').iterdir():
+   try:
+    link=os.readlink(fd)
+    if any(s in link for s in ['/dev/pango','/dev/xdma','/dev/mem','3c0800000.pcie']):owners.append((p.name,fd.name,link))
+   except OSError:pass
+  maps=(p/'maps').read_text()
+  if any(s in maps for s in ['/dev/pango','/dev/xdma','/dev/mem','3c0800000.pcie']):owners.append((p.name,'maps',maps))
+ except OSError:pass
+print('OWNERS',owners)
+PY

@@ -1,0 +1,55 @@
+{
+  "standalone": [
+    {
+      "channel": "AR",
+      "fixture": "RC idle, ARVALID=1, rst_n=1; next RS decision",
+      "result": "unsat",
+      "inputs": "all 32-bit address, 8-bit LEN, 3-bit SIZE, 2-bit BURST values; unmentioned state/input signals unconstrained",
+      "independent_expected": "LEN=0, SIZE=4, BURST in {0,1}, aligned16, BASE <= address <= BASE+0xff0",
+      "z3_version": "5.1.0",
+      "solver_statistics": "(:elim-unconstrained      1\n :max-memory              26.02\n :memory                  17.79\n :num-allocs              156642\n :rlimit-count            10358\n :sat-backjumps           30\n :sat-conflicts           31\n :sat-decisions           43\n :sat-del-clause          165\n :sat-elim-clauses        160\n :sat-elim-literals       120\n :sat-minimized-lits      11\n :sat-mk-clause-2ary      232\n :sat-mk-clause-nary      204\n :sat-mk-var              127\n :sat-propagations-2ary   544\n :sat-propagations-nary   475\n :sat-subs-resolution-dyn 3\n :sat-units               99\n :solve-eqs-elim-vars     11\n :solve-eqs-steps         11\n :time                    0.01)",
+      "netlist_sha256": "3039b4922f0dea1b82f85b08202f7115cca429cfe9051b07160cc978d1747378",
+      "parsed_primitive_cells": 854,
+      "smt2": "cone_leaf_AR.smt2"
+    },
+    {
+      "channel": "AW",
+      "fixture": "WC idle, AW and W held, final promised W, WLAST=1, w_bad=0, rst_n=1; next local AW pending",
+      "result": "unsat",
+      "inputs": "all 32-bit address, 8-bit LEN, 3-bit SIZE, 2-bit BURST values; unmentioned state/input signals unconstrained",
+      "independent_expected": "LEN=0, SIZE=4, BURST in {0,1}, aligned16, BASE <= address <= BASE+0xff0",
+      "z3_version": "5.1.0",
+      "solver_statistics": "(:elim-unconstrained      1\n :max-memory              26.06\n :memory                  17.83\n :num-allocs              536081\n :rlimit-count            20700\n :sat-backjumps           20\n :sat-conflicts           21\n :sat-decisions           50\n :sat-del-clause          13\n :sat-elim-clauses        8\n :sat-elim-literals       10\n :sat-minimized-lits      42\n :sat-mk-clause-2ary      277\n :sat-mk-clause-nary      193\n :sat-mk-var              130\n :sat-propagations-2ary   474\n :sat-propagations-nary   416\n :sat-subs-resolution-dyn 1\n :sat-units               83\n :solve-eqs-elim-vars     24\n :solve-eqs-steps         24\n :time                    0.01)",
+      "netlist_sha256": "3039b4922f0dea1b82f85b08202f7115cca429cfe9051b07160cc978d1747378",
+      "parsed_primitive_cells": 854,
+      "smt2": "cone_leaf_AW.smt2"
+    }
+  ],
+  "existing_connected": [
+    {
+      "channel": "AR",
+      "fixture": "RC idle, ARVALID=1, rst_n=1; next RS decision",
+      "result": "unsat",
+      "inputs": "all 32-bit address, 8-bit LEN, 3-bit SIZE, 2-bit BURST values; unmentioned state/input signals unconstrained",
+      "independent_expected": "LEN=0, SIZE=4, BURST in {0,1}, aligned16, BASE <= address <= BASE+0xff0",
+      "z3_version": "5.1.0",
+      "solver_statistics": "(:elim-unconstrained      1\n :max-memory              26.07\n :memory                  17.84\n :num-allocs              1104945\n :rlimit-count            31355\n :sat-backjumps           15\n :sat-conflicts           16\n :sat-decisions           46\n :sat-del-clause          21\n :sat-elim-clauses        13\n :sat-elim-literals       13\n :sat-minimized-lits      68\n :sat-mk-clause-2ary      249\n :sat-mk-clause-nary      198\n :sat-mk-var              134\n :sat-propagations-2ary   541\n :sat-propagations-nary   358\n :sat-subs-resolution-dyn 1\n :sat-units               32\n :solve-eqs-elim-vars     11\n :solve-eqs-steps         11\n :time                    0.01)",
+      "netlist_sha256": "46b6cf8566d43c3047c7cb5f218db8578720c78040eea8cd0857d20d44c8cbf8",
+      "parsed_primitive_cells": 2877,
+      "smt2": "cone_connected_AR.smt2"
+    },
+    {
+      "channel": "AW",
+      "fixture": "WC idle, AW and W held, final promised W, WLAST=1, w_bad=0, rst_n=1; next local AW pending",
+      "result": "unsat",
+      "inputs": "all 32-bit address, 8-bit LEN, 3-bit SIZE, 2-bit BURST values; unmentioned state/input signals unconstrained",
+      "independent_expected": "LEN=0, SIZE=4, BURST in {0,1}, aligned16, BASE <= address <= BASE+0xff0",
+      "z3_version": "5.1.0",
+      "solver_statistics": "(:elim-unconstrained      1\n :max-memory              26.09\n :memory                  17.85\n :num-allocs              2024777\n :rlimit-count            43453\n :sat-backjumps           41\n :sat-conflicts           42\n :sat-decisions           88\n :sat-del-clause          19\n :sat-elim-clauses        14\n :sat-elim-literals       12\n :sat-minimized-lits      136\n :sat-mk-clause-2ary      401\n :sat-mk-clause-nary      223\n :sat-mk-var              140\n :sat-propagations-2ary   1044\n :sat-propagations-nary   729\n :sat-subs-resolution-dyn 15\n :sat-units               35\n :solve-eqs-elim-vars     24\n :solve-eqs-steps         24\n :time                    0.01)",
+      "netlist_sha256": "46b6cf8566d43c3047c7cb5f218db8578720c78040eea8cd0857d20d44c8cbf8",
+      "parsed_primitive_cells": 2877,
+      "smt2": "cone_connected_AW.smt2"
+    }
+  ],
+  "all_decisions_equivalent": true
+}

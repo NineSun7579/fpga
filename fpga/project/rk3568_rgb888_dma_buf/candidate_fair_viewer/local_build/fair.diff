@@ -1,0 +1,129 @@
+--- concurrent/main.cpp
++++ fair/main.cpp
+@@ -63,6 +63,7 @@
+ #include "detection_temporal_filter.h"
+ #include "template_tracker.h"
+ #include "camera_dma.h"
++#include "fair_dma.h"
+ #include "frame_metrics.h"
+ #include "display_perf.h"
+ #include "hdmi_view.h"
+@@ -89,7 +90,7 @@
+     uint8_t* tx = nullptr;
+     uint8_t* rx = nullptr;
+     size_t txBytes = 0x1000, rxBytes = scheme2::Window;
+-    std::shared_ptr<QMutex> mutex;
++    std::shared_ptr<tdm::FairDmaMutex> mutex;
+     bool consumerHeld = false;
+     ~Scheme2Transport() {
+         if (consumerHeld) scheme2Quarantine("transport teardown with active consumer");
+@@ -613,7 +614,7 @@
+     static volatile sig_atomic_t timeoutHit_;
+ 
+     bool regWrite(uint32_t addr, uint32_t val) {
+-        QMutexLocker dmaLock(dmaMutex_.get());
++        tdm::FairDmaGuard dmaLock(dmaMutex_.get());
+         if (!tx_)
+             return false;
+         memcpy(tx_, &val, 4);
+@@ -625,7 +626,7 @@
+     }
+ 
+     bool regRead(uint32_t addr, uint32_t &val) {
+-        QMutexLocker dmaLock(dmaMutex_.get());
++        tdm::FairDmaGuard dmaLock(dmaMutex_.get());
+         DmaOp op{};
+         op.offset_addr = tdm::cameraScratchOffset;
+         op.ddr3_addr = addr;
+@@ -641,7 +642,7 @@
+        上层线程会保留上一帧并在下一次帧标签变化时重试。 */
+     bool ddrRead(uint32_t addr, uint32_t len, void *out) {
+         if (len > tdm::cameraAllocationBytes || (!out && len)) return false;
+-        QMutexLocker dmaLock(dmaMutex_.get());
++        tdm::FairDmaGuard dmaLock(dmaMutex_.get());
+         uint8_t* destination = static_cast<uint8_t*>(out);
+         for (uint32_t copied = 0; copied < len;) {
+             const uint32_t bytes = std::min(len - copied,
+@@ -672,7 +673,7 @@
+                    void* output, uint32_t& selected, qint64& dmaNs, qint64& copyNs,
+                    qint64& capturedMs) {
+         if (camera < 0 || camera >= CAM_COUNT) return -1;
+-        QMutexLocker lock(dmaMutex_.get());
++        tdm::FairDmaGuard lock(dmaMutex_.get());
+         uint32_t a = 0, b = 0;
+         if (!cameraTagLocked(ping + FRAME_BYTES, a) || !cameraTagLocked(pong + FRAME_BYTES, b)) return -1;
+         const int bank = tdm::newestCameraBank(a, b, delivered, last);
+@@ -700,7 +701,7 @@
+     int cameraReadFpga(int camera, int generation, int height, bool delivered, uint32_t last,
+                        void* output, uint32_t& selected, qint64& dmaNs, qint64& copyNs,
+                        qint64& capturedMs, std::shared_ptr<scheme2::Input>& input) {
+-        QMutexLocker lock(dmaMutex_.get());
++        tdm::FairDmaGuard lock(dmaMutex_.get());
+         if (!shared_ || shared_->consumerHeld) scheme2Quarantine("admission/transport mismatch");
+         constexpr uint32_t base = 0x40020000;
+         auto check = [](bool ok, const char* why) { if (!ok) scheme2Quarantine(why); };
+@@ -735,7 +736,11 @@
+                     }
+                     scheme2Quarantine("uncertain FPGA admission/conversion deadline");
+                 }
++                // Admission still owns the converter and its destination. Only
++                // disjoint RAW/tag traffic can run while the FPGA drains.
++                lock.unlock();
+                 QThread::msleep(1);
++                lock.relock();
+             }
+         };
+         check(reg(0) == 0x444c5632 && (reg(0xa0) & 7) == 7 && reg(0xf0) == 0x3f &&
+@@ -779,9 +784,13 @@
+         uint32_t rawTag = 0;
+         memcpy(&rawTag, rx_ + tdm::cameraSlotOffset(camera) + FRAME_BYTES, 4);
+         check(rawTag == sequence, "RAW commit tag differs from RGB lease");
++        // One worker owns this camera RX slot; scratch/other camera DMA is
++        // disjoint. Keep the FPGA camera hold and converter admission intact.
++        lock.unlock();
+         timer.restart();
+         tdm::copyCameraPixels(output, rx_ + tdm::cameraSlotOffset(camera), FRAME_BYTES);
+         copyNs = timer.nsecsElapsed();
++        lock.relock();
+         const uint32_t jobs = reg(0x90);
+         write(0x20, 3); poll(true, jobs); validate();
+         // RGB destination is now immutable under this sole converter owner.
+@@ -792,7 +801,8 @@
+         check((reg(0x10) & 7) == 0, "camera release failed");
+         write(0xc0, 4); write(0xd0, 0);
+         check(reg(0xc0) == 4 && reg(0xd0) == 0 && reg(0x120) == 0 &&
+-              reg(0x40) == 0x0a000000, "camera defaults restore failed");
++               reg(0x40) == 0x0a000000, "camera defaults restore failed");
++        lock.unlock();
+         input = std::make_shared<scheme2::Input>();
+         input->fd = shared_->sharedFd; input->base = rx_; input->height = height;
+         if (scheme2::verify()) input->goldenRgb = scheme2::golden(output, height);
+@@ -804,7 +814,7 @@
+         auto beganMs = std::make_shared<qint64>(0);
+         std::weak_ptr<scheme2::Input> weak = input;
+         input->begin = [transport, lease, beganMs, weak, destination, height, camera, sequence, epoch] {
+-            QMutexLocker guard(transport->mutex.get());
++            tdm::FairDmaGuard guard(transport->mutex.get());
+             if (transport->consumerHeld) scheme2Quarantine("overlapping synchronous consumer");
+             DmaOp op{}; op.ddr3_addr = destination + scheme2::crop(height);
+             op.total_length = scheme2::bytes(height); op.offset_addr = scheme2::Offset;
+@@ -833,7 +843,9 @@
+             transport->consumerHeld = true; *beganMs = monotonicMs();
+         };
+         input->end = [transport, lease, beganMs, camera, sequence, epoch, height]() mutable {
+-            QMutexLocker guard(transport->mutex.get());
++            // Priority retirement waits only for the active transport section.
++            // No queued userspace transfer can enter the driver's lock first.
++            tdm::FairDmaGuard guard(transport->mutex.get(), true);
+             if (::ioctl(transport->fd, PZ_END, lease.get()) != 0) scheme2Quarantine("PZ_END failed");
+             transport->consumerHeld = false;
+             if (!scheme2::verify()) fprintf(stderr, "[scheme2] camera=%d tag=%u epoch=%u height=%d payload_bytes=%u lease_hold_ms=%lld\n",
+@@ -922,7 +934,7 @@
+     int fd_ = -1;
+     uint8_t *tx_ = nullptr;
+     uint8_t *rx_ = nullptr;
+-    std::shared_ptr<QMutex> dmaMutex_ = std::make_shared<QMutex>();
++    std::shared_ptr<tdm::FairDmaMutex> dmaMutex_ = std::make_shared<tdm::FairDmaMutex>();
+     std::shared_ptr<Scheme2Transport> shared_;
+     uint32_t windowBytes() const { return scheme2::enabled() ? scheme2::Window : 0x400000; }
+     uint32_t txWindowBytes() const { return scheme2::enabled() ? 0x1000 : 0x400000; }

@@ -1,0 +1,2 @@
+set_arch -family Logos2 -device PG2L100H -speedgrade -6 -package FBG484
+.switch_db -input {C:/Users/NineSun/Desktop/ov56401/project/fpga_v8_migration/board_v7/diagnostic_sync_register_map06/execution/baseline/synthesize/map03_twoff_probe_syn.adf} -output {C:/Users/NineSun/Desktop/ov56401/project/fpga_v8_migration/board_v7/diagnostic_sync_register_map06/execution/baseline/evidence/synthesis/synthesis_export/synthesis_dump.txt}

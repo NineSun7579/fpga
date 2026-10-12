@@ -1,0 +1,478 @@
+[
+  {
+    "simulation": "/tb_elab/dut/source_diagnostics/cameras[0]/reset_pipe",
+    "rtl": "source_diagnostics/cameras[0]/reset_pipe",
+    "width": 4,
+    "clock": "axi_clk",
+    "requirement": "ASYNC_REG; async assert / four-cycle release; pulse-width and recovery/removal"
+  },
+  {
+    "simulation": "/tb_elab/dut/source_diagnostics/cameras[0]/source/cr",
+    "rtl": "source_diagnostics/cameras[0]/source/cr",
+    "width": 2,
+    "clock": "cmos1_pclk",
+    "requirement": "ASYNC_REG reset release"
+  },
+  {
+    "simulation": "/tb_elab/dut/source_diagnostics/cameras[0]/source/hr",
+    "rtl": "source_diagnostics/cameras[0]/source/hr",
+    "width": 2,
+    "clock": "axi_clk",
+    "requirement": "ASYNC_REG reset release"
+  },
+  {
+    "simulation": "/tb_elab/dut/source_diagnostics/cameras[0]/source/request",
+    "rtl": "source_diagnostics/cameras[0]/source/request",
+    "width": 1,
+    "clock": "cmos1_pclk",
+    "requirement": "source toggle to req_sync[0]"
+  },
+  {
+    "simulation": "/tb_elab/dut/source_diagnostics/cameras[0]/source/req_sync",
+    "rtl": "source_diagnostics/cameras[0]/source/req_sync",
+    "width": 3,
+    "clock": "axi_clk",
+    "requirement": "ASYNC_REG; only first stage asynchronous exception"
+  },
+  {
+    "simulation": "/tb_elab/dut/source_diagnostics/cameras[0]/source/ack",
+    "rtl": "source_diagnostics/cameras[0]/source/ack",
+    "width": 1,
+    "clock": "axi_clk",
+    "requirement": "ack toggle to ack_sync[0]"
+  },
+  {
+    "simulation": "/tb_elab/dut/source_diagnostics/cameras[0]/source/ack_sync",
+    "rtl": "source_diagnostics/cameras[0]/source/ack_sync",
+    "width": 2,
+    "clock": "cmos1_pclk",
+    "requirement": "ASYNC_REG; only first stage asynchronous exception"
+  },
+  {
+    "simulation": "/tb_elab/dut/source_diagnostics/cameras[0]/source/sticky_overrun",
+    "rtl": "source_diagnostics/cameras[0]/source/sticky_overrun",
+    "width": 1,
+    "clock": "cmos1_pclk",
+    "requirement": "status to overrun_sync[0]"
+  },
+  {
+    "simulation": "/tb_elab/dut/source_diagnostics/cameras[0]/source/overrun_sync",
+    "rtl": "source_diagnostics/cameras[0]/source/overrun_sync",
+    "width": 2,
+    "clock": "axi_clk",
+    "requirement": "ASYNC_REG"
+  },
+  {
+    "simulation": "/tb_elab/dut/source_diagnostics/cameras[0]/source/mailbox",
+    "rtl": "source_diagnostics/cameras[0]/source/mailbox",
+    "width": 512,
+    "clock": "cmos1_pclk",
+    "requirement": "bundled data launch; held until ack"
+  },
+  {
+    "simulation": "/tb_elab/dut/source_diagnostics/cameras[0]/source/host_bank",
+    "rtl": "source_diagnostics/cameras[0]/source/host_bank",
+    "width": 512,
+    "clock": "axi_clk",
+    "requirement": "bundled data destination; max_delay <= 2*T_axi, not masked by clock_groups/false_path"
+  },
+  {
+    "simulation": "/tb_elab/dut/source_diagnostics/cameras[0]/source/raw_vs_d",
+    "rtl": "source_diagnostics/cameras[0]/source/raw_vs_d",
+    "width": 2,
+    "clock": "cmos1_pclk",
+    "requirement": "synchronous alignment, NOT a CDC synchronizer"
+  },
+  {
+    "simulation": "/tb_elab/dut/source_diagnostics/cameras[0]/source/href_d",
+    "rtl": "source_diagnostics/cameras[0]/source/href_d",
+    "width": 2,
+    "clock": "cmos1_pclk",
+    "requirement": "synchronous alignment"
+  },
+  {
+    "simulation": "/tb_elab/dut/source_diagnostics/cameras[0]/source/accept_d",
+    "rtl": "source_diagnostics/cameras[0]/source/accept_d",
+    "width": 2,
+    "clock": "cmos1_pclk",
+    "requirement": "synchronous alignment"
+  },
+  {
+    "simulation": "/tb_elab/dut/source_diagnostics/cameras[0]/source/valid_d",
+    "rtl": "source_diagnostics/cameras[0]/source/valid_d",
+    "width": 1,
+    "clock": "cmos1_pclk",
+    "requirement": "half-cycle negedge binding output to posedge; preserve real setup/hold"
+  },
+  {
+    "simulation": "/tb_elab/dut/source_diagnostics/cameras[1]/reset_pipe",
+    "rtl": "source_diagnostics/cameras[1]/reset_pipe",
+    "width": 4,
+    "clock": "axi_clk",
+    "requirement": "ASYNC_REG; async assert / four-cycle release; pulse-width and recovery/removal"
+  },
+  {
+    "simulation": "/tb_elab/dut/source_diagnostics/cameras[1]/source/cr",
+    "rtl": "source_diagnostics/cameras[1]/source/cr",
+    "width": 2,
+    "clock": "cmos2_pclk",
+    "requirement": "ASYNC_REG reset release"
+  },
+  {
+    "simulation": "/tb_elab/dut/source_diagnostics/cameras[1]/source/hr",
+    "rtl": "source_diagnostics/cameras[1]/source/hr",
+    "width": 2,
+    "clock": "axi_clk",
+    "requirement": "ASYNC_REG reset release"
+  },
+  {
+    "simulation": "/tb_elab/dut/source_diagnostics/cameras[1]/source/request",
+    "rtl": "source_diagnostics/cameras[1]/source/request",
+    "width": 1,
+    "clock": "cmos2_pclk",
+    "requirement": "source toggle to req_sync[0]"
+  },
+  {
+    "simulation": "/tb_elab/dut/source_diagnostics/cameras[1]/source/req_sync",
+    "rtl": "source_diagnostics/cameras[1]/source/req_sync",
+    "width": 3,
+    "clock": "axi_clk",
+    "requirement": "ASYNC_REG; only first stage asynchronous exception"
+  },
+  {
+    "simulation": "/tb_elab/dut/source_diagnostics/cameras[1]/source/ack",
+    "rtl": "source_diagnostics/cameras[1]/source/ack",
+    "width": 1,
+    "clock": "axi_clk",
+    "requirement": "ack toggle to ack_sync[0]"
+  },
+  {
+    "simulation": "/tb_elab/dut/source_diagnostics/cameras[1]/source/ack_sync",
+    "rtl": "source_diagnostics/cameras[1]/source/ack_sync",
+    "width": 2,
+    "clock": "cmos2_pclk",
+    "requirement": "ASYNC_REG; only first stage asynchronous exception"
+  },
+  {
+    "simulation": "/tb_elab/dut/source_diagnostics/cameras[1]/source/sticky_overrun",
+    "rtl": "source_diagnostics/cameras[1]/source/sticky_overrun",
+    "width": 1,
+    "clock": "cmos2_pclk",
+    "requirement": "status to overrun_sync[0]"
+  },
+  {
+    "simulation": "/tb_elab/dut/source_diagnostics/cameras[1]/source/overrun_sync",
+    "rtl": "source_diagnostics/cameras[1]/source/overrun_sync",
+    "width": 2,
+    "clock": "axi_clk",
+    "requirement": "ASYNC_REG"
+  },
+  {
+    "simulation": "/tb_elab/dut/source_diagnostics/cameras[1]/source/mailbox",
+    "rtl": "source_diagnostics/cameras[1]/source/mailbox",
+    "width": 512,
+    "clock": "cmos2_pclk",
+    "requirement": "bundled data launch; held until ack"
+  },
+  {
+    "simulation": "/tb_elab/dut/source_diagnostics/cameras[1]/source/host_bank",
+    "rtl": "source_diagnostics/cameras[1]/source/host_bank",
+    "width": 512,
+    "clock": "axi_clk",
+    "requirement": "bundled data destination; max_delay <= 2*T_axi, not masked by clock_groups/false_path"
+  },
+  {
+    "simulation": "/tb_elab/dut/source_diagnostics/cameras[1]/source/raw_vs_d",
+    "rtl": "source_diagnostics/cameras[1]/source/raw_vs_d",
+    "width": 2,
+    "clock": "cmos2_pclk",
+    "requirement": "synchronous alignment, NOT a CDC synchronizer"
+  },
+  {
+    "simulation": "/tb_elab/dut/source_diagnostics/cameras[1]/source/href_d",
+    "rtl": "source_diagnostics/cameras[1]/source/href_d",
+    "width": 2,
+    "clock": "cmos2_pclk",
+    "requirement": "synchronous alignment"
+  },
+  {
+    "simulation": "/tb_elab/dut/source_diagnostics/cameras[1]/source/accept_d",
+    "rtl": "source_diagnostics/cameras[1]/source/accept_d",
+    "width": 2,
+    "clock": "cmos2_pclk",
+    "requirement": "synchronous alignment"
+  },
+  {
+    "simulation": "/tb_elab/dut/source_diagnostics/cameras[1]/source/valid_d",
+    "rtl": "source_diagnostics/cameras[1]/source/valid_d",
+    "width": 1,
+    "clock": "cmos2_pclk",
+    "requirement": "half-cycle negedge binding output to posedge; preserve real setup/hold"
+  },
+  {
+    "simulation": "/tb_elab/dut/source_diagnostics/cameras[2]/reset_pipe",
+    "rtl": "source_diagnostics/cameras[2]/reset_pipe",
+    "width": 4,
+    "clock": "axi_clk",
+    "requirement": "ASYNC_REG; async assert / four-cycle release; pulse-width and recovery/removal"
+  },
+  {
+    "simulation": "/tb_elab/dut/source_diagnostics/cameras[2]/source/cr",
+    "rtl": "source_diagnostics/cameras[2]/source/cr",
+    "width": 2,
+    "clock": "cmos3_pclk",
+    "requirement": "ASYNC_REG reset release"
+  },
+  {
+    "simulation": "/tb_elab/dut/source_diagnostics/cameras[2]/source/hr",
+    "rtl": "source_diagnostics/cameras[2]/source/hr",
+    "width": 2,
+    "clock": "axi_clk",
+    "requirement": "ASYNC_REG reset release"
+  },
+  {
+    "simulation": "/tb_elab/dut/source_diagnostics/cameras[2]/source/request",
+    "rtl": "source_diagnostics/cameras[2]/source/request",
+    "width": 1,
+    "clock": "cmos3_pclk",
+    "requirement": "source toggle to req_sync[0]"
+  },
+  {
+    "simulation": "/tb_elab/dut/source_diagnostics/cameras[2]/source/req_sync",
+    "rtl": "source_diagnostics/cameras[2]/source/req_sync",
+    "width": 3,
+    "clock": "axi_clk",
+    "requirement": "ASYNC_REG; only first stage asynchronous exception"
+  },
+  {
+    "simulation": "/tb_elab/dut/source_diagnostics/cameras[2]/source/ack",
+    "rtl": "source_diagnostics/cameras[2]/source/ack",
+    "width": 1,
+    "clock": "axi_clk",
+    "requirement": "ack toggle to ack_sync[0]"
+  },
+  {
+    "simulation": "/tb_elab/dut/source_diagnostics/cameras[2]/source/ack_sync",
+    "rtl": "source_diagnostics/cameras[2]/source/ack_sync",
+    "width": 2,
+    "clock": "cmos3_pclk",
+    "requirement": "ASYNC_REG; only first stage asynchronous exception"
+  },
+  {
+    "simulation": "/tb_elab/dut/source_diagnostics/cameras[2]/source/sticky_overrun",
+    "rtl": "source_diagnostics/cameras[2]/source/sticky_overrun",
+    "width": 1,
+    "clock": "cmos3_pclk",
+    "requirement": "status to overrun_sync[0]"
+  },
+  {
+    "simulation": "/tb_elab/dut/source_diagnostics/cameras[2]/source/overrun_sync",
+    "rtl": "source_diagnostics/cameras[2]/source/overrun_sync",
+    "width": 2,
+    "clock": "axi_clk",
+    "requirement": "ASYNC_REG"
+  },
+  {
+    "simulation": "/tb_elab/dut/source_diagnostics/cameras[2]/source/mailbox",
+    "rtl": "source_diagnostics/cameras[2]/source/mailbox",
+    "width": 512,
+    "clock": "cmos3_pclk",
+    "requirement": "bundled data launch; held until ack"
+  },
+  {
+    "simulation": "/tb_elab/dut/source_diagnostics/cameras[2]/source/host_bank",
+    "rtl": "source_diagnostics/cameras[2]/source/host_bank",
+    "width": 512,
+    "clock": "axi_clk",
+    "requirement": "bundled data destination; max_delay <= 2*T_axi, not masked by clock_groups/false_path"
+  },
+  {
+    "simulation": "/tb_elab/dut/source_diagnostics/cameras[2]/source/raw_vs_d",
+    "rtl": "source_diagnostics/cameras[2]/source/raw_vs_d",
+    "width": 2,
+    "clock": "cmos3_pclk",
+    "requirement": "synchronous alignment, NOT a CDC synchronizer"
+  },
+  {
+    "simulation": "/tb_elab/dut/source_diagnostics/cameras[2]/source/href_d",
+    "rtl": "source_diagnostics/cameras[2]/source/href_d",
+    "width": 2,
+    "clock": "cmos3_pclk",
+    "requirement": "synchronous alignment"
+  },
+  {
+    "simulation": "/tb_elab/dut/source_diagnostics/cameras[2]/source/accept_d",
+    "rtl": "source_diagnostics/cameras[2]/source/accept_d",
+    "width": 2,
+    "clock": "cmos3_pclk",
+    "requirement": "synchronous alignment"
+  },
+  {
+    "simulation": "/tb_elab/dut/source_diagnostics/cameras[2]/source/valid_d",
+    "rtl": "source_diagnostics/cameras[2]/source/valid_d",
+    "width": 1,
+    "clock": "cmos3_pclk",
+    "requirement": "half-cycle negedge binding output to posedge; preserve real setup/hold"
+  },
+  {
+    "simulation": "/tb_elab/dut/source_diagnostics/cameras[3]/reset_pipe",
+    "rtl": "source_diagnostics/cameras[3]/reset_pipe",
+    "width": 4,
+    "clock": "axi_clk",
+    "requirement": "ASYNC_REG; async assert / four-cycle release; pulse-width and recovery/removal"
+  },
+  {
+    "simulation": "/tb_elab/dut/source_diagnostics/cameras[3]/source/cr",
+    "rtl": "source_diagnostics/cameras[3]/source/cr",
+    "width": 2,
+    "clock": "cmos4_pclk",
+    "requirement": "ASYNC_REG reset release"
+  },
+  {
+    "simulation": "/tb_elab/dut/source_diagnostics/cameras[3]/source/hr",
+    "rtl": "source_diagnostics/cameras[3]/source/hr",
+    "width": 2,
+    "clock": "axi_clk",
+    "requirement": "ASYNC_REG reset release"
+  },
+  {
+    "simulation": "/tb_elab/dut/source_diagnostics/cameras[3]/source/request",
+    "rtl": "source_diagnostics/cameras[3]/source/request",
+    "width": 1,
+    "clock": "cmos4_pclk",
+    "requirement": "source toggle to req_sync[0]"
+  },
+  {
+    "simulation": "/tb_elab/dut/source_diagnostics/cameras[3]/source/req_sync",
+    "rtl": "source_diagnostics/cameras[3]/source/req_sync",
+    "width": 3,
+    "clock": "axi_clk",
+    "requirement": "ASYNC_REG; only first stage asynchronous exception"
+  },
+  {
+    "simulation": "/tb_elab/dut/source_diagnostics/cameras[3]/source/ack",
+    "rtl": "source_diagnostics/cameras[3]/source/ack",
+    "width": 1,
+    "clock": "axi_clk",
+    "requirement": "ack toggle to ack_sync[0]"
+  },
+  {
+    "simulation": "/tb_elab/dut/source_diagnostics/cameras[3]/source/ack_sync",
+    "rtl": "source_diagnostics/cameras[3]/source/ack_sync",
+    "width": 2,
+    "clock": "cmos4_pclk",
+    "requirement": "ASYNC_REG; only first stage asynchronous exception"
+  },
+  {
+    "simulation": "/tb_elab/dut/source_diagnostics/cameras[3]/source/sticky_overrun",
+    "rtl": "source_diagnostics/cameras[3]/source/sticky_overrun",
+    "width": 1,
+    "clock": "cmos4_pclk",
+    "requirement": "status to overrun_sync[0]"
+  },
+  {
+    "simulation": "/tb_elab/dut/source_diagnostics/cameras[3]/source/overrun_sync",
+    "rtl": "source_diagnostics/cameras[3]/source/overrun_sync",
+    "width": 2,
+    "clock": "axi_clk",
+    "requirement": "ASYNC_REG"
+  },
+  {
+    "simulation": "/tb_elab/dut/source_diagnostics/cameras[3]/source/mailbox",
+    "rtl": "source_diagnostics/cameras[3]/source/mailbox",
+    "width": 512,
+    "clock": "cmos4_pclk",
+    "requirement": "bundled data launch; held until ack"
+  },
+  {
+    "simulation": "/tb_elab/dut/source_diagnostics/cameras[3]/source/host_bank",
+    "rtl": "source_diagnostics/cameras[3]/source/host_bank",
+    "width": 512,
+    "clock": "axi_clk",
+    "requirement": "bundled data destination; max_delay <= 2*T_axi, not masked by clock_groups/false_path"
+  },
+  {
+    "simulation": "/tb_elab/dut/source_diagnostics/cameras[3]/source/raw_vs_d",
+    "rtl": "source_diagnostics/cameras[3]/source/raw_vs_d",
+    "width": 2,
+    "clock": "cmos4_pclk",
+    "requirement": "synchronous alignment, NOT a CDC synchronizer"
+  },
+  {
+    "simulation": "/tb_elab/dut/source_diagnostics/cameras[3]/source/href_d",
+    "rtl": "source_diagnostics/cameras[3]/source/href_d",
+    "width": 2,
+    "clock": "cmos4_pclk",
+    "requirement": "synchronous alignment"
+  },
+  {
+    "simulation": "/tb_elab/dut/source_diagnostics/cameras[3]/source/accept_d",
+    "rtl": "source_diagnostics/cameras[3]/source/accept_d",
+    "width": 2,
+    "clock": "cmos4_pclk",
+    "requirement": "synchronous alignment"
+  },
+  {
+    "simulation": "/tb_elab/dut/source_diagnostics/cameras[3]/source/valid_d",
+    "rtl": "source_diagnostics/cameras[3]/source/valid_d",
+    "width": 1,
+    "clock": "cmos4_pclk",
+    "requirement": "half-cycle negedge binding output to posedge; preserve real setup/hold"
+  },
+  {
+    "simulation": "/tb_elab/dut/ov5640_top/ov5640/cmos_frame_valid_r",
+    "rtl": "ov5640_top/ov5640/cmos_frame_valid_r",
+    "width": 1,
+    "clock": "cmos1_pclk",
+    "requirement": "negedge launch to diagnostic posedge; preserve half-cycle setup/hold, no added reset"
+  },
+  {
+    "simulation": "/tb_elab/dut/ov5640_top/ov5640/cmos_frame_vsync_r",
+    "rtl": "ov5640_top/ov5640/cmos_frame_vsync_r",
+    "width": 1,
+    "clock": "cmos1_pclk",
+    "requirement": "negedge launch to diagnostic posedge; preserve half-cycle setup/hold, no added reset"
+  },
+  {
+    "simulation": "/tb_elab/dut/cam2_ov5640_top/ov5640/cmos_frame_valid_r",
+    "rtl": "cam2_ov5640_top/ov5640/cmos_frame_valid_r",
+    "width": 1,
+    "clock": "cmos2_pclk",
+    "requirement": "negedge launch to diagnostic posedge; preserve half-cycle setup/hold, no added reset"
+  },
+  {
+    "simulation": "/tb_elab/dut/cam2_ov5640_top/ov5640/cmos_frame_vsync_r",
+    "rtl": "cam2_ov5640_top/ov5640/cmos_frame_vsync_r",
+    "width": 1,
+    "clock": "cmos2_pclk",
+    "requirement": "negedge launch to diagnostic posedge; preserve half-cycle setup/hold, no added reset"
+  },
+  {
+    "simulation": "/tb_elab/dut/cam3_ov5640_top/ov5640/cmos_frame_valid_r",
+    "rtl": "cam3_ov5640_top/ov5640/cmos_frame_valid_r",
+    "width": 1,
+    "clock": "cmos3_pclk",
+    "requirement": "negedge launch to diagnostic posedge; preserve half-cycle setup/hold, no added reset"
+  },
+  {
+    "simulation": "/tb_elab/dut/cam3_ov5640_top/ov5640/cmos_frame_vsync_r",
+    "rtl": "cam3_ov5640_top/ov5640/cmos_frame_vsync_r",
+    "width": 1,
+    "clock": "cmos3_pclk",
+    "requirement": "negedge launch to diagnostic posedge; preserve half-cycle setup/hold, no added reset"
+  },
+  {
+    "simulation": "/tb_elab/dut/cam4_ov5640_top/ov5640/cmos_frame_valid_r",
+    "rtl": "cam4_ov5640_top/ov5640/cmos_frame_valid_r",
+    "width": 1,
+    "clock": "cmos4_pclk",
+    "requirement": "negedge launch to diagnostic posedge; preserve half-cycle setup/hold, no added reset"
+  },
+  {
+    "simulation": "/tb_elab/dut/cam4_ov5640_top/ov5640/cmos_frame_vsync_r",
+    "rtl": "cam4_ov5640_top/ov5640/cmos_frame_vsync_r",
+    "width": 1,
+    "clock": "cmos4_pclk",
+    "requirement": "negedge launch to diagnostic posedge; preserve half-cycle setup/hold, no added reset"
+  }
+]

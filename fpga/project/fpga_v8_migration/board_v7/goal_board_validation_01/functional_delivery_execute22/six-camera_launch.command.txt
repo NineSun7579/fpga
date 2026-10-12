@@ -1,0 +1,20 @@
+sudo -n python3 -u - <<'DELIVERY10'
+from pathlib import Path
+assert Path("/proc/sys/kernel/random/boot_id").read_text().strip() == 'e91d0c8a-869b-4f70-bb68-dbdf78144852'
+import subprocess,os,json,hashlib,time
+root=Path('/userdata/driving_demo_evidence/functional_delivery10_1791381664_six-camera');root.mkdir(mode=0o700,parents=True,exist_ok=False)
+app='/userdata/detview-driving-demo/detview-driving-demo'; assert hashlib.sha256(Path(app).read_bytes()).hexdigest()=='72cd352aba95fce2a9897fb3fefe7214940b080d3937a2c8bad8afa72f25a703'
+launcher=Path('/userdata/detview-driving-demo/run_driving_demo.sh').read_text();print('LAUNCHER_SHA256',hashlib.sha256(launcher.encode()).hexdigest())
+assert 'LD_LIBRARY_PATH' not in launcher, 'Launcher has a library setting: review before direct exec'
+r=subprocess.run(['ldd',app],capture_output=True);print(r.stdout.decode(),r.stderr.decode());assert r.returncode==0 and b'not found' not in r.stdout
+env=os.environ.copy();env.update(DISPLAY=':0',XAUTHORITY='/home/linaro/.Xauthority',QT_X11_NO_MITSHM='1',QT_QPA_PLATFORM='xcb',QT_XCB_GL_INTEGRATION='xcb_egl')
+# Supervisor preserves exact child exit status and never relaunches it.
+supervisor="import subprocess,json,os;from pathlib import Path;p=Path("+repr(str(root))+");f=(p/'viewer.log').open('wb');v=subprocess.Popen("+repr(['/userdata/detview-driving-demo/detview-driving-demo', '--fullscreen', '--no-tracking', '--prefer-hdmifull', 'off', '--duration', '120'])+",cwd='/userdata/detview-driving-demo',env="+repr(env)+",stdin=subprocess.DEVNULL,stdout=f,stderr=subprocess.STDOUT);(p/'pid').write_text(str(v.pid));rc=v.wait();f.close();(p/'exit.json').write_text(json.dumps(dict(pid=v.pid,rc=rc)))"
+s=subprocess.Popen(['python3','-u','-c',supervisor],stdin=subprocess.DEVNULL,stdout=(root/'supervisor.log').open('wb'),stderr=subprocess.STDOUT,start_new_session=True)
+for n in range(50):
+ if (root/'pid').exists():break
+ time.sleep(.1)
+pid=int((root/'pid').read_text());p=Path('/proc')/str(pid)
+print(json.dumps(dict(pid=pid,supervisor_pid=s.pid,root=str(root),log=str(root/'viewer.log'),exe=os.readlink(p/'exe'),argv=(p/'cmdline').read_bytes().split(b'\0'),starttime=(p/'stat').read_text().rsplit(')',1)[1].split()[19]),default=lambda b:b.decode()))
+
+DELIVERY10

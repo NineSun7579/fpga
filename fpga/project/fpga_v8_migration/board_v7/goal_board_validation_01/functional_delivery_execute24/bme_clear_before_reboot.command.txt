@@ -1,0 +1,12 @@
+sudo -n python3 -u - <<'DELIVERY10'
+from pathlib import Path
+assert Path("/proc/sys/kernel/random/boot_id").read_text().strip() == 'a2a49858-be3f-4ee8-a455-6a2d82f00628'
+import subprocess,json
+bdf='0002:21:00.0'
+def rd():
+ r=subprocess.run(['setpci','-s',bdf,'COMMAND'],capture_output=True,text=True);print(r.returncode,r.stdout,r.stderr,flush=True);assert r.returncode==0 and len(r.stdout.strip())==4;v=int(r.stdout.strip(),16);assert v!=65535;return v
+old=rd();subprocess.run(['setpci','-s',bdf,'COMMAND=0000:0004'],check=True);new=rd()
+assert not new & 4 and old & ~4 == new & ~4
+print(json.dumps(dict(before=old,after=new)))
+
+DELIVERY10

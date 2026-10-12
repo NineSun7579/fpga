@@ -1,0 +1,29 @@
+--- exact09/axi_dma_write_tc04.v
++++ isolated/axi_dma_write_dma_sc_candidate.v
+@@ -1,4 +1,4 @@
+-module axi_dma_write_tc04
++module axi_dma_write_dma_sc_candidate
+ 	#(
+ 		parameter WAIT_FOR_DATA = 0, // camera source supplies stored beat credits
+ 		parameter WD_LIMIT = 24'hFFFFFF,
+@@ -242,7 +242,7 @@
+ // !burst_trans belongs only to the non-waiting branch.
+ wire wd_clear = rst || abort_r ||
+     (waiting_source ? (data_in_available != available_q) :
+-     (!burst_trans || w_progress || data_in_valid || !t_m_axi_wready));
++     (!burst_trans || data_in_valid || !t_m_axi_wready));
+ wire wd_step = !wd_clear && (wd_cnt != 24'hFFFFFF);
+ genvar wd_bit;
+ generate
+@@ -277,8 +277,9 @@
+ // BREADY is asserted only after the external final W handshake below.
+ wire b_fire = m_axi_bvalid && m_axi_bready;
+ wire failed = abort_r || abort_req || (b_fire && m_axi_bresp[1]);
+-assign abort_done = trans && failed &&
+-                    (b_fire || (abort_r && !burst_trans && !m_axi_awvalid));
++assign abort_done = trans &&
++    ((b_fire && (abort_r || abort_req || m_axi_bresp[1])) ||
++     (abort_r && !burst_trans && !m_axi_awvalid));
+ // ---------------------------------------------------------------------------------
+ 
+ stream_pipe #(

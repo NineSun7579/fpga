@@ -1,0 +1,1079 @@
+--- installed/detview.pro
++++ six_camera_viewer_src/detview.pro
+@@ -2,12 +2,12 @@
+ CONFIG   += c++17
+ CONFIG   += link_pkgconfig
+ PKGCONFIG += opencv4
+-TARGET = detview
++TARGET = detview_six_camera_candidate
+ TEMPLATE  = app
+ SOURCES  += main.cpp vision_pipeline.cpp vision_pipeline_selftest.cpp template_tracker.cpp \
+             template_tracker_selftest.cpp stereo_demo/stereo_depth.cpp camera_dma_selftest.cpp \
+-            frame_metrics_selftest.cpp calibration_capture.cpp hdmi_view_selftest.cpp inference_geometry_selftest.cpp mvp_decode_selftest.cpp detection_temporal_filter_selftest.cpp
++            frame_metrics_selftest.cpp calibration_capture.cpp hdmi_view_selftest.cpp inference_geometry_selftest.cpp mvp_decode_selftest.cpp detection_temporal_filter_selftest.cpp thumbnail_delivery_selftest.cpp
+ HEADERS += vision_types.h vision_pipeline.h template_tracker.h stereo_demo/stereo_depth.h \
+            stereo_demo/stereo_pairing.h camera_dma.h frame_metrics.h display_perf.h calibration_capture.h \
+-           hdmi_view.h inference_geometry.h mvp_decode.h mvp_round1_policy.h detection_temporal_filter.h
++           hdmi_view.h inference_geometry.h mvp_decode.h mvp_round1_policy.h detection_temporal_filter.h thumbnail_delivery.h six_dma_layout.h
+ LIBS += -lrknnrt -lrga
+--- installed/main.cpp
++++ six_camera_viewer_src/main.cpp
+@@ -61,6 +61,8 @@
+ #include "detection_temporal_filter.h"
+ #include "template_tracker.h"
+ #include "camera_dma.h"
++#include "thumbnail_delivery.h"
++#include "six_dma_layout.h"
+ #include "frame_metrics.h"
+ #include "display_perf.h"
+ #include "hdmi_view.h"
+@@ -78,6 +80,8 @@
+ static const int IMG_W = 640;
+ static const int IMG_H = 480;
+ static const size_t FRAME_BYTES = (size_t)IMG_W * IMG_H * 2;
++static_assert(FRAME_BYTES == tdm::cameraFrameBytes && FRAME_BYTES == thumbnail::RawBytes,
++              "RAW camera/vision inputs remain 640x480 RGB565");
+ /* 六路相机 DDR 乒乓缓冲（与运行版 camview 6 路版一致）；帧标签在 base + FRAME_BYTES */
+ static const int CAM_COUNT = 6;
+ static const int GRID_COLS = 3;
+@@ -574,6 +578,20 @@
+     static void alarmHandler(int) { timeoutHit_ = true; }
+     static volatile sig_atomic_t timeoutHit_;
+ 
++    // Borrowing only: callback runs under the same mutex as every camera,
++    // MMIO and lease transaction. No second open or RKNN binding here.
++    template<class Callback> auto withSharedInputSession(Callback callback)
++        -> decltype(callback(sixdma::BorrowedSession{})) {
++        QMutexLocker lock(&dmaMutex_);
++        if (fd_ < 0 || !rx_ || rx_ == MAP_FAILED) quarantine("invalid borrowed DMA session");
++        try {
++            return callback(sixdma::BorrowedSession{fd_, rx_, sixdma::Allocation,
++                            sixdma::SharedInput, sixdma::SharedInputBytes});
++        } catch (...) {
++            quarantine("borrowed shared-input callback threw; DMA ownership uncertain");
++        }
++    }
++
+     bool regWrite(uint32_t addr, uint32_t val) {
+         QMutexLocker dmaLock(&dmaMutex_);
+         if (!tx_)
+@@ -589,7 +607,7 @@
+     bool regRead(uint32_t addr, uint32_t &val) {
+         QMutexLocker dmaLock(&dmaMutex_);
+         DmaOp op{};
+-        op.offset_addr = tdm::cameraScratchOffset;
++        op.offset_addr = sixdma::Metadata;
+         op.ddr3_addr = addr;
+         op.total_length = 16;
+         if (ioctlTmo(F2H_CMD, &op, 3) != 0)
+@@ -602,14 +620,14 @@
+        单次等待上限取 2s（与 camview 一致）：丢 MSI 时不能让整块卡住几十秒，
+        上层线程会保留上一帧并在下一次帧标签变化时重试。 */
+     bool ddrRead(uint32_t addr, uint32_t len, void *out) {
+-        if (len > tdm::cameraAllocationBytes || (!out && len)) return false;
++        if (len > sixdma::Allocation || (!out && len)) return false;
+         QMutexLocker dmaLock(&dmaMutex_);
+         uint8_t* destination = static_cast<uint8_t*>(out);
+         for (uint32_t copied = 0; copied < len;) {
+             const uint32_t bytes = std::min(len - copied,
+-                tdm::cameraAllocationBytes - tdm::cameraScratchOffset);
++                4096u);
+             DmaOp op{};
+-            op.offset_addr = tdm::cameraScratchOffset;
++            op.offset_addr = sixdma::Metadata;
+             op.ddr3_addr = addr + copied;
+             op.total_length = std::max(16u, bytes);
+             if (ioctlTmo(F2H_CMD, &op, 2) != 0) return false;
+@@ -628,8 +646,8 @@
+         return true;
+     }
+ 
+-    // One worker per camera owns its RX slot until the CPU copy is complete.
+-    // All DMA submissions remain serialized; metadata uses a separate scratch.
++    // All workers reuse one low RX slot. The mutex covers metadata, DMA and
++    // the complete owned copy; the next worker cannot overwrite live pixels.
+     int cameraRead(int camera, uint32_t ping, uint32_t pong, bool delivered, uint32_t last,
+                    void* output, uint32_t& selected, qint64& dmaNs, qint64& copyNs,
+                    qint64& capturedMs, qint64& capturedNs) {
+@@ -641,11 +659,13 @@
+         if (bank < 0) return 0;
+         selected = bank == 0 ? a : b;
+         DmaOp op{};
+-        op.offset_addr = tdm::cameraSlotOffset(camera);
++        op.offset_addr = sixdma::RawSlot;
+         op.ddr3_addr = bank == 0 ? ping : pong;
+         op.total_length = FRAME_BYTES + 16;
+         QElapsedTimer timer; timer.start();
+         if (ioctlTmo(F2H_CMD, &op, 2) != 0) return -1;
++        if (op.offset_addr != sixdma::RawSlot || op.total_length != FRAME_BYTES + 16)
++            quarantine("RAW DMA metadata changed before owned copy");
+         dmaNs = timer.nsecsElapsed();
+         capturedMs = monotonicMs(); // Preserve the existing analytics timestamp.
+         capturedNs = monotonicNs(); // Host DMA return, before validation/copy/analytics.
+@@ -653,19 +673,66 @@
+         uint32_t actual = 0;
+         memcpy(&actual, pixels + FRAME_BYTES, sizeof(actual));
+         if (actual != selected) return 2;
+-        lock.unlock();
+         timer.restart();
+         tdm::copyCameraPixels(output, pixels, FRAME_BYTES);
+         copyNs = timer.nsecsElapsed();
+         return 1;
+     }
+ 
++    // Same fd, RX slots and mutex as all six RAW workers. No second provider.
++    int thumbnailRead(int camera, int bank, void* output, size_t capacity, uint32_t& tag,
++                      qint64& dmaNs, qint64& copyNs, qint64& capturedMs, qint64& capturedNs) {
++        QMutexLocker lock(&dmaMutex_);
++        ThumbnailTransport transport{*this, dmaNs, copyNs, capturedMs, capturedNs};
++        thumbnail::Reader<ThumbnailTransport> reader(transport);
++        return reader.read(camera, bank, output, capacity, tag) ? 1 : 0;
++    }
++
+     const char *lastErr() const { return err_; }
+ 
+ private:
++    struct ThumbnailTransport {
++        PangoDev& dev;
++        qint64 &dmaNs, &copyNs, &capturedMs, &capturedNs;
++        bool read(uint32_t offset, uint32_t& value) {
++            return dev.cameraTagLocked(thumbnail::Base + offset, value);
++        }
++        bool write(uint32_t offset, uint32_t value) {
++            std::memset(dev.tx_, 0, 16);
++            std::memcpy(dev.tx_, &value, sizeof(value));
++            DmaOp op{};
++            op.ddr3_addr = thumbnail::Base + offset; op.total_length = 16;
++            return dev.ioctlTmo(H2F_CMD, &op, 2) == 0;
++        }
++        bool readTag(uint32_t address, uint32_t& tag) { return dev.cameraTagLocked(address, tag); }
++        bool readPixels(uint32_t address, uint32_t count, void* output) {
++            bool validDestination = false;
++            for (const auto& banks : thumbnail::Destinations)
++                for (auto destination : banks) validDestination |= address == destination;
++            if (!validDestination || count != thumbnail::Bytes || !output) return false;
++            DmaOp op{};
++            op.offset_addr = sixdma::RawSlot;
++            op.ddr3_addr = address; op.total_length = count;
++            QElapsedTimer timer; timer.start();
++            if (dev.ioctlTmo(F2H_CMD, &op, 2) != 0) return false;
++            dmaNs = timer.nsecsElapsed();
++            capturedMs = monotonicMs();
++            capturedNs = monotonicNs(); // Same metric start as RAW: host DMA return.
++            if (op.total_length != count || op.offset_addr != sixdma::RawSlot) return false;
++            timer.restart();
++            tdm::copyCameraPixels(output, dev.rx_ + op.offset_addr, count);
++            copyNs = timer.nsecsElapsed();
++            return true;
++        }
++        int64_t nowMs() { return monotonicMs(); }
++        void delay() { QThread::msleep(1); }
++        [[noreturn]] void quarantine(const char* reason) {
++            dev.quarantine(reason);
++        }
++    };
+     bool cameraTagLocked(uint32_t address, uint32_t& tag) {
+         DmaOp op{};
+-        op.offset_addr = tdm::cameraScratchOffset;
++        op.offset_addr = sixdma::Metadata;
+         op.ddr3_addr = address;
+         op.total_length = 16;
+         if (ioctlTmo(F2H_CMD, &op, 2) != 0) return false;
+@@ -673,6 +740,9 @@
+         return true;
+     }
+     int ioctlTmo(unsigned long cmd, DmaOp *op, unsigned sec) {
++        if ((cmd == F2H_CMD || cmd == H2F_CMD) &&
++            (!op || !sixdma::scratchRange(op->offset_addr, op->total_length)))
++            quarantine("viewer DMA overlaps reserved RKNN input or invalid RX/TX range");
+         timeoutHit_ = false;
+         struct timespec ts0{}, ts1{};
+         clock_gettime(CLOCK_MONOTONIC, &ts0);
+@@ -699,19 +769,18 @@
+             noteFailure();
+             return r;
+         }
+-        failures_ = 0;
+         return r;
+     }
+-    /* 连续失败自愈：驱动的 pango_cdev_open 每次打开设备都会把 g_dma_flag 等状态清零，
+-       所以"退出进程 + 重新打开"本身就等于恢复，不需要 rmmod/insmod。连续失败到阈值就
+-       主动退出（硬退出，避免卡住的线程拖延），交给守护脚本 run_detview.sh 重启。 */
++    [[noreturn]] void quarantine(const char* reason) {
++        fprintf(stderr, "[thumbnail-quarantine] pid=%d %s; keep fd/mappings/lease; quiesce fabric before recovery\n",
++                int(::getpid()), reason);
++        fflush(stderr);
++        // Reopening cannot prove uncertain AXI/DMA has drained. Stop every
++        // thread with the fd and DMA mutex retained; SIGCONT re-stops.
++        for (;;) ::raise(SIGSTOP);
++    }
+     void noteFailure() {
+-        const int n = ++failures_;
+-        if (n < kRecoverAfterFailures)
+-            return;
+-        fprintf(stderr, "[recover] %d consecutive pango ioctl failures -> exit(3) for supervisor restart\n", n);
+-        fflush(stderr);
+-        ::_exit(3);
++        quarantine("candidate DMA ioctl failed or timed out");
+     }
+     void close() {
+         if (fd_ >= 0)
+@@ -723,8 +792,6 @@
+     uint8_t *tx_ = nullptr;
+     uint8_t *rx_ = nullptr;
+     QMutex dmaMutex_;   // 保护 tx_/rx_ 与 DMA ioctl（四路采集线程共用）
+-    static const int kRecoverAfterFailures = 6;   // 连续失败几次就退出，让守护脚本重启
+-    std::atomic<int> failures_{0};
+ };
+ 
+ volatile sig_atomic_t PangoDev::timeoutHit_ = 0;
+@@ -735,6 +802,7 @@
+ struct LatestFrames {
+     QMutex mutex;
+     QByteArray c[CAM_COUNT];
++    std::array<thumbnail::Geometry, CAM_COUNT> geometry{};
+     bool have[CAM_COUNT] = {};
+     uint64_t errors[CAM_COUNT] = {};
+     double fps[CAM_COUNT] = {};
+@@ -776,10 +844,9 @@
+         visionSink_ = std::move(sink);
+         stereoMask_ = stereoMask;
+     }
+-    /* 当前显示模式（0..5 = 单路，CAM_COUNT = 整幅）：单路时只采那一路，其余停采 */
+-    void setModePtr(const std::atomic<int> *mode) { mode_ = mode; }
+     void setPausedPtr(const std::atomic<bool> *paused) { paused_ = paused; }
+     void setHdmiPtr(const std::atomic<bool> *hdmi) { hdmi_ = hdmi; }
++    void setDisplayModePtr(const std::atomic<int>* mode) { displayMode_ = mode; }
+ 
+ protected:
+     void run() override {
+@@ -791,6 +858,9 @@
+         uint32_t deliveredTag = 0;
+         bool delivered = false;
+         QByteArray frame(FRAME_BYTES, 0);
++        QByteArray displayFrame;
++        thumbnail::Cursor rawCursor, displayCursor;
++        int outputBank = 0;
+         tdm::FrameRate captureRate;
+         captureRate.reset(monotonicMs());
+         qint64 auditStartMs = monotonicMs(), readNs = 0, dmaNsTotal = 0, copyNsTotal = 0;
+@@ -808,18 +878,11 @@
+         while (running_) {
+             if (paused_ && paused_->load()) { suspendMeasurement(); msleep(20); continue; }
+             const int sourceGeneration = generation_ ? generation_->load() : 0;
+-            if (hdmi_ && hdmi_->load() && idx < tdm::hdmiLeftCamera) {
+-                suspendMeasurement(); msleep(20); continue;
+-            }
+-            /* 设备模式：整幅时六路全采；单选时只采那一路（其余不发 DMA、不轮询标签） */
+-            if (mode_) {
+-                const int mode = mode_->load();
+-                if (mode != CAM_COUNT && mode != idx && !(stereoMask_ & (1 << idx))) {
+-                    suspendMeasurement();
+-                    msleep(50);
+-                    continue;
+-                }
+-            }
++            if (rawCursor.generation != sourceGeneration) {
++                rawCursor.reset(sourceGeneration); displayCursor.reset(sourceGeneration);
++                delivered = false;
++            }
++            // Keep all six workers capturing continuously in every camera view.
+             if (!measuring) {
+                 measuring = true;
+                 captureRate.reset(monotonicMs());
+@@ -830,27 +893,36 @@
+             // A display snapshot may still own this recycled buffer. Allocate
+             // fresh writable storage instead of copying old pixels on detach;
+             // cameraRead overwrites every pixel before publishing it.
+-            if (!frame.isDetached()) frame = QByteArray(FRAME_BYTES, Qt::Uninitialized);
++            const int fullCamera = displayMode_ && displayMode_->load() != CAM_COUNT
++                ? displayMode_->load() : -1;
++            const bool useThumbnail = thumbnail::eligible(thumbnailEnabled_, idx,
++                fullCamera, stereoMask_, hdmi_ && hdmi_->load());
++            const bool needsRaw = !useThumbnail ||
++                (inferPane_ && inferPane_->load() == idx) || (stereoMask_ & (1 << idx));
++            // RAW analytics and display have independent owned buffers/cursors.
++            // Selected grid YOLO camera reads RAW once, then a separate thumbnail.
++            // Single-camera view/stereo/HDMI reuse RAW for display; no offload.
++            if (!frame.isDetached() || size_t(frame.size()) != FRAME_BYTES)
++                frame = QByteArray(int(FRAME_BYTES), Qt::Uninitialized);
++            Q_ASSERT(size_t(frame.size()) == FRAME_BYTES);
+             uint32_t selectedTag = 0;
+             qint64 dmaNs = 0, copyNs = 0, capturedMs = 0, capturedNs = 0;
+-            const int result = dev_->cameraRead(idx, base[idx][0], base[idx][1], delivered, deliveredTag,
+-                                                frame.data(), selectedTag, dmaNs, copyNs, capturedMs, capturedNs);
+-            if (result == 0) { msleep(6); continue; }
++            const int result = needsRaw
++                ? dev_->cameraRead(idx, base[idx][0], base[idx][1], rawCursor.delivered, rawCursor.tag,
++                                   frame.data(), selectedTag, dmaNs, copyNs, capturedMs, capturedNs) : 0;
++            if (result == 0 && !useThumbnail) { msleep(6); continue; }
+             if (result == 2) { ++unstable; msleep(1); continue; }
+             if (result < 0) {
+                 { QMutexLocker lock(&frames_->mutex); ++frames_->errors[idx]; }
+                 msleep(25);
+                 continue;
+             }
+-            if (delivered && measureTagAdvance) sequenceAdvance += uint32_t(selectedTag - deliveredTag);
+-            measureTagAdvance = true;
+-            deliveredTag = selectedTag;
+-            delivered = true;
+-            readNs += readTimer.nsecsElapsed();
+-            dmaNsTotal += dmaNs; copyNsTotal += copyNs; ++auditFrames;
+-            const qint64 completedMs = monotonicMs();
+-            captureRate.add(completedMs);
+-            if (visionSink_ && !(hdmi_ && hdmi_->load()) &&
++            if (generation_ && sourceGeneration != generation_->load()) {
++                delivered = false;
++                continue;
++            }
++            if (result == 1) rawCursor.commit(selectedTag);
++            if (result == 1 && visionSink_ && size_t(frame.size()) == FRAME_BYTES && !(hdmi_ && hdmi_->load()) &&
+                 ((inferPane_ && inferPane_->load() == idx) || (stereoMask_ & (1 << idx))) &&
+                 generation_ && sourceGeneration == generation_->load()) {
+                 QImage pixels(IMG_W, IMG_H, QImage::Format_RGB888);
+@@ -867,13 +939,44 @@
+                 packet.capturedMs = capturedMs;
+                 visionSink_(packet);
+             }
++            thumbnail::Geometry geometry;
++            if (useThumbnail) {
++                if (!displayFrame.isDetached() || displayFrame.size() != thumbnail::Bytes)
++                    displayFrame = QByteArray(thumbnail::Bytes, Qt::Uninitialized);
++                const int displayResult = dev_->thumbnailRead(idx, outputBank, displayFrame.data(),
++                    thumbnail::Bytes, selectedTag, dmaNs, copyNs, capturedMs, capturedNs);
++                if (displayResult == 0) { msleep(6); continue; }
++                outputBank ^= 1;
++                if (!displayCursor.newer(selectedTag)) { msleep(6); continue; }
++                geometry = {320, 240};
++            }
++            const int currentFullCamera = displayMode_ && displayMode_->load() != CAM_COUNT
++                ? displayMode_->load() : -1;
++            if ((generation_ && sourceGeneration != generation_->load()) ||
++                useThumbnail != thumbnail::eligible(thumbnailEnabled_, idx, currentFullCamera,
++                    stereoMask_, hdmi_ && hdmi_->load())) {
++                rawCursor.reset(generation_ ? generation_->load() : 0);
++                displayCursor.reset(rawCursor.generation);
++                delivered = false;
++                continue;
++            }
++            displayCursor.commit(selectedTag);
++            const size_t bytes = geometry.bytes();
++            if (delivered && measureTagAdvance && tdm::newerCameraTag(selectedTag, deliveredTag))
++                sequenceAdvance += uint32_t(selectedTag - deliveredTag);
++            measureTagAdvance = true;
++            deliveredTag = selectedTag; delivered = true;
++            readNs += readTimer.nsecsElapsed();
++            dmaNsTotal += dmaNs; copyNsTotal += copyNs; ++auditFrames;
++            const qint64 completedMs = monotonicMs();
++            captureRate.add(completedMs);
+             QMutexLocker lock(&frames_->mutex);
+             /* 零拷贝交接：与槽位互换缓冲。原来 `frames_->c[idx] = frame` 会因
+                QByteArray 隐式共享在下一次写入时 detach（每帧每路白拷 0.6MB，
+                4~6 路 × 25fps ≈ 60~90MB/s 的 DDR 流量）。交换后采集线程拿回旧缓冲继续用。 */
+-            qSwap(frame, frames_->c[idx]);
+-            if (frame.size() != FRAME_BYTES)
+-                frame.resize(FRAME_BYTES);
++            if (useThumbnail) qSwap(displayFrame, frames_->c[idx]);
++            else qSwap(frame, frames_->c[idx]);
++            frames_->geometry[idx] = geometry;
+             frames_->have[idx] = true;
+             frames_->lastCapturedMs[idx] = completedMs;
+             frames_->rawCapturedMs[idx] = capturedMs;
+@@ -890,7 +993,9 @@
+                 fprintf(stderr, "[capture] camera=%d delivered_fps=%.2f tag_advance_rate=%.2f read_ms=%.3f frame_dma_ms=%.3f copy_ms=%.3f unstable=%llu\n",
+                         idx + 1, auditFrames / seconds, sequenceAdvance / seconds,
+                         readNs / 1e6 / auditFrames, dmaNsTotal / 1e6 / auditFrames,
+-                        copyNsTotal / 1e6 / auditFrames, (unsigned long long)unstable);
++                         copyNsTotal / 1e6 / auditFrames, (unsigned long long)unstable);
++                fprintf(stderr, "[capture-format] camera=%d width=%d height=%d bytes=%zu thumbnail=%d metric_start=host_dma_return\n",
++                        idx + 1, geometry.width, geometry.height, bytes, int(useThumbnail));
+                 auditStartMs = auditNow; auditFrames = sequenceAdvance = unstable = 0;
+                 readNs = dmaNsTotal = copyNsTotal = 0;
+             }
+@@ -902,6 +1007,8 @@
+     PangoDev *dev_;
+     LatestFrames *frames_;
+     int camera_;
++    const bool thumbnailEnabled_ = qgetenv("DETVIEW_FPGA_SIX_THUMBNAIL") == "1";
++    const std::atomic<int>* displayMode_ = nullptr;
+     std::atomic_bool running_{true};
+     const std::atomic<int> *inferPane_ = nullptr;
+     const std::atomic<int> *generation_ = nullptr;
+@@ -909,7 +1016,6 @@
+     const std::atomic<bool> *hdmi_ = nullptr;
+     std::atomic<quint64> *sequence_ = nullptr;
+     int stereoMask_ = 0;
+-    const std::atomic<int> *mode_ = nullptr;
+     std::function<void(const VisionFrame&)> visionSink_;
+ };
+ 
+@@ -933,6 +1039,7 @@
+         std::array<qint64, CAM_COUNT> rawCapturedMs{};
+         bool hdmiFull = false;   // HDMI 满屏视图（仅 6 路 3x2 布局下由显示端采用）
+         std::array<qint64, CAM_COUNT> dmaReturnedNs{};
++        std::array<thumbnail::Geometry, CAM_COUNT> geometry{};
+     };
+     // GUI-only consumer: no publication, notification, or inference side effects.
+     // Lock order is config -> latest, matching publication's config guard.
+@@ -947,10 +1054,12 @@
+         int refreshed = 0;
+         for (int c = 0; c < CAM_COUNT; ++c) {
+             if (!(mask & (1 << c)) || (hdmi && c < tdm::hdmiLeftCamera) ||
+-                !m_liveFrames->have[c] || m_liveFrames->c[c].size() != FRAME_BYTES ||
++                !m_liveFrames->have[c] || !m_liveFrames->geometry[c].valid(size_t(m_liveFrames->c[c].size())) ||
++                (hdmi && !m_liveFrames->geometry[c].raw()) ||
+                 m_liveFrames->sourceGenerations[c] != frame.generation ||
+                 m_liveFrames->camGen[c] <= frame.cameraSequences[c]) continue;
+             frame.cameraPixels[c] = m_liveFrames->c[c]; // Owned implicit-sharing reference.
++            frame.geometry[c] = m_liveFrames->geometry[c];
+             frame.cameraSequences[c] = m_liveFrames->camGen[c];
+             frame.capturedMs[c] = m_liveFrames->lastCapturedMs[c];
+             frame.rawCapturedMs[c] = m_liveFrames->rawCapturedMs[c];
+@@ -1025,8 +1134,26 @@
+         latest.have[4] = true; latest.camGen[4] = 1; latest.sourceGenerations[4] = 7;
+         latest.c[4] = QByteArray(FRAME_BYTES, char(0x44));
+         if (source.refreshDisplay(frame) != (1 << 4) || frame.cameraSequences[0] != 3) return false;
++        source.setHdmiOverride(0);
++        frame.hdmiFull = false;
++        latest.camGen[4] = 2;
++        latest.geometry[4] = {320, 240};
++        latest.c[4] = QByteArray(thumbnail::Bytes, char(0x55));
++        if (source.refreshDisplay(frame) != ((1 << 0) | (1 << 4)) ||
++            frame.geometry[4].raw() || frame.geometry[4].width != 320 ||
++            frame.cameraPixels[4].size() != thumbnail::Bytes) return false;
++        const auto thumbnailOwned = frame.cameraPixels[4];
++        latest.camGen[4] = 3;
++        latest.geometry[4] = {};
++        latest.c[4] = QByteArray(FRAME_BYTES, char(0x66));
++        if (source.refreshDisplay(frame) != (1 << 4) || !frame.geometry[4].raw() ||
++            frame.cameraPixels[4].size() != FRAME_BYTES || thumbnailOwned[0] != char(0x55)) return false;
++        // Malformed sizes and stale generations cannot replace accepted RAW.
++        latest.camGen[4] = 4;
++        latest.c[4].resize(thumbnail::Bytes);
++        if (source.refreshDisplay(frame) != 0) return false;
+         source.m_liveFrames.reset();
+-        if (source.refreshDisplay(frame) != 0 || frame.cameraPixels[4][0] != char(0x44)) return false;
++        if (source.refreshDisplay(frame) != 0 || frame.cameraPixels[4][0] != char(0x66)) return false;
+         fprintf(stderr, "DISPLAY_LATE_LATCH_SELFTEST_PASS\n");
+         return true;
+     }
+@@ -1155,12 +1282,14 @@
+         const int stereoMask = m_options.stereoCameraMask();
+         for (CameraWorker &w : workers) {
+             w.setVisionSink(&m_selectedCamera, &m_sourceGeneration, &m_frameSequence, m_visionSink, stereoMask);
+-            w.setModePtr(&m_mode);
+             w.setPausedPtr(&m_paused);
+             w.setHdmiPtr(&m_hdmiActive);
++            w.setDisplayModePtr(&m_mode);
+         }
+         for (CameraWorker &w : workers) w.start();
+-        emit statusMsg("Six-camera DMA ready; 3x2 view, inference uses the selected pane");
++        emit statusMsg(qgetenv("DETVIEW_FPGA_SIX_THUMBNAIL") == "1"
++            ? "Six-camera FPGA thumbnails; RAW YOLO/stereo/HDMI; full selected view"
++            : "Six-camera RAW display; FPGA six-thumbnail option off");
+         // Same owned per-camera snapshot path as optimized camview: no CPU
+         // composite, row copies, or GLES2 tile packing in the display pipeline.
+         std::array<QByteArray, CAM_COUNT> cameraPixels;
+@@ -1205,6 +1334,7 @@
+             std::array<qint64, CAM_COUNT> captureTimes{};
+             std::array<qint64, CAM_COUNT> rawCaptureTimes{};
+             std::array<qint64, CAM_COUNT> dmaReturnTimes{};
++            std::array<thumbnail::Geometry, CAM_COUNT> geometry{};
+             std::array<quint32, CAM_COUNT> tags{};
+             std::array<int, CAM_COUNT> cameraGenerations{};
+             {
+@@ -1222,6 +1352,7 @@
+                     captureTimes[i] = latest.lastCapturedMs[i];
+                     rawCaptureTimes[i] = latest.rawCapturedMs[i];
+                     dmaReturnTimes[i] = latest.dmaReturnedNs[i];
++                    geometry[i] = latest.geometry[i];
+                     tags[i] = latest.tags[i];
+                     cameraGenerations[i] = latest.sourceGenerations[i];
+                     if (monotonicMs() - captureTimes[i] > 1000) camFps[i] = 0;
+@@ -1232,7 +1363,9 @@
+             }
+             const bool hdmiFull = mode == CAM_COUNT && m_hdmiActive.load();
+             if (hdmiFull) pane = tdm::hdmiInferenceCamera;
+-            if (hdmiFull && m_visionSink && camGen[4] != hdmiLeftSequence && camGen[5] != hdmiRightSequence &&
++            if (hdmiFull && m_visionSink && geometry[4].raw() && geometry[5].raw() &&
++                cameraPixels[4].size() == FRAME_BYTES && cameraPixels[5].size() == FRAME_BYTES &&
++                camGen[4] != hdmiLeftSequence && camGen[5] != hdmiRightSequence &&
+                 tdm::hdmiPairReady(monotonicMs(), rawCaptureTimes[4], rawCaptureTimes[5],
+                                    displayGeneration, cameraGenerations[4], cameraGenerations[5])) {
+                 VisionFrame packet;
+@@ -1310,6 +1443,7 @@
+                 fpsVec.append(camFps[i]);
+             DisplayFrame display{{}, displayGeneration, paneMask, pane, changedMask, fps, fpsVec, false};
+             display.cameraPixels = cameraPixels;
++            display.geometry = geometry;
+             std::copy(camGen, camGen + CAM_COUNT, display.cameraSequences.begin());
+             display.capturedMs = captureTimes;
+             display.rawCapturedMs = rawCaptureTimes;
+@@ -2800,6 +2934,7 @@
+         const bool hdmiFull = frame.hdmiFull && frame.paneMask == 0x3F;
+         if (m_hdmiFull != hdmiFull) { m_hdmiFull = hdmiFull; m_overlayUpdatedMs = 0; }
+         m_cameraPixels = frame.cameraPixels;
++        m_cameraGeometry = frame.geometry;
+         m_paneMask = frame.paneMask;
+         m_pane = frame.pane;
+         m_dispFps = frame.fps;
+@@ -2900,7 +3035,7 @@
+                 (unsigned long long)m_perf.takes, (unsigned long long)m_perf.uploads,
+                 (unsigned long long)m_perf.freshPaints, (unsigned long long)m_perf.swaps);
+         static const char* names[] = {"camera_upload", "hud_regions", "hud_raster", "hud_pack", "hud_upload",
+-            "camera_draw", "hud_draw", "paint_total", "settings_paint", "gui_delay", "capture_to_upload"};
++            "camera_draw", "hud_draw", "paint_total", "settings_paint", "gui_delay", "host_dma_return_to_upload"};
+         for (int i = 0; i < tdm::DisplayStageCount; ++i) {
+             const auto& v = m_perf.time[i];
+             fprintf(stderr, "[display-stage] name=%s count=%llu sum_ms=%.3f mean_ms=%.3f p50_le_ms=%.1f p95_le_ms=%.1f p99_le_ms=%.1f max_ms=%.3f overflow=%llu\n",
+@@ -3107,6 +3242,7 @@
+             const int refreshed = m_latchSource->refreshDisplay(m_latchFrame);
+             if (refreshed) {
+                 m_cameraPixels = m_latchFrame.cameraPixels;
++                m_cameraGeometry = m_latchFrame.geometry;
+                 m_sequences = m_latchFrame.cameraSequences;
+                 m_capturedMs = m_latchFrame.capturedMs;
+                 m_camFps = m_latchFrame.camFps;
+@@ -3177,19 +3313,24 @@
+                     for (int c = 0; c < CAM_COUNT; ++c) {
+                         if (!(mask & (1 << c)))
+                             continue;
+-                        if (m_cameraPixels[c].size() != FRAME_BYTES) continue;
++                        const auto geometry = m_cameraGeometry[c];
++                        if (!geometry.valid(size_t(m_cameraPixels[c].size()))) continue;
+                         // A paced publisher may resend a frame already late-latched.
+                         if (m_lateLatch && m_sequences[c] != 0 && m_sequences[c] == m_uploadedSequences[c] &&
+                             m_cameraTextureAllocated[c][m_cameraTextureSlot[c]]) continue;
+                         const int slot = (m_cameraTextureSlot[c] + 1) % m_textureRing;
+                         glBindTexture(GL_TEXTURE_2D, m_cameraTextures[c][slot]);
+-                        if (!m_cameraTextureAllocated[c][slot]) {
+-                            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, IMG_W, IMG_H, 0, GL_RGB,
+-                                         GL_UNSIGNED_SHORT_5_6_5, m_cameraPixels[c].constData());
++                        if (!m_cameraTextureAllocated[c][slot] ||
++                            m_cameraTextureWidth[c][slot] != geometry.width ||
++                            m_cameraTextureHeight[c][slot] != geometry.height) {
++                            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, geometry.width, geometry.height, 0, GL_RGB,
++                                          GL_UNSIGNED_SHORT_5_6_5, m_cameraPixels[c].constData());
+                             m_cameraTextureAllocated[c][slot] = true;
++                            m_cameraTextureWidth[c][slot] = geometry.width;
++                            m_cameraTextureHeight[c][slot] = geometry.height;
+                         } else {
+-                            glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, IMG_W, IMG_H, GL_RGB,
+-                                            GL_UNSIGNED_SHORT_5_6_5, m_cameraPixels[c].constData());
++                            glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, geometry.width, geometry.height, GL_RGB,
++                                             GL_UNSIGNED_SHORT_5_6_5, m_cameraPixels[c].constData());
+                         }
+                         m_cameraTextureSlot[c] = slot;
+                         const qint64 uploadEndNs = m_perfEnabled ? monotonicNs() : 0;
+@@ -3203,10 +3344,9 @@
+                             m_uploadedDmaNs[c] > 0 && uploadEndNs >= m_uploadedDmaNs[c])
+                             m_dmaToUpload[c].add((uploadEndNs - m_uploadedDmaNs[c]) / 1e6);
+                         if (m_perfEnabled) {
+-                            ++m_perf.cameraUploads[c]; m_perf.cameraUploadBytes[c] += FRAME_BYTES;
+-                            const qint64 uploadedAt = monotonicMs();
+-                            if (m_capturedMs[c] > 0 && uploadedAt >= m_capturedMs[c])
+-                                m_perf.time[tdm::CaptureToUpload].add(uploadedAt - m_capturedMs[c]);
++                            ++m_perf.cameraUploads[c]; m_perf.cameraUploadBytes[c] += geometry.bytes();
++                            if (m_uploadedDmaNs[c] > 0 && uploadEndNs >= m_uploadedDmaNs[c])
++                                m_perf.time[tdm::CaptureToUpload].add((uploadEndNs - m_uploadedDmaNs[c]) / 1e6);
+                         }
+                         uploadedMask |= 1 << c;
+                     }
+@@ -3262,10 +3402,14 @@
+                     if (drawEndNs >= m_uploadedDmaNs[camera])
+                         m_dmaToDraw[camera].add((drawEndNs - m_uploadedDmaNs[camera]) / 1e6);
+                     if (m_latencyTrace)
+-                        fprintf(stderr, "[display-latency-frame] late_latch=%d camera=%d generation=%d sequence=%llu tag=%u dma_return_ns=%lld upload_end_ns=%lld draw_end_ns=%lld\n",
++                        fprintf(stderr, "[display-latency-frame] late_latch=%d camera=%d generation=%d sequence=%llu tag=%u dma_return_ns=%lld upload_end_ns=%lld draw_end_ns=%lld width=%d height=%d bytes=%zu\n",
+                                 int(m_lateLatch), camera + 1, m_uploadedGenerations[camera],
+                                 (unsigned long long)m_uploadedSequences[camera], m_uploadedTags[camera],
+-                                (long long)m_uploadedDmaNs[camera], (long long)m_uploadEndNs[camera], (long long)drawEndNs);
++                                (long long)m_uploadedDmaNs[camera], (long long)m_uploadEndNs[camera], (long long)drawEndNs,
++                                m_cameraTextureWidth[camera][m_cameraTextureSlot[camera]],
++                                m_cameraTextureHeight[camera][m_cameraTextureSlot[camera]],
++                                size_t(m_cameraTextureWidth[camera][m_cameraTextureSlot[camera]]) *
++                                m_cameraTextureHeight[camera][m_cameraTextureSlot[camera]] * 2);
+                 }
+                 m_renderedSequences[camera] = m_uploadedSequences[camera];
+             };
+@@ -3775,6 +3919,8 @@
+     GLuint m_cameraTextures[CAM_COUNT][kTextureRing] = {};
+     std::array<int, CAM_COUNT> m_cameraTextureSlot{};
+     bool m_cameraTextureAllocated[CAM_COUNT][kTextureRing] = {};
++    int m_cameraTextureWidth[CAM_COUNT][kTextureRing] = {};
++    int m_cameraTextureHeight[CAM_COUNT][kTextureRing] = {};
+     bool m_texAlloc = false;
+     bool m_dirty = false;
+     bool m_videoMode = false;
+@@ -3792,6 +3938,7 @@
+     bool m_haveFrame = false;
+     QImage m_comp;                 // RGB565 3x2 合成（包装相机线程缓冲）
+     std::array<QByteArray, CAM_COUNT> m_cameraPixels;
++    std::array<thumbnail::Geometry, CAM_COUNT> m_cameraGeometry{};
+     int m_changedMask = 0x3F;      // 本次更新的格子（供按格 glTexSubImage2D）
+     int m_texW = 0, m_texH = 0;    // 当前纹理尺寸（判断是否需要重新分配）
+     QImage m_image;                // 视频源路径
+@@ -4648,7 +4795,7 @@
+         const qint64 now = monotonicMs();
+         for (int camera : {pair->left, pair->right}) {
+             if (snapshot.generation != m_sourceGeneration || snapshot.cameraGenerations[camera] != m_sourceGeneration ||
+-                snapshot.cameraPixels[camera].size() != FRAME_BYTES || snapshot.rawCapturedMs[camera] <= 0 ||
++                !snapshot.geometry[camera].raw() || snapshot.cameraPixels[camera].size() != FRAME_BYTES || snapshot.rawCapturedMs[camera] <= 0 ||
+                 now < snapshot.rawCapturedMs[camera] || now - snapshot.rawCapturedMs[camera] > 500) {
+                 m_gl->setCalibrationLine("采图失败：等待所选双目两路新帧"); return;
+             }
+@@ -4795,7 +4942,12 @@
+     qint64 m_lastStereoMs = 0, m_lastTrackMs = 0, m_lastLaneMs = 0;
+ };
+ 
++static volatile std::sig_atomic_t terminationRequested = 0;
++static void requestTermination(int) { terminationRequested = 1; }
++
+ int main(int argc, char **argv) {
++    fprintf(stderr, "[thumbnail-config] enabled=%d cameras=all-six format=320x240-RGB565 bytes=%u raw_vision=640x480 all_six_continuous=1 shared_input_reserved=1\n",
++            qgetenv("DETVIEW_FPGA_SIX_THUMBNAIL") == "1", thumbnail::Bytes);
+     fprintf(stderr, "[display-latency-config] late_latch=%d trace=%d clock=CLOCK_MONOTONIC start=host_dma_return end=gl_call_return\n",
+             !qEnvironmentVariableIsSet("DETVIEW_LATE_LATCH") || qEnvironmentVariableIntValue("DETVIEW_LATE_LATCH") != 0,
+             qEnvironmentVariableIntValue("DETVIEW_LATENCY_TRACE") != 0);
+@@ -4832,6 +4984,13 @@
+     qputenv("QT_AUTO_SCREEN_SCALE_FACTOR", "0");
+ 
+     QApplication app(argc, argv);
++    std::signal(SIGTERM, requestTermination);
++    std::signal(SIGINT, requestTermination);
++    QTimer terminationTimer;
++    QObject::connect(&terminationTimer, &QTimer::timeout, &app, [&app]() {
++        if (terminationRequested) app.quit();
++    });
++    terminationTimer.start(50);
+     if (app.arguments().contains("--stereo-vehicle-trial")) {
+         qputenv("DETVIEW_STEREO_VEHICLE_TRIAL", "1");
+         qputenv("DETVIEW_STEREO_TRIAL_METERS", "1");
+@@ -4860,7 +5019,7 @@
+     }
+     if (app.arguments().contains("--vision-selftest")) {
+         const bool ok = runCalibrationCaptureSelfTest() == 0 && selfTestVehiclePolicy() && CameraThread::selfTestDisplay() && DetView::selfTestRefresh() && tdm::runTrackerSelfTest() == 0 &&
+-                        tdm::runCameraDmaSelfTest() == 0 && runFrameMetricsSelfTest() == 0 &&
++                        tdm::runCameraDmaSelfTest() == 0 && thumbnail::runSelfTest() == 0 && runFrameMetricsSelfTest() == 0 &&
+                         tdm::runHdmiViewSelfTest() == 0 &&
+                         VisionPipeline::selfTest();
+         fprintf(stderr, ok ? "VISION_SELFTEST_PASS\n" : "VISION_SELFTEST_FAIL\n");
+@@ -4878,6 +5037,7 @@
+         return geometryOk && decoderOk ? 0 : 2;
+     }
+     if (app.arguments().contains("--camera-dma-selftest")) return tdm::runCameraDmaSelfTest();
++    if (app.arguments().contains("--thumbnail-selftest")) return thumbnail::runSelfTest();
+     if (app.arguments().contains("--frame-metrics-selftest")) return runFrameMetricsSelfTest();
+     if (app.arguments().contains("--hdmi-selftest")) return tdm::runHdmiViewSelfTest();
+     if (app.arguments().contains("--mvp-round1-selftest")) {
+--- /dev/null
++++ six_camera_viewer_src/thumbnail_delivery.h
+@@ -0,0 +1,149 @@
++#pragma once
++#include <cstddef>
++#include <cstdint>
++
++// Contract from integrated_six/source/delivery/delivery_regs.v.
++// Hardware transport and payload parity still require board validation.
++namespace thumbnail {
++constexpr uint32_t Base = 0x40020000, Signature = 0x444c5632;
++constexpr uint32_t SignatureReg = 0x00, Status = 0x10, Command = 0x20;
++constexpr uint32_t Source = 0x30, Destination = 0x40, Epoch = 0x50;
++constexpr uint32_t OutputBytes = 0x60, InputBytes = 0x80, Jobs = 0x90;
++constexpr uint32_t Caps = 0xa0, Mode = 0xb0, Camera = 0xc0, OutputBank = 0xd0;
++constexpr uint32_t SourceSequence = 0xe0, Supported = 0xf0;
++constexpr uint32_t Bank0 = 0x100, Bank1 = 0x110, Freeze = 0x120;
++constexpr uint32_t RequiredCaps = 7; // existing RGB/thumbnail + bit2 (value 4)
++constexpr uint32_t SupportedMask = 0x3f, ErrorMask = 0x70;
++constexpr uint32_t RgbDestination = 0x0a000000;
++constexpr uint32_t RawBytes = 640 * 480 * 2, RgbBytes = 640 * 640 * 3;
++constexpr uint32_t Bytes = 320 * 240 * 2;
++constexpr uint32_t SourceBanks[6][2] = {
++    {0x00800000, 0x00a00000}, {0x00c00000, 0x00e00000},
++    {0x01000000, 0x01200000}, {0x01400000, 0x01600000},
++    {0x01800000, 0x01a00000}, {0x01c00000, 0x01e00000}};
++constexpr uint32_t Destinations[6][2] = {
++    {0x0a280000, 0x0a2c0000}, {0x0a300000, 0x0a340000},
++    {0x0a380000, 0x0a3c0000}, {0x0a400000, 0x0a440000},
++    {0x0a200000, 0x0a240000}, {0x0a480000, 0x0a4c0000}};
++// +120: bit0 drain pending, bit1 unpublished, bit2 frozen, bit3 flush,
++// bit4 invalid RAW bank configuration. This is not the capture_hold bitmap.
++constexpr bool frozen(uint32_t value) {
++    return value == 4;
++}
++struct Geometry {
++    int width = 640, height = 480;
++    size_t bytes() const { return size_t(width) * size_t(height) * 2; }
++    bool raw() const { return width == 640 && height == 480; }
++    bool valid(size_t count) const {
++        return (raw() || (width == 320 && height == 240)) && count == bytes();
++    }
++};
++inline bool eligible(bool enabled, int camera, int fullCamera, int stereoMask, bool hdmi) {
++    return enabled && camera >= 0 && camera < 6 && fullCamera != camera &&
++           !(stereoMask & (1 << camera)) && !hdmi;
++}
++// Separate RAW and display cursors; selection/generation changes invalidate
++// both, but neither transaction overwrites the other's tag/history.
++struct Cursor {
++    bool delivered = false;
++    uint32_t tag = 0;
++    int generation = -1;
++    void reset(int value) { delivered = false; tag = 0; generation = value; }
++    bool newer(uint32_t value) const {
++        return !delivered || (value != tag && uint32_t(value - tag) < 0x80000000u);
++    }
++    void commit(uint32_t value) { delivered = true; tag = value; }
++};
++
++// One complete serialized transaction, owned-copy output only. Transport owns
++// the existing fd/mutex; errors quarantine without destructor cleanup/release.
++template<class Transport> class Reader {
++    Transport& io;
++    uint32_t get(uint32_t reg) {
++        uint32_t value = 0;
++        if (!io.read(reg, value)) io.quarantine("six thumbnail MMIO read failed");
++        return value;
++    }
++    void check(bool ok, const char* reason) { if (!ok) io.quarantine(reason); }
++    void put(uint32_t reg, uint32_t value) {
++        if (!io.write(reg, value)) io.quarantine("six thumbnail MMIO write failed");
++    }
++    uint32_t status() {
++        const auto value = get(Status);
++        check(!(value & ErrorMask), "six thumbnail error/config/quarantine");
++        return value;
++    }
++    void wait(uint32_t mask, uint32_t value) {
++        const auto start = io.nowMs();
++        do {
++            if ((status() & mask) == value) return;
++            io.delay();
++        } while (io.nowMs() - start < 2000);
++        io.quarantine("six thumbnail lease/completion deadline");
++    }
++    void configuration(int camera, int bank) {
++        check(get(Camera) == uint32_t(camera) && get(OutputBank) == uint32_t(bank) &&
++              get(Mode) == 1 && get(Destination) == Destinations[camera][bank] &&
++              get(OutputBytes) == Bytes && get(Bank0) == SourceBanks[camera][0] &&
++              get(Bank1) == SourceBanks[camera][1], "six thumbnail selector/size readback");
++    }
++    void identity(int camera, int bank, uint32_t epoch, uint32_t source, uint32_t tag) {
++        check((status() & 7) == 3 && get(Epoch) == epoch && get(Source) == source &&
++              get(SourceSequence) == tag && frozen(get(Freeze)), "six thumbnail lease changed");
++        configuration(camera, bank);
++    }
++    void restore() {
++        put(Command, 0);
++        wait(7, 0);
++        check(get(Freeze) == 0, "six thumbnail release freeze acknowledgement");
++        put(Mode, 0); put(Camera, 4); put(OutputBank, 0);
++        check((status() & 7) == 0 && get(Mode) == 0 && get(Camera) == 4 &&
++              get(OutputBank) == 0 && get(Destination) == RgbDestination &&
++              get(OutputBytes) == RgbBytes, "six thumbnail default RGB restoration");
++    }
++public:
++    explicit Reader(Transport& transport) : io(transport) {}
++    // RTL freezes only published frames. At the admission deadline, an idle,
++    // unsubmitted hold with only the unpublished diagnostic can safely release.
++    // A published sequence of zero is valid after uint32_t wrap.
++    bool read(int camera, int bank, void* destination, size_t capacity, uint32_t& tag) {
++        check(camera >= 0 && camera < 6 && bank >= 0 && bank < 2 && destination && capacity == Bytes,
++              "six thumbnail argument/size");
++        check(get(SignatureReg) == Signature && (get(Caps) & RequiredCaps) == RequiredCaps &&
++              get(Supported) == SupportedMask, "six thumbnail capability/bitmap unsupported");
++        check((status() & 7) == 0 && get(Freeze) == 0 && get(Mode) == 0 &&
++              get(Camera) == 4 && get(OutputBank) == 0 && get(Destination) == RgbDestination &&
++              get(OutputBytes) == RgbBytes && get(InputBytes) == RawBytes, "six thumbnail idle/default owner required");
++        put(Camera, uint32_t(camera)); put(OutputBank, uint32_t(bank)); put(Mode, 1);
++        configuration(camera, bank);
++        check((status() & 7) == 0 && get(Freeze) == 0, "six thumbnail selector write active");
++        put(Command, 1);
++        const auto start = io.nowMs();
++        while ((status() & 7) != 3) {
++            if (io.nowMs() - start >= 2000) {
++                if (get(Freeze) == 2 && (status() & 15) == 1) {
++                    restore();
++                    return false;
++                }
++                io.quarantine("six thumbnail lease/completion deadline");
++            }
++            io.delay();
++        }
++        const auto epoch = get(Epoch), source = get(Source), jobs = get(Jobs);
++        tag = get(SourceSequence);
++        check(source == SourceBanks[camera][0] || source == SourceBanks[camera][1], "six thumbnail source camera mismatch");
++        identity(camera, bank, epoch, source, tag);
++        uint32_t sourceTag = 0;
++        check(io.readTag(source + RawBytes, sourceTag) && sourceTag == tag, "six thumbnail source tag mismatch");
++        put(Command, 3); wait(15, 11);
++        check(get(Jobs) == uint32_t(jobs + 1), "six thumbnail jobs mismatch");
++        identity(camera, bank, epoch, source, tag); // validate byte count BEFORE copy
++        check(io.readPixels(Destinations[camera][bank], Bytes, destination), "six thumbnail pixel DMA failed");
++        identity(camera, bank, epoch, source, tag);
++        check(io.readTag(source + RawBytes, sourceTag) && sourceTag == tag, "six thumbnail frozen tag changed");
++        restore();
++        return true;
++    }
++};
++int runSelfTest();
++} // namespace thumbnail
+--- /dev/null
++++ six_camera_viewer_src/thumbnail_delivery_selftest.cpp
+@@ -0,0 +1,224 @@
++#include "thumbnail_delivery.h"
++#include "six_dma_layout.h"
++#include "camera_dma.h"
++#include <cstdio>
++#include <cstring>
++#include <stdexcept>
++#include <vector>
++#include <algorithm>
++
++namespace thumbnail {
++namespace {
++struct Stopped : std::runtime_error { using std::runtime_error::runtime_error; };
++struct Fake {
++    uint32_t mode = 0, camera = 4, bank = 0, state = 0, epoch = 42, jobs = 9, tag = 123;
++    int64_t clock = 0;
++    int reads = 0, writes = 0, copies = 0, releases = 0, restores = 0;
++    int failRead = 0, failWrite = 0;
++    bool badSignature = false, badCaps = false, badSize = false, badSource = false;
++    bool failDma = false, changedEpoch = false, changedTag = false, fault = false;
++    bool freezeTimeout = false, completionTimeout = false, releaseTimeout = false;
++    bool wrongJobs = false, ignoredMode = false, badBitmap = false, badFreeze = false;
++    bool badBank = false, badActualBank = false;
++    bool unpublished = false, pending = false, flushing = false, invalidBanks = false;
++    int sourceBank = 0;
++    int publishAt = -1;
++    bool read(uint32_t reg, uint32_t& value) {
++        if (++reads == failRead) return false;
++        switch (reg) {
++        case SignatureReg: value = badSignature ? 0 : Signature; break;
++        case Caps: value = badCaps ? 3 : RequiredCaps; break;
++        case Supported: value = badBitmap ? 0x1f : SupportedMask; break;
++        case Status: value = state; break;
++        case Mode: value = mode; break;
++        case Camera: value = camera; break;
++        case OutputBank: value = bank ^ (badBank ? 1 : 0); break;
++        case Bank0: value = SourceBanks[camera][0] + (badActualBank ? 16 : 0); break;
++        case Bank1: value = SourceBanks[camera][1]; break;
++        case Freeze:
++            value = ((state & 3) == 3 ? (badFreeze ? 0x3f : 4u) : 0u) |
++                    ((state & 1) && unpublished ? 2u : 0u) |
++                    ((state & 1) && pending ? 1u : 0u) |
++                    (flushing ? 8u : 0u) | (invalidBanks ? 16u : 0u);
++            break;
++        case Destination: value = mode ? Destinations[camera][bank] : RgbDestination; break;
++        case InputBytes: value = RawBytes; break;
++        case OutputBytes: value = mode ? (badSize ? Bytes + 16 : Bytes) : RgbBytes; break;
++        case Source: value = badSource ? 0xdead0000 : SourceBanks[camera][sourceBank]; break;
++        case SourceSequence: value = tag + ((changedTag && copies) ? 1 : 0); break;
++        case Epoch: value = epoch + ((changedEpoch && copies) ? 1 : 0); break;
++        case Jobs: value = jobs; break;
++        default: throw std::logic_error("unexpected register");
++        }
++        return true;
++    }
++    bool write(uint32_t reg, uint32_t value) {
++        if (++writes == failWrite) return false;
++        if (reg == Mode || reg == Camera || reg == OutputBank) {
++            if (state & 7) throw std::logic_error("selector changed while held/busy");
++            if (reg == Mode) {
++                if (!ignoredMode) mode = value;
++                if (!value) ++restores;
++            } else if (reg == Camera) camera = value;
++            else bank = value;
++            state &= ~8u;
++        } else if (reg == Command && value == 1) state = (freezeTimeout || unpublished) ? 1 : 3;
++        else if (reg == Command && value == 3) {
++            if (unpublished) throw std::logic_error("submitted unpublished frame");
++            state = fault ? 0x53 : (completionTimeout ? 7 : 11);
++            if (!wrongJobs) ++jobs;
++        } else if (reg == Command && value == 0) {
++            if (!((state == 11 && copies == 1) || (state == 1 && unpublished &&
++                  !pending && !flushing && !invalidBanks && copies == 0)))
++                throw std::logic_error("unsafe release");
++            ++releases;
++            if (!releaseTimeout) state = 8;
++        } else throw std::logic_error("unexpected command");
++        return true;
++    }
++    bool readTag(uint32_t address, uint32_t& value) {
++        if (address != SourceBanks[camera][sourceBank] + RawBytes) throw std::logic_error("wrong source tag address");
++        value = tag;
++        return true;
++    }
++    bool readPixels(uint32_t address, uint32_t count, void* output) {
++        if (state != 11 || mode != 1 || address != Destinations[camera][bank] || count != Bytes)
++            throw std::logic_error("wrong DMA size/address/lease");
++        ++copies;
++        if (failDma) return false;
++        std::memset(output, 0x5a, count);
++        return true;
++    }
++    int64_t nowMs() { return clock; }
++    void delay() {
++        clock += 100;
++        if (publishAt >= 0 && clock >= publishAt && state == 1) {
++            unpublished = false;
++            state = 3;
++        }
++    }
++    [[noreturn]] void quarantine(const char* reason) { throw Stopped(reason); }
++};
++}
++int runSelfTest() {
++    int failures = 0, cases = 0;
++    auto expect = [&](bool ok, const char* description) {
++        ++cases;
++        if (!ok) { ++failures; std::fprintf(stderr, "[six-thumbnail-selftest] FAIL %s\n", description); }
++    };
++    std::vector<uint8_t> buffer(Bytes + 32, 0xa5);
++    auto execute = [&](Fake& io, int camera = 0, int bank = 0, size_t capacity = Bytes) {
++        uint32_t tag = 0;
++        try { return Reader<Fake>(io).read(camera, bank, buffer.data() + 16, capacity, tag) ? 1 : 0; }
++        catch (const Stopped&) { return -1; }
++    };
++    Fake healthy;
++    for (int camera = 0; camera < 6; ++camera) for (int bank = 0; bank < 2; ++bank) {
++        Fake io;
++        io.sourceBank = 1 - bank; // RAW bank is independent of output bank.
++        expect(execute(io, camera, bank) == 1 && io.releases == 1 && io.restores == 1 &&
++               io.mode == 0 && io.camera == 4 && io.bank == 0, "all six cameras, both output banks, defaults restored");
++        Fake empty; empty.unpublished = true;
++        expect(execute(empty, camera, bank) == 0 && empty.copies == 0 && empty.releases == 1 &&
++               empty.restores == 1 && empty.jobs == 9 && empty.clock == 2000,
++               "unpublished: bounded admission, no submission/copy, safe release");
++        Fake wrapped; wrapped.tag = 0;
++        expect(execute(wrapped, camera, bank) == 1 && wrapped.copies == 1 && wrapped.jobs == 10,
++               "published zero sequence after wrap is delivered");
++    }
++    expect(execute(healthy) == 1, "healthy transaction");
++    Fake delayed; delayed.unpublished = true; delayed.publishAt = 1000;
++    expect(execute(delayed) == 1 && delayed.clock == 1000 && delayed.copies == 1,
++           "publication during admission wait delivers normally");
++    expect(buffer[0] == 0xa5 && buffer[15] == 0xa5 && buffer[16] == 0x5a &&
++           buffer[Bytes + 15] == 0x5a && buffer[Bytes + 16] == 0xa5 && buffer.back() == 0xa5,
++           "153600-byte payload and owned-copy guards");
++    Fake argument;
++    expect(execute(argument, 6) == -1 && argument.writes == 0, "camera bounds");
++    expect(execute(argument, 0, 2) == -1 && argument.writes == 0, "bank bounds");
++    expect(execute(argument, 0, 0, RawBytes) == -1 && argument.writes == 0, "capacity bounds");
++    auto preflight = [&](bool Fake::*field, const char* name) {
++        Fake io; io.*field = true;
++        expect(execute(io) == -1 && io.writes == 0, name);
++    };
++    preflight(&Fake::badSignature, "signature before commands");
++    preflight(&Fake::badCaps, "bit2 capability before commands");
++    preflight(&Fake::badBitmap, "six-camera support bitmap");
++    for (auto state : {3u, 4u, 0x40u}) {
++        Fake io; io.state = state;
++        expect(execute(io) == -1 && io.writes == 0, "held/busy/quarantined selector guard");
++    }
++    auto faultCase = [&](bool Fake::*field, const char* name) {
++        Fake io; io.*field = true;
++        expect(execute(io) == -1 && io.releases == 0 && io.restores == 0, name);
++    };
++    faultCase(&Fake::badSize, "size before DMA");
++    faultCase(&Fake::badSource, "source camera identity");
++    faultCase(&Fake::badBank, "output selector identity");
++    faultCase(&Fake::badActualBank, "RAW source bank configuration identity");
++    faultCase(&Fake::badFreeze, "freeze diagnostic identity");
++    faultCase(&Fake::freezeTimeout, "freeze timeout quarantine");
++    faultCase(&Fake::completionTimeout, "completion timeout quarantine");
++    faultCase(&Fake::fault, "FPGA fault quarantine");
++    faultCase(&Fake::wrongJobs, "jobs completion identity");
++    faultCase(&Fake::failDma, "DMA failure keeps lease");
++    faultCase(&Fake::changedEpoch, "epoch after DMA");
++    faultCase(&Fake::changedTag, "sequence after DMA");
++    faultCase(&Fake::ignoredMode, "mode readback before hold");
++    for (auto field : {&Fake::pending, &Fake::flushing, &Fake::invalidBanks}) {
++        Fake io; io.unpublished = true; io.*field = true;
++        expect(execute(io) == -1 && io.releases == 0 && io.restores == 0,
++               "unpublished with drain/flush/config fault cannot release");
++    }
++    Fake release; release.releaseTimeout = true;
++    expect(execute(release) == -1 && release.restores == 0, "release acknowledgement before restore");
++    for (int n = 1; n <= healthy.reads; ++n) {
++        Fake io; io.failRead = n;
++        expect(execute(io) == -1, "each MMIO read failure quarantines");
++    }
++    for (int n = 1; n <= healthy.writes; ++n) {
++        Fake io; io.failWrite = n;
++        expect(execute(io) == -1, "each MMIO write failure quarantines");
++    }
++    Cursor raw, display;
++    raw.reset(10); display.reset(10); raw.commit(100); display.commit(102);
++    expect(raw.tag == 100 && display.tag == 102 && raw.newer(101) && !display.newer(101),
++           "RAW analytics and display sequences are independent");
++    raw.reset(11); display.reset(11);
++    expect(!raw.delivered && !display.delivered && raw.newer(1) && display.newer(1), "generation reset");
++    raw.commit(0xffffffffu);
++    expect(raw.newer(1) && !raw.newer(0xfffffffeu), "sequence wrap");
++    for (int c = 0; c < 6; ++c) {
++        expect(eligible(true, c, -1, 0, false) && !eligible(false, c, -1, 0, false) &&
++               !eligible(true, c, c, 0, false) && !eligible(true, c, -1, 1 << c, false) &&
++               !eligible(true, c, -1, 0, true), "all-six grid on; single/stereo/HDMI RAW fallback");
++    }
++    expect(Geometry{}.valid(RawBytes) && !Geometry{}.valid(Bytes) &&
++           Geometry{320, 240}.valid(Bytes) && !Geometry{320, 240}.raw(), "geometry separation");
++    // Exercise real copy routine and reusable layout with a reserved-slot canary.
++    std::vector<uint8_t> rx(sixdma::Allocation, 0xa7), rawOwned(RawBytes), thumbOwned(Bytes);
++    std::vector<uint8_t> original(RawBytes);
++    for (size_t n = 0; n < original.size(); ++n) original[n] = uint8_t((n * 37) ^ (n >> 8));
++    for (int c = 0; c < 6; ++c) {
++        std::memcpy(rx.data() + sixdma::RawSlot, original.data(), RawBytes);
++        tdm::copyCameraPixels(rawOwned.data(), rx.data() + sixdma::RawSlot, RawBytes);
++        std::memset(rx.data() + sixdma::Metadata, c, 16);
++        std::memset(rx.data() + sixdma::RawSlot, 0x5a, Bytes);
++        tdm::copyCameraPixels(thumbOwned.data(), rx.data() + sixdma::RawSlot, Bytes);
++        expect(rawOwned == original && std::all_of(thumbOwned.begin(), thumbOwned.end(),
++               [](uint8_t v) { return v == 0x5a; }), "RAW bytes owned before shared scratch reuse");
++    }
++    expect(std::all_of(rx.begin() + sixdma::SharedInput,
++           rx.begin() + sixdma::SharedInput + sixdma::SharedInputBytes,
++           [](uint8_t v) { return v == 0xa7; }), "RKNN shared input canary survives all six scratch copies");
++    expect(sixdma::scratchRange(0, RawBytes + 16) && sixdma::scratchRange(sixdma::Metadata, 4096) &&
++           !sixdma::scratchRange(sixdma::SharedInput, 16) &&
++           !sixdma::scratchRange(sixdma::SharedInput - 16, 32) &&
++           !sixdma::scratchRange(0xffffffffu, 16), "all viewer DMA ranges below reserved input");
++    std::fprintf(stderr, "SIX_THUMBNAIL_SELFTEST_%s cases=%d failures=%d\n", failures ? "FAIL" : "PASS", cases, failures);
++    return failures ? 2 : 0;
++}
++} // namespace thumbnail
++#ifdef THUMBNAIL_STANDALONE_SELFTEST
++int main() { return thumbnail::runSelfTest(); }
++#endif
+--- /dev/null
++++ six_camera_viewer_src/six_dma_layout.h
+@@ -0,0 +1,29 @@
++#pragma once
++#include <cstddef>
++#include <cstdint>
++
++namespace sixdma {
++constexpr uint32_t Allocation = 4u * 1024u * 1024u;
++constexpr uint32_t RawSlot = 0;
++constexpr uint32_t Metadata = 1024u * 1024u;
++constexpr uint32_t SharedInput = 2u * 1024u * 1024u;
++constexpr uint32_t SharedInputBytes = 640u * 640u * 3u;
++constexpr uint32_t RawBytes = 640u * 480u * 2u;
++// Always reserve this region, even before the parent installs shared RKNN.
++constexpr bool scratchRange(uint32_t offset, uint32_t length) {
++    return length && offset < SharedInput && length <= SharedInput - offset;
++}
++static_assert(RawSlot + RawBytes + 16 <= Metadata, "RAW/tag scratch must not overlap MMIO");
++static_assert(Metadata + 4096 <= SharedInput, "MMIO scratch below input reservation");
++static_assert(SharedInput + SharedInputBytes <= Allocation, "RKNN slot fits mapping");
++struct BorrowedSession {
++    int fd; // borrowed: never close, mmap again or change device ownership
++    uint8_t* rx;
++    size_t rxBytes;
++    uint32_t inputOffset;
++    uint32_t inputBytes;
++};
++// A callback receives BorrowedSession only while PangoDev's DMA mutex is held.
++// Never retain RX scratch pointers or call locking PangoDev methods inside it.
++// Shared-input token/lifetime and RKNN binding remain the parent's responsibility.
++} // namespace sixdma

@@ -1,0 +1,153 @@
+--- source/axi_crossbar/ddr_w_arb.v
++++ integrated/source/axi_crossbar/ddr_w_arb.v
+@@ -151,6 +151,27 @@
+     output wire         m5_bvalid,
+     input  wire         m5_bready,
+ 
++    // ---- master 6 (delivery) (SFP cam6 DMA) [SFP 2026-09-29] ----
++    input  wire [3:0]   m6_awid,
++    input  wire [31:0]  m6_awaddr,
++    input  wire [7:0]   m6_awlen,
++    input  wire [2:0]   m6_awsize,
++    input  wire [1:0]   m6_awburst,
++    input  wire         m6_awlock,
++    input  wire [3:0]   m6_awcache,
++    input  wire [2:0]   m6_awprot,
++    input  wire         m6_awvalid,
++    output wire         m6_awready,
++    input  wire [127:0] m6_wdata,
++    input  wire [15:0]  m6_wstrb,
++    input  wire         m6_wlast,
++    input  wire         m6_wvalid,
++    output wire         m6_wready,
++    output wire [3:0]   m6_bid,
++    output wire [1:0]   m6_bresp,
++    output wire         m6_bvalid,
++    input  wire         m6_bready,
++
+     // ---- slave (DDR3 port glue) ----
+     output wire [3:0]   s_awid,
+     output wire [31:0]  s_awaddr,
+@@ -192,15 +213,15 @@
+     // grant decision: only when idle; round-robin among the requesting masters.
+     // rr points at the master that gets the slot when several request at once.
+     // Rotate-mask round-robin: prefer requesters at/after rr, else wrap to 0.
+-    wire [5:0] req_v   = {m5_awvalid, m4_awvalid, m3_awvalid, m2_awvalid, m1_awvalid, m0_awvalid};
+-    wire [5:0] rr_mask = 6'b111111 << rr;
+-    wire [5:0] req_hi  = req_v & rr_mask;
++    wire [6:0] req_v   = {m6_awvalid, m5_awvalid, m4_awvalid, m3_awvalid, m2_awvalid, m1_awvalid, m0_awvalid};
++    wire [6:0] rr_mask = 7'b1111111 << rr;
++    wire [6:0] req_hi  = req_v & rr_mask;
+     wire [2:0] pick_pref = req_hi[0] ? 3'd0 : req_hi[1] ? 3'd1 :
+                            req_hi[2] ? 3'd2 : req_hi[3] ? 3'd3 :
+-                           req_hi[4] ? 3'd4 : 3'd5;
++                           req_hi[4] ? 3'd4 : req_hi[5] ? 3'd5 : 3'd6;
+     wire [2:0] pick_wrap = req_v[0] ? 3'd0 : req_v[1] ? 3'd1 :
+                            req_v[2] ? 3'd2 : req_v[3] ? 3'd3 :
+-                           req_v[4] ? 3'd4 : 3'd5;
++                           req_v[4] ? 3'd4 : req_v[5] ? 3'd5 : 3'd6;
+     wire pick_v = |req_v;
+     wire [2:0] pick_sel = (|req_hi) ? pick_pref : pick_wrap;
+ 
+@@ -209,28 +230,28 @@
+     wire [2:0] eff_sel = sel;
+ 
+     // AW datapath (latched winner's request)
+-    assign s_awid    = eff_sel == 3'd5 ? m5_awid    : eff_sel == 3'd4 ? m4_awid    :
++    assign s_awid    = eff_sel == 3'd6 ? m6_awid : eff_sel == 3'd5 ? m5_awid    : eff_sel == 3'd4 ? m4_awid    :
+                        eff_sel == 3'd3 ? m3_awid    : eff_sel == 3'd2 ? m2_awid    :
+                        eff_sel == 3'd1 ? m1_awid    : m0_awid;
+-    assign s_awaddr  = eff_sel == 3'd5 ? m5_awaddr  : eff_sel == 3'd4 ? m4_awaddr  :
++    assign s_awaddr  = eff_sel == 3'd6 ? m6_awaddr : eff_sel == 3'd5 ? m5_awaddr  : eff_sel == 3'd4 ? m4_awaddr  :
+                        eff_sel == 3'd3 ? m3_awaddr  : eff_sel == 3'd2 ? m2_awaddr  :
+                        eff_sel == 3'd1 ? m1_awaddr  : m0_awaddr;
+-    assign s_awlen   = eff_sel == 3'd5 ? m5_awlen   : eff_sel == 3'd4 ? m4_awlen   :
++    assign s_awlen   = eff_sel == 3'd6 ? m6_awlen : eff_sel == 3'd5 ? m5_awlen   : eff_sel == 3'd4 ? m4_awlen   :
+                        eff_sel == 3'd3 ? m3_awlen   : eff_sel == 3'd2 ? m2_awlen   :
+                        eff_sel == 3'd1 ? m1_awlen   : m0_awlen;
+-    assign s_awsize  = eff_sel == 3'd5 ? m5_awsize  : eff_sel == 3'd4 ? m4_awsize  :
++    assign s_awsize  = eff_sel == 3'd6 ? m6_awsize : eff_sel == 3'd5 ? m5_awsize  : eff_sel == 3'd4 ? m4_awsize  :
+                        eff_sel == 3'd3 ? m3_awsize  : eff_sel == 3'd2 ? m2_awsize  :
+                        eff_sel == 3'd1 ? m1_awsize  : m0_awsize;
+-    assign s_awburst = eff_sel == 3'd5 ? m5_awburst : eff_sel == 3'd4 ? m4_awburst :
++    assign s_awburst = eff_sel == 3'd6 ? m6_awburst : eff_sel == 3'd5 ? m5_awburst : eff_sel == 3'd4 ? m4_awburst :
+                        eff_sel == 3'd3 ? m3_awburst : eff_sel == 3'd2 ? m2_awburst :
+                        eff_sel == 3'd1 ? m1_awburst : m0_awburst;
+-    assign s_awlock  = eff_sel == 3'd5 ? m5_awlock  : eff_sel == 3'd4 ? m4_awlock  :
++    assign s_awlock  = eff_sel == 3'd6 ? m6_awlock : eff_sel == 3'd5 ? m5_awlock  : eff_sel == 3'd4 ? m4_awlock  :
+                        eff_sel == 3'd3 ? m3_awlock  : eff_sel == 3'd2 ? m2_awlock  :
+                        eff_sel == 3'd1 ? m1_awlock  : m0_awlock;
+-    assign s_awcache = eff_sel == 3'd5 ? m5_awcache : eff_sel == 3'd4 ? m4_awcache :
++    assign s_awcache = eff_sel == 3'd6 ? m6_awcache : eff_sel == 3'd5 ? m5_awcache : eff_sel == 3'd4 ? m4_awcache :
+                        eff_sel == 3'd3 ? m3_awcache : eff_sel == 3'd2 ? m2_awcache :
+                        eff_sel == 3'd1 ? m1_awcache : m0_awcache;
+-    assign s_awprot  = eff_sel == 3'd5 ? m5_awprot  : eff_sel == 3'd4 ? m4_awprot  :
++    assign s_awprot  = eff_sel == 3'd6 ? m6_awprot : eff_sel == 3'd5 ? m5_awprot  : eff_sel == 3'd4 ? m4_awprot  :
+                        eff_sel == 3'd3 ? m3_awprot  : eff_sel == 3'd2 ? m2_awprot  :
+                        eff_sel == 3'd1 ? m1_awprot  : m0_awprot;
+     assign s_awvalid = eff_valid;
+@@ -241,18 +262,19 @@
+     assign m3_awready = eff_valid & (eff_sel == 3'd3) & s_awready;
+     assign m4_awready = eff_valid & (eff_sel == 3'd4) & s_awready;
+     assign m5_awready = eff_valid & (eff_sel == 3'd5) & s_awready;
++    assign m6_awready = eff_valid & (eff_sel == 3'd6) & s_awready;
+ 
+     // W datapath (only the owner's beats can flow)
+-    assign s_wdata  = owner == 3'd5 ? m5_wdata : owner == 3'd4 ? m4_wdata :
++    assign s_wdata  = owner == 3'd6 ? m6_wdata : owner == 3'd5 ? m5_wdata : owner == 3'd4 ? m4_wdata :
+                       owner == 3'd3 ? m3_wdata : owner == 3'd2 ? m2_wdata :
+                       owner == 3'd1 ? m1_wdata : m0_wdata;
+-    assign s_wstrb  = owner == 3'd5 ? m5_wstrb : owner == 3'd4 ? m4_wstrb :
++    assign s_wstrb  = owner == 3'd6 ? m6_wstrb : owner == 3'd5 ? m5_wstrb : owner == 3'd4 ? m4_wstrb :
+                       owner == 3'd3 ? m3_wstrb : owner == 3'd2 ? m2_wstrb :
+                       owner == 3'd1 ? m1_wstrb : m0_wstrb;
+-    assign s_wlast  = owner == 3'd5 ? m5_wlast : owner == 3'd4 ? m4_wlast :
++    assign s_wlast  = owner == 3'd6 ? m6_wlast : owner == 3'd5 ? m5_wlast : owner == 3'd4 ? m4_wlast :
+                       owner == 3'd3 ? m3_wlast : owner == 3'd2 ? m2_wlast :
+                       owner == 3'd1 ? m1_wlast : m0_wlast;
+-    assign s_wvalid = busy & (owner == 3'd5 ? m5_wvalid : owner == 3'd4 ? m4_wvalid :
++    assign s_wvalid = busy & (owner == 3'd6 ? m6_wvalid : owner == 3'd5 ? m5_wvalid : owner == 3'd4 ? m4_wvalid :
+                               owner == 3'd3 ? m3_wvalid : owner == 3'd2 ? m2_wvalid :
+                               owner == 3'd1 ? m1_wvalid : m0_wvalid);
+ 
+@@ -262,6 +284,7 @@
+     assign m3_wready = busy & (owner == 3'd3) & s_wready;
+     assign m4_wready = busy & (owner == 3'd4) & s_wready;
+     assign m5_wready = busy & (owner == 3'd5) & s_wready;
++    assign m6_wready = busy & (owner == 3'd6) & s_wready;
+ 
+     // B path: single outstanding -> the owner gets the fabric-minted response
+     assign m0_bvalid = busy & (owner == 3'd0) & s_bvalid;
+@@ -270,19 +293,22 @@
+     assign m3_bvalid = busy & (owner == 3'd3) & s_bvalid;
+     assign m4_bvalid = busy & (owner == 3'd4) & s_bvalid;
+     assign m5_bvalid = busy & (owner == 3'd5) & s_bvalid;
++    assign m6_bvalid = busy & (owner == 3'd6) & s_bvalid;
+     assign m0_bid    = s_bid;
+     assign m1_bid    = s_bid;
+     assign m2_bid    = s_bid;
+     assign m3_bid    = s_bid;
+     assign m4_bid    = s_bid;
+     assign m5_bid    = s_bid;
++    assign m6_bid    = s_bid;
+     assign m0_bresp  = s_bresp;
+     assign m1_bresp  = s_bresp;
+     assign m2_bresp  = s_bresp;
+     assign m3_bresp  = s_bresp;
+     assign m4_bresp  = s_bresp;
+     assign m5_bresp  = s_bresp;
+-    assign s_bready  = busy & (owner == 3'd5 ? m5_bready : owner == 3'd4 ? m4_bready :
++    assign m6_bresp  = s_bresp;
++    assign s_bready  = busy & (owner == 3'd6 ? m6_bready : owner == 3'd5 ? m5_bready : owner == 3'd4 ? m4_bready :
+                                owner == 3'd3 ? m3_bready : owner == 3'd2 ? m2_bready :
+                                owner == 3'd1 ? m1_bready : m0_bready);
+ 
+@@ -300,7 +326,7 @@
+                 // the following master in round-robin order
+                 busy      <= 1'b1;
+                 owner     <= eff_sel;
+-                rr        <= (eff_sel == 3'd5) ? 3'd0 : (eff_sel + 3'd1);
++                rr        <= (eff_sel == 3'd6) ? 3'd0 : (eff_sel + 3'd1);
+                 sel_valid <= 1'b0;
+             end
+             else if (!busy && !sel_valid && pick_v) begin

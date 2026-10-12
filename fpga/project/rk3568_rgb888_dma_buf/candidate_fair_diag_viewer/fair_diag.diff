@@ -1,0 +1,431 @@
+--- /dev/null
++++ candidate_fair_diag_viewer/camera_diag.h
+@@ -0,0 +1,77 @@
++#pragma once
++#include <cstdint>
++#include <cstdio>
++#include <cstdlib>
++#include <cstring>
++
++namespace camera_diag {
++inline bool envOne(const char* name) {
++    const char* value = std::getenv(name);
++    return value && std::strcmp(value, "1") == 0;
++}
++// Copied integrated_six_batch RTL: physical DVP cameras only. SFP 5/6
++// have no ov5640_reg page, and must never be read through guessed addresses.
++constexpr uint32_t bases[4] = {0x20000000u, 0x20000200u, 0x20000400u, 0x20000600u};
++constexpr uint32_t offsets[9] = {0x00, 0x20, 0x30, 0xa0, 0xf0, 0x190, 0x1a0, 0x1b0, 0x1c0};
++inline uint32_t delta32(uint32_t now, uint32_t before) { return now - before; }
++inline unsigned delta16(unsigned now, unsigned before) { return (now - before) & 0xffffu; }
++struct Fault {
++    unsigned overflow, shortFrame, abort, tagPhase;
++    uint32_t accepted;
++    explicit Fault(uint32_t value) : overflow(value >> 31), shortFrame((value >> 30) & 1),
++        abort((value >> 29) & 1), tagPhase((value >> 28) & 1), accepted(value & 0x0fffffffu) {}
++};
++struct State {
++    const bool enabled;
++    const bool cam2Only;
++    int64_t nextMs, intervalMs;
++    uint64_t noNew = 0, unstable = 0, failed = 0, delivered = 0;
++    bool havePrevious = false;
++    uint32_t previous[9] = {};
++    State(bool on, bool only, int cameraIndex, int64_t now)
++        : enabled(on), cam2Only(only), nextMs(now + 5000 + cameraIndex * 200), intervalMs(now) {}
++    void result(int code) {
++        if (!enabled) return;
++        if (code == 0) ++noNew;
++        else if (code == 2) ++unstable;
++        else if (code < 0) ++failed;
++        else if (code == 1) ++delivered;
++    }
++    // Called at the top of every worker loop, before pause/mode/result continues.
++    // Reader is the existing owner PangoDev helper; disabled means zero reads.
++    template<class Reader>
++    bool tick(int cameraIndex, int64_t now, bool paused, bool disabled, Reader read,
++              FILE* out = stderr) {
++        if (!enabled || now < nextMs) return false;
++        nextMs = now + 5000; // no catch-up bursts after a slow DMA
++        const bool registers = cameraIndex >= 0 && cameraIndex < 4 && (!cam2Only || cameraIndex == 1);
++        uint32_t values[9] = {};
++        if (registers) read(cameraIndex, values); // quarantine before logging any partial sample
++        fprintf(out, "[camera-diag] camera=%d interval_ms=%lld paused=%d disabled=%d result0=%llu result2=%llu result_negative=%llu result1=%llu",
++            cameraIndex + 1, static_cast<long long>(now - intervalMs), int(paused), int(disabled),
++            (unsigned long long)noNew, (unsigned long long)unstable,
++            (unsigned long long)failed, (unsigned long long)delivered);
++        if (registers) {
++            const Fault fault(values[0]);
++            // Offered and CDC source/output/drop are previous-frame gauges;
++            // only SOF, reject totals, publication and sequence are counters.
++            fprintf(out, " regs=sampled delta_valid=%d fault=0x%08x overflow=%u short=%u abort=%u tag_phase=%u accepted_pixels=%u sof=%u sof_delta=%u offered_pixels=%u overflow_count=%u short_count=%u overflow_delta=%u short_delta=%u good_publication=%u good_delta=%u cdc_source=%u cdc_out=%u cdc_dropped=%u cdc_seq=%u seq_delta=%u",
++                int(havePrevious), values[0], fault.overflow, fault.shortFrame, fault.abort, fault.tagPhase, fault.accepted,
++                values[1], havePrevious ? delta32(values[1], previous[1]) : 0, values[2],
++                values[3] >> 16, values[3] & 0xffffu,
++                havePrevious ? delta16(values[3] >> 16, previous[3] >> 16) : 0,
++                havePrevious ? delta16(values[3] & 0xffffu, previous[3] & 0xffffu) : 0,
++                values[4], havePrevious ? delta32(values[4], previous[4]) : 0,
++                values[5], values[6], values[7],
++                values[8], havePrevious ? delta32(values[8], previous[8]) : 0);
++            std::memcpy(previous, values, sizeof(values));
++            havePrevious = true;
++        } else fprintf(out, " regs=%s", cameraIndex >= 4 ? "unsupported_sfp_map" : "cam2_only");
++        fprintf(out, "\n");
++        fflush(out);
++        noNew = unstable = failed = delivered = 0;
++        intervalMs = now;
++        return true;
++    }
++};
++} // namespace camera_diag
+--- /dev/null
++++ candidate_fair_diag_viewer/camera_diag_selftest.cpp
+@@ -0,0 +1,72 @@
++#include "camera_diag.h"
++#include <cassert>
++#include <string>
++
++static std::string contents(FILE* file) {
++    fflush(file); rewind(file);
++    std::string result; char buffer[4096];
++    while (fgets(buffer, sizeof(buffer), file)) result += buffer;
++    return result;
++}
++int main() {
++    using namespace camera_diag;
++    FILE* log = tmpfile(); assert(log);
++    unsigned calls = 0;
++    auto reader = [&](int camera, uint32_t (&v)[9]) {
++        assert(camera == 1); ++calls;
++        v[0] = 0xf1234567u;
++        v[1] = calls == 1 ? 0xfffffffeu : 3;
++        v[2] = 307200; // offered pixels is a per-frame gauge, not a counter
++        v[3] = calls == 1 ? 0xfffeffffu : 0x00030002u;
++        for (unsigned i = 4; i < 9; ++i) v[i] = calls == 1 ? 0xffffffffu : 2;
++    };
++    State off(false, true, 1, 0);
++    off.result(0); off.result(2); off.result(-1);
++    assert(!off.tick(1, 999999, false, false, reader, log));
++    assert(calls == 0 && off.noNew == 0 && off.unstable == 0 && off.failed == 0);
++    State enabled(true, true, 1, 0);
++    enabled.result(0); enabled.result(0); enabled.result(2); enabled.result(-1); enabled.result(1);
++    assert(!enabled.tick(1, 5199, false, false, reader, log));
++    assert(enabled.tick(1, 5200, true, true, reader, log));
++    assert(calls == 1 && enabled.noNew == 0);
++    enabled.result(0);
++    assert(!enabled.tick(1, 10199, false, false, reader, log));
++    assert(enabled.tick(1, 10200, false, false, reader, log));
++    assert(calls == 2);
++    const std::string text = contents(log);
++    assert(text.find("camera=2 interval_ms=5200 paused=1 disabled=1 result0=2 result2=1 result_negative=1 result1=1") != std::string::npos);
++    assert(text.find("overflow=1 short=1 abort=1 tag_phase=1 accepted_pixels=19088743") != std::string::npos);
++    assert(text.find("sof_delta=5 offered_pixels=307200") != std::string::npos);
++    assert(text.find("overflow_delta=5 short_delta=3") != std::string::npos);
++    assert(text.find("good_delta=3") != std::string::npos);
++    assert(text.find("cdc_source=2 cdc_out=2 cdc_dropped=2") != std::string::npos);
++    assert(text.find("source_delta=") == std::string::npos);
++    assert(text.find("out_delta=") == std::string::npos);
++    assert(text.find("dropped_delta=") == std::string::npos);
++    assert(text.find("seq_delta=3") != std::string::npos);
++    assert(delta32(0, 0xffffffffu) == 1 && delta16(0, 65535) == 1);
++    const Fault zero(0); assert(zero.accepted == 0 && zero.overflow == 0);
++    for (int cam = 0; cam < 6; ++cam) {
++        State s(true, true, cam, 0);
++        const auto due = 5000 + cam * 200;
++        assert(!s.tick(cam, due - 1, false, false, reader, log));
++        assert(s.tick(cam, due, false, true, reader, log));
++    }
++    assert(calls == 3); // six workers, only camera 2 has nine register reads
++    unsigned allReads = 0;
++    auto all = [&](int cam, uint32_t (&v)[9]) {
++        assert(cam < 4); ++allReads;
++        for (unsigned i = 0; i < 9; ++i) {
++            const uint32_t address = bases[cam] + offsets[i];
++            assert((address & 15) == 0); v[i] = address;
++        }
++    };
++    for (int cam = 0; cam < 6; ++cam) {
++        State s(true, false, cam, 0);
++        assert(s.tick(cam, 10000, false, false, all, log));
++        assert(!s.tick(cam, 10001, false, false, all, log));
++    }
++    assert(allReads == 4 && bases[1] == 0x20000200u);
++    fclose(log);
++    puts("CAMERA_DIAG_SELFTEST_PASS zero-off-IO cadence six-workers wrap parse map");
++}
+--- /dev/null
++++ candidate_fair_diag_viewer/DIAG_REVIEW.md
+@@ -0,0 +1,57 @@
++# Optional camera diagnostic fallback
++
++This candidate is copied from `candidate_fair_viewer`, excluding build products
++and hash manifests. The parent can finish testing fair without diagnostics first.
++No device calls, ARM builds, deployment, or commits were performed to prepare it.
++
++`DETVIEW_CAMERA_DIAG=1` enables telemetry; unset or any other value leaves it off.
++All six existing workers report every five seconds even while paused, disabled,
++or repeatedly returning 0/2/negative. `result0`, `result2`, `result_negative`,
++and `result1` are counts since the last report. Pause and disabled are current
++state, not failure reasons; disabled includes mode/stereo/HDMI selection.
++Reports are initially staggered by 200 ms per camera, with no catch-up bursts.
++
++The default register target is **camera 2**, `0x20000200`, nine 16-byte reads
++per five seconds (1.8 reads/second total). `DETVIEW_CAMERA_DIAG_CAM2_ONLY=0`
++opts into cameras 1–4, using the verified base array at 0x200 stride.
++Cameras 5/6 always emit worker counts with `regs=unsupported_sfp_map`:
++the copied RTL does not route their pages through the DVP decoder.
++Diagnostics can still read camera 2 while the application is paused/disabled.
++
++Byte-level Python inspection of `hardware_baseline/integrated_six_batch/source`
++verified the map and semantics (RTL comments contain GBK). No RTL was changed.
++
++| Offset | Evidence | Interpretation |
++| --- | --- | --- |
++| 0x00 | ov5640_reg REG_ACK / ov5640_ddr fault snapshot | overflow bit31, short bit30, DMA abort bit29, !frame_active/tag phase bit28, accepted pixels bits27:0 |
++| 0x20 | REG_DBG_VSYNCS / ov5640_top dbg_vs_ff rising edge | video-domain VSYNC/SOF count, modulo-32 delta |
++| 0x30 | REG_DBG_CAM_WORDS / dbg_input_pixels | offered pixels in previous frame, gauge |
++| 0xA0 | REG_DBG_BEAT_CNT / diag_overflows, diag_shorts | overflow high16, short low16; independent modulo-16 deltas |
++| 0xF0 | REG_DBG_BEAT_LAST / w_ctrl last_cnt increments on publish | good publication count, modulo-32 delta |
++| 0x190 | dbg_cdc_input | source pixels in previous frame, gauge |
++| 0x1A0 | dbg_cdc_output | output pixels in previous frame, gauge |
++| 0x1B0 | dbg_cdc_drop | dropped pixels in previous frame, gauge |
++| 0x1C0 | dbg_cdc_seq | source frame sequence, modulo-32 delta |
++
++`ovreg_axil_decode.v` special-cases 0x190/0x1A0/0x1B0/0x1C0, routing by
++addr[11:9] for camera indexes <4. All read addresses are 16-byte aligned.
++CDC pixel/drop registers reset per frame; treating them as cumulative counters
++would create false wrap deltas. First samples have `delta_valid=0`.
++Hardware reset cannot be distinguished from counter wrap by two samples alone.
++These are separate read-only observations, not an atomic frame snapshot.
++
++The owner `PangoDev` remains alive until every worker has stopped and joined.
++`cameraDiagRead` uses only its existing `regRead`, existing scratch region,
++and shared fair DMA transport. Each register takes its own lock. No new opens,
++clear writes, frame DMA, or buffer copies are added. Failed/interrupt-uncertain
++diagnostic DMA uses existing quarantine immediately and never publishes partial
++register values or automatically reopens the device. With diagnostics off the
++new loop and result hooks do not run and no additional DMA is submitted.
++
++Host checks: `bash local_camera_diag_check.sh` and `bash local_fair_check.sh`.
++The first tests zero-off-I/O, cadence/stagger, all-six worker coverage, early
++continues, RTL map, field/log parsing, gauge semantics, wrap deltas, exact
++addresses via the actual PangoDev helper, and partial EIO/alarm quarantine.
++The second runs the copied fair mutex, extracted real acquisition/protocol,
++verification fixtures, and classes-only Qt syntax check. These are host checks;
++board behavior and performance remain for the parent session to assess.
+--- /dev/null
++++ candidate_fair_diag_viewer/local_camera_diag_check.py
+@@ -0,0 +1,48 @@
++"""Byte-level copied-RTL map checks and CameraWorker early-continue wiring checks."""
++from pathlib import Path
++import difflib
++
++root = Path(__file__).resolve().parent
++rtl = root.parent / "hardware_baseline/integrated_six_batch/source"
++reg = (rtl / "ov5640/ov5640_reg.v").read_bytes()
++decode = (rtl / "ov5640/ovreg_axil_decode.v").read_bytes()
++ddr = (rtl / "ov5640/ov5640_ddr/ov5640_ddr.v").read_bytes()
++top = (rtl / "ov5640/ov5640_top.v").read_bytes()
++ctrl = (rtl / "ov5640/ov5640_ddr/ov5640_ddr_w_ctrl.v").read_bytes()
++cdc = (rtl / "ov5640/ov5640/ov5640_cdc.v").read_bytes()
++# Do not decode RTL as UTF-8: GBK comments can break even ASCII searches.
++for literal in [b"REG_ACK       = BASE_ADDR + 32'h00", b"REG_DBG_VSYNCS    = BASE_ADDR + 32'h20",
++                b"REG_DBG_CAM_WORDS = BASE_ADDR + 32'h30", b"REG_DBG_BEAT_CNT  = BASE_ADDR + 32'ha0",
++                b"REG_DBG_BEAT_LAST = BASE_ADDR + 32'hf0"]:
++    assert literal in reg, literal
++for off, signal in [(b"190", b"input"), (b"1a0", b"output"), (b"1b0", b"drop"), (b"1c0", b"seq")]:
++    assert b"BASE_ADDR + 32'h" + off + b": rdata <= dbg_cdc_" + signal in reg
++    assert b"s_araddr[8:0] == 9'h" + off in decode
++assert b"(s_araddr[11:9] < 4)" in decode
++assert b"cdc_read ? {s_araddr[11:9], 1'b0}" in decode
++assert b"assign dbg_reject_counts = {diag_overflows, diag_shorts}" in ddr
++assert b"{capture_overflow, diag_short, 1'b0," in ddr
++assert b"!frame_active, pixel_count[27:0]}" in ddr
++assert b"dbg_input_pixels <= diag_input_count" in ddr
++assert b"dbg_vs_ff[2:1] == 2'b01" in top
++assert b"else if(publish) last_cnt <= last_cnt + 32'd1" in ctrl
++assert b"src_snapshot <= {src_seq + 32'd1, src_drop, src_count}" in cdc
++assert b"src_count <= {31'd0, s_valid}" in cdc
++assert b"src_drop <= {31'd0, (s_valid && full)}" in cdc
++assert b"out_count <= {31'd0, video_valid}" in cdc
++source = (root / "main.cpp").read_text(encoding="utf-8-sig")
++original = (root.parent / "candidate_fair_viewer/main.cpp").read_text(encoding="utf-8-sig")
++changes = difflib.SequenceMatcher(None, original.splitlines(), source.splitlines()).get_opcodes()
++assert all(tag in ("equal", "insert") for tag, *_ in changes), "Existing fair acquisition path changed"
++worker = source[source.index("class CameraWorker"):source.index("class CameraThread")]
++loop = worker[worker.index("while (running_)"):]
++assert loop.index("diagnostic.tick(") < loop.index("continue;")
++assert loop.index("diagnostic.result(result)") < loop.index("if (result == 0)")
++assert "if (diagnosticEnabled) {" in loop
++assert "if (diagnosticEnabled) diagnostic.result(result);" in loop
++helper = source[source.index("void cameraDiagRead("):source.index("/* 六路采集线程")]
++assert "regRead(camera_diag::bases[camera] + camera_diag::offsets[i]" in helper
++assert "scheme2Quarantine(" in helper
++assert "regWrite" not in helper and "openDev" not in helper and "FairDmaGuard" not in helper
++assert "w.wait();" in source # workers retire before their stack owner PangoDev
++print("CAMERA_DIAG_SOURCE_PASS byte-RTL offsets/decoder/semantics; before early continues; owner-only read helper")
+--- /dev/null
++++ candidate_fair_diag_viewer/local_camera_diag_check.sh
+@@ -0,0 +1,15 @@
++#!/usr/bin/env bash
++set -euo pipefail
++cd "$(dirname "$0")"
++mkdir -p local_build
++python3 local_camera_diag_check.py
++g++ -std=c++17 -O2 -Wall -Wextra -Werror camera_diag_selftest.cpp -o local_build/camera_diag_selftest
++./local_build/camera_diag_selftest
++python3 local_protocol_check.py
++g++ -std=c++17 -O2 -fPIC -pthread -I. local_build/protocol.cpp -o local_build/protocol_test \
++    $(pkg-config --cflags --libs Qt5Core Qt5Gui) \
++    -Wl,--wrap=open,--wrap=close,--wrap=raise,--wrap=mmap,--wrap=munmap,--wrap=ioctl
++DETVIEW_DIAG_SELFTEST=1 ./local_build/protocol_test
++DETVIEW_DIAG_SELFTEST=1 DETVIEW_CAMERA_DIAG=1 ./local_build/protocol_test
++DETVIEW_DIAG_SELFTEST=1 DETVIEW_FPGA_INFER_RGB=1 DETVIEW_CAMERA_DIAG=1 ./local_build/protocol_test
++echo 'CAMERA_DIAG_LOCAL_CHECK_PASS (host fixtures; no board access)'
+--- candidate_fair_viewer/local_protocol_check.py
++++ candidate_fair_diag_viewer/local_protocol_check.py
+@@ -26,6 +26,7 @@
+ #include <unistd.h>
+ #include "camera_dma.h"
+ #include "fair_dma.h"
++#include "camera_diag.h"
+ #include "fpga_infer_input.h"
+ #include "scheme2_uapi.h"
+ #include "scheme2_verify.h"
+--- candidate_fair_viewer/main.cpp
++++ candidate_fair_diag_viewer/main.cpp
+@@ -64,6 +64,7 @@
+ #include "template_tracker.h"
+ #include "camera_dma.h"
+ #include "fair_dma.h"
++#include "camera_diag.h"
+ #include "frame_metrics.h"
+ #include "display_perf.h"
+ #include "hdmi_view.h"
+@@ -637,6 +638,16 @@
+         return true;
+     }
+ 
++    // Existing owner/transport only. regRead acquires/releases the fair DMA
++    // lock separately for each 16-byte read so the nine reads cannot monopolize it.
++    void cameraDiagRead(int camera, uint32_t (&values)[9]) {
++        if (camera < 0 || camera >= 4) scheme2Quarantine("invalid camera diagnostic register page");
++        for (unsigned i = 0; i < 9; ++i) {
++            if (!regRead(camera_diag::bases[camera] + camera_diag::offsets[i], values[i]))
++                scheme2Quarantine("camera diagnostic register DMA failed; completion uncertain");
++        }
++    }
++
+     /* 六路采集线程共用一条 DMA 通道与同一对 tx/rx 缓冲，必须串行化。
+        单次等待上限取 2s（与 camview 一致）：丢 MSI 时不能让整块卡住几十秒，
+        上层线程会保留上一帧并在下一次帧标签变化时重试。 */
+@@ -1002,6 +1013,11 @@
+             {CAM_BASE[2][0], CAM_BASE[2][1]}, {CAM_BASE[3][0], CAM_BASE[3][1]},
+             {CAM_BASE[4][0], CAM_BASE[4][1]}, {CAM_BASE[5][0], CAM_BASE[5][1]}};
+         const int idx = camera_ - 1;
++        const bool diagnosticEnabled = camera_diag::envOne("DETVIEW_CAMERA_DIAG");
++        const char* diagOnly = std::getenv("DETVIEW_CAMERA_DIAG_CAM2_ONLY");
++        camera_diag::State diagnostic(diagnosticEnabled,
++            !diagOnly || std::strcmp(diagOnly, "0") != 0, idx,
++            diagnosticEnabled ? monotonicMs() : 0);
+         uint32_t deliveredTag = 0;
+         bool delivered = false;
+         QByteArray frame(FRAME_BYTES, 0);
+@@ -1020,6 +1036,15 @@
+             frames_->lastCapturedMs[idx] = 0;
+         };
+         while (running_) {
++            if (diagnosticEnabled) {
++                const bool diagPaused = paused_ && paused_->load();
++                const bool diagHdmiDisabled = hdmi_ && hdmi_->load() && idx < tdm::hdmiLeftCamera;
++                const int diagMode = mode_ ? mode_->load() : CAM_COUNT;
++                const bool diagDisabled = diagHdmiDisabled ||
++                    (diagMode != CAM_COUNT && diagMode != idx && !(stereoMask_ & (1 << idx)));
++                diagnostic.tick(idx, monotonicMs(), diagPaused, diagDisabled,
++                    [this](int camera, uint32_t (&values)[9]) { dev_->cameraDiagRead(camera, values); });
++            }
+             if (paused_ && paused_->load()) { suspendMeasurement(); msleep(20); continue; }
+             const int sourceGeneration = generation_ ? generation_->load() : 0;
+             if (hdmi_ && hdmi_->load() && idx < tdm::hdmiLeftCamera) {
+@@ -1055,6 +1080,7 @@
+                     frame.data(), selectedTag, dmaNs, copyNs, capturedMs, fpgaInput) :
+                 dev_->cameraRead(idx, base[idx][0], base[idx][1], delivered, deliveredTag,
+                     frame.data(), selectedTag, dmaNs, copyNs, capturedMs);
++            if (diagnosticEnabled) diagnostic.result(result);
+             if (fpgaInput) fpgaInput->selection = selection;
+             if (result == 0) { msleep(6); continue; }
+             if (result == 2) { ++unstable; msleep(1); continue; }
+--- candidate_fair_viewer/scheme2_protocol_test_body.h
++++ candidate_fair_diag_viewer/scheme2_protocol_test_body.h
+@@ -17,6 +17,8 @@
+ bool unpublished = false;
+ std::atomic<bool> delayFreeze{false}, freezePolled{false}, scratchServed{false};
+ int begins = 0, ends = 0, rawReads = 0, rgbReads = 0;
++bool diagFixture = false, diagInterrupt = false;
++int diagCalls = 0, diagFailAt = -1, openCalls = 0, diagWrites = 0;
+ uint32_t destination() { return regs[0xc0] == 4 ? 0x0a000000 : 0x0b000000 + regs[0xc0]*0x400000; }
+ void selectors() {
+     regs[0x40] = destination(); regs[0x60] = scheme2::SquareBytes;
+@@ -25,7 +27,7 @@
+ }
+ }
+ extern "C" int __wrap_open(const char* name, int, ...) {
+-    assert(std::strcmp(name, "/dev/pango_pci_driver") == 0); return 100;
++    assert(std::strcmp(name, "/dev/pango_pci_driver") == 0); ++fixture::openCalls; return 100;
+ }
+ extern "C" int __wrap_close(int fd) { assert(fd == 100 || fd == 101); ++fixture::closes; return 0; }
+ extern "C" int __wrap_raise(int sig) {
+@@ -78,6 +80,20 @@
+         allocated[0] = allocated[1] = false; return 0;
+     }
+     assert(op->total_length && op->offset_addr + op->total_length <= scheme2::Window);
++    if (diagFixture) {
++        if (command == H2F_CMD) { ++diagWrites; assert(false); }
++        assert(command == F2H_CMD && op->total_length == 16);
++        assert(op->offset_addr == tdm::cameraScratchOffset);
++        const unsigned index = unsigned(diagCalls++ % 9);
++        assert(op->ddr3_addr == camera_diag::bases[1] + camera_diag::offsets[index]);
++        if (diagCalls == diagFailAt) {
++            if (diagInterrupt) { PangoDev::alarmHandler(SIGALRM); return 0; }
++            errno = EIO; return -1;
++        }
++        const uint32_t value = 100 + index;
++        memcpy(rx.data() + op->offset_addr, &value, sizeof(value));
++        return 0;
++    }
+     if (command == H2F_CMD) {
+         assert(op->offset_addr + op->total_length <= tx.size());
+         if (op->ddr3_addr < Base) {
+@@ -139,6 +155,32 @@
+ int main() {
+     using namespace fixture;
+     selectors();
++    if (camera_diag::envOne("DETVIEW_DIAG_SELFTEST")) {
++        if (!scheme2::enabled()) { tx.resize(0x400000); rx.resize(0x400000); }
++        PangoDev dev; assert(dev.openDev()); diagFixture = true;
++        camera_diag::State state(camera_diag::envOne("DETVIEW_CAMERA_DIAG"), true, 1, 0);
++        auto read = [&](int camera, uint32_t (&values)[9]) { dev.cameraDiagRead(camera, values); };
++        state.tick(1, 5200, true, true, read);
++        assert(openCalls == 1 && diagWrites == 0);
++        if (!state.enabled) {
++            assert(diagCalls == 0);
++            puts("ACTUAL_PANGO_DIAG_OFF_PASS zero register DMA and one original open");
++            return 0;
++        }
++        assert(diagCalls == 9);
++        for (bool interrupted : {false, true}) {
++            diagCalls = 0; diagFailAt = 4; diagInterrupt = interrupted;
++            camera_diag::State failing(true, true, 1, 0);
++            bool stopped = false;
++            const int closesBefore = closes;
++            try { failing.tick(1, 5200, false, false, read); }
++            catch (const std::runtime_error&) { stopped = true; }
++            assert(stopped && diagCalls == 4 && closes == closesBefore);
++            assert(openCalls == 1 && diagWrites == 0 && !failing.havePrevious);
++        }
++        puts("ACTUAL_PANGO_DIAG_ON_PASS exact nine addresses, no writes/reopen; partial/error/alarm quarantined");
++        return 0;
++    }
+     if (!scheme2::enabled()) {
+         tx.resize(0x400000); rx.resize(0x400000);
+         PangoDev legacy; assert(legacy.openDev());

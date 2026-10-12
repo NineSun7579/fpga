@@ -1,0 +1,50 @@
+{
+  "status": "local_adapter_tests_passed",
+  "hardware_access": false,
+  "hardware_native_parity_verified": false,
+  "new_benchmark_rebuild_required": true,
+  "wsl_distribution": "Ubuntu-24.04",
+  "old_parent_build_manifest_sha256": "40acbfc18aff4c8d84bdf3eef0997b069240176f7ae7181e90e5f53e35652592",
+  "new_prepared_manifest_sha256": "34aa73bb452730cb948af69f91d72f9d5a0ae16f1838ef086abad587cd88efd5",
+  "native_adapter_sha256": "e0d38d8ae2418222581ed4ec70dcfedd219289fa021f247b8ee623fcdcdd5328",
+  "adapter_selftest_sha256": "65edc30d229371c990daf014ed1e263197d0071b21b5d0b7bffd38a9f34c4869",
+  "preserved_pinned_files": 16,
+  "changed_pinned_sources": ["native_adapter.h", "adapter_selftest.cpp"],
+  "runtime_metadata_evidence": "project/hardware_acceleration/runs/rknn_experiment_b9e50337984a4575bbddf6f4b4fca9b0/artifacts/results/probe.stdout",
+  "coverage": [
+    "All four reported logical outputs with native query9 and query11 dimensions/quantization",
+    "NC1HWC2 classifier capacity16: logical channels0..2 only; second block and padding sentinel ignored",
+    "NHWC classifier capacity8: pixel stride8 and logical channels0..2 only",
+    "Channel padding combined with width stride",
+    "Changing padding content does not change any logical FP32 output",
+    "Short full native allocation and short logical-only allocation rejection",
+    "Undersized channel capacity, inconsistent dimensions/bytes and unexplained padding rejection",
+    "Existing signed/unsigned affine conversion and FP16 checks"
+  ],
+  "tests": [
+    {
+      "compile_argv": ["g++", "-std=c++11", "-O2", "-Wall", "-Wextra", "-pedantic", "-Iprepared", "adapter_selftest.cpp", "-o", "validation/adapter_selftest"],
+      "compile_exit_code": 0,
+      "run_argv": ["./validation/adapter_selftest"],
+      "run_exit_code": 0,
+      "executable_sha256": "c4850fc765732151fe1af2f3cc839cc1430c3e78750cccf9fcc8ae67ac974104",
+      "stdout": "adapter_selftest.stdout",
+      "stdout_sha256": "3c4645f181073037bc288f61699482745c86474bb2fb2d3b90bb8a6cfc06e19c",
+      "stderr": "adapter_selftest.stderr",
+      "stderr_empty": true,
+      "compiler_warnings": false
+    },
+    {
+      "compile_argv": ["g++", "-std=c++11", "-O1", "-g", "-Wall", "-Wextra", "-pedantic", "-fsanitize=address,undefined", "-fno-omit-frame-pointer", "-Iprepared", "adapter_selftest.cpp", "-o", "validation/adapter_selftest_sanitized"],
+      "compile_exit_code": 0,
+      "run_argv": ["./validation/adapter_selftest_sanitized"],
+      "run_exit_code": 0,
+      "executable_sha256": "7d10fa2bc124ba0b71f8977f8251060c50ff58de4e9798d0b07275d3edd58164",
+      "stdout": "adapter_selftest_sanitized.stdout",
+      "stdout_sha256": "3c4645f181073037bc288f61699482745c86474bb2fb2d3b90bb8a6cfc06e19c",
+      "stderr": "adapter_selftest_sanitized.stderr",
+      "stderr_empty": true,
+      "compiler_warnings": false
+    }
+  ]
+}

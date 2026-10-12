@@ -1,0 +1,160 @@
+{
+  "stage": "prepared_not_built",
+  "board_access": false,
+  "deployed": false,
+  "host": {
+    "platform": "Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.39",
+    "machine": "x86_64",
+    "compiler": "g++ (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0",
+    "qt": "5.15.13"
+  },
+  "baseline_main_sha256": "d3a38d77338168b6d95a8731efe99e7b443f08b0dee7bcc831d33bc544a0fd23",
+  "patch_sha256": "43a3a6d9f369c48dbcb9502edaae928f11b944b71fa73adfed9a1f55e83b7e22",
+  "checks": [
+    "real Linux wall/thread CPU sleep and busy clocks",
+    "synthetic all-ioctl failure sum/max and valid errno",
+    "real-thread TID/TLS isolation",
+    "all camera outcomes and tag no-overcount",
+    "explicit camera window bounds",
+    "baseline and candidate exact capture scopes compile with real Qt",
+    "two-file clean byte-identical patch replay",
+    "baseline SHA and unique byte-anchor rejection",
+    "real mutex wait and copy-phase sleep with deferred ioctl drain"
+  ],
+  "selftest_stdout": "STALL_TIMING_SELFTEST_PASS sleep_wall_ns=40124460 sleep_cpu_ns=24299 busy_wall_ns=30007650 busy_cpu_ns=30007593 pair_samples=200000 pair_wall_mean_ns=269.3 pair_cpu_mean_ns=269.3",
+  "selftest_binary_sha256": "b43049f2330dac2019354c2a3c7e625d0cf43eb0f880623ba1051e0cb8353343",
+  "capture_scope_sha256": {
+    "frozen": "1c099563e15d577b9e5368f3568e6315d991fd1c339f6407eaa501579b327a0b",
+    "candidate": "c25657c570ee617c1e184674393345ee38a9f327addce38c1e9b185f06982a77"
+  },
+  "limits": [
+    "capture scope syntax compilation only; no full target viewer build",
+    "x86_64 WSL clock overhead is not RK3568 overhead",
+    "no runtime DMA or rendering test",
+    "detview.pro bytes missing"
+  ],
+  "commands": [
+    {
+      "argv": [
+        "g++",
+        "--version"
+      ],
+      "cwd": "/mnt/c/Users/NineSun/Desktop/ov56401/project/per_camera_fps/host_stall/diagnostic",
+      "returncode": 0,
+      "stdout": "g++ (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0\nCopyright (C) 2023 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "pkg-config",
+        "--modversion",
+        "Qt5Widgets"
+      ],
+      "cwd": "/mnt/c/Users/NineSun/Desktop/ov56401/project/per_camera_fps/host_stall/diagnostic",
+      "returncode": 0,
+      "stdout": "5.15.13\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "pkg-config",
+        "--cflags",
+        "Qt5Widgets"
+      ],
+      "cwd": "/mnt/c/Users/NineSun/Desktop/ov56401/project/per_camera_fps/host_stall/diagnostic",
+      "returncode": 0,
+      "stdout": "-DQT_WIDGETS_LIB -I/usr/include/x86_64-linux-gnu/qt5/QtWidgets -I/usr/include/x86_64-linux-gnu/qt5 -I/usr/include/x86_64-linux-gnu/qt5/QtCore -DQT_GUI_LIB -I/usr/include/x86_64-linux-gnu/qt5/QtGui -DQT_CORE_LIB \n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "g++",
+        "-std=c++17",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-pedantic",
+        "-pthread",
+        "/mnt/c/Users/NineSun/Desktop/ov56401/project/per_camera_fps/host_stall/diagnostic/stall_timing_selftest.cpp",
+        "-o",
+        "/mnt/c/Users/NineSun/Desktop/ov56401/project/per_camera_fps/host_stall/diagnostic/validation/stall_timing_selftest"
+      ],
+      "cwd": "/mnt/c/Users/NineSun/Desktop/ov56401/project/per_camera_fps/host_stall/diagnostic",
+      "returncode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/mnt/c/Users/NineSun/Desktop/ov56401/project/per_camera_fps/host_stall/diagnostic/validation/stall_timing_selftest"
+      ],
+      "cwd": "/mnt/c/Users/NineSun/Desktop/ov56401/project/per_camera_fps/host_stall/diagnostic",
+      "returncode": 0,
+      "stdout": "STALL_TIMING_SELFTEST_PASS sleep_wall_ns=40124460 sleep_cpu_ns=24299 busy_wall_ns=30007650 busy_cpu_ns=30007593 pair_samples=200000 pair_wall_mean_ns=269.3 pair_cpu_mean_ns=269.3\n",
+      "stderr": "[stall_ioctl] pid=610 tid=611 device=0x0 seq=1 attempt=0 camera=0 role=other cmd=0 addr=0x00000000 rx_offset=0x00000000 bytes=0 syscall_begin_ns=1000000000 syscall_end_ns=1040000000 syscall_wall_ns=40000000 syscall_cpu_ns=2000000 off_cpu_ns=38000000 low_thread_cpu=1 clock_valid=1 wrapper_begin_ns=1000000000 wrapper_end_ns=1040000000 rc=0 errno_valid=0 errno=0 raw_errno=11 alarm=0 application_rc=0 legacy_log_wall_ns=0 legacy_log_cpu_ns=0 sched_wait_ns=unmeasured\n[stall_ioctl] pid=610 tid=610 device=0x0 seq=1 attempt=0 camera=0 role=other cmd=0 addr=0x00000000 rx_offset=0x00000000 bytes=0 syscall_begin_ns=1000000000 syscall_end_ns=1040000000 syscall_wall_ns=40000000 syscall_cpu_ns=2000000 off_cpu_ns=38000000 low_thread_cpu=1 clock_valid=1 wrapper_begin_ns=1000000000 wrapper_end_ns=1040000000 rc=0 errno_valid=0 errno=0 raw_errno=11 alarm=0 application_rc=0 legacy_log_wall_ns=0 legacy_log_cpu_ns=0 sched_wait_ns=unmeasured\n[stall_ioctl] pid=610 tid=610 device=0x0 seq=2 attempt=0 camera=0 role=other cmd=0 addr=0x00000000 rx_offset=0x00000000 bytes=0 syscall_begin_ns=1000000000 syscall_end_ns=11000000000 syscall_wall_ns=10000000000 syscall_cpu_ns=3000000 off_cpu_ns=9997000000 low_thread_cpu=1 clock_valid=1 wrapper_begin_ns=1000000000 wrapper_end_ns=11000000000 rc=0 errno_valid=0 errno=0 raw_errno=11 alarm=1 application_rc=-1 legacy_log_wall_ns=0 legacy_log_cpu_ns=0 sched_wait_ns=unmeasured\n[stall_ioctl] pid=610 tid=610 device=0x0 seq=3 attempt=0 camera=0 role=other cmd=0 addr=0x00000000 rx_offset=0x00000000 bytes=0 syscall_begin_ns=1000000000 syscall_end_ns=1050000000 syscall_wall_ns=50000000 syscall_cpu_ns=4000000 off_cpu_ns=46000000 low_thread_cpu=1 clock_valid=1 wrapper_begin_ns=1000000000 wrapper_end_ns=1050000000 rc=-1 errno_valid=1 errno=5 raw_errno=5 alarm=0 application_rc=-1 legacy_log_wall_ns=0 legacy_log_cpu_ns=0 sched_wait_ns=unmeasured\n[stall_ioctl_window] pid=610 tid=610 camera=0 role=other window_begin_ns=13570289215 window_end_ns=13570298375 first_attempt_begin_ns=1000000000 last_attempt_end_ns=1050000000 first_seq=1 last_seq=3 attempts=3 success=1 failure=2 rc_failure=1 alarm_failure=1 spans_window=3 slow_overflow=0 completion_assigned=1 success_wrapper_sum_ns=40000000 success_wrapper_max_ns=40000000 failure_wrapper_sum_ns=10050000000 failure_wrapper_max_ns=10000000000 success_ioctl_n=1 success_ioctl_invalid=0 success_ioctl_wall_sum_ns=40000000 success_ioctl_wall_max_ns=40000000 success_ioctl_cpu_sum_ns=2000000 success_ioctl_cpu_max_ns=2000000 failure_ioctl_n=2 failure_ioctl_invalid=0 failure_ioctl_wall_sum_ns=10050000000 failure_ioctl_wall_max_ns=10000000000 failure_ioctl_cpu_sum_ns=7000000 failure_ioctl_cpu_max_ns=4000000 legacy_log_n=0 legacy_log_invalid=0 legacy_log_wall_sum_ns=0 legacy_log_wall_max_ns=0 legacy_log_cpu_sum_ns=0 legacy_log_cpu_max_ns=0 logger_previous_n=1 logger_previous_invalid=0 logger_previous_wall_sum_ns=7955 logger_previous_wall_max_ns=7955 logger_previous_cpu_sum_ns=7784 logger_previous_cpu_max_ns=7784\n[stall_camera_window] pid=610 tid=610 camera=1 window_begin_ns=13570304190 window_end_ns=13570306965 first_attempt_begin_ns=13570304348 last_attempt_end_ns=13570306375 first_seq=1 last_seq=5 attempts=5 success=2 error=1 no_new=1 unstable=1 tag_advance_sum=4 tag_comparisons=2 tag_regressions=0 completion_assigned=1 logger_previous_n=0 logger_previous_invalid=0 logger_previous_wall_sum_ns=0 logger_previous_wall_max_ns=0 logger_previous_cpu_sum_ns=0 logger_previous_cpu_max_ns=0\n[stall_camera_stages] pid=610 tid=610 camera=1 window_begin_ns=13570304190 window_end_ns=13570306965 outcome=success attempts=2 spans_window=0 nested_scopes=1 attempt_n=2 attempt_invalid=0 attempt_wall_sum_ns=601 attempt_wall_max_ns=454 attempt_cpu_sum_ns=378 attempt_cpu_max_ns=231 read_n=0 read_invalid=0 read_wall_sum_ns=0 read_wall_max_ns=0 read_cpu_sum_ns=0 read_cpu_max_ns=0 dma_wait_n=0 dma_wait_invalid=0 dma_wait_wall_sum_ns=0 dma_wait_wall_max_ns=0 dma_wait_cpu_sum_ns=0 dma_wait_cpu_max_ns=0 dma_hold_n=0 dma_hold_invalid=0 dma_hold_wall_sum_ns=0 dma_hold_wall_max_ns=0 dma_hold_cpu_sum_ns=0 dma_hold_cpu_max_ns=0 copy_n=0 copy_invalid=0 copy_wall_sum_ns=0 copy_wall_max_ns=0 copy_cpu_sum_ns=0 copy_cpu_max_ns=0 alloc_n=0 alloc_invalid=0 alloc_wall_sum_ns=0 alloc_wall_max_ns=0 alloc_cpu_sum_ns=0 alloc_cpu_max_ns=0 convert_n=0 convert_invalid=0 convert_wall_sum_ns=0 convert_wall_max_ns=0 convert_cpu_sum_ns=0 convert_cpu_max_ns=0 sink_n=0 sink_invalid=0 sink_wall_sum_ns=0 sink_wall_max_ns=0 sink_cpu_sum_ns=0 sink_cpu_max_ns=0 publish_wait_n=0 publish_wait_invalid=0 publish_wait_wall_sum_ns=0 publish_wait_wall_max_ns=0 publish_wait_cpu_sum_ns=0 publish_wait_cpu_max_ns=0 publish_hold_n=0 publish_hold_invalid=0 publish_hold_wall_sum_ns=0 publish_hold_wall_max_ns=0 publish_hold_cpu_sum_ns=0 publish_hold_cpu_max_ns=0\n[stall_camera_stages] pid=610 tid=610 camera=1 window_begin_ns=13570304190 window_end_ns=13570306965 outcome=error attempts=1 spans_window=0 nested_scopes=1 attempt_n=1 attempt_invalid=0 attempt_wall_sum_ns=148 attempt_wall_max_ns=148 attempt_cpu_sum_ns=148 attempt_cpu_max_ns=148 read_n=0 read_invalid=0 read_wall_sum_ns=0 read_wall_max_ns=0 read_cpu_sum_ns=0 read_cpu_max_ns=0 dma_wait_n=0 dma_wait_invalid=0 dma_wait_wall_sum_ns=0 dma_wait_wall_max_ns=0 dma_wait_cpu_sum_ns=0 dma_wait_cpu_max_ns=0 dma_hold_n=0 dma_hold_invalid=0 dma_hold_wall_sum_ns=0 dma_hold_wall_max_ns=0 dma_hold_cpu_sum_ns=0 dma_hold_cpu_max_ns=0 copy_n=0 copy_invalid=0 copy_wall_sum_ns=0 copy_wall_max_ns=0 copy_cpu_sum_ns=0 copy_cpu_max_ns=0 alloc_n=0 alloc_invalid=0 alloc_wall_sum_ns=0 alloc_wall_max_ns=0 alloc_cpu_sum_ns=0 alloc_cpu_max_ns=0 convert_n=0 convert_invalid=0 convert_wall_sum_ns=0 convert_wall_max_ns=0 convert_cpu_sum_ns=0 convert_cpu_max_ns=0 sink_n=0 sink_invalid=0 sink_wall_sum_ns=0 sink_wall_max_ns=0 sink_cpu_sum_ns=0 sink_cpu_max_ns=0 publish_wait_n=0 publish_wait_invalid=0 publish_wait_wall_sum_ns=0 publish_wait_wall_max_ns=0 publish_wait_cpu_sum_ns=0 publish_wait_cpu_max_ns=0 publish_hold_n=0 publish_hold_invalid=0 publish_hold_wall_sum_ns=0 publish_hold_wall_max_ns=0 publish_hold_cpu_sum_ns=0 publish_hold_cpu_max_ns=0\n[stall_camera_stages] pid=610 tid=610 camera=1 window_begin_ns=13570304190 window_end_ns=13570306965 outcome=no_new attempts=1 spans_window=0 nested_scopes=1 attempt_n=1 attempt_invalid=0 attempt_wall_sum_ns=151 attempt_wall_max_ns=151 attempt_cpu_sum_ns=151 attempt_cpu_max_ns=151 read_n=0 read_invalid=0 read_wall_sum_ns=0 read_wall_max_ns=0 read_cpu_sum_ns=0 read_cpu_max_ns=0 dma_wait_n=0 dma_wait_invalid=0 dma_wait_wall_sum_ns=0 dma_wait_wall_max_ns=0 dma_wait_cpu_sum_ns=0 dma_wait_cpu_max_ns=0 dma_hold_n=0 dma_hold_invalid=0 dma_hold_wall_sum_ns=0 dma_hold_wall_max_ns=0 dma_hold_cpu_sum_ns=0 dma_hold_cpu_max_ns=0 copy_n=0 copy_invalid=0 copy_wall_sum_ns=0 copy_wall_max_ns=0 copy_cpu_sum_ns=0 copy_cpu_max_ns=0 alloc_n=0 alloc_invalid=0 alloc_wall_sum_ns=0 alloc_wall_max_ns=0 alloc_cpu_sum_ns=0 alloc_cpu_max_ns=0 convert_n=0 convert_invalid=0 convert_wall_sum_ns=0 convert_wall_max_ns=0 convert_cpu_sum_ns=0 convert_cpu_max_ns=0 sink_n=0 sink_invalid=0 sink_wall_sum_ns=0 sink_wall_max_ns=0 sink_cpu_sum_ns=0 sink_cpu_max_ns=0 publish_wait_n=0 publish_wait_invalid=0 publish_wait_wall_sum_ns=0 publish_wait_wall_max_ns=0 publish_wait_cpu_sum_ns=0 publish_wait_cpu_max_ns=0 publish_hold_n=0 publish_hold_invalid=0 publish_hold_wall_sum_ns=0 publish_hold_wall_max_ns=0 publish_hold_cpu_sum_ns=0 publish_hold_cpu_max_ns=0\n[stall_camera_stages] pid=610 tid=610 camera=1 window_begin_ns=13570304190 window_end_ns=13570306965 outcome=unstable attempts=1 spans_window=0 nested_scopes=1 attempt_n=1 attempt_invalid=0 attempt_wall_sum_ns=149 attempt_wall_max_ns=149 attempt_cpu_sum_ns=150 attempt_cpu_max_ns=150 read_n=0 read_invalid=0 read_wall_sum_ns=0 read_wall_max_ns=0 read_cpu_sum_ns=0 read_cpu_max_ns=0 dma_wait_n=0 dma_wait_invalid=0 dma_wait_wall_sum_ns=0 dma_wait_wall_max_ns=0 dma_wait_cpu_sum_ns=0 dma_wait_cpu_max_ns=0 dma_hold_n=0 dma_hold_invalid=0 dma_hold_wall_sum_ns=0 dma_hold_wall_max_ns=0 dma_hold_cpu_sum_ns=0 dma_hold_cpu_max_ns=0 copy_n=0 copy_invalid=0 copy_wall_sum_ns=0 copy_wall_max_ns=0 copy_cpu_sum_ns=0 copy_cpu_max_ns=0 alloc_n=0 alloc_invalid=0 alloc_wall_sum_ns=0 alloc_wall_max_ns=0 alloc_cpu_sum_ns=0 alloc_cpu_max_ns=0 convert_n=0 convert_invalid=0 convert_wall_sum_ns=0 convert_wall_max_ns=0 convert_cpu_sum_ns=0 convert_cpu_max_ns=0 sink_n=0 sink_invalid=0 sink_wall_sum_ns=0 sink_wall_max_ns=0 sink_cpu_sum_ns=0 sink_cpu_max_ns=0 publish_wait_n=0 publish_wait_invalid=0 publish_wait_wall_sum_ns=0 publish_wait_wall_max_ns=0 publish_wait_cpu_sum_ns=0 publish_wait_cpu_max_ns=0 publish_hold_n=0 publish_hold_invalid=0 publish_hold_wall_sum_ns=0 publish_hold_wall_max_ns=0 publish_hold_cpu_sum_ns=0 publish_hold_cpu_max_ns=0\n[stall_camera] pid=610 tid=612 camera=2 seq=1 outcome=success attempt_begin_ns=13570451113 attempt_end_ns=13635800367 attempt_wall_ns=65349254 attempt_cpu_ns=68455 off_cpu_ns=65280799 low_thread_cpu=1 clock_valid=1 nested_scopes=1 read_n=0 read_invalid=0 read_wall_sum_ns=0 read_wall_max_ns=0 read_cpu_sum_ns=0 read_cpu_max_ns=0 dma_wait_n=1 dma_wait_invalid=0 dma_wait_wall_sum_ns=40196218 dma_wait_wall_max_ns=40196218 dma_wait_cpu_sum_ns=29180 dma_wait_cpu_max_ns=29180 dma_hold_n=1 dma_hold_invalid=0 dma_hold_wall_sum_ns=5247 dma_hold_wall_max_ns=5247 dma_hold_cpu_sum_ns=3781 dma_hold_cpu_max_ns=3781 copy_n=1 copy_invalid=0 copy_wall_sum_ns=25141155 copy_wall_max_ns=25141155 copy_cpu_sum_ns=31637 copy_cpu_max_ns=31637 alloc_n=0 alloc_invalid=0 alloc_wall_sum_ns=0 alloc_wall_max_ns=0 alloc_cpu_sum_ns=0 alloc_cpu_max_ns=0 convert_n=0 convert_invalid=0 convert_wall_sum_ns=0 convert_wall_max_ns=0 convert_cpu_sum_ns=0 convert_cpu_max_ns=0 sink_n=0 sink_invalid=0 sink_wall_sum_ns=0 sink_wall_max_ns=0 sink_cpu_sum_ns=0 sink_cpu_max_ns=0 publish_wait_n=0 publish_wait_invalid=0 publish_wait_wall_sum_ns=0 publish_wait_wall_max_ns=0 publish_wait_cpu_sum_ns=0 publish_wait_cpu_max_ns=0 publish_hold_n=0 publish_hold_invalid=0 publish_hold_wall_sum_ns=0 publish_hold_wall_max_ns=0 publish_hold_cpu_sum_ns=0 publish_hold_cpu_max_ns=0\n[stall_ioctl] pid=610 tid=612 device=0x0 seq=1 attempt=1 camera=0 role=other cmd=0 addr=0x00000000 rx_offset=0x00000000 bytes=0 syscall_begin_ns=1000000000 syscall_end_ns=1040000000 syscall_wall_ns=40000000 syscall_cpu_ns=2000000 off_cpu_ns=38000000 low_thread_cpu=1 clock_valid=1 wrapper_begin_ns=1000000000 wrapper_end_ns=1040000000 rc=0 errno_valid=0 errno=0 raw_errno=11 alarm=0 application_rc=0 legacy_log_wall_ns=0 legacy_log_cpu_ns=0 sched_wait_ns=unmeasured\n[stall_ioctl_window] pid=610 tid=612 camera=0 role=other window_begin_ns=13570450731 window_end_ns=13635834752 first_attempt_begin_ns=1000000000 last_attempt_end_ns=1040000000 first_seq=1 last_seq=1 attempts=1 success=1 failure=0 rc_failure=0 alarm_failure=0 spans_window=1 slow_overflow=0 completion_assigned=1 success_wrapper_sum_ns=40000000 success_wrapper_max_ns=40000000 failure_wrapper_sum_ns=0 failure_wrapper_max_ns=0 success_ioctl_n=1 success_ioctl_invalid=0 success_ioctl_wall_sum_ns=40000000 success_ioctl_wall_max_ns=40000000 success_ioctl_cpu_sum_ns=2000000 success_ioctl_cpu_max_ns=2000000 failure_ioctl_n=0 failure_ioctl_invalid=0 failure_ioctl_wall_sum_ns=0 failure_ioctl_wall_max_ns=0 failure_ioctl_cpu_sum_ns=0 failure_ioctl_cpu_max_ns=0 legacy_log_n=0 legacy_log_invalid=0 legacy_log_wall_sum_ns=0 legacy_log_wall_max_ns=0 legacy_log_cpu_sum_ns=0 legacy_log_cpu_max_ns=0 logger_previous_n=1 logger_previous_invalid=0 logger_previous_wall_sum_ns=2729 logger_previous_wall_max_ns=2729 logger_previous_cpu_sum_ns=2739 logger_previous_cpu_max_ns=2739\n[stall_camera_window] pid=610 tid=612 camera=2 window_begin_ns=13570442208 window_end_ns=13635839710 first_attempt_begin_ns=13570451113 last_attempt_end_ns=13635800367 first_seq=1 last_seq=1 attempts=1 success=1 error=0 no_new=0 unstable=0 tag_advance_sum=0 tag_comparisons=0 tag_regressions=0 completion_assigned=1 logger_previous_n=1 logger_previous_invalid=0 logger_previous_wall_sum_ns=30013 logger_previous_wall_max_ns=30013 logger_previous_cpu_sum_ns=30013 logger_previous_cpu_max_ns=30013\n[stall_camera_stages] pid=610 tid=612 camera=2 window_begin_ns=13570442208 window_end_ns=13635839710 outcome=success attempts=1 spans_window=0 nested_scopes=1 attempt_n=1 attempt_invalid=0 attempt_wall_sum_ns=65349254 attempt_wall_max_ns=65349254 attempt_cpu_sum_ns=68455 attempt_cpu_max_ns=68455 read_n=0 read_invalid=0 read_wall_sum_ns=0 read_wall_max_ns=0 read_cpu_sum_ns=0 read_cpu_max_ns=0 dma_wait_n=1 dma_wait_invalid=0 dma_wait_wall_sum_ns=40196218 dma_wait_wall_max_ns=40196218 dma_wait_cpu_sum_ns=29180 dma_wait_cpu_max_ns=29180 dma_hold_n=1 dma_hold_invalid=0 dma_hold_wall_sum_ns=5247 dma_hold_wall_max_ns=5247 dma_hold_cpu_sum_ns=3781 dma_hold_cpu_max_ns=3781 copy_n=1 copy_invalid=0 copy_wall_sum_ns=25141155 copy_wall_max_ns=25141155 copy_cpu_sum_ns=31637 copy_cpu_max_ns=31637 alloc_n=0 alloc_invalid=0 alloc_wall_sum_ns=0 alloc_wall_max_ns=0 alloc_cpu_sum_ns=0 alloc_cpu_max_ns=0 convert_n=0 convert_invalid=0 convert_wall_sum_ns=0 convert_wall_max_ns=0 convert_cpu_sum_ns=0 convert_cpu_max_ns=0 sink_n=0 sink_invalid=0 sink_wall_sum_ns=0 sink_wall_max_ns=0 sink_cpu_sum_ns=0 sink_cpu_max_ns=0 publish_wait_n=0 publish_wait_invalid=0 publish_wait_wall_sum_ns=0 publish_wait_wall_max_ns=0 publish_wait_cpu_sum_ns=0 publish_wait_cpu_max_ns=0 publish_hold_n=0 publish_hold_invalid=0 publish_hold_wall_sum_ns=0 publish_hold_wall_max_ns=0 publish_hold_cpu_sum_ns=0 publish_hold_cpu_max_ns=0\n"
+    },
+    {
+      "argv": [
+        "g++",
+        "-std=c++17",
+        "-Wall",
+        "-Wextra",
+        "-fPIC",
+        "-fsyntax-only",
+        "-DQT_WIDGETS_LIB",
+        "-I/usr/include/x86_64-linux-gnu/qt5/QtWidgets",
+        "-I/usr/include/x86_64-linux-gnu/qt5",
+        "-I/usr/include/x86_64-linux-gnu/qt5/QtCore",
+        "-DQT_GUI_LIB",
+        "-I/usr/include/x86_64-linux-gnu/qt5/QtGui",
+        "-DQT_CORE_LIB",
+        "-I/mnt/c/Users/NineSun/Desktop/ov56401/project/per_camera_fps/host_stall/diagnostic/prepared/frozen/src",
+        "-I/mnt/c/Users/NineSun/Desktop/ov56401/project/per_camera_fps/host_stall/diagnostic",
+        "/mnt/c/Users/NineSun/Desktop/ov56401/project/per_camera_fps/host_stall/diagnostic/validation/frozen_capture_scopes.cpp"
+      ],
+      "cwd": "/mnt/c/Users/NineSun/Desktop/ov56401/project/per_camera_fps/host_stall/diagnostic",
+      "returncode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "g++",
+        "-std=c++17",
+        "-Wall",
+        "-Wextra",
+        "-fPIC",
+        "-fsyntax-only",
+        "-DQT_WIDGETS_LIB",
+        "-I/usr/include/x86_64-linux-gnu/qt5/QtWidgets",
+        "-I/usr/include/x86_64-linux-gnu/qt5",
+        "-I/usr/include/x86_64-linux-gnu/qt5/QtCore",
+        "-DQT_GUI_LIB",
+        "-I/usr/include/x86_64-linux-gnu/qt5/QtGui",
+        "-DQT_CORE_LIB",
+        "-I/mnt/c/Users/NineSun/Desktop/ov56401/project/per_camera_fps/host_stall/diagnostic/prepared/candidate/src",
+        "-I/mnt/c/Users/NineSun/Desktop/ov56401/project/per_camera_fps/host_stall/diagnostic",
+        "/mnt/c/Users/NineSun/Desktop/ov56401/project/per_camera_fps/host_stall/diagnostic/validation/candidate_capture_scopes.cpp"
+      ],
+      "cwd": "/mnt/c/Users/NineSun/Desktop/ov56401/project/per_camera_fps/host_stall/diagnostic",
+      "returncode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "patch",
+        "--batch",
+        "--binary",
+        "-p1",
+        "-i",
+        "/mnt/c/Users/NineSun/Desktop/ov56401/project/per_camera_fps/host_stall/diagnostic/prepared/diagnostic.patch"
+      ],
+      "cwd": "/mnt/c/Users/NineSun/Desktop/ov56401/project/per_camera_fps/host_stall/diagnostic/validation/patch_replay",
+      "returncode": 0,
+      "stdout": "patching file src/main.cpp\npatching file src/stall_timing.h\n",
+      "stderr": ""
+    }
+  ]
+}

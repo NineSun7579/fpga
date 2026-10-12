@@ -1,0 +1,442 @@
+PAGE 4
+3/126
+2.3.5 Device 中的 I\O Table 相关配置....................................................................................98
+2.3.6 IP FDC 支持指定子 module......................................................................................... 103
+2.3.7 Fdc 约束文件逻辑约束支持通配符............................................................................103
+2.3.8 UCE 属性使用实例.......................................................................................................103
+2.4 查询命令.............................................................................................................................105
+2.4.1 get_cells........................................................................................................................ 105
+2.4.2 get_nets........................................................................................................................ 106
+2.4.3 get_pins........................................................................................................................ 106
+2.4.4 get_clocks..................................................................................................................... 107
+2.4.5 get_ports.......................................................................................................................107
+2.5 常见约束错误.....................................................................................................................107
+2.6 通用IO 属性默认值...........................................................................................................108
+2.6.1 Compact(PGC2KG)........................................................................................................ 108
+2.6.2 Logos(PGL50H)..............................................................................................................109
+2.6.3 Logos2(PG2L100H)........................................................................................................112
+2.6.4 Titan(PGT180H).............................................................................................................115
+2.6.5 Titan2(PG2T390H).........................................................................................................117
+PAGE 16
+1.UCE 界面功能介绍
+15/126
+1.3.3UCE 的按钮
+PreSynthesizeUCE 界面的上方有5 个按钮，如下图所示：
+图1-9 Pre SynthesizeUCE 的按钮
+依次为【DesignBrowser】【Region】【Properties】【Selection】【MarkBrowser】
+【Save】【CheckConstraints】。
+【DesignBrowser】按钮可以打开UCE 的网表查看工具，通过该工具可以查
+看该阶段设计网表的结构和内容。网表的内容大致分为三类：Ports、LeafCells
+和Nets，由于UCE 阶段会有hierarchical 结构的，所以若有该种结构也会显示。
+点击按钮以后会在UCE 左侧显示树型结构，如下图所示。
+图1-10DesignBrowser 的结构
+【Region】按钮可以打开Region 窗口来进行修改、创建、修改region。
+【Properties】按钮可以打开Properties 窗口来查看选中对象的属性。
+【Selection】按钮用来打开Selection 界面，可查看选中对象信息。
+【MarkBrowser】按钮用来打开MarkBrowser 列表，其中能够定位某个已
+mark 的资源位置，并且能够将不需要mark 的资源移除markbrowser。
+【Save】按钮用来将当前UCE 中填写的所有约束保存到约束文件targetfile
+中，不会过滤掉检查报告中的错误约束。所以，若想生成的约束文件全部正确，
+请先查看检查报告。
+【CheckConstraints】按钮用来检查UCE 中所填写的约束的正确性，约束检
+PAGE 19
+1.UCE 界面功能介绍
+18/126
+图1-13CreateClock 窗口
+CreateClock表格用来显示该条命令，表格如下：
+图1-14CeateClock 表格
+其各列介绍如下：
+Enable 列：该列是一个复选框，默认勾选，如果不勾选，则在保存约束文
+件时会在该条约束最后加上-disable，除了IOTable，其它表格都有Enable，其用
+法是一样的，不再赘述；
+Clock name 列：创建的时钟的名字，它对应于 create_clock 命令的-name
+<clock_name>参数；
+SourceObjects 列：对应create_clock 命令创建时钟的源，如port，pin 等，
+必须通过get_pins、get_ports 等命令获得，当其为空时，表示创建一个虚拟时钟；
+它对应于create_clock 命令的<source_objects>参数；
+Period 列：对应create_clock 命令所创建时钟的周期；它对应于create_clock
+命令的-period<period_value>参数；
+Waveform 列：对应create_clock 命令所创建时钟上升沿和下降沿的位置；
+它对应于create_clock 命令的-waveform<edge_list>参数；
+Add 列：是否允许在同一个 source object 上定义多个时钟；它对应于
+create_clock 命令的-add 参数；
+该表格所填写的值在保存约束文件时会体现为create_clock 命令。
+1.3.4.2CreateGeneratedClock 窗口及表格
+CreateGeneratedClock窗口和对应的create_generated_clock命令用于创建生
+成时钟，生成时钟在设计内部被pll 或某些用户逻辑所驱动。生成时钟和主时钟
+相关联，主时钟可以是基准时钟或者是其他的生成时钟。
+相较于直接指定生成时钟的周期或者波形属性，生成时钟的属性由主时钟变
+换而来，只需要描述相对于主时钟的变换关系。 主时钟和生成时钟之间的关系
+可以是下列这些情况分频、倍频、相位移动、波形反转和占空比转换以及他们的
+任意组合。
+PAGE 69
+2.UCE约束命令介绍
+68/126
+2.UCE 约束命令介绍
+本章所描述的都是保存在约束文件里的约束命令，这些命令的各个option
+与界面表格里填写内容的对应关系在第一章UCE 界面功能介绍里有说明。
+2.1 对象描述规则
+1、集成版： 在fdc 或UCE 中构建约束对象时，instance 名字与子module
+实例的名字之间用分隔符“.”来区分，instance名字和pin脚的名字之间用分隔符
+“.”或者“/”来区分。
+例：
+create_generated_clock -name {CLKA} -source [get_ports {clka_in}] [get_pins
+{pllx8_u1.I_GTP_PLL/CLKOUT0}]-master_clock{CLKA_IN}-multiply_by{16}
+2、后端版：在sdc 或lcf 中构建约束对象时，instance 名字与子module实例
+的名字之间用分隔符“/”来区分， instance 名字和pin 脚的名字之间用分隔符“:”
+来区分。
+例：
+create_generated_clock -name {CLKA} -source [get_ports {clka_in}] [get_pins
+{pllx8_u1/I_GTP_PLL:CLKOUT0}]-master_clock{CLKA_IN}-multiply_by{16}
+3、如果对象名字有重复，如net 名与instance 名一样，为了区分指定对象，
+可以加前缀来区分：
+“p:” 表示port
+“n:” 表示net
+“t:” 表示pin
+“i:” 表示instance
+4、如果约束对象位于generate 循环过程中，对于 begin 后面有 ":label" 的
+情况，externalname 就是 label[idx] 的形式；
+对于 begin 后面没有label 的情况，规定默认前缀是 genblk, 后面加上当前
+PAGE 74
+2.UCE约束命令介绍
+73/126
+2.2.1.1create_clock
+在Clocks 窗口中可以设置create_clock 命令的参数，这个命令的作用是为时
+序分析创建一个时钟。需要注意的是用户在使用其他命令有引用clock 的时候需
+要先定义该clock。命令格式如下：
+create_clock
+-period<period_value>
+[-name<clock_name>]
+[-waveform<edge_list>]
+[-add]
+[<source_objects>]
+[-disable]
+命令中各个参数的含义说明如下：方括号表示该参数为可选值，尖括号表示
+参数值或参数列表。
+-period ：定义创建时钟的周期，为浮点数，单位是ns。
+[-name] ：创建的时钟的名字，如果未定义，则一定要指定source_objects，
+同时名字和 source_objects 中第一个参数的名字相同；如果用户未定义 source
+objects，则用户必须定义-name，此时创建的clcok 是一个虚拟时钟。
+[-waveform] ：定义时钟上升沿和下降沿的位置，其中上升沿在前，下降沿
+在后，成对存在，格式为：[-waveform]{time_risetime_fall}。
+[-add] ：在同一个引脚上定义多个clock，如果不加这个参数，那么后面定
+义的clock 会将已定义的clock 覆盖掉，同时软件将会给出警告。
+[<source_objects>] ：创建的时钟的源，可以是pin 或port（必须通过get_pins、
+get_ports 得到），当其为空时，创建虚拟时钟。
+[-disable] ：使本条约束不生效。
+2.2.1.2create_generated_clock
+在GeneratedClocks 窗口中可以设置create_generated_clock 命令的参数，该
+命令的格式如下：
+create_generated_clock
+[-name<clock_name>]
+PAGE 76
+2.UCE约束命令介绍
+75/126
+里面不仅包含了第一个周期的上升沿和下降沿，还包含第二个周期的上升沿，软
+件能从中计算出generatedclock 的周期；例如-edges{246}，其中“2”表示source
+clock 的第二个edge，“4”表示source 的第四个edge……依次类推；在generated
+clock 里，“2”对应第一个上升沿位置，“4”表示第一个下降沿的位置，“6”表示下
+一个上升沿的位置。
+[-edge_shift] ：指定了一系列浮点数，来表示每条边的偏移量，单位是ns，
+必须和-edges 一起使用；如果generatedclock 需要实现相移功能，那么就需要用
+到“-edge_shift”，“-edge_shift”里面的列表元素个数必须和“-edges”里面的个数一
+致。
+[-invert] ：表示相对于sourceclock，generatedclock 的clock 信号被取反。
+[-add] ：在同一个引脚上定义多个clock，如果不加这个参数，那么后面定
+义的clock 就会将前面的覆盖掉。
+<source_objects> ：被创建generatedclock 的pin，port 或者是net。
+[-disable] ：使本条约束不生效。
+注：
+1.-edges/-edge_shift 不能和-multiply_by、-divide_by、-duty_cycle 同时使用。
+2. 对于用户在PLL 上创建的create_generated_clock 约束，如果PLL 配置了
+相移，那么约束命令就需要通过-edges/-edge_shift 选项将PLL 的相移信息体现在
+generatedclock 的波形上；软件自动在PLL 上infer 的时钟也通过上述方法体现
+PLL 的相移延时。另外，用户需要注意时序分析路径上的时钟边沿对，有时可能
+需要通过set_multicycle_path 约束进行调整。
+3. create_generated_clock 命令支持 rename 功能，即用户只需要指定
+create_generated_clock 中的-name，source_objects，软件会自动infer 出该时钟的
+周期和波形，同样也可以指定-source|-master_clock 来筛选source 时钟，该功能
+只支持PLL 和CLKDIV 的时钟输出端口。如果用户想要使用此功能，则不能指
+定 如 下 选 项 ： [-edges edge_list] [-edge_shift shift_list] [-divide_by factor]
+[-multiply_byfactor][-duty_cyclepercent][-invert]。用户可使用该功能重命名软件
+infer 的generatedclock，并基于指定的名字进行后续的时序约束。命令示例如下：
+create_generated_clock-namepll_clk[get_pins{pll.clkout1}]
+PAGE 77
+2.UCE约束命令介绍
+76/126
+1.2.1.3 set_clock_latency
+在SetClockLatency 窗口中可以设置set_clock_latency 命令的参数，该命令
+的格式如下：
+set_clock_latency
+[-clock<clock_list>]
+-source
+<latency_value>
+[-early][-late]
+[-max][-min]
+[-rise][-fall]
+<object_list>
+[-disable]
+命令中各个参数的含义说明如下：方括号表示该参数为可选值，尖括号表示
+参数值或参数列表。
+[-clock] ：该条命令作用的clock。
+-source：指定latency的类型，目前只支持sourcelatency，必须定义-source参
+数。
+<latency_value> ：延时值，为浮点数，单位是ns。
+[-min] ：在bc_wc的环境下，-min表示fastcorner；-min和-max不能同时指定；
+不指定-min和-max，默认fastcorner和slowcorner命令都会生效。
+[-max] ：在bc_wc的环境下，-max表示slowcorner；-min和-max不能同时指
+定；不指定-min和-max，默认fastcorner和slowcorner命令都会生效。
+[-early] ：表示该latency是clock的左偏移量；-early和-late不能同时指定；不
+指定-early和-late，默认clock的左右偏移量都会生效。
+[-late] ：表示该latency是clock的右偏移量，-early和-late不能同时指定；不指
+定-early和-late，默认clock的左右偏移量都会生效。
+[-rise] ：表示该latency只应用在触发时钟边沿为上升沿的情况。
+[-fall] ：表示该latency只应用在触发时钟边沿为下降沿的情况。
+<object_list> ：时钟定义点。可以通过get_pins、get_ports等方式获取对应
+PAGE 83
+2.UCE约束命令介绍
+82/126
+[-disable]
+命令中各个参数的含义说明如下，方括号表示该参数为可选值，尖括号表示
+参数值或参数列表，*表示该参数可以重复，| 表示或符号，同级的多个选项只
+能使用一个：
+[-from] ：<from_list>表示path 的startpoint，可以通过get_ports、get_cells、
+get_pins、get_clocks 得到。
+[-rise_from] ：该参数只能指定为时钟clocks，表示该时序路径起点被时钟
+上升沿触发，此处的时钟上升沿指的是时钟定义点的上升沿。
+[-fall_from] ：该参数只能指定为时钟clocks，表示该时序路径起点被时钟下
+降沿触发，此处的时钟下降沿指的是时钟定义点的下降沿。
+[-to] ：<to_list>表示path 的endpoint，可以通过get_ports、get_cells、get_pins、
+get_clocks 得到。
+[-rise_to] ：该参数只能指定为时钟clocks，表示该时序路径终点被时钟上升
+沿触发，此处的时钟上升沿指的是时钟定义点的上升沿。
+[-fall_to] ：该参数只能指定为时钟clocks，表示该时序路径终点被时钟下降
+沿触发，此处的时钟下降沿指的是时钟定义点的下降沿。
+[-through] ：<through_list>表示 path 经过的中间点，可以通过 get_cells、
+get_pins、get_nets 得到。
+<skew_value> ：指定这条命令约束的一组path 的最大skew 值，为浮点数，
+单位是ns。
+[-disable] ：使本条约束不生效。
+2.2.4Exception命令
+在树型结构Exception中有set_max_delay、set_min_delay、set_multicycle_path
+和set_false_path 四条命令：
+2.2.4.1set_max_delay
+在SetMaxDelay 窗口中可以设置set_max_delay 命令的参数，该命令的格式
+如下：
+set_max_delay
+PAGE 84
+2.UCE约束命令介绍
+83/126
+[-from<from_list>|-rise_from<rise_from_list>|-fall_from<fall_from_list>]
+[-through<through_list>]*
+[-to<to_list>|-rise_to<rise_to_list>|-fall_to<fall_to_list>]
+[-datapath_only]
+<delay_value>
+[-disable]
+命令中各个参数的含义说明如下，方括号表示该参数为可选值，尖括号表示
+参数值或参数列表，*表示该参数可以重复，| 表示或符号，同级的多个选项只
+能使用一个：
+[-from] from_list ：from_list 表示 path 的 startpoint，可以通过 get_ports、
+get_cells、get_pins、get_clocks 得到。
+[-rise_from] ：该参数只能指定为时钟clocks，表示该时序路径起点被时钟
+上升沿触发，此处的时钟上升沿指的是时钟定义点的上升沿。
+[-fall_from] ：该参数只能指定为时钟clocks，表示该时序路径起点被时钟下
+降沿触发，此处的时钟下降沿指的是时钟定义点的下降沿。
+[-through] ：<through_list>表示 path 经过的中间点，可以通过 get_cells、
+get_pins、get_nets 得到。
+[-to] ：<to_list>表示path 的endpoint，endpoint 可以通过get_ports、get_cells、
+get_pins、get_clocks 得到。
+[-rise_to] ：该参数只能指定为时钟clocks，表示该时序路径终点被时钟上升
+沿触发，此处的时钟上升沿指的是时钟定义点的上升沿。
+[-fall_to] ：该参数只能指定为时钟clocks，表示该时序路径终点被时钟下降
+沿触发，此处的时钟下降沿指的是时钟定义点的下降沿。
+[-datapath_only] ：表示指定的maxdelaypath 不关心时钟的skew 和jitter，
+只考虑datapath，包括第一个触发器的CLK->Q延时，第二个触发器的setuptime，
+以及两个触发器之间的组合路径延时。
+<delay_value> ：延时值，为浮点数，单位是ns。
+[-disable] ：使本条约束不生效。
+PAGE 85
+2.UCE约束命令介绍
+84/126
+2.2.4.2set_min_delay
+在SetMinDelay 窗口中可以设置set_min_delay 命令的参数，该命令的格式
+如下：
+set_min_delay
+[-from<from_list>|-rise_from<rise_from_list>|-fall_from<fall_from_list>]
+[-through<through_list>]*
+[-to<to_list>|-rise_to<rise_to_list>|-fall_to<fall_to_list>]
+<delay_value>
+[-disable]
+命令中各个参数的含义说明如下，方括号表示该参数为可选值，尖括号表示
+参数值或参数列表，*表示该参数可以重复，| 表示或符号，同级的多个选项只
+能使用一个：
+[-from] from_list ：from_list 表示 path 的 startpoint，可以通过 get_ports、
+get_cells、get_pins、get_clocks 得到。
+[-rise_from] ：该参数只能指定为时钟clocks，表示该时序路径起点被时钟
+上升沿触发，此处的时钟上升沿指的是时钟定义点的上升沿。
+[-fall_from] ：该参数只能指定为时钟clocks，表示该时序路径起点被时钟下
+降沿触发，此处的时钟下降沿指的是时钟定义点的下降沿。
+[-through] ：<through_list>表示 path 经过的中间点，可以通过 get_cells、
+get_pins、get_nets 得到。
+[-to] ：<to_list>表示path 的endpoint，endpoint 可以通过get_ports、get_cells、
+get_pins、get_clocks 得到。
+[-rise_to] ：该参数只能指定为时钟clocks，表示该时序路径终点被时钟上升
+沿触发，此处的时钟上升沿指的是时钟定义点的上升沿。
+[-fall_to] ：该参数只能指定为时钟clocks，表示该时序路径终点被时钟下降
+沿触发，此处的时钟下降沿指的是时钟定义点的下降沿。
+<delay_value> ：延时值，为浮点数，单位是ns。
+[-disable] ：使本条约束不生效。
+PAGE 86
+2.UCE约束命令介绍
+85/126
+2.2.4.3set_multicycle_path
+在SetMulticyclePath 窗口中可以设置set_multicycle_path 命令的参数，该命
+令的格式如下：
+set_multicycle_path
+[-setup][-hold]
+[-start][-end]
+[-from<from_list>|-rise_from<rise_from_list>|-fall_from<fall_from_list>]
+[-through<through_list>]*
+[-to<to_list>|-rise_to<rise_to_list>|-fall_to<fall_to_list>]
+<path_multiplier>
+[-disable]
+命令中各个参数的含义说明如下，方括号表示该参数为可选值，尖括号表示
+参数值或参数列表，*表示该参数可以重复，| 表示或符号，同级的多个选项只
+能使用一个：
+[-setup] ：表示setup 分析时，时钟周期使用指定的倍数。Setup指定之后，
+hold也会受到影响。默认情况下，是使用setup。
+[-hold] ：表示hold 分析时，时钟周期使用指定的倍数。
+[-start] ：表示这个多周期的设置是和launchclock 相关的。
+[-end] ：表示这个多周期的设置是和captureclock 相关的。
+[-from] from_list ：from_list 表示 path 的 startpoint，可以通过 get_ports、
+get_cells、get_pins、get_clocks 得到。
+[-rise_from] ：该参数只能指定为时钟clocks，表示该时序路径起点被时钟
+上升沿触发，此处的时钟上升沿指的是时钟定义点的上升沿。
+[-fall_from] ：该参数只能指定为时钟clocks，表示该时序路径起点被时钟下
+降沿触发，此处的时钟下降沿指的是时钟定义点的下降沿。
+[-through] ：<through_list>表示 path 经过的中间点，可以通过 get_cells、
+get_pins、get_nets 得到。
+[-to] ：<to_list>表示path 的endpoint，endpoint 可以通过get_ports、get_cells、
+PAGE 87
+2.UCE约束命令介绍
+86/126
+get_pins、get_clocks 得到。
+[-rise_to] ：该参数只能指定为时钟clocks，表示该时序路径终点被时钟上升
+沿触发，此处的时钟上升沿指的是时钟定义点的上升沿。
+[-fall_to] ：该参数只能指定为时钟clocks，表示该时序路径终点被时钟下降
+沿触发，此处的时钟下降沿指的是时钟定义点的下降沿
+<path_multiplier> ：表示设置的周期数目，是一个大于等于0 的整数。当设
+置为0 时，表示指定的path 为zerocyclepath。
+[-disable] ：使本条约束不生效。
+2.2.4.4set_false_path
+在SetFalsePath 窗口中可以设置set_false_path 命令的参数，该命令的格式
+如下：
+set_false_path
+[-setup][-hold]
+[-from<from_list>|-rise_from<rise_from_list>|-fall_from<fall_from_list>]
+[-through<through_list>]*
+[-to<to_list>|-rise_to<rise_to_list>|-fall_to<fall_to_list>]
+[-disable]
+命令中各个参数的含义说明如下，方括号表示该参数为可选值，尖括号表示
+参数值或参数列表，*表示该参数可以重复，| 表示或符号，同级的多个选项只
+能使用一个：
+[-setup] ：表示进行的是setup 分析
+[-hold] ：表示进行的是hold 分析
+[-from] ：<from_list>表示path 的startpoint，可以通过get_ports、get_cells、
+get_pins、get_clocks 得到。
+[-rise_from] ：该参数只能指定为时钟clocks，表示该时序路径起点被时钟
+上升沿触发，此处的时钟上升沿指的是时钟定义点的上升沿。
+[-fall_from] ：该参数只能指定为时钟clocks，表示该时序路径起点被时钟下
+降沿触发，此处的时钟下降沿指的是时钟定义点的下降沿。
+[-through] ：<through_list>表示 path 经过的中间点，可以通过 get_cells、
+PAGE 88
+2.UCE约束命令介绍
+87/126
+get_pins、get_nets 得到。
+[-to] ：<to_list>表示path 的endpoint，可以通过get_ports、get_cells、get_pins、
+get_clocks 得到。
+[-rise_to] ：该参数只能指定为时钟clocks，表示该时序路径终点被时钟上升
+沿触发，此处的时钟上升沿指的是时钟定义点的上升沿。
+[-fall_to] ：该参数只能指定为时钟clocks，表示该时序路径终点被时钟下降
+沿触发，此处的时钟下降沿指的是时钟定义点的下降沿。
+[-disable] ：使本条约束不生效。
+2.2.5Other约束命令
+2.2.5.1set_disable_timing
+Set_disable_timing用于disable某段时序弧。命令格式如下：
+set_disable_timing
+[-from<from_pin_name>]
+[-to<to_pin_name>]
+<object_list>
+[-disable]
+命令中各参数含义说明如下，方括号表示该参数为可选值，尖括号表示该参
+数为必选值：
+-from：表示时序弧的起点，只有object_list 指定的对象为lib_cell 和Inst 时
+可用，在指定cell 中只disable 起点为此from_pin 的timingarc，from_pin_name
+应对应object_list中lib_cell 或Inst 的pinname。
+-to：表示时序弧的终点，只有object_list 指定的对象为lib_cell 和Inst 时可
+用，在指定cell 中只disable 终点为此to_pin 的timingarc，to_pin_name 应对应
+object_list中lib_cell 或Inst 的pinname。
+<object_list>：表示指定对象的list，对象可以为lib_cell、inst、pin、port，
+目前不支持hierarchicalinst。
+[-disable]：使本条约束不生效。
+PAGE 106
+2.UCE约束命令介绍
+105/126
+output[7:0]of_data;
+wire[7:0]of_data;
+(*PAP_REGION="reg(1,2,3,4)"*)regcnt2;
+在上面的.v 文件中给 input sclk 设置了属性 PAP_IO_STANDARD 和
+PAP_IO_LOC 属性，给reg cnt2 设置了PAP_REGION 属性，这里等同于在fdc
+约束文件中写属性命令：
+define_attribute{p:sclk}{PAP_IO_LOC}{A1}
+define_attribute{p:sclk}{PAP_IO_STANDARD}{LVCMOS33}
+define_attribute{cnt2}{PAP_REGION}{reg(1,2,3,4)}
+在综合工具处理之后会将这些属性传递到约束文件lcf中，对应与其等同的
+design 文件中描述部分如下：
+(*PAP_IO_STANDARD="LVCMOS33",PAP_IO_LOC="A1"*)inputsclk;
+(*PAP_REGION="reg(1,2,3,4)"*) GTP_DFF_ACcnt2(
+.Q(cnt2_Z),
+.D(cnt2_i_0),
+.CLK(sclk_c),
+.ACLR(xrst_c_i_0)
+);
+属 性 最 终 会 跟 随 DB 文 件 传 递 下 来 ， 对 于 属 性 命 名 以 PAP_IO_
+（PAP_IO_DIRECTION 和PAP_IO_REGISTER 除外）开始的属性，均会转化存
+放在物理约束文件中。
+2.4 查询命令
+2.4.1get_cells
+get_cells 用于返回所有满足条件的cell 的集合。命令格式如下：
+get_cells [-hierarchical] [-hscseparator] [-regexp] [-nocase] <patterns>
+-hierarchical ：匹配完整层次名，例如 A*C 可以匹配到完整层次名为 A/B/C
+的对象。
+PAGE 107
+2.UCE约束命令介绍
+106/126
+-hscseparator ：hierarchical 分隔符。如果该cell 是hierarchical，那么在书写
+名字的时候应该加上module的名字，并且用分隔符隔开，例如，假设分隔符为
+‘_’moduleA 中有 cell 名字为 unst，A 被例化为 a，那么 cell 的名字应该写为
+a_unst。
+-regexp ：表示支持正则表达式而不是简单通配符。
+-nocase ：表示不关心pattern 的大小写。
+patterns ：instance 的名字。
+2.4.2get_nets
+get_nets 用于返回所有满足条件的net 的集合。命令格式如下：
+get_nets [-hierarchical] [-hscseparator] [-regexp] <patterns>
+-hierarchical ：匹配完整层次名，例如 A*C 可以匹配到完整层次名为 A/B/C
+的对象。
+-hscseparator ：hierarchical 分隔符。如果该net 是hierarchical，那么在书写
+名字的时候应该加上module的名字，并且用分隔符隔开，例如，假设分隔符为
+‘_’moduleA 中有net 名字为reset，那么net 的名字应该写为A_reset。
+-regexp ：表示支持正则表达式而不是简单通配符。
+-nocase ：表示不关心pattern 的大小写。
+patterns ：net 的名字。
+2.4.3get_pins
+get_pins 用于返回所有满足条件的pin的集合。命令格式如下：
+get_pins [-hierarchical] [-hscseparator] [-regexp] [-nocase]<patterns>
+-hierarchical ：匹配完整层次名，例如 A*C 可以匹配到完整层次名为 A/B/C
+的对象。
+-hscseparator ：hierarchical 分隔符。如果该pin 是hierarchical，那么在书写
+名字的时候应该加上module的名字，并且用分隔符隔开，例如，假设分隔符为
+‘_’moduleA 中有pin 名字为reset，那么pin 的名字应该写为A_reset
+-regexp ：表示支持正则表达式而不是简单通配符。
+-nocase ：表示不关心pattern 的大小写。

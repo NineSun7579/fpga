@@ -1,0 +1,40 @@
+{
+  "status": "RESEALED_AND_RESTARTED",
+  "old_queued_pid": 11664,
+  "new_pid": 72832,
+  "unique_controller_count": 1,
+  "controller_lease_present": true,
+  "phase": "WAIT_MAP01_AND_PRIOR_FINISHERS",
+  "gate": {
+    "status": "PENDING",
+    "reason": "map01 final_result.json absent",
+    "physical_start_allowed": false
+  },
+  "live_prior_lifecycle_blockers": [
+    {
+      "ProcessId": 33704,
+      "ParentProcessId": 56904,
+      "Name": "powershell.exe",
+      "CommandLine": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.EXE -NoLogo -NoProfile -NonInteractive -Command \"python -u project/fpga_v8_migration/board_v7/diagnostic_sync_register_map_01/recover.py\""
+    },
+    {
+      "ProcessId": 73088,
+      "ParentProcessId": 33704,
+      "Name": "python.exe",
+      "CommandLine": "\"C:\\Users\\NineSun\\anaconda3\\python.exe\" -u project/fpga_v8_migration/board_v7/diagnostic_sync_register_map_01/recover.py"
+    },
+    {
+      "ProcessId": 75124,
+      "ParentProcessId": 56904,
+      "Name": "powershell.exe",
+      "CommandLine": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.EXE -NoLogo -NoProfile -NonInteractive -Command \"@'\nfrom pathlib import Path\nimport sys,json,ctypes\np=Path('project/fpga_v8_migration/board_v7/source_diagnostics_timing_build_02').resolve();sys.path.insert(0,str(p/'runtime'));import physical_flow as f\nps=f.processes();cs=[x for x in ps if x['Name'].lower() in {'python.exe','pythonw.exe'} and 'source_diagnostics_timing_build_02/runtime/controller02.py' in (x.get('CommandLine') or '').replace('\\\\','/') and '--run' in (x.get('CommandLine') or '')];assert len(cs)==1,cs\nown=cs[0];busy,observers=f.classify_processes(ps,own['ProcessId']);assert own['ParentProcessId'] not in {x['ProcessId'] for x in busy}\nledger=f.load(f.EVIDENCE/'runtime_hash_append.json');assert all(f.sha(p/n)==h for n,h in ledger['runtime_hash_append'].items())\nm=f.load(p/'manifest.json');assert all(f.sha(p/n)==h for n,h in m['local_hashes'].items())\ns=f.load(f.EVIDENCE/'controller_status.json');assert s['pid']==own['ProcessId'] and s['phase']=='WAIT_MAP01_AND_PRIOR_FINISHERS'\nk=ctypes.WinDLL('kernel32',use_last_error=True);k.OpenMutexW.argtypes=[ctypes.c_uint,ctypes.c_bool,ctypes.c_wchar_p];k.OpenMutexW.restype=ctypes.c_void_p;k.CloseHandle.argtypes=[ctypes.c_void_p];lease=k.OpenMutexW(0x00100000,False,'Global\\\\ov56401_build02_controller');assert lease;k.CloseHandle(lease)\nlife=[x for x in busy if any(t in (x.get('CommandLine') or '').replace('\\\\','/') for t in ['diagnostic_sync_register_map_01/recover.py','source_diagnostics_timing_build_01/resume_actual_graph.py'])]\nlaunches=[x.name for x in f.EVIDENCE.glob('*_launch.json')];assert not launches\nr={'status':'RESEALED_AND_RESTARTED','old_queued_pid':11664,'new_pid':own['ProcessId'],'unique_controller_count':1,'controller_lease_present':True,'phase':s['phase'],'gate':s.get('gate'),'live_prior_lifecycle_blockers':life,'runtime_ledger_sha256':f.sha(f.EVIDENCE/'runtime_hash_append.json'),'identity_review_sha256':f.sha(f.EVIDENCE/'identity_adapter_review.json'),'schema_review_sha256':f.sha(f.EVIDENCE/'identity_schema_review.json'),'source_and_runtime_mismatches':[],'build02_tool_launches':launches,'main_files_modified':False,'remote_or_device':False}\nf.record('restart_identity_01.json',r);print(json.dumps(r,indent=2))\n'@ | python -\""
+    }
+  ],
+  "runtime_ledger_sha256": "000eae0cb24bfb9370c80c6e60407f89481ab8a4f94bcafe34803f31cda1ab3f",
+  "identity_review_sha256": "e677a108252db98a19e8da47bc0bb71f2667457a694e8d07e21ef129cee16ebf",
+  "schema_review_sha256": "9f300df1bb6117852d54c2022f6018652b943159963140e8a7faf676a2275b6d",
+  "source_and_runtime_mismatches": [],
+  "build02_tool_launches": [],
+  "main_files_modified": false,
+  "remote_or_device": false
+}

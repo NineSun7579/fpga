@@ -1,0 +1,34 @@
+Local API/link verification only; NOT a target deployment receipt.
+
+Revision note: the ARM64 mmap lifetime fix preserves allocator vm_ops/private_data,
+uses VMA backing-file references, blocks UNMAP after any successful CPU mmap, and
+adds rate-limited allocation/transfer/mmap errors. The build recorded below
+predates this revision; this revision has NOT been rebuilt locally. Parent owns
+matching-target rebuild and validation. Linux v6.1 mm/mmap.c and dma-buf.c were
+read to verify backing-file lifetime and allocator-close-before-fput ordering.
+
+Environment: Ubuntu 24.04 WSL, native gcc, Debian Linux 6.1.176-1 amd64 headers
+Packages:
+  linux-headers-6.1.0-50-amd64_6.1.176-1_amd64.deb
+  linux-headers-6.1.0-50-common_6.1.176-1_all.deb
+  linux-kbuild-6.1_6.1.176-1_amd64.deb
+Source: pango_zc.c, pango_zc_uapi.h, Makefile (SHA256SUMS)
+Invocation: make KDIR=<extracted>/usr/src/linux-headers-6.1.0-50-amd64 CC=gcc
+Makefile enables -Werror.
+
+Verified build output:
+  CC [M] pango_zc.o
+  MODPOST Module.symvers
+  CC [M] pango_zc.mod.o
+  LD [M] pango_zc.ko
+  BTF [M] pango_zc.ko
+Exit: 0
+MODPOST reported no missing symbols or DMA_BUF namespace error.
+BTF skipped because vmlinux was unavailable.
+Build emitted a filesystem clock-skew warning (0.046 seconds), not a compiler
+diagnostic. Generated amd64 module/build intermediates are cleaned from delivery
+to avoid confusing an API-check binary with an RK3568 deployable artifact.
+
+Not performed: matching Rockchip 6.1.99 build, target module load/rebind, device
+opens, DMA-BUF importer execution, offset/parity or lifecycle hardware tests.
+Parent owns these steps. No board commands or production source edits occurred.

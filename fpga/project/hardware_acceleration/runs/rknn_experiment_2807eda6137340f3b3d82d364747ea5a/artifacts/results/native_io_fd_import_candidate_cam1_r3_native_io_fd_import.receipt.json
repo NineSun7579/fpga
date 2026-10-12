@@ -1,0 +1,5365 @@
+{
+  "label": "native_io_fd_import_candidate_cam1_r3_native_io_fd_import",
+  "mode": "native_io_fd_import",
+  "fixture": "candidate_cam1",
+  "command": {
+    "argv": [
+      "/userdata/linaro/100h_performance/hardware_596a40954b4947f2ac5191a63436ffae/run/results/rknn_io_bench",
+      "--mode",
+      "native_io_fd_import",
+      "--lib",
+      "/usr/lib/librknnrt.so",
+      "--model",
+      "/root/npu/whiteboard_3cls/det-yolov8n-3cls-wb_v4_combo-rk3568-raw-dfl6-int8.rknn",
+      "--manifest",
+      "/userdata/linaro/100h_performance/hardware_596a40954b4947f2ac5191a63436ffae/package/prepared/manifest.json",
+      "--native-query",
+      "9",
+      "--dequant-scale",
+      "fp16",
+      "--timing-reference",
+      "native_io_single_copy",
+      "--fixture",
+      "/userdata/linaro/100h_performance/hardware_596a40954b4947f2ac5191a63436ffae/package/prepared/fixtures/candidate_cam1.png",
+      "--kind",
+      "png",
+      "--prefix",
+      "/userdata/linaro/100h_performance/hardware_2807eda6137340f3b3d82d364747ea5a/run/results/native_io_fd_import_candidate_cam1_r3_native_io_fd_import",
+      "--warmup",
+      "5",
+      "--iterations",
+      "50"
+    ],
+    "cwd": "/userdata/linaro/100h_performance/hardware_2807eda6137340f3b3d82d364747ea5a/run/results",
+    "returncode": 0,
+    "elapsed_seconds": 2.7874884430202655,
+    "stdout_sha256": "9f412964b7597eb6aa5f83bd70eab3015c0bd7470174aefa445c4ae4943d140e",
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "events": [
+    {
+      "async": false,
+      "cache_sync": "explicit and runtime default enabled",
+      "dequant_scale": "fp16",
+      "diagnose_native": false,
+      "event": "identity",
+      "executable_sha256": "448963bc1699bb5322effdef58fdd6a2aa90575578910f2211831f6da64c3f80",
+      "manifest_sha256": "59c21cc8d2bbad6fe03b3f207e98a27f6a0b551e4c8aef59a6b142e15adf86bf",
+      "mode": "native_io_fd_import",
+      "model_path": "/root/npu/whiteboard_3cls/det-yolov8n-3cls-wb_v4_combo-rk3568-raw-dfl6-int8.rknn",
+      "model_sha256": "21451a51f680ececd9ee75bcbb4db3e4ccee05d210ef9ffef2f1b99da61a8b31",
+      "rknn_flags": 0
+    },
+    {
+      "create_mem": true,
+      "create_mem2": true,
+      "create_mem_from_fd": true,
+      "destroy_mem": true,
+      "event": "runtime_library",
+      "mem_sync": true,
+      "path": "/usr/lib/librknnrt.so",
+      "set_io_mem": true,
+      "sha256": "73993ed4b440460825f21611731564503cc1d5a0c123746477da6cd574f34885",
+      "sizeof_context": 8,
+      "sizeof_input": 32,
+      "sizeof_output": 24,
+      "sizeof_sdk_version": 512,
+      "sizeof_tensor_attr": 376,
+      "sizeof_tensor_mem": 40
+    },
+    {
+      "event": "load",
+      "timing": {
+        "thread_cpu_ms": 13.705416000000014,
+        "wall_ms": 15.493740975856781
+      }
+    },
+    {
+      "api": "2.3.0 (c949ad889d@2024-11-07T11:35:33)",
+      "driver": "0.9.8",
+      "event": "version",
+      "rc": 0
+    },
+    {
+      "event": "io_count",
+      "n_input": 1,
+      "n_output": 4
+    },
+    {
+      "attr": {
+        "dims": [
+          1,
+          640,
+          640,
+          3
+        ],
+        "dims_all": [
+          1,
+          640,
+          640,
+          3,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "fl": 0,
+        "fmt": 1,
+        "fmt_name": "NHWC",
+        "h_stride": 0,
+        "index": 0,
+        "n_dims": 4,
+        "n_elems": 1228800,
+        "name": "images",
+        "pass_through": 0,
+        "qnt_name": "AFFINE",
+        "qnt_type": 2,
+        "scale": 0.003921568859368563,
+        "size": 1228800,
+        "size_with_stride": 1228800,
+        "type": 2,
+        "type_name": "INT8",
+        "w_stride": 640,
+        "zp": -128
+      },
+      "event": "tensor",
+      "query": 1,
+      "rc": 0
+    },
+    {
+      "attr": {
+        "dims": [
+          1,
+          640,
+          640,
+          3
+        ],
+        "dims_all": [
+          1,
+          640,
+          640,
+          3,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "fl": 0,
+        "fmt": 1,
+        "fmt_name": "NHWC",
+        "h_stride": 0,
+        "index": 0,
+        "n_dims": 4,
+        "n_elems": 1228800,
+        "name": "images",
+        "pass_through": 0,
+        "qnt_name": "AFFINE",
+        "qnt_type": 2,
+        "scale": 0.003921568859368563,
+        "size": 1228800,
+        "size_with_stride": 1228800,
+        "type": 2,
+        "type_name": "INT8",
+        "w_stride": 640,
+        "zp": -128
+      },
+      "event": "tensor",
+      "query": 8,
+      "rc": 0
+    },
+    {
+      "attr": {
+        "dims": [
+          1,
+          640,
+          640,
+          3
+        ],
+        "dims_all": [
+          1,
+          640,
+          640,
+          3,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "fl": 0,
+        "fmt": 1,
+        "fmt_name": "NHWC",
+        "h_stride": 0,
+        "index": 0,
+        "n_dims": 4,
+        "n_elems": 1228800,
+        "name": "images",
+        "pass_through": 0,
+        "qnt_name": "AFFINE",
+        "qnt_type": 2,
+        "scale": 0.003921568859368563,
+        "size": 1228800,
+        "size_with_stride": 1228800,
+        "type": 2,
+        "type_name": "INT8",
+        "w_stride": 640,
+        "zp": -128
+      },
+      "event": "tensor",
+      "query": 10,
+      "rc": 0
+    },
+    {
+      "attr": {
+        "dims": [
+          1,
+          64,
+          80,
+          80
+        ],
+        "dims_all": [
+          1,
+          64,
+          80,
+          80,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "fl": 0,
+        "fmt": 0,
+        "fmt_name": "NCHW",
+        "h_stride": 0,
+        "index": 0,
+        "n_dims": 4,
+        "n_elems": 409600,
+        "name": "box_p3",
+        "pass_through": 0,
+        "qnt_name": "AFFINE",
+        "qnt_type": 2,
+        "scale": 0.0784313753247261,
+        "size": 409600,
+        "size_with_stride": 409600,
+        "type": 2,
+        "type_name": "INT8",
+        "w_stride": 0,
+        "zp": 0
+      },
+      "event": "tensor",
+      "query": 2,
+      "rc": 0
+    },
+    {
+      "attr": {
+        "dims": [
+          1,
+          8,
+          80,
+          80,
+          8
+        ],
+        "dims_all": [
+          1,
+          8,
+          80,
+          80,
+          8,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "fl": 0,
+        "fmt": 2,
+        "fmt_name": "NC1HWC2",
+        "h_stride": 0,
+        "index": 0,
+        "n_dims": 5,
+        "n_elems": 409600,
+        "name": "box_p3",
+        "pass_through": 0,
+        "qnt_name": "AFFINE",
+        "qnt_type": 2,
+        "scale": 0.0784313753247261,
+        "size": 409600,
+        "size_with_stride": 409600,
+        "type": 2,
+        "type_name": "INT8",
+        "w_stride": 0,
+        "zp": 0
+      },
+      "event": "tensor",
+      "query": 9,
+      "rc": 0
+    },
+    {
+      "attr": {
+        "dims": [
+          1,
+          80,
+          80,
+          64
+        ],
+        "dims_all": [
+          1,
+          80,
+          80,
+          64,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "fl": 0,
+        "fmt": 1,
+        "fmt_name": "NHWC",
+        "h_stride": 0,
+        "index": 0,
+        "n_dims": 4,
+        "n_elems": 409600,
+        "name": "box_p3",
+        "pass_through": 0,
+        "qnt_name": "AFFINE",
+        "qnt_type": 2,
+        "scale": 0.0784313753247261,
+        "size": 409600,
+        "size_with_stride": 409600,
+        "type": 2,
+        "type_name": "INT8",
+        "w_stride": 0,
+        "zp": 0
+      },
+      "event": "tensor",
+      "query": 11,
+      "rc": 0
+    },
+    {
+      "attr": {
+        "dims": [
+          1,
+          64,
+          40,
+          40
+        ],
+        "dims_all": [
+          1,
+          64,
+          40,
+          40,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "fl": 0,
+        "fmt": 0,
+        "fmt_name": "NCHW",
+        "h_stride": 0,
+        "index": 1,
+        "n_dims": 4,
+        "n_elems": 102400,
+        "name": "box_p4",
+        "pass_through": 0,
+        "qnt_name": "AFFINE",
+        "qnt_type": 2,
+        "scale": 0.0784313753247261,
+        "size": 102400,
+        "size_with_stride": 102400,
+        "type": 2,
+        "type_name": "INT8",
+        "w_stride": 0,
+        "zp": 0
+      },
+      "event": "tensor",
+      "query": 2,
+      "rc": 0
+    },
+    {
+      "attr": {
+        "dims": [
+          1,
+          8,
+          40,
+          40,
+          8
+        ],
+        "dims_all": [
+          1,
+          8,
+          40,
+          40,
+          8,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "fl": 0,
+        "fmt": 2,
+        "fmt_name": "NC1HWC2",
+        "h_stride": 0,
+        "index": 1,
+        "n_dims": 5,
+        "n_elems": 102400,
+        "name": "box_p4",
+        "pass_through": 0,
+        "qnt_name": "AFFINE",
+        "qnt_type": 2,
+        "scale": 0.0784313753247261,
+        "size": 102400,
+        "size_with_stride": 102400,
+        "type": 2,
+        "type_name": "INT8",
+        "w_stride": 0,
+        "zp": 0
+      },
+      "event": "tensor",
+      "query": 9,
+      "rc": 0
+    },
+    {
+      "attr": {
+        "dims": [
+          1,
+          40,
+          40,
+          64
+        ],
+        "dims_all": [
+          1,
+          40,
+          40,
+          64,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "fl": 0,
+        "fmt": 1,
+        "fmt_name": "NHWC",
+        "h_stride": 0,
+        "index": 1,
+        "n_dims": 4,
+        "n_elems": 102400,
+        "name": "box_p4",
+        "pass_through": 0,
+        "qnt_name": "AFFINE",
+        "qnt_type": 2,
+        "scale": 0.0784313753247261,
+        "size": 102400,
+        "size_with_stride": 102400,
+        "type": 2,
+        "type_name": "INT8",
+        "w_stride": 0,
+        "zp": 0
+      },
+      "event": "tensor",
+      "query": 11,
+      "rc": 0
+    },
+    {
+      "attr": {
+        "dims": [
+          1,
+          3,
+          80,
+          80
+        ],
+        "dims_all": [
+          1,
+          3,
+          80,
+          80,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "fl": 0,
+        "fmt": 0,
+        "fmt_name": "NCHW",
+        "h_stride": 0,
+        "index": 2,
+        "n_dims": 4,
+        "n_elems": 19200,
+        "name": "cls_p3",
+        "pass_through": 0,
+        "qnt_name": "AFFINE",
+        "qnt_type": 2,
+        "scale": 0.04749705642461777,
+        "size": 19200,
+        "size_with_stride": 51200,
+        "type": 2,
+        "type_name": "INT8",
+        "w_stride": 0,
+        "zp": 83
+      },
+      "event": "tensor",
+      "query": 2,
+      "rc": 0
+    },
+    {
+      "attr": {
+        "dims": [
+          1,
+          2,
+          80,
+          80,
+          8
+        ],
+        "dims_all": [
+          1,
+          2,
+          80,
+          80,
+          8,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "fl": 0,
+        "fmt": 2,
+        "fmt_name": "NC1HWC2",
+        "h_stride": 0,
+        "index": 2,
+        "n_dims": 5,
+        "n_elems": 102400,
+        "name": "cls_p3",
+        "pass_through": 0,
+        "qnt_name": "AFFINE",
+        "qnt_type": 2,
+        "scale": 0.04749705642461777,
+        "size": 102400,
+        "size_with_stride": 102400,
+        "type": 2,
+        "type_name": "INT8",
+        "w_stride": 0,
+        "zp": 83
+      },
+      "event": "tensor",
+      "query": 9,
+      "rc": 0
+    },
+    {
+      "attr": {
+        "dims": [
+          1,
+          80,
+          80,
+          8
+        ],
+        "dims_all": [
+          1,
+          80,
+          80,
+          8,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "fl": 0,
+        "fmt": 1,
+        "fmt_name": "NHWC",
+        "h_stride": 0,
+        "index": 2,
+        "n_dims": 4,
+        "n_elems": 51200,
+        "name": "cls_p3",
+        "pass_through": 0,
+        "qnt_name": "AFFINE",
+        "qnt_type": 2,
+        "scale": 0.04749705642461777,
+        "size": 51200,
+        "size_with_stride": 51200,
+        "type": 2,
+        "type_name": "INT8",
+        "w_stride": 0,
+        "zp": 83
+      },
+      "event": "tensor",
+      "query": 11,
+      "rc": 0
+    },
+    {
+      "attr": {
+        "dims": [
+          1,
+          3,
+          40,
+          40
+        ],
+        "dims_all": [
+          1,
+          3,
+          40,
+          40,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "fl": 0,
+        "fmt": 0,
+        "fmt_name": "NCHW",
+        "h_stride": 0,
+        "index": 3,
+        "n_dims": 4,
+        "n_elems": 4800,
+        "name": "cls_p4",
+        "pass_through": 0,
+        "qnt_name": "AFFINE",
+        "qnt_type": 2,
+        "scale": 0.049998946487903595,
+        "size": 4800,
+        "size_with_stride": 12800,
+        "type": 2,
+        "type_name": "INT8",
+        "w_stride": 0,
+        "zp": 72
+      },
+      "event": "tensor",
+      "query": 2,
+      "rc": 0
+    },
+    {
+      "attr": {
+        "dims": [
+          1,
+          2,
+          40,
+          40,
+          8
+        ],
+        "dims_all": [
+          1,
+          2,
+          40,
+          40,
+          8,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "fl": 0,
+        "fmt": 2,
+        "fmt_name": "NC1HWC2",
+        "h_stride": 0,
+        "index": 3,
+        "n_dims": 5,
+        "n_elems": 25600,
+        "name": "cls_p4",
+        "pass_through": 0,
+        "qnt_name": "AFFINE",
+        "qnt_type": 2,
+        "scale": 0.049998946487903595,
+        "size": 25600,
+        "size_with_stride": 25600,
+        "type": 2,
+        "type_name": "INT8",
+        "w_stride": 0,
+        "zp": 72
+      },
+      "event": "tensor",
+      "query": 9,
+      "rc": 0
+    },
+    {
+      "attr": {
+        "dims": [
+          1,
+          40,
+          40,
+          8
+        ],
+        "dims_all": [
+          1,
+          40,
+          40,
+          8,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "fl": 0,
+        "fmt": 1,
+        "fmt_name": "NHWC",
+        "h_stride": 0,
+        "index": 3,
+        "n_dims": 4,
+        "n_elems": 12800,
+        "name": "cls_p4",
+        "pass_through": 0,
+        "qnt_name": "AFFINE",
+        "qnt_type": 2,
+        "scale": 0.049998946487903595,
+        "size": 12800,
+        "size_with_stride": 12800,
+        "type": 2,
+        "type_name": "INT8",
+        "w_stride": 0,
+        "zp": 72
+      },
+      "event": "tensor",
+      "query": 11,
+      "rc": 0
+    },
+    {
+      "allocation_bytes": 409600,
+      "conversion_kernel": "aarch64_neon_nc1hwc2_c2_8",
+      "dequant_scale": "fp16",
+      "effective_scale": 0.07843017578125,
+      "event": "native_plan",
+      "float_elements": 409600,
+      "hardware_certified": false,
+      "metadata_eligible": true,
+      "output": 0,
+      "query": 9
+    },
+    {
+      "allocation_bytes": 102400,
+      "conversion_kernel": "aarch64_neon_nc1hwc2_c2_8",
+      "dequant_scale": "fp16",
+      "effective_scale": 0.07843017578125,
+      "event": "native_plan",
+      "float_elements": 102400,
+      "hardware_certified": false,
+      "metadata_eligible": true,
+      "output": 1,
+      "query": 9
+    },
+    {
+      "allocation_bytes": 102400,
+      "conversion_kernel": "aarch64_neon_nc1hwc2_c2_8",
+      "dequant_scale": "fp16",
+      "effective_scale": 0.0474853515625,
+      "event": "native_plan",
+      "float_elements": 19200,
+      "hardware_certified": false,
+      "metadata_eligible": true,
+      "output": 2,
+      "query": 9
+    },
+    {
+      "allocation_bytes": 25600,
+      "conversion_kernel": "aarch64_neon_nc1hwc2_c2_8",
+      "dequant_scale": "fp16",
+      "effective_scale": 0.04998779296875,
+      "event": "native_plan",
+      "float_elements": 4800,
+      "hardware_certified": false,
+      "metadata_eligible": true,
+      "output": 3,
+      "query": 9
+    },
+    {
+      "address_hex": "7f7e56f650",
+      "event": "dma_heap_import_symbol",
+      "exact_sdk_signature": true,
+      "offset": 0,
+      "provider_path": "/usr/lib/librknnrt.so",
+      "provider_sha256": "73993ed4b440460825f21611731564503cc1d5a0c123746477da6cd574f34885",
+      "runtime_sha256": "73993ed4b440460825f21611731564503cc1d5a0c123746477da6cd574f34885",
+      "symbol": "rknn_create_mem_from_fd"
+    },
+    {
+      "allocator": "dma_heap_system_fd_import",
+      "event": "memory",
+      "fd": 12,
+      "flags_modified": false,
+      "heap_path": "/dev/dma_heap/system",
+      "map_shared": true,
+      "mapping_bytes": 4096,
+      "metadata": {
+        "descriptor_hex": "5580e3e680",
+        "fd": 12,
+        "flags": 1,
+        "offset": 0,
+        "phys_addr_hex": "ffffffffffffffff",
+        "size": 4096,
+        "virt_addr_hex": "7f8344e000"
+      },
+      "offset": 0,
+      "page_size": 4096,
+      "purpose": "ownership_probe",
+      "requested_size": 4096,
+      "role": "unused_probe",
+      "size": 4096,
+      "st_dev": "8",
+      "st_ino": "6084"
+    },
+    {
+      "buffers": [
+        {
+          "after_context_destroy_fd_identity": true,
+          "after_context_destroy_inspected": true,
+          "after_context_destroy_mapping": true,
+          "after_import_destroy_fd_identity": true,
+          "after_import_destroy_inspected": true,
+          "after_import_destroy_mapping": true,
+          "before_destroy_fd_identity": true,
+          "before_destroy_inspected": true,
+          "before_destroy_mapping": true,
+          "close_attempted": true,
+          "close_rc": 0,
+          "close_skipped": false,
+          "cpu_access": {
+            "end_read": {
+              "attempts": 0,
+              "eintr": 0,
+              "failures": 0,
+              "last_rc": 0,
+              "success": 0
+            },
+            "end_write": {
+              "attempts": 1,
+              "eintr": 0,
+              "failures": 0,
+              "last_rc": 0,
+              "success": 1
+            },
+            "start_read": {
+              "attempts": 0,
+              "eintr": 0,
+              "failures": 0,
+              "last_rc": 0,
+              "success": 0
+            },
+            "start_write": {
+              "attempts": 1,
+              "eintr": 0,
+              "failures": 0,
+              "last_rc": 0,
+              "success": 1
+            }
+          },
+          "cpu_active": false,
+          "destroy_mem_attempted": true,
+          "destroy_mem_rc": 0,
+          "destroy_mem_skipped": false,
+          "import_descriptor_retained": false,
+          "mapping_bytes": 4096,
+          "munmap_attempted": true,
+          "munmap_rc": 0,
+          "munmap_skipped": false,
+          "owned_buffer_retained": false,
+          "role": "unused_probe",
+          "st_dev": "8",
+          "st_ino": "6084"
+        }
+      ],
+      "cleanup_ok": true,
+      "context_destroy_attempted": true,
+      "context_destroy_rc": 0,
+      "context_destroy_skipped": false,
+      "context_retained": false,
+      "event": "dma_heap_retirement",
+      "fatal_no_continue": false,
+      "hardware_certified": false,
+      "order": "paired_cpu_end_then_imports_then_context_then_owned_munmap_close",
+      "performance_claim": false,
+      "process_teardown_only": false,
+      "purpose": "ownership_probe",
+      "release_boundary": "explicit_retirement",
+      "retained_context_hex": "0",
+      "retirement_branch": "normal",
+      "runtime_library_retained": false
+    },
+    {
+      "acceleration_scope": "native_npu_allocator_and_software_cpu_sync_copy",
+      "context_flags": 0,
+      "cpu_access_sessions_span_run": false,
+      "eintr_attempt_limit": 8,
+      "event": "dma_heap_import_config",
+      "flags_or_priv_data_modified": false,
+      "hardware_certified": false,
+      "heap_path": "/dev/dma_heap/system",
+      "ownership_probe_passed": true,
+      "page_size": 4096,
+      "persistent_imports": 5,
+      "timing_reference": "native_io_single_copy"
+    },
+    {
+      "content_height": 480,
+      "content_width": 640,
+      "content_y": 80,
+      "event": "fixture",
+      "input_bytes": 1228800,
+      "input_sha256": "da311b1b9adece240c308aa32b71f0de4ecf6097f87082d993454075f81c66b6",
+      "kind": "png",
+      "pad_value": 114,
+      "path": "/userdata/linaro/100h_performance/hardware_596a40954b4947f2ac5191a63436ffae/package/prepared/fixtures/candidate_cam1.png",
+      "source_sha256": "f32cd160163a500df3885af311b23a82783b6aaad14fae2cbd4adf037d93a0ee"
+    },
+    {
+      "allocator": "dma_heap_system_fd_import",
+      "event": "memory",
+      "fd": 13,
+      "flags_modified": false,
+      "heap_path": "/dev/dma_heap/system",
+      "map_shared": true,
+      "mapping_bytes": 409600,
+      "metadata": {
+        "descriptor_hex": "5580e3b9e0",
+        "fd": 13,
+        "flags": 1,
+        "offset": 0,
+        "phys_addr_hex": "ffffffffffffffff",
+        "size": 409600,
+        "virt_addr_hex": "7f7c5ec000"
+      },
+      "offset": 0,
+      "page_size": 4096,
+      "purpose": "native_io_fd_import",
+      "requested_size": 409600,
+      "role": "output0",
+      "size": 409600,
+      "st_dev": "8",
+      "st_ino": "6085"
+    },
+    {
+      "after": {
+        "dims": [
+          1,
+          8,
+          80,
+          80,
+          8
+        ],
+        "dims_all": [
+          1,
+          8,
+          80,
+          80,
+          8,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "fl": 0,
+        "fmt": 2,
+        "fmt_name": "NC1HWC2",
+        "h_stride": 0,
+        "index": 0,
+        "n_dims": 5,
+        "n_elems": 409600,
+        "name": "box_p3",
+        "pass_through": 0,
+        "qnt_name": "AFFINE",
+        "qnt_type": 2,
+        "scale": 0.0784313753247261,
+        "size": 409600,
+        "size_with_stride": 409600,
+        "type": 2,
+        "type_name": "INT8",
+        "w_stride": 0,
+        "zp": 0
+      },
+      "attributes_changed": false,
+      "before": {
+        "dims": [
+          1,
+          8,
+          80,
+          80,
+          8
+        ],
+        "dims_all": [
+          1,
+          8,
+          80,
+          80,
+          8,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "fl": 0,
+        "fmt": 2,
+        "fmt_name": "NC1HWC2",
+        "h_stride": 0,
+        "index": 0,
+        "n_dims": 5,
+        "n_elems": 409600,
+        "name": "box_p3",
+        "pass_through": 0,
+        "qnt_name": "AFFINE",
+        "qnt_type": 2,
+        "scale": 0.0784313753247261,
+        "size": 409600,
+        "size_with_stride": 409600,
+        "type": 2,
+        "type_name": "INT8",
+        "w_stride": 0,
+        "zp": 0
+      },
+      "binding_device_address_policy": "fixed_after_first_binding",
+      "binding_device_address_resolved": true,
+      "event": "output_binding",
+      "memory_after": {
+        "descriptor_hex": "5580e3b9e0",
+        "fd": 13,
+        "flags": 1,
+        "offset": 0,
+        "phys_addr_hex": "ffa80000",
+        "size": 409600,
+        "virt_addr_hex": "7f7c5ec000"
+      },
+      "memory_before": {
+        "descriptor_hex": "5580e3b9e0",
+        "fd": 13,
+        "flags": 1,
+        "offset": 0,
+        "phys_addr_hex": "ffffffffffffffff",
+        "size": 409600,
+        "virt_addr_hex": "7f7c5ec000"
+      },
+      "memory_changed": true,
+      "output": 0,
+      "rc": 0
+    },
+    {
+      "allocator": "dma_heap_system_fd_import",
+      "event": "memory",
+      "fd": 14,
+      "flags_modified": false,
+      "heap_path": "/dev/dma_heap/system",
+      "map_shared": true,
+      "mapping_bytes": 102400,
+      "metadata": {
+        "descriptor_hex": "5580dda840",
+        "fd": 14,
+        "flags": 1,
+        "offset": 0,
+        "phys_addr_hex": "ffffffffffffffff",
+        "size": 102400,
+        "virt_addr_hex": "7f7def7000"
+      },
+      "offset": 0,
+      "page_size": 4096,
+      "purpose": "native_io_fd_import",
+      "requested_size": 102400,
+      "role": "output1",
+      "size": 102400,
+      "st_dev": "8",
+      "st_ino": "6086"
+    },
+    {
+      "after": {
+        "dims": [
+          1,
+          8,
+          40,
+          40,
+          8
+        ],
+        "dims_all": [
+          1,
+          8,
+          40,
+          40,
+          8,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "fl": 0,
+        "fmt": 2,
+        "fmt_name": "NC1HWC2",
+        "h_stride": 0,
+        "index": 1,
+        "n_dims": 5,
+        "n_elems": 102400,
+        "name": "box_p4",
+        "pass_through": 0,
+        "qnt_name": "AFFINE",
+        "qnt_type": 2,
+        "scale": 0.0784313753247261,
+        "size": 102400,
+        "size_with_stride": 102400,
+        "type": 2,
+        "type_name": "INT8",
+        "w_stride": 0,
+        "zp": 0
+      },
+      "attributes_changed": false,
+      "before": {
+        "dims": [
+          1,
+          8,
+          40,
+          40,
+          8
+        ],
+        "dims_all": [
+          1,
+          8,
+          40,
+          40,
+          8,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "fl": 0,
+        "fmt": 2,
+        "fmt_name": "NC1HWC2",
+        "h_stride": 0,
+        "index": 1,
+        "n_dims": 5,
+        "n_elems": 102400,
+        "name": "box_p4",
+        "pass_through": 0,
+        "qnt_name": "AFFINE",
+        "qnt_type": 2,
+        "scale": 0.0784313753247261,
+        "size": 102400,
+        "size_with_stride": 102400,
+        "type": 2,
+        "type_name": "INT8",
+        "w_stride": 0,
+        "zp": 0
+      },
+      "binding_device_address_policy": "fixed_after_first_binding",
+      "binding_device_address_resolved": true,
+      "event": "output_binding",
+      "memory_after": {
+        "descriptor_hex": "5580dda840",
+        "fd": 14,
+        "flags": 1,
+        "offset": 0,
+        "phys_addr_hex": "ff9a0000",
+        "size": 102400,
+        "virt_addr_hex": "7f7def7000"
+      },
+      "memory_before": {
+        "descriptor_hex": "5580dda840",
+        "fd": 14,
+        "flags": 1,
+        "offset": 0,
+        "phys_addr_hex": "ffffffffffffffff",
+        "size": 102400,
+        "virt_addr_hex": "7f7def7000"
+      },
+      "memory_changed": true,
+      "output": 1,
+      "rc": 0
+    },
+    {
+      "allocator": "dma_heap_system_fd_import",
+      "event": "memory",
+      "fd": 15,
+      "flags_modified": false,
+      "heap_path": "/dev/dma_heap/system",
+      "map_shared": true,
+      "mapping_bytes": 102400,
+      "metadata": {
+        "descriptor_hex": "5580dda390",
+        "fd": 15,
+        "flags": 1,
+        "offset": 0,
+        "phys_addr_hex": "ffffffffffffffff",
+        "size": 102400,
+        "virt_addr_hex": "7f7c5d3000"
+      },
+      "offset": 0,
+      "page_size": 4096,
+      "purpose": "native_io_fd_import",
+      "requested_size": 102400,
+      "role": "output2",
+      "size": 102400,
+      "st_dev": "8",
+      "st_ino": "6087"
+    },
+    {
+      "after": {
+        "dims": [
+          1,
+          2,
+          80,
+          80,
+          8
+        ],
+        "dims_all": [
+          1,
+          2,
+          80,
+          80,
+          8,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "fl": 0,
+        "fmt": 2,
+        "fmt_name": "NC1HWC2",
+        "h_stride": 0,
+        "index": 2,
+        "n_dims": 5,
+        "n_elems": 102400,
+        "name": "cls_p3",
+        "pass_through": 0,
+        "qnt_name": "AFFINE",
+        "qnt_type": 2,
+        "scale": 0.04749705642461777,
+        "size": 102400,
+        "size_with_stride": 102400,
+        "type": 2,
+        "type_name": "INT8",
+        "w_stride": 0,
+        "zp": 83
+      },
+      "attributes_changed": false,
+      "before": {
+        "dims": [
+          1,
+          2,
+          80,
+          80,
+          8
+        ],
+        "dims_all": [
+          1,
+          2,
+          80,
+          80,
+          8,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "fl": 0,
+        "fmt": 2,
+        "fmt_name": "NC1HWC2",
+        "h_stride": 0,
+        "index": 2,
+        "n_dims": 5,
+        "n_elems": 102400,
+        "name": "cls_p3",
+        "pass_through": 0,
+        "qnt_name": "AFFINE",
+        "qnt_type": 2,
+        "scale": 0.04749705642461777,
+        "size": 102400,
+        "size_with_stride": 102400,
+        "type": 2,
+        "type_name": "INT8",
+        "w_stride": 0,
+        "zp": 83
+      },
+      "binding_device_address_policy": "fixed_after_first_binding",
+      "binding_device_address_resolved": true,
+      "event": "output_binding",
+      "memory_after": {
+        "descriptor_hex": "5580dda390",
+        "fd": 15,
+        "flags": 1,
+        "offset": 0,
+        "phys_addr_hex": "ff980000",
+        "size": 102400,
+        "virt_addr_hex": "7f7c5d3000"
+      },
+      "memory_before": {
+        "descriptor_hex": "5580dda390",
+        "fd": 15,
+        "flags": 1,
+        "offset": 0,
+        "phys_addr_hex": "ffffffffffffffff",
+        "size": 102400,
+        "virt_addr_hex": "7f7c5d3000"
+      },
+      "memory_changed": true,
+      "output": 2,
+      "rc": 0
+    },
+    {
+      "allocator": "dma_heap_system_fd_import",
+      "event": "memory",
+      "fd": 16,
+      "flags_modified": false,
+      "heap_path": "/dev/dma_heap/system",
+      "map_shared": true,
+      "mapping_bytes": 28672,
+      "metadata": {
+        "descriptor_hex": "5580dda030",
+        "fd": 16,
+        "flags": 1,
+        "offset": 0,
+        "phys_addr_hex": "ffffffffffffffff",
+        "size": 28672,
+        "virt_addr_hex": "7f83408000"
+      },
+      "offset": 0,
+      "page_size": 4096,
+      "purpose": "native_io_fd_import",
+      "requested_size": 25600,
+      "role": "output3",
+      "size": 28672,
+      "st_dev": "8",
+      "st_ino": "6088"
+    },
+    {
+      "after": {
+        "dims": [
+          1,
+          2,
+          40,
+          40,
+          8
+        ],
+        "dims_all": [
+          1,
+          2,
+          40,
+          40,
+          8,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "fl": 0,
+        "fmt": 2,
+        "fmt_name": "NC1HWC2",
+        "h_stride": 0,
+        "index": 3,
+        "n_dims": 5,
+        "n_elems": 25600,
+        "name": "cls_p4",
+        "pass_through": 0,
+        "qnt_name": "AFFINE",
+        "qnt_type": 2,
+        "scale": 0.049998946487903595,
+        "size": 25600,
+        "size_with_stride": 25600,
+        "type": 2,
+        "type_name": "INT8",
+        "w_stride": 0,
+        "zp": 72
+      },
+      "attributes_changed": false,
+      "before": {
+        "dims": [
+          1,
+          2,
+          40,
+          40,
+          8
+        ],
+        "dims_all": [
+          1,
+          2,
+          40,
+          40,
+          8,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "fl": 0,
+        "fmt": 2,
+        "fmt_name": "NC1HWC2",
+        "h_stride": 0,
+        "index": 3,
+        "n_dims": 5,
+        "n_elems": 25600,
+        "name": "cls_p4",
+        "pass_through": 0,
+        "qnt_name": "AFFINE",
+        "qnt_type": 2,
+        "scale": 0.049998946487903595,
+        "size": 25600,
+        "size_with_stride": 25600,
+        "type": 2,
+        "type_name": "INT8",
+        "w_stride": 0,
+        "zp": 72
+      },
+      "binding_device_address_policy": "fixed_after_first_binding",
+      "binding_device_address_resolved": true,
+      "event": "output_binding",
+      "memory_after": {
+        "descriptor_hex": "5580dda030",
+        "fd": 16,
+        "flags": 1,
+        "offset": 0,
+        "phys_addr_hex": "ff978000",
+        "size": 28672,
+        "virt_addr_hex": "7f83408000"
+      },
+      "memory_before": {
+        "descriptor_hex": "5580dda030",
+        "fd": 16,
+        "flags": 1,
+        "offset": 0,
+        "phys_addr_hex": "ffffffffffffffff",
+        "size": 28672,
+        "virt_addr_hex": "7f83408000"
+      },
+      "memory_changed": true,
+      "output": 3,
+      "rc": 0
+    },
+    {
+      "allocator": "dma_heap_system_fd_import",
+      "event": "memory",
+      "fd": 17,
+      "flags_modified": false,
+      "heap_path": "/dev/dma_heap/system",
+      "map_shared": true,
+      "mapping_bytes": 1228800,
+      "metadata": {
+        "descriptor_hex": "5580e13740",
+        "fd": 17,
+        "flags": 1,
+        "offset": 0,
+        "phys_addr_hex": "ffffffffffffffff",
+        "size": 1228800,
+        "virt_addr_hex": "7f7c4a7000"
+      },
+      "offset": 0,
+      "page_size": 4096,
+      "purpose": "native_io_fd_import",
+      "requested_size": 1228800,
+      "role": "input_UINT8_NHWC_runtime_conversion",
+      "size": 1228800,
+      "st_dev": "8",
+      "st_ino": "6089"
+    },
+    {
+      "attr": {
+        "dims": [
+          1,
+          640,
+          640,
+          3
+        ],
+        "dims_all": [
+          1,
+          640,
+          640,
+          3,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "fl": 0,
+        "fmt": 1,
+        "fmt_name": "NHWC",
+        "h_stride": 640,
+        "index": 0,
+        "n_dims": 4,
+        "n_elems": 1228800,
+        "name": "images",
+        "pass_through": 0,
+        "qnt_name": "AFFINE",
+        "qnt_type": 2,
+        "scale": 0.003921568859368563,
+        "size": 1228800,
+        "size_with_stride": 1228800,
+        "type": 3,
+        "type_name": "UINT8",
+        "w_stride": 640,
+        "zp": -128
+      },
+      "driver_conversion_required": true,
+      "event": "input_binding",
+      "hardware_certified": false,
+      "subtract_128": false
+    },
+    {
+      "after": {
+        "dims": [
+          1,
+          640,
+          640,
+          3
+        ],
+        "dims_all": [
+          1,
+          640,
+          640,
+          3,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "fl": 0,
+        "fmt": 1,
+        "fmt_name": "NHWC",
+        "h_stride": 640,
+        "index": 0,
+        "n_dims": 4,
+        "n_elems": 1228800,
+        "name": "images",
+        "pass_through": 0,
+        "qnt_name": "AFFINE",
+        "qnt_type": 2,
+        "scale": 0.003921568859368563,
+        "size": 1228800,
+        "size_with_stride": 1228800,
+        "type": 3,
+        "type_name": "UINT8",
+        "w_stride": 640,
+        "zp": -128
+      },
+      "attributes_changed": false,
+      "before": {
+        "dims": [
+          1,
+          640,
+          640,
+          3
+        ],
+        "dims_all": [
+          1,
+          640,
+          640,
+          3,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "fl": 0,
+        "fmt": 1,
+        "fmt_name": "NHWC",
+        "h_stride": 640,
+        "index": 0,
+        "n_dims": 4,
+        "n_elems": 1228800,
+        "name": "images",
+        "pass_through": 0,
+        "qnt_name": "AFFINE",
+        "qnt_type": 2,
+        "scale": 0.003921568859368563,
+        "size": 1228800,
+        "size_with_stride": 1228800,
+        "type": 3,
+        "type_name": "UINT8",
+        "w_stride": 640,
+        "zp": -128
+      },
+      "binding_device_address_policy": "fixed_after_first_binding",
+      "binding_device_address_resolved": true,
+      "event": "input_binding_result",
+      "memory_after": {
+        "descriptor_hex": "5580e13740",
+        "fd": 17,
+        "flags": 1,
+        "offset": 0,
+        "phys_addr_hex": "ff600000",
+        "size": 1228800,
+        "virt_addr_hex": "7f7c4a7000"
+      },
+      "memory_before": {
+        "descriptor_hex": "5580e13740",
+        "fd": 17,
+        "flags": 1,
+        "offset": 0,
+        "phys_addr_hex": "ffffffffffffffff",
+        "size": 1228800,
+        "virt_addr_hex": "7f7c4a7000"
+      },
+      "memory_changed": true,
+      "rc": 0
+    },
+    {
+      "acceleration_scope": "native_npu_allocator_and_software_cpu_sync_copy",
+      "allocation_bytes": 1228800,
+      "binding_attr": {
+        "dims": [
+          1,
+          640,
+          640,
+          3
+        ],
+        "dims_all": [
+          1,
+          640,
+          640,
+          3,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "fl": 0,
+        "fmt": 1,
+        "fmt_name": "NHWC",
+        "h_stride": 640,
+        "index": 0,
+        "n_dims": 4,
+        "n_elems": 1228800,
+        "name": "images",
+        "pass_through": 0,
+        "qnt_name": "AFFINE",
+        "qnt_type": 2,
+        "scale": 0.003921568859368563,
+        "size": 1228800,
+        "size_with_stride": 1228800,
+        "type": 3,
+        "type_name": "UINT8",
+        "w_stride": 640,
+        "zp": -128
+      },
+      "byte_match": true,
+      "certification_hash_scope": "each_snapshot_all_completion_before_sync_and_run",
+      "copied_sha256": "da311b1b9adece240c308aa32b71f0de4ecf6097f87082d993454075f81c66b6",
+      "event": "native_input_copy",
+      "hash_scope": "setup_preflight_before_warmups_and_timing",
+      "includes_warmups": true,
+      "input_row_bytes": 1920,
+      "mode": "native_io_fd_import",
+      "per_frame_input_bytes_written": 1228800,
+      "policy": "one_memcpy_full_model_input_each_frame",
+      "source_bytes": 1228800,
+      "source_includes_gray114_padding": true,
+      "source_sha256": "da311b1b9adece240c308aa32b71f0de4ecf6097f87082d993454075f81c66b6",
+      "timed_frame_input_hashes": false
+    },
+    {
+      "event": "dma_heap_binding_snapshot",
+      "input_binding": {
+        "dims": [
+          1,
+          640,
+          640,
+          3
+        ],
+        "dims_all": [
+          1,
+          640,
+          640,
+          3,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "fl": 0,
+        "fmt": 1,
+        "fmt_name": "NHWC",
+        "h_stride": 640,
+        "index": 0,
+        "n_dims": 4,
+        "n_elems": 1228800,
+        "name": "images",
+        "pass_through": 0,
+        "qnt_name": "AFFINE",
+        "qnt_type": 2,
+        "scale": 0.003921568859368563,
+        "size": 1228800,
+        "size_with_stride": 1228800,
+        "type": 3,
+        "type_name": "UINT8",
+        "w_stride": 640,
+        "zp": -128
+      },
+      "memories": [
+        {
+          "descriptor_hex": "5580e13740",
+          "fd": 17,
+          "flags": 1,
+          "offset": 0,
+          "phys_addr_hex": "ff600000",
+          "size": 1228800,
+          "virt_addr_hex": "7f7c4a7000"
+        },
+        {
+          "descriptor_hex": "5580e3b9e0",
+          "fd": 13,
+          "flags": 1,
+          "offset": 0,
+          "phys_addr_hex": "ffa80000",
+          "size": 409600,
+          "virt_addr_hex": "7f7c5ec000"
+        },
+        {
+          "descriptor_hex": "5580dda840",
+          "fd": 14,
+          "flags": 1,
+          "offset": 0,
+          "phys_addr_hex": "ff9a0000",
+          "size": 102400,
+          "virt_addr_hex": "7f7def7000"
+        },
+        {
+          "descriptor_hex": "5580dda390",
+          "fd": 15,
+          "flags": 1,
+          "offset": 0,
+          "phys_addr_hex": "ff980000",
+          "size": 102400,
+          "virt_addr_hex": "7f7c5d3000"
+        },
+        {
+          "descriptor_hex": "5580dda030",
+          "fd": 16,
+          "flags": 1,
+          "offset": 0,
+          "phys_addr_hex": "ff978000",
+          "size": 28672,
+          "virt_addr_hex": "7f83408000"
+        }
+      ],
+      "output_bindings": [
+        {
+          "dims": [
+            1,
+            8,
+            80,
+            80,
+            8
+          ],
+          "dims_all": [
+            1,
+            8,
+            80,
+            80,
+            8,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "fl": 0,
+          "fmt": 2,
+          "fmt_name": "NC1HWC2",
+          "h_stride": 0,
+          "index": 0,
+          "n_dims": 5,
+          "n_elems": 409600,
+          "name": "box_p3",
+          "pass_through": 0,
+          "qnt_name": "AFFINE",
+          "qnt_type": 2,
+          "scale": 0.0784313753247261,
+          "size": 409600,
+          "size_with_stride": 409600,
+          "type": 2,
+          "type_name": "INT8",
+          "w_stride": 0,
+          "zp": 0
+        },
+        {
+          "dims": [
+            1,
+            8,
+            40,
+            40,
+            8
+          ],
+          "dims_all": [
+            1,
+            8,
+            40,
+            40,
+            8,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "fl": 0,
+          "fmt": 2,
+          "fmt_name": "NC1HWC2",
+          "h_stride": 0,
+          "index": 1,
+          "n_dims": 5,
+          "n_elems": 102400,
+          "name": "box_p4",
+          "pass_through": 0,
+          "qnt_name": "AFFINE",
+          "qnt_type": 2,
+          "scale": 0.0784313753247261,
+          "size": 102400,
+          "size_with_stride": 102400,
+          "type": 2,
+          "type_name": "INT8",
+          "w_stride": 0,
+          "zp": 0
+        },
+        {
+          "dims": [
+            1,
+            2,
+            80,
+            80,
+            8
+          ],
+          "dims_all": [
+            1,
+            2,
+            80,
+            80,
+            8,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "fl": 0,
+          "fmt": 2,
+          "fmt_name": "NC1HWC2",
+          "h_stride": 0,
+          "index": 2,
+          "n_dims": 5,
+          "n_elems": 102400,
+          "name": "cls_p3",
+          "pass_through": 0,
+          "qnt_name": "AFFINE",
+          "qnt_type": 2,
+          "scale": 0.04749705642461777,
+          "size": 102400,
+          "size_with_stride": 102400,
+          "type": 2,
+          "type_name": "INT8",
+          "w_stride": 0,
+          "zp": 83
+        },
+        {
+          "dims": [
+            1,
+            2,
+            40,
+            40,
+            8
+          ],
+          "dims_all": [
+            1,
+            2,
+            40,
+            40,
+            8,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "fl": 0,
+          "fmt": 2,
+          "fmt_name": "NC1HWC2",
+          "h_stride": 0,
+          "index": 3,
+          "n_dims": 5,
+          "n_elems": 25600,
+          "name": "cls_p4",
+          "pass_through": 0,
+          "qnt_name": "AFFINE",
+          "qnt_type": 2,
+          "scale": 0.049998946487903595,
+          "size": 25600,
+          "size_with_stride": 25600,
+          "type": 2,
+          "type_name": "INT8",
+          "w_stride": 0,
+          "zp": 72
+        }
+      ],
+      "phase": "before_frames"
+    },
+    {
+      "event": "dma_heap_binding_snapshot",
+      "input_binding": {
+        "dims": [
+          1,
+          640,
+          640,
+          3
+        ],
+        "dims_all": [
+          1,
+          640,
+          640,
+          3,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "fl": 0,
+        "fmt": 1,
+        "fmt_name": "NHWC",
+        "h_stride": 640,
+        "index": 0,
+        "n_dims": 4,
+        "n_elems": 1228800,
+        "name": "images",
+        "pass_through": 0,
+        "qnt_name": "AFFINE",
+        "qnt_type": 2,
+        "scale": 0.003921568859368563,
+        "size": 1228800,
+        "size_with_stride": 1228800,
+        "type": 3,
+        "type_name": "UINT8",
+        "w_stride": 640,
+        "zp": -128
+      },
+      "memories": [
+        {
+          "descriptor_hex": "5580e13740",
+          "fd": 17,
+          "flags": 1,
+          "offset": 0,
+          "phys_addr_hex": "ff600000",
+          "size": 1228800,
+          "virt_addr_hex": "7f7c4a7000"
+        },
+        {
+          "descriptor_hex": "5580e3b9e0",
+          "fd": 13,
+          "flags": 1,
+          "offset": 0,
+          "phys_addr_hex": "ffa80000",
+          "size": 409600,
+          "virt_addr_hex": "7f7c5ec000"
+        },
+        {
+          "descriptor_hex": "5580dda840",
+          "fd": 14,
+          "flags": 1,
+          "offset": 0,
+          "phys_addr_hex": "ff9a0000",
+          "size": 102400,
+          "virt_addr_hex": "7f7def7000"
+        },
+        {
+          "descriptor_hex": "5580dda390",
+          "fd": 15,
+          "flags": 1,
+          "offset": 0,
+          "phys_addr_hex": "ff980000",
+          "size": 102400,
+          "virt_addr_hex": "7f7c5d3000"
+        },
+        {
+          "descriptor_hex": "5580dda030",
+          "fd": 16,
+          "flags": 1,
+          "offset": 0,
+          "phys_addr_hex": "ff978000",
+          "size": 28672,
+          "virt_addr_hex": "7f83408000"
+        }
+      ],
+      "metadata_stable": true,
+      "output_bindings": [
+        {
+          "dims": [
+            1,
+            8,
+            80,
+            80,
+            8
+          ],
+          "dims_all": [
+            1,
+            8,
+            80,
+            80,
+            8,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "fl": 0,
+          "fmt": 2,
+          "fmt_name": "NC1HWC2",
+          "h_stride": 0,
+          "index": 0,
+          "n_dims": 5,
+          "n_elems": 409600,
+          "name": "box_p3",
+          "pass_through": 0,
+          "qnt_name": "AFFINE",
+          "qnt_type": 2,
+          "scale": 0.0784313753247261,
+          "size": 409600,
+          "size_with_stride": 409600,
+          "type": 2,
+          "type_name": "INT8",
+          "w_stride": 0,
+          "zp": 0
+        },
+        {
+          "dims": [
+            1,
+            8,
+            40,
+            40,
+            8
+          ],
+          "dims_all": [
+            1,
+            8,
+            40,
+            40,
+            8,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "fl": 0,
+          "fmt": 2,
+          "fmt_name": "NC1HWC2",
+          "h_stride": 0,
+          "index": 1,
+          "n_dims": 5,
+          "n_elems": 102400,
+          "name": "box_p4",
+          "pass_through": 0,
+          "qnt_name": "AFFINE",
+          "qnt_type": 2,
+          "scale": 0.0784313753247261,
+          "size": 102400,
+          "size_with_stride": 102400,
+          "type": 2,
+          "type_name": "INT8",
+          "w_stride": 0,
+          "zp": 0
+        },
+        {
+          "dims": [
+            1,
+            2,
+            80,
+            80,
+            8
+          ],
+          "dims_all": [
+            1,
+            2,
+            80,
+            80,
+            8,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "fl": 0,
+          "fmt": 2,
+          "fmt_name": "NC1HWC2",
+          "h_stride": 0,
+          "index": 2,
+          "n_dims": 5,
+          "n_elems": 102400,
+          "name": "cls_p3",
+          "pass_through": 0,
+          "qnt_name": "AFFINE",
+          "qnt_type": 2,
+          "scale": 0.04749705642461777,
+          "size": 102400,
+          "size_with_stride": 102400,
+          "type": 2,
+          "type_name": "INT8",
+          "w_stride": 0,
+          "zp": 83
+        },
+        {
+          "dims": [
+            1,
+            2,
+            40,
+            40,
+            8
+          ],
+          "dims_all": [
+            1,
+            2,
+            40,
+            40,
+            8,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "fl": 0,
+          "fmt": 2,
+          "fmt_name": "NC1HWC2",
+          "h_stride": 0,
+          "index": 3,
+          "n_dims": 5,
+          "n_elems": 25600,
+          "name": "cls_p4",
+          "pass_through": 0,
+          "qnt_name": "AFFINE",
+          "qnt_type": 2,
+          "scale": 0.049998946487903595,
+          "size": 25600,
+          "size_with_stride": 25600,
+          "type": 2,
+          "type_name": "INT8",
+          "w_stride": 0,
+          "zp": 72
+        }
+      ],
+      "phase": "after_frames"
+    },
+    {
+      "buffers": [
+        {
+          "after_context_destroy_fd_identity": true,
+          "after_context_destroy_inspected": true,
+          "after_context_destroy_mapping": true,
+          "after_import_destroy_fd_identity": true,
+          "after_import_destroy_inspected": true,
+          "after_import_destroy_mapping": true,
+          "before_destroy_fd_identity": true,
+          "before_destroy_inspected": true,
+          "before_destroy_mapping": true,
+          "close_attempted": true,
+          "close_rc": 0,
+          "close_skipped": false,
+          "cpu_access": {
+            "end_read": {
+              "attempts": 55,
+              "eintr": 0,
+              "failures": 0,
+              "last_rc": 0,
+              "success": 55
+            },
+            "end_write": {
+              "attempts": 0,
+              "eintr": 0,
+              "failures": 0,
+              "last_rc": 0,
+              "success": 0
+            },
+            "start_read": {
+              "attempts": 55,
+              "eintr": 0,
+              "failures": 0,
+              "last_rc": 0,
+              "success": 55
+            },
+            "start_write": {
+              "attempts": 0,
+              "eintr": 0,
+              "failures": 0,
+              "last_rc": 0,
+              "success": 0
+            }
+          },
+          "cpu_active": false,
+          "destroy_mem_attempted": true,
+          "destroy_mem_rc": 0,
+          "destroy_mem_skipped": false,
+          "import_descriptor_retained": false,
+          "mapping_bytes": 409600,
+          "munmap_attempted": true,
+          "munmap_rc": 0,
+          "munmap_skipped": false,
+          "owned_buffer_retained": false,
+          "role": "output0",
+          "st_dev": "8",
+          "st_ino": "6085"
+        },
+        {
+          "after_context_destroy_fd_identity": true,
+          "after_context_destroy_inspected": true,
+          "after_context_destroy_mapping": true,
+          "after_import_destroy_fd_identity": true,
+          "after_import_destroy_inspected": true,
+          "after_import_destroy_mapping": true,
+          "before_destroy_fd_identity": true,
+          "before_destroy_inspected": true,
+          "before_destroy_mapping": true,
+          "close_attempted": true,
+          "close_rc": 0,
+          "close_skipped": false,
+          "cpu_access": {
+            "end_read": {
+              "attempts": 55,
+              "eintr": 0,
+              "failures": 0,
+              "last_rc": 0,
+              "success": 55
+            },
+            "end_write": {
+              "attempts": 0,
+              "eintr": 0,
+              "failures": 0,
+              "last_rc": 0,
+              "success": 0
+            },
+            "start_read": {
+              "attempts": 55,
+              "eintr": 0,
+              "failures": 0,
+              "last_rc": 0,
+              "success": 55
+            },
+            "start_write": {
+              "attempts": 0,
+              "eintr": 0,
+              "failures": 0,
+              "last_rc": 0,
+              "success": 0
+            }
+          },
+          "cpu_active": false,
+          "destroy_mem_attempted": true,
+          "destroy_mem_rc": 0,
+          "destroy_mem_skipped": false,
+          "import_descriptor_retained": false,
+          "mapping_bytes": 102400,
+          "munmap_attempted": true,
+          "munmap_rc": 0,
+          "munmap_skipped": false,
+          "owned_buffer_retained": false,
+          "role": "output1",
+          "st_dev": "8",
+          "st_ino": "6086"
+        },
+        {
+          "after_context_destroy_fd_identity": true,
+          "after_context_destroy_inspected": true,
+          "after_context_destroy_mapping": true,
+          "after_import_destroy_fd_identity": true,
+          "after_import_destroy_inspected": true,
+          "after_import_destroy_mapping": true,
+          "before_destroy_fd_identity": true,
+          "before_destroy_inspected": true,
+          "before_destroy_mapping": true,
+          "close_attempted": true,
+          "close_rc": 0,
+          "close_skipped": false,
+          "cpu_access": {
+            "end_read": {
+              "attempts": 55,
+              "eintr": 0,
+              "failures": 0,
+              "last_rc": 0,
+              "success": 55
+            },
+            "end_write": {
+              "attempts": 0,
+              "eintr": 0,
+              "failures": 0,
+              "last_rc": 0,
+              "success": 0
+            },
+            "start_read": {
+              "attempts": 55,
+              "eintr": 0,
+              "failures": 0,
+              "last_rc": 0,
+              "success": 55
+            },
+            "start_write": {
+              "attempts": 0,
+              "eintr": 0,
+              "failures": 0,
+              "last_rc": 0,
+              "success": 0
+            }
+          },
+          "cpu_active": false,
+          "destroy_mem_attempted": true,
+          "destroy_mem_rc": 0,
+          "destroy_mem_skipped": false,
+          "import_descriptor_retained": false,
+          "mapping_bytes": 102400,
+          "munmap_attempted": true,
+          "munmap_rc": 0,
+          "munmap_skipped": false,
+          "owned_buffer_retained": false,
+          "role": "output2",
+          "st_dev": "8",
+          "st_ino": "6087"
+        },
+        {
+          "after_context_destroy_fd_identity": true,
+          "after_context_destroy_inspected": true,
+          "after_context_destroy_mapping": true,
+          "after_import_destroy_fd_identity": true,
+          "after_import_destroy_inspected": true,
+          "after_import_destroy_mapping": true,
+          "before_destroy_fd_identity": true,
+          "before_destroy_inspected": true,
+          "before_destroy_mapping": true,
+          "close_attempted": true,
+          "close_rc": 0,
+          "close_skipped": false,
+          "cpu_access": {
+            "end_read": {
+              "attempts": 55,
+              "eintr": 0,
+              "failures": 0,
+              "last_rc": 0,
+              "success": 55
+            },
+            "end_write": {
+              "attempts": 0,
+              "eintr": 0,
+              "failures": 0,
+              "last_rc": 0,
+              "success": 0
+            },
+            "start_read": {
+              "attempts": 55,
+              "eintr": 0,
+              "failures": 0,
+              "last_rc": 0,
+              "success": 55
+            },
+            "start_write": {
+              "attempts": 0,
+              "eintr": 0,
+              "failures": 0,
+              "last_rc": 0,
+              "success": 0
+            }
+          },
+          "cpu_active": false,
+          "destroy_mem_attempted": true,
+          "destroy_mem_rc": 0,
+          "destroy_mem_skipped": false,
+          "import_descriptor_retained": false,
+          "mapping_bytes": 28672,
+          "munmap_attempted": true,
+          "munmap_rc": 0,
+          "munmap_skipped": false,
+          "owned_buffer_retained": false,
+          "role": "output3",
+          "st_dev": "8",
+          "st_ino": "6088"
+        },
+        {
+          "after_context_destroy_fd_identity": true,
+          "after_context_destroy_inspected": true,
+          "after_context_destroy_mapping": true,
+          "after_import_destroy_fd_identity": true,
+          "after_import_destroy_inspected": true,
+          "after_import_destroy_mapping": true,
+          "before_destroy_fd_identity": true,
+          "before_destroy_inspected": true,
+          "before_destroy_mapping": true,
+          "close_attempted": true,
+          "close_rc": 0,
+          "close_skipped": false,
+          "cpu_access": {
+            "end_read": {
+              "attempts": 1,
+              "eintr": 0,
+              "failures": 0,
+              "last_rc": 0,
+              "success": 1
+            },
+            "end_write": {
+              "attempts": 56,
+              "eintr": 0,
+              "failures": 0,
+              "last_rc": 0,
+              "success": 56
+            },
+            "start_read": {
+              "attempts": 1,
+              "eintr": 0,
+              "failures": 0,
+              "last_rc": 0,
+              "success": 1
+            },
+            "start_write": {
+              "attempts": 56,
+              "eintr": 0,
+              "failures": 0,
+              "last_rc": 0,
+              "success": 56
+            }
+          },
+          "cpu_active": false,
+          "destroy_mem_attempted": true,
+          "destroy_mem_rc": 0,
+          "destroy_mem_skipped": false,
+          "import_descriptor_retained": false,
+          "mapping_bytes": 1228800,
+          "munmap_attempted": true,
+          "munmap_rc": 0,
+          "munmap_skipped": false,
+          "owned_buffer_retained": false,
+          "role": "input_UINT8_NHWC_runtime_conversion",
+          "st_dev": "8",
+          "st_ino": "6089"
+        }
+      ],
+      "cleanup_ok": true,
+      "context_destroy_attempted": true,
+      "context_destroy_rc": 0,
+      "context_destroy_skipped": false,
+      "context_retained": false,
+      "event": "dma_heap_retirement",
+      "fatal_no_continue": false,
+      "hardware_certified": false,
+      "order": "paired_cpu_end_then_imports_then_context_then_owned_munmap_close",
+      "performance_claim": false,
+      "process_teardown_only": false,
+      "purpose": "native_io_fd_import",
+      "release_boundary": "explicit_retirement",
+      "retained_context_hex": "0",
+      "retirement_branch": "normal",
+      "runtime_library_retained": false
+    },
+    {
+      "completion": 1,
+      "count": 0,
+      "detections": [],
+      "event": "completion",
+      "mode": "native_io_fd_import",
+      "stages": {
+        "deblock_dequantize": {
+          "thread_cpu_ms": 4.455499000000032,
+          "wall_ms": 4.438991993665695
+        },
+        "decode": {
+          "thread_cpu_ms": 4.419040999999993,
+          "wall_ms": 4.415948987007141
+        },
+        "input_set_or_copy": {
+          "thread_cpu_ms": 0.6988340000000335,
+          "wall_ms": 0.6941840052604675
+        },
+        "input_sync": {
+          "thread_cpu_ms": 0.07524999999998272,
+          "wall_ms": 0.07291901111602783
+        },
+        "output_sync": {
+          "thread_cpu_ms": 0.9630829999998696,
+          "wall_ms": 0.9491070210933685
+        },
+        "outputs_get": {
+          "thread_cpu_ms": 0.004666999999926702,
+          "wall_ms": 0.005250006914138794
+        },
+        "release": {
+          "thread_cpu_ms": 0.00437499999998181,
+          "wall_ms": 0.004957973957061768
+        },
+        "run": {
+          "thread_cpu_ms": 1.2739990000000034,
+          "wall_ms": 23.52795198559761
+        },
+        "snapshot_copy": {
+          "thread_cpu_ms": 2.8137080000000196,
+          "wall_ms": 2.8029900193214417
+        }
+      },
+      "total": {
+        "thread_cpu_ms": 14.843790000000013,
+        "wall_ms": 37.104225009679794
+      }
+    },
+    {
+      "completion": 2,
+      "count": 0,
+      "detections": [],
+      "event": "completion",
+      "mode": "native_io_fd_import",
+      "stages": {
+        "deblock_dequantize": {
+          "thread_cpu_ms": 2.1740830000001097,
+          "wall_ms": 2.0679709911346436
+        },
+        "decode": {
+          "thread_cpu_ms": 1.6102920000000722,
+          "wall_ms": 1.6097500026226044
+        },
+        "input_set_or_copy": {
+          "thread_cpu_ms": 1.7596670000000358,
+          "wall_ms": 1.7591300010681152
+        },
+        "input_sync": {
+          "thread_cpu_ms": 0.06475000000000364,
+          "wall_ms": 0.06241801381111145
+        },
+        "output_sync": {
+          "thread_cpu_ms": 0.36924900000008165,
+          "wall_ms": 0.36226099729537964
+        },
+        "outputs_get": {
+          "thread_cpu_ms": 0.0017500000000154614,
+          "wall_ms": 0.0020410120487213135
+        },
+        "release": {
+          "thread_cpu_ms": 0.0014579999999568827,
+          "wall_ms": 0.00145798921585083
+        },
+        "run": {
+          "thread_cpu_ms": 0.873833999999988,
+          "wall_ms": 22.996770977973938
+        },
+        "snapshot_copy": {
+          "thread_cpu_ms": 0.0017500000000154614,
+          "wall_ms": 0.0017500221729278564
+        }
+      },
+      "total": {
+        "thread_cpu_ms": 6.933833999999933,
+        "wall_ms": 29.0621799826622
+      }
+    },
+    {
+      "completion": 3,
+      "count": 0,
+      "detections": [],
+      "event": "completion",
+      "mode": "native_io_fd_import",
+      "stages": {
+        "deblock_dequantize": {
+          "thread_cpu_ms": 4.602209000000016,
+          "wall_ms": 4.774999022483826
+        },
+        "decode": {
+          "thread_cpu_ms": 3.067168000000038,
+          "wall_ms": 3.530800998210907
+        },
+        "input_set_or_copy": {
+          "thread_cpu_ms": 0.7574590000000399,
+          "wall_ms": 0.7533949911594391
+        },
+        "input_sync": {
+          "thread_cpu_ms": 0.07845800000006875,
+          "wall_ms": 0.07583498954772949
+        },
+        "output_sync": {
+          "thread_cpu_ms": 0.878208000000086,
+          "wall_ms": 0.8636479675769806
+        },
+        "outputs_get": {
+          "thread_cpu_ms": 0.005250000000046384,
+          "wall_ms": 0.005541980266571045
+        },
+        "release": {
+          "thread_cpu_ms": 0.001167000000009466,
+          "wall_ms": 0.001166999340057373
+        },
+        "run": {
+          "thread_cpu_ms": 2.0475000000000136,
+          "wall_ms": 24.322763979434967
+        },
+        "snapshot_copy": {
+          "thread_cpu_ms": 0.0017500000000154614,
+          "wall_ms": 0.0017499923706054688
+        }
+      },
+      "total": {
+        "thread_cpu_ms": 11.548541999999998,
+        "wall_ms": 34.48973900079727
+      }
+    },
+    {
+      "completion": 4,
+      "count": 0,
+      "detections": [],
+      "event": "completion",
+      "mode": "native_io_fd_import",
+      "stages": {
+        "deblock_dequantize": {
+          "thread_cpu_ms": 4.432166999999936,
+          "wall_ms": 4.417990982532501
+        },
+        "decode": {
+          "thread_cpu_ms": 4.452584000000002,
+          "wall_ms": 5.044590979814529
+        },
+        "input_set_or_copy": {
+          "thread_cpu_ms": 0.6504159999999501,
+          "wall_ms": 0.6475169956684113
+        },
+        "input_sync": {
+          "thread_cpu_ms": 0.0755420000000413,
+          "wall_ms": 0.07233500480651855
+        },
+        "output_sync": {
+          "thread_cpu_ms": 0.8376660000000129,
+          "wall_ms": 0.8236880302429199
+        },
+        "outputs_get": {
+          "thread_cpu_ms": 0.004666000000042914,
+          "wall_ms": 0.005250006914138794
+        },
+        "release": {
+          "thread_cpu_ms": 0.0008749999999508873,
+          "wall_ms": 0.0008749961853027344
+        },
+        "run": {
+          "thread_cpu_ms": 1.8590840000000526,
+          "wall_ms": 24.14367601275444
+        },
+        "snapshot_copy": {
+          "thread_cpu_ms": 0.001458999999954358,
+          "wall_ms": 0.00145798921585083
+        }
+      },
+      "total": {
+        "thread_cpu_ms": 12.428792999999928,
+        "wall_ms": 35.31342801451683
+      }
+    },
+    {
+      "completion": 5,
+      "count": 0,
+      "detections": [],
+      "event": "completion",
+      "mode": "native_io_fd_import",
+      "stages": {
+        "deblock_dequantize": {
+          "thread_cpu_ms": 1.80308500000001,
+          "wall_ms": 1.7958399951457977
+        },
+        "decode": {
+          "thread_cpu_ms": 1.1372089999999844,
+          "wall_ms": 1.1366550028324127
+        },
+        "input_set_or_copy": {
+          "thread_cpu_ms": 0.589458000000036,
+          "wall_ms": 0.5874319970607758
+        },
+        "input_sync": {
+          "thread_cpu_ms": 0.06504200000006222,
+          "wall_ms": 0.06358501315116882
+        },
+        "output_sync": {
+          "thread_cpu_ms": 0.2613349999999173,
+          "wall_ms": 0.2569649815559387
+        },
+        "outputs_get": {
+          "thread_cpu_ms": 0.001167000000009466,
+          "wall_ms": 0.00145798921585083
+        },
+        "release": {
+          "thread_cpu_ms": 0.0008749999999508873,
+          "wall_ms": 0.0008749961853027344
+        },
+        "run": {
+          "thread_cpu_ms": 0.6209579999999733,
+          "wall_ms": 22.77130699157715
+        },
+        "snapshot_copy": {
+          "thread_cpu_ms": 0.001167000000009466,
+          "wall_ms": 0.001166999340057373
+        }
+      },
+      "total": {
+        "thread_cpu_ms": 4.524915999999962,
+        "wall_ms": 26.677118003368378
+      }
+    },
+    {
+      "completion": 6,
+      "count": 0,
+      "detections": [],
+      "event": "completion",
+      "mode": "native_io_fd_import",
+      "stages": {
+        "deblock_dequantize": {
+          "thread_cpu_ms": 4.500708000000145,
+          "wall_ms": 4.483035027980804
+        },
+        "decode": {
+          "thread_cpu_ms": 4.436542000000031,
+          "wall_ms": 4.4331580102443695
+        },
+        "input_set_or_copy": {
+          "thread_cpu_ms": 0.5460000000000491,
+          "wall_ms": 0.5430980026721954
+        },
+        "input_sync": {
+          "thread_cpu_ms": 0.052500000000009095,
+          "wall_ms": 0.05133500695228577
+        },
+        "output_sync": {
+          "thread_cpu_ms": 0.8569170000000668,
+          "wall_ms": 0.8461460173130035
+        },
+        "outputs_get": {
+          "thread_cpu_ms": 0.00437499999998181,
+          "wall_ms": 0.004958003759384155
+        },
+        "release": {
+          "thread_cpu_ms": 0.003499999999917236,
+          "wall_ms": 0.0037910044193267822
+        },
+        "run": {
+          "thread_cpu_ms": 1.9153759999999238,
+          "wall_ms": 24.29272198677063
+        },
+        "snapshot_copy": {
+          "thread_cpu_ms": 0.00437499999998181,
+          "wall_ms": 0.0046669840812683105
+        }
+      },
+      "total": {
+        "thread_cpu_ms": 12.438709000000017,
+        "wall_ms": 34.82274901866913
+      }
+    },
+    {
+      "completion": 7,
+      "count": 0,
+      "detections": [],
+      "event": "completion",
+      "mode": "native_io_fd_import",
+      "stages": {
+        "deblock_dequantize": {
+          "thread_cpu_ms": 4.454041000000188,
+          "wall_ms": 4.440450996160507
+        },
+        "decode": {
+          "thread_cpu_ms": 4.641875000000027,
+          "wall_ms": 5.027882009744644
+        },
+        "input_set_or_copy": {
+          "thread_cpu_ms": 1.6528749999999945,
+          "wall_ms": 1.647959977388382
+        },
+        "input_sync": {
+          "thread_cpu_ms": 0.1426249999999527,
+          "wall_ms": 0.13708701729774475
+        },
+        "output_sync": {
+          "thread_cpu_ms": 0.8709169999999631,
+          "wall_ms": 1.0415679812431335
+        },
+        "outputs_get": {
+          "thread_cpu_ms": 0.004666000000042914,
+          "wall_ms": 0.0046669840812683105
+        },
+        "release": {
+          "thread_cpu_ms": 0.0037919999999758147,
+          "wall_ms": 0.003791987895965576
+        },
+        "run": {
+          "thread_cpu_ms": 2.075499000000036,
+          "wall_ms": 24.918446004390717
+        },
+        "snapshot_copy": {
+          "thread_cpu_ms": 0.0049579999999878055,
+          "wall_ms": 0.004958003759384155
+        }
+      },
+      "total": {
+        "thread_cpu_ms": 13.99416599999995,
+        "wall_ms": 37.41960799694061
+      }
+    },
+    {
+      "completion": 8,
+      "count": 0,
+      "detections": [],
+      "event": "completion",
+      "mode": "native_io_fd_import",
+      "stages": {
+        "deblock_dequantize": {
+          "thread_cpu_ms": 1.6765000000000327,
+          "wall_ms": 1.6704180240631104
+        },
+        "decode": {
+          "thread_cpu_ms": 1.0103330000000597,
+          "wall_ms": 1.0100679993629456
+        },
+        "input_set_or_copy": {
+          "thread_cpu_ms": 1.0765410000000202,
+          "wall_ms": 1.3298270106315613
+        },
+        "input_sync": {
+          "thread_cpu_ms": 0.06795899999997346,
+          "wall_ms": 0.0673760175704956
+        },
+        "output_sync": {
+          "thread_cpu_ms": 0.3905410000000984,
+          "wall_ms": 0.43080398440361023
+        },
+        "outputs_get": {
+          "thread_cpu_ms": 0.001167000000009466,
+          "wall_ms": 0.0014590024948120117
+        },
+        "release": {
+          "thread_cpu_ms": 0.0008749999999508873,
+          "wall_ms": 0.0008749961853027344
+        },
+        "run": {
+          "thread_cpu_ms": 0.631458000000066,
+          "wall_ms": 22.730764001607895
+        },
+        "snapshot_copy": {
+          "thread_cpu_ms": 0.0008750000000645741,
+          "wall_ms": 0.001166999340057373
+        }
+      },
+      "total": {
+        "thread_cpu_ms": 4.911665999999968,
+        "wall_ms": 27.316550999879837
+      }
+    },
+    {
+      "completion": 9,
+      "count": 0,
+      "detections": [],
+      "event": "completion",
+      "mode": "native_io_fd_import",
+      "stages": {
+        "deblock_dequantize": {
+          "thread_cpu_ms": 4.381416999999942,
+          "wall_ms": 4.366071999073029
+        },
+        "decode": {
+          "thread_cpu_ms": 4.444707999999991,
+          "wall_ms": 4.441908001899719
+        },
+        "input_set_or_copy": {
+          "thread_cpu_ms": 0.573709000000008,
+          "wall_ms": 0.5699310004711151
+        },
+        "input_sync": {
+          "thread_cpu_ms": 0.05541599999992286,
+          "wall_ms": 0.05337598919868469
+        },
+        "output_sync": {
+          "thread_cpu_ms": 0.9502510000000939,
+          "wall_ms": 0.9380249977111816
+        },
+        "outputs_get": {
+          "thread_cpu_ms": 0.004667000000040389,
+          "wall_ms": 0.005541980266571045
+        },
+        "release": {
+          "thread_cpu_ms": 0.004083000000036918,
+          "wall_ms": 0.003791987895965576
+        },
+        "run": {
+          "thread_cpu_ms": 1.899041000000011,
+          "wall_ms": 24.258012980222702
+        },
+        "snapshot_copy": {
+          "thread_cpu_ms": 0.00437499999998181,
+          "wall_ms": 0.00437501072883606
+        }
+      },
+      "total": {
+        "thread_cpu_ms": 12.43404099999998,
+        "wall_ms": 34.79999798536301
+      }
+    },
+    {
+      "completion": 10,
+      "count": 0,
+      "detections": [],
+      "event": "completion",
+      "mode": "native_io_fd_import",
+      "stages": {
+        "deblock_dequantize": {
+          "thread_cpu_ms": 4.589958000000024,
+          "wall_ms": 4.570536017417908
+        },
+        "decode": {
+          "thread_cpu_ms": 4.6059999999999945,
+          "wall_ms": 4.910629004240036
+        },
+        "input_set_or_copy": {
+          "thread_cpu_ms": 1.6449999999999818,
+          "wall_ms": 1.6386270225048065
+        },
+        "input_sync": {
+          "thread_cpu_ms": 0.14845800000000509,
+          "wall_ms": 0.1420450210571289
+        },
+        "output_sync": {
+          "thread_cpu_ms": 0.8548779999998715,
+          "wall_ms": 0.9724400341510773
+        },
+        "outputs_get": {
+          "thread_cpu_ms": 0.004958999999985281,
+          "wall_ms": 0.005251020193099976
+        },
+        "release": {
+          "thread_cpu_ms": 0.0037910000000920263,
+          "wall_ms": 0.003791987895965576
+        },
+        "run": {
+          "thread_cpu_ms": 2.1370419999999513,
+          "wall_ms": 24.924570977687836
+        },
+        "snapshot_copy": {
+          "thread_cpu_ms": 0.00437499999998181,
+          "wall_ms": 0.004666000604629517
+        }
+      },
+      "total": {
+        "thread_cpu_ms": 14.135625000000005,
+        "wall_ms": 37.36944001913071
+      }
+    },
+    {
+      "completion": 11,
+      "count": 0,
+      "detections": [],
+      "event": "completion",
+      "mode": "native_io_fd_import",
+      "stages": {
+        "deblock_dequantize": {
+          "thread_cpu_ms": 4.513540999999918,
+          "wall_ms": 4.494992047548294
+        },
+        "decode": {
+          "thread_cpu_ms": 4.304707999999891,
+          "wall_ms": 4.301905006170273
+        },
+        "input_set_or_copy": {
+          "thread_cpu_ms": 1.335833999999977,
+          "wall_ms": 1.6710859835147858
+        },
+        "input_sync": {
+          "thread_cpu_ms": 0.06241699999998218,
+          "wall_ms": 0.06183499097824097
+        },
+        "output_sync": {
+          "thread_cpu_ms": 0.8534149999999272,
+          "wall_ms": 0.8391469717025757
+        },
+        "outputs_get": {
+          "thread_cpu_ms": 0.004667000000040389,
+          "wall_ms": 0.004667013883590698
+        },
+        "release": {
+          "thread_cpu_ms": 0.0037909999999783395,
+          "wall_ms": 0.003791987895965576
+        },
+        "run": {
+          "thread_cpu_ms": 1.1967080000000578,
+          "wall_ms": 23.41040700674057
+        },
+        "snapshot_copy": {
+          "thread_cpu_ms": 0.0040840000000343935,
+          "wall_ms": 0.004374980926513672
+        }
+      },
+      "total": {
+        "thread_cpu_ms": 12.403125000000045,
+        "wall_ms": 34.961377024650574
+      }
+    },
+    {
+      "completion": 12,
+      "count": 0,
+      "detections": [],
+      "event": "completion",
+      "mode": "native_io_fd_import",
+      "stages": {
+        "deblock_dequantize": {
+          "thread_cpu_ms": 4.477956999999947,
+          "wall_ms": 4.457076013088226
+        },
+        "decode": {
+          "thread_cpu_ms": 4.513250000000085,
+          "wall_ms": 4.853460997343063
+        },
+        "input_set_or_copy": {
+          "thread_cpu_ms": 1.9124590000000126,
+          "wall_ms": 1.906675010919571
+        },
+        "input_sync": {
+          "thread_cpu_ms": 0.14437500000008185,
+          "wall_ms": 0.14204499125480652
+        },
+        "output_sync": {
+          "thread_cpu_ms": 0.8592489999999771,
+          "wall_ms": 0.8449809849262238
+        },
+        "outputs_get": {
+          "thread_cpu_ms": 0.004667000000040389,
+          "wall_ms": 0.005250006914138794
+        },
+        "release": {
+          "thread_cpu_ms": 0.0037919999999758147,
+          "wall_ms": 0.003792017698287964
+        },
+        "run": {
+          "thread_cpu_ms": 2.212291999999934,
+          "wall_ms": 24.49289298057556
+        },
+        "snapshot_copy": {
+          "thread_cpu_ms": 0.00437499999998181,
+          "wall_ms": 0.0046669840812683105
+        }
+      },
+      "total": {
+        "thread_cpu_ms": 14.269792000000052,
+        "wall_ms": 36.90217798948288
+      }
+    },
+    {
+      "completion": 13,
+      "count": 0,
+      "detections": [],
+      "event": "completion",
+      "mode": "native_io_fd_import",
+      "stages": {
+        "deblock_dequantize": {
+          "thread_cpu_ms": 4.390166999999906,
+          "wall_ms": 4.372490018606186
+        },
+        "decode": {
+          "thread_cpu_ms": 4.3767500000000155,
+          "wall_ms": 4.373365014791489
+        },
+        "input_set_or_copy": {
+          "thread_cpu_ms": 1.4714579999999842,
+          "wall_ms": 1.8291729986667633
+        },
+        "input_sync": {
+          "thread_cpu_ms": 0.07320799999990868,
+          "wall_ms": 0.07233500480651855
+        },
+        "output_sync": {
+          "thread_cpu_ms": 1.0100409999998874,
+          "wall_ms": 0.9963600635528564
+        },
+        "outputs_get": {
+          "thread_cpu_ms": 0.00437499999998181,
+          "wall_ms": 0.005250006914138794
+        },
+        "release": {
+          "thread_cpu_ms": 0.0037919999999758147,
+          "wall_ms": 0.004083991050720215
+        },
+        "run": {
+          "thread_cpu_ms": 1.269916999999964,
+          "wall_ms": 23.462323993444443
+        },
+        "snapshot_copy": {
+          "thread_cpu_ms": 0.004083000000036918,
+          "wall_ms": 0.00437501072883606
+        }
+      },
+      "total": {
+        "thread_cpu_ms": 12.735332999999969,
+        "wall_ms": 35.2953439950943
+      }
+    },
+    {
+      "completion": 14,
+      "count": 0,
+      "detections": [],
+      "event": "completion",
+      "mode": "native_io_fd_import",
+      "stages": {
+        "deblock_dequantize": {
+          "thread_cpu_ms": 4.550292000000127,
+          "wall_ms": 4.531451970338821
+        },
+        "decode": {
+          "thread_cpu_ms": 2.5909580000000005,
+          "wall_ms": 2.5913180112838745
+        },
+        "input_set_or_copy": {
+          "thread_cpu_ms": 1.6578329999999823,
+          "wall_ms": 1.650875985622406
+        },
+        "input_sync": {
+          "thread_cpu_ms": 0.13941699999998036,
+          "wall_ms": 0.13504502177238464
+        },
+        "output_sync": {
+          "thread_cpu_ms": 0.9315820000000485,
+          "wall_ms": 0.9184819459915161
+        },
+        "outputs_get": {
+          "thread_cpu_ms": 0.0049579999999878055,
+          "wall_ms": 0.004958987236022949
+        },
+        "release": {
+          "thread_cpu_ms": 0.001167000000009466,
+          "wall_ms": 0.001166999340057373
+        },
+        "run": {
+          "thread_cpu_ms": 2.23562400000003,
+          "wall_ms": 24.509810984134674
+        },
+        "snapshot_copy": {
+          "thread_cpu_ms": 0.0014579999999568827,
+          "wall_ms": 0.0017499923706054688
+        }
+      },
+      "total": {
+        "thread_cpu_ms": 12.244833000000085,
+        "wall_ms": 34.52744898200035
+      }
+    },
+    {
+      "completion": 15,
+      "count": 0,
+      "detections": [],
+      "event": "completion",
+      "mode": "native_io_fd_import",
+      "stages": {
+        "deblock_dequantize": {
+          "thread_cpu_ms": 4.389292999999952,
+          "wall_ms": 4.375114977359772
+        },
+        "decode": {
+          "thread_cpu_ms": 4.572458999999981,
+          "wall_ms": 4.968671977519989
+        },
+        "input_set_or_copy": {
+          "thread_cpu_ms": 0.72625000000005,
+          "wall_ms": 0.7218939960002899
+        },
+        "input_sync": {
+          "thread_cpu_ms": 0.0659170000000131,
+          "wall_ms": 0.06504300236701965
+        },
+        "output_sync": {
+          "thread_cpu_ms": 0.8572079999999005,
+          "wall_ms": 0.8411900401115417
+        },
+        "outputs_get": {
+          "thread_cpu_ms": 0.004667000000040389,
+          "wall_ms": 0.004958003759384155
+        },
+        "release": {
+          "thread_cpu_ms": 0.0040840000000343935,
+          "wall_ms": 0.004083991050720215
+        },
+        "run": {
+          "thread_cpu_ms": 1.369376000000102,
+          "wall_ms": 23.613411992788315
+        },
+        "snapshot_copy": {
+          "thread_cpu_ms": 0.0049579999999878055,
+          "wall_ms": 0.005250990390777588
+        }
+      },
+      "total": {
+        "thread_cpu_ms": 12.114375999999993,
+        "wall_ms": 34.765579998493195
+      }
+    },
+    {
+      "completion": 16,
+      "count": 0,
+      "detections": [],
+      "event": "completion",
+      "mode": "native_io_fd_import",
+      "stages": {
+        "deblock_dequantize": {
+          "thread_cpu_ms": 4.397167999999851,
+          "wall_ms": 4.38153001666069
+        },
+        "decode": {
+          "thread_cpu_ms": 4.301208999999972,
+          "wall_ms": 4.29898801445961
+        },
+        "input_set_or_copy": {
+          "thread_cpu_ms": 1.0625410000000102,
+          "wall_ms": 1.3190340101718903
+        },
+        "input_sync": {
+          "thread_cpu_ms": 0.06241699999998218,
+          "wall_ms": 0.06154298782348633
+        },
+        "output_sync": {
+          "thread_cpu_ms": 0.9447079999998778,
+          "wall_ms": 0.9339410066604614
+        },
+        "outputs_get": {
+          "thread_cpu_ms": 0.00437499999998181,
+          "wall_ms": 0.004958003759384155
+        },
+        "release": {
+          "thread_cpu_ms": 0.0037919999999758147,
+          "wall_ms": 0.003791987895965576
+        },
+        "run": {
+          "thread_cpu_ms": 1.241916999999944,
+          "wall_ms": 23.501409977674484
+        },
+        "snapshot_copy": {
+          "thread_cpu_ms": 0.004375000000095497,
+          "wall_ms": 0.004958003759384155
+        }
+      },
+      "total": {
+        "thread_cpu_ms": 12.149958000000083,
+        "wall_ms": 34.675828009843826
+      }
+    },
+    {
+      "completion": 17,
+      "count": 0,
+      "detections": [],
+      "event": "completion",
+      "mode": "native_io_fd_import",
+      "stages": {
+        "deblock_dequantize": {
+          "thread_cpu_ms": 4.504791999999952,
+          "wall_ms": 4.48682701587677
+        },
+        "decode": {
+          "thread_cpu_ms": 4.354000000000042,
+          "wall_ms": 4.350614011287689
+        },
+        "input_set_or_copy": {
+          "thread_cpu_ms": 1.6770830000000387,
+          "wall_ms": 1.6712940037250519
+        },
+        "input_sync": {
+          "thread_cpu_ms": 0.1429160000000138,
+          "wall_ms": 0.1367959976196289
+        },
+        "output_sync": {
+          "thread_cpu_ms": 0.8598330000000942,
+          "wall_ms": 0.8458560109138489
+        },
+        "outputs_get": {
+          "thread_cpu_ms": 0.0049579999999878055,
+          "wall_ms": 0.00583299994468689
+        },
+        "release": {
+          "thread_cpu_ms": 0.0037919999999758147,
+          "wall_ms": 0.003792017698287964
+        },
+        "run": {
+          "thread_cpu_ms": 2.1863329999999905,
+          "wall_ms": 24.53431198000908
+        },
+        "snapshot_copy": {
+          "thread_cpu_ms": 0.00437499999998181,
+          "wall_ms": 0.004667013883590698
+        }
+      },
+      "total": {
+        "thread_cpu_ms": 13.881582999999978,
+        "wall_ms": 36.236869007349014
+      }
+    },
+    {
+      "completion": 18,
+      "count": 0,
+      "detections": [],
+      "event": "completion",
+      "mode": "native_io_fd_import",
+      "stages": {
+        "deblock_dequantize": {
+          "thread_cpu_ms": 4.12270999999987,
+          "wall_ms": 4.3387390077114105
+        },
+        "decode": {
+          "thread_cpu_ms": 1.5160829999999805,
+          "wall_ms": 1.5149569809436798
+        },
+        "input_set_or_copy": {
+          "thread_cpu_ms": 1.6703749999999218,
+          "wall_ms": 1.6634179949760437
+        },
+        "input_sync": {
+          "thread_cpu_ms": 0.14000000000010004,
+          "wall_ms": 0.13504600524902344
+        },
+        "output_sync": {
+          "thread_cpu_ms": 0.6708320000001322,
+          "wall_ms": 0.6626830101013184
+        },
+        "outputs_get": {
+          "thread_cpu_ms": 0.004666999999926702,
+          "wall_ms": 0.005540996789932251
+        },
+        "release": {
+          "thread_cpu_ms": 0.0014579999999568827,
+          "wall_ms": 0.0014580190181732178
+        },
+        "run": {
+          "thread_cpu_ms": 2.2621659999999792,
+          "wall_ms": 24.530810981988907
+        },
+        "snapshot_copy": {
+          "thread_cpu_ms": 0.0014580000000705695,
+          "wall_ms": 0.00145798921585083
+        }
+      },
+      "total": {
+        "thread_cpu_ms": 10.498833999999988,
+        "wall_ms": 33.00315901637077
+      }
+    },
+    {
+      "completion": 19,
+      "count": 0,
+      "detections": [],
+      "event": "completion",
+      "mode": "native_io_fd_import",
+      "stages": {
+        "deblock_dequantize": {
+          "thread_cpu_ms": 2.2169589999999744,
+          "wall_ms": 2.2560999989509583
+        },
+        "decode": {
+          "thread_cpu_ms": 1.5105419999999867,
+          "wall_ms": 1.5097060203552246
+        },
+        "input_set_or_copy": {
+          "thread_cpu_ms": 0.7790410000000065,
+          "wall_ms": 0.7755620181560516
+        },
+        "input_sync": {
+          "thread_cpu_ms": 0.07029199999999491,
+          "wall_ms": 0.0673770010471344
+        },
+        "output_sync": {
+          "thread_cpu_ms": 0.3567079999999123,
+          "wall_ms": 0.40863603353500366
+        },
+        "outputs_get": {
+          "thread_cpu_ms": 0.002040999999962878,
+          "wall_ms": 0.0020419955253601074
+        },
+        "release": {
+          "thread_cpu_ms": 0.001458999999954358,
+          "wall_ms": 0.0014580190181732178
+        },
+        "run": {
+          "thread_cpu_ms": 0.9137929999999415,
+          "wall_ms": 23.09944000840187
+        },
+        "snapshot_copy": {
+          "thread_cpu_ms": 0.0017500000000154614,
+          "wall_ms": 0.00145798921585083
+        }
+      },
+      "total": {
+        "thread_cpu_ms": 5.909751000000028,
+        "wall_ms": 28.20403301715851
+      }
+    },
+    {
+      "completion": 20,
+      "count": 0,
+      "detections": [],
+      "event": "completion",
+      "mode": "native_io_fd_import",
+      "stages": {
+        "deblock_dequantize": {
+          "thread_cpu_ms": 4.5059559999998555,
+          "wall_ms": 4.4874089658260345
+        },
+        "decode": {
+          "thread_cpu_ms": 4.517917000000011,
+          "wall_ms": 4.812335014343262
+        },
+        "input_set_or_copy": {
+          "thread_cpu_ms": 0.7950829999999769,
+          "wall_ms": 0.7907290160655975
+        },
+        "input_sync": {
+          "thread_cpu_ms": 0.06620800000007421,
+          "wall_ms": 0.06358498334884644
+        },
+        "output_sync": {
+          "thread_cpu_ms": 0.8630410000000666,
+          "wall_ms": 0.8511050641536713
+        },
+        "outputs_get": {
+          "thread_cpu_ms": 0.004665999999929227,
+          "wall_ms": 0.005250006914138794
+        },
+        "release": {
+          "thread_cpu_ms": 0.004083000000036918,
+          "wall_ms": 0.0037910044193267822
+        },
+        "run": {
+          "thread_cpu_ms": 1.8573330000000396,
+          "wall_ms": 24.25772100687027
+        },
+        "snapshot_copy": {
+          "thread_cpu_ms": 0.00437499999998181,
+          "wall_ms": 0.004959017038345337
+        }
+      },
+      "total": {
+        "thread_cpu_ms": 12.745833999999945,
+        "wall_ms": 35.45305600762367
+      }
+    },
+    {
+      "completion": 21,
+      "count": 0,
+      "detections": [],
+      "event": "completion",
+      "mode": "native_io_fd_import",
+      "stages": {
+        "deblock_dequantize": {
+          "thread_cpu_ms": 4.451417999999876,
+          "wall_ms": 4.43520200252533
+        },
+        "decode": {
+          "thread_cpu_ms": 4.5147080000000415,
+          "wall_ms": 4.943879991769791
+        },
+        "input_set_or_copy": {
+          "thread_cpu_ms": 1.719082999999955,
+          "wall_ms": 2.2170169949531555
+        },
+        "input_sync": {
+          "thread_cpu_ms": 0.17120900000008987,
+          "wall_ms": 0.29817500710487366
+        },
+        "output_sync": {
+          "thread_cpu_ms": 0.8461249999999154,
+          "wall_ms": 0.8347740173339844
+        },
+        "outputs_get": {
+          "thread_cpu_ms": 0.00437499999998181,
+          "wall_ms": 0.004667013883590698
+        },
+        "release": {
+          "thread_cpu_ms": 0.0037919999999758147,
+          "wall_ms": 0.0037910044193267822
+        },
+        "run": {
+          "thread_cpu_ms": 1.7663330000000315,
+          "wall_ms": 24.152134001255035
+        },
+        "snapshot_copy": {
+          "thread_cpu_ms": 0.0049579999999878055,
+          "wall_ms": 0.005249977111816406
+        }
+      },
+      "total": {
+        "thread_cpu_ms": 13.620833000000061,
+        "wall_ms": 37.0663900077343
+      }
+    },
+    {
+      "completion": 22,
+      "count": 0,
+      "detections": [],
+      "event": "completion",
+      "mode": "native_io_fd_import",
+      "stages": {
+        "deblock_dequantize": {
+          "thread_cpu_ms": 1.7415410000000975,
+          "wall_ms": 1.7331280410289764
+        },
+        "decode": {
+          "thread_cpu_ms": 1.0327919999999722,
+          "wall_ms": 1.0325269997119904
+        },
+        "input_set_or_copy": {
+          "thread_cpu_ms": 1.1684170000000904,
+          "wall_ms": 1.4721219837665558
+        },
+        "input_sync": {
+          "thread_cpu_ms": 0.06358299999999417,
+          "wall_ms": 0.06271001696586609
+        },
+        "output_sync": {
+          "thread_cpu_ms": 0.2531649999999672,
+          "wall_ms": 0.25054797530174255
+        },
+        "outputs_get": {
+          "thread_cpu_ms": 0.001167000000009466,
+          "wall_ms": 0.0014590024948120117
+        },
+        "release": {
+          "thread_cpu_ms": 0.0008749999999508873,
+          "wall_ms": 0.0008749961853027344
+        },
+        "run": {
+          "thread_cpu_ms": 0.6025839999999789,
+          "wall_ms": 22.73455598950386
+        },
+        "snapshot_copy": {
+          "thread_cpu_ms": 0.001167000000009466,
+          "wall_ms": 0.001166999340057373
+        }
+      },
+      "total": {
+        "thread_cpu_ms": 4.920125999999982,
+        "wall_ms": 27.35996899008751
+      }
+    },
+    {
+      "completion": 23,
+      "count": 0,
+      "detections": [],
+      "event": "completion",
+      "mode": "native_io_fd_import",
+      "stages": {
+        "deblock_dequantize": {
+          "thread_cpu_ms": 4.367415999999935,
+          "wall_ms": 4.3500310480594635
+        },
+        "decode": {
+          "thread_cpu_ms": 4.467750000000024,
+          "wall_ms": 4.464659005403519
+        },
+        "input_set_or_copy": {
+          "thread_cpu_ms": 0.5950000000000273,
+          "wall_ms": 0.5918070077896118
+        },
+        "input_sync": {
+          "thread_cpu_ms": 0.052792000000067674,
+          "wall_ms": 0.050168007612228394
+        },
+        "output_sync": {
+          "thread_cpu_ms": 0.9610429999999042,
+          "wall_ms": 0.9450259804725647
+        },
+        "outputs_get": {
+          "thread_cpu_ms": 0.004667000000040389,
+          "wall_ms": 0.005541980266571045
+        },
+        "release": {
+          "thread_cpu_ms": 0.0037910000000920263,
+          "wall_ms": 0.0040840208530426025
+        },
+        "run": {
+          "thread_cpu_ms": 1.8299160000000256,
+          "wall_ms": 24.21338599920273
+        },
+        "snapshot_copy": {
+          "thread_cpu_ms": 0.004375000000095497,
+          "wall_ms": 0.004667013883590698
+        }
+      },
+      "total": {
+        "thread_cpu_ms": 12.410708,
+        "wall_ms": 34.80087199807167
+      }
+    },
+    {
+      "completion": 24,
+      "count": 0,
+      "detections": [],
+      "event": "completion",
+      "mode": "native_io_fd_import",
+      "stages": {
+        "deblock_dequantize": {
+          "thread_cpu_ms": 4.419623999999885,
+          "wall_ms": 4.404864996671677
+        },
+        "decode": {
+          "thread_cpu_ms": 4.492541999999958,
+          "wall_ms": 4.488867998123169
+        },
+        "input_set_or_copy": {
+          "thread_cpu_ms": 0.9952499999999418,
+          "wall_ms": 0.9935260117053986
+        },
+        "input_sync": {
+          "thread_cpu_ms": 0.06825000000003456,
+          "wall_ms": 0.06533500552177429
+        },
+        "output_sync": {
+          "thread_cpu_ms": 0.8402909999998656,
+          "wall_ms": 0.8286440074443817
+        },
+        "outputs_get": {
+          "thread_cpu_ms": 0.00437499999998181,
+          "wall_ms": 0.004958987236022949
+        },
+        "release": {
+          "thread_cpu_ms": 0.0040840000000343935,
+          "wall_ms": 0.004083007574081421
+        },
+        "run": {
+          "thread_cpu_ms": 1.2780830000000378,
+          "wall_ms": 23.542827010154724
+        },
+        "snapshot_copy": {
+          "thread_cpu_ms": 0.00437499999998181,
+          "wall_ms": 0.004667013883590698
+        }
+      },
+      "total": {
+        "thread_cpu_ms": 12.234915999999998,
+        "wall_ms": 34.50753200054169
+      }
+    },
+    {
+      "completion": 25,
+      "count": 0,
+      "detections": [],
+      "event": "completion",
+      "mode": "native_io_fd_import",
+      "stages": {
+        "deblock_dequantize": {
+          "thread_cpu_ms": 4.5365829999999505,
+          "wall_ms": 4.673206001520157
+        },
+        "decode": {
+          "thread_cpu_ms": 4.477665000000002,
+          "wall_ms": 4.919378995895386
+        },
+        "input_set_or_copy": {
+          "thread_cpu_ms": 1.5467089999999644,
+          "wall_ms": 2.276518017053604
+        },
+        "input_sync": {
+          "thread_cpu_ms": 0.15166599999997743,
+          "wall_ms": 0.14875400066375732
+        },
+        "output_sync": {
+          "thread_cpu_ms": 0.8720840000001999,
+          "wall_ms": 0.8598549962043762
+        },
+        "outputs_get": {
+          "thread_cpu_ms": 0.004666999999926702,
+          "wall_ms": 0.004958003759384155
+        },
+        "release": {
+          "thread_cpu_ms": 0.0037909999999783395,
+          "wall_ms": 0.004082977771759033
+        },
+        "run": {
+          "thread_cpu_ms": 2.1052490000000716,
+          "wall_ms": 24.91932201385498
+        },
+        "snapshot_copy": {
+          "thread_cpu_ms": 0.004666000000042914,
+          "wall_ms": 0.004958003759384155
+        }
+      },
+      "total": {
+        "thread_cpu_ms": 13.834332000000018,
+        "wall_ms": 37.98837301135063
+      }
+    },
+    {
+      "completion": 26,
+      "count": 0,
+      "detections": [],
+      "event": "completion",
+      "mode": "native_io_fd_import",
+      "stages": {
+        "deblock_dequantize": {
+          "thread_cpu_ms": 4.449082999999973,
+          "wall_ms": 4.4331580102443695
+        },
+        "decode": {
+          "thread_cpu_ms": 4.538332999999966,
+          "wall_ms": 4.961672008037567
+        },
+        "input_set_or_copy": {
+          "thread_cpu_ms": 1.5490419999999858,
+          "wall_ms": 2.067095994949341
+        },
+        "input_sync": {
+          "thread_cpu_ms": 0.23420900000007805,
+          "wall_ms": 0.23013100028038025
+        },
+        "output_sync": {
+          "thread_cpu_ms": 0.8385419999997339,
+          "wall_ms": 0.826896071434021
+        },
+        "outputs_get": {
+          "thread_cpu_ms": 0.004665999999929227,
+          "wall_ms": 0.005834013223648071
+        },
+        "release": {
+          "thread_cpu_ms": 0.0037919999999758147,
+          "wall_ms": 0.003791987895965576
+        },
+        "run": {
+          "thread_cpu_ms": 2.084249,
+          "wall_ms": 24.66702300310135
+        },
+        "snapshot_copy": {
+          "thread_cpu_ms": 0.00437499999998181,
+          "wall_ms": 0.004667013883590698
+        }
+      },
+      "total": {
+        "thread_cpu_ms": 13.838998999999944,
+        "wall_ms": 37.37848201394081
+      }
+    },
+    {
+      "completion": 27,
+      "count": 0,
+      "detections": [],
+      "event": "completion",
+      "mode": "native_io_fd_import",
+      "stages": {
+        "deblock_dequantize": {
+          "thread_cpu_ms": 1.7494169999998803,
+          "wall_ms": 1.7412960231304169
+        },
+        "decode": {
+          "thread_cpu_ms": 1.10775000000001,
+          "wall_ms": 1.1074869930744171
+        },
+        "input_set_or_copy": {
+          "thread_cpu_ms": 1.0753760000000057,
+          "wall_ms": 1.3933700025081635
+        },
+        "input_sync": {
+          "thread_cpu_ms": 0.06533300000000963,
+          "wall_ms": 0.0647520124912262
+        },
+        "output_sync": {
+          "thread_cpu_ms": 0.26425000000006094,
+          "wall_ms": 0.25871598720550537
+        },
+        "outputs_get": {
+          "thread_cpu_ms": 0.0014579999999568827,
+          "wall_ms": 0.0014580190181732178
+        },
+        "release": {
+          "thread_cpu_ms": 0.0008750000000645741,
+          "wall_ms": 0.0008749961853027344
+        },
+        "run": {
+          "thread_cpu_ms": 0.6171659999999974,
+          "wall_ms": 22.740972012281418
+        },
+        "snapshot_copy": {
+          "thread_cpu_ms": 0.001167000000009466,
+          "wall_ms": 0.001166999340057373
+        }
+      },
+      "total": {
+        "thread_cpu_ms": 4.9364589999999,
+        "wall_ms": 27.38330301642418
+      }
+    },
+    {
+      "completion": 28,
+      "count": 0,
+      "detections": [],
+      "event": "completion",
+      "mode": "native_io_fd_import",
+      "stages": {
+        "deblock_dequantize": {
+          "thread_cpu_ms": 4.479707000000076,
+          "wall_ms": 4.461451977491379
+        },
+        "decode": {
+          "thread_cpu_ms": 4.522292000000107,
+          "wall_ms": 4.867168992757797
+        },
+        "input_set_or_copy": {
+          "thread_cpu_ms": 0.5909169999999904,
+          "wall_ms": 0.5874319970607758
+        },
+        "input_sync": {
+          "thread_cpu_ms": 0.05366700000001856,
+          "wall_ms": 0.05191799998283386
+        },
+        "output_sync": {
+          "thread_cpu_ms": 0.8665419999999813,
+          "wall_ms": 0.8505240082740784
+        },
+        "outputs_get": {
+          "thread_cpu_ms": 0.01604100000008657,
+          "wall_ms": 0.016043007373809814
+        },
+        "release": {
+          "thread_cpu_ms": 0.0037919999999758147,
+          "wall_ms": 0.004083991050720215
+        },
+        "run": {
+          "thread_cpu_ms": 2.063541999999984,
+          "wall_ms": 24.447891980409622
+        },
+        "snapshot_copy": {
+          "thread_cpu_ms": 0.0049579999999878055,
+          "wall_ms": 0.005249977111816406
+        }
+      },
+      "total": {
+        "thread_cpu_ms": 12.737083999999868,
+        "wall_ms": 35.47814100980759
+      }
+    },
+    {
+      "completion": 29,
+      "count": 0,
+      "detections": [],
+      "event": "completion",
+      "mode": "native_io_fd_import",
+      "stages": {
+        "deblock_dequantize": {
+          "thread_cpu_ms": 4.42254099999991,
+          "wall_ms": 4.405449032783508
+        },
+        "decode": {
+          "thread_cpu_ms": 4.48758399999997,
+          "wall_ms": 4.780250996351242
+        },
+        "input_set_or_copy": {
+          "thread_cpu_ms": 1.3320410000001175,
+          "wall_ms": 1.6562099754810333
+        },
+        "input_sync": {
+          "thread_cpu_ms": 0.06475000000000364,
+          "wall_ms": 0.06358498334884644
+        },
+        "output_sync": {
+          "thread_cpu_ms": 0.9712509999994836,
+          "wall_ms": 0.9575670063495636
+        },
+        "outputs_get": {
+          "thread_cpu_ms": 0.004666999999926702,
+          "wall_ms": 0.005542010068893433
+        },
+        "release": {
+          "thread_cpu_ms": 0.0037910000000920263,
+          "wall_ms": 0.0037910044193267822
+        },
+        "run": {
+          "thread_cpu_ms": 1.284791000000041,
+          "wall_ms": 23.491783022880554
+        },
+        "snapshot_copy": {
+          "thread_cpu_ms": 0.00437499999998181,
+          "wall_ms": 0.004667013883590698
+        }
+      },
+      "total": {
+        "thread_cpu_ms": 12.70908200000008,
+        "wall_ms": 35.54559999704361
+      }
+    },
+    {
+      "completion": 30,
+      "count": 0,
+      "detections": [],
+      "event": "completion",
+      "mode": "native_io_fd_import",
+      "stages": {
+        "deblock_dequantize": {
+          "thread_cpu_ms": 1.7642919999998412,
+          "wall_ms": 1.757338047027588
+        },
+        "decode": {
+          "thread_cpu_ms": 0.9767919999999322,
+          "wall_ms": 0.9762339890003204
+        },
+        "input_set_or_copy": {
+          "thread_cpu_ms": 1.588999000000058,
+          "wall_ms": 2.0120530128479004
+        },
+        "input_sync": {
+          "thread_cpu_ms": 0.06358399999999165,
+          "wall_ms": 0.06329300999641418
+        },
+        "output_sync": {
+          "thread_cpu_ms": 0.26016699999991033,
+          "wall_ms": 0.25463199615478516
+        },
+        "outputs_get": {
+          "thread_cpu_ms": 0.0011660000000119908,
+          "wall_ms": 0.00145798921585083
+        },
+        "release": {
+          "thread_cpu_ms": 0.0008749999999508873,
+          "wall_ms": 0.0008749961853027344
+        },
+        "run": {
+          "thread_cpu_ms": 0.5740009999999529,
+          "wall_ms": 22.68292897939682
+        },
+        "snapshot_copy": {
+          "thread_cpu_ms": 0.0011660000000119908,
+          "wall_ms": 0.001166999340057373
+        }
+      },
+      "total": {
+        "thread_cpu_ms": 5.284125000000131,
+        "wall_ms": 27.81939798593521
+      }
+    },
+    {
+      "completion": 31,
+      "count": 0,
+      "detections": [],
+      "event": "completion",
+      "mode": "native_io_fd_import",
+      "stages": {
+        "deblock_dequantize": {
+          "thread_cpu_ms": 4.409417000000303,
+          "wall_ms": 4.392032027244568
+        },
+        "decode": {
+          "thread_cpu_ms": 4.421376000000009,
+          "wall_ms": 4.6524969935417175
+        },
+        "input_set_or_copy": {
+          "thread_cpu_ms": 0.5979170000000522,
+          "wall_ms": 0.5938490033149719
+        },
+        "input_sync": {
+          "thread_cpu_ms": 0.053666999999904874,
+          "wall_ms": 0.05104300379753113
+        },
+        "output_sync": {
+          "thread_cpu_ms": 0.8709170000004178,
+          "wall_ms": 0.8601479530334473
+        },
+        "outputs_get": {
+          "thread_cpu_ms": 0.00437499999998181,
+          "wall_ms": 0.004958987236022949
+        },
+        "release": {
+          "thread_cpu_ms": 0.0037919999999758147,
+          "wall_ms": 0.004083991050720215
+        },
+        "run": {
+          "thread_cpu_ms": 1.8453749999998763,
+          "wall_ms": 24.78506800532341
+        },
+        "snapshot_copy": {
+          "thread_cpu_ms": 0.00437499999998181,
+          "wall_ms": 0.004667013883590698
+        }
+      },
+      "total": {
+        "thread_cpu_ms": 12.431416999999783,
+        "wall_ms": 35.61347699165344
+      }
+    },
+    {
+      "completion": 32,
+      "count": 0,
+      "detections": [],
+      "event": "completion",
+      "mode": "native_io_fd_import",
+      "stages": {
+        "deblock_dequantize": {
+          "thread_cpu_ms": 4.119792999999845,
+          "wall_ms": 4.385991007089615
+        },
+        "decode": {
+          "thread_cpu_ms": 1.5172500000001037,
+          "wall_ms": 1.5167059898376465
+        },
+        "input_set_or_copy": {
+          "thread_cpu_ms": 1.8027910000000702,
+          "wall_ms": 2.3091849982738495
+        },
+        "input_sync": {
+          "thread_cpu_ms": 0.18900000000007822,
+          "wall_ms": 0.14496198296546936
+        },
+        "output_sync": {
+          "thread_cpu_ms": 0.681917999999996,
+          "wall_ms": 0.6740589737892151
+        },
+        "outputs_get": {
+          "thread_cpu_ms": 0.0049579999999878055,
+          "wall_ms": 0.004958003759384155
+        },
+        "release": {
+          "thread_cpu_ms": 0.0017499999999017746,
+          "wall_ms": 0.00145798921585083
+        },
+        "run": {
+          "thread_cpu_ms": 1.7558340000000499,
+          "wall_ms": 24.03284001350403
+        },
+        "snapshot_copy": {
+          "thread_cpu_ms": 0.0014579999999568827,
+          "wall_ms": 0.0014580190181732178
+        }
+      },
+      "total": {
+        "thread_cpu_ms": 10.176543000000038,
+        "wall_ms": 33.37966901063919
+      }
+    },
+    {
+      "completion": 33,
+      "count": 0,
+      "detections": [],
+      "event": "completion",
+      "mode": "native_io_fd_import",
+      "stages": {
+        "deblock_dequantize": {
+          "thread_cpu_ms": 4.463084000000208,
+          "wall_ms": 4.446282982826233
+        },
+        "decode": {
+          "thread_cpu_ms": 4.509166999999934,
+          "wall_ms": 4.860752999782562
+        },
+        "input_set_or_copy": {
+          "thread_cpu_ms": 0.7790419999998903,
+          "wall_ms": 0.7755620181560516
+        },
+        "input_sync": {
+          "thread_cpu_ms": 0.06999999999993634,
+          "wall_ms": 0.0673770010471344
+        },
+        "output_sync": {
+          "thread_cpu_ms": 0.8522509999995691,
+          "wall_ms": 0.8394380211830139
+        },
+        "outputs_get": {
+          "thread_cpu_ms": 0.004667000000154076,
+          "wall_ms": 0.005249977111816406
+        },
+        "release": {
+          "thread_cpu_ms": 0.0037909999998646526,
+          "wall_ms": 0.003792017698287964
+        },
+        "run": {
+          "thread_cpu_ms": 1.919458000000077,
+          "wall_ms": 24.394849002361298
+        },
+        "snapshot_copy": {
+          "thread_cpu_ms": 0.004959000000098968,
+          "wall_ms": 0.004666000604629517
+        }
+      },
+      "total": {
+        "thread_cpu_ms": 12.732708000000002,
+        "wall_ms": 35.57151800394058
+      }
+    },
+    {
+      "completion": 34,
+      "count": 0,
+      "detections": [],
+      "event": "completion",
+      "mode": "native_io_fd_import",
+      "stages": {
+        "deblock_dequantize": {
+          "thread_cpu_ms": 1.8124159999999847,
+          "wall_ms": 1.8045889735221863
+        },
+        "decode": {
+          "thread_cpu_ms": 0.9756250000000364,
+          "wall_ms": 0.9753589928150177
+        },
+        "input_set_or_copy": {
+          "thread_cpu_ms": 1.3480839999999716,
+          "wall_ms": 1.6798360049724579
+        },
+        "input_sync": {
+          "thread_cpu_ms": 0.06329100000016297,
+          "wall_ms": 0.062418997287750244
+        },
+        "output_sync": {
+          "thread_cpu_ms": 0.2566659999999956,
+          "wall_ms": 0.2537570595741272
+        },
+        "outputs_get": {
+          "thread_cpu_ms": 0.0011670000001231529,
+          "wall_ms": 0.0014590024948120117
+        },
+        "release": {
+          "thread_cpu_ms": 0.0008749999999508873,
+          "wall_ms": 0.001166999340057373
+        },
+        "run": {
+          "thread_cpu_ms": 0.6247500000001764,
+          "wall_ms": 22.670386999845505
+        },
+        "snapshot_copy": {
+          "thread_cpu_ms": 0.0011660000000119908,
+          "wall_ms": 0.001166999340057373
+        }
+      },
+      "total": {
+        "thread_cpu_ms": 5.137124999999969,
+        "wall_ms": 27.520140022039413
+      }
+    },
+    {
+      "completion": 35,
+      "count": 0,
+      "detections": [],
+      "event": "completion",
+      "mode": "native_io_fd_import",
+      "stages": {
+        "deblock_dequantize": {
+          "thread_cpu_ms": 2.0717080000001715,
+          "wall_ms": 2.0635959804058075
+        },
+        "decode": {
+          "thread_cpu_ms": 1.6584170000000995,
+          "wall_ms": 1.702794998884201
+        },
+        "input_set_or_copy": {
+          "thread_cpu_ms": 0.5856670000000577,
+          "wall_ms": 0.5824739933013916
+        },
+        "input_sync": {
+          "thread_cpu_ms": 0.05483300000014424,
+          "wall_ms": 0.053084999322891235
+        },
+        "output_sync": {
+          "thread_cpu_ms": 0.36049900000011803,
+          "wall_ms": 0.35292601585388184
+        },
+        "outputs_get": {
+          "thread_cpu_ms": 0.0017499999999017746,
+          "wall_ms": 0.0020410120487213135
+        },
+        "release": {
+          "thread_cpu_ms": 0.0014579999999568827,
+          "wall_ms": 0.0014590024948120117
+        },
+        "run": {
+          "thread_cpu_ms": 0.8639170000001286,
+          "wall_ms": 23.02827200293541
+        },
+        "snapshot_copy": {
+          "thread_cpu_ms": 0.002040999999962878,
+          "wall_ms": 0.0020419955253601074
+        }
+      },
+      "total": {
+        "thread_cpu_ms": 5.663000000000011,
+        "wall_ms": 27.8782320022583
+      }
+    },
+    {
+      "completion": 36,
+      "count": 0,
+      "detections": [],
+      "event": "completion",
+      "mode": "native_io_fd_import",
+      "stages": {
+        "deblock_dequantize": {
+          "thread_cpu_ms": 2.8504580000003443,
+          "wall_ms": 3.0696629881858826
+        },
+        "decode": {
+          "thread_cpu_ms": 1.5169590000000426,
+          "wall_ms": 1.5158309936523438
+        },
+        "input_set_or_copy": {
+          "thread_cpu_ms": 0.7726249999998345,
+          "wall_ms": 0.7691450119018555
+        },
+        "input_sync": {
+          "thread_cpu_ms": 0.07962499999985084,
+          "wall_ms": 0.07700201869010925
+        },
+        "output_sync": {
+          "thread_cpu_ms": 0.49349800000004507,
+          "wall_ms": 0.4868049919605255
+        },
+        "outputs_get": {
+          "thread_cpu_ms": 0.004666999999926702,
+          "wall_ms": 0.005540996789932251
+        },
+        "release": {
+          "thread_cpu_ms": 0.0014579999999568827,
+          "wall_ms": 0.00145798921585083
+        },
+        "run": {
+          "thread_cpu_ms": 1.9909159999999702,
+          "wall_ms": 24.340847998857498
+        },
+        "snapshot_copy": {
+          "thread_cpu_ms": 0.0014590000000680448,
+          "wall_ms": 0.0017499923706054688
+        }
+      },
+      "total": {
+        "thread_cpu_ms": 7.791291000000001,
+        "wall_ms": 30.378589987754822
+      }
+    },
+    {
+      "completion": 37,
+      "count": 0,
+      "detections": [],
+      "event": "completion",
+      "mode": "native_io_fd_import",
+      "stages": {
+        "deblock_dequantize": {
+          "thread_cpu_ms": 4.468039999999746,
+          "wall_ms": 4.451825052499771
+        },
+        "decode": {
+          "thread_cpu_ms": 4.506249000000025,
+          "wall_ms": 5.098841995000839
+        },
+        "input_set_or_copy": {
+          "thread_cpu_ms": 0.8992079999998168,
+          "wall_ms": 0.8936899900436401
+        },
+        "input_sync": {
+          "thread_cpu_ms": 0.0749590000000353,
+          "wall_ms": 0.0726270079612732
+        },
+        "output_sync": {
+          "thread_cpu_ms": 0.8411650000000463,
+          "wall_ms": 0.8298110067844391
+        },
+        "outputs_get": {
+          "thread_cpu_ms": 0.00437499999998181,
+          "wall_ms": 0.004958003759384155
+        },
+        "release": {
+          "thread_cpu_ms": 0.0008749999999508873,
+          "wall_ms": 0.0008749961853027344
+        },
+        "run": {
+          "thread_cpu_ms": 1.85091599999987,
+          "wall_ms": 24.21834498643875
+        },
+        "snapshot_copy": {
+          "thread_cpu_ms": 0.0014579999999568827,
+          "wall_ms": 0.0017500221729278564
+        }
+      },
+      "total": {
+        "thread_cpu_ms": 12.756915000000163,
+        "wall_ms": 35.72673100233078
+      }
+    },
+    {
+      "completion": 38,
+      "count": 0,
+      "detections": [],
+      "event": "completion",
+      "mode": "native_io_fd_import",
+      "stages": {
+        "deblock_dequantize": {
+          "thread_cpu_ms": 1.7905409999998483,
+          "wall_ms": 1.7806710302829742
+        },
+        "decode": {
+          "thread_cpu_ms": 0.9747500000000855,
+          "wall_ms": 0.9741920232772827
+        },
+        "input_set_or_copy": {
+          "thread_cpu_ms": 0.6428339999999935,
+          "wall_ms": 0.6399330198764801
+        },
+        "input_sync": {
+          "thread_cpu_ms": 0.06650000000013279,
+          "wall_ms": 0.0647520124912262
+        },
+        "output_sync": {
+          "thread_cpu_ms": 0.2727079999997386,
+          "wall_ms": 0.26805001497268677
+        },
+        "outputs_get": {
+          "thread_cpu_ms": 0.0011669999998957792,
+          "wall_ms": 0.0014580190181732178
+        },
+        "release": {
+          "thread_cpu_ms": 0.0008749999999508873,
+          "wall_ms": 0.0008749961853027344
+        },
+        "run": {
+          "thread_cpu_ms": 0.5780839999999898,
+          "wall_ms": 22.67942899465561
+        },
+        "snapshot_copy": {
+          "thread_cpu_ms": 0.000875000000178261,
+          "wall_ms": 0.0008749961853027344
+        }
+      },
+      "total": {
+        "thread_cpu_ms": 4.371208000000024,
+        "wall_ms": 26.47469598054886
+      }
+    },
+    {
+      "completion": 39,
+      "count": 0,
+      "detections": [],
+      "event": "completion",
+      "mode": "native_io_fd_import",
+      "stages": {
+        "deblock_dequantize": {
+          "thread_cpu_ms": 4.5015840000000935,
+          "wall_ms": 4.48011702299118
+        },
+        "decode": {
+          "thread_cpu_ms": 4.422833000000082,
+          "wall_ms": 4.654247015714645
+        },
+        "input_set_or_copy": {
+          "thread_cpu_ms": 0.595290999999861,
+          "wall_ms": 0.5923900008201599
+        },
+        "input_sync": {
+          "thread_cpu_ms": 0.05483400000002803,
+          "wall_ms": 0.05250099301338196
+        },
+        "output_sync": {
+          "thread_cpu_ms": 0.8682909999997719,
+          "wall_ms": 0.8537310063838959
+        },
+        "outputs_get": {
+          "thread_cpu_ms": 0.00437499999998181,
+          "wall_ms": 0.004958003759384155
+        },
+        "release": {
+          "thread_cpu_ms": 0.0037920000002031884,
+          "wall_ms": 0.004083991050720215
+        },
+        "run": {
+          "thread_cpu_ms": 1.8824170000000322,
+          "wall_ms": 24.24838700890541
+        },
+        "snapshot_copy": {
+          "thread_cpu_ms": 0.0049579999999878055,
+          "wall_ms": 0.005250006914138794
+        }
+      },
+      "total": {
+        "thread_cpu_ms": 12.459707999999864,
+        "wall_ms": 35.06921300292015
+      }
+    },
+    {
+      "completion": 40,
+      "count": 0,
+      "detections": [],
+      "event": "completion",
+      "mode": "native_io_fd_import",
+      "stages": {
+        "deblock_dequantize": {
+          "thread_cpu_ms": 1.7674999999996999,
+          "wall_ms": 1.760254979133606
+        },
+        "decode": {
+          "thread_cpu_ms": 0.9782500000001164,
+          "wall_ms": 0.9776929914951324
+        },
+        "input_set_or_copy": {
+          "thread_cpu_ms": 1.7812069999999949,
+          "wall_ms": 2.3083109855651855
+        },
+        "input_sync": {
+          "thread_cpu_ms": 0.16975000000002183,
+          "wall_ms": 0.31188300251960754
+        },
+        "output_sync": {
+          "thread_cpu_ms": 0.2659980000003088,
+          "wall_ms": 0.2607560157775879
+        },
+        "outputs_get": {
+          "thread_cpu_ms": 0.0011670000001231529,
+          "wall_ms": 0.001166999340057373
+        },
+        "release": {
+          "thread_cpu_ms": 0.0011670000001231529,
+          "wall_ms": 0.001166999340057373
+        },
+        "run": {
+          "thread_cpu_ms": 0.5760420000001432,
+          "wall_ms": 22.660762012004852
+        },
+        "snapshot_copy": {
+          "thread_cpu_ms": 0.0008749999999508873,
+          "wall_ms": 0.0008749961853027344
+        }
+      },
+      "total": {
+        "thread_cpu_ms": 5.60029099999997,
+        "wall_ms": 28.360745012760162
+      }
+    },
+    {
+      "completion": 41,
+      "count": 0,
+      "detections": [],
+      "event": "completion",
+      "mode": "native_io_fd_import",
+      "stages": {
+        "deblock_dequantize": {
+          "thread_cpu_ms": 3.016125000000102,
+          "wall_ms": 3.249628037214279
+        },
+        "decode": {
+          "thread_cpu_ms": 1.5146250000000236,
+          "wall_ms": 1.5140810012817383
+        },
+        "input_set_or_copy": {
+          "thread_cpu_ms": 0.594124999999849,
+          "wall_ms": 0.5909319818019867
+        },
+        "input_sync": {
+          "thread_cpu_ms": 0.05454199999985576,
+          "wall_ms": 0.05133497714996338
+        },
+        "output_sync": {
+          "thread_cpu_ms": 0.49525100000005295,
+          "wall_ms": 0.48826295137405396
+        },
+        "outputs_get": {
+          "thread_cpu_ms": 0.004083000000036918,
+          "wall_ms": 0.004959017038345337
+        },
+        "release": {
+          "thread_cpu_ms": 0.0014579999999568827,
+          "wall_ms": 0.00145798921585083
+        },
+        "run": {
+          "thread_cpu_ms": 1.8124169999998685,
+          "wall_ms": 24.166718006134033
+        },
+        "snapshot_copy": {
+          "thread_cpu_ms": 0.0017500000001291482,
+          "wall_ms": 0.0017499923706054688
+        }
+      },
+      "total": {
+        "thread_cpu_ms": 7.567584000000124,
+        "wall_ms": 30.174125999212265
+      }
+    },
+    {
+      "completion": 42,
+      "count": 0,
+      "detections": [],
+      "event": "completion",
+      "mode": "native_io_fd_import",
+      "stages": {
+        "deblock_dequantize": {
+          "thread_cpu_ms": 4.488458999999921,
+          "wall_ms": 4.473700046539307
+        },
+        "decode": {
+          "thread_cpu_ms": 4.529874999999947,
+          "wall_ms": 5.117218017578125
+        },
+        "input_set_or_copy": {
+          "thread_cpu_ms": 0.8878340000001117,
+          "wall_ms": 0.8840650022029877
+        },
+        "input_sync": {
+          "thread_cpu_ms": 0.0764160000001084,
+          "wall_ms": 0.07437700033187866
+        },
+        "output_sync": {
+          "thread_cpu_ms": 0.846416999999974,
+          "wall_ms": 0.8350649178028107
+        },
+        "outputs_get": {
+          "thread_cpu_ms": 0.00437499999998181,
+          "wall_ms": 0.004667013883590698
+        },
+        "release": {
+          "thread_cpu_ms": 0.0011669999998957792,
+          "wall_ms": 0.001166015863418579
+        },
+        "run": {
+          "thread_cpu_ms": 1.8687079999999696,
+          "wall_ms": 24.28542998433113
+        },
+        "snapshot_copy": {
+          "thread_cpu_ms": 0.0011660000000119908,
+          "wall_ms": 0.0014590024948120117
+        }
+      },
+      "total": {
+        "thread_cpu_ms": 12.80912400000011,
+        "wall_ms": 35.82239902019501
+      }
+    },
+    {
+      "completion": 43,
+      "count": 0,
+      "detections": [],
+      "event": "completion",
+      "mode": "native_io_fd_import",
+      "stages": {
+        "deblock_dequantize": {
+          "thread_cpu_ms": 1.7887910000001739,
+          "wall_ms": 1.780962973833084
+        },
+        "decode": {
+          "thread_cpu_ms": 0.9756250000000364,
+          "wall_ms": 0.9753589928150177
+        },
+        "input_set_or_copy": {
+          "thread_cpu_ms": 0.6571249999999509,
+          "wall_ms": 0.6536419987678528
+        },
+        "input_sync": {
+          "thread_cpu_ms": 0.06533300000000963,
+          "wall_ms": 0.06416800618171692
+        },
+        "output_sync": {
+          "thread_cpu_ms": 0.24879200000032142,
+          "wall_ms": 0.24325796961784363
+        },
+        "outputs_get": {
+          "thread_cpu_ms": 0.001165999999784617,
+          "wall_ms": 0.001458972692489624
+        },
+        "release": {
+          "thread_cpu_ms": 0.0008749999999508873,
+          "wall_ms": 0.0008749961853027344
+        },
+        "run": {
+          "thread_cpu_ms": 0.5734170000000631,
+          "wall_ms": 22.70217999815941
+        },
+        "snapshot_copy": {
+          "thread_cpu_ms": 0.0008749999999508873,
+          "wall_ms": 0.0008749961853027344
+        }
+      },
+      "total": {
+        "thread_cpu_ms": 4.353417000000036,
+        "wall_ms": 26.483738005161285
+      }
+    },
+    {
+      "completion": 44,
+      "count": 0,
+      "detections": [],
+      "event": "completion",
+      "mode": "native_io_fd_import",
+      "stages": {
+        "deblock_dequantize": {
+          "thread_cpu_ms": 2.2152090000001863,
+          "wall_ms": 2.254934996366501
+        },
+        "decode": {
+          "thread_cpu_ms": 1.5405829999999696,
+          "wall_ms": 1.5397489964962006
+        },
+        "input_set_or_copy": {
+          "thread_cpu_ms": 0.6305830000001151,
+          "wall_ms": 0.6262249946594238
+        },
+        "input_sync": {
+          "thread_cpu_ms": 0.05337499999995998,
+          "wall_ms": 0.05133497714996338
+        },
+        "output_sync": {
+          "thread_cpu_ms": 0.39170799999942574,
+          "wall_ms": 0.38471800088882446
+        },
+        "outputs_get": {
+          "thread_cpu_ms": 0.0017499999999017746,
+          "wall_ms": 0.0020419955253601074
+        },
+        "release": {
+          "thread_cpu_ms": 0.0014580000001842564,
+          "wall_ms": 0.0014590024948120117
+        },
+        "run": {
+          "thread_cpu_ms": 0.8574989999999616,
+          "wall_ms": 22.98335298895836
+        },
+        "snapshot_copy": {
+          "thread_cpu_ms": 0.0017499999999017746,
+          "wall_ms": 0.0017499923706054688
+        }
+      },
+      "total": {
+        "thread_cpu_ms": 5.7566249999999854,
+        "wall_ms": 27.935400009155273
+      }
+    },
+    {
+      "completion": 45,
+      "count": 0,
+      "detections": [],
+      "event": "completion",
+      "mode": "native_io_fd_import",
+      "stages": {
+        "deblock_dequantize": {
+          "thread_cpu_ms": 4.655292000000145,
+          "wall_ms": 4.891086935997009
+        },
+        "decode": {
+          "thread_cpu_ms": 2.8209979999999177,
+          "wall_ms": 3.2172510027885437
+        },
+        "input_set_or_copy": {
+          "thread_cpu_ms": 0.7653330000000551,
+          "wall_ms": 0.7621449828147888
+        },
+        "input_sync": {
+          "thread_cpu_ms": 0.06912499999998545,
+          "wall_ms": 0.06621000170707703
+        },
+        "output_sync": {
+          "thread_cpu_ms": 0.8758729999999559,
+          "wall_ms": 0.86394003033638
+        },
+        "outputs_get": {
+          "thread_cpu_ms": 0.0049579999999878055,
+          "wall_ms": 0.005250990390777588
+        },
+        "release": {
+          "thread_cpu_ms": 0.0011669999998957792,
+          "wall_ms": 0.001166999340057373
+        },
+        "run": {
+          "thread_cpu_ms": 1.9842089999999644,
+          "wall_ms": 24.32305598258972
+        },
+        "snapshot_copy": {
+          "thread_cpu_ms": 0.0014580000001842564,
+          "wall_ms": 0.0017500221729278564
+        }
+      },
+      "total": {
+        "thread_cpu_ms": 11.295665999999983,
+        "wall_ms": 34.29927599430084
+      }
+    },
+    {
+      "completion": 46,
+      "count": 0,
+      "detections": [],
+      "event": "completion",
+      "mode": "native_io_fd_import",
+      "stages": {
+        "deblock_dequantize": {
+          "thread_cpu_ms": 4.271749999999884,
+          "wall_ms": 4.2584450244903564
+        },
+        "decode": {
+          "thread_cpu_ms": 4.37237499999992,
+          "wall_ms": 4.368698000907898
+        },
+        "input_set_or_copy": {
+          "thread_cpu_ms": 0.660041000000092,
+          "wall_ms": 0.6565589904785156
+        },
+        "input_sync": {
+          "thread_cpu_ms": 0.07554099999993014,
+          "wall_ms": 0.07233500480651855
+        },
+        "output_sync": {
+          "thread_cpu_ms": 0.9388770000000477,
+          "wall_ms": 0.9205250144004822
+        },
+        "outputs_get": {
+          "thread_cpu_ms": 0.004083000000036918,
+          "wall_ms": 0.004667013883590698
+        },
+        "release": {
+          "thread_cpu_ms": 0.0037919999999758147,
+          "wall_ms": 0.004083991050720215
+        },
+        "run": {
+          "thread_cpu_ms": 1.3772500000000036,
+          "wall_ms": 23.605244994163513
+        },
+        "snapshot_copy": {
+          "thread_cpu_ms": 0.004083000000036918,
+          "wall_ms": 0.004374980926513672
+        }
+      },
+      "total": {
+        "thread_cpu_ms": 11.827666000000136,
+        "wall_ms": 34.06293699145317
+      }
+    },
+    {
+      "completion": 47,
+      "count": 0,
+      "detections": [],
+      "event": "completion",
+      "mode": "native_io_fd_import",
+      "stages": {
+        "deblock_dequantize": {
+          "thread_cpu_ms": 4.443833000000041,
+          "wall_ms": 4.431700021028519
+        },
+        "decode": {
+          "thread_cpu_ms": 4.368582999999944,
+          "wall_ms": 4.364906996488571
+        },
+        "input_set_or_copy": {
+          "thread_cpu_ms": 1.6872920000000704,
+          "wall_ms": 1.681210994720459
+        },
+        "input_sync": {
+          "thread_cpu_ms": 0.31295799999998053,
+          "wall_ms": 0.4905969798564911
+        },
+        "output_sync": {
+          "thread_cpu_ms": 0.8353329999999914,
+          "wall_ms": 0.8213549852371216
+        },
+        "outputs_get": {
+          "thread_cpu_ms": 0.00466599999981554,
+          "wall_ms": 0.004958003759384155
+        },
+        "release": {
+          "thread_cpu_ms": 0.004083000000036918,
+          "wall_ms": 0.004082977771759033
+        },
+        "run": {
+          "thread_cpu_ms": 2.215498999999909,
+          "wall_ms": 24.72098198533058
+        },
+        "snapshot_copy": {
+          "thread_cpu_ms": 0.004083999999920707,
+          "wall_ms": 0.0043759942054748535
+        }
+      },
+      "total": {
+        "thread_cpu_ms": 14.016624999999976,
+        "wall_ms": 36.71317300200462
+      }
+    },
+    {
+      "completion": 48,
+      "count": 0,
+      "detections": [],
+      "event": "completion",
+      "mode": "native_io_fd_import",
+      "stages": {
+        "deblock_dequantize": {
+          "thread_cpu_ms": 4.430415999999923,
+          "wall_ms": 4.413031995296478
+        },
+        "decode": {
+          "thread_cpu_ms": 3.6782060000000456,
+          "wall_ms": 4.287696003913879
+        },
+        "input_set_or_copy": {
+          "thread_cpu_ms": 1.6263339999998152,
+          "wall_ms": 2.182015985250473
+        },
+        "input_sync": {
+          "thread_cpu_ms": 0.1522499999998672,
+          "wall_ms": 0.14904600381851196
+        },
+        "output_sync": {
+          "thread_cpu_ms": 0.8399999999999181,
+          "wall_ms": 0.8277699649333954
+        },
+        "outputs_get": {
+          "thread_cpu_ms": 0.00437499999998181,
+          "wall_ms": 0.004667013883590698
+        },
+        "release": {
+          "thread_cpu_ms": 0.0011669999998957792,
+          "wall_ms": 0.0011659860610961914
+        },
+        "run": {
+          "thread_cpu_ms": 2.3589999999999236,
+          "wall_ms": 24.83415198326111
+        },
+        "snapshot_copy": {
+          "thread_cpu_ms": 0.0020419999998466665,
+          "wall_ms": 0.0017500221729278564
+        }
+      },
+      "total": {
+        "thread_cpu_ms": 13.218914999999924,
+        "wall_ms": 36.87426000833511
+      }
+    },
+    {
+      "completion": 49,
+      "count": 0,
+      "detections": [],
+      "event": "completion",
+      "mode": "native_io_fd_import",
+      "stages": {
+        "deblock_dequantize": {
+          "thread_cpu_ms": 1.959416999999803,
+          "wall_ms": 1.9492590129375458
+        },
+        "decode": {
+          "thread_cpu_ms": 1.2258750000000873,
+          "wall_ms": 1.2250329852104187
+        },
+        "input_set_or_copy": {
+          "thread_cpu_ms": 0.7207079999998314,
+          "wall_ms": 0.7157689929008484
+        },
+        "input_sync": {
+          "thread_cpu_ms": 0.07408400000008442,
+          "wall_ms": 0.07175201177597046
+        },
+        "output_sync": {
+          "thread_cpu_ms": 0.3187909999999192,
+          "wall_ms": 0.3135499656200409
+        },
+        "outputs_get": {
+          "thread_cpu_ms": 0.0017500000001291482,
+          "wall_ms": 0.0017499923706054688
+        },
+        "release": {
+          "thread_cpu_ms": 0.0011660000000119908,
+          "wall_ms": 0.001166015863418579
+        },
+        "run": {
+          "thread_cpu_ms": 0.7516260000002148,
+          "wall_ms": 22.922102004289627
+        },
+        "snapshot_copy": {
+          "thread_cpu_ms": 0.0014590000000680448,
+          "wall_ms": 0.0014590024948120117
+        }
+      },
+      "total": {
+        "thread_cpu_ms": 5.11320899999987,
+        "wall_ms": 27.28642502427101
+      }
+    },
+    {
+      "completion": 50,
+      "count": 0,
+      "detections": [],
+      "event": "completion",
+      "mode": "native_io_fd_import",
+      "stages": {
+        "deblock_dequantize": {
+          "thread_cpu_ms": 4.396584000000075,
+          "wall_ms": 4.380656033754349
+        },
+        "decode": {
+          "thread_cpu_ms": 4.546792000000096,
+          "wall_ms": 4.932505011558533
+        },
+        "input_set_or_copy": {
+          "thread_cpu_ms": 0.7142919999998867,
+          "wall_ms": 0.7102270126342773
+        },
+        "input_sync": {
+          "thread_cpu_ms": 0.06387500000005275,
+          "wall_ms": 0.06095999479293823
+        },
+        "output_sync": {
+          "thread_cpu_ms": 0.8525419999998576,
+          "wall_ms": 0.8397319912910461
+        },
+        "outputs_get": {
+          "thread_cpu_ms": 0.004666999999926702,
+          "wall_ms": 0.004958003759384155
+        },
+        "release": {
+          "thread_cpu_ms": 0.0011669999998957792,
+          "wall_ms": 0.00145798921585083
+        },
+        "run": {
+          "thread_cpu_ms": 2.0177500000002055,
+          "wall_ms": 24.269387990236282
+        },
+        "snapshot_copy": {
+          "thread_cpu_ms": 1.9150830000000951,
+          "wall_ms": 2.162849009037018
+        }
+      },
+      "total": {
+        "thread_cpu_ms": 14.633208999999852,
+        "wall_ms": 37.534527987241745
+      }
+    },
+    {
+      "bytes": 1638400,
+      "completion": 1,
+      "encoding": "little_endian_fp32",
+      "event": "output_snapshot",
+      "output": 0,
+      "path": "/userdata/linaro/100h_performance/hardware_2807eda6137340f3b3d82d364747ea5a/run/results/native_io_fd_import_candidate_cam1_r3_native_io_fd_import.c1.o0.f32",
+      "sha256": "f595d37feff25f71f3b4765b91de89391378d49815617eac2497e0e669c6be0e"
+    },
+    {
+      "bytes": 409600,
+      "completion": 1,
+      "encoding": "little_endian_fp32",
+      "event": "output_snapshot",
+      "output": 1,
+      "path": "/userdata/linaro/100h_performance/hardware_2807eda6137340f3b3d82d364747ea5a/run/results/native_io_fd_import_candidate_cam1_r3_native_io_fd_import.c1.o1.f32",
+      "sha256": "ce2e01a439fe1bf23a6c62a8084b82ca99050113b2dbd07f6ee6af6da9457f02"
+    },
+    {
+      "bytes": 76800,
+      "completion": 1,
+      "encoding": "little_endian_fp32",
+      "event": "output_snapshot",
+      "output": 2,
+      "path": "/userdata/linaro/100h_performance/hardware_2807eda6137340f3b3d82d364747ea5a/run/results/native_io_fd_import_candidate_cam1_r3_native_io_fd_import.c1.o2.f32",
+      "sha256": "9b5c0e94a9dd929173a3a4f60dfa56723dbfbd2e7abd018f71ebce744c18ef8c"
+    },
+    {
+      "bytes": 19200,
+      "completion": 1,
+      "encoding": "little_endian_fp32",
+      "event": "output_snapshot",
+      "output": 3,
+      "path": "/userdata/linaro/100h_performance/hardware_2807eda6137340f3b3d82d364747ea5a/run/results/native_io_fd_import_candidate_cam1_r3_native_io_fd_import.c1.o3.f32",
+      "sha256": "117c184fb486bc7191295b69d8f1a8223ccbff9ddc4f1ad501c72486525f404d"
+    },
+    {
+      "bytes": 1638400,
+      "completion": 50,
+      "encoding": "little_endian_fp32",
+      "event": "output_snapshot",
+      "output": 0,
+      "path": "/userdata/linaro/100h_performance/hardware_2807eda6137340f3b3d82d364747ea5a/run/results/native_io_fd_import_candidate_cam1_r3_native_io_fd_import.c50.o0.f32",
+      "sha256": "f595d37feff25f71f3b4765b91de89391378d49815617eac2497e0e669c6be0e"
+    },
+    {
+      "bytes": 409600,
+      "completion": 50,
+      "encoding": "little_endian_fp32",
+      "event": "output_snapshot",
+      "output": 1,
+      "path": "/userdata/linaro/100h_performance/hardware_2807eda6137340f3b3d82d364747ea5a/run/results/native_io_fd_import_candidate_cam1_r3_native_io_fd_import.c50.o1.f32",
+      "sha256": "ce2e01a439fe1bf23a6c62a8084b82ca99050113b2dbd07f6ee6af6da9457f02"
+    },
+    {
+      "bytes": 76800,
+      "completion": 50,
+      "encoding": "little_endian_fp32",
+      "event": "output_snapshot",
+      "output": 2,
+      "path": "/userdata/linaro/100h_performance/hardware_2807eda6137340f3b3d82d364747ea5a/run/results/native_io_fd_import_candidate_cam1_r3_native_io_fd_import.c50.o2.f32",
+      "sha256": "9b5c0e94a9dd929173a3a4f60dfa56723dbfbd2e7abd018f71ebce744c18ef8c"
+    },
+    {
+      "bytes": 19200,
+      "completion": 50,
+      "encoding": "little_endian_fp32",
+      "event": "output_snapshot",
+      "output": 3,
+      "path": "/userdata/linaro/100h_performance/hardware_2807eda6137340f3b3d82d364747ea5a/run/results/native_io_fd_import_candidate_cam1_r3_native_io_fd_import.c50.o3.f32",
+      "sha256": "117c184fb486bc7191295b69d8f1a8223ccbff9ddc4f1ad501c72486525f404d"
+    },
+    {
+      "attempted": 55,
+      "completed": 50,
+      "completed_fps": 30.17309560894809,
+      "event": "summary",
+      "failed": 0,
+      "full_viewer_fps_claim": false,
+      "hardware_certified": false,
+      "input_preprocess_timed": false,
+      "mode": "native_io_fd_import",
+      "requested": 50,
+      "snapshot_policy": "first_and_last_timed_completion",
+      "status": "hardware_completed_requires_external_parity",
+      "warmed": 5,
+      "window": {
+        "thread_cpu_ms": 523.6045809999999,
+        "wall_ms": 1657.1054109930992
+      }
+    }
+  ],
+  "hardware_before": {
+    "monotonic_seconds": 245980.980924382,
+    "/proc/loadavg": "2.83 5.38 5.89 1/310 139537",
+    "/sys/class/devfreq/fdf80200.rkvdec/cur_freq": "0",
+    "/sys/class/devfreq/dmc/cur_freq": "1560000000",
+    "/sys/class/devfreq/fde40000.npu/cur_freq": "900000000",
+    "/sys/class/devfreq/fdf40000.rkvenc/cur_freq": "0",
+    "/sys/class/devfreq/fde60000.gpu/cur_freq": "200000000",
+    "/sys/class/devfreq/fdf80200.rkvdec/min_freq": "297000000",
+    "/sys/class/devfreq/dmc/min_freq": "324000000",
+    "/sys/class/devfreq/fde40000.npu/min_freq": "200000000",
+    "/sys/class/devfreq/fdf40000.rkvenc/min_freq": "297000000",
+    "/sys/class/devfreq/fde60000.gpu/min_freq": "200000000",
+    "/sys/class/devfreq/fdf80200.rkvdec/max_freq": "400000000",
+    "/sys/class/devfreq/dmc/max_freq": "1560000000",
+    "/sys/class/devfreq/fde40000.npu/max_freq": "900000000",
+    "/sys/class/devfreq/fdf40000.rkvenc/max_freq": "400000000",
+    "/sys/class/devfreq/fde60000.gpu/max_freq": "800000000",
+    "/sys/class/devfreq/fdf80200.rkvdec/governor": "vdec2_ondemand",
+    "/sys/class/devfreq/dmc/governor": "performance",
+    "/sys/class/devfreq/fde40000.npu/governor": "performance",
+    "/sys/class/devfreq/fdf40000.rkvenc/governor": "venc_ondemand",
+    "/sys/class/devfreq/fde60000.gpu/governor": "simple_ondemand",
+    "/sys/class/thermal/cooling_device1/type": "devfreq-fdf40000.rkvenc",
+    "/sys/class/thermal/thermal_zone0/type": "soc-thermal",
+    "/sys/class/thermal/cooling_device4/type": "devfreq-fde60000.gpu",
+    "/sys/class/thermal/cooling_device2/type": "devfreq-fdf80200.rkvdec",
+    "/sys/class/thermal/thermal_zone1/type": "gpu-thermal",
+    "/sys/class/thermal/cooling_device0/type": "cpufreq-cpu0",
+    "/sys/class/thermal/cooling_device3/type": "devfreq-dmc",
+    "/sys/class/thermal/thermal_zone0/temp": "63888",
+    "/sys/class/thermal/thermal_zone1/temp": "57777",
+    "/sys/devices/system/cpu/cpu3/cpufreq/scaling_cur_freq": "1992000",
+    "/sys/devices/system/cpu/cpu1/cpufreq/scaling_cur_freq": "1992000",
+    "/sys/devices/system/cpu/cpu2/cpufreq/scaling_cur_freq": "1992000",
+    "/sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq": "1992000",
+    "/sys/devices/system/cpu/cpu3/cpufreq/scaling_governor": "ondemand",
+    "/sys/devices/system/cpu/cpu1/cpufreq/scaling_governor": "ondemand",
+    "/sys/devices/system/cpu/cpu2/cpufreq/scaling_governor": "ondemand",
+    "/sys/devices/system/cpu/cpu0/cpufreq/scaling_governor": "ondemand"
+  },
+  "hardware_after": {
+    "monotonic_seconds": 245983.783072377,
+    "/proc/loadavg": "2.68 5.31 5.87 1/310 139542",
+    "/sys/class/devfreq/fdf80200.rkvdec/cur_freq": "0",
+    "/sys/class/devfreq/dmc/cur_freq": "1560000000",
+    "/sys/class/devfreq/fde40000.npu/cur_freq": "900000000",
+    "/sys/class/devfreq/fdf40000.rkvenc/cur_freq": "0",
+    "/sys/class/devfreq/fde60000.gpu/cur_freq": "200000000",
+    "/sys/class/devfreq/fdf80200.rkvdec/min_freq": "297000000",
+    "/sys/class/devfreq/dmc/min_freq": "324000000",
+    "/sys/class/devfreq/fde40000.npu/min_freq": "200000000",
+    "/sys/class/devfreq/fdf40000.rkvenc/min_freq": "297000000",
+    "/sys/class/devfreq/fde60000.gpu/min_freq": "200000000",
+    "/sys/class/devfreq/fdf80200.rkvdec/max_freq": "400000000",
+    "/sys/class/devfreq/dmc/max_freq": "1560000000",
+    "/sys/class/devfreq/fde40000.npu/max_freq": "900000000",
+    "/sys/class/devfreq/fdf40000.rkvenc/max_freq": "400000000",
+    "/sys/class/devfreq/fde60000.gpu/max_freq": "800000000",
+    "/sys/class/devfreq/fdf80200.rkvdec/governor": "vdec2_ondemand",
+    "/sys/class/devfreq/dmc/governor": "performance",
+    "/sys/class/devfreq/fde40000.npu/governor": "performance",
+    "/sys/class/devfreq/fdf40000.rkvenc/governor": "venc_ondemand",
+    "/sys/class/devfreq/fde60000.gpu/governor": "simple_ondemand",
+    "/sys/class/thermal/cooling_device1/type": "devfreq-fdf40000.rkvenc",
+    "/sys/class/thermal/thermal_zone0/type": "soc-thermal",
+    "/sys/class/thermal/cooling_device4/type": "devfreq-fde60000.gpu",
+    "/sys/class/thermal/cooling_device2/type": "devfreq-fdf80200.rkvdec",
+    "/sys/class/thermal/thermal_zone1/type": "gpu-thermal",
+    "/sys/class/thermal/cooling_device0/type": "cpufreq-cpu0",
+    "/sys/class/thermal/cooling_device3/type": "devfreq-dmc",
+    "/sys/class/thermal/thermal_zone0/temp": "61666",
+    "/sys/class/thermal/thermal_zone1/temp": "57777",
+    "/sys/devices/system/cpu/cpu3/cpufreq/scaling_cur_freq": "1992000",
+    "/sys/devices/system/cpu/cpu1/cpufreq/scaling_cur_freq": "1992000",
+    "/sys/devices/system/cpu/cpu2/cpufreq/scaling_cur_freq": "1992000",
+    "/sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq": "1992000",
+    "/sys/devices/system/cpu/cpu3/cpufreq/scaling_governor": "ondemand",
+    "/sys/devices/system/cpu/cpu1/cpufreq/scaling_governor": "ondemand",
+    "/sys/devices/system/cpu/cpu2/cpufreq/scaling_governor": "ondemand",
+    "/sys/devices/system/cpu/cpu0/cpufreq/scaling_governor": "ondemand"
+  },
+  "loaded_dependency_sha256": {
+    "/userdata/linaro/100h_performance/hardware_596a40954b4947f2ac5191a63436ffae/run/results/rknn_io_bench": "448963bc1699bb5322effdef58fdd6a2aa90575578910f2211831f6da64c3f80",
+    "/usr/lib/aarch64-linux-gnu/libjpeg.so.62.3.0": "4021b9b82df1affabe252aec393c00f2ec61b7ab570e760f4b4cf76db9b449ab",
+    "/usr/lib/aarch64-linux-gnu/qt5/plugins/imageformats/libqjpeg.so": "9c58ea9da538171cbcfaed0280e439ff6b783444d41b1f376ef0ad767c70c9c3",
+    "/usr/lib/aarch64-linux-gnu/qt5/plugins/imageformats/libqico.so": "1a8abfc7c8a39841346140cfc43764676dafb00560ee9aba95fb960c749be74e",
+    "/usr/lib/aarch64-linux-gnu/qt5/plugins/imageformats/libqgif.so": "b68fa78d881e41980f8a759b1cc1fc9e0c565457b4ee7c61645cc2cd4351a820",
+    "/usr/lib/aarch64-linux-gnu/libdl.so.2": "e97c2f373f3495f135eaf302041d9f24f3ce2ac44c15ca2743488b396c81a9a7",
+    "/usr/lib/aarch64-linux-gnu/libpthread.so.0": "9b60c3aa448ef2b7f22c8538962b0f4d7c944b7f08aafd34b563ac5ec51daf9d",
+    "/usr/lib/librknnrt.so": "73993ed4b440460825f21611731564503cc1d5a0c123746477da6cd574f34885",
+    "/usr/lib/locale/locale-archive": "e7319349b285a70dcb17dee6f145e004d5b96f9b8c88d7db6fb4c70da138ca36",
+    "/usr/lib/aarch64-linux-gnu/libmd.so.0.0.5": "be8d151f2f06935db812859f575ec818af7fd93eaab0ec4e7dae9e5ad7ca38bb",
+    "/usr/lib/aarch64-linux-gnu/libbsd.so.0.11.7": "24f2bb08fed31a04a80f4d0d0145f4cc5f42543af07a364b1fafdd3d2dcbe137",
+    "/usr/lib/aarch64-linux-gnu/libXdmcp.so.6.0.0": "cff589ca553d339123ba32528cdf45f071761624aef1ebb4b3970fe9180b7e3b",
+    "/usr/lib/aarch64-linux-gnu/libXau.so.6.0.0": "d43657a20d5b1b779e91e417f31e3deaccbcede10d7dd38991e31b86e550152b",
+    "/usr/lib/aarch64-linux-gnu/libbrotlicommon.so.1.0.9": "eb58e3a7decc81cb3bf7dbd3d2db8f5000b473b4fd3b6c2f6b7afbccf6d7dd60",
+    "/usr/lib/aarch64-linux-gnu/libxcb.so.1.1.0": "a1087fa3ff008f9b38c7dc70f3f4734fc26cb513025c033acc4e3a9b17475aa4",
+    "/usr/lib/aarch64-linux-gnu/libbrotlidec.so.1.0.9": "ee7db2a46ad6a5bc2a164827cfbe21b930450c1b0954594fa4e2aafb156977c3",
+    "/usr/lib/aarch64-linux-gnu/libX11.so.6.4.0": "8371115a64330431c1e0f332ea668bbff10a11bef18e0800b5306ffdca595e1a",
+    "/usr/lib/aarch64-linux-gnu/libpcre2-8.so.0.11.2": "cabf859fab34e77fba3ab3485878cc19014327246a7c6aa21ac0d2d1a32dcc81",
+    "/usr/lib/aarch64-linux-gnu/libicudata.so.72.1": "fc2600e8e114e772845b9a061fa0d6fd6f8d73b0f213d70e88763127b4d7443a",
+    "/usr/lib/aarch64-linux-gnu/libgraphite2.so.3.2.1": "5c39675fcec11e7aefd73ef7a8c2a881ff0cb1de4bb4e6e92abd7dacf8c7f727",
+    "/usr/lib/aarch64-linux-gnu/libfreetype.so.6.18.3": "aeb963698e88c23790f2db1bf36abdf650152253f7b25cdb90fee080c5e09c4a",
+    "/usr/lib/aarch64-linux-gnu/libGLX.so.0.0.0": "e2a6d5ea771bd4ab1b751528ba48264b41b63bce344041da599e37da251880a7",
+    "/usr/lib/aarch64-linux-gnu/libGLdispatch.so.0.0.0": "6d6da001d8112cdef30a72ed62b97f7e274cd81469effa759a133f9ba2c30c61",
+    "/usr/lib/aarch64-linux-gnu/libglib-2.0.so.0.7400.6": "2af7b8378fee794672cf67614b60568318cef2202454ddc88d300093aa52000d",
+    "/usr/lib/aarch64-linux-gnu/libzstd.so.1.5.4": "63ff891e4316be1d30a8e551ded6cbb0283772105b352103608e60c06c95ac15",
+    "/usr/lib/aarch64-linux-gnu/libpcre2-16.so.0.11.2": "584beddbb3c4644b6d73c576c5fb77f6373d8df0165133e9fc31cf4efcc69b6c",
+    "/usr/lib/aarch64-linux-gnu/libicuuc.so.72.1": "14fc1d32a6c09f0ae248b361dcfb7def2b6501b337612fd0c6200fc47d2de59c",
+    "/usr/lib/aarch64-linux-gnu/libicui18n.so.72.1": "d80af001f6da9b41b0a63a552aba33e53b0e4775ed56ae1161ca055ee841a1e2",
+    "/usr/lib/aarch64-linux-gnu/libdouble-conversion.so.3.1": "bf0bff7964d6f4371d7ff2ca370ac877f71ccfa331b8c162937f91623817e493",
+    "/usr/lib/aarch64-linux-gnu/libmd4c.so.0.4.8": "622b1826710bb70a88ad839e27bf8c04c7519a53eb3e0acc3b676138238e9477",
+    "/usr/lib/aarch64-linux-gnu/libharfbuzz.so.0.60000.0": "2b79a236dc9ff8f991a3123dae97eba4193c9f70d3c2a45b731b64d3b5b8677e",
+    "/usr/lib/aarch64-linux-gnu/libz.so.1.2.13": "ffb1ab496e6eced03ab679075f9f2c415c7728a145cc7f63d614497102d73822",
+    "/usr/lib/aarch64-linux-gnu/libpng16.so.16.39.0": "cd34276bdb36e09cacc1300da90b1f52bfdcde7c00f5078356482f0bebf05b04",
+    "/usr/lib/aarch64-linux-gnu/libGL.so.1.7.0": "99c2cde6f0586ad932d13c9cc344e752c694cd3d45a33d3b2633e0c971d7cef8",
+    "/usr/lib/aarch64-linux-gnu/libc.so.6": "50227f7a4dcb8b2a40b84aedff1c101f7e0aa5a4fc180ba882b52e53be226427",
+    "/usr/lib/aarch64-linux-gnu/libgcc_s.so.1": "8526cf244c909542d584aa8454212341290a4537020b9bd30c7f2d3f7c1bc308",
+    "/usr/lib/aarch64-linux-gnu/libm.so.6": "c36873edf7004eac309f7bea0b99930e050cba6b4c28482cc9178ec6ed1d5b2b",
+    "/usr/lib/aarch64-linux-gnu/libstdc++.so.6.0.30": "8e62ed4579918c515c4f0d939d7bbe44048e501021783db840220deb5bb982e0",
+    "/usr/lib/aarch64-linux-gnu/libQt5Core.so.5.15.8": "22876e842c8f20ff2ea5596eada42791228ea01d473126940d2a2742ff95c5f4",
+    "/usr/lib/aarch64-linux-gnu/libQt5Gui.so.5.15.8": "e9993d840b53fc1de0587873b2bc16668091fd4b313a509aa2d46eab37d19ed4",
+    "/usr/lib/aarch64-linux-gnu/ld-linux-aarch64.so.1": "a2db553caf40402c0db144234c5d146b2cf7a69d97508341724639661b226025"
+  }
+}

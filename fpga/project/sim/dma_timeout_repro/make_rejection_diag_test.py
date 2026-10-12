@@ -1,0 +1,22 @@
+from pathlib import Path
+p=Path(__file__).resolve().parent
+s=(p/'tb_frame_recovery.sv').read_bytes().replace(b'module tb_frame_recovery;',b'module tb_rejection_diag;')
+s=s.replace(b'.dbg_axi_cnt(),',b'.dbg_fault_snapshot(),.dbg_reject_counts(),.dbg_input_pixels(),.dbg_axi_cnt(),')
+s=s.replace(b'  send_frame(\'h3000,PIXELS);',b'''  if(camera.dbg_fault_snapshot !== 32'h4000000d || camera.dbg_reject_counts !== 1 || camera.dbg_input_pixels !== 13)
+   $fatal(1,"short diagnosis mismatch snapshot=%h counts=%h offered=%0d",camera.dbg_fault_snapshot,camera.dbg_reject_counts,camera.dbg_input_pixels);
+  send_frame('h3000,PIXELS);''')
+s=s.replace(b'  send_frame(\'h5000,PIXELS);',b'''  if(camera.dbg_fault_snapshot !== 32'h2000000b || camera.dbg_reject_counts !== 1)
+   $fatal(1,"watchdog diagnosis mismatch");
+  send_frame('h5000,PIXELS);''')
+s=s.replace(b'  send_frame(\'h9000,PIXELS);',b'''  if(!camera.dbg_fault_snapshot[31] || camera.dbg_fault_snapshot[30] || camera.dbg_reject_counts !== 32'h00010002)
+   $fatal(1,"overflow diagnosis mismatch snapshot=%h counts=%h",camera.dbg_fault_snapshot,camera.dbg_reject_counts);
+  send_frame('h9000,PIXELS);''')
+s=s.replace(b'  $finish;',b'''  if(camera.dbg_reject_counts !== 32'h00010003) $fatal(1,"fault counted more than once or erased by flush");
+  sof(); // completed interval becomes readable only at the next raw SOF
+  if(camera.dbg_input_pixels !== PIXELS) $fatal(1,"full offered frame count mismatch");
+  $display("PASS REJECTION DIAGNOSTICS short=13 watchdog=11 overflow=1 retained across flush; full input quota=%0d",PIXELS);
+  $finish;''')
+(p/'tb_rejection_diag.sv').write_bytes(s)
+for src,dst in [('frame_recovery.do','rejection_diag.do'),('frame_recovery_vendor.do','rejection_diag_vendor.do')]:
+ s=(p/src).read_bytes().replace(b'work_recovery',b'work_rejection_diag').replace(b'work_vendor',b'work_rejection_diag_vendor').replace(b'tb_frame_recovery',b'tb_rejection_diag')
+ (p/dst).write_bytes(s)

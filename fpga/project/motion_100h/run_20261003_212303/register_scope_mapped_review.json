@@ -1,0 +1,67 @@
+{
+  "run": "run_20261003_212303",
+  "scope": "top reserved CAM5/6 ABI, prep_regs_u/u_motion_register_bank capture and mapped AXI read cones",
+  "status": "scoped_mapped_data_path_pass_with_interface_limits",
+  "full_axi_protocol_pass": false,
+  "sha256": {
+    "mapped_dump.v": "eaf0974fc723227dfa0f71717f3f2fc1c26d50689193ee816f0aba351b07b7f0",
+    "mapped_dump.txt": "8c291ebb8843cd956d84218e302f7243abae431ee56eae903ff4344177958524",
+    "inputs/source/top.v": "ba90f96605423210f9563990a470e0d9585529c4f7edcda1c086bf3fae3c45b2",
+    "inputs/source/motion/motion_register_bank.v": "4f59383a67efa94e396d1e4f39aba105aa3e747ce129cf52b7c9deaea9f12cba",
+    "inputs/source/preprocess/prep_regs.v": "73c830859b81c5f9065c2e17631231165b497e5a0e6aa2ab948e81a4e33f1c0b"
+  },
+  "method": {
+    "input": "Current-run mapped_dump.v primitive instances, INIT tables and connected pins; frozen sources used only for intended ABI",
+    "evaluation": "Read-only Python in-memory parser. LUT index=sum(Ii*2**i); unknown leaves={0,1}, propagated conservatively. L5 uses low 32 INIT bits; LUT7 selects A/B by M; LUT8 selects A/B by M0, C/D by M1 and pair by M2. Register Q leaves represent held state; registered data cones evaluated before clocking.",
+    "semantics_limit": "Boolean interpretation of mapped LUT INIT and mux pins; no vendor primitive simulation, sequential formal equivalence, or hardware test.",
+    "evidence_source": "mapped_dump.v; ADIF mapped_dump.txt hashed but not independently connectivity-crosschecked"
+  },
+  "checks": {
+    "capture_mux": {
+      "retained_snapshot_bits": 266,
+      "eliminated_zero_bit_ranges_inclusive": [[35,63],[87,95],[112,127]],
+      "cases": 51072,
+      "failures": 0,
+      "coverage": "266 bits x 6 cameras x 16 independent CAM1-4 same-bit patterns x both byte-1 strobe states; next_camera consistent with merged high camera bit",
+      "result": "Indices 0..3 select CAM1..4 corresponding bit; indices 4 and 5 select zero regardless of all four active record bit values",
+      "cross_bit_record_dependencies": 0
+    },
+    "merged_camera_selector": {"cases":384,"failures":0,"coverage":"8 old cameras x 8 write cameras x 2 byte-1 strobes x 3 output bits"},
+    "capture_enable": {"cases":64,"failures":0,"formula":"N544 = N9 && w_data[31] && w_strb[3] && (next_camera < 6)","limit":"N9 is upstream qualification cut, not proven AXI/page/offset predicate"},
+    "frozen_packet_read_mux": {"cases":3516,"failures":0,"coverage":"6 cameras x 10 words x 32 output bits; selected retained bit tested 0/1 with other state unknown; 54 eliminated bits tested zero with all snapshot state unknown"},
+    "invalid_read_zero": {"cases":2176,"failures":0,"coverage":"68 invalid camera/word combinations x 32 output bits"},
+    "mapped_read_constants": {
+      "0x20000830": {"value":"0x4d4f5431","resolved_bits":32,"failures":0},
+      "0x20000840": {"value":"0x01e00280","resolved_bits":32,"failures":0},
+      "0x20000850": {"value":"0x0c102804","resolved_bits":32,"failures":0}
+    },
+    "register_structure": {
+      "clock":"axi_clk",
+      "local_reset_net":"ddr_init_done",
+      "snapshot":{"bits":266,"enable":"N544"},
+      "generation":{"bits":32,"enable":"N544"},
+      "camera_selector":{"bits":3,"enable":"camera_index[2:0]_and"},
+      "word_selector":{"bits":4,"enable":"word_index[3:0]_and"},
+      "registered_axi_read_data":{"bits":32,"enable":"prep_regs_u/N290"},
+      "registered_axi_read_address":{"retained_bits":28,"enable":"prep_regs_u/N228","limit":"Remaining bits optimized; no independent address-latch sequential equivalence claim"},
+      "active_record_registers":{"CAM1":266,"CAM2":266,"CAM3":266,"CAM4":266,"all_clocked_by":"axi_clk"}
+    }
+  },
+  "evidence": [
+    {"file":"inputs/source/top.v","anchor_line":1193,"quote":"wire [319:0] cam5_motion_record = 320'b0;\r\nwire [319:0] cam6_motion_record = 320'b0;"},
+    {"file":"mapped_dump.v","anchor_line":926889,"quote":".INIT(64'b0000110000000000000011001100110000001010000000000000101010101010)","context":"N27_6[0]_1/LUT6_inst; I0=CAM1 bit0, I1=CAM2 bit0, I2=w_data[10], I3=w_strb[1], I4=camera_index[2], I5=next_camera[0]"},
+    {"file":"mapped_dump.v","anchor_line":932664,"quote":".INIT(64'b1100101011111111110010100000000011001010111111111100101000000000)","context":"snapshot[0]/opit_0_inv_L6Q; I0=CAM3 bit0, I1=CAM4 bit0, I2=next_camera[0], I3=next_camera[1], I4=_N64503, I5=x"},
+    {"file":"mapped_dump.v","anchor_line":932683,"quote":".L6Q (\\prep_regs_u/u_motion_register_bank/snapshot [0] ),"},
+    {"file":"mapped_dump.v","anchor_line":932685,"quote":".CE (\\prep_regs_u/u_motion_register_bank/N544 ),\r\n            .CLK (axi_clk),"},
+    {"file":"mapped_dump.v","anchor_line":931491,"quote":".INIT(64'b0000000010000000100000001000000000000000100000001000000010000000)","context":"N544_7/gateop; I0=N9, I1=w_data[31], I2=w_strb[3], I3=next_camera[1], I4=next_camera[2], I5=x"},
+    {"file":"mapped_dump.v","anchor_line":925491,"quote":".L8Q (prep_axil_rdata[0]),","context":"s_axi_rdata[0]/opit_0_inv_L8Q; registered output, CE=N290, CLK=axi_clk, RS=ddr_init_done; complete read cone evaluated"},
+    {"file":"mapped_dump.v","anchor_line":925695,"quote":".M (\\prep_regs_u/_N66129 ),","context":"s_axi_rdata[3]/opit_0_inv_L7Q; LUT7 uses M, not M0"},
+    {"file":"inputs/source/motion/motion_register_bank.v","anchor_line":53,"quote":"8'h30: rd_data = 32'h4d4f5431;\n            8'h40: rd_data = 32'h01e00280;\n            8'h50: rd_data = 32'h0c102804;"}
+  ],
+  "remaining_limits": [
+    "No full AXI protocol or sequential equivalence pass: upstream N9 qualification, ready/valid timing, reset transitions, and generation carry arithmetic not exhaustively evaluated.",
+    "Reserved packet zero applies after enabled valid CAM5/6 capture or reset. Changing selector without capture retains previous snapshot.",
+    "Core RAM history, detector pipeline/control and physical timing are separate scope."
+  ],
+  "actionable_followup": "For full interface acceptance prove N9 write-page/offset predicate and AXI sequential handshake using this exact export. No reserved-camera packet mux gap remains under stated primitive semantics."
+}

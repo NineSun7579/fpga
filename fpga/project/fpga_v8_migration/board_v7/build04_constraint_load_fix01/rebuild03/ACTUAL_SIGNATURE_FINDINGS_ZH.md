@@ -1,0 +1,11 @@
+# rebuild03 实际签名连接与预算绑定
+
+compile/synthesize及两次原生导出均rc=0。冻结源741、登记186不变；旧source_diagnostics_timing_build_04真实综合每路320对，本轮重建每路321对，完整1284对。
+
+本轮compile预算对象不含源码word15固定签名字32'h53464401。原生图仍有每路mailbox[480]→host_bank[480]；其mailbox D接常量1，两个storage的cdb_entries均为空，不能假称这些寄存器已经优化消失。
+
+独立synthesis03_full_actual_binding_review.json核验全部1284关系：1280动态pair的launch CLK和capture D共享各camera的实际MMD CDBID；四条MMD预算15238 ps、DATAPATH_ONLY=1；其余4条签名关系无预算注解。原生CDB无旧CLKGP。本核验不代表mapped total=1280，也不代表PNR时序合格。
+
+resume_map03.py只消费完整的新综合ADf/graph哈希收据，保留全部失败并执行正式map。仍使用官方devmap_remove_dups=0、devmap_const_prop=0、devmap_control_set_num=0与原production60 LCF。mapped完整1280 unique及原60独立storage/site门槛保持；若不满足，controller拒绝PNR，不删除计数对象、不增加签名falsepath。若满足，串行复制新map/PCF进入独立route_attempt01，再执行官方multi-corner/route holdfix/iterations=12及原生报告。
+
+本轮未改RTL/IP/时钟频率，未bit、未远端操作。candidate02与首次rebuild03失败全部保留。

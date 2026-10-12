@@ -1,0 +1,11 @@
+--- C:\Users\NineSun\Desktop\ov56401\project\fpga_v8_migration\board_v7\build04_mailbox_clock_review01\analysis\graph_adapter.py
++++ C:\Users\NineSun\Desktop\ov56401\project\fpga_v8_migration\board_v7\build04_final_route_runtime01\runtime\graph_adapter.py
+@@ -220,7 +220,7 @@
+                     edges[cell]={'cell':cell,'type':r['type'],'pins':linked,'polarity':'inverted' if r['type'] in {'bmsWIDEINV','bmsINV','GTP_INV'} else 'identity'}
+                     queue.extend(self.pn[p] for p in linked)
+                 elif v['direction']=='INPUT':
+-                    allowed=r['type'].startswith(('bmsWIDEDFF','GTP_DFF','GTP_DRM','gopQ','gopSRL2','gopLUT5','gopLUT6','gopLUT7','gopLUT8','gopDRM18K','gopDRM36K'))
++                    allowed=r['type'] in ('GTP_DFF', 'GTP_DFF_C', 'GTP_DFF_CE', 'GTP_DFF_E', 'GTP_DFF_P', 'GTP_DFF_PE', 'GTP_DFF_R', 'GTP_DRM18K_E1', 'bmsWIDEDFFCPE', 'bmsWIDEDFFCPE_Cell_1', 'bmsWIDEDFFCPE_Cell_14', 'bmsWIDEDFFCPE_Cell_16', 'bmsWIDEDFFCPE_Cell_17', 'bmsWIDEDFFCPE_Cell_18', 'bmsWIDEDFFCPE_Cell_2', 'bmsWIDEDFFCPE_Cell_3', 'bmsWIDEDFFCPE_Cell_7', 'bmsWIDEDFFCPE_Cell_8', 'bmsWIDEDFFCPE_Cell_9', 'bmsWIDEDFFRSE', 'bmsWIDEDFFRSE_Cell_1', 'bmsWIDEDFFRSE_Cell_12', 'bmsWIDEDFFRSE_Cell_5')
+                     isclock=port in self.clock_ports(cell)
+                     if isclock and allowed:leaves.add(pin)
+                     else:unknown.append({'pin':pin,'type':r['type'],'clock':v['clock']})

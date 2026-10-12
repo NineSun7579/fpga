@@ -1,0 +1,22 @@
+puts "MATCH09_BEGIN"
+puts "MATCH09_GET_PINS_PROC [info procs get_pins]"
+if {[llength [info procs get_pins]]} {puts "MATCH09_GET_PINS_BODY [info body get_pins]"}
+puts "MATCH09_ALL_REGISTERS_RETURN [all_registers]"
+puts "MATCH09_A_VECTOR_DOT"
+set_max_delay 15.238 -datapath_only -from [get_pins {source_diagnostics.cameras[0].source.mailbox[31:0]/CLK}] -to [get_pins {source_diagnostics.cameras[0].source.host_bank[511:0]/D}]
+puts "MATCH09_B_VECTOR_SLASH"
+set_max_delay 15.238 -datapath_only -from [get_pins -hsc / {source_diagnostics/cameras[0].source/mailbox[31:0]/CLK}] -to [get_pins -hsc / {source_diagnostics/cameras[0].source/host_bank[511:0]/D}]
+puts "MATCH09_C_BIT_DOT"
+set_max_delay 15.238 -datapath_only -from [get_pins {source_diagnostics.cameras[0].source.mailbox[0]/CLK}] -to [get_pins {source_diagnostics.cameras[0].source.host_bank[0]/D}]
+puts "MATCH09_D_BIT_SLASH"
+set_max_delay 15.238 -datapath_only -from [get_pins -hsc / {source_diagnostics/cameras[0].source/mailbox[0]/CLK}] -to [get_pins -hsc / {source_diagnostics/cameras[0].source/host_bank[0]/D}]
+puts "MATCH09_E_WILDCARD"
+set_max_delay 15.238 -datapath_only -from [get_pins -hierarchical {*mailbox*/CLK}] -to [get_pins -hierarchical {*host_bank*/D}]
+puts "MATCH09_F_VECTOR_HIERARCHICAL_DOT"
+set_max_delay 15.238 -datapath_only -from [get_pins -hierarchical {source_diagnostics.cameras[0].source.mailbox[31:0]/CLK}] -to [get_pins -hierarchical {source_diagnostics.cameras[0].source.host_bank[511:0]/D[0]}]
+puts "MATCH09_G_BIT_HIERARCHICAL_DOT"
+set_max_delay 15.238 -datapath_only -from [get_pins -hierarchical {source_diagnostics.cameras[0].source.mailbox[0]/CLK}] -to [get_pins -hierarchical {source_diagnostics.cameras[0].source.host_bank[0]/D}]
+puts "MATCH09_H_VECTOR_HIERARCHICAL_SLASH"
+set_max_delay 15.238 -datapath_only -from [get_pins -hierarchical -hsc / {source_diagnostics/cameras[0].source/mailbox[31:0]/CLK}] -to [get_pins -hierarchical -hsc / {source_diagnostics/cameras[0].source/host_bank[511:0]/D[0]}]
+puts "MATCH09_END"
+error "MATCH09_INTENTIONAL_STOP"

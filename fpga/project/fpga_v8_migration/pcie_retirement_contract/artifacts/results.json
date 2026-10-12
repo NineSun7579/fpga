@@ -1,0 +1,272 @@
+{
+  "scope": "official Pango FIFO/DRM + frozen control logic, simulation external PCIe shell",
+  "verdict": "FINAL_B_RETIREMENT_GATE_PASS_WITH_LEGACY_LIMITATIONS",
+  "implementations": {
+    "baseline": {
+      "control": [
+        {
+          "operation": 1,
+          "local_offset": "0x30",
+          "full_bresp": 0,
+          "msi_time_ps": 1064000,
+          "full_b_time_ps": 1735000,
+          "msi_minus_b_ps": -671000
+        },
+        {
+          "operation": 2,
+          "local_offset": "0x40",
+          "full_bresp": 0,
+          "msi_time_ps": 2520000,
+          "full_b_time_ps": 2825000,
+          "msi_minus_b_ps": -305000
+        },
+        {
+          "operation": 3,
+          "local_offset": "0x44",
+          "full_bresp": 0,
+          "msi_time_ps": 3608000,
+          "full_b_time_ps": 3915000,
+          "msi_minus_b_ps": -307000
+        },
+        {
+          "operation": 4,
+          "local_offset": "0x48",
+          "full_bresp": 0,
+          "msi_time_ps": 4696000,
+          "full_b_time_ps": 5005000,
+          "msi_minus_b_ps": -309000
+        },
+        {
+          "operation": 5,
+          "local_offset": "0x4c",
+          "full_bresp": 0,
+          "msi_time_ps": 5784000,
+          "full_b_time_ps": 6095000,
+          "msi_minus_b_ps": -311000
+        },
+        {
+          "operation": 6,
+          "local_offset": "0x30",
+          "full_bresp": 2,
+          "msi_time_ps": 6872000,
+          "full_b_time_ps": 7175000,
+          "msi_minus_b_ps": -303000
+        },
+        {
+          "operation": 7,
+          "local_offset": "0x4c",
+          "full_bresp": 2,
+          "msi_time_ps": 7960000,
+          "full_b_time_ps": 8265000,
+          "msi_minus_b_ps": -305000
+        },
+        {
+          "operation": 8,
+          "local_offset": "0x40",
+          "full_bresp": 0,
+          "msi_time_ps": 9048000,
+          "full_b_time_ps": 9855000,
+          "msi_minus_b_ps": -807000
+        },
+        {
+          "operation": 10,
+          "local_offset": "0x40",
+          "full_bresp": 0,
+          "msi_time_ps": 12152000,
+          "full_b_time_ps": 12455000,
+          "msi_minus_b_ps": -303000
+        }
+      ],
+      "memory": [
+        {
+          "operation": 20,
+          "payload_bytes": 4092,
+          "w_beats": 256,
+          "full_b_responses": 16,
+          "pcie_fetch_chunks": 1,
+          "all_data_and_strobes_match": true,
+          "final_b_time_ps": 8015000,
+          "msi_time_ps": 7816000,
+          "msi_minus_final_b_ps": -199000,
+          "pcie_4kb_violations": []
+        },
+        {
+          "operation": 21,
+          "payload_bytes": 4100,
+          "w_beats": 257,
+          "full_b_responses": 17,
+          "pcie_fetch_chunks": 2,
+          "all_data_and_strobes_match": true,
+          "final_b_time_ps": 16445000,
+          "msi_time_ps": 16248000,
+          "msi_minus_final_b_ps": -197000,
+          "pcie_4kb_violations": []
+        },
+        {
+          "operation": 22,
+          "payload_bytes": 1228800,
+          "w_beats": 76800,
+          "full_b_responses": 4800,
+          "pcie_fetch_chunks": 300,
+          "all_data_and_strobes_match": true,
+          "final_b_time_ps": 2081695000,
+          "msi_time_ps": 2081496000,
+          "msi_minus_final_b_ps": -199000,
+          "pcie_4kb_violations": []
+        }
+      ],
+      "offset4_negative": {
+        "operation": 30,
+        "payload_bytes": 8192,
+        "w_beats": 512,
+        "full_b_responses": 32,
+        "pcie_fetch_chunks": 2,
+        "all_data_and_strobes_match": true,
+        "final_b_time_ps": 14895000,
+        "msi_time_ps": 14696000,
+        "msi_minus_final_b_ps": -199000,
+        "pcie_4kb_violations": [
+          "0x1000004",
+          "0x1001004"
+        ]
+      },
+      "legacy_post_aw_w_stall": "TIMEOUT_EARLY_MSI",
+      "wrong_bid": "EARLY_MSI",
+      "stalled_w_and_wrong_bid_common_reset_recovery": true,
+      "pending_b_common_reset": "EARLY_MSI_BEFORE_RESET"
+    },
+    "candidate": {
+      "control": [
+        {
+          "operation": 1,
+          "local_offset": "0x30",
+          "full_bresp": 0,
+          "msi_time_ps": 1816000,
+          "full_b_time_ps": 1735000,
+          "msi_minus_b_ps": 81000
+        },
+        {
+          "operation": 2,
+          "local_offset": "0x40",
+          "full_bresp": 0,
+          "msi_time_ps": 3000000,
+          "full_b_time_ps": 2905000,
+          "msi_minus_b_ps": 95000
+        },
+        {
+          "operation": 3,
+          "local_offset": "0x44",
+          "full_bresp": 0,
+          "msi_time_ps": 4184000,
+          "full_b_time_ps": 4095000,
+          "msi_minus_b_ps": 89000
+        },
+        {
+          "operation": 4,
+          "local_offset": "0x48",
+          "full_bresp": 0,
+          "msi_time_ps": 5368000,
+          "full_b_time_ps": 5275000,
+          "msi_minus_b_ps": 93000
+        },
+        {
+          "operation": 5,
+          "local_offset": "0x4c",
+          "full_bresp": 0,
+          "msi_time_ps": 6536000,
+          "full_b_time_ps": 6455000,
+          "msi_minus_b_ps": 81000
+        },
+        {
+          "operation": 6,
+          "local_offset": "0x30",
+          "full_bresp": 2,
+          "msi_time_ps": 7720000,
+          "full_b_time_ps": 7625000,
+          "msi_minus_b_ps": 95000
+        },
+        {
+          "operation": 7,
+          "local_offset": "0x4c",
+          "full_bresp": 2,
+          "msi_time_ps": 8904000,
+          "full_b_time_ps": 8815000,
+          "msi_minus_b_ps": 89000
+        },
+        {
+          "operation": 8,
+          "local_offset": "0x40",
+          "full_bresp": 0,
+          "msi_time_ps": 10584000,
+          "full_b_time_ps": 10495000,
+          "msi_minus_b_ps": 89000
+        },
+        {
+          "operation": 10,
+          "local_offset": "0x40",
+          "full_bresp": 0,
+          "msi_time_ps": 13304000,
+          "full_b_time_ps": 13215000,
+          "msi_minus_b_ps": 89000
+        }
+      ],
+      "memory": [
+        {
+          "operation": 20,
+          "payload_bytes": 4092,
+          "w_beats": 256,
+          "full_b_responses": 16,
+          "pcie_fetch_chunks": 1,
+          "all_data_and_strobes_match": true,
+          "final_b_time_ps": 8015000,
+          "msi_time_ps": 8104000,
+          "msi_minus_final_b_ps": 89000,
+          "pcie_4kb_violations": []
+        },
+        {
+          "operation": 21,
+          "payload_bytes": 4100,
+          "w_beats": 257,
+          "full_b_responses": 17,
+          "pcie_fetch_chunks": 2,
+          "all_data_and_strobes_match": true,
+          "final_b_time_ps": 16525000,
+          "msi_time_ps": 16616000,
+          "msi_minus_final_b_ps": 91000,
+          "pcie_4kb_violations": []
+        },
+        {
+          "operation": 22,
+          "payload_bytes": 1228800,
+          "w_beats": 76800,
+          "full_b_responses": 4800,
+          "pcie_fetch_chunks": 300,
+          "all_data_and_strobes_match": true,
+          "final_b_time_ps": 2081875000,
+          "msi_time_ps": 2081960000,
+          "msi_minus_final_b_ps": 85000,
+          "pcie_4kb_violations": []
+        }
+      ],
+      "offset4_negative": {
+        "operation": 30,
+        "payload_bytes": 8192,
+        "w_beats": 512,
+        "full_b_responses": 32,
+        "pcie_fetch_chunks": 2,
+        "all_data_and_strobes_match": true,
+        "final_b_time_ps": 14895000,
+        "msi_time_ps": 14984000,
+        "msi_minus_final_b_ps": 89000,
+        "pcie_4kb_violations": [
+          "0x1000004",
+          "0x1001004"
+        ]
+      },
+      "legacy_post_aw_w_stall": "TIMEOUT_NO_MSI",
+      "wrong_bid": "TIMEOUT_NO_MSI",
+      "stalled_w_and_wrong_bid_common_reset_recovery": true,
+      "pending_b_common_reset": "NO_COMPLETION_LEAK"
+    }
+  }
+}

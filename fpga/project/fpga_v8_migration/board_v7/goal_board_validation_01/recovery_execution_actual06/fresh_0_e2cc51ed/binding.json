@@ -1,0 +1,1277 @@
+{
+  "boot_before": "dd39b8d1-cf2d-404e-914d-45eb87278794",
+  "endpoints": [
+    {
+      "endpoint": "0002:21:00.0",
+      "sysfs_realpath": "/sys/devices/platform/3c0800000.pcie/pci0002:20/0002:20:00.0/0002:21:00.0",
+      "parent_bdf": "0002:20:00.0",
+      "driver": "/sys/bus/pci/drivers/pango_pci_driver",
+      "commands": {
+        "parent_lspci": {
+          "argv": [
+            "sudo",
+            "-n",
+            "lspci",
+            "-s",
+            "0002:20:00.0",
+            "-nnvv"
+          ],
+          "started_utc": "2026-10-07T05:47:41.089846+00:00",
+          "ended_utc": "2026-10-07T05:47:41.247824+00:00",
+          "stdout": "0002:20:00.0 PCI bridge [0604]: Rockchip Electronics Co., Ltd RK3568 Remote Signal Processor [1d87:3566] (rev 01) (prog-if 00 [Normal decode])\n\tControl: I/O+ Mem+ BusMaster+ SpecCycle- MemWINV- VGASnoop- ParErr- Stepping- SERR+ FastB2B- DisINTx+\n\tStatus: Cap+ 66MHz- UDF- FastB2B- ParErr- DEVSEL=fast >TAbort- <TAbort- <MAbort- >SERR- <PERR- INTx-\n\tLatency: 0\n\tInterrupt: pin A routed to IRQ 119\n\tBus: primary=00, secondary=00, subordinate=00, sec-latency=0\n\tMemory behind bridge: f0200000-f02fffff [size=1M] [32-bit]\n\tSecondary status: 66MHz- FastB2B- ParErr- DEVSEL=fast >TAbort- <TAbort- <MAbort- <SERR- <PERR-\n\tExpansion ROM at f0300000 [virtual] [disabled] [size=64K]\n\tBridgeCtl: Parity- SERR- NoISA- VGA- VGA16- MAbort- >Reset- FastB2B-\n\t\tPriDiscTmr- SecDiscTmr- DiscTmrStat- DiscTmrSERREn-\n\tCapabilities: [40] Power Management version 3\n\t\tFlags: PMEClk- DSI- D1+ D2+ AuxCurrent=375mA PME(D0+,D1+,D2-,D3hot+,D3cold-)\n\t\tStatus: D0 NoSoftRst+ PME-Enable- DSel=0 DScale=0 PME-\n\tCapabilities: [50] MSI: Enable+ Count=16/32 Maskable+ 64bit+\n\t\tAddress: 00000000fd450040  Data: 0000\n\t\tMasking: fffffeff  Pending: 00000000\n\tCapabilities: [70] Express (v2) Root Port (Slot-), MSI 08\n\t\tDevCap:\tMaxPayload 256 bytes, PhantFunc 0\n\t\t\tExtTag- RBE+\n\t\tDevCtl:\tCorrErr- NonFatalErr- FatalErr- UnsupReq-\n\t\t\tRlxdOrd+ ExtTag- PhantFunc- AuxPwr- NoSnoop-\n\t\t\tMaxPayload 128 bytes, MaxReadReq 512 bytes\n\t\tDevSta:\tCorrErr- NonFatalErr- FatalErr- UnsupReq- AuxPwr- TransPend-\n\t\tLnkCap:\tPort #0, Speed 8GT/s, Width x2, ASPM L0s L1, Exit Latency L0s <4us, L1 <64us\n\t\t\tClockPM- Surprise- LLActRep+ BwNot- ASPMOptComp+\n\t\tLnkCtl:\tASPM Disabled; RCB 64 bytes, Disabled- CommClk-\n\t\t\tExtSynch- ClockPM- AutWidDis- BWInt- AutBWInt-\n\t\tLnkSta:\tSpeed 5GT/s, Width x2\n\t\t\tTrErr- Train- SlotClk- DLActive+ BWMgmt- ABWMgmt-\n\t\tRootCap: CRSVisible-\n\t\tRootCtl: ErrCorrectable- ErrNon-Fatal- ErrFatal- PMEIntEna+ CRSVisible-\n\t\tRootSta: PME ReqID 0000, PMEStatus- PMEPending-\n\t\tDevCap2: Completion Timeout: Not Supported, TimeoutDis+ NROPrPrP+ LTR+\n\t\t\t 10BitTagComp- 10BitTagReq- OBFF Via message/WAKE#, ExtFmt- EETLPPrefix-\n\t\t\t EmergencyPowerReduction Not Supported, EmergencyPowerReductionInit-\n\t\t\t FRS- LN System CLS Not Supported, TPHComp- ExtTPHComp- ARIFwd-\n\t\t\t AtomicOpsCap: Routing- 32bit- 64bit- 128bitCAS-\n\t\tDevCtl2: Completion Timeout: 50us to 50ms, TimeoutDis- LTR+ 10BitTagReq- OBFF Disabled, ARIFwd-\n\t\t\t AtomicOpsCtl: ReqEn- EgressBlck-\n\t\tLnkCap2: Supported Link Speeds: 2.5-8GT/s, Crosslink- Retimer- 2Retimers- DRS-\n\t\tLnkCtl2: Target Link Speed: 8GT/s, EnterCompliance- SpeedDis-\n\t\t\t Transmit Margin: Normal Operating Range, EnterModifiedCompliance- ComplianceSOS-\n\t\t\t Compliance Preset/De-emphasis: -6dB de-emphasis, 0dB preshoot\n\t\tLnkSta2: Current De-emphasis Level: -6dB, EqualizationComplete- EqualizationPhase1-\n\t\t\t EqualizationPhase2- EqualizationPhase3- LinkEqualizationRequest-\n\t\t\t Retimer- 2Retimers- CrosslinkRes: unsupported\n\tCapabilities: [b0] MSI-X: Enable- Count=128 Masked-\n\t\tVector table: BAR=4 offset=00020000\n\t\tPBA: BAR=4 offset=00028000\n\tCapabilities: [100 v2] Advanced Error Reporting\n\t\tUESta:\tDLP- SDES- TLP- FCP- CmpltTO- CmpltAbrt- UnxCmplt- RxOF- MalfTLP- ECRC- UnsupReq- ACSViol-\n\t\tUEMsk:\tDLP- SDES- TLP- FCP- CmpltTO- CmpltAbrt- UnxCmplt- RxOF- MalfTLP- ECRC- UnsupReq- ACSViol-\n\t\tUESvrt:\tDLP+ SDES+ TLP- FCP+ CmpltTO- CmpltAbrt- UnxCmplt- RxOF+ MalfTLP+ ECRC- UnsupReq- ACSViol-\n\t\tCESta:\tRxErr- BadTLP- BadDLLP- Rollover- Timeout- AdvNonFatalErr-\n\t\tCEMsk:\tRxErr- BadTLP- BadDLLP- Rollover- Timeout- AdvNonFatalErr+\n\t\tAERCap:\tFirst Error Pointer: 00, ECRCGenCap+ ECRCGenEn- ECRCChkCap+ ECRCChkEn-\n\t\t\tMultHdrRecCap- MultHdrRecEn- TLPPfxPres- HdrLogCap-\n\t\tHeaderLog: 00000000 00000000 00000000 00000000\n\t\tRootCmd: CERptEn- NFERptEn- FERptEn-\n\t\tRootSta: CERcvd- MultCERcvd- UERcvd- MultUERcvd-\n\t\t\t FirstFatal- NonFatalMsg- FatalMsg- IntMsg 9\n\t\tErrorSrc: ERR_COR: 0000 ERR_FATAL/NONFATAL: 0000\n\tCapabilities: [148 v1] Secondary PCI Express\n\t\tLnkCtl3: LnkEquIntrruptEn- PerformEqu-\n\t\tLaneErrStat: 0\n\tCapabilities: [160 v1] L1 PM Substates\n\t\tL1SubCap: PCI-PM_L1.2+ PCI-PM_L1.1+ ASPM_L1.2- ASPM_L1.1- L1_PM_Substates-\n\t\t\t  PortCommonModeRestoreTime=10us PortTPowerOnTime=14us\n\t\tL1SubCtl1: PCI-PM_L1.2- PCI-PM_L1.1- ASPM_L1.2- ASPM_L1.1-\n\t\t\t   T_CommonMode=0us\n\t\tL1SubCtl2: T_PwrOn=10us\n\tCapabilities: [1a0 v1] Vendor Specific Information: ID=0002 Rev=4 Len=100 <?>\n\tCapabilities: [2a0 v1] Vendor Specific Information: ID=0006 Rev=0 Len=018 <?>\n\tKernel driver in use: pcieport\n\n",
+          "stderr": "lspci: Unable to load libkmod resources: error -2\n",
+          "returncode": 0
+        },
+        "endpoint_lspci": {
+          "argv": [
+            "sudo",
+            "-n",
+            "lspci",
+            "-s",
+            "0002:21:00.0",
+            "-nnvv"
+          ],
+          "started_utc": "2026-10-07T05:47:41.247896+00:00",
+          "ended_utc": "2026-10-07T05:47:41.384959+00:00",
+          "stdout": "0002:21:00.0 Memory controller [0580]: Device [0755:0755]\n\tControl: I/O- Mem+ BusMaster+ SpecCycle- MemWINV- VGASnoop- ParErr- Stepping- SERR- FastB2B- DisINTx+\n\tStatus: Cap+ 66MHz- UDF- FastB2B- ParErr- DEVSEL=fast >TAbort- <TAbort- <MAbort- >SERR- <PERR- INTx-\n\tLatency: 0\n\tInterrupt: pin A routed to IRQ 128\n\tRegion 0: Memory at f0200000 (32-bit, non-prefetchable) [size=8K]\n\tRegion 1: Memory at f0202000 (32-bit, non-prefetchable) [size=4K]\n\tRegion 2: Memory at f0203000 (64-bit, non-prefetchable) [size=4K]\n\tCapabilities: [50] MSI: Enable+ Count=4/4 Maskable- 64bit+\n\t\tAddress: 00000000fd450040  Data: 0000\n\tCapabilities: [70] Express (v2) Endpoint, MSI 00\n\t\tDevCap:\tMaxPayload 256 bytes, PhantFunc 0, Latency L0s <1us, L1 unlimited\n\t\t\tExtTag+ AttnBtn- AttnInd- PwrInd- RBE+ FLReset- SlotPowerLimit 0W\n\t\tDevCtl:\tCorrErr- NonFatalErr- FatalErr- UnsupReq-\n\t\t\tRlxdOrd+ ExtTag+ PhantFunc- AuxPwr- NoSnoop-\n\t\t\tMaxPayload 128 bytes, MaxReadReq 512 bytes\n\t\tDevSta:\tCorrErr- NonFatalErr- FatalErr- UnsupReq- AuxPwr+ TransPend-\n\t\tLnkCap:\tPort #0, Speed 5GT/s, Width x2, ASPM L1, Exit Latency L1 unlimited\n\t\t\tClockPM- Surprise- LLActRep- BwNot- ASPMOptComp-\n\t\tLnkCtl:\tASPM Disabled; RCB 128 bytes, Disabled- CommClk-\n\t\t\tExtSynch- ClockPM- AutWidDis- BWInt- AutBWInt-\n\t\tLnkSta:\tSpeed 5GT/s, Width x2\n\t\t\tTrErr- Train- SlotClk+ DLActive- BWMgmt- ABWMgmt-\n\t\tDevCap2: Completion Timeout: Range ABCD, TimeoutDis+ NROPrPrP- LTR-\n\t\t\t 10BitTagComp- 10BitTagReq- OBFF Not Supported, ExtFmt- EETLPPrefix-\n\t\t\t EmergencyPowerReduction Not Supported, EmergencyPowerReductionInit-\n\t\t\t FRS- TPHComp- ExtTPHComp-\n\t\t\t AtomicOpsCap: 32bit- 64bit- 128bitCAS-\n\t\tDevCtl2: Completion Timeout: 50us to 50ms, TimeoutDis- LTR- 10BitTagReq- OBFF Disabled,\n\t\t\t AtomicOpsCtl: ReqEn-\n\t\tLnkCap2: Supported Link Speeds: 2.5-5GT/s, Crosslink- Retimer- 2Retimers- DRS-\n\t\tLnkCtl2: Target Link Speed: 5GT/s, EnterCompliance- SpeedDis-\n\t\t\t Transmit Margin: Normal Operating Range, EnterModifiedCompliance- ComplianceSOS-\n\t\t\t Compliance Preset/De-emphasis: -6dB de-emphasis, 0dB preshoot\n\t\tLnkSta2: Current De-emphasis Level: -6dB, EqualizationComplete- EqualizationPhase1-\n\t\t\t EqualizationPhase2- EqualizationPhase3- LinkEqualizationRequest-\n\t\t\t Retimer- 2Retimers- CrosslinkRes: unsupported\n\tCapabilities: [100 v2] Advanced Error Reporting\n\t\tUESta:\tDLP- SDES- TLP- FCP- CmpltTO- CmpltAbrt- UnxCmplt- RxOF- MalfTLP- ECRC- UnsupReq- ACSViol-\n\t\tUEMsk:\tDLP- SDES- TLP- FCP- CmpltTO- CmpltAbrt- UnxCmplt- RxOF- MalfTLP- ECRC- UnsupReq- ACSViol-\n\t\tUESvrt:\tDLP+ SDES+ TLP- FCP+ CmpltTO- CmpltAbrt- UnxCmplt- RxOF+ MalfTLP+ ECRC- UnsupReq- ACSViol-\n\t\tCESta:\tRxErr- BadTLP- BadDLLP- Rollover- Timeout- AdvNonFatalErr-\n\t\tCEMsk:\tRxErr- BadTLP- BadDLLP- Rollover- Timeout- AdvNonFatalErr+\n\t\tAERCap:\tFirst Error Pointer: 00, ECRCGenCap+ ECRCGenEn- ECRCChkCap+ ECRCChkEn+\n\t\t\tMultHdrRecCap- MultHdrRecEn- TLPPfxPres- HdrLogCap-\n\t\tHeaderLog: 00000000 00000000 00000000 00000000\n\tKernel driver in use: pango_pci_driver\n\n",
+          "stderr": "lspci: Unable to load libkmod resources: error -2\n",
+          "returncode": 0
+        },
+        "bridge_control": {
+          "argv": [
+            "sudo",
+            "-n",
+            "setpci",
+            "-s",
+            "0002:20:00.0",
+            "BRIDGE_CONTROL"
+          ],
+          "started_utc": "2026-10-07T05:47:41.385022+00:00",
+          "ended_utc": "2026-10-07T05:47:41.477463+00:00",
+          "stdout": "0000\n",
+          "stderr": "",
+          "returncode": 0
+        },
+        "parent_command": {
+          "argv": [
+            "sudo",
+            "-n",
+            "setpci",
+            "-s",
+            "0002:20:00.0",
+            "COMMAND"
+          ],
+          "started_utc": "2026-10-07T05:47:41.477539+00:00",
+          "ended_utc": "2026-10-07T05:47:41.551121+00:00",
+          "stdout": "0507\n",
+          "stderr": "",
+          "returncode": 0
+        },
+        "endpoint_command": {
+          "argv": [
+            "sudo",
+            "-n",
+            "setpci",
+            "-s",
+            "0002:21:00.0",
+            "COMMAND"
+          ],
+          "started_utc": "2026-10-07T05:47:41.551195+00:00",
+          "ended_utc": "2026-10-07T05:47:41.615357+00:00",
+          "stdout": "0406\n",
+          "stderr": "",
+          "returncode": 0
+        }
+      }
+    }
+  ],
+  "holders": [],
+  "processes": [],
+  "startup": [
+    {
+      "path": "/userdata/trafficlight_eval_20261005/board_replay.sh",
+      "realpath": "/userdata/trafficlight_eval_20261005/board_replay.sh",
+      "matches": [
+        [
+          6,
+          "VIEWER=$(pgrep -f '^/userdata/detview-hdmifull/detview-hdmifull ' | head -1)"
+        ],
+        [
+          14,
+          "sha256sum \"$ROOT\"/board_rect_harness* \"$ROOT\"/board_trafficlight_decoder.inc \"$ROOT\"/viewer_dump_build/main.cpp \"$ROOT\"/viewer_dump_build/detview \"$ROOT\"/exact_live_input/* \"$ROOT\"/exact_replay/frame_000000/* > \"$ROOT/artifact_sha256.txt\""
+        ]
+      ]
+    },
+    {
+      "path": "/userdata/trafficlight_eval_20261005/board_session.sh",
+      "realpath": "/userdata/trafficlight_eval_20261005/board_session.sh",
+      "matches": [
+        [
+          8,
+          "OLD=$(pgrep -f '^/userdata/detview-hdmifull/detview-hdmifull ' | head -1)"
+        ],
+        [
+          30,
+          "      nohup /userdata/detview-hdmifull/detview-hdmifull --model trafficlight-16cls --fullscreen --no-tracking --prefer-hdmifull on > \"$ROOT/restored_viewer.log\" 2>&1 9>&- &"
+        ],
+        [
+          38,
+          "sha256sum /root/npu/trafficlight/*.rknn /userdata/detview-hdmifull/detview-hdmifull /userdata/linaro/detview-trafficlight-work/main.cpp > \"$ROOT/source_model_sha256.txt\""
+        ],
+        [
+          42,
+          "qmake detview.pro > \"$ROOT/viewer_build.log\" 2>&1"
+        ],
+        [
+          52,
+          "DET_BENCH=1 DET_EVAL_DUMP_DIR=\"$ROOT/exact_live_input\" \"$ROOT/viewer_dump_build/detview\" --model trafficlight-16cls --fullscreen --no-tracking --prefer-hdmifull on --duration 99 --shot 60 > \"$ROOT/live_benchmark.log\" 2>&1 9>&- &"
+        ],
+        [
+          63,
+          "nohup /userdata/detview-hdmifull/detview-hdmifull --model trafficlight-16cls --fullscreen --no-tracking --prefer-hdmifull on > \"$ROOT/restored_viewer.log\" 2>&1 9>&- &"
+        ],
+        [
+          80,
+          "sha256sum board_rect_harness* board_trafficlight_decoder.inc viewer_dump_build/main.cpp viewer_dump_build/detview exact_live_input/* > artifact_sha256.txt"
+        ]
+      ]
+    },
+    {
+      "path": "/userdata/trafficlight_eval_20261005/board_probe.sh",
+      "realpath": "/userdata/trafficlight_eval_20261005/board_probe.sh",
+      "matches": [
+        [
+          4,
+          "for p in $(pgrep -x detview-hdmiful || true) $(pgrep -x detview || true); do"
+        ]
+      ]
+    },
+    {
+      "path": "/userdata/mvp_performance_20261007/finalize_board.sh",
+      "realpath": "/userdata/mvp_performance_20261007/finalize_board.sh",
+      "matches": [
+        [
+          12,
+          " paths=list(pathlib.Path('/userdata/detview_shots').glob('shot_'+name+'_*.png'));p=max(paths,key=lambda p:p.stat().st_mtime)"
+        ],
+        [
+          22,
+          "  if args[0]==b'/userdata/detview-hdmifull/detview-hdmifull':viewers.append({'pid':int(f.split('/')[2]),'argv':[a.decode() for a in args if a]})"
+        ]
+      ]
+    },
+    {
+      "path": "/userdata/mvp_performance_20261007/run_board.sh",
+      "realpath": "/userdata/mvp_performance_20261007/run_board.sh",
+      "matches": [
+        [
+          8,
+          "APP=/userdata/detview-hdmifull/detview-hdmifull"
+        ],
+        [
+          9,
+          "VIDEO=/userdata/linaro/detview-video-work/media/VID_20260912_151339_480p30.mp4"
+        ],
+        [
+          13,
+          "pids=[p for p in glob.glob('/proc/[0-9]*/cmdline') if open(p,'rb').read().split(b'\\0')[0]==b'/userdata/detview-hdmifull/detview-hdmifull']"
+        ],
+        [
+          55,
+          "g++ -std=c++17 -O2 bench.cpp -I/userdata/linaro/detview-mvp-work -I/usr/include/opencv4 -lrknnrt -lopencv_videoio -lopencv_imgproc -lopencv_core -o npu_bench"
+        ]
+      ]
+    },
+    {
+      "path": "/userdata/model_imports/mvp_accuracy_round1_import_20261007/prepare_board.sh",
+      "realpath": "/userdata/model_imports/mvp_accuracy_round1_import_20261007/prepare_board.sh",
+      "matches": [
+        [
+          4,
+          "work=/userdata/linaro/detview-mvp-round1-work"
+        ],
+        [
+          7,
+          "sha256sum /userdata/detview-hdmifull/detview-hdmifull /userdata/linaro/detview-hdmifull-src/main.cpp"
+        ],
+        [
+          8,
+          "ps -eo pid,state,args | grep -E 'detview|camview' | grep -v grep || true"
+        ],
+        [
+          9,
+          "fuser /dev/pango_pci_driver 2>/dev/null || true"
+        ]
+      ]
+    },
+    {
+      "path": "/userdata/model_imports/mvp_import_20261007/prepare_board.sh",
+      "realpath": "/userdata/model_imports/mvp_import_20261007/prepare_board.sh",
+      "matches": [
+        [
+          4,
+          "mkdir -p \"$dest\" /root/npu/mvp /userdata/linaro/detview-mvp-work"
+        ],
+        [
+          5,
+          "chown linaro:linaro \"$dest\" /userdata/linaro/detview-mvp-work"
+        ],
+        [
+          7,
+          "sha256sum /userdata/detview-hdmifull/detview-hdmifull /userdata/linaro/detview-hdmifull-src/main.cpp"
+        ],
+        [
+          8,
+          "fuser /dev/pango_pci_driver 2>/dev/null || true"
+        ]
+      ]
+    },
+    {
+      "path": "/userdata/model_imports/trafficlight_import_20261005/prepare_board_import.sh",
+      "realpath": "/userdata/model_imports/trafficlight_import_20261005/prepare_board_import.sh",
+      "matches": [
+        [
+          3,
+          "work=/userdata/linaro/detview-trafficlight-work"
+        ],
+        [
+          6,
+          "cp -a /userdata/linaro/detview-hdmifull-src/. \"$work/\""
+        ],
+        [
+          9,
+          "sha256sum /userdata/detview-hdmifull/detview-hdmifull /userdata/linaro/detview-hdmifull-src/main.cpp"
+        ],
+        [
+          10,
+          "for owner in $(fuser /dev/pango_pci_driver 2>/dev/null); do"
+        ]
+      ]
+    },
+    {
+      "path": "/userdata/detview-driving-demo/run_driving_demo.sh",
+      "realpath": "/userdata/detview-driving-demo/run_driving_demo.sh",
+      "matches": [
+        [
+          5,
+          "# Optional environment: DETVIEW_DRIVING_APP (absolute executable), DISPLAY,"
+        ],
+        [
+          11,
+          "DEVICE=/dev/pango_pci_driver"
+        ],
+        [
+          13,
+          "APP=${DETVIEW_DRIVING_APP:-/userdata/detview-driving-demo/detview-driving-demo}"
+        ],
+        [
+          30,
+          "say() { printf '[driving-demo] %s\\n' \"$*\"; }"
+        ],
+        [
+          40,
+          "        \"QT_X11_NO_MITSHM=$QT_X11_NO_MITSHM\" \"DETVIEW_DRIVING_APP=$APP\" \\"
+        ],
+        [
+          250,
+          "        \"$APP\" --driving-demo --fullscreen --no-tracking \\"
+        ]
+      ]
+    },
+    {
+      "path": "/userdata/rm8-deploy-20260925/backup-102412/run_det.sh",
+      "realpath": "/userdata/rm8-deploy-20260925/backup-102412/run_det.sh",
+      "matches": [
+        [
+          2,
+          "# run_det.sh [--model SUBSTR | --model-index N] : start detview detached on the local X display"
+        ],
+        [
+          5,
+          "cd /root/npu/detview || exit 1"
+        ],
+        [
+          6,
+          "pkill -f /root/npu/detview/detview 2>/dev/null"
+        ],
+        [
+          8,
+          "exec /root/npu/detview/detview \"$@\" > /root/npu/detview/run.log 2>&1"
+        ]
+      ]
+    },
+    {
+      "path": "/userdata/rm8-deploy-20260925/backup-102144/run_det.sh",
+      "realpath": "/userdata/rm8-deploy-20260925/backup-102144/run_det.sh",
+      "matches": [
+        [
+          2,
+          "# run_det.sh [--model SUBSTR | --model-index N] : start detview detached on the local X display"
+        ],
+        [
+          5,
+          "cd /root/npu/detview || exit 1"
+        ],
+        [
+          6,
+          "pkill -f /root/npu/detview/detview 2>/dev/null"
+        ],
+        [
+          8,
+          "exec /root/npu/detview/detview \"$@\" > /root/npu/detview/run.log 2>&1"
+        ]
+      ]
+    },
+    {
+      "path": "/userdata/fpga_gh/detview_tdm/run_detview.sh",
+      "realpath": "/userdata/fpga_gh/detview_tdm/run_detview.sh",
+      "matches": [
+        [
+          2,
+          "# detview 自愈守护：应用会自己 exit(3)（连续 DMA 失败，或 60 秒没有新帧——"
+        ],
+        [
+          8,
+          "# 用法: sudo setsid bash run_detview.sh --fullscreen --rotate-model a,b"
+        ],
+        [
+          9,
+          "exec 9>/tmp/detview.lock"
+        ],
+        [
+          11,
+          "echo $$ > /tmp/detview_supervisor.pid   # 便于外部用 PID 精确停止（不要用 pkill -f，会误伤调用方）"
+        ],
+        [
+          19,
+          "    ./detview \"$@\""
+        ],
+        [
+          23,
+          "    echo \"[supervisor] detview exited rc=$rc (consecutive=$fails); restart in 3s\" >&2"
+        ],
+        [
+          31,
+          "        rmmod pango_pci_driver 2>/dev/null"
+        ],
+        [
+          36,
+          "        insmod /root/ov5640/pango_pci_driver.ko 2>/dev/null"
+        ],
+        [
+          37,
+          "        ls /dev/pango_pci_driver > /dev/null 2>&1 && echo \"[supervisor] driver reloaded\" >&2"
+        ]
+      ]
+    },
+    {
+      "path": "/userdata/linaro/board_relocate.sh",
+      "realpath": "/userdata/linaro/board_relocate.sh",
+      "matches": [
+        [
+          11,
+          "ps -eo pid,ppid,stat,args | grep -E 'detview|board_harness' | grep -v grep || true"
+        ]
+      ]
+    },
+    {
+      "path": "/userdata/linaro/install_viewer.sh",
+      "realpath": "/userdata/linaro/install_viewer.sh",
+      "matches": [
+        [
+          4,
+          "src=/userdata/linaro/detview-mvp-work"
+        ],
+        [
+          5,
+          "active=/userdata/detview-hdmifull/detview-hdmifull"
+        ],
+        [
+          9,
+          "if fuser /dev/pango_pci_driver >/dev/null 2>&1; then echo 'Capture owner appeared; inspect before installing'; exit 1; fi"
+        ],
+        [
+          15,
+          "cp -a \"$active\" \"$out/detview.previous\""
+        ],
+        [
+          16,
+          "cp -a \"$src/detview\" \"$out/detview.mvp\""
+        ],
+        [
+          17,
+          "cp -a \"$src/detview\" \"$active\""
+        ],
+        [
+          24,
+          "    if ! fuser /dev/pango_pci_driver >/dev/null 2>&1; then cp -a \"$out/detview.previous\" \"$active\"; fi"
+        ],
+        [
+          28,
+          "nohup \"$active\" --model MVP_rk3568_int8 --video /userdata/linaro/detview-video-work/media/VID_20260912_151339_480p30.mp4 --video-loop --fullscreen --no-tracking --shot 15 > \"$out/mvp_live.log\" 2>&1 < /dev/null 9>&- &"
+        ],
+        [
+          35,
+          "find /userdata/detview_shots -maxdepth 1 -type f -name 'shot_*.png' -newer \"$out/started.marker\" -exec cp {} \"$out/\" \\;"
+        ],
+        [
+          36,
+          "sha256sum \"$active\" \"$out/detview.previous\" > \"$out/binary_sha256.txt\""
+        ]
+      ]
+    },
+    {
+      "path": "/userdata/linaro/capture_current_50k_gl.sh",
+      "realpath": "/userdata/linaro/capture_current_50k_gl.sh",
+      "matches": [
+        [
+          3,
+          "current_pid=$(sudo -n fuser /dev/pango_pci_driver 2>/dev/null | tr -s ' ' | sed 's/^ //;s/ $//')"
+        ],
+        [
+          9,
+          "    */detview) ;;"
+        ],
+        [
+          10,
+          "    *) echo 'Device owner is not detview; inspect before screenshot' >&2; exit 1;;"
+        ]
+      ]
+    },
+    {
+      "path": "/userdata/linaro/archive_driving_demo.sh",
+      "realpath": "/userdata/linaro/archive_driving_demo.sh",
+      "matches": [
+        [
+          6,
+          "work=/userdata/linaro/driving-demo-archive-worktree"
+        ],
+        [
+          7,
+          "branch=feat/hdmi-driving-demo-20261005"
+        ],
+        [
+          8,
+          "source=/userdata/linaro/detview-driving-demo-src"
+        ],
+        [
+          10,
+          "git -C \"$work\" sparse-checkout set --no-cone '/RK3568/detview_tdm/'"
+        ],
+        [
+          12,
+          "target=$work/RK3568/detview_tdm"
+        ],
+        [
+          17,
+          "cp \"$source/main.cpp\" \"$source/detview.pro\" \"$source\"/driving*.cpp \"$source\"/driving*.h \"$target/\""
+        ],
+        [
+          20,
+          "sed -i 's/[[:blank:]\\r]*$//' \"$target/detview.pro\" \"$target/rknn_api.h\""
+        ],
+        [
+          21,
+          "git -C \"$work\" add -- RK3568/detview_tdm"
+        ],
+        [
+          39,
+          "note = '十字路口 HDMI 智能驾驶模拟：`./detview --driving-demo --fullscreen`。方向键选车道，`A` 自动、`X` 停车、`B` 强制行驶。使用与判定规则见 [驾驶模拟](DRIVING_DEMO.md)。\\n\\n'"
+        ],
+        [
+          47,
+          "git -C \"$work\" add -- RK3568/detview_tdm/DRIVING_DEMO.md RK3568/detview_tdm/TRAFFICLIGHT_SUPPORT.md RK3568/detview_tdm/README.md"
+        ],
+        [
+          55,
+          "git -C \"$work\" add -f -- RK3568/detview_tdm/evidence/driving_demo_20261005"
+        ]
+      ]
+    },
+    {
+      "path": "/userdata/linaro/finish_archive_full_yolo.sh",
+      "realpath": "/userdata/linaro/finish_archive_full_yolo.sh",
+      "matches": [
+        [
+          5,
+          "sed -i 's/[[:blank:]\\r]*$//' \"$repo/RK3568/detview_tdm/detview.pro\" \"$repo/RK3568/detview_tdm/rknn_api.h\""
+        ],
+        [
+          6,
+          "git -C \"$repo\" add -- RK3568/detview_tdm"
+        ]
+      ]
+    },
+    {
+      "path": "/userdata/linaro/push_hdmi_batches.sh",
+      "realpath": "/userdata/linaro/push_hdmi_batches.sh",
+      "matches": [
+        [
+          9,
+          "git -C \"$work\" sparse-checkout set --no-cone '/RK3568/detview_tdm/'"
+        ],
+        [
+          15,
+          "        */main.cpp|*/detview.pro|*/hdmi_view.h|*/hdmi_view_selftest.cpp|*/rknn_api.h) ;;"
+        ],
+        [
+          31,
+          "name = 'RK3568/detview_tdm/README.md'"
+        ],
+        [
+          42,
+          "git -C \"$work\" add -- RK3568/detview_tdm/README.md"
+        ]
+      ]
+    },
+    {
+      "path": "/userdata/linaro/probe_proxy_push.sh",
+      "realpath": "/userdata/linaro/probe_proxy_push.sh",
+      "matches": [
+        [
+          7,
+          "git -C \"$repo\" diff --stat 6879535^ origin/main -- RK3568/detview_tdm"
+        ],
+        [
+          8,
+          "tail -6 /userdata/model_compare_20261004/detview_same_scene/restored_viewer.log"
+        ]
+      ]
+    },
+    {
+      "path": "/userdata/linaro/inspect_current_owner.sh",
+      "realpath": "/userdata/linaro/inspect_current_owner.sh",
+      "matches": [
+        [
+          3,
+          "fuser -v /dev/pango_pci_driver 2>/dev/null || true"
+        ],
+        [
+          4,
+          "ps -eo pid,state,etime,args | grep -E 'detview|board_compare|fixed_scene|camview' | grep -v grep | head -20"
+        ],
+        [
+          5,
+          "lslocks | grep -E 'board_compare|camview' || true"
+        ],
+        [
+          6,
+          "for owner in $(fuser /dev/pango_pci_driver 2>/dev/null); do"
+        ]
+      ]
+    },
+    {
+      "path": "/userdata/linaro/capture_50k_gl2.sh",
+      "realpath": "/userdata/linaro/capture_50k_gl2.sh",
+      "matches": [
+        [
+          3,
+          "current_pid=$(sudo -n fuser /dev/pango_pci_driver 2>/dev/null | tr -s ' ' | sed 's/^ //;s/ $//')"
+        ],
+        [
+          9,
+          "    */detview) ;;"
+        ],
+        [
+          10,
+          "    *) echo 'Device owner is not detview; inspect before screenshot' >&2; exit 1;;"
+        ]
+      ]
+    },
+    {
+      "path": "/userdata/linaro/archive_ready_video.sh",
+      "realpath": "/userdata/linaro/archive_ready_video.sh",
+      "matches": [
+        [
+          8,
+          "source=/userdata/linaro/detview-driving-demo-src"
+        ],
+        [
+          9,
+          "git -C \"$repo\" fetch origin feat/hdmi-driving-demo-20261005 --no-tags"
+        ],
+        [
+          10,
+          "git -C \"$repo\" worktree add --no-checkout -b \"$branch\" \"$work\" origin/feat/hdmi-driving-demo-20261005"
+        ],
+        [
+          11,
+          "git -C \"$work\" sparse-checkout set --no-cone '/RK3568/detview_tdm/'"
+        ],
+        [
+          13,
+          "target=$work/RK3568/detview_tdm"
+        ],
+        [
+          18,
+          "git -C \"$work\" add -- RK3568/detview_tdm"
+        ],
+        [
+          32,
+          "git -C \"$work\" add -f -- RK3568/detview_tdm/evidence/ready_video_20261006"
+        ]
+      ]
+    },
+    {
+      "path": "/userdata/linaro/stage_driving_evidence.sh",
+      "realpath": "/userdata/linaro/stage_driving_evidence.sh",
+      "matches": [
+        [
+          3,
+          "prefix=/userdata/detview_shots/shot_det-yolov8n-zebra-merged-v3-rk3568-raw-dfl6-int8_20261005_"
+        ],
+        [
+          11,
+          "sudo -n cp /userdata/linaro/detview-driving-demo-src/driving_vision_selftest.log \"$base/\""
+        ]
+      ]
+    },
+    {
+      "path": "/userdata/linaro/view_50k_hdmi_live.sh",
+      "realpath": "/userdata/linaro/view_50k_hdmi_live.sh",
+      "matches": [
+        [
+          3,
+          "if sudo -n fuser /dev/pango_pci_driver >/dev/null 2>&1; then"
+        ],
+        [
+          8,
+          "sudo -n sh -c 'nohup env DISPLAY=:0 XAUTHORITY=/var/run/lightdm/root/:0 QT_QPA_PLATFORM=xcb QT_XCB_GL_INTEGRATION=xcb_egl /userdata/linaro/detview-todo-work/build/detview --model wb_v4_combo --fullscreen --no-tracking --shot 8 > /userdata/50k_link_evidence/hdmi_live.log 2>&1 < /dev/null & echo $! > /userdata/50k_link_evidence/hdmi_live.pid'"
+        ]
+      ]
+    },
+    {
+      "path": "/userdata/linaro/prepare_mvp_round1.sh",
+      "realpath": "/userdata/linaro/prepare_mvp_round1.sh",
+      "matches": [
+        [
+          4,
+          "work=/userdata/linaro/detview-mvp-round1-work"
+        ],
+        [
+          7,
+          "sha256sum /userdata/detview-hdmifull/detview-hdmifull /userdata/linaro/detview-hdmifull-src/main.cpp"
+        ],
+        [
+          8,
+          "ps -eo pid,state,args | grep -E 'detview|camview' | grep -v grep || true"
+        ],
+        [
+          9,
+          "fuser /dev/pango_pci_driver 2>/dev/null || true"
+        ]
+      ]
+    },
+    {
+      "path": "/userdata/linaro/sync_mvp_source.sh",
+      "realpath": "/userdata/linaro/sync_mvp_source.sh",
+      "matches": [
+        [
+          3,
+          "old=/userdata/linaro/detview-hdmifull-src"
+        ],
+        [
+          4,
+          "new=/userdata/linaro/detview-mvp-work"
+        ],
+        [
+          8,
+          "for name in main.cpp detview.pro inference_geometry.h inference_geometry_selftest.cpp mvp_decode.h mvp_decode_selftest.cpp README_MVP.md; do"
+        ]
+      ]
+    },
+    {
+      "path": "/userdata/linaro/camera_50k_validation.sh",
+      "realpath": "/userdata/linaro/camera_50k_validation.sh",
+      "matches": [
+        [
+          3,
+          "if sudo -n fuser /dev/pango_pci_driver >/dev/null 2>&1; then"
+        ],
+        [
+          9,
+          "app=/userdata/linaro/detview-todo-work/build/detview"
+        ],
+        [
+          17,
+          "sudo -n find /userdata/detview_shots -maxdepth 1 -type f -mmin -2 -name 'shot_*' -print"
+        ]
+      ]
+    },
+    {
+      "path": "/userdata/linaro/build_mvp_round1.sh",
+      "realpath": "/userdata/linaro/build_mvp_round1.sh",
+      "matches": [
+        [
+          3,
+          "cd /userdata/linaro/detview-mvp-round1-work"
+        ],
+        [
+          4,
+          "qmake detview.pro"
+        ],
+        [
+          7,
+          "    QT_QPA_PLATFORM=offscreen ./detview --\"$test\"-selftest > \"$test.selftest.log\" 2>&1"
+        ],
+        [
+          10,
+          "sha256sum main.cpp detview > candidate_sha256.txt"
+        ]
+      ]
+    },
+    {
+      "path": "/userdata/linaro/finish_ready_road_archive.sh",
+      "realpath": "/userdata/linaro/finish_ready_road_archive.sh",
+      "matches": [
+        [
+          4,
+          "target=$work/RK3568/detview_tdm"
+        ],
+        [
+          5,
+          "cp /userdata/linaro/detview-driving-demo-src/DRIVING_DEMO.md \"$target/DRIVING_DEMO.md\""
+        ],
+        [
+          8,
+          "git -C \"$work\" add -f -- RK3568/detview_tdm/DRIVING_DEMO.md RK3568/detview_tdm/evidence/ready_video_20261006"
+        ]
+      ]
+    },
+    {
+      "path": "/userdata/linaro/archive_full_yolo.sh",
+      "realpath": "/userdata/linaro/archive_full_yolo.sh",
+      "matches": [
+        [
+          3,
+          "source=/userdata/linaro/detview-hdmifull-src"
+        ],
+        [
+          8,
+          "target=$repo/RK3568/detview_tdm"
+        ],
+        [
+          14,
+          "cp \"$source/detview.pro\" \"$source/README.md\" \"$target/\""
+        ],
+        [
+          15,
+          "for file in VISION.md run_detview.sh; do"
+        ],
+        [
+          23,
+          "    sudo -n cat /userdata/detview_shots/shot_det-yolov8n-3cls-wb_v4_combo-rk3568-raw-dfl6-int8_20261004_$stamp.png > \"$target/evidence/hdmi_full_yolo_20261004/$stamp.png\""
+        ],
+        [
+          25,
+          "git -C \"$repo\" add -- RK3568/detview_tdm"
+        ]
+      ]
+    },
+    {
+      "path": "/userdata/linaro/run_50k_hdmifull.sh",
+      "realpath": "/userdata/linaro/run_50k_hdmifull.sh",
+      "matches": [
+        [
+          2,
+          "# 启动 HDMI 满屏版 detview。$1 = prefer 模式（auto|on|off），默认 on。"
+        ],
+        [
+          4,
+          "if sudo -n fuser /dev/pango_pci_driver >/dev/null 2>&1; then"
+        ],
+        [
+          14,
+          "    setsid /userdata/detview-hdmifull/detview-hdmifull \\"
+        ],
+        [
+          19,
+          "sudo -n fuser /dev/pango_pci_driver 2>/dev/null || echo 'not started'"
+        ]
+      ]
+    },
+    {
+      "path": "/userdata/linaro/prepare_mvp_import.sh",
+      "realpath": "/userdata/linaro/prepare_mvp_import.sh",
+      "matches": [
+        [
+          4,
+          "mkdir -p \"$dest\" /root/npu/mvp /userdata/linaro/detview-mvp-work"
+        ],
+        [
+          5,
+          "chown linaro:linaro \"$dest\" /userdata/linaro/detview-mvp-work"
+        ],
+        [
+          7,
+          "sha256sum /userdata/detview-hdmifull/detview-hdmifull /userdata/linaro/detview-hdmifull-src/main.cpp"
+        ],
+        [
+          8,
+          "fuser /dev/pango_pci_driver 2>/dev/null || true"
+        ]
+      ]
+    },
+    {
+      "path": "/userdata/linaro/resume_hdmi_batches.sh",
+      "realpath": "/userdata/linaro/resume_hdmi_batches.sh",
+      "matches": [
+        [
+          25,
+          "name = 'RK3568/detview_tdm/README.md'"
+        ],
+        [
+          36,
+          "git -C \"$work\" add -- RK3568/detview_tdm/README.md"
+        ]
+      ]
+    },
+    {
+      "path": "/userdata/linaro/run_model_trials.sh",
+      "realpath": "/userdata/linaro/run_model_trials.sh",
+      "matches": [
+        [
+          3,
+          "app=/userdata/linaro/detview-mvp-work/detview"
+        ],
+        [
+          9,
+          "if fuser /dev/pango_pci_driver >/dev/null 2>&1; then echo 'Capture now occupied; inspect owner first'; exit 1; fi"
+        ],
+        [
+          13,
+          "    DET_BENCH=1 timeout 120 \"$app\" --model \"$model\" --video /userdata/linaro/detview-video-work/media/VID_20260912_151339_480p30.mp4 --video-loop --fullscreen --no-tracking --shot 20 --duration 35 > \"$out/$model.log\" 2>&1"
+        ],
+        [
+          14,
+          "    find /userdata/detview_shots -maxdepth 1 -type f -name 'shot_*.png' -newer \"$out/$model.started\" -exec cp {} \"$out/\" \\;"
+        ]
+      ]
+    },
+    {
+      "path": "/userdata/linaro/view_50k_hdmi_live2.sh",
+      "realpath": "/userdata/linaro/view_50k_hdmi_live2.sh",
+      "matches": [
+        [
+          3,
+          "if sudo -n fuser /dev/pango_pci_driver >/dev/null 2>&1; then"
+        ],
+        [
+          8,
+          "sudo -n sh -c 'nohup env DISPLAY=:0 XAUTHORITY=/var/run/lightdm/root/:0 QT_QPA_PLATFORM=xcb QT_XCB_GL_INTEGRATION=xcb_egl /userdata/linaro/detview-todo-work/build/detview --model wb_v4_combo --fullscreen --no-tracking --shot 8 > /userdata/50k_link_evidence/hdmi_live.log 2>&1 < /dev/null & echo $! > /userdata/50k_link_evidence/hdmi_live.pid'"
+        ]
+      ]
+    },
+    {
+      "path": "/userdata/linaro/fetch_driving_base.sh",
+      "realpath": "/userdata/linaro/fetch_driving_base.sh",
+      "matches": [
+        [
+          8,
+          "git -C \"$repo\" ls-tree --name-only origin/main RK3568/detview_tdm/driving_demo.h"
+        ],
+        [
+          9,
+          "git -C \"$repo\" show origin/main:RK3568/detview_tdm/main.cpp > /userdata/linaro/driving_remote_main.cpp"
+        ]
+      ]
+    },
+    {
+      "path": "/userdata/linaro/detview-tdm-build-20260928/run_detview.sh",
+      "realpath": "/userdata/linaro/detview-tdm-build-20260928/run_detview.sh",
+      "matches": [
+        [
+          2,
+          "# detview 自愈守护：应用会自己 exit(3)（连续 DMA 失败，或 60 秒没有新帧——"
+        ],
+        [
+          8,
+          "# 用法: sudo setsid bash run_detview.sh --fullscreen --rotate-model a,b"
+        ],
+        [
+          9,
+          "exec 9>/tmp/detview.lock"
+        ],
+        [
+          11,
+          "echo $$ > /tmp/detview_supervisor.pid   # 便于外部用 PID 精确停止（不要用 pkill -f，会误伤调用方）"
+        ],
+        [
+          19,
+          "    ./detview \"$@\""
+        ],
+        [
+          23,
+          "    echo \"[supervisor] detview exited rc=$rc (consecutive=$fails); restart in 3s\" >&2"
+        ],
+        [
+          31,
+          "        rmmod pango_pci_driver 2>/dev/null"
+        ],
+        [
+          36,
+          "        insmod /root/ov5640/pango_pci_driver.ko 2>/dev/null"
+        ],
+        [
+          37,
+          "        ls /dev/pango_pci_driver > /dev/null 2>&1 && echo \"[supervisor] driver reloaded\" >&2"
+        ]
+      ]
+    },
+    {
+      "path": "/userdata/linaro/detview-tdm-build-20260928/bringup.sh",
+      "realpath": "/userdata/linaro/detview-tdm-build-20260928/bringup.sh",
+      "matches": [
+        [
+          3,
+          "#   用法: sudo bash bringup.sh [detview 参数...]"
+        ],
+        [
+          8,
+          "echo \"[1/5] 清理残留 detview 实例...\""
+        ],
+        [
+          9,
+          "pkill -9 -x detview 2>/dev/null"
+        ],
+        [
+          13,
+          "if lsmod | grep -q pango_pci_driver; then"
+        ],
+        [
+          15,
+          "    rmmod pango_pci_driver 2>/dev/null"
+        ],
+        [
+          23,
+          "insmod /root/ov5640/pango_pci_driver.ko 2>/dev/null"
+        ],
+        [
+          25,
+          "if ! ls /dev/pango_pci_driver >/dev/null 2>&1; then"
+        ],
+        [
+          26,
+          "    echo \"FATAL: /dev/pango_pci_driver 未出现（检查 PCIe rescan / 位流是否已固化）\""
+        ],
+        [
+          29,
+          "echo \"  设备就绪: $(ls -l /dev/pango_pci_driver)\""
+        ],
+        [
+          31,
+          "echo \"[3/5] 启动 detview 守护...\""
+        ],
+        [
+          32,
+          "rm -f /tmp/detview.lock /tmp/detview_supervisor.pid"
+        ],
+        [
+          33,
+          "setsid bash ./run_detview.sh \"$@\" > /tmp/detview_watch.log 2>&1 < /dev/null &"
+        ],
+        [
+          35,
+          "echo \"  supervisor=$(cat /tmp/detview_supervisor.pid 2>/dev/null)\""
+        ],
+        [
+          39,
+          "echo \"panes=$(grep -ac '\\[panes\\]' /tmp/detview_watch.log) recover=$(grep -ac '\\[recover\\]' /tmp/detview_watch.log)\""
+        ],
+        [
+          40,
+          "grep -a '\\[panes\\]' /tmp/detview_watch.log | tail -2"
+        ],
+        [
+          42,
+          "echo \"[5/5] 完成。日志: /tmp/detview_watch.log（守护会持续自愈：60s 无新帧或连续 6 次 ioctl 失败自动重启）\""
+        ]
+      ]
+    },
+    {
+      "path": "/userdata/linaro/detview-driving-demo-src/run_driving_demo.sh",
+      "realpath": "/userdata/linaro/detview-driving-demo-src/run_driving_demo.sh",
+      "matches": [
+        [
+          5,
+          "# Optional environment: DETVIEW_DRIVING_APP (absolute executable), DISPLAY,"
+        ],
+        [
+          11,
+          "DEVICE=/dev/pango_pci_driver"
+        ],
+        [
+          13,
+          "APP=${DETVIEW_DRIVING_APP:-/userdata/detview-driving-demo/detview-driving-demo}"
+        ],
+        [
+          30,
+          "say() { printf '[driving-demo] %s\\n' \"$*\"; }"
+        ],
+        [
+          40,
+          "        \"QT_X11_NO_MITSHM=$QT_X11_NO_MITSHM\" \"DETVIEW_DRIVING_APP=$APP\" \\"
+        ],
+        [
+          250,
+          "        \"$APP\" --driving-demo --fullscreen --no-tracking \\"
+        ]
+      ]
+    },
+    {
+      "path": "/userdata/linaro/fpga_v8_viewer_native_build_20261005/build_prepared_viewer.sh",
+      "realpath": "/userdata/linaro/fpga_v8_viewer_native_build_20261005/build_prepared_viewer.sh",
+      "matches": [
+        [
+          13,
+          "# Inherited detview.pro retains c++17/opencv4 and the original RKNN/RGA link flags."
+        ],
+        [
+          14,
+          "\"${QMAKE:-qmake}\" \"$candidate_root/src/detview.pro\" \"TARGET=detview-native-candidate\""
+        ],
+        [
+          16,
+          "sha256sum \"$native_build_dir/detview-native-candidate\""
+        ]
+      ]
+    },
+    {
+      "path": "/userdata/linaro/fpga_v8_viewer_native_build_20261005/qmake_evidence.sh",
+      "realpath": "/userdata/linaro/fpga_v8_viewer_native_build_20261005/qmake_evidence.sh",
+      "matches": [
+        [
+          3,
+          "exec /usr/lib/qt5/bin/qmake \"$@\" -after 'TARGET=detview-native-candidate'"
+        ]
+      ]
+    },
+    {
+      "path": "/userdata/linaro/fpga_v8_viewer_binding_20261005_current_rebuild_02_9af743d7dff0/build_isolated.sh",
+      "realpath": "/userdata/linaro/fpga_v8_viewer_binding_20261005_current_rebuild_02_9af743d7dff0/build_isolated.sh",
+      "matches": [
+        [
+          2,
+          "# Invoked only in the newly created evidence root. Never install or execute detview."
+        ],
+        [
+          4,
+          "if [ -e build_return_code.txt ] || [ -e detview ] || [ -e main.o ]; then"
+        ],
+        [
+          8,
+          "printf '%s\\n' '/usr/lib/qt5/bin/qmake -o Makefile detview.pro' > commands.txt"
+        ],
+        [
+          9,
+          "/usr/lib/qt5/bin/qmake -o Makefile detview.pro > qmake.log 2>&1"
+        ]
+      ]
+    },
+    {
+      "path": "/userdata/linaro/fpga_v8_viewer_binding_20261005/build_isolated.sh",
+      "realpath": "/userdata/linaro/fpga_v8_viewer_binding_20261005/build_isolated.sh",
+      "matches": [
+        [
+          2,
+          "# Invoked only in the newly created evidence root. Never install or execute detview."
+        ],
+        [
+          4,
+          "if [ -e build_return_code.txt ] || [ -e detview ] || [ -e main.o ]; then"
+        ],
+        [
+          8,
+          "printf '%s\\n' '/usr/lib/qt5/bin/qmake -o Makefile detview.pro' > commands.txt"
+        ],
+        [
+          9,
+          "/usr/lib/qt5/bin/qmake -o Makefile detview.pro > qmake.log 2>&1"
+        ]
+      ]
+    },
+    {
+      "path": "/userdata/linaro/fpga_v8_viewer_binding_20261005_native_build_02_2597e95edba5/build_isolated.sh",
+      "realpath": "/userdata/linaro/fpga_v8_viewer_binding_20261005_native_build_02_2597e95edba5/build_isolated.sh",
+      "matches": [
+        [
+          2,
+          "# Invoked only in the newly created evidence root. Never install or execute detview."
+        ],
+        [
+          4,
+          "if [ -e build_return_code.txt ] || [ -e detview ] || [ -e main.o ]; then"
+        ],
+        [
+          8,
+          "printf '%s\\n' '/usr/lib/qt5/bin/qmake -o Makefile detview.pro -after TARGET=detview-native-current-candidate' > commands.txt"
+        ],
+        [
+          9,
+          "/usr/lib/qt5/bin/qmake -o Makefile detview.pro -after TARGET=detview-native-current-candidate > qmake.log 2>&1"
+        ]
+      ]
+    },
+    {
+      "path": "/userdata/model_compare_20261004/board_guard.sh",
+      "realpath": "/userdata/model_compare_20261004/board_guard.sh",
+      "matches": [
+        [
+          58,
+          "viewers={pid for pid,(cmd,ppid,st,start) in processes.items() if cmd.split() and pathlib.Path(cmd.split()[0]).name.startswith('detview')}"
+        ],
+        [
+          69,
+          "                if os.readlink(fd)=='/dev/pango_pci_driver':owners.add(pid)"
+        ],
+        [
+          135,
+          "                if os.readlink(fd)=='/dev/pango_pci_driver':owners.add(int(p.name))"
+        ]
+      ]
+    },
+    {
+      "path": "/etc/xdg/autostart/xscreensaver.desktop",
+      "realpath": "/etc/xdg/autostart/xscreensaver.desktop",
+      "matches": [
+        [
+          125,
+          "Exec=/usr/share/xscreensaver/xscreensaver-wrapper.sh -no-splash"
+        ]
+      ]
+    },
+    {
+      "path": "/etc/xdg/autostart/xfce4-power-manager.desktop",
+      "realpath": "/etc/xdg/autostart/xfce4-power-manager.desktop",
+      "matches": [
+        [
+          125,
+          "Exec=xfce4-power-manager"
+        ]
+      ]
+    },
+    {
+      "path": "/etc/xdg/autostart/light-locker.desktop",
+      "realpath": "/etc/xdg/autostart/light-locker.desktop",
+      "matches": [
+        [
+          61,
+          "Exec=light-locker"
+        ]
+      ]
+    },
+    {
+      "path": "/etc/xdg/autostart/blueman.desktop",
+      "realpath": "/etc/xdg/autostart/blueman.desktop",
+      "matches": [
+        [
+          64,
+          "Exec=blueman-applet"
+        ]
+      ]
+    },
+    {
+      "path": "/etc/xdg/autostart/nm-applet.desktop",
+      "realpath": "/etc/xdg/autostart/nm-applet.desktop",
+      "matches": [
+        [
+          146,
+          "Exec=nm-applet"
+        ]
+      ]
+    },
+    {
+      "path": "/etc/xdg/autostart/xfsettingsd.desktop",
+      "realpath": "/etc/xdg/autostart/xfsettingsd.desktop",
+      "matches": [
+        [
+          110,
+          "Exec=xfsettingsd"
+        ]
+      ]
+    },
+    {
+      "path": "/etc/xdg/autostart/polkit-gnome-authentication-agent-1.desktop",
+      "realpath": "/etc/xdg/autostart/polkit-gnome-authentication-agent-1.desktop",
+      "matches": [
+        [
+          82,
+          "Exec=/usr/lib/policykit-1-gnome/polkit-gnome-authentication-agent-1"
+        ]
+      ]
+    },
+    {
+      "path": "/etc/xdg/autostart/tracker-miner-fs-3.desktop",
+      "realpath": "/etc/xdg/autostart/tracker-miner-fs-3.desktop",
+      "matches": [
+        [
+          4,
+          "Exec=/usr/libexec/tracker-miner-fs-3"
+        ],
+        [
+          8,
+          "X-GNOME-Autostart-enabled=true"
+        ]
+      ]
+    },
+    {
+      "path": "/etc/xdg/autostart/xdg-user-dirs-kde.desktop",
+      "realpath": "/etc/xdg/autostart/xdg-user-dirs-kde.desktop",
+      "matches": [
+        [
+          5,
+          "Exec=xdg-user-dirs-update"
+        ]
+      ]
+    },
+    {
+      "path": "/home/linaro/.config/xfce4/panel/launcher-17/17886976441.desktop",
+      "realpath": "/home/linaro/.config/xfce4/panel/launcher-17/17886976441.desktop",
+      "matches": [
+        [
+          4,
+          "Exec=exo-open --launch TerminalEmulator"
+        ]
+      ]
+    },
+    {
+      "path": "/home/linaro/.config/xfce4/panel/launcher-18/17886976442.desktop",
+      "realpath": "/home/linaro/.config/xfce4/panel/launcher-18/17886976442.desktop",
+      "matches": [
+        [
+          4,
+          "Exec=exo-open --launch FileManager %u"
+        ]
+      ]
+    },
+    {
+      "path": "/home/linaro/.config/xfce4/panel/launcher-19/17886976443.desktop",
+      "realpath": "/home/linaro/.config/xfce4/panel/launcher-19/17886976443.desktop",
+      "matches": [
+        [
+          4,
+          "Exec=exo-open --launch WebBrowser %u"
+        ]
+      ]
+    },
+    {
+      "path": "/home/linaro/.config/xfce4/panel/launcher-20/17886976444.desktop",
+      "realpath": "/home/linaro/.config/xfce4/panel/launcher-20/17886976444.desktop",
+      "matches": [
+        [
+          3,
+          "Exec=xfce4-appfinder"
+        ]
+      ]
+    }
+  ],
+  "scan_errors": [],
+  "qualified_v7_bit": "C:\\Users\\NineSun\\Desktop\\ov56401\\project\\fpga_v8_migration\\whole_candidate_v7_route_01\\bitstream_01\\generate_bitstream\\fpga_v8_cooperative_top_v2_rfg01.sbit",
+  "qualified_v7_bit_sha256": "dfd84258a8db6fa35268d9348b61134efad28eedae0d01925c9a7514c742cf60",
+  "qualified_v7_manifest_sha256": "cf7b255563d1e0d64c5dad0693e4c4e91d25c48efe50b5c83190d7ce89bbbafb",
+  "ssh_helper_sha256": "632aad99cad8dc62ab03d1659af48e75d651b98c9034a870d290bd92ad0d43b3",
+  "refresh03_sha256": "2ef3d187393a574a5dc583bae7661cccb78c6cc1497c9eb741d0e1c04809e13b",
+  "admission_persistently_held": false,
+  "drained_proven": false,
+  "accepted": false
+}

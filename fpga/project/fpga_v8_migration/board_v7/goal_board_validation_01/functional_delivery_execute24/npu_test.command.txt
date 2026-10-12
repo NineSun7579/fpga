@@ -1,0 +1,81 @@
+sudo -n python3 -u - <<'DELIVERY10'
+from pathlib import Path
+assert Path("/proc/sys/kernel/random/boot_id").read_text().strip() == 'a6d0e49a-220a-45e0-bdc0-2723223f91ec'
+
+import ctypes, fcntl, json, mmap, os, signal, struct, time
+
+def _al(s, f):
+    raise TimeoutError('dma alarm')
+signal.signal(signal.SIGALRM, _al)
+
+class O(ctypes.Structure):
+    _fields_ = [('cur', ctypes.c_uint32), ('off', ctypes.c_uint32), ('cmd', ctypes.c_uint32),
+                ('ddr', ctypes.c_uint32), ('ln', ctypes.c_uint32),
+                ('rb', ctypes.c_void_p), ('wb', ctypes.c_void_p)]
+
+def I(n):
+    return 0xC0000000 | (4 << 16) | (0x53 << 8) | n
+
+FD = os.open('/dev/pango_pci_driver', os.O_RDWR | os.O_SYNC)
+for c in (0, 1):
+    o = O(); o.cmd = c; o.ln = 4194304
+    signal.alarm(8); fcntl.ioctl(FD, I(2), o, True); signal.alarm(0)
+RX = mmap.mmap(FD, 4194304, prot=mmap.PROT_READ | mmap.PROT_WRITE, flags=mmap.MAP_SHARED, offset=1048576)
+TX = mmap.mmap(FD, 4194304, prot=mmap.PROT_READ | mmap.PROT_WRITE, flags=mmap.MAP_SHARED, offset=0)
+
+def rd(a):
+    t0 = time.time()
+    try:
+        signal.alarm(8)
+        try:
+            fcntl.ioctl(FD, I(5), o2(a), True)
+        finally:
+            signal.alarm(0)
+        v = struct.unpack('<I', RX[0:4])[0]
+        return dict(ok=True, value=v, ms=round((time.time()-t0)*1000, 3))
+    except Exception as e:
+        return dict(ok=False, error=repr(e), ms=round((time.time()-t0)*1000, 3))
+
+def wr(a, v):
+    t0 = time.time()
+    TX[0:4] = struct.pack('<I', v)
+    try:
+        signal.alarm(8)
+        try:
+            fcntl.ioctl(FD, I(4), o2(a), True)
+        finally:
+            signal.alarm(0)
+        return dict(ok=True, ms=round((time.time()-t0)*1000, 3))
+    except Exception as e:
+        return dict(ok=False, error=repr(e), ms=round((time.time()-t0)*1000, 3))
+
+def o2(a):
+    o = O(); o.off = 0; o.ddr = a; o.ln = 16
+    return o
+
+out = {}
+# 1. NPU register liveness (M02 window)
+out['npu_regs'] = {}
+for a in [0x40000000, 0x40000004, 0x50000000, 0x50000004]:
+    out['npu_regs']['0x%08X' % a] = rd(a)
+# 2. Motion snapshot window (bonus evidence)
+out['motion'] = {}
+for a in [0x20000800, 0x20000804]:
+    out['motion']['0x%08X' % a] = rd(a)
+# 3. Host->DDR bulk write path (weights / input frame / loopback regions)
+out['ddr_write'] = {}
+for a, marker in [(0x02000000, 0xA5A50001), (0x06000000, 0xA5A50002), (0x0B000000, 0xA5A50003)]:
+    key = '0x%08X' % a
+    w = wr(a, marker)
+    rec = dict(write=w)
+    if w['ok']:
+        rec['readback'] = rd(a)
+        rec['match'] = rec['readback'].get('ok') and rec['readback'].get('value') == marker
+    out['ddr_write'][key] = rec
+# 4. Register write readback sanity (PREP window is known-good 16B ops)
+out['reg_write'] = {}
+w = wr(0x20000100, 0)
+out['reg_write']['0x20000100'] = dict(write=w, readback=rd(0x20000100))
+print('NPU_TEST_RESULT ' + json.dumps(out))
+
+DELIVERY10

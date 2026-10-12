@@ -1,0 +1,42 @@
+--- C:\Users\NineSun\Desktop\ov56401\project\fpga_v8_migration\whole_candidate_v5_route_01\rtl\fpga_v8_capture_ov5640_ddr.v
++++ C:\Users\NineSun\Desktop\ov56401\project\fpga_v8_migration\timing_correction_04\rtl\fpga_v8_capture_ov5640_ddr_tc04.v
+@@ -1,7 +1,5 @@
+-// Candidate copy of production ov5640_ddr. The three original w_* modules
+-// are instantiated without modifications. Fixed capture layout; no runtime
+-// address/length configuration. lease_block only extends engine_busy at w_en.
+-module fpga_v8_capture_ov5640_ddr #(
++// Isolated V5 capture wrapper; original w_* engines and public timing retained.
++module fpga_v8_capture_ov5640_ddr_tc04 #(
+     parameter DATA_WIDTH = 16,
+     parameter AXI_DATA_WIDTH = 128,
+     parameter CAM_DATA_LEN = 38400,
+@@ -89,16 +87,26 @@
+             else if (capture_flush) flush_count <= flush_count - 1'b1;
+         end
+     end
++    // Full 32-bit modulo increment. The enable is in each bit's data XOR,
++    // not a shared CE propagated serially through eight register clusters.
++    genvar pb;
++    generate for (pb=0; pb<32; pb=pb+1) begin : g_pixel_count
++        wire carry;
++        if (pb == 0) assign carry = 1'b1;
++        else assign carry = &pixel_count[pb-1:0];
++        always @(posedge axi_clk) begin
++            pixel_count[pb] <= (pixel_count[pb] ^ (capture_open && m_data_valid && carry)) &
++                              !(camera_rst || capture_flush || m_vsync);
++        end
++    end endgenerate
+     always @(posedge axi_clk) begin
+         if (camera_rst || capture_flush) begin
+-            capture_open <= 0; capture_bad <= 0; pixel_count <= 0; pixel_limit <= 0;
++            capture_open <= 0; capture_bad <= 0; pixel_limit <= 0;
+         end else if (m_vsync) begin
+             capture_open <= 1;
+             capture_bad <= cam_data_len == 0;
+-            pixel_count <= 0;
+             pixel_limit <= (cam_data_len * AXI_DATA_WIDTH) / DATA_WIDTH;
+         end else if (capture_open) begin
+-            if (m_data_valid) pixel_count <= pixel_count + 1'b1;
+             if (capture_overflow || (raw_sof && !capture_complete)) capture_bad <= 1;
+         end
+     end

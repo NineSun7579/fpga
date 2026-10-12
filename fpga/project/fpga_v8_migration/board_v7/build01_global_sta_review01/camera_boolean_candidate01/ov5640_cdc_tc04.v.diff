@@ -1,0 +1,25 @@
+--- golden
++++ candidate
+@@ -1,5 +1,5 @@
+ // Isolated TC04 camera candidate. Pixel FIFO and video-domain behavior are TC03.
+-module golden_cdc #(
++module candidate_cdc #(
+     parameter DATA_WIDTH = 24,
+     parameter DEVICE = "PG"
+ ) (
+@@ -63,13 +63,9 @@
+                 if (cam_rst) begin
+                     count_prefix[stat_slice] <= 0;
+                     drop_prefix[stat_slice] <= 0;
+-                end else if (src_frame_start) begin
+-                    // New count is only 0 or 1, so every >=4-bit prefix is false.
+-                    count_prefix[stat_slice] <= 0;
+-                    drop_prefix[stat_slice] <= 0;
+                 end else begin
+-                    count_prefix[stat_slice] <= (&src_count[stat_slice*4-1:1]) && (src_count[0] ^ s_valid);
+-                    drop_prefix[stat_slice] <= (&src_drop[stat_slice*4-1:1]) && (src_drop[0] ^ drop_increment);
++                    count_prefix[stat_slice] <= ((&src_count[stat_slice*4-1:1]) && (src_count[0] ^ s_valid)) & (!s_vsync | src_vs_q);
++                    drop_prefix[stat_slice] <= ((&src_drop[stat_slice*4-1:1]) && (src_drop[0] ^ drop_increment)) & (!s_vsync | src_vs_q);
+                 end
+             end
+         end

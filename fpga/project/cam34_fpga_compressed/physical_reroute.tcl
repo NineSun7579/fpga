@@ -1,0 +1,3 @@
+set_arch -family Logos2 -device PG2L100H -speedgrade -6 -package FBG484
+pnr -input_db_file {D:/race/ov56401/project/cam34_fpga_compressed/project/device_map/top_map.adf} -force_to_run -gplace_seed 4 -groute_seed 1 -slack_prior_in_global_router TRUE -slack_weight 50 -max_ctrl_chain_length 2 -optimize_multi_corner_timing -fix_hold_violation -fix_hold_violation_iterations 500 -fix_hold_violation_threshold_for_clock_path_cross_srb 200 -fix_hold_violation_threshold_for_clk_tree 200 -max_hold_violated_paths_num 15000
+report_timing -input_db_file {D:/race/ov56401/project/cam34_fpga_compressed/project/place_route/top_pnr.adf} -force_to_run -delay_type min_max -nworst 1 -max_path 80 -input_pins TRUE

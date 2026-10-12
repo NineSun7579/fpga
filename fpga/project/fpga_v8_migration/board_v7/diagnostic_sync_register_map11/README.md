@@ -1,0 +1,7 @@
+# 工程元数据显式绑定后的 site-only 映射重试
+
+map10的严格字节复用检查在project.pds处停止；实际diff仅为PDS自动回写的_comment、_timespec、_gci_state及外部换行/空白。未跑映射。
+
+本次map11与map10准备输入完全相同。复用检查将三种明确元数据字段逐项记录于reuse_provenance.json，余下完整s-expression token流须严格相等，包括quoted string、器件、全部源/约束登记、任务选项和产物路径。RTL与clock仍逐字节等同map09真实执行输入，ADF/native DB/graph原hash仍必须相同并重新做语义审计。
+
+actual_final_result的anti_packing_effect_demonstrated改为必须有baseline distinct_cells失败和site全部语义/位置门禁通过，不能把任意baseline语义失败当作packing证据。仍只为twoFF方法，production_gate始终BLOCKED。

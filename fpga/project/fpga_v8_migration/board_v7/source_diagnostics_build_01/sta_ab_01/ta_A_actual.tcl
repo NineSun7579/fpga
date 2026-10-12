@@ -1,0 +1,1 @@
+report_timing -input_db_file {C:/Users/NineSun/Desktop/ov56401/project/fpga_v8_migration/board_v7/source_diagnostics_build_01/sta_ab_01/A_original_inputs/synthesis.adf} -delay_type max -nworst 1 -max_path 10000 -input_pins TRUE -report_exception TRUE -from {{source_diagnostics/cameras[0].source/mailbox[0]/CLK}} -to {{source_diagnostics/cameras[0].source/host_bank[0]/D}}

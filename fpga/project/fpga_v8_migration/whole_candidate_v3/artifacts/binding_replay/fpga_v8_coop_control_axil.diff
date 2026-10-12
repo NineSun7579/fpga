@@ -1,0 +1,39 @@
+--- audited_v2/fpga_v8_coop_control_axil.v
++++ candidate/fpga_v8_coop_control_axil_rfg01.v
+@@ -2,7 +2,7 @@
+ // Isolated candidate, Verilog-2001. All ports use core_clk.
+ // A certified descriptor handshake transfers an EXISTING input lease.
+ // Common reset with the bridge/interconnect is mandatory. See README.md.
+-module fpga_v8_coop_control_axil #(
++module fpga_v8_coop_control_axil_rfg01 #(
+     parameter [31:0] OUTPUT_BANK0_ADDR = 32'h08000000,
+     parameter [31:0] OUTPUT_BANK1_ADDR = 32'h08200000,
+     parameter [31:0] OUTPUT_LENGTH = 32'd1228800,
+@@ -63,7 +63,8 @@
+     output reg [31:0] s_axil_rdata,
+     output reg [1:0] s_axil_rresp,
+     output reg s_axil_rvalid,
+-    input wire s_axil_rready
++    input wire s_axil_rready,
++    input wire session_fault
+ );
+     localparam [1:0] FREE = 2'd0, WRITING = 2'd1,
+                      READY = 2'd2, HOST_READING = 2'd3;
+@@ -146,7 +147,7 @@
+             case (addr)
+                 32'h00: read_register = DEVICE_ID;
+                 32'h04: read_register = {18'd0, bank_state[1], bank_state[0],
+-                    3'd0, (last_error != 0), bridge_busy, src_release_valid,
++                    3'd0, ((last_error != 0) || session_fault), bridge_busy, src_release_valid,
+                     host_valid, ready_exists, cmd_valid, active};
+                 32'h08: read_register = VERSION;
+                 32'h0c: read_register = ready_exists ? {31'd0, oldest_bank} : 32'hffffffff;
+@@ -174,7 +175,7 @@
+                 32'h60: read_register = completed_count;
+                 32'h64: read_register = released_count;
+                 32'h68: read_register = accepted_count;
+-                32'h6c: read_register = last_error;
++                32'h6c: read_register = session_fault ? 32'h52534647 : last_error;
+                 default: read_register = 32'd0;
+             endcase
+         end

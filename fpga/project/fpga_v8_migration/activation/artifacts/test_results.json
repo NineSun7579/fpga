@@ -1,0 +1,291 @@
+{
+  "timestamp_utc": "2026-10-04T17:01:48.124569+00:00",
+  "python": "C:\\Users\\NineSun\\anaconda3\\python.exe",
+  "python_version": "3.12.4 | packaged by Anaconda, Inc. | (main, Jun 18 2024, 15:03:56) [MSC v.1929 64 bit (AMD64)]",
+  "numpy_version": "1.26.4",
+  "modelsim_bin": "C:\\modeltech64_10.6e\\win64",
+  "scope": "isolated activation only; no PDS, board, NPU integration, or calibration",
+  "commands": [
+    {
+      "label": "generator_tests",
+      "argv": [
+        "C:\\Users\\NineSun\\anaconda3\\python.exe",
+        "-m",
+        "unittest",
+        "-v",
+        "test_generate_silu_lut"
+      ],
+      "cwd": "C:\\Users\\NineSun\\Desktop\\ov56401\\project\\fpga_v8_migration\\activation",
+      "returncode": 0,
+      "log": "generator_tests.log"
+    },
+    {
+      "label": "generate_a",
+      "argv": [
+        "C:\\Users\\NineSun\\anaconda3\\python.exe",
+        "C:\\Users\\NineSun\\Desktop\\ov56401\\project\\fpga_v8_migration\\activation\\generate_silu_lut.py",
+        "--input-scale",
+        "0.0625",
+        "--input-zero-point",
+        "128",
+        "--output-scale",
+        "0.03125",
+        "--output-zero-point",
+        "16",
+        "--hex",
+        "C:\\Users\\NineSun\\Desktop\\ov56401\\project\\fpga_v8_migration\\activation\\artifacts\\table_a.hex",
+        "--manifest",
+        "C:\\Users\\NineSun\\Desktop\\ov56401\\project\\fpga_v8_migration\\activation\\artifacts\\table_a.json"
+      ],
+      "cwd": "C:\\Users\\NineSun\\Desktop\\ov56401\\project\\fpga_v8_migration\\activation\\artifacts",
+      "returncode": 0,
+      "log": "generate_a.log"
+    },
+    {
+      "label": "generate_b",
+      "argv": [
+        "C:\\Users\\NineSun\\anaconda3\\python.exe",
+        "C:\\Users\\NineSun\\Desktop\\ov56401\\project\\fpga_v8_migration\\activation\\generate_silu_lut.py",
+        "--input-scale",
+        "0.125",
+        "--input-zero-point",
+        "80",
+        "--output-scale",
+        "0.05",
+        "--output-zero-point",
+        "120",
+        "--hex",
+        "C:\\Users\\NineSun\\Desktop\\ov56401\\project\\fpga_v8_migration\\activation\\artifacts\\table_b.hex",
+        "--manifest",
+        "C:\\Users\\NineSun\\Desktop\\ov56401\\project\\fpga_v8_migration\\activation\\artifacts\\table_b.json"
+      ],
+      "cwd": "C:\\Users\\NineSun\\Desktop\\ov56401\\project\\fpga_v8_migration\\activation\\artifacts",
+      "returncode": 0,
+      "log": "generate_b.log"
+    },
+    {
+      "label": "vlib",
+      "argv": [
+        "C:\\modeltech64_10.6e\\win64\\vlib.exe",
+        "work"
+      ],
+      "cwd": "C:\\Users\\NineSun\\Desktop\\ov56401\\project\\fpga_v8_migration\\activation\\artifacts",
+      "returncode": 0,
+      "log": "vlib.log"
+    },
+    {
+      "label": "vlog",
+      "argv": [
+        "C:\\modeltech64_10.6e\\win64\\vlog.exe",
+        "-work",
+        "work",
+        "C:\\Users\\NineSun\\Desktop\\ov56401\\project\\fpga_v8_migration\\activation\\fpga_v8_activation_lut.v",
+        "C:\\Users\\NineSun\\Desktop\\ov56401\\project\\fpga_v8_migration\\activation\\tb_fpga_v8_activation_lut.v"
+      ],
+      "cwd": "C:\\Users\\NineSun\\Desktop\\ov56401\\project\\fpga_v8_migration\\activation\\artifacts",
+      "returncode": 0,
+      "log": "vlog.log"
+    },
+    {
+      "label": "vsim_lanes_1_seed_20260929",
+      "argv": [
+        "C:\\modeltech64_10.6e\\win64\\vsim.exe",
+        "-c",
+        "-onfinish",
+        "stop",
+        "-gLANES=1",
+        "work.tb_fpga_v8_activation_lut",
+        "+seed=20260929",
+        "-do",
+        "run -all; quit -f"
+      ],
+      "cwd": "C:\\Users\\NineSun\\Desktop\\ov56401\\project\\fpga_v8_migration\\activation\\artifacts",
+      "returncode": 0,
+      "log": "vsim_lanes_1_seed_20260929.log"
+    },
+    {
+      "label": "vsim_lanes_3_seed_17320508",
+      "argv": [
+        "C:\\modeltech64_10.6e\\win64\\vsim.exe",
+        "-c",
+        "-onfinish",
+        "stop",
+        "-gLANES=3",
+        "work.tb_fpga_v8_activation_lut",
+        "+seed=17320508",
+        "-do",
+        "run -all; quit -f"
+      ],
+      "cwd": "C:\\Users\\NineSun\\Desktop\\ov56401\\project\\fpga_v8_migration\\activation\\artifacts",
+      "returncode": 0,
+      "log": "vsim_lanes_3_seed_17320508.log"
+    },
+    {
+      "label": "vsim_lanes_16_seed_31415926",
+      "argv": [
+        "C:\\modeltech64_10.6e\\win64\\vsim.exe",
+        "-c",
+        "-onfinish",
+        "stop",
+        "-gLANES=16",
+        "work.tb_fpga_v8_activation_lut",
+        "+seed=31415926",
+        "-do",
+        "run -all; quit -f"
+      ],
+      "cwd": "C:\\Users\\NineSun\\Desktop\\ov56401\\project\\fpga_v8_migration\\activation\\artifacts",
+      "returncode": 0,
+      "log": "vsim_lanes_16_seed_31415926.log"
+    },
+    {
+      "label": "vsim_lanes_16_seed_27182818",
+      "argv": [
+        "C:\\modeltech64_10.6e\\win64\\vsim.exe",
+        "-c",
+        "-onfinish",
+        "stop",
+        "-gLANES=16",
+        "work.tb_fpga_v8_activation_lut",
+        "+seed=27182818",
+        "-do",
+        "run -all; quit -f"
+      ],
+      "cwd": "C:\\Users\\NineSun\\Desktop\\ov56401\\project\\fpga_v8_migration\\activation\\artifacts",
+      "returncode": 0,
+      "log": "vsim_lanes_16_seed_27182818.log"
+    }
+  ],
+  "source_sha256": {
+    "fpga_v8_activation_lut.v": "c9bd6eeb046f1064f39492d70467e7aacc54279d28a3692f0e39d8284f280470",
+    "generate_silu_lut.py": "26deea92d42d266236182c88035118824d5bc83370ff7009155288199aa79edd",
+    "run_tests.py": "1d54bab73a668683806d6aad425ad1a57f486545d04d59c3097d6e66bbfa5348",
+    "tb_fpga_v8_activation_lut.v": "7717e4324ac0cd06bbadc12ee9c59c00dcd41d8e5a1074446c3d6fe0ecba3abe",
+    "test_generate_silu_lut.py": "4f8b1b12a193f7908069f346f5946f7a580fc9619aeb1bd395b001e4cd7d4a67"
+  },
+  "table_differing_entries": 248,
+  "tables": [
+    {
+      "format": "fpga_v8_activation_lut_affine_u8_v1",
+      "activation": "SiLU: x / (1 + exp(-x))",
+      "calibration_status": "not_calibrated; parameters supplied by caller",
+      "entries": 256,
+      "input_scale": 0.0625,
+      "input_zero_point": 128,
+      "output_scale": 0.03125,
+      "output_zero_point": 16,
+      "rounding": "nearest, ties to even (numpy.rint)",
+      "clipping": "saturate rounded output code to [0, 255]",
+      "lane_byte_order": "lane i occupies bits [8*i +: 8]",
+      "table_sha256": "59dc66023a7894fa46e776b9913603eb6ba7baa5f5b8b245a0da4ea46a3d4a9f",
+      "input_float_range": [
+        -8.0,
+        7.9375
+      ],
+      "silu_float_range": [
+        -0.27837517353163604,
+        7.934666545584388
+      ],
+      "negative_input_count": 128,
+      "negative_silu_count": 128,
+      "clipped_low_count": 0,
+      "clipped_high_count": 8,
+      "unclipped_count": 248,
+      "error_units": "output float units; reconstructed u8 minus float64 SiLU",
+      "all_codes_error": {
+        "max_abs": 0.46591654558438833,
+        "mean_abs": 0.015252055109151489,
+        "rmse": 0.05120335723801144
+      },
+      "unclipped_codes_error": {
+        "max_abs": 0.015624435774123313,
+        "mean_abs": 0.007790988077797331,
+        "rmse": 0.008947360482597375
+      }
+    },
+    {
+      "format": "fpga_v8_activation_lut_affine_u8_v1",
+      "activation": "SiLU: x / (1 + exp(-x))",
+      "calibration_status": "not_calibrated; parameters supplied by caller",
+      "entries": 256,
+      "input_scale": 0.125,
+      "input_zero_point": 80,
+      "output_scale": 0.05,
+      "output_zero_point": 120,
+      "rounding": "nearest, ties to even (numpy.rint)",
+      "clipping": "saturate rounded output code to [0, 255]",
+      "lane_byte_order": "lane i occupies bits [8*i +: 8]",
+      "table_sha256": "797fe1fc4b9e9f0cef2337e73b0c336251cc3beaac36d459d70b2d129d4251f4",
+      "input_float_range": [
+        -10.0,
+        21.875
+      ],
+      "silu_float_range": [
+        -0.27837517353163604,
+        21.874999993085574
+      ],
+      "negative_input_count": 80,
+      "negative_silu_count": 80,
+      "clipped_low_count": 0,
+      "clipped_high_count": 121,
+      "unclipped_count": 135,
+      "error_units": "output float units; reconstructed u8 minus float64 SiLU",
+      "all_codes_error": {
+        "max_abs": 15.124999993085574,
+        "mean_abs": 3.6094880913781195,
+        "rmse": 6.040694814285175
+      },
+      "unclipped_codes_error": {
+        "max_abs": 0.02477645046413637,
+        "mean_abs": 0.010908362896570668,
+        "rmse": 0.013264619418011808
+      }
+    }
+  ],
+  "simulations": [
+    {
+      "lanes": 1,
+      "seed": 20260929,
+      "summary": [
+        "COVERAGE LANES=1 table_a_codes_per_lane=256 min_visits=2 table_b_codes_per_lane=256 min_visits=3 bypass_codes_per_lane=256 min_visits=2",
+        "COUNTERS accepted=2056 received=2054 reset_discarded=2 writes=512 rejected=18 priority_checks=512",
+        "COUNTERS stalls=842 simultaneous_io=1924 one_cycle_checks=2056 last_received=112 reset_cycles=6 cycles=3550",
+        "PASS fpga_v8_activation_lut LANES=1 seed=20260929"
+      ],
+      "log": "vsim_lanes_1_seed_20260929.log"
+    },
+    {
+      "lanes": 3,
+      "seed": 17320508,
+      "summary": [
+        "COVERAGE LANES=3 table_a_codes_per_lane=256 min_visits=2 table_b_codes_per_lane=256 min_visits=3 bypass_codes_per_lane=256 min_visits=2",
+        "COUNTERS accepted=2056 received=2054 reset_discarded=2 writes=512 rejected=18 priority_checks=512",
+        "COUNTERS stalls=851 simultaneous_io=1938 one_cycle_checks=2056 last_received=112 reset_cycles=6 cycles=3545",
+        "PASS fpga_v8_activation_lut LANES=3 seed=17320508"
+      ],
+      "log": "vsim_lanes_3_seed_17320508.log"
+    },
+    {
+      "lanes": 16,
+      "seed": 31415926,
+      "summary": [
+        "COVERAGE LANES=16 table_a_codes_per_lane=256 min_visits=2 table_b_codes_per_lane=256 min_visits=3 bypass_codes_per_lane=256 min_visits=2",
+        "COUNTERS accepted=2056 received=2054 reset_discarded=2 writes=512 rejected=18 priority_checks=512",
+        "COUNTERS stalls=817 simultaneous_io=1912 one_cycle_checks=2056 last_received=112 reset_cycles=6 cycles=3537",
+        "PASS fpga_v8_activation_lut LANES=16 seed=31415926"
+      ],
+      "log": "vsim_lanes_16_seed_31415926.log"
+    },
+    {
+      "lanes": 16,
+      "seed": 27182818,
+      "summary": [
+        "COVERAGE LANES=16 table_a_codes_per_lane=256 min_visits=2 table_b_codes_per_lane=256 min_visits=3 bypass_codes_per_lane=256 min_visits=2",
+        "COUNTERS accepted=2056 received=2054 reset_discarded=2 writes=512 rejected=18 priority_checks=512",
+        "COUNTERS stalls=820 simultaneous_io=1921 one_cycle_checks=2056 last_received=112 reset_cycles=6 cycles=3531",
+        "PASS fpga_v8_activation_lut LANES=16 seed=27182818"
+      ],
+      "log": "vsim_lanes_16_seed_27182818.log"
+    }
+  ],
+  "status": "PASS"
+}

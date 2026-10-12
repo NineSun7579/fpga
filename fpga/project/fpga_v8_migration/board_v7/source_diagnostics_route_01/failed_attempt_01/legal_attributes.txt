@@ -1,0 +1,218 @@
+PDF PAGE 53
+                              第 5 章 Attribute Reference 
+ 
+                   52 / 129             ADS Synthesis User Guide 
+5  Attribute Reference 
+attribute的设置方式有两种，一种是在HDL 源文件中设置，一种是在fdc约
+束文件中设置。fdc 中设置的约束作用在 synthesize 阶段，若要设置的 attribute
+在 compile阶段有效，则需将 attribute设置到 HDL源文件中。 
+其中 ADS已支持的 attribute中只支持在 HDL源文件中设置的 attribute如下： 
+ syn_black_box 
+ syn_looplimit  
+ syn_keep 
+ syn_noprune 
+ syn_preserve 
+用户通过 fdc文件设定 attribute，设定方式如下： 
+define_attribute <ObjectName> <AttributeName> <AttributeValue> 
+用户在 HDL源文件中设定 attribute ，设定方式如下： 
+(Verilog-1995 meta-comments) 
+/*synthesis <AttributeName> = <AttributeValue> */ 
+或者 (Verilog-2001 attribute) 
+(* <AttributeName> = <AttributeValue> *) 
+以下是 ADS 支持的 Synthesis Attributes 及说明。 
+ 
+5.1 syn_allow_retiming 
+用于指定 register是否允许进行 Retiming优化。 
+主要应用于在 Option 中打开全局的 Retiming 优化时，用该属性指定部分寄
+存器不进行 Retiming优化。 
+syn_allow_retiming Values 
+Global Object 
+Yes Register 
+ 
+PDF PAGE 54
+                              第 5 章 Attribute Reference 
+ 
+                   53 / 129             ADS Synthesis User Guide 
+属性值 作用 
+1 允许进行 Retiming优化， 在综合配置选项中开启全局Retiming优化时该
+register可以进行优化。 
+0 不允许进行 Retiming优化， 在综合配置选项中开启全局Retiming优化时
+该 register不进行优化。 
+Syntax Specification 
+FDC file 
+define_attribute {i:instance} syn_allow_retiming {0} 
+全局属性： 
+define_global_attribute  syn_allow_retiming {0} 
+Verilog object /* synthesis syn_allow_retiming = 1 */; 
+Verilog Example 
+  module test (a, rs, out, clk) ; 
+input [15:0] a; 
+input rs; 
+input clk; 
+output out; 
+ 
+reg [15:0] ar; 
+ 
+always @ (posedge clk) 
+begin 
+ar <= a; 
+end 
+ 
+wire t; 
+assign t = |ar; 
+ 
+reg tr /* synthesis syn_allow_retiming = 0 */ ; 
+PDF PAGE 56
+                              第 5 章 Attribute Reference 
+ 
+                   55 / 129             ADS Synthesis User Guide 
+应用了 syn_allow_retiming = 0 即使勾选了 Retiming 选项之后，也不会进行
+retiming优化，如图，该属性主要用于控制局部的寄存器不做 retiming优化。 
+ 
+图 5-2 未进行 Retiming优化 
+ 
+5.2 syn_allowed_resources 
+用于指定工程中允许使用的 DRM 的最大值，当使用的 DRM 资源超过设置
+的限制值后，超出的 inferred ram综合会自动 map到分布式 RAM 或寄存器上，
+实例化的 GTP ram不会受影响。仅支持设置全局属性。 
+ 
+syn_allowed_resources Values 
+ 
+Global Object 
+Yes Top module 
+ 
+属性值 作用 
+blockrams=%d 
+当使用的 DRM 资源超过设置的限制值后，超出的inferred ram综合会自
+动 map到分布式 RAM 或寄存器上  
+Syntax Specification 
+
+PDF PAGE 84
+                              第 5 章 Attribute Reference 
+ 
+                   83 / 129             ADS Synthesis User Guide 
+5.11 syn_keep 
+用于指定需要保留的 net，对带有 syn_keep 属性的 net，通过插入特定的
+keepbuf的方法，综合工具保证 net不会被优化掉，并保持原名称出现在综合结
+果文件中。 
+ syn_keep Values 
+Global Object 
+No Verilog net, port 
+ 
+属性值 作用 
+1 保持该 net 不被优化 
+0 允许该 net 被优化 
+Syntax Specification 
+Verilog object /* synthesis syn_keep= 1 */ 
+Verilog Example 
+  module test(out1, out2, out3, clk, a,b,c); 
+ output out1, out2, out3; 
+ input clk; 
+ input a,b,c; 
+ wire w1 /* synthesis syn_keep=1 */; 
+ wire w2 /* synthesis syn_keep=1 */; 
+ wire w3 ; 
+ reg out1, out2, out3; 
+ assign w1=a&b; 
+ assign w2=a&c; 
+ assign w3=w1&w2; 
+  
+ always @(posedge clk) 
+PDF PAGE 85
+                              第 5 章 Attribute Reference 
+ 
+                   84 / 129             ADS Synthesis User Guide 
+ begin 
+     out3<=w3; 
+ end 
+endmodule 
+如范例中未应用该属性之前综合后的网表中 w1 和 w2 两根 net会被优化， 如
+下图 
+ 
+图 5-19 未应用 syn_keep属性 
+应用了 syn_keep=1综合后的网表中 w1 和 w2 两根 net不会被优化，如下图 
+ 
+图 5-20 应用 syn_keep属性 
+注意：若设置了 syn_keep 属性的 net在设计中没有实际的连接，则即使在
+compile阶段插入了 keepbuf，在 Synthesize阶段还是会被优化。 
+  
+
+PDF PAGE 92
+                              第 5 章 Attribute Reference 
+ 
+                   91 / 129             ADS Synthesis User Guide 
+5.15 syn_preserve 
+ 该属性用于控制是否保留在综合过程中被优化的 sequential (registers).  
+syn_preserve Values 
+Global Object 
+No module, port, register 
+ 
+属性值 作用 
+0 不保留在综合过程中被优化的 registers 
+1 保留在综合过程中被优化的 registers 
+Syntax Specification 
+verilog object /* synthesis syn_preserve = value */; 
+Verilog Example 
+ module syn_preserve_1_reg (out1,out2, data, rst, clk); 
+ output [7:0] out1,out2; 
+ input [7:0] data; 
+ input rst,clk; 
+ 
+ reg [7:0] out1; 
+ reg [7:0] out2 /* synthesis syn_preserve=1 */; 
+ 
+ // create the 8-bit register 
+ always @(posedge clk or negedge rst ) 
+ begin 
+  if (!rst ) begin 
+   out1 <= 8'b0; 
+   out2 <= 8'b0; 
+  end 
+  else begin 
+PDF PAGE 93
+                              第 5 章 Attribute Reference 
+ 
+                   92 / 129             ADS Synthesis User Guide 
+   out1 <= data; 
+   out2 <= data; 
+  end 
+ end 
+  
+ endmodule 
+如范例中未使用该属性前， 综合后的网表中不会保留在综合过程中被优化的
+register(out2[7:0])，如下图 
+ 
+图 5-27 未应用 syn_preserve 属性 
+ 应用了 syn_preserve=1 之后，综合后的网表中保留在综合过程中被优化
+的 register(out2[7:0])，如下图 
+
+PDF PAGE 94
+                              第 5 章 Attribute Reference 
+ 
+                   93 / 129             ADS Synthesis User Guide 
+ 
+图 5-28 应用 syn_preserve 属性 
+5.16 syn_ramstyle 
+ 用于指定 inferred ram 的实现方式。 
+syn_ramstyle Values 
+Global Object 
+Yes module, ram-signal 
+  
+属性值 作用 
+block_ram 指定 inferred RAM可以 map到 DRM 资源 
+lut_ram 指定 inferred RAM可以 map到 Distributed RAM资源 
+registers 指定 inferred RAM可以 map到 Registers 
+no_rw_check 
+Infer RAM 时不插入 bypass逻辑去做读写检查，可能会出现RTL仿真和
+综合后仿真的不一致的情况 
+block_ram,low_power 
+指定 inferred RAM可以 map到 DRM 资源，同时优先匹配 data width,再
+匹配 address 
+注：属性值 select_ram 与 lut_ram等效 
+Syntax Specification 
+fdc file 
+define_global_attribute { syn_ramstyle } {value} 
+define_attribute {object} { syn_ramstyle } { value } 
+verilog object /* synthesis syn_ramstyle ="value" */; 
+Verilog Example 
+  module syn_ramstyle_lut_ram_port ( 

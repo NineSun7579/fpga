@@ -1,0 +1,1012 @@
+`timescale 1ns / 1ps
+//////////////////////////////////////////////////////////////////////////////////
+// Company:Meyesemi
+// Engineer: Will
+//
+// Create Date: 2023-03-17
+// Design Name:
+// Module Name: hdmi_ddr_ov5640_top
+// Project Name: ov5640_sfp480p_test (由 10_HDMI_DDR3_OV5640_test 修改)
+// Target Devices: Pango PGL50H (MES50HP 盘古50K)
+// Description:
+//      双目 OV5640 (640x480@60 RGB565 DVP) 逐行拼接为 1280x480 合成流
+//      -> DDR3 帧缓存 -> 720p30 (1280x720@60, pix_clk=37.125MHz) 读出
+//      -> MS7210 HDMI 输出双摄同屏 (左=CMOS1, 右=CMOS2)。
+//      SFP0 光纤输出链路暂时注释保留 (搜索 "SFP0 光纤输出" 可恢复)。
+// Dependencies:
+//
+// Revision:
+// Revision 3.0 - 光口停用, HDMI 双摄同屏
+//////////////////////////////////////////////////////////////////////////////////
+`define UD #1
+// [SCCB_DIAG] 诊断开关: 配置完成后回读两路 SCCB 的 0x300A(ID高)/0x300B(ID低)/0x4300(输出格式),
+// 并在 HDMI 画面左上角以黑白格显示(白=1,黑=0);每字 8 格从左到右为 bit7..bit0。
+`define SCCB_DIAG
+// [LINE_MARK] 行内位置标记(诊断水平错位/回绕): 行首8像素白, A段末(632-639)红, B段首(640-647)绿, 行尾(1272-1279)蓝
+`define LINE_MARK
+// [SFP_TEST_SRC] SFP 专用码流阶段开关(光口 bring-up, 验证完注释掉本行即恢复并行输出):
+//   定义时: SFP0 送内部测试源 sfp_test_src(不依赖摄像头/DDR), HDMI 输出静默,
+//           B2 LED(hdmi_int_led) 改指示光链路就绪(hsst_link_ready & ~sfp0_los);
+//   注释后: SFP0 送 DDR 读出的双摄流 {vs_o,hs_o,de_o,o_rgb565}, HDMI 恢复正常输出。
+//[SLIM] `define SFP_TEST_SRC
+//两路摄像头同时启用: CMOS1 显示在左半屏, CMOS2 显示在右半屏
+
+// [SLIM Rev3.2 2026-09-29] 为加速编译注释整条 DDR3+HDMI 显示链(fram_buf/sync_vg/
+//   DDR3_50H/ms72xx/HDMI 端口与 fdc 约束), SFP 视频源直连 cam2_merge 输出(125M 域)。
+//   恢复显示链: 取消本文件中 [SLIM Rev3.2] 标记的注释、fdc 同名标记、build.tcl 被删行。
+module hdmi_ddr_ov5640_top#(
+	parameter COLOR_BAR_TEST = 0, // Both OV5640 sensors; normal image by default
+	parameter MEM_ROW_ADDR_WIDTH   = 15         ,
+	parameter MEM_COL_ADDR_WIDTH   = 10         ,
+	parameter MEM_BADDR_WIDTH      = 3          ,
+	parameter MEM_DQ_WIDTH         =  32        ,
+	parameter MEM_DQS_WIDTH        =  32/8
+)(
+	input                                sys_clk              ,//50Mhz
+//OV5647
+    output  [1:0]                        cmos_init_done       ,//OV5640寄存器初始化完成
+    //coms1
+    inout                                cmos1_scl            ,//cmos1 i2c
+    inout                                cmos1_sda            ,//cmos1 i2c
+    input                                cmos1_vsync          ,//cmos1 vsync
+    input                                cmos1_href           ,//cmos1 hsync refrence,data valid
+    input                                cmos1_pclk           ,//cmos1 pxiel clock
+    input   [7:0]                        cmos1_data           ,//cmos1 data
+    output                               cmos1_reset          ,//cmos1 reset
+    //coms2
+    inout                                cmos2_scl            ,//cmos2 i2c
+    inout                                cmos2_sda            ,//cmos2 i2c
+    input                                cmos2_vsync          ,//cmos2 vsync
+    input                                cmos2_href           ,//cmos2 hsync refrence,data valid
+    input                                cmos2_pclk           ,//cmos2 pxiel clock
+    input   [7:0]                        cmos2_data           ,//cmos2 data
+    output                               cmos2_reset          ,//cmos2 reset
+//DDR
+    //[SLIM] output                               mem_rst_n                 ,
+    //[SLIM] output                               mem_ck                    ,
+    //[SLIM] output                               mem_ck_n                  ,
+    //[SLIM] output                               mem_cke                   ,
+    //[SLIM] output                               mem_cs_n                  ,
+    //[SLIM] output                               mem_ras_n                 ,
+    //[SLIM] output                               mem_cas_n                 ,
+    //[SLIM] output                               mem_we_n                  ,
+    //[SLIM] output                               mem_odt                   ,
+    //[SLIM] output      [MEM_ROW_ADDR_WIDTH-1:0] mem_a                     ,
+    //[SLIM] output      [MEM_BADDR_WIDTH-1:0]    mem_ba                    ,
+    //[SLIM] inout       [MEM_DQ_WIDTH/8-1:0]     mem_dqs                   ,
+    //[SLIM] inout       [MEM_DQ_WIDTH/8-1:0]     mem_dqs_n                 ,
+    //[SLIM] inout       [MEM_DQ_WIDTH-1:0]       mem_dq                    ,
+    //[SLIM] output      [MEM_DQ_WIDTH/8-1:0]     mem_dm                    ,
+    output reg                           heart_beat_led            ,
+    //[SLIM] output                               ddr_init_done             ,
+//MS72xx (HDMI 输出)
+    //[SLIM] output                               rstn_out              ,//MS7210 复位(低有效)
+    //[SLIM] output                               iic_tx_scl            ,
+    //[SLIM] inout                                iic_tx_sda            ,
+    output                               hdmi_int_led          ,//HDMI_OUT初始化完成
+//HDMI_OUT
+    //[SLIM] output                               pix_clk               ,//37.125MHz 720p30
+    //[SLIM] output     reg                       vs_out                ,
+    //[SLIM] output     reg                       hs_out                ,
+    //[SLIM] output     reg                       de_out                ,
+    //[SLIM] output     reg[7:0]                  r_out                 ,
+    //[SLIM] output     reg[7:0]                  g_out                 ,
+    //[SLIM] output     reg[7:0]                  b_out                 ,
+//SFP_TEST_SRC 阶段由 hdmi_int_led 复用 B2 指示链路就绪(见文件末尾 assign)。
+    input                                sfp_refckp           ,//125MHz GT参考时钟(专用引脚,无需fdc约束)
+    input                                sfp_refckn           ,
+    input                                sfp0_rxp             ,//SFP0 RX(本设计未用,预留给将来回传)
+    input                                sfp0_rxn             ,
+    output                               sfp0_txp             ,//SFP0 TX 视频输出 (HSST CH2)
+    output                               sfp0_txn             ,
+    input                                sfp1_rxp             ,//SFP1 RX(本设计未用)
+    input                                sfp1_rxn             ,
+    output                               sfp1_txp             ,//SFP1 TX 发空闲码 (HSST CH3)
+    output                               sfp1_txn             ,
+    output                               sfp0_tx_disable      ,//SFP0 发射使能(低有效)
+    input                                sfp0_los              ,//SFP0 光信号丢失指示
+    output                               led_sfp_pll          ,//F8 HSST PLL 锁定
+    output                               led_sfp_ready        ,//F7 PLL锁定且TX lane done
+    output                               led_sfp_rxsync       ,//A5 收到100H对端光且RX PCS同步
+    output                               led_sfp_pcs          ,//A3 [DIAG] lane2 单比特K
+    output                               sfp1_tx_disable      ,//SFP1 发射使能(低有效, F16)
+    input                                key1                 ,//KEY1 按键(K18, 低有效)
+    input                                key2                  //KEY2 按键(L15, 低有效)
+);
+/////////////////////////////////////////////////////////////////////////////////////
+// ENABLE_DDR
+    parameter CTRL_ADDR_WIDTH = MEM_ROW_ADDR_WIDTH + MEM_BADDR_WIDTH + MEM_COL_ADDR_WIDTH;//28
+    parameter TH_1S = 27'd50_000_000;   // [SLIM] sys_clk 50MHz 1s
+/////////////////////////////////////////////////////////////////////////////////////
+    wire                        pix_clk            ;//37.125MHz, 720p30 像素时钟
+    wire                        cfg_clk            ;//10MHz
+    wire                        clk_25M            ;//25MHz, 摄像头配置I2C时钟
+    wire                        locked             ;
+    wire                        core_clk           ;//DDR3 IP 输出时钟
+    wire                        pll_lock           ;
+    wire                        init_done          ;//fram_buf 初始化完成
+    reg  [15:0]                 rstn_1ms = 16'd0            ;
+    wire                        rstn_int            ;//内部上电复位(1ms后释放)
+    wire                        cmos_scl            ;//cmos i2c clock
+    wire                        cmos_sda            ;//cmos i2c data
+    wire                        cmos_vsync          ;//cmos vsync
+    wire                        cmos_href           ;//cmos hsync refrence,data valid
+    wire                        cmos_pclk           ;//cmos pxiel clock
+    wire   [7:0]                cmos_data           ;//cmos data
+    wire                        cmos_reset          ;//cmos reset
+    wire                        initial_en          ;
+    wire[15:0]                  cmos1_d_16bit       ;
+    wire                        cmos1_href_16bit    ;
+    reg [7:0]                   cmos1_d_d0          ;
+    reg                         cmos1_href_d0       ;
+    reg                         cmos1_vsync_d0      ;
+    wire                        cmos1_pclk_16bit    ;
+    wire[15:0]                  cmos2_d_16bit       ;
+    wire                        cmos2_href_16bit    ;
+    reg [7:0]                   cmos2_d_d0          ;
+    reg                         cmos2_href_d0       ;
+    reg                         cmos2_vsync_d0      ;
+    wire                        cmos2_pclk_16bit    ;
+    wire[15:0]                  o_rgb565            ;//帧缓存读出像素(RGB565)
+    wire                        vs_o                ;
+    wire                        hs_o                ;
+    wire                        de_o                ;
+    wire[15:0]                  mrg_c_data          ;//双摄合成流
+    wire                        mrg_c_de            ;
+    wire                        mrg_c_vs            ;
+    wire                        de_re               ;
+    wire [11:0]                 y_act               ;//显示行号(用于只读前480行)
+    wire [11:0]                 x_act               ;//显示列号(诊断叠加用)
+    wire                        cfg1_scl            ;//reg_config 的 I2C 时钟(与诊断探针 AND 后到引脚)
+    wire                        cfg2_scl            ;
+`ifdef SCCB_DIAG
+    wire                        diag1_scl           ;
+    wire                        diag1_sda_low       ;
+    wire                        diag2_scl           ;
+    wire                        diag2_sda_low       ;
+    wire [7:0]                  diag1_id_hi         ;//CMOS1 总线: 0x300A
+    wire [7:0]                  diag1_id_lo         ;//CMOS1 总线: 0x300B
+    wire [7:0]                  diag1_fmt           ;//CMOS1 总线: 0x4300
+    wire [7:0]                  diag2_id_hi         ;//CMOS2 总线
+    wire [7:0]                  diag2_id_lo         ;
+    wire [7:0]                  diag2_fmt           ;
+    wire                        diag1_ackerr        ;//1 = 写阶段未收到从机 ACK
+    wire                        diag2_ackerr        ;
+    wire [2:0]                  diag1_ackerr3       ;
+    wire [2:0]                  diag2_ackerr3       ;
+    wire                        diag1_done          ;
+    wire                        diag2_done          ;
+    wire [2:0]                  diag1_valid3        ;
+    wire [2:0]                  diag2_valid3        ;
+`endif
+    // [DIAG] 读指针基准扫参(fram_buf/rd_buf.rd_base): 每 ~3.6s 换一档,
+    //        8 档 x 64 字 = 0/128/256/.../896 像素的水平补偿; 当前档位显示在叠加第 7 行 bits[6:4]
+    // [FIX] 读出侧水平对齐补偿(实测): 需要 256 字(=512 像素)补偿,
+    //       否则整行水平回绕 512 像素(行首绕到屏右端)。根因待查, 此处按实测值修正。
+    // [FIX] read-base compensation is ZERO: the earlier 512 px wrap came from the old
+    //       cam2_merge line handling and was removed by this round's merge fixes.
+    wire [11:0] rd_base_scan = 12'd0;
+    // [CORR] A-channel correction mode: fixed to identity (outside any macro)
+    wire [3:0] corr_mode_scan = 4'd0;
+//axi bus
+    wire [CTRL_ADDR_WIDTH-1:0]  axi_awaddr                 ;
+    wire                        axi_awuser_ap              ;
+    wire [3:0]                  axi_awuser_id              ;
+    wire [3:0]                  axi_awlen                  ;
+    wire                        axi_awready                ;/*synthesis PAP_MARK_DEBUG="1"*/
+    wire                        axi_awvalid                ;/*synthesis PAP_MARK_DEBUG="1"*/
+    wire [MEM_DQ_WIDTH*8-1:0]   axi_wdata                  ;
+    wire [MEM_DQ_WIDTH*8/8-1:0] axi_wstrb                  ;
+    wire                        axi_wready                 ;/*synthesis PAP_MARK_DEBUG="1"*/
+    wire [3:0]                  axi_wusero_id              ;
+    wire                        axi_wusero_last            ;
+    wire [CTRL_ADDR_WIDTH-1:0]  axi_araddr                 ;
+    wire                        axi_aruser_ap              ;
+    wire [3:0]                  axi_aruser_id              ;
+    wire [3:0]                  axi_arlen                  ;
+    wire                        axi_arready                ;/*synthesis PAP_MARK_DEBUG="1"*/
+    wire                        axi_arvalid                ;/*synthesis PAP_MARK_DEBUG="1"*/
+    wire [MEM_DQ_WIDTH*8-1:0]   axi_rdata                   /* synthesis syn_keep = 1 */;
+    wire                        axi_rvalid                  /* synthesis syn_keep = 1 */;
+    wire [3:0]                  axi_rid                    ;
+    wire                        axi_rlast                  ;
+    reg  [26:0]                 cnt                        ;
+/////////////////////////////////////////////////////////////////////////////////////
+//PLL
+    pll u_pll (
+        .clkin1   (  sys_clk    ),//50MHz
+        .clkout0  (  pix_clk    ),//37.125M 720p30
+        .clkout1  (  cfg_clk    ),//10MHz
+        .clkout2  (  clk_25M    ),//25M
+        .pll_lock (  locked     )
+    );
+
+    // Registered startup request: comparator never drives reset pins directly.
+    reg startup_ready = 1'b0;
+    always @(posedge cfg_clk or negedge locked)
+        if (!locked) startup_ready <= 1'b0;
+        else startup_ready <= (rstn_1ms == 16'h2710);
+
+    always @(posedge cfg_clk or negedge locked)
+    begin
+    	if(!locked)
+    	    rstn_1ms <= 16'd0;
+    	else
+    	begin
+    		if(rstn_1ms == 16'h2710)
+    		    rstn_1ms <= rstn_1ms;
+    		else
+    		    rstn_1ms <= rstn_1ms + 1'b1;
+    	end
+    end
+
+    assign rstn_int  = locked & startup_ready;//上电1ms后释放
+    // Common sys_clk reset: asynchronous assertion, two-edge release.
+    // Keep cfg startup delay and merge reset request in their original domains.
+    (* ASYNC_REG = "TRUE" *) reg [1:0] sys_rst_sync = 2'b00;
+    always @(posedge sys_clk or negedge rstn_int)
+        if (!rstn_int) sys_rst_sync <= 2'b00;
+        else sys_rst_sync <= {sys_rst_sync[0], 1'b1};
+    wire sys_rst_n = sys_rst_sync[1];
+
+    // Local diagnostic reset: async assertion, two clk_25M edges to release.
+    (* ASYNC_REG = "TRUE" *) reg [1:0] diag_rst_sync = 2'b00;
+    always @(posedge clk_25M or negedge rstn_int)
+        if (!rstn_int) diag_rst_sync <= 2'b00;
+        else diag_rst_sync <= {diag_rst_sync[0], 1'b1};
+    wire diag_rst_n = diag_rst_sync[1];
+
+    assign rstn_out  = rstn_int;               //MS7210 复位(兼作内部复位)
+
+//配置CMOS///////////////////////////////////////////////////////////////////////////////////
+//OV5640 register configure enable
+    power_on_delay	power_on_delay_inst(
+    	.clk_50M                 (sys_clk        ),//input
+    	.reset_n                 (sys_rst_n       ),//input
+    	.camera1_rstn            (cmos1_reset    ),//output
+    	.camera2_rstn            (cmos2_reset    ),//output
+    	.camera_pwnd             (               ),//output
+    	.initial_en              (initial_en     ) //output
+    );
+//CMOS1 Camera
+    reg_config #(.COLOR_BAR_TEST(COLOR_BAR_TEST))	coms1_reg_config(
+    	.clk_25M                 (clk_25M            ),//input
+    	.camera_rstn             (cmos1_reset        ),//input
+    	.initial_en              (initial_en         ),//input
+    	.i2c_sclk                (cfg1_scl          ),//output  (与诊断探针 AND 后接 cmos1_scl)
+    	.i2c_sdat                (cmos1_sda          ),//inout
+    	.reg_conf_done           (cmos_init_done_int[0]  ),//output config_finished
+    	.reg_index               (                   ),//output reg [8:0]
+    	.clock_20k               (                   ) //output reg
+    );
+
+//CMOS2 Camera
+    reg_config #(.COLOR_BAR_TEST(COLOR_BAR_TEST))	coms2_reg_config(
+    	.clk_25M                 (clk_25M            ),//input
+    	.camera_rstn             (cmos2_reset        ),//input
+    	.initial_en              (initial_en         ),//input
+    	.i2c_sclk                (cfg2_scl          ),//output  (与诊断探针 AND 后接 cmos2_scl)
+    	.i2c_sdat                (cmos2_sda          ),//inout
+    	.reg_conf_done           (cmos_init_done_int[1]  ),//output config_finished
+    	.reg_index               (                   ),//output reg [8:0]
+    	.clock_20k               (                   ) //output reg
+    );
+
+`ifdef SCCB_DIAG
+    // ---------- SCCB 诊断: 与配置主机共享总线 ----------
+    // SCL: 配置主机的 I2C 时钟与诊断探针的时钟做 AND(两者空闲时都为 1);
+    // SDA: 两者都是开漏(只拉低),直接并联到同一个 inout 焊盘。
+    assign cmos1_scl = cfg1_scl & diag1_scl;
+    assign cmos2_scl = cfg2_scl & diag2_scl;
+    assign cmos1_sda = diag1_sda_low ? 1'b0 : 1'bz;
+    assign cmos2_sda = diag2_sda_low ? 1'b0 : 1'bz;
+
+    sccb_diag #(.CLK_HZ(25_000_000), .SCL_HZ(100_000), .WAIT_MS(20)) u_sccb_diag1 (
+        .clk      ( clk_25M         ),
+        .rst_n    ( diag_rst_n      ),
+        .cfg_done ( cmos_init_done_int[0] ),
+        .id_hi    ( diag1_id_hi     ),
+        .id_lo    ( diag1_id_lo     ),
+        .fmt      ( diag1_fmt       ),
+        .ack_err  ( diag1_ackerr    ),
+        .ack_err3 ( diag1_ackerr3   ),
+        .done     ( diag1_done      ),
+        .valid3   ( diag1_valid3    ),
+        .dev_id   ( 8'h78           ),
+        .sda_in   ( cmos1_sda       ),
+        .sda_low  ( diag1_sda_low   ),
+        .scl      ( diag1_scl       )
+    );
+
+    sccb_diag #(.CLK_HZ(25_000_000), .SCL_HZ(100_000), .WAIT_MS(20)) u_sccb_diag2 (
+        .clk      ( clk_25M         ),
+        .rst_n    ( diag_rst_n      ),
+        .cfg_done ( cmos_init_done_int[1] ),
+        .id_hi    ( diag2_id_hi     ),
+        .id_lo    ( diag2_id_lo     ),
+        .fmt      ( diag2_fmt       ),
+        .ack_err  ( diag2_ackerr    ),
+        .ack_err3 ( diag2_ackerr3   ),
+        .done     ( diag2_done      ),
+        .valid3   ( diag2_valid3    ),
+        .dev_id   ( 8'h78           ),//cmos2 固定 0x78(对照)
+        .sda_in   ( cmos2_sda       ),
+        .sda_low  ( diag2_sda_low   ),
+        .scl      ( diag2_scl       )
+    );
+`else
+    assign cmos1_scl = cfg1_scl;
+    assign cmos2_scl = cfg2_scl;
+`endif
+//CMOS 8bit转16bit///////////////////////////////////////////////////////////////////////////////////
+//CMOS1
+    always@(posedge cmos1_pclk)
+        begin
+            cmos1_d_d0        <= cmos1_data    ;
+            cmos1_href_d0     <= cmos1_href    ;
+            cmos1_vsync_d0    <= cmos1_vsync   ;
+        end
+
+    cmos_8_16bit cmos1_8_16bit(
+    	.pclk           (cmos1_pclk       ),//input
+    	.rst_n          (cmos_init_done_int[0]),//input
+    	.pdata_i        (cmos1_d_d0       ),//input[7:0]
+    	.de_i           (cmos1_href_d0    ),//input
+    	.vs_i           (cmos1_vsync_d0    ),//input
+
+    	.pixel_clk      (cmos1_pclk_16bit ),//output
+    	.pdata_o        (cmos1_d_16bit    ),//output[15:0]
+    	.de_o           (cmos1_href_16bit ) //output
+    );
+//CMOS2
+    always@(posedge cmos2_pclk)
+        begin
+            cmos2_d_d0        <= cmos2_data    ;
+            cmos2_href_d0     <= cmos2_href    ;
+            cmos2_vsync_d0    <= cmos2_vsync   ;
+        end
+
+    cmos_8_16bit cmos2_8_16bit(
+    	.pclk           (cmos2_pclk       ),//input
+    	.rst_n          (cmos_init_done_int[1]),//input
+    	.pdata_i        (cmos2_d_d0       ),//input[7:0]
+    	.de_i           (cmos2_href_d0    ),//input
+    	.vs_i           (cmos2_vsync_d0    ),//input
+
+    	.pixel_clk      (cmos2_pclk_16bit ),//output
+    	.pdata_o        (cmos2_d_16bit    ),//output[15:0]
+    	.de_o           (cmos2_href_16bit ) //output
+    );
+/////////////////////////////////////////////////////////////////////////////////////
+//双目逐行拼接: 左半屏=CMOS1, 右半屏=CMOS2, 合成 1280x480@60 流
+//(RGB565 通道重排在 cam2_merge 内部寄存级完成)
+    wire merge_req_n = rstn_int & (&cmos_init_done_int);
+    reg [1:0] merge_a_sync = 2'b00;
+    reg [1:0] merge_b_sync = 2'b00;
+    reg [1:0] merge_o_sync = 2'b00;
+    always @(posedge cmos1_pclk_16bit or negedge merge_req_n)
+        if (!merge_req_n) merge_a_sync <= 2'b00;
+        else merge_a_sync <= {merge_a_sync[0], 1'b1};
+    always @(posedge cmos2_pclk_16bit or negedge merge_req_n)
+        if (!merge_req_n) merge_b_sync <= 2'b00;
+        else merge_b_sync <= {merge_b_sync[0], 1'b1};
+    always @(posedge mrg_clk or negedge merge_req_n)
+        if (!merge_req_n) merge_o_sync <= 2'b00;
+        else merge_o_sync <= {merge_o_sync[0], 1'b1};
+    cam2_merge #(
+        .LINE_PIX (12'd640),
+        .LINES    (12'd480)
+    ) u_cam2_merge (
+        // [DIAG3] 引脚对调判定: RTL-cmos1 走物理原 cmos2 排针(fdc 已互换 LOC), RTL-cmos2 走原 cmos1 排针。
+        //   左半(V2 实例/时钟)正常 => 问题在原 cmos1 排针/接线; 仍畸变 => 问题在 V1 实例/时钟。
+        .a_clk   (  cmos1_pclk_16bit                    ),//A域 42MHz
+        .a_rst_n (  merge_a_sync[1]                         ),
+        .a_data  (  cmos1_d_16bit                       ),
+        .a_de    (  cmos1_href_16bit                    ),
+        .a_vs    (  cmos1_vsync_d0                      ),
+        .corr_mode ( corr_mode_scan                    ),//[CORR] 第1路颜色校正候选
+        .b_clk   (  cmos2_pclk_16bit                    ),//B域 42MHz
+        .b_rst_n (  merge_b_sync[1]                         ),
+        .b_data  (  cmos2_d_16bit                       ),
+        .b_de    (  cmos2_href_16bit                    ),
+        .b_vs    (  cmos2_vsync_d0                      ),
+        .o_clk   (  mrg_clk                            ),//公共域: [SLIM] clk2core_tx/2 = 62.5M(读出需求~54M)
+        .o_rst_n (  merge_o_sync[1]                     ),// [SLIM] clk2core_tx 域复位(见 SFP 块)
+        .c_data  (  mrg_c_data                          ),
+        .c_de    (  mrg_c_de                            ),
+        .c_vs    (  mrg_c_vs                            )
+    );
+/* [SLIM Rev3.2] fram_buf 写侧 mux + 例化整段注释(DDR 显示链停用)
+// ===== TESTPAT2: DDR 往返测试 —— 内部合成写流(彩条+移动白块),走 fram_buf 原读写通路 =====
+// (已验证 OK, 转回真实摄像头通路)
+//`define TESTPAT2
+`ifdef TESTPAT2
+// 时序:core_clk=100MHz;行周期 3200 拍(有效 1280),每帧 520 行(有效 480)
+//      帧周期 ≈ 60.1Hz;白块 64x64,每帧右移 16 像素(x 到 1216 回绕)
+    reg  [12:0] tp2_x;
+    reg  [9:0]  tp2_y;
+    reg  [7:0]  tp2_barx;   // [FIX] 必须 ≥8bit:原 4'd159 被截断为 15,导致每 16px 进一格
+    reg  [3:0]  tp2_bar;
+    reg  [11:0] tp2_blk;
+    wire        tp2_de    = (tp2_y < 10'd480) && (tp2_x < 13'd1280);
+    wire        tp2_fsync = (tp2_y == 10'd480) && (tp2_x == 13'd0); // [FIX] 帧同步放消隐期,避免与首像素重叠
+
+    always @(posedge core_clk) begin
+        if (!ddr_init_done) begin
+            tp2_x <= 13'd0; tp2_y <= 10'd0; tp2_barx <= 8'd0; tp2_bar <= 4'd0; tp2_blk <= 12'd0;
+        end else if (tp2_x == 13'd3199) begin
+            tp2_x   <= 13'd0;
+            tp2_barx<= 8'd0;
+            tp2_bar <= 4'd0;
+            if (tp2_y == 10'd519) begin
+                tp2_y   <= 10'd0;
+                tp2_blk <= (tp2_blk >= 12'd1216) ? 12'd0 : tp2_blk + 12'd16;
+            end else begin
+                tp2_y <= tp2_y + 10'd1;
+            end
+        end else begin
+            tp2_x <= tp2_x + 13'd1;
+            if (tp2_de) begin
+                if (tp2_barx == 8'd159) begin tp2_barx <= 8'd0; tp2_bar <= tp2_bar + 4'd1; end
+                else                      tp2_barx <= tp2_barx + 8'd1;
+            end
+        end
+    end
+
+    reg [15:0] tp2_bars;
+    always @(*) begin
+        case (tp2_bar)
+            4'd0: tp2_bars = 16'hF800;  // 红
+            4'd1: tp2_bars = 16'h07E0;  // 绿
+            4'd2: tp2_bars = 16'h001F;  // 蓝
+            4'd3: tp2_bars = 16'hFFE0;  // 黄
+            4'd4: tp2_bars = 16'hF81F;  // 品红
+            4'd5: tp2_bars = 16'h07FF;  // 青
+            4'd6: tp2_bars = 16'hFFFF;  // 白
+            default: tp2_bars = 16'h0000;
+        endcase
+    end
+    // X 光斜坡图案(TESTPAT3)已完成使命:证明 DDR 往返映射 1:1 正确,已移除
+    wire tp2_block = (tp2_x >= tp2_blk) && (tp2_x < (tp2_blk + 12'd64)) &&
+                     (tp2_y >= 10'd200) && (tp2_y < 10'd264);
+    wire [15:0] tp2_data = tp2_block ? 16'hFFFF : tp2_bars;
+
+    wire [15:0] wr_data_mux  = tp2_data;
+    wire        wr_en_mux    = tp2_de;
+    wire        wr_fsync_mux = tp2_fsync;
+`else
+    wire [15:0] wr_data_mux  = mrg_c_data;
+    wire        wr_en_mux    = mrg_c_de;
+    wire        wr_fsync_mux = mrg_c_vs;
+`endif
+
+`ifdef LINE_MARK
+    // 行内像素计数(按实际写使能计数, 兼容 TESTPAT2)
+    reg  [11:0] ln_x;
+    always @(posedge core_clk) begin
+        if (!wr_en_mux) ln_x <= 12'd0;
+        else            ln_x <= ln_x + 12'd1;
+    end
+    wire [15:0] mk_data = (ln_x < 12'd8)                          ? 16'hFFFF :  // 白: 行首
+                          ((ln_x >= 12'd632) && (ln_x < 12'd640)) ? 16'hF800 :  // 红: A 段末尾
+                          ((ln_x >= 12'd640) && (ln_x < 12'd648)) ? 16'h07E0 :  // 绿: B 段开头
+                          (ln_x >= 12'd1272)                      ? 16'h001F :  // 蓝: 行尾
+                                                                    wr_data_mux;
+`else
+    wire [15:0] mk_data = wr_data_mux;
+`endif
+
+//修改ddr读写模块v1 (H_NUM=1280: 一行写入左640+右640)
+    fram_buf fram_buf(
+        .ddr_clk        (  core_clk             ),//input                         ddr_clk,
+        .ddr_rstn       (  ddr_init_done        ),//input                         ddr_rstn,
+        //data_in
+.vin_clk        (  core_clk             ),//input  合成流在 core_clk 域,
+        .wr_fsync       (  wr_fsync_mux         ),//input                         wr_fsync,
+        .wr_en          (  wr_en_mux            ),//input                         wr_en,
+        .wr_data        (  mk_data              ),//input  [15 : 0]  wr_data,
+        //data_out
+        .vout_clk       (  pix_clk              ),//input                         vout_clk,
+        .rd_fsync       (  vs_o                 ),//input                         rd_fsync,
+        .rd_en          (  de_re & (y_act < 12'd480) ),//input  只读前480行(双摄高度)
+        .vout_de        (  de_o                 ),//output                        vout_de,
+        .vout_data      (  o_rgb565             ),//output [PIX_WIDTH- 1'b1 : 0]  vout_data,
+        .init_done      (  init_done            ),//output reg                    init_done,
+        .rd_base        (  rd_base_scan         ),//[DIAG] 读指针基准扫参
+        //axi bus
+        .axi_awaddr     (  axi_awaddr           ),// output[27:0]
+        .axi_awid       (  axi_awuser_id        ),// output[3:0]
+        .axi_awlen      (  axi_awlen            ),// output[3:0]
+        .axi_awsize     (                       ),// output[2:0]
+        .axi_awburst    (                       ),// output[1:0]
+        .axi_awready    (  axi_awready          ),// input
+        .axi_awvalid    (  axi_awvalid          ),// output
+        .axi_wdata      (  axi_wdata            ),// output[255:0]
+        .axi_wstrb      (  axi_wstrb            ),// output[31:0]
+        .axi_wlast      (  axi_wusero_last      ),// input
+        .axi_wvalid     (                       ),// output
+        .axi_wready     (  axi_wready           ),// input
+        .axi_bid        (  4'd0                 ),// input[3:0]
+        .axi_araddr     (  axi_araddr           ),// output[27:0]
+        .axi_arid       (  axi_aruser_id        ),// output[3:0]
+        .axi_arlen      (  axi_arlen            ),// output[3:0]
+        .axi_arsize     (                       ),// output[2:0]
+        .axi_arburst    (                       ),// output[1:0]
+        .axi_arvalid    (  axi_arvalid          ),// output
+        .axi_arready    (  axi_arready          ),// input
+        .axi_rready     (                       ),// output
+        .axi_rdata      (  axi_rdata            ),// input[255:0]
+        .axi_rvalid     (  axi_rvalid           ),// input
+        .axi_rlast      (  axi_rlast            ),// input
+        .axi_rid        (  axi_rid              ) // input[3:0]
+    );
+*/
+/////////////////////////////////////////////////////////////////////////////////////
+/* [SLIM Rev3.2] sync_vg 720p30 读出时序注释(SFP 直连 merge, 不再需要)
+//产生vga时序 720p30 (pix_clk=37.125MHz)
+     sync_vg sync_vg(
+        .clk            (  pix_clk              ),//input                   clk,
+        .rstn           (  init_done            ),//input                   rstn,
+        .vs_out         (  vs_o                 ),//output reg              vs_out,
+        .hs_out         (  hs_o                 ),//output reg              hs_out,
+        .de_out         (                       ),//output reg              de_out,
+        .de_re          (  de_re                ),
+        .x_act          (  x_act                ),
+        .y_act          (  y_act                )
+    );
+*/
+/////////////////////////////////////////////////////////////////////////////////////
+// [TESTPAT] 显示链路隔离测试:旁路摄像头/DDR 数据,直接输出彩条(已验证 OK,已停用)
+//`define TESTPAT
+`ifdef TESTPAT
+     reg  [11:0] tp_x;
+     always @(posedge pix_clk) begin
+        if (!de_re) tp_x <= 12'd0;
+        else        tp_x <= tp_x + 12'd1;
+     end
+     wire [2:0]  tp_bar = tp_x[9:7];   // 8 色彩条,每条约 128 像素宽
+     reg  [15:0] tp_rgb;
+     always @(*) begin
+        case (tp_bar)
+            3'd0: tp_rgb = 16'hF800;  // 红
+            3'd1: tp_rgb = 16'h07E0;  // 绿
+            3'd2: tp_rgb = 16'h001F;  // 蓝
+            3'd3: tp_rgb = 16'hFFE0;  // 黄
+            3'd4: tp_rgb = 16'hF81F;  // 品红
+            3'd5: tp_rgb = 16'h07FF;  // 青
+            3'd6: tp_rgb = 16'hFFFF;  // 白
+            default: tp_rgb = 16'h0000;
+        endcase
+     end
+     wire [15:0] tp_out = (y_act < 12'd480) ? tp_rgb : 16'h0000; // 下部 240 行黑
+`endif
+/////////////////////////////////////////////////////////////////////////////////////
+// [SCCB_DIAG] 画面左上角黑白格叠加: 6 行 x 8 格(每格 32x32 像素), 白=1 黑=0
+//   行 0..2 = CMOS1 总线 0x300A / 0x300B / 0x4300
+//   行 3..5 = CMOS2 总线 0x300A / 0x300B / 0x4300
+//   每行从左到右为 bit7..bit0
+`ifdef SCCB_DIAG
+     wire [11:0] ovl_col = x_act[11:5];               // 32 像素/格
+     wire [11:0] ovl_row = y_act[11:5];
+     wire        ovl_on  = (x_act < 12'd256) && (y_act < 12'd256);
+     reg  [7:0]  ovl_byte;
+     always @(*) begin
+         case (ovl_row)
+             12'd0: ovl_byte = diag1_id_hi;
+             12'd1: ovl_byte = diag1_id_lo;
+             12'd2: ovl_byte = diag1_fmt;
+             12'd3: ovl_byte = diag2_id_hi;
+             12'd4: ovl_byte = diag2_id_lo;
+             12'd5: ovl_byte = diag2_fmt;
+             12'd6: ovl_byte = {1'b0, diag1_ackerr3, diag2_ackerr3, 1'b0}; // bits[6:4]=cmos1 ack_err3, bits[3:1]=cmos2
+             12'd7: ovl_byte = {diag1_valid3, diag2_valid3, diag1_done, diag2_done}; // [7:5]c1 valid [4:2]c2 valid [1]done1 [0]done2
+             default: ovl_byte = 8'h00;
+         endcase
+     end
+     wire        ovl_bit = ovl_byte[3'd7 - ovl_col[2:0]];
+     wire [15:0] ovl_pix = ovl_bit ? 16'hFFFF : 16'h0000;
+`endif
+/* [SLIM Rev3.2] HDMI 输出寄存器 + MS7210 配置整段注释
+//HDMI 输出寄存器
+     always@(posedge pix_clk) begin
+`ifdef SFP_TEST_SRC
+        // [SFP] SFP 专用码流阶段: HDMI 输出静默(暂时牺牲 HDMI 显示, 注释掉顶部宏即恢复)
+        r_out<=8'd0;
+        g_out<=8'd0;
+        b_out<=8'd0;
+        vs_out<=1'b0;
+        hs_out<=1'b0;
+        de_out<=1'b0;
+`else
+`ifdef TESTPAT
+        r_out<={tp_out[15:11],3'b0};
+        g_out<={tp_out[10:5],2'b0 };
+        b_out<={tp_out[4:0],3'b0  };
+        vs_out<=vs_o;
+        hs_out<=hs_o;
+        de_out<=de_re;              // [TESTPAT] 完整 720 行 DE
+`else
+`ifdef SCCB_DIAG
+        if (ovl_on) begin
+            r_out<={ovl_pix[15:11],3'b0};
+            g_out<={ovl_pix[10:5],2'b0 };
+            b_out<={ovl_pix[4:0],3'b0  };
+        end
+        else begin
+            r_out<={o_rgb565[15:11],3'b0   };
+            g_out<={o_rgb565[10:5],2'b0    };
+            b_out<={o_rgb565[4:0],3'b0     };
+        end
+`else
+        r_out<={o_rgb565[15:11],3'b0   };
+        g_out<={o_rgb565[10:5],2'b0    };
+        b_out<={o_rgb565[4:0],3'b0     };
+`endif
+        vs_out<=vs_o;
+        de_out<=de_o;   // [USER] no bottom black border: DE stays 480 lines, sink fills screen
+`endif
+`endif
+     end
+//配置7210
+    wire init_over_tx;
+    wire init_over_rx;
+    wire iic_scl;
+    wire iic_sda;
+
+    ms72xx_ctl ms72xx_ctl(
+        .clk             (  cfg_clk        ), //input       clk,
+        .rst_n           (  rstn_out       ), //input       rstn,
+        .init_over_tx    (  init_over_tx   ), //output      init_over,
+        .init_over_rx    (  init_over_rx   ), //output      init_over,
+        .iic_tx_scl      (  iic_tx_scl     ), //output      iic_scl,
+        .iic_tx_sda      (  iic_tx_sda     ), //inout       iic_sda
+        .iic_scl         (  iic_scl        ), //output      iic_scl,
+        .iic_sda         (  iic_sda        )  //inout       iic_sda
+    );
+*/
+// SFP0 光纤输出(已恢复): HSST CH2 5Gbps/8B10B; 码流协议见 sfp_video_tx.v 文件头
+/////////////////////////////////////////////////////////////////////////////////////
+    wire        clk2core_tx      ;
+    wire        hsst_pll_lock    ;
+    wire        hsst_tx_done_2   ;
+    wire [31:0] sfp_tx_d         ;
+    wire [3:0]  sfp_tx_k         ;
+    wire        hsst_link_ready  = hsst_pll_lock & hsst_tx_done_2;
+    // [SLIM Rev3.2] B2 = SFP 链路就绪指示(PLL+TX done+收到对端光)
+    // [DIAG Rev4.0] B2 / TX_DIS / 各诊断灯 统一在下方 Rev4.0 块里赋值
+
+    //---------------------------------------------------------------------
+    // SFP 调试LED面板 (Rev3.1): sys_clk 域 2FF 同步, 三级递进定位故障
+    //   led_sfp_pll    (F8): HSST PLL 锁定(参考时钟/PLL 正常)
+    //   led_sfp_ready  (F7): PLL & TX lane done(本端发送链就绪)
+    //   led_sfp_rxsync (A5): ~LOS & RX PCS synced(收到 100H idle, 双向确认)
+    //---------------------------------------------------------------------
+    wire       sfp_rx_sigdet;
+    wire       sfp_rx_pcs_synced;
+    wire       sfp_rx_cdr_align;    // [DIAG] RX CDR align
+    wire       sfp_rx_rxlane_done;  // [DIAG] RX lane reset done
+    wire [1:0] cmos_init_done_int;  // 原 cmos_init_done 内部网(端口改作诊断灯)
+    reg  [1:0] sfp_los_sync, sfp_synced_sync, sfp_pll_sync, sfp_ready_sync;
+    reg  [1:0] sfp_det_sync, sfp_cdr_sync, sfp_rxlane_sync;   // [DIAG] 分级观测
+    always @(posedge sys_clk or negedge sys_rst_n) begin
+        if (!sys_rst_n) begin
+            sfp_los_sync     <= 2'b11;
+            sfp_synced_sync  <= 2'b00;
+            sfp_pll_sync     <= 2'b00;
+            sfp_ready_sync   <= 2'b00;
+            sfp_det_sync     <= 2'b00;
+            sfp_cdr_sync     <= 2'b00;
+            sfp_rxlane_sync  <= 2'b00;
+        end
+        else begin
+            sfp_los_sync     <= {sfp_los_sync[0],    sfp0_los};
+            sfp_synced_sync  <= {sfp_synced_sync[0], sfp_rx_pcs_synced};
+            sfp_pll_sync     <= {sfp_pll_sync[0],    hsst_pll_lock};
+            sfp_ready_sync   <= {sfp_ready_sync[0],  hsst_link_ready};
+            sfp_det_sync     <= {sfp_det_sync[0],    sfp_rx_sigdet};
+            sfp_cdr_sync     <= {sfp_cdr_sync[0],    sfp_rx_cdr_align};
+            sfp_rxlane_sync  <= {sfp_rxlane_sync[0], sfp_rx_rxlane_done};
+        end
+    end
+    // ===== [DIAG Rev4.2] 双光口双向互测 (SFP0=CH2/lane2, SFP1=CH3/lane3) =====
+    //  KEY1(K18)按下 -> MODE_A: SFP0 发 / SFP1 收   (SFP1 TX_DIS 拉高=禁发)
+    //  KEY2(L15)按下 -> MODE_B: SFP0 收 / SFP1 发   (SFP0 TX_DIS 拉高=禁发)
+    //  两条 lane TX 数据相同; 谁发光由 TX_DIS 决定
+    //  TX 字 = {8'h55, diag_cnt, 8'h28, 8'hBC}, 线上 byte0=0xBC(K) 先发
+    //     -> 对齐后 rxd[7:0]=0xBC, rxd[15:8]=0x28, rxd[23:16]=cnt, rxd[31:24]=0x55
+    //  LED1 B2 = lane3(SFP1) 收到且三锚点对齐(实时) <- 默认/KEY1 应亮
+    //  LED2 A2 = lane3 sigdet (SFP1 侧有光)
+    //  LED3 B3 = lane2(SFP0) 收到且三锚点对齐(实时) <- 按 KEY2 应亮
+    //  LED4 A3 = lane2 sigdet (SFP0 侧有光)
+    //  LED5 C5 = lane2 RX 码字有解码/差异错误
+    //  LED6 A5 = lane3 RX 码字有解码/差异错误
+    //  LED7 F7 = PLL & TX lane2 done & TX lane3 done
+    //  LED8 F8 = PLL lock
+    wire [31:0] sfp_rx_d2, sfp_rx_d3;
+    wire [3:0]  sfp_rx_k2, sfp_rx_k3;
+    wire [3:0]  sfp_rx_disp2, sfp_rx_dec2, sfp_rx_disp3, sfp_rx_dec3;
+    wire        sfp_rx_sigdet3, sfp_rx_cdr_align3, sfp_rx_pcs_synced3, sfp_rx_rxlane_done3;
+    wire        hsst_tx_done_3;
+
+//[Rev4.2 注释]     reg [1:0] sfp_tx3_sync;
+//[Rev4.2 注释]     always @(posedge sys_clk or negedge rstn_int) begin
+//[Rev4.2 注释]         if (!rstn_int) sfp_tx3_sync <= 2'b00;
+//[Rev4.2 注释]         else           sfp_tx3_sync <= {sfp_tx3_sync[0], hsst_tx_done_3};
+//[Rev4.2 注释]     end
+//[Rev4.2 注释] 
+//[Rev4.2 注释]     reg  [2:0] key1_sync, key2_sync;
+//[Rev4.2 注释]     always @(posedge sys_clk or negedge rstn_int) begin
+//[Rev4.2 注释]         if (!rstn_int) begin key1_sync <= 3'b111; key2_sync <= 3'b111; end
+//[Rev4.2 注释]         else begin
+//[Rev4.2 注释]             key1_sync <= {key1_sync[1:0], key1};
+//[Rev4.2 注释]             key2_sync <= {key2_sync[1:0], key2};
+//[Rev4.2 注释]         end
+//[Rev4.2 注释]     end
+//[Rev4.2 注释]     wire dbg_k1    = ~key1_sync[2];
+//[Rev4.2 注释]     wire dbg_k2    = ~key2_sync[2];
+//[Rev4.2 注释]     wire dbg_modeb = dbg_k2 & ~dbg_k1;        // 1 = MODE_B
+//[Rev4.2 注释]     assign sfp0_tx_disable =  dbg_modeb;      // 高 = 禁止发射(本板实测该脚无效,仅保留)
+//[Rev4.2 注释]     assign sfp1_tx_disable = ~dbg_modeb;
+//[Rev4.2 注释]     // [Rev4.2] 方向实验: 只让"发送方"那一条 lane 发诊断码流, 另一条发全0
+//[Rev4.2 注释]     //   MODE_A(默认/KEY1): lane2(SFP0) 发码流, lane3(SFP1) 发0 -> 只有 lane3 能收到
+//[Rev4.2 注释]     //   MODE_B(KEY2)     : lane3(SFP1) 发码流, lane2(SFP0) 发0 -> 只有 lane2 能收到
+//[Rev4.2 注释]     wire [31:0] tx_d_l2 = dbg_modeb ? 32'h0 : sfp_tx_d;
+//[Rev4.2 注释]     wire [31:0] tx_d_l3 = dbg_modeb ? sfp_tx_d : 32'h0;
+//[Rev4.2 注释]     wire [3:0]  tx_k_l2 = dbg_modeb ? 4'h0  : sfp_tx_k;
+//[Rev4.2 注释]     wire [3:0]  tx_k_l3 = dbg_modeb ? sfp_tx_k : 4'h0;
+//[Rev4.2 注释] 
+//[Rev4.2 注释]     // 自校准: 每字都带 K28.5(0xBC) 逗号 -> 把 K 旋到 byte0 即恢复正确字
+//[Rev4.2 注释]     function [31:0] rotl32; input [31:0] d; input [1:0] n;
+//[Rev4.2 注释]         begin case (n)
+//[Rev4.2 注释]             2'd1: rotl32 = {d[23:0], d[31:24]};
+//[Rev4.2 注释]             2'd2: rotl32 = {d[15:0], d[31:16]};
+//[Rev4.2 注释]             2'd3: rotl32 = {d[7:0],  d[31:8]};
+//[Rev4.2 注释]             default: rotl32 = d;
+//[Rev4.2 注释]         endcase end
+//[Rev4.2 注释]     endfunction
+//[Rev4.2 注释]     wire [1:0] kp2 = sfp_rx_k2[3] ? 2'd3 : sfp_rx_k2[2] ? 2'd2 : sfp_rx_k2[1] ? 2'd1 : 2'd0;
+//[Rev4.2 注释]     wire [1:0] kp3 = sfp_rx_k3[3] ? 2'd3 : sfp_rx_k3[2] ? 2'd2 : sfp_rx_k3[1] ? 2'd1 : 2'd0;
+//[Rev4.2 注释]     wire khot2 = (sfp_rx_k2 == 4'b0001) || (sfp_rx_k2 == 4'b0010) ||
+//[Rev4.2 注释]                  (sfp_rx_k2 == 4'b0100) || (sfp_rx_k2 == 4'b1000);
+//[Rev4.2 注释]     wire khot3 = (sfp_rx_k3 == 4'b0001) || (sfp_rx_k3 == 4'b0010) ||
+//[Rev4.2 注释]                  (sfp_rx_k3 == 4'b0100) || (sfp_rx_k3 == 4'b1000);
+//[Rev4.2 注释]     wire [31:0] al2 = rotl32(sfp_rx_d2, 2'b00 - kp2);
+//[Rev4.2 注释]     wire [31:0] al3 = rotl32(sfp_rx_d3, 2'b00 - kp3);
+//[Rev4.2 注释]     // Rev4.1 锚点修正: 0x28 在 bits[15:8]; bits[23:16] 是计数字节(Rev4.0 误当成 0x28)
+//[Rev4.2 注释]     wire al_ok2 = khot2 && (al2[7:0] == 8'hBC) && (al2[15:8] == 8'h28) && (al2[31:24] == 8'h55);
+//[Rev4.2 注释]     wire al_ok3 = khot3 && (al3[7:0] == 8'hBC) && (al3[15:8] == 8'h28) && (al3[31:24] == 8'h55);
+//[Rev4.2 注释] 
+//[Rev4.2 注释]     // RX 码字错误(粘滞): 8B10B 解码错 或 差异错
+//[Rev4.2 注释]     wire err2 = (sfp_rx_dec2  != 4'd0) || (sfp_rx_disp2 != 4'd0);
+//[Rev4.2 注释]     wire err3 = (sfp_rx_dec3  != 4'd0) || (sfp_rx_disp3 != 4'd0);
+//[Rev4.2 注释] 
+//[Rev4.2 注释]     // [Rev4.2] LED1~4 用实时电平(2FF 同步), 便于按键切换时立刻观察
+//[Rev4.2 注释]     reg [1:0] lv_ok2, lv_ok3, lv_det2, lv_det3;
+//[Rev4.2 注释]     always @(posedge sys_clk or negedge rstn_int) begin
+//[Rev4.2 注释]         if (!rstn_int) begin lv_ok2 <= 2'b00; lv_ok3 <= 2'b00; lv_det2 <= 2'b00; lv_det3 <= 2'b00; end
+//[Rev4.2 注释]         else begin
+//[Rev4.2 注释]             lv_ok2  <= {lv_ok2[0],  al_ok2};
+//[Rev4.2 注释]             lv_ok3  <= {lv_ok3[0],  al_ok3};
+//[Rev4.2 注释]             lv_det2 <= {lv_det2[0], sfp_rx_sigdet};
+//[Rev4.2 注释]             lv_det3 <= {lv_det3[0], sfp_rx_sigdet3};
+//[Rev4.2 注释]         end
+//[Rev4.2 注释]     end
+//[Rev4.2 注释] 
+//[Rev4.2 注释]     reg [1:0] s_err2, s_err3;   // 粘滞: 码字错误
+//[Rev4.2 注释]     always @(posedge sys_clk or negedge rstn_int) begin
+//[Rev4.2 注释]         if (!rstn_int) begin
+//[Rev4.2 注释]             s_err2 <= 2'b00; s_err3 <= 2'b00;
+//[Rev4.2 注释]         end else begin
+//[Rev4.2 注释]             s_err2 <= {s_err2[0], err2};
+//[Rev4.2 注释]             s_err3 <= {s_err3[0], err3};
+//[Rev4.2 注释]         end
+//[Rev4.2 注释]     end
+//[Rev4.2 注释] 
+//[Rev4.2 注释]     assign hdmi_int_led      = lv_ok3[1];                     // B2 = LED1 lane3 收到(实时)
+//[Rev4.2 注释]     assign cmos_init_done[1] = lv_det3[1];                    // A2 = LED2 SFP1 有光(实时)
+//[Rev4.2 注释]     assign cmos_init_done[0] = lv_ok2[1];                     // B3 = LED3 lane2 收到(实时)
+//[Rev4.2 注释]     assign led_sfp_pcs       = lv_det2[1];                    // A3 = LED4 SFP0 有光(实时)
+//[Rev4.2 注释]     assign led_sfp_rxsync    = s_err3[1];                     // A5 = LED6 lane3 码字错误
+//[Rev4.2 注释]     assign led_sfp_pll       = sfp_pll_sync[1];               // F8 = LED8
+//[Rev4.2 注释]     assign led_sfp_ready     = sfp_ready_sync[1] & sfp_tx3_sync[1];  // F7 = LED7
+    // ===== [Rev4.3 2026-09-29] SFP1/key 实验已注释, 恢复纯视频固件 =====
+    //  CH2(SFP0) 恒发双摄合成视频 -> 100H SFP1(QR3 CH2, D5/C5/D11/C11) 六路显示
+    //  CH3(SFP1) 发原版 idle 有序集, TX_DIS 拉高禁止发射("把 sfp1 注释")
+    assign sfp0_tx_disable = 1'b0;
+    assign sfp1_tx_disable = 1'b1;          // [Rev4.3] SFP1 发射禁止
+    wire [31:0] tx_d_l2 = sfp_tx_d;
+    wire [3:0]  tx_k_l2 = sfp_tx_k;
+    wire [31:0] tx_d_l3 = 32'hBC0028BC;     // [Rev4.3] CH3 原版 idle
+    wire [3:0]  tx_k_l3 = 4'b1001;
+
+    // LED 恢复视频语义(沿用上方 2FF 同步寄存器):
+    //  LED1 B2 = SFP0 链路就绪(PLL+TX done+~LOS)
+    //  LED2 A2 = CMOS2 配置完成   LED3 B3 = CMOS1 配置完成
+    //  LED4 A3 = SFP0 侧有光(sigdet)
+    //  LED6 A5 = lane2 收到 100H 对端(pcs synced & ~LOS)
+    assign hdmi_int_led      = sfp_ready_sync[1] & ~sfp_los_sync[1];
+    assign cmos_init_done[1] = cmos_init_done_int[1];
+    assign cmos_init_done[0] = cmos_init_done_int[0];
+    assign led_sfp_pcs       = sfp_det_sync[1];
+    assign led_sfp_rxsync    = sfp_synced_sync[1] & ~sfp_los_sync[1];
+    assign led_sfp_pll       = sfp_pll_sync[1];
+    assign led_sfp_ready     = sfp_ready_sync[1];
+
+    // [SLIM Rev3.2b] merge 读侧按 100M 设计, 125M 直连有 -0.97ns 域内违例;
+    // clk2core_tx 二分频得 mrg_clk 62.5M (读出需求 ~54M, 裕量足)
+    reg mrg_clk = 1'b0;
+    always @(negedge clk2core_tx)
+        mrg_clk <= ~mrg_clk;
+    reg [1:0] fab_rst_sync = 2'b00;
+    always @(posedge clk2core_tx)
+        fab_rst_sync <= {fab_rst_sync[0], rstn_int};
+    wire fab_rst_n = fab_rst_sync[1];
+
+    // [SLIM Rev3.2] SFP 视频源直连 cam2_merge 输出(clk2core_tx 125M 域, hs=0:
+    // 协议中 hs 仅为电平转发, 100H 侧按帧首计数拆列不依赖 hs; DDR 显示链已注释)
+    wire [18:0] sfp_vid_data;
+    assign sfp_vid_data = {mrg_c_vs, 1'b0, mrg_c_de, mrg_c_data};
+
+    sfp_video_tx u_sfp_video_tx(
+        .vid_clk    (  mrg_clk           ),   // [SLIM] 与 merge o_clk 同域(62.5M)
+        .vid_rst_n  (  fab_rst_n         ),
+        .vid_data   (  sfp_vid_data      ),
+        .fab_clk    (  clk2core_tx       ),
+        .fab_rst_n  (  fab_rst_n         ),
+        .link_ready (  hsst_link_ready   ),
+        .txd        (  sfp_tx_d          ),
+        .txk        (  sfp_tx_k          )
+    );
+
+    hsst_test u_hsst(
+        .i_free_clk          (  sys_clk        ),
+        .i_p_refckp_0        (  sfp_refckp     ),
+        .i_p_refckn_0        (  sfp_refckn     ),
+        .i_wtchdg_clr_0      (  ~sys_rst_n     ),
+        .o_wtchdg_st_0       (                 ),
+        .o_pll_done_0        (                 ),
+        .o_txlane_done_2     (  hsst_tx_done_2 ),
+        .o_txlane_done_3     (  hsst_tx_done_3 ),
+        .o_rxlane_done_2(  sfp_rx_rxlane_done ),
+        .o_rxlane_done_3      (  sfp_rx_rxlane_done3 ),
+        .o_p_clk2core_tx_2   (  clk2core_tx    ),
+        .i_p_tx2_clk_fr_core (  clk2core_tx    ),
+        .i_p_tx3_clk_fr_core (  clk2core_tx    ),
+        .i_p_rx2_clk_fr_core (  clk2core_tx    ),
+        .i_p_rx3_clk_fr_core (  clk2core_tx    ),
+        .o_p_pll_lock_0      (  hsst_pll_lock  ),
+        .o_p_rx_sigdet_sta_2 (  sfp_rx_sigdet     ),
+        .o_p_rx_sigdet_sta_3  (  sfp_rx_sigdet3  ),
+        .o_p_lx_cdr_align_2(  sfp_rx_cdr_align  ),
+        .o_p_lx_cdr_align_3   (  sfp_rx_cdr_align3 ),
+        .o_p_pcs_lsm_synced_2(  sfp_rx_pcs_synced ),
+        .o_p_pcs_lsm_synced_3 (  sfp_rx_pcs_synced3 ),
+        .i_p_l2rxn           (  sfp0_rxn       ),
+        .i_p_l2rxp           (  sfp0_rxp       ),
+        .i_p_l3rxn           (  sfp1_rxn       ),
+        .i_p_l3rxp           (  sfp1_rxp       ),
+        .o_p_l2txn           (  sfp0_txn       ),
+        .o_p_l2txp           (  sfp0_txp       ),
+        .o_p_l3txn           (  sfp1_txn       ),
+        .o_p_l3txp           (  sfp1_txp       ),
+        .i_txd_2             (  tx_d_l2        ),
+        .i_tdispsel_2        (  4'b0           ),
+        .i_tdispctrl_2       (  4'b0           ),
+        .i_txk_2             (  tx_k_l2        ),
+        .i_txd_3             (  tx_d_l3        ),
+        .i_tdispsel_3        (  4'b0           ),
+        .i_tdispctrl_3       (  4'b0           ),
+        .i_txk_3             (  tx_k_l3        ),
+        .o_rxstatus_2        (                 ),
+        .o_rxd_2             (  sfp_rx_d2     ),
+        .o_rdisper_2         (  sfp_rx_disp2   ),
+        .o_rdecer_2          (  sfp_rx_dec2    ),
+        .o_rxk_2             (  sfp_rx_k2     ),
+        .o_rxstatus_3        (                 ),
+        .o_rxd_3              (  sfp_rx_d3      ),
+        .o_rdisper_3         (  sfp_rx_disp3   ),
+        .o_rdecer_3          (  sfp_rx_dec3    ),
+        .o_rxk_3              (  sfp_rx_k3      ),
+        .i_pll_rst_0         (  ~sys_rst_n     )
+    );
+// SFP0 光纤输出 结束
+
+/////////////////////////////////////////////////////////////////////////////////////
+//ddr
+/* [SLIM Rev3.2] DDR3_50H IP 例化整段注释
+
+        DDR3_50H u_DDR3_50H (
+             .ref_clk                   (sys_clk            ),
+             .resetn                    (rstn_int           ),// input
+             .ddr_init_done             (ddr_init_done      ),// output
+             .ddrphy_clkin              (core_clk           ),// output
+             .pll_lock                  (pll_lock           ),// output
+
+             .axi_awaddr                (axi_awaddr         ),// input [27:0]
+             .axi_awuser_ap             (1'b0               ),// input
+             .axi_awuser_id             (axi_awuser_id      ),// input [3:0]
+             .axi_awlen                 (axi_awlen          ),// input [3:0]
+             .axi_awready               (axi_awready        ),// output
+             .axi_awvalid               (axi_awvalid        ),// input
+             .axi_wdata                 (axi_wdata          ),
+             .axi_wstrb                 (axi_wstrb          ),// input [31:0]
+             .axi_wready                (axi_wready         ),// output
+             .axi_wusero_id             (                   ),// output [3:0]
+             .axi_wusero_last           (axi_wusero_last    ),// output
+             .axi_araddr                (axi_araddr         ),// input [27:0]
+             .axi_aruser_ap             (1'b0               ),// input
+             .axi_aruser_id             (axi_aruser_id      ),// input [3:0]
+             .axi_arlen                 (axi_arlen          ),// input [3:0]
+             .axi_arready               (axi_arready        ),// output
+             .axi_arvalid               (axi_arvalid        ),// input
+             .axi_rdata                 (axi_rdata          ),// output [255:0]
+             .axi_rid                   (axi_rid            ),// output [3:0]
+             .axi_rlast                 (axi_rlast          ),// output
+             .axi_rvalid                (axi_rvalid         ),// output
+
+             .apb_clk                   (1'b0               ),// input
+             .apb_rst_n                 (1'b1               ),// input
+             .apb_sel                   (1'b0               ),// input
+             .apb_enable                (1'b0               ),// input
+             .apb_addr                  (8'b0               ),// input [7:0]
+             .apb_write                 (1'b0               ),// input
+             .apb_ready                 (                   ), // output
+             .apb_wdata                 (16'b0              ),// input [15:0]
+             .apb_rdata                 (                   ),// output [15:0]
+             .apb_int                   (                   ),// output
+
+             .mem_rst_n                 (mem_rst_n          ),// output
+             .mem_ck                    (mem_ck             ),// output
+             .mem_ck_n                  (mem_ck_n           ),// output
+             .mem_cke                   (mem_cke            ),// output
+             .mem_cs_n                  (mem_cs_n           ),// output
+             .mem_ras_n                 (mem_ras_n          ),// output
+             .mem_cas_n                 (mem_cas_n          ),// output
+             .mem_we_n                  (mem_we_n           ),// output
+             .mem_odt                   (mem_odt            ),// output
+             .mem_a                     (mem_a              ),// output [14:0]
+             .mem_ba                    (mem_ba             ),// output [2:0]
+             .mem_dqs                   (mem_dqs            ),// inout [3:0]
+             .mem_dqs_n                 (mem_dqs_n          ),// inout [3:0]
+             .mem_dq                    (mem_dq             ),// inout [31:0]
+             .mem_dm                    (mem_dm             ),// output [3:0]
+             //debug
+             .debug_data                (                   ),// output [135:0]
+             .debug_slice_state         (                   ),// output [51:0]
+             .debug_calib_ctrl          (                   ),// output [21:0]
+             .ck_dly_set_bin            (                   ),// output [7:0]
+             .force_ck_dly_en           (1'b0               ),// input
+             .force_ck_dly_set_bin      (8'h05              ),// input [7:0]
+             .dll_step                  (                   ),// output [7:0]
+             .dll_lock                  (                   ),// output
+             .init_read_clk_ctrl        (2'b0               ),// input [1:0]
+             .init_slip_step            (4'b0               ),// input [3:0]
+             .force_read_clk_ctrl       (1'b0               ),// input
+             .ddrphy_gate_update_en     (1'b0               ),// input
+             .update_com_val_err_flag   (                   ),// output [3:0]
+             .rd_fake_stop              (1'b0               ) // input
+       );
+*/
+
+//心跳信号
+     // [SLIM Rev3.2] 心跳改 sys_clk 域(原 core_clk 随 DDR 链停用), 1Hz 闪烁=程序活着
+     always@(posedge sys_clk) begin
+        if (!sys_rst_n)
+            cnt <= 27'd0;
+        else if ( cnt >= TH_1S )
+            cnt <= 27'd0;
+        else
+            cnt <= cnt + 27'd1;
+     end
+
+     // [Rev4.3] 恢复 C5 = 1Hz 心跳(Rev4.1 曾改作 lane2 码字错误指示)
+     always @(posedge sys_clk or negedge sys_rst_n)
+     begin
+         if (!sys_rst_n)
+             heart_beat_led <= 1'b1;
+         else if ( cnt >= TH_1S )
+             heart_beat_led <= ~heart_beat_led;
+     end
+
+/////////////////////////////////////////////////////////////////////////////////////
+endmodule

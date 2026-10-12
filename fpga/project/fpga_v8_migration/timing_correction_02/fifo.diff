@@ -1,0 +1,30 @@
+--- 
++++ 
+@@ -1,4 +1,4 @@
+-module fpga_v8_pcie_fifo_h2f_rfg01 #(
++module fpga_v8_pcie_fifo_h2f_tc02 #(
+     parameter ADDR_WIDTH = 12,
+               MSI_NUM = 5,
+ 
+@@ -229,12 +229,18 @@
+ reg rx_fifo_write_en, rx_copy_active, rx_transaction_complete;
+ reg fpga_rx_clk_en_d;
+ reg fpga_rx_done;
+-wire [31:0] rx_input_bytes = ((fpga_ddr3_length - rx_chunk_bytes) >= 16) ?
+-                            32'd16 : fpga_ddr3_length - rx_chunk_bytes;
++reg [4:0] rx_input_bytes;
++always @(posedge fifo_pcie_clk or posedge fifo_pcie_rst) begin
++    if (fifo_pcie_rst) rx_input_bytes <= 0;
++    else if (fpga_rx_clk_en_r)
++        rx_input_bytes <= (fpga_rx_addr_r == total_beats-1 &&
++                           fpga_ddr3_length[3:0] != 0) ?
++                           {1'b0,fpga_ddr3_length[3:0]} : 5'd16;
++end
+ wire [127:0] rx_input_mask = {128{1'b1}} >> ((32'd16-rx_input_bytes)*8);
+ wire [255:0] rx_merge_data = {128'd0,rx_pack_data} |
+     ({128'd0,(fpga_rx_data & rx_input_mask)} << (rx_pack_bytes*8));
+-wire [5:0] rx_merge_bytes = {1'b0,rx_pack_bytes}+rx_input_bytes[5:0];
++wire [5:0] rx_merge_bytes = {1'b0,rx_pack_bytes}+{1'b0,rx_input_bytes};
+ assign fpga_rx_clk_en = fpga_rx_clk_en_r;
+ assign fpga_rx_addr = fpga_rx_addr_r;
+ 

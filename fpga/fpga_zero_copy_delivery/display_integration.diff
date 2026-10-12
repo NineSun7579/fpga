@@ -1,0 +1,308 @@
+--- letterbox/integrated/source/top.v
++++ integrated/source/top.v
+@@ -2649,22 +2649,53 @@
+     wire                        npu_s4_axi_rready  ;
+ 
+ 
+-// ===== NPU removed: tie off crossbar-facing NPU ports =====
+-// S02 write (npu_out) + S02 read (npu_s0)
+-assign npu_out_axi_awvalid = 1'b0;
+-assign npu_out_axi_wvalid  = 1'b0;
+-assign npu_out_axi_bready  = 1'b1;
+-assign npu_s0_axi_arvalid  = 1'b0;
+-assign npu_s0_axi_rready   = 1'b1;
+-// S03 read (npu_s1) ; S03 write (prep2) stays active
+-assign npu_s1_axi_arvalid  = 1'b0;
+-assign npu_s1_axi_rready   = 1'b1;
+-// S04/S05/S06 read (npu_s2/s3/s4)
+-assign npu_s2_axi_arvalid  = 1'b0;
+-assign npu_s2_axi_rready   = 1'b1;
+-// [VKFS 2026-09-25] S05 (npu_s3) is driven by cam1's vip_kf_stream read master
+-// (was tied off). Keep S02/S04/S06 tied off.
+-
++// Legacy FPGA NPU absent: deterministic inactive master requests.
++// Response READY only drains stale responses; no command success is generated.
++// S05 = cam1 KF history, S06 = delivery reads, M02 = delivery MMIO.
++assign npu_out_axi_awid = 4'd0;
++assign npu_out_axi_awaddr = 32'd0;
++assign npu_out_axi_awlen = 4'd0;
++assign npu_out_axi_awsize = 3'd0;
++assign npu_out_axi_awburst = 2'd0;
++assign npu_out_axi_awlock = 1'd0;
++assign npu_out_axi_awcache = 4'd0;
++assign npu_out_axi_awprot = 3'd0;
++assign npu_out_axi_awvalid = 1'd0;
++assign npu_out_axi_wdata = 128'd0;
++assign npu_out_axi_wstrb = 16'd0;
++assign npu_out_axi_wlast = 1'd0;
++assign npu_out_axi_wvalid = 1'd0;
++assign npu_out_axi_bready = 1'd1;
++assign npu_s0_axi_arid = 4'd0;
++assign npu_s0_axi_araddr = 32'd0;
++assign npu_s0_axi_arlen = 4'd0;
++assign npu_s0_axi_arsize = 3'd0;
++assign npu_s0_axi_arburst = 2'd0;
++assign npu_s0_axi_arlock = 1'd0;
++assign npu_s0_axi_arcache = 4'd0;
++assign npu_s0_axi_arprot = 3'd0;
++assign npu_s0_axi_arvalid = 1'd0;
++assign npu_s0_axi_rready = 1'd1;
++assign npu_s1_axi_arid = 4'd0;
++assign npu_s1_axi_araddr = 32'd0;
++assign npu_s1_axi_arlen = 4'd0;
++assign npu_s1_axi_arsize = 3'd0;
++assign npu_s1_axi_arburst = 2'd0;
++assign npu_s1_axi_arlock = 1'd0;
++assign npu_s1_axi_arcache = 4'd0;
++assign npu_s1_axi_arprot = 3'd0;
++assign npu_s1_axi_arvalid = 1'd0;
++assign npu_s1_axi_rready = 1'd1;
++assign npu_s2_axi_arid = 4'd0;
++assign npu_s2_axi_araddr = 32'd0;
++assign npu_s2_axi_arlen = 4'd0;
++assign npu_s2_axi_arsize = 3'd0;
++assign npu_s2_axi_arburst = 2'd0;
++assign npu_s2_axi_arlock = 1'd0;
++assign npu_s2_axi_arcache = 4'd0;
++assign npu_s2_axi_arprot = 3'd0;
++assign npu_s2_axi_arvalid = 1'd0;
++assign npu_s2_axi_rready = 1'd1;
+ 
+ // M02 (NPU register window) response inputs
+ 
+--- letterbox/integrated/source/delivery/delivery_regs.v
++++ integrated/source/delivery/delivery_regs.v
+@@ -2,7 +2,7 @@
+ // Exact M02 slot, 16-byte register stride for existing PCIe DMA register access.
+ module delivery_regs #(
+     parameter [31:0] BASE=32'h40020000,
+-    parameter [31:0] DEST=32'h0a000000,
++    parameter [31:0] DEST=32'h0a000000, THUMB_DEST=32'h0a200000,
+     parameter integer WIDTH=640, HEIGHT=480, OUT_HEIGHT=640
+ ) (
+     input wire clk, rst,
+@@ -20,7 +20,8 @@
+     output reg cmd_valid,
+     input wire cmd_ready, core_busy, core_done, core_error, core_config_error,
+     output wire [31:0] cmd_src,
+-    output reg [31:0] cmd_dst
++    output reg [31:0] cmd_dst,
++    output reg selected_mode
+ );
+     reg aw_have, w_have;
+     reg [31:0] aw_addr, w_data;
+@@ -33,6 +34,7 @@
+     wire published=(camera_prev_base==32'h01800000 && camera_published[0]) ||
+         (camera_prev_base==32'h01a00000 && camera_published[1]);
+     wire busy=core_busy || cmd_valid;
++    wire [31:0] allowed_dest=selected_mode ? THUMB_DEST : DEST;
+     wire quarantined=!core_busy && !cmd_valid && !cmd_ready && !core_config_error;
+     assign cmd_src=frozen_base;
+     assign s_awready=!rst && !aw_have && !s_bvalid;
+@@ -46,7 +48,7 @@
+             aw_addr<=0; w_data<=0; w_strb<=0;
+             capture_hold<=0; frozen<=0; quiet<=0; frozen_base<=0;
+             completed<=0; failed<=0; epoch<=0; cycles<=0; last_cycles<=0; jobs_done<=0;
+-            cmd_valid<=0; cmd_dst<=DEST;
++            cmd_valid<=0; cmd_dst<=DEST; selected_mode<=0;
+         end else begin
+             if (s_awvalid && s_awready) begin aw_have<=1; aw_addr<=s_awaddr; end
+             if (s_wvalid && s_wready) begin w_have<=1; w_data<=s_wdata; w_strb<=s_wstrb; end
+@@ -80,9 +82,20 @@
+                         end
+                     end
+                     BASE+32'h40: begin
+-                        // This clone reserves one destination only; no arbitrary DDR writes.
+-                        if (busy || w_strb!=4'hf || w_data!=DEST) s_bresp<=2;
++                        // Immutable per-mode destination; no arbitrary DDR writes.
++                        if (busy || w_strb!=4'hf || w_data!=allowed_dest) s_bresp<=2;
+                         else cmd_dst<=w_data;
++                    end
++                    BASE+32'hb0: begin
++                        // Lease + busy/quarantine protect ownership of S06/m6.
++                        // A mode switch cannot retract an announced AXI request.
++                        if (busy || capture_hold || quarantined || w_strb!=4'hf || w_data>1)
++                            s_bresp<=2;
++                        else begin
++                            selected_mode<=w_data[0];
++                            cmd_dst<=w_data[0] ? THUMB_DEST : DEST;
++                            completed<=0; failed<=0; cycles<=0; last_cycles<=0;
++                        end
+                     end
+                     default: s_bresp<=2;
+                 endcase
+@@ -97,10 +110,12 @@
+                     BASE+32'h30: s_rdata<=frozen_base;
+                     BASE+32'h40: s_rdata<=cmd_dst;
+                     BASE+32'h50: s_rdata<=epoch;
+-                    BASE+32'h60: s_rdata<=WIDTH*OUT_HEIGHT*3;
++                    BASE+32'h60: s_rdata<=selected_mode ? (WIDTH/2)*(HEIGHT/2)*2 : WIDTH*OUT_HEIGHT*3;
+                     BASE+32'h70: s_rdata<=last_cycles;
+                     BASE+32'h80: s_rdata<=WIDTH*HEIGHT*2;
+                     BASE+32'h90: s_rdata<=jobs_done;
++                    BASE+32'ha0: s_rdata<=32'h00000003; // bit0 RGB888, bit1 RGB565 thumbnail
++                    BASE+32'hb0: s_rdata<={31'd0,selected_mode};
+                     default: begin s_rdata<=0; s_rresp<=2; end
+                 endcase
+             end
+--- letterbox/integrated/source/delivery/delivery_top_adapter.v
++++ integrated/source/delivery/delivery_top_adapter.v
+@@ -89,6 +89,7 @@
+ wire l_rready;
+ wire cmd_valid,cmd_ready,busy,done,error,config_error;
+ wire [31:0] src,dst;
++wire selected_mode;
+ axi_to_axi_lite #(.AXI_ID_LEN(7)) mmio_bridge (
+ .axi_clk(clk),.axi_rst(rst),
+ .s_axi_awid(s_axi_awid),
+@@ -172,34 +173,122 @@
+ .camera_published(camera_published),.camera_cmd_valid(camera_cmd_valid),
+ .camera_awvalid(camera_awvalid),.camera_wvalid(camera_wvalid),.camera_abort(camera_abort),
+ .cmd_valid(cmd_valid),.cmd_ready(cmd_ready),.cmd_src(src),.cmd_dst(dst),
++.selected_mode(selected_mode),
+ .core_busy(busy),.core_done(done),.core_error(error),.core_config_error(config_error));
+-delivery_rgb_ddr #(.WIDTH(WIDTH),.HEIGHT(HEIGHT),.OUT_HEIGHT(OUT_HEIGHT),.TOP_ROWS(TOP_ROWS)) core (
+-.clk(clk),.rst_n(!rst),.cmd_valid(cmd_valid),.cmd_ready(cmd_ready),.cmd_src(src),.cmd_dst(dst),
+-.busy(busy),.done(done),.error(error),.config_error(config_error),
+-.m_axi_araddr(m_axi_araddr),
+-.m_axi_arlen(m_axi_arlen),
+-.m_axi_arsize(m_axi_arsize),
+-.m_axi_arburst(m_axi_arburst),
+-.m_axi_arvalid(m_axi_arvalid),
+-.m_axi_arready(m_axi_arready),
+-.m_axi_rdata(m_axi_rdata),
+-.m_axi_rresp(m_axi_rresp),
+-.m_axi_rlast(m_axi_rlast),
+-.m_axi_rvalid(m_axi_rvalid),
+-.m_axi_rready(m_axi_rready),
+-.m_axi_awaddr(m_axi_awaddr),
+-.m_axi_awlen(m_axi_awlen),
+-.m_axi_awsize(m_axi_awsize),
+-.m_axi_awburst(m_axi_awburst),
+-.m_axi_awvalid(m_axi_awvalid),
+-.m_axi_awready(m_axi_awready),
+-.m_axi_wdata(m_axi_wdata),
+-.m_axi_wstrb(m_axi_wstrb),
+-.m_axi_wlast(m_axi_wlast),
+-.m_axi_wvalid(m_axi_wvalid),
+-.m_axi_wready(m_axi_wready),
+-.m_axi_bresp(m_axi_bresp),
+-.m_axi_bvalid(m_axi_bvalid),
+-.m_axi_bready(m_axi_bready)
++// Mode is fixed throughout the cam5 lease, including fault quarantine.
++wire rgb_ready, rgb_busy, rgb_done, rgb_error, rgb_config_error;
++wire [31:0] rgb_araddr;
++wire [7:0] rgb_arlen;
++wire [2:0] rgb_arsize;
++wire [1:0] rgb_arburst;
++wire rgb_arvalid;
++wire rgb_rready;
++wire [31:0] rgb_awaddr;
++wire [7:0] rgb_awlen;
++wire [2:0] rgb_awsize;
++wire [1:0] rgb_awburst;
++wire rgb_awvalid;
++wire [127:0] rgb_wdata;
++wire [15:0] rgb_wstrb;
++wire rgb_wlast;
++wire rgb_wvalid;
++wire rgb_bready;
++wire thumb_ready, thumb_busy, thumb_done, thumb_error, thumb_config_error;
++wire [31:0] thumb_araddr;
++wire [7:0] thumb_arlen;
++wire [2:0] thumb_arsize;
++wire [1:0] thumb_arburst;
++wire thumb_arvalid;
++wire thumb_rready;
++wire [31:0] thumb_awaddr;
++wire [7:0] thumb_awlen;
++wire [2:0] thumb_awsize;
++wire [1:0] thumb_awburst;
++wire thumb_awvalid;
++wire [127:0] thumb_wdata;
++wire [15:0] thumb_wstrb;
++wire thumb_wlast;
++wire thumb_wvalid;
++wire thumb_bready;
++assign cmd_ready=selected_mode ? thumb_ready : rgb_ready;
++assign done=selected_mode ? thumb_done : rgb_done;
++assign error=selected_mode ? thumb_error : rgb_error;
++assign config_error=selected_mode ? thumb_config_error : rgb_config_error;
++assign busy=rgb_busy || thumb_busy;
++assign m_axi_araddr=selected_mode ? thumb_araddr : rgb_araddr;
++assign m_axi_arlen=selected_mode ? thumb_arlen : rgb_arlen;
++assign m_axi_arsize=selected_mode ? thumb_arsize : rgb_arsize;
++assign m_axi_arburst=selected_mode ? thumb_arburst : rgb_arburst;
++assign m_axi_arvalid=selected_mode ? thumb_arvalid : rgb_arvalid;
++assign m_axi_rready=selected_mode ? thumb_rready : rgb_rready;
++assign m_axi_awaddr=selected_mode ? thumb_awaddr : rgb_awaddr;
++assign m_axi_awlen=selected_mode ? thumb_awlen : rgb_awlen;
++assign m_axi_awsize=selected_mode ? thumb_awsize : rgb_awsize;
++assign m_axi_awburst=selected_mode ? thumb_awburst : rgb_awburst;
++assign m_axi_awvalid=selected_mode ? thumb_awvalid : rgb_awvalid;
++assign m_axi_wdata=selected_mode ? thumb_wdata : rgb_wdata;
++assign m_axi_wstrb=selected_mode ? thumb_wstrb : rgb_wstrb;
++assign m_axi_wlast=selected_mode ? thumb_wlast : rgb_wlast;
++assign m_axi_wvalid=selected_mode ? thumb_wvalid : rgb_wvalid;
++assign m_axi_bready=selected_mode ? thumb_bready : rgb_bready;
++delivery_rgb_ddr #(.WIDTH(WIDTH),.HEIGHT(HEIGHT),.OUT_HEIGHT(OUT_HEIGHT),.TOP_ROWS(TOP_ROWS)) rgb_core (
++.clk(clk),.rst_n(!rst),.cmd_valid(cmd_valid && !selected_mode),.cmd_ready(rgb_ready),
++.cmd_src(src),.cmd_dst(dst),.busy(rgb_busy),.done(rgb_done),
++.error(rgb_error),.config_error(rgb_config_error),
++.m_axi_araddr(rgb_araddr),
++.m_axi_arlen(rgb_arlen),
++.m_axi_arsize(rgb_arsize),
++.m_axi_arburst(rgb_arburst),
++.m_axi_arvalid(rgb_arvalid),
++.m_axi_arready((!selected_mode) ? m_axi_arready : 1'd0),
++.m_axi_rdata((!selected_mode) ? m_axi_rdata : 128'd0),
++.m_axi_rresp((!selected_mode) ? m_axi_rresp : 2'd0),
++.m_axi_rlast((!selected_mode) ? m_axi_rlast : 1'd0),
++.m_axi_rvalid((!selected_mode) ? m_axi_rvalid : 1'd0),
++.m_axi_rready(rgb_rready),
++.m_axi_awaddr(rgb_awaddr),
++.m_axi_awlen(rgb_awlen),
++.m_axi_awsize(rgb_awsize),
++.m_axi_awburst(rgb_awburst),
++.m_axi_awvalid(rgb_awvalid),
++.m_axi_awready((!selected_mode) ? m_axi_awready : 1'd0),
++.m_axi_wdata(rgb_wdata),
++.m_axi_wstrb(rgb_wstrb),
++.m_axi_wlast(rgb_wlast),
++.m_axi_wvalid(rgb_wvalid),
++.m_axi_wready((!selected_mode) ? m_axi_wready : 1'd0),
++.m_axi_bresp((!selected_mode) ? m_axi_bresp : 2'd0),
++.m_axi_bvalid((!selected_mode) ? m_axi_bvalid : 1'd0),
++.m_axi_bready(rgb_bready)
++);
++display_thumbnail_ddr #(.WIDTH(WIDTH),.HEIGHT(HEIGHT)) thumb_core (
++.clk(clk),.rst_n(!rst),.cmd_valid(cmd_valid && selected_mode),.cmd_ready(thumb_ready),
++.cmd_src(src),.cmd_dst(dst),.busy(thumb_busy),.done(thumb_done),
++.error(thumb_error),.config_error(thumb_config_error),
++.m_axi_araddr(thumb_araddr),
++.m_axi_arlen(thumb_arlen),
++.m_axi_arsize(thumb_arsize),
++.m_axi_arburst(thumb_arburst),
++.m_axi_arvalid(thumb_arvalid),
++.m_axi_arready((selected_mode) ? m_axi_arready : 1'd0),
++.m_axi_rdata((selected_mode) ? m_axi_rdata : 128'd0),
++.m_axi_rresp((selected_mode) ? m_axi_rresp : 2'd0),
++.m_axi_rlast((selected_mode) ? m_axi_rlast : 1'd0),
++.m_axi_rvalid((selected_mode) ? m_axi_rvalid : 1'd0),
++.m_axi_rready(thumb_rready),
++.m_axi_awaddr(thumb_awaddr),
++.m_axi_awlen(thumb_awlen),
++.m_axi_awsize(thumb_awsize),
++.m_axi_awburst(thumb_awburst),
++.m_axi_awvalid(thumb_awvalid),
++.m_axi_awready((selected_mode) ? m_axi_awready : 1'd0),
++.m_axi_wdata(thumb_wdata),
++.m_axi_wstrb(thumb_wstrb),
++.m_axi_wlast(thumb_wlast),
++.m_axi_wvalid(thumb_wvalid),
++.m_axi_wready((selected_mode) ? m_axi_wready : 1'd0),
++.m_axi_bresp((selected_mode) ? m_axi_bresp : 2'd0),
++.m_axi_bvalid((selected_mode) ? m_axi_bvalid : 1'd0),
++.m_axi_bready(thumb_bready)
+ );
+ endmodule

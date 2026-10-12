@@ -1,0 +1,21 @@
+sudo -n python3 - <<'RESET05'
+import subprocess
+from pathlib import Path
+ep='0002:21:00.0'
+def read():
+ p=subprocess.run(['setpci','-s',ep,'COMMAND'],capture_output=True,text=True)
+ print('read',p.returncode,p.stdout,p.stderr,flush=True)
+ assert p.returncode==0 and len(p.stdout.strip())==4
+ v=int(p.stdout.strip(),16); assert v!=65535
+ return v
+read()
+subprocess.run(['setpci','-s',ep,'COMMAND=0000:0004'],check=True)
+assert read() & 4 == 0
+p=Path('/sys/bus/pci/devices')/ep
+method=(p/'reset_method').read_text().strip(); print('reset_method',method,flush=True)
+assert method=='bus'
+assert read() & 4 == 0
+(p/'reset').write_text('1\n')
+print('reset_returned',flush=True)
+assert read() & 4 == 0
+RESET05

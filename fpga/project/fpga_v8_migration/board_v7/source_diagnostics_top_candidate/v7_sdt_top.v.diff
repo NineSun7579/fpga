@@ -1,0 +1,207 @@
+--- C:\Users\NineSun\Desktop\ov56401\project\fpga_v8_migration\whole_candidate_v7_route_01\rtl\fpga_v8_cooperative_top_v2_rfg01.v
++++ v7_sdt_top.v
+@@ -5,7 +5,7 @@
+ //`define USE_HDMI
+ 
+ 
+-module fpga_v8_cooperative_top_v2_rfg01 #(
++module v7_sdt_top #(
+     parameter   MSI_NUM = 5,
+     parameter   AXI_ID_LEN      = 4, 
+                 AXI_ID_M_LEN    = $clog2(7) + AXI_ID_LEN,
+@@ -814,26 +814,54 @@
+ // --- AXI-Lite address decoder: splits M01 window by addr[8] ---
+ //   addr[8]=0 -> ov5640_reg segment (CAM regs)
+ //   addr[8]=1 -> prep_regs segment  (PREP/INJ regs, doc +0x100~0x17C)
++wire [3:0] diag_clk;
++wire [3:0] diag_reset;
++wire [3:0] diag_raw_vsync;
++wire [3:0] diag_raw_href;
++wire [3:0] diag_raw_byte_accept;
++wire [3:0] diag_capture_vsync;
++wire [3:0] diag_capture_valid;
++wire diag_legacy_awvalid;
++wire diag_legacy_awready;
++wire [31:0] diag_legacy_awaddr;
++wire diag_legacy_wvalid;
++wire diag_legacy_wready;
++wire [31:0] diag_legacy_wdata;
++wire [3:0] diag_legacy_wstrb;
++wire diag_legacy_bvalid;
++wire diag_legacy_bready;
++wire [1:0] diag_legacy_bresp;
++wire diag_legacy_arvalid;
++wire diag_legacy_arready;
++wire [31:0] diag_legacy_araddr;
++wire diag_legacy_rvalid;
++wire diag_legacy_rready;
++wire [31:0] diag_legacy_rdata;
++wire [1:0] diag_legacy_rresp;
++v7_sdt_bus source_diagnostics (.clk(axi_clk), .rst(axi_rst),
++.cam_clk(diag_clk),.cam_reset(diag_reset),.raw_vsync(diag_raw_vsync),.raw_href(diag_raw_href),.raw_byte_accept(diag_raw_byte_accept),.capture_vsync(diag_capture_vsync),.capture_valid(diag_capture_valid),
++.s_awvalid(ovreg_axil_awvalid), .m_awvalid(diag_legacy_awvalid),.s_awready(ovreg_axil_awready), .m_awready(diag_legacy_awready),.s_awaddr(ovreg_axil_awaddr), .m_awaddr(diag_legacy_awaddr),.s_wvalid(ovreg_axil_wvalid), .m_wvalid(diag_legacy_wvalid),.s_wready(ovreg_axil_wready), .m_wready(diag_legacy_wready),.s_wdata(ovreg_axil_wdata), .m_wdata(diag_legacy_wdata),.s_wstrb(ovreg_axil_wstrb), .m_wstrb(diag_legacy_wstrb),.s_bvalid(ovreg_axil_bvalid), .m_bvalid(diag_legacy_bvalid),.s_bready(ovreg_axil_bready), .m_bready(diag_legacy_bready),.s_bresp(ovreg_axil_bresp), .m_bresp(diag_legacy_bresp),.s_arvalid(ovreg_axil_arvalid), .m_arvalid(diag_legacy_arvalid),.s_arready(ovreg_axil_arready), .m_arready(diag_legacy_arready),.s_araddr(ovreg_axil_araddr), .m_araddr(diag_legacy_araddr),.s_rvalid(ovreg_axil_rvalid), .m_rvalid(diag_legacy_rvalid),.s_rready(ovreg_axil_rready), .m_rready(diag_legacy_rready),.s_rdata(ovreg_axil_rdata), .m_rdata(diag_legacy_rdata),.s_rresp(ovreg_axil_rresp), .m_rresp(diag_legacy_rresp));
++
+ ovreg_axil_decode_tc01 ovreg_axil_decode_u (
+     .clk        (axi_clk),
+     .rst        (axi_rst),
+-    .s_awvalid  (ovreg_axil_awvalid),
+-    .s_awready  (ovreg_axil_awready),
+-    .s_awaddr   (ovreg_axil_awaddr),
+-    .s_wvalid   (ovreg_axil_wvalid),
+-    .s_wready   (ovreg_axil_wready),
+-    .s_wdata    (ovreg_axil_wdata),
+-    .s_wstrb    (ovreg_axil_wstrb),
+-    .s_bvalid   (ovreg_axil_bvalid),
+-    .s_bready   (ovreg_axil_bready),
+-    .s_bresp    (ovreg_axil_bresp),
+-    .s_arvalid  (ovreg_axil_arvalid),
+-    .s_arready  (ovreg_axil_arready),
+-    .s_araddr   (ovreg_axil_araddr),
+-    .s_rvalid   (ovreg_axil_rvalid),
+-    .s_rready   (ovreg_axil_rready),
+-    .s_rdata    (ovreg_axil_rdata),
+-    .s_rresp    (ovreg_axil_rresp),
++    .s_awvalid  (diag_legacy_awvalid),
++    .s_awready  (diag_legacy_awready),
++    .s_awaddr   (diag_legacy_awaddr),
++    .s_wvalid   (diag_legacy_wvalid),
++    .s_wready   (diag_legacy_wready),
++    .s_wdata    (diag_legacy_wdata),
++    .s_wstrb    (diag_legacy_wstrb),
++    .s_bvalid   (diag_legacy_bvalid),
++    .s_bready   (diag_legacy_bready),
++    .s_bresp    (diag_legacy_bresp),
++    .s_arvalid  (diag_legacy_arvalid),
++    .s_arready  (diag_legacy_arready),
++    .s_araddr   (diag_legacy_araddr),
++    .s_rvalid   (diag_legacy_rvalid),
++    .s_rready   (diag_legacy_rready),
++    .s_rdata    (diag_legacy_rdata),
++    .s_rresp    (diag_legacy_rresp),
+     .m0_awvalid (cam_axil_awvalid),
+     .m0_awready (cam_axil_awready),
+     .m0_awaddr  (cam_axil_awaddr),
+@@ -1034,13 +1062,20 @@
+ end
+ 
+ `ifdef USE_OV5640
+-ov5640_top #(
++v7_sdt_camera #(
+     .IODELAY_STEP  (8'd140),
+     .MEDIAN_EN     (1'b0)        , // [MEDIAN] disabled; cam1 uses FIR below
+     .MEDIAN_RSVD   (3'd0),
+     .KF_EN         (1'b0)         , // [VKFS] disabled; cam1 uses FIR
+     .KF_RD_EN      (1'b0)         // [VKFS] no previous-frame DDR read
+ ) ov5640_top(
++    .diag_clk(diag_clk[0]),
++    .diag_reset(diag_reset[0]),
++    .diag_raw_vsync(diag_raw_vsync[0]),
++    .diag_raw_href(diag_raw_href[0]),
++    .diag_raw_byte_accept(diag_raw_byte_accept[0]),
++    .diag_capture_vsync(diag_capture_vsync[0]),
++    .diag_capture_valid(diag_capture_valid[0]),
+     .motion_record(cam1_motion_record),
+     .clk_50m       (clk_50m)        ,
+     .clk_50m_rst_n (camera_ctrl_rst_n),
+@@ -1243,7 +1278,7 @@
+ wire [31:0]                 cam3_dbg_dummy;
+ 
+ // ---- CAM2 (FMC 2nd OV5640, BASE_ADDR 0x2000_0200, 640x480) ----
+-ov5640_top #(
++v7_sdt_camera #(
+     .BASE_ADDR       (32'h2000_0200),
+     .CAM_ADDR_1_DEF  (32'h00C0_0000),
+     .CAM_ADDR_2_DEF  (32'h00E0_0000),
+@@ -1253,6 +1288,13 @@
+     .TOTAL_H_PIXEL   (12'd1896),
+     .TOTAL_V_PIXEL   (12'd984)
+ ) cam2_ov5640_top (
++    .diag_clk(diag_clk[1]),
++    .diag_reset(diag_reset[1]),
++    .diag_raw_vsync(diag_raw_vsync[1]),
++    .diag_raw_href(diag_raw_href[1]),
++    .diag_raw_byte_accept(diag_raw_byte_accept[1]),
++    .diag_capture_vsync(diag_capture_vsync[1]),
++    .diag_capture_valid(diag_capture_valid[1]),
+     .motion_record(cam2_motion_record),
+     .clk_50m       (clk_50m),
+     .clk_50m_rst_n (camera_ctrl_rst_n),
+@@ -1313,7 +1355,7 @@
+ 
+ // ---- CAM3 (FMC 3rd OV5640, BASE_ADDR 0x2000_0400, 640x480, raw passthrough:
+ //      VSYNC qualified for 64 PCLK; pixel-path settings unchanged) ----
+-ov5640_top #(
++v7_sdt_camera #(
+     .BASE_ADDR       (32'h2000_0400),
+     .SENSOR_PLL_MULT (8'h30), // cam3: initialize PLL for 48 MHz PCLK
+     .VSYNC_STABLE_CYCLES(64), // cam3 only: 0.762 us at 84 MHz
+@@ -1325,6 +1367,13 @@
+     .TOTAL_H_PIXEL   (12'd1896),
+     .TOTAL_V_PIXEL   (12'd984)
+ ) cam3_ov5640_top (
++    .diag_clk(diag_clk[2]),
++    .diag_reset(diag_reset[2]),
++    .diag_raw_vsync(diag_raw_vsync[2]),
++    .diag_raw_href(diag_raw_href[2]),
++    .diag_raw_byte_accept(diag_raw_byte_accept[2]),
++    .diag_capture_vsync(diag_capture_vsync[2]),
++    .diag_capture_valid(diag_capture_valid[2]),
+     .motion_record(cam3_motion_record),
+     .clk_50m       (clk_50m),
+     .clk_50m_rst_n (camera_ctrl_rst_n),
+@@ -1414,7 +1463,7 @@
+ wire                        cam4_axi_bready  ;
+ wire [31:0]                 cam4_dbg_dummy;
+ 
+-ov5640_top #(
++v7_sdt_camera #(
+     .BASE_ADDR       (32'h2000_0600),
+     .SENSOR_PLL_MULT (8'h30), // cam4: same 48 MHz PCLK init as cam3
+     .VSYNC_STABLE_CYCLES(64), // cam4 only: 0.762 us at 84 MHz
+@@ -1426,6 +1475,13 @@
+     .TOTAL_H_PIXEL   (12'd1896),
+     .TOTAL_V_PIXEL   (12'd984)
+ ) cam4_ov5640_top (
++    .diag_clk(diag_clk[3]),
++    .diag_reset(diag_reset[3]),
++    .diag_raw_vsync(diag_raw_vsync[3]),
++    .diag_raw_href(diag_raw_href[3]),
++    .diag_raw_byte_accept(diag_raw_byte_accept[3]),
++    .diag_capture_vsync(diag_capture_vsync[3]),
++    .diag_capture_valid(diag_capture_valid[3]),
+     .motion_record(cam4_motion_record),
+     .clk_50m       (clk_50m),
+     .clk_50m_rst_n (camera_ctrl_rst_n),
+@@ -2437,7 +2493,7 @@
+      */
+     .s00_axi_awid   (pcie_axi_awid   ) ,
+     .s00_axi_awaddr (pcie_axi_awaddr ) ,
+-    .s00_axi_awlen  (pcie_axi_awlen  ) ,
++    .s00_axi_awlen({4'b0000, pcie_axi_awlen}) ,
+     .s00_axi_awsize (pcie_axi_awsize ) ,
+     .s00_axi_awburst(pcie_axi_awburst) ,
+     .s00_axi_awlock (pcie_axi_awlock ) ,
+@@ -2463,7 +2519,7 @@
+ 
+     .s00_axi_arid    (pcie_axi_arid   )     ,
+     .s00_axi_araddr  (pcie_axi_araddr )     ,
+-    .s00_axi_arlen   (pcie_axi_arlen  )     ,
++    .s00_axi_arlen({4'b0000, pcie_axi_arlen})     ,
+     .s00_axi_arsize  (pcie_axi_arsize )     ,
+     .s00_axi_arburst (pcie_axi_arburst)     ,
+     .s00_axi_arlock  (pcie_axi_arlock )     ,
+@@ -2766,10 +2822,10 @@
+     .m00_axi_wuser   (arb2x_wuser                    ),
+     .m00_axi_wvalid  (arb2x_wvalid                   ),
+     .m00_axi_wready  (1'b0                           ),
+-    .m00_axi_bid     (                               ),
+-    .m00_axi_bresp   (                               ),
+-    .m00_axi_buser   (                               ),
+-    .m00_axi_bvalid  (                               ),
++    .m00_axi_bid     ({AXI_ID_M_LEN{1'b0}}),
++    .m00_axi_bresp   (2'b00),
++    .m00_axi_buser   (1'b0),
++    .m00_axi_bvalid  (1'b0),
+     .m00_axi_bready  (                               ),  // [WARB] crossbar out, unused: write retired
+     .m00_axi_arid    (ddr_axi_aruser_id              ),
+     .m00_axi_araddr  (ddr_axi_araddr                 ),

@@ -1,0 +1,56 @@
+--- production top before
++++ production top after
+@@ -249,6 +249,14 @@
+     end
+ 
+     assign rstn_int  = locked & (rstn_1ms == 16'h2710);//上电1ms后释放
++    // Common sys_clk reset: asynchronous assertion, two-edge release.
++    // Keep cfg startup delay and merge reset request in their original domains.
++    (* ASYNC_REG = "TRUE" *) reg [1:0] sys_rst_sync = 2'b00;
++    always @(posedge sys_clk or negedge rstn_int)
++        if (!rstn_int) sys_rst_sync <= 2'b00;
++        else sys_rst_sync <= {sys_rst_sync[0], 1'b1};
++    wire sys_rst_n = sys_rst_sync[1];
++
+     assign rstn_out  = rstn_int;               //MS7210 复位(� �作内 部复位)
+@@ -258,7 +266,7 @@
+ //OV5640 register configure enable
+     power_on_delay	power_on_delay_inst(
+     	.clk_50M                 (sys_clk        ),//input
+-    	.reset_n                 (rstn_int        ),//input
++    	.reset_n                 (sys_rst_n       ),//input
+     	.camera1_rstn            (cmos1_reset    ),//output
+     	.camera2_rstn            (cmos2_reset    ),//output
+     	.camera_pwnd             (               ),//output
+@@ -707,8 +715,8 @@
+ 部网(端口改作诊断灯)
+     reg  [1:0] sfp_los_sync, sfp_synced_sync, sfp_pll_sync, sfp_ready_sync;
+     reg  [1:0] sfp_det_sync, sfp_cdr_sync, sfp_rxlane_sync;   // [DIAG] 分级观测
+-    always @(posedge sys_clk or negedge rstn_int) begin
+-        if (!rstn_int) begin
++    always @(posedge sys_clk or negedge sys_rst_n) begin
++        if (!sys_rst_n) begin
+             sfp_los_sync     <= 2'b11;
+             sfp_synced_sync  <= 2'b00;
+             sfp_pll_sync     <= 2'b00;
+@@ -1026,7 +1034,7 @@
+ //心跳信号
+      // [SLIM Rev3.2] 心跳改 sys_clk 域(原 core_clk 随 DDR 链停用), 1Hz 闪烁=程序活着
+      always@(posedge sys_clk) begin
+-        if (!rstn_int)
++        if (!sys_rst_n)
+             cnt <= 27'd0;
+         else if ( cnt >= TH_1S )
+             cnt <= 27'd0;
+@@ -1035,9 +1043,9 @@
+      end
+ 
+      // [Rev4.3] 恢复 C5 = 1Hz 心跳(Rev4.1 曾改作 lane2 码字错误指示)
+-     always @(posedge sys_clk or negedge rstn_int)
++     always @(posedge sys_clk or negedge sys_rst_n)
+      begin
+-         if (!rstn_int)
++         if (!sys_rst_n)
+              heart_beat_led <= 1'b1;
+          else if ( cnt >= TH_1S )
+              heart_beat_led <= ~heart_beat_led;

@@ -1,0 +1,79 @@
+--- audited_v2/fpga_v8_pcie_fifo_h2f.v
++++ candidate/fpga_v8_pcie_fifo_h2f_rfg01.v
+@@ -1,4 +1,4 @@
+-module fpga_v8_pcie_fifo_h2f #(
++module fpga_v8_pcie_fifo_h2f_rfg01 #(
+     parameter ADDR_WIDTH = 12,
+               MSI_NUM = 5,
+ 
+@@ -8,7 +8,9 @@
+ 		        AXI_STRB_LEN    = AXI_DATA_LEN / 8               
+ 
+ 
+-)(    
++)(
++    input wire i_admit, input wire i_admit_axi,
++    
+ 
+     input                       button_rst_n    ,
+ 
+@@ -75,10 +77,15 @@
+     input        [ 1:0]                 axi_rresp       /* synthesis PAP_MARK_DEBUG="true" */,
+     input                               axi_rlast       /* synthesis PAP_MARK_DEBUG="true" */,
+     input                               axi_rvalid      /* synthesis PAP_MARK_DEBUG="true" */,
+-    output                              axi_rready      /* synthesis PAP_MARK_DEBUG="true" */
+-
+-        
++    output                              axi_rready      /* synthesis PAP_MARK_DEBUG="true" */,
++    output wire startup_idle_axi, startup_idle_pcie
+ );
++assign startup_idle_axi = (state == S_IDLE) && !rx_read_pending &&
++    (rx_w_queue_count == 0) && (r_state == R_IDLE) && !read_started;
++assign startup_idle_pcie = !mrd_rx_busy && !mwr_tx_busy && !rx_copy_active &&
++    !fpga_rx_clk_en_r && !fpga_rx_clk_en_d && !rx_fifo_write_en &&
++    (data_wry_state == S_DATA_WRY_IDLE);
++
+ // Included as text by the isolated candidate generator, after the FIFO ports.
+ // This handshake requires COORDINATED PCIe + AXI fabric/endpoint reset.
+ // Independent link/CPU reset is not a supported pending-DMA cleanup path.
+@@ -287,7 +294,7 @@
+                         fpga_rx_done <= 1;
+                 end
+             end
+-            if (rx_transaction_complete && (rx_cnt == dma_total_beats) &&
++            if (i_admit && rx_transaction_complete && (rx_cnt == dma_total_beats) &&
+                 fifo_rx_empty && (rx_retired_sync2 != rx_retired_seen))
+                 fpga_rx_done <= 1;
+         end
+@@ -304,11 +311,12 @@
+ wire     [127:0]            fpga_tx_data               ;
+ 
+ 
+-fpga_v8_pango_pcie_top_h2f #(
++fpga_v8_pango_pcie_top_h2f_rfg01 #(
+     .ADDR_WIDTH(ADDR_WIDTH),
+     .MSI_NUM(MSI_NUM)
+ )
+ pango_pcie_top(
++    .i_admit(i_admit),
+     .button_rst_n(button_rst_n)    ,
+     .perst_n     (perst_n     )    ,
+     .ref_clk_n   (ref_clk_n)      ,
+@@ -336,7 +344,7 @@
+     .fpga_tx_addr     (fpga_tx_addr     ),      //\xe6\xb2\xa1\xe7\x94\xa8
+     .fpga_tx_data     (fpga_tx_data     ),
+     //CPU --> FPGA
+-    .fpga_rx_done     (fpga_rx_done     ),     
++    .fpga_rx_done     (fpga_rx_done && i_admit),     
+     .mrd_rx_busy      (mrd_rx_busy      ),
+     .fpga_rx_clk_en   (fpga_rx_clk_en   ),
+     .fpga_rx_addr     (fpga_rx_addr     ),
+@@ -464,7 +472,7 @@
+             end
+         endcase
+         case (state)
+-            S_IDLE: if (!fifo_rx_empty) begin
++            S_IDLE: if (i_admit_axi && !fifo_rx_empty) begin
+                 cur_addr <= {(fpga_ddr3_addr >> AXI_DATA_SIZE),{AXI_DATA_SIZE{1'b0}}};
+                 cur_strb <= last_beat_strb;
+                 beats_remain <= dma_total_beats;

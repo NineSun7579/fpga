@@ -1,0 +1,311 @@
+--- 
++++ 
+@@ -66,85 +66,58 @@
+     output                            fifo_pcie_rst
+ 
+ );
+-
+-assign fifo_pcie_clk = pclk_div2;
+-assign fifo_pcie_rst = ~core_rst_n;
+-
+-localparam  DEVICE_TYPE   = 3'b000;//@IPC enum 3'b000,3'b001,3'b100
+-
+-localparam AXIS_SLAVE_NUM = 3      ;  //@IPC enum 1 2 3
+-
+-
+-//TEST UNIT MODE SIGNALS
++localparam  DEVICE_TYPE   = 3'b000;
++localparam AXIS_SLAVE_NUM = 3      ;
+ wire            pcie_cfg_ctrl_en        ;
+ wire            axis_master_tready_cfg  ;
+-
+ wire            cfg_axis_slave0_tvalid  ;
+ wire    [127:0] cfg_axis_slave0_tdata   ;
+ wire            cfg_axis_slave0_tlast   ;
+ wire            cfg_axis_slave0_tuser   ;
+-
+-//for mux
+ wire            axis_master_tready_mem  ;
+ wire            axis_master_tvalid_mem  ;
+ wire    [127:0] axis_master_tdata_mem   ;
+ wire    [3:0]   axis_master_tkeep_mem   ;
+ wire            axis_master_tlast_mem   ;
+ wire    [7:0]   axis_master_tuser_mem   ;
+-
+ wire            cross_4kb_boundary      ;
+-
+ wire            dma_axis_slave0_tvalid  ;
+ wire    [127:0] dma_axis_slave0_tdata   ;
+ wire            dma_axis_slave0_tlast   ;
+ wire            dma_axis_slave0_tuser   ;
+-
+-//RESET DEBOUNCE and SYNC
+ wire            sync_button_rst_n       ;
+ wire            s_pclk_rstn             ;
+ wire            s_pclk_div2_rstn        ;
+-
+-//********************** internal signal
+-//clk and rst
+ wire            pclk_div2               ;
+ wire            pclk                    ;
+ wire            ref_clk                 ;
+ wire            core_rst_n              ;
+-//AXIS master interface
+ wire            axis_master_tvalid      ;
+ wire            axis_master_tready      ;
+ wire    [127:0] axis_master_tdata       ;
+ wire    [3:0]   axis_master_tkeep       ;
+ wire            axis_master_tlast       ;
+ wire    [7:0]   axis_master_tuser       ;
+-
+-//axis slave 0 interface
+ wire            axis_slave0_tready      ;
+ wire            axis_slave0_tvalid      ;
+ wire    [127:0] axis_slave0_tdata       ;
+ wire            axis_slave0_tlast       ;
+ wire            axis_slave0_tuser       ;
+-
+-//axis slave 1 interface
+ wire            axis_slave1_tready      ;
+ wire            axis_slave1_tvalid      ;
+ wire    [127:0] axis_slave1_tdata       ;
+ wire            axis_slave1_tlast       ;
+ wire            axis_slave1_tuser       ;
+-
+-//axis slave 2 interface
+ wire            axis_slave2_tready      ;
+ wire            axis_slave2_tvalid      ;
+ wire    [127:0] axis_slave2_tdata       ;
+ wire            axis_slave2_tlast       ;
+ wire            axis_slave2_tuser       ;
+-
+ wire    [7:0]   cfg_pbus_num            ;
+ wire    [4:0]   cfg_pbus_dev_num        ;
+ wire    [2:0]   cfg_max_rd_req_size     ;
+ wire    [2:0]   cfg_max_payload_size    ;
+ wire            cfg_rcb                 ;
+-
+ wire            cfg_ido_req_en          ;
+ wire            cfg_ido_cpl_en          ;
+ wire    [7:0]   xadm_ph_cdts            ;
+@@ -153,15 +126,9 @@
+ wire    [11:0]  xadm_npd_cdts           ;
+ wire    [7:0]   xadm_cplh_cdts          ;
+ wire    [11:0]  xadm_cpld_cdts          ;
+-
+-//system signal
+ wire    [4:0]   smlh_ltssm_state        ;
+-
+-// led lights up
+ reg     [22:0]  ref_led_cnt             ;
+ reg     [26:0]  pclk_led_cnt            ;
+-
+-//uart2apb 32bits
+ wire            uart_p_sel              ;
+ wire    [3:0]   uart_p_strb             ;
+ wire    [15:0]  uart_p_addr             ;
+@@ -170,26 +137,155 @@
+ wire            uart_p_we               ;
+ wire            uart_p_rdy              ;
+ wire    [31:0]  uart_p_rdata            ;
+-
+-//apb
+ wire    [3:0]   p_strb                  ;
+ wire    [15:0]  p_addr                  ;
+ wire    [31:0]  p_wdata                 ;
+ wire            p_ce                    ;
+ wire            p_we                    ;
++wire            p_sel_pcie              ;
++wire            p_sel_cfg               ;
++wire            p_sel_dma               ;
++wire    [31:0]  p_rdata_pcie            ;
++wire    [31:0]  p_rdata_cfg             ;
++wire    [31:0]  p_rdata_dma             ;
++wire            p_rdy_pcie              ;
++wire            p_rdy_cfg               ;
++wire            p_rdy_dma               ;
++wire                     dma_active;
++wire                     dma_msi_req  ;
++wire                     dma_msi_grant;
++wire                     cfg_msi_en;
++wire                     ven_msi_req;
++wire                     ven_msi_grant;
++wire     [MSI_NUM-1 : 0] ven_msi_vector;
++wire     [31 : 0]        cfg_msi_pending;
++wire     [MSI_NUM-1 : 0] msi_req  ;
++wire     [MSI_NUM-1 : 0] msi_grant;
++
++
++assign fifo_pcie_clk = pclk_div2;
++assign fifo_pcie_rst = ~core_rst_n;
++
++//@IPC enum 3'b000,3'b001,3'b100
++
++  //@IPC enum 1 2 3
++
++
++//TEST UNIT MODE SIGNALS
++
++
++
++
++
++
++
++
++//for mux
++
++
++
++
++
++
++
++
++
++
++
++
++
++
++//RESET DEBOUNCE and SYNC
++
++
++
++
++//********************** internal signal
++//clk and rst
++
++
++
++
++//AXIS master interface
++
++
++
++
++
++
++
++//axis slave 0 interface
++
++
++
++
++
++
++//axis slave 1 interface
++
++
++
++
++
++
++//axis slave 2 interface
++
++
++
++
++
++
++
++
++
++
++
++
++
++
++
++
++
++
++
++
++
++//system signal
++
++
++// led lights up
++
++
++
++//uart2apb 32bits
++
++
++
++
++
++
++
++
++
++//apb
++
++
++
++
++
+ 
+ //apb mux
+-wire            p_sel_pcie              ;       //0~5:hsstlp 6:Reserved 7:pcie
+-wire            p_sel_cfg               ;       //8: cfg
+-wire            p_sel_dma               ;       //9: dma
+-
+-wire    [31:0]  p_rdata_pcie            ;       //0~5:hsstlp 6:Reserved 7:pcie
+-wire    [31:0]  p_rdata_cfg             ;       //8: cfg
+-wire    [31:0]  p_rdata_dma             ;       //9: dma
+-
+-wire            p_rdy_pcie              ;       //0~5:hsstlp 6:Reserved 7:pcie
+-wire            p_rdy_cfg               ;       //8: cfg
+-wire            p_rdy_dma               ;       //9: dma
++       //0~5:hsstlp 6:Reserved 7:pcie
++       //8: cfg
++       //9: dma
++
++       //0~5:hsstlp 6:Reserved 7:pcie
++       //8: cfg
++       //9: dma
++
++       //0~5:hsstlp 6:Reserved 7:pcie
++       //8: cfg
++       //9: dma
+ 
+ 
+ assign cfg_ido_req_en   =   1'b0;
+@@ -344,9 +440,9 @@
+ // );
+ //----------------------------------------------------------   dma  ----------------------------------------------------------
+ // DMA CTRL      BASE ADDR = 0x8000
+-wire                     dma_active;     //DMA鏄�涓嶆槸娲昏穬鐨�
+-wire                     dma_msi_req  ;
+-wire                     dma_msi_grant;
++     //DMA鏄�涓嶆槸娲昏穬鐨�
++
++
+ 
+ fpga_v8_pcie_dma_h2f_rfg01 #(
+     .DEVICE_TYPE            (DEVICE_TYPE            ),
+@@ -512,14 +608,14 @@
+ //**********************************************************************
+ // MSI Interrupt Logic
+ //**********************************************************************
+-wire                     cfg_msi_en;     // 鎺ユ敹鏉ヨ嚜 PCIe IP 鐨� MSI 浣胯兘鐘舵�� (CPU鏄�鍚﹀厑璁窶SI)
+-wire                     ven_msi_req;    // 杈撳嚭缁� PCIe IP 鐨勪腑鏂�璇锋眰
+-wire                     ven_msi_grant;  // 鎺ユ敹鏉ヨ嚜 PCIe IP 鐨勫簲绛斾俊鍙�
+-wire     [MSI_NUM-1 : 0] ven_msi_vector;
+-wire     [31 : 0]        cfg_msi_pending; 
+-
+-wire     [MSI_NUM-1 : 0] msi_req  ;      
+-wire     [MSI_NUM-1 : 0] msi_grant;
++     // 鎺ユ敹鏉ヨ嚜 PCIe IP 鐨� MSI 浣胯兘鐘舵�� (CPU鏄�鍚﹀厑璁窶SI)
++    // 杈撳嚭缁� PCIe IP 鐨勪腑鏂�璇锋眰
++  // 鎺ユ敹鏉ヨ嚜 PCIe IP 鐨勫簲绛斾俊鍙�
++
++ 
++
++      
++
+ 
+ assign msi_req = {i_msi_req, dma_msi_req}  ;
+ 

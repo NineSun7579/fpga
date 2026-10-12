@@ -1,0 +1,1280 @@
+{
+  "boot_id": "c1500212-6832-4215-a2b2-76b60c8c3858",
+  "processes": [],
+  "holders": [],
+  "startup": [
+    {
+      "path": "/userdata/trafficlight_eval_20261005/board_replay.sh",
+      "realpath": "/userdata/trafficlight_eval_20261005/board_replay.sh",
+      "matches": [
+        [
+          6,
+          "VIEWER=$(pgrep -f '^/userdata/detview-hdmifull/detview-hdmifull ' | head -1)"
+        ],
+        [
+          14,
+          "sha256sum \"$ROOT\"/board_rect_harness* \"$ROOT\"/board_trafficlight_decoder.inc \"$ROOT\"/viewer_dump_build/main.cpp \"$ROOT\"/viewer_dump_build/detview \"$ROOT\"/exact_live_input/* \"$ROOT\"/exact_replay/frame_000000/* > \"$ROOT/artifact_sha256.txt\""
+        ]
+      ]
+    },
+    {
+      "path": "/userdata/trafficlight_eval_20261005/board_session.sh",
+      "realpath": "/userdata/trafficlight_eval_20261005/board_session.sh",
+      "matches": [
+        [
+          8,
+          "OLD=$(pgrep -f '^/userdata/detview-hdmifull/detview-hdmifull ' | head -1)"
+        ],
+        [
+          30,
+          "      nohup /userdata/detview-hdmifull/detview-hdmifull --model trafficlight-16cls --fullscreen --no-tracking --prefer-hdmifull on > \"$ROOT/restored_viewer.log\" 2>&1 9>&- &"
+        ],
+        [
+          38,
+          "sha256sum /root/npu/trafficlight/*.rknn /userdata/detview-hdmifull/detview-hdmifull /userdata/linaro/detview-trafficlight-work/main.cpp > \"$ROOT/source_model_sha256.txt\""
+        ],
+        [
+          42,
+          "qmake detview.pro > \"$ROOT/viewer_build.log\" 2>&1"
+        ],
+        [
+          52,
+          "DET_BENCH=1 DET_EVAL_DUMP_DIR=\"$ROOT/exact_live_input\" \"$ROOT/viewer_dump_build/detview\" --model trafficlight-16cls --fullscreen --no-tracking --prefer-hdmifull on --duration 99 --shot 60 > \"$ROOT/live_benchmark.log\" 2>&1 9>&- &"
+        ],
+        [
+          63,
+          "nohup /userdata/detview-hdmifull/detview-hdmifull --model trafficlight-16cls --fullscreen --no-tracking --prefer-hdmifull on > \"$ROOT/restored_viewer.log\" 2>&1 9>&- &"
+        ],
+        [
+          80,
+          "sha256sum board_rect_harness* board_trafficlight_decoder.inc viewer_dump_build/main.cpp viewer_dump_build/detview exact_live_input/* > artifact_sha256.txt"
+        ]
+      ]
+    },
+    {
+      "path": "/userdata/trafficlight_eval_20261005/board_probe.sh",
+      "realpath": "/userdata/trafficlight_eval_20261005/board_probe.sh",
+      "matches": [
+        [
+          4,
+          "for p in $(pgrep -x detview-hdmiful || true) $(pgrep -x detview || true); do"
+        ]
+      ]
+    },
+    {
+      "path": "/userdata/mvp_performance_20261007/finalize_board.sh",
+      "realpath": "/userdata/mvp_performance_20261007/finalize_board.sh",
+      "matches": [
+        [
+          12,
+          " paths=list(pathlib.Path('/userdata/detview_shots').glob('shot_'+name+'_*.png'));p=max(paths,key=lambda p:p.stat().st_mtime)"
+        ],
+        [
+          22,
+          "  if args[0]==b'/userdata/detview-hdmifull/detview-hdmifull':viewers.append({'pid':int(f.split('/')[2]),'argv':[a.decode() for a in args if a]})"
+        ]
+      ]
+    },
+    {
+      "path": "/userdata/mvp_performance_20261007/run_board.sh",
+      "realpath": "/userdata/mvp_performance_20261007/run_board.sh",
+      "matches": [
+        [
+          8,
+          "APP=/userdata/detview-hdmifull/detview-hdmifull"
+        ],
+        [
+          9,
+          "VIDEO=/userdata/linaro/detview-video-work/media/VID_20260912_151339_480p30.mp4"
+        ],
+        [
+          13,
+          "pids=[p for p in glob.glob('/proc/[0-9]*/cmdline') if open(p,'rb').read().split(b'\\0')[0]==b'/userdata/detview-hdmifull/detview-hdmifull']"
+        ],
+        [
+          55,
+          "g++ -std=c++17 -O2 bench.cpp -I/userdata/linaro/detview-mvp-work -I/usr/include/opencv4 -lrknnrt -lopencv_videoio -lopencv_imgproc -lopencv_core -o npu_bench"
+        ]
+      ]
+    },
+    {
+      "path": "/userdata/model_imports/mvp_accuracy_round1_import_20261007/prepare_board.sh",
+      "realpath": "/userdata/model_imports/mvp_accuracy_round1_import_20261007/prepare_board.sh",
+      "matches": [
+        [
+          4,
+          "work=/userdata/linaro/detview-mvp-round1-work"
+        ],
+        [
+          7,
+          "sha256sum /userdata/detview-hdmifull/detview-hdmifull /userdata/linaro/detview-hdmifull-src/main.cpp"
+        ],
+        [
+          8,
+          "ps -eo pid,state,args | grep -E 'detview|camview' | grep -v grep || true"
+        ],
+        [
+          9,
+          "fuser /dev/pango_pci_driver 2>/dev/null || true"
+        ]
+      ]
+    },
+    {
+      "path": "/userdata/model_imports/mvp_import_20261007/prepare_board.sh",
+      "realpath": "/userdata/model_imports/mvp_import_20261007/prepare_board.sh",
+      "matches": [
+        [
+          4,
+          "mkdir -p \"$dest\" /root/npu/mvp /userdata/linaro/detview-mvp-work"
+        ],
+        [
+          5,
+          "chown linaro:linaro \"$dest\" /userdata/linaro/detview-mvp-work"
+        ],
+        [
+          7,
+          "sha256sum /userdata/detview-hdmifull/detview-hdmifull /userdata/linaro/detview-hdmifull-src/main.cpp"
+        ],
+        [
+          8,
+          "fuser /dev/pango_pci_driver 2>/dev/null || true"
+        ]
+      ]
+    },
+    {
+      "path": "/userdata/model_imports/trafficlight_import_20261005/prepare_board_import.sh",
+      "realpath": "/userdata/model_imports/trafficlight_import_20261005/prepare_board_import.sh",
+      "matches": [
+        [
+          3,
+          "work=/userdata/linaro/detview-trafficlight-work"
+        ],
+        [
+          6,
+          "cp -a /userdata/linaro/detview-hdmifull-src/. \"$work/\""
+        ],
+        [
+          9,
+          "sha256sum /userdata/detview-hdmifull/detview-hdmifull /userdata/linaro/detview-hdmifull-src/main.cpp"
+        ],
+        [
+          10,
+          "for owner in $(fuser /dev/pango_pci_driver 2>/dev/null); do"
+        ]
+      ]
+    },
+    {
+      "path": "/userdata/detview-driving-demo/run_driving_demo.sh",
+      "realpath": "/userdata/detview-driving-demo/run_driving_demo.sh",
+      "matches": [
+        [
+          5,
+          "# Optional environment: DETVIEW_DRIVING_APP (absolute executable), DISPLAY,"
+        ],
+        [
+          11,
+          "DEVICE=/dev/pango_pci_driver"
+        ],
+        [
+          13,
+          "APP=${DETVIEW_DRIVING_APP:-/userdata/detview-driving-demo/detview-driving-demo}"
+        ],
+        [
+          30,
+          "say() { printf '[driving-demo] %s\\n' \"$*\"; }"
+        ],
+        [
+          40,
+          "        \"QT_X11_NO_MITSHM=$QT_X11_NO_MITSHM\" \"DETVIEW_DRIVING_APP=$APP\" \\"
+        ],
+        [
+          250,
+          "        \"$APP\" --driving-demo --fullscreen --no-tracking \\"
+        ]
+      ]
+    },
+    {
+      "path": "/userdata/rm8-deploy-20260925/backup-102412/run_det.sh",
+      "realpath": "/userdata/rm8-deploy-20260925/backup-102412/run_det.sh",
+      "matches": [
+        [
+          2,
+          "# run_det.sh [--model SUBSTR | --model-index N] : start detview detached on the local X display"
+        ],
+        [
+          5,
+          "cd /root/npu/detview || exit 1"
+        ],
+        [
+          6,
+          "pkill -f /root/npu/detview/detview 2>/dev/null"
+        ],
+        [
+          8,
+          "exec /root/npu/detview/detview \"$@\" > /root/npu/detview/run.log 2>&1"
+        ]
+      ]
+    },
+    {
+      "path": "/userdata/rm8-deploy-20260925/backup-102144/run_det.sh",
+      "realpath": "/userdata/rm8-deploy-20260925/backup-102144/run_det.sh",
+      "matches": [
+        [
+          2,
+          "# run_det.sh [--model SUBSTR | --model-index N] : start detview detached on the local X display"
+        ],
+        [
+          5,
+          "cd /root/npu/detview || exit 1"
+        ],
+        [
+          6,
+          "pkill -f /root/npu/detview/detview 2>/dev/null"
+        ],
+        [
+          8,
+          "exec /root/npu/detview/detview \"$@\" > /root/npu/detview/run.log 2>&1"
+        ]
+      ]
+    },
+    {
+      "path": "/userdata/fpga_gh/detview_tdm/run_detview.sh",
+      "realpath": "/userdata/fpga_gh/detview_tdm/run_detview.sh",
+      "matches": [
+        [
+          2,
+          "# detview \u81ea\u6108\u5b88\u62a4\uff1a\u5e94\u7528\u4f1a\u81ea\u5df1 exit(3)\uff08\u8fde\u7eed DMA \u5931\u8d25\uff0c\u6216 60 \u79d2\u6ca1\u6709\u65b0\u5e27\u2014\u2014"
+        ],
+        [
+          8,
+          "# \u7528\u6cd5: sudo setsid bash run_detview.sh --fullscreen --rotate-model a,b"
+        ],
+        [
+          9,
+          "exec 9>/tmp/detview.lock"
+        ],
+        [
+          11,
+          "echo $$ > /tmp/detview_supervisor.pid   # \u4fbf\u4e8e\u5916\u90e8\u7528 PID \u7cbe\u786e\u505c\u6b62\uff08\u4e0d\u8981\u7528 pkill -f\uff0c\u4f1a\u8bef\u4f24\u8c03\u7528\u65b9\uff09"
+        ],
+        [
+          19,
+          "    ./detview \"$@\""
+        ],
+        [
+          23,
+          "    echo \"[supervisor] detview exited rc=$rc (consecutive=$fails); restart in 3s\" >&2"
+        ],
+        [
+          31,
+          "        rmmod pango_pci_driver 2>/dev/null"
+        ],
+        [
+          36,
+          "        insmod /root/ov5640/pango_pci_driver.ko 2>/dev/null"
+        ],
+        [
+          37,
+          "        ls /dev/pango_pci_driver > /dev/null 2>&1 && echo \"[supervisor] driver reloaded\" >&2"
+        ]
+      ]
+    },
+    {
+      "path": "/userdata/linaro/board_relocate.sh",
+      "realpath": "/userdata/linaro/board_relocate.sh",
+      "matches": [
+        [
+          11,
+          "ps -eo pid,ppid,stat,args | grep -E 'detview|board_harness' | grep -v grep || true"
+        ]
+      ]
+    },
+    {
+      "path": "/userdata/linaro/install_viewer.sh",
+      "realpath": "/userdata/linaro/install_viewer.sh",
+      "matches": [
+        [
+          4,
+          "src=/userdata/linaro/detview-mvp-work"
+        ],
+        [
+          5,
+          "active=/userdata/detview-hdmifull/detview-hdmifull"
+        ],
+        [
+          9,
+          "if fuser /dev/pango_pci_driver >/dev/null 2>&1; then echo 'Capture owner appeared; inspect before installing'; exit 1; fi"
+        ],
+        [
+          15,
+          "cp -a \"$active\" \"$out/detview.previous\""
+        ],
+        [
+          16,
+          "cp -a \"$src/detview\" \"$out/detview.mvp\""
+        ],
+        [
+          17,
+          "cp -a \"$src/detview\" \"$active\""
+        ],
+        [
+          24,
+          "    if ! fuser /dev/pango_pci_driver >/dev/null 2>&1; then cp -a \"$out/detview.previous\" \"$active\"; fi"
+        ],
+        [
+          28,
+          "nohup \"$active\" --model MVP_rk3568_int8 --video /userdata/linaro/detview-video-work/media/VID_20260912_151339_480p30.mp4 --video-loop --fullscreen --no-tracking --shot 15 > \"$out/mvp_live.log\" 2>&1 < /dev/null 9>&- &"
+        ],
+        [
+          35,
+          "find /userdata/detview_shots -maxdepth 1 -type f -name 'shot_*.png' -newer \"$out/started.marker\" -exec cp {} \"$out/\" \\;"
+        ],
+        [
+          36,
+          "sha256sum \"$active\" \"$out/detview.previous\" > \"$out/binary_sha256.txt\""
+        ]
+      ]
+    },
+    {
+      "path": "/userdata/linaro/capture_current_50k_gl.sh",
+      "realpath": "/userdata/linaro/capture_current_50k_gl.sh",
+      "matches": [
+        [
+          3,
+          "current_pid=$(sudo -n fuser /dev/pango_pci_driver 2>/dev/null | tr -s ' ' | sed 's/^ //;s/ $//')"
+        ],
+        [
+          9,
+          "    */detview) ;;"
+        ],
+        [
+          10,
+          "    *) echo 'Device owner is not detview; inspect before screenshot' >&2; exit 1;;"
+        ]
+      ]
+    },
+    {
+      "path": "/userdata/linaro/archive_driving_demo.sh",
+      "realpath": "/userdata/linaro/archive_driving_demo.sh",
+      "matches": [
+        [
+          6,
+          "work=/userdata/linaro/driving-demo-archive-worktree"
+        ],
+        [
+          7,
+          "branch=feat/hdmi-driving-demo-20261005"
+        ],
+        [
+          8,
+          "source=/userdata/linaro/detview-driving-demo-src"
+        ],
+        [
+          10,
+          "git -C \"$work\" sparse-checkout set --no-cone '/RK3568/detview_tdm/'"
+        ],
+        [
+          12,
+          "target=$work/RK3568/detview_tdm"
+        ],
+        [
+          17,
+          "cp \"$source/main.cpp\" \"$source/detview.pro\" \"$source\"/driving*.cpp \"$source\"/driving*.h \"$target/\""
+        ],
+        [
+          20,
+          "sed -i 's/[[:blank:]\\r]*$//' \"$target/detview.pro\" \"$target/rknn_api.h\""
+        ],
+        [
+          21,
+          "git -C \"$work\" add -- RK3568/detview_tdm"
+        ],
+        [
+          39,
+          "note = '\u5341\u5b57\u8def\u53e3 HDMI \u667a\u80fd\u9a7e\u9a76\u6a21\u62df\uff1a`./detview --driving-demo --fullscreen`\u3002\u65b9\u5411\u952e\u9009\u8f66\u9053\uff0c`A` \u81ea\u52a8\u3001`X` \u505c\u8f66\u3001`B` \u5f3a\u5236\u884c\u9a76\u3002\u4f7f\u7528\u4e0e\u5224\u5b9a\u89c4\u5219\u89c1 [\u9a7e\u9a76\u6a21\u62df](DRIVING_DEMO.md)\u3002\\n\\n'"
+        ],
+        [
+          47,
+          "git -C \"$work\" add -- RK3568/detview_tdm/DRIVING_DEMO.md RK3568/detview_tdm/TRAFFICLIGHT_SUPPORT.md RK3568/detview_tdm/README.md"
+        ],
+        [
+          55,
+          "git -C \"$work\" add -f -- RK3568/detview_tdm/evidence/driving_demo_20261005"
+        ]
+      ]
+    },
+    {
+      "path": "/userdata/linaro/finish_archive_full_yolo.sh",
+      "realpath": "/userdata/linaro/finish_archive_full_yolo.sh",
+      "matches": [
+        [
+          5,
+          "sed -i 's/[[:blank:]\\r]*$//' \"$repo/RK3568/detview_tdm/detview.pro\" \"$repo/RK3568/detview_tdm/rknn_api.h\""
+        ],
+        [
+          6,
+          "git -C \"$repo\" add -- RK3568/detview_tdm"
+        ]
+      ]
+    },
+    {
+      "path": "/userdata/linaro/push_hdmi_batches.sh",
+      "realpath": "/userdata/linaro/push_hdmi_batches.sh",
+      "matches": [
+        [
+          9,
+          "git -C \"$work\" sparse-checkout set --no-cone '/RK3568/detview_tdm/'"
+        ],
+        [
+          15,
+          "        */main.cpp|*/detview.pro|*/hdmi_view.h|*/hdmi_view_selftest.cpp|*/rknn_api.h) ;;"
+        ],
+        [
+          31,
+          "name = 'RK3568/detview_tdm/README.md'"
+        ],
+        [
+          42,
+          "git -C \"$work\" add -- RK3568/detview_tdm/README.md"
+        ]
+      ]
+    },
+    {
+      "path": "/userdata/linaro/probe_proxy_push.sh",
+      "realpath": "/userdata/linaro/probe_proxy_push.sh",
+      "matches": [
+        [
+          7,
+          "git -C \"$repo\" diff --stat 6879535^ origin/main -- RK3568/detview_tdm"
+        ],
+        [
+          8,
+          "tail -6 /userdata/model_compare_20261004/detview_same_scene/restored_viewer.log"
+        ]
+      ]
+    },
+    {
+      "path": "/userdata/linaro/inspect_current_owner.sh",
+      "realpath": "/userdata/linaro/inspect_current_owner.sh",
+      "matches": [
+        [
+          3,
+          "fuser -v /dev/pango_pci_driver 2>/dev/null || true"
+        ],
+        [
+          4,
+          "ps -eo pid,state,etime,args | grep -E 'detview|board_compare|fixed_scene|camview' | grep -v grep | head -20"
+        ],
+        [
+          5,
+          "lslocks | grep -E 'board_compare|camview' || true"
+        ],
+        [
+          6,
+          "for owner in $(fuser /dev/pango_pci_driver 2>/dev/null); do"
+        ]
+      ]
+    },
+    {
+      "path": "/userdata/linaro/capture_50k_gl2.sh",
+      "realpath": "/userdata/linaro/capture_50k_gl2.sh",
+      "matches": [
+        [
+          3,
+          "current_pid=$(sudo -n fuser /dev/pango_pci_driver 2>/dev/null | tr -s ' ' | sed 's/^ //;s/ $//')"
+        ],
+        [
+          9,
+          "    */detview) ;;"
+        ],
+        [
+          10,
+          "    *) echo 'Device owner is not detview; inspect before screenshot' >&2; exit 1;;"
+        ]
+      ]
+    },
+    {
+      "path": "/userdata/linaro/archive_ready_video.sh",
+      "realpath": "/userdata/linaro/archive_ready_video.sh",
+      "matches": [
+        [
+          8,
+          "source=/userdata/linaro/detview-driving-demo-src"
+        ],
+        [
+          9,
+          "git -C \"$repo\" fetch origin feat/hdmi-driving-demo-20261005 --no-tags"
+        ],
+        [
+          10,
+          "git -C \"$repo\" worktree add --no-checkout -b \"$branch\" \"$work\" origin/feat/hdmi-driving-demo-20261005"
+        ],
+        [
+          11,
+          "git -C \"$work\" sparse-checkout set --no-cone '/RK3568/detview_tdm/'"
+        ],
+        [
+          13,
+          "target=$work/RK3568/detview_tdm"
+        ],
+        [
+          18,
+          "git -C \"$work\" add -- RK3568/detview_tdm"
+        ],
+        [
+          32,
+          "git -C \"$work\" add -f -- RK3568/detview_tdm/evidence/ready_video_20261006"
+        ]
+      ]
+    },
+    {
+      "path": "/userdata/linaro/stage_driving_evidence.sh",
+      "realpath": "/userdata/linaro/stage_driving_evidence.sh",
+      "matches": [
+        [
+          3,
+          "prefix=/userdata/detview_shots/shot_det-yolov8n-zebra-merged-v3-rk3568-raw-dfl6-int8_20261005_"
+        ],
+        [
+          11,
+          "sudo -n cp /userdata/linaro/detview-driving-demo-src/driving_vision_selftest.log \"$base/\""
+        ]
+      ]
+    },
+    {
+      "path": "/userdata/linaro/view_50k_hdmi_live.sh",
+      "realpath": "/userdata/linaro/view_50k_hdmi_live.sh",
+      "matches": [
+        [
+          3,
+          "if sudo -n fuser /dev/pango_pci_driver >/dev/null 2>&1; then"
+        ],
+        [
+          8,
+          "sudo -n sh -c 'nohup env DISPLAY=:0 XAUTHORITY=/var/run/lightdm/root/:0 QT_QPA_PLATFORM=xcb QT_XCB_GL_INTEGRATION=xcb_egl /userdata/linaro/detview-todo-work/build/detview --model wb_v4_combo --fullscreen --no-tracking --shot 8 > /userdata/50k_link_evidence/hdmi_live.log 2>&1 < /dev/null & echo $! > /userdata/50k_link_evidence/hdmi_live.pid'"
+        ]
+      ]
+    },
+    {
+      "path": "/userdata/linaro/prepare_mvp_round1.sh",
+      "realpath": "/userdata/linaro/prepare_mvp_round1.sh",
+      "matches": [
+        [
+          4,
+          "work=/userdata/linaro/detview-mvp-round1-work"
+        ],
+        [
+          7,
+          "sha256sum /userdata/detview-hdmifull/detview-hdmifull /userdata/linaro/detview-hdmifull-src/main.cpp"
+        ],
+        [
+          8,
+          "ps -eo pid,state,args | grep -E 'detview|camview' | grep -v grep || true"
+        ],
+        [
+          9,
+          "fuser /dev/pango_pci_driver 2>/dev/null || true"
+        ]
+      ]
+    },
+    {
+      "path": "/userdata/linaro/sync_mvp_source.sh",
+      "realpath": "/userdata/linaro/sync_mvp_source.sh",
+      "matches": [
+        [
+          3,
+          "old=/userdata/linaro/detview-hdmifull-src"
+        ],
+        [
+          4,
+          "new=/userdata/linaro/detview-mvp-work"
+        ],
+        [
+          8,
+          "for name in main.cpp detview.pro inference_geometry.h inference_geometry_selftest.cpp mvp_decode.h mvp_decode_selftest.cpp README_MVP.md; do"
+        ]
+      ]
+    },
+    {
+      "path": "/userdata/linaro/camera_50k_validation.sh",
+      "realpath": "/userdata/linaro/camera_50k_validation.sh",
+      "matches": [
+        [
+          3,
+          "if sudo -n fuser /dev/pango_pci_driver >/dev/null 2>&1; then"
+        ],
+        [
+          9,
+          "app=/userdata/linaro/detview-todo-work/build/detview"
+        ],
+        [
+          17,
+          "sudo -n find /userdata/detview_shots -maxdepth 1 -type f -mmin -2 -name 'shot_*' -print"
+        ]
+      ]
+    },
+    {
+      "path": "/userdata/linaro/build_mvp_round1.sh",
+      "realpath": "/userdata/linaro/build_mvp_round1.sh",
+      "matches": [
+        [
+          3,
+          "cd /userdata/linaro/detview-mvp-round1-work"
+        ],
+        [
+          4,
+          "qmake detview.pro"
+        ],
+        [
+          7,
+          "    QT_QPA_PLATFORM=offscreen ./detview --\"$test\"-selftest > \"$test.selftest.log\" 2>&1"
+        ],
+        [
+          10,
+          "sha256sum main.cpp detview > candidate_sha256.txt"
+        ]
+      ]
+    },
+    {
+      "path": "/userdata/linaro/finish_ready_road_archive.sh",
+      "realpath": "/userdata/linaro/finish_ready_road_archive.sh",
+      "matches": [
+        [
+          4,
+          "target=$work/RK3568/detview_tdm"
+        ],
+        [
+          5,
+          "cp /userdata/linaro/detview-driving-demo-src/DRIVING_DEMO.md \"$target/DRIVING_DEMO.md\""
+        ],
+        [
+          8,
+          "git -C \"$work\" add -f -- RK3568/detview_tdm/DRIVING_DEMO.md RK3568/detview_tdm/evidence/ready_video_20261006"
+        ]
+      ]
+    },
+    {
+      "path": "/userdata/linaro/archive_full_yolo.sh",
+      "realpath": "/userdata/linaro/archive_full_yolo.sh",
+      "matches": [
+        [
+          3,
+          "source=/userdata/linaro/detview-hdmifull-src"
+        ],
+        [
+          8,
+          "target=$repo/RK3568/detview_tdm"
+        ],
+        [
+          14,
+          "cp \"$source/detview.pro\" \"$source/README.md\" \"$target/\""
+        ],
+        [
+          15,
+          "for file in VISION.md run_detview.sh; do"
+        ],
+        [
+          23,
+          "    sudo -n cat /userdata/detview_shots/shot_det-yolov8n-3cls-wb_v4_combo-rk3568-raw-dfl6-int8_20261004_$stamp.png > \"$target/evidence/hdmi_full_yolo_20261004/$stamp.png\""
+        ],
+        [
+          25,
+          "git -C \"$repo\" add -- RK3568/detview_tdm"
+        ]
+      ]
+    },
+    {
+      "path": "/userdata/linaro/run_50k_hdmifull.sh",
+      "realpath": "/userdata/linaro/run_50k_hdmifull.sh",
+      "matches": [
+        [
+          2,
+          "# \u542f\u52a8 HDMI \u6ee1\u5c4f\u7248 detview\u3002$1 = prefer \u6a21\u5f0f\uff08auto|on|off\uff09\uff0c\u9ed8\u8ba4 on\u3002"
+        ],
+        [
+          4,
+          "if sudo -n fuser /dev/pango_pci_driver >/dev/null 2>&1; then"
+        ],
+        [
+          14,
+          "    setsid /userdata/detview-hdmifull/detview-hdmifull \\"
+        ],
+        [
+          19,
+          "sudo -n fuser /dev/pango_pci_driver 2>/dev/null || echo 'not started'"
+        ]
+      ]
+    },
+    {
+      "path": "/userdata/linaro/prepare_mvp_import.sh",
+      "realpath": "/userdata/linaro/prepare_mvp_import.sh",
+      "matches": [
+        [
+          4,
+          "mkdir -p \"$dest\" /root/npu/mvp /userdata/linaro/detview-mvp-work"
+        ],
+        [
+          5,
+          "chown linaro:linaro \"$dest\" /userdata/linaro/detview-mvp-work"
+        ],
+        [
+          7,
+          "sha256sum /userdata/detview-hdmifull/detview-hdmifull /userdata/linaro/detview-hdmifull-src/main.cpp"
+        ],
+        [
+          8,
+          "fuser /dev/pango_pci_driver 2>/dev/null || true"
+        ]
+      ]
+    },
+    {
+      "path": "/userdata/linaro/resume_hdmi_batches.sh",
+      "realpath": "/userdata/linaro/resume_hdmi_batches.sh",
+      "matches": [
+        [
+          25,
+          "name = 'RK3568/detview_tdm/README.md'"
+        ],
+        [
+          36,
+          "git -C \"$work\" add -- RK3568/detview_tdm/README.md"
+        ]
+      ]
+    },
+    {
+      "path": "/userdata/linaro/run_model_trials.sh",
+      "realpath": "/userdata/linaro/run_model_trials.sh",
+      "matches": [
+        [
+          3,
+          "app=/userdata/linaro/detview-mvp-work/detview"
+        ],
+        [
+          9,
+          "if fuser /dev/pango_pci_driver >/dev/null 2>&1; then echo 'Capture now occupied; inspect owner first'; exit 1; fi"
+        ],
+        [
+          13,
+          "    DET_BENCH=1 timeout 120 \"$app\" --model \"$model\" --video /userdata/linaro/detview-video-work/media/VID_20260912_151339_480p30.mp4 --video-loop --fullscreen --no-tracking --shot 20 --duration 35 > \"$out/$model.log\" 2>&1"
+        ],
+        [
+          14,
+          "    find /userdata/detview_shots -maxdepth 1 -type f -name 'shot_*.png' -newer \"$out/$model.started\" -exec cp {} \"$out/\" \\;"
+        ]
+      ]
+    },
+    {
+      "path": "/userdata/linaro/view_50k_hdmi_live2.sh",
+      "realpath": "/userdata/linaro/view_50k_hdmi_live2.sh",
+      "matches": [
+        [
+          3,
+          "if sudo -n fuser /dev/pango_pci_driver >/dev/null 2>&1; then"
+        ],
+        [
+          8,
+          "sudo -n sh -c 'nohup env DISPLAY=:0 XAUTHORITY=/var/run/lightdm/root/:0 QT_QPA_PLATFORM=xcb QT_XCB_GL_INTEGRATION=xcb_egl /userdata/linaro/detview-todo-work/build/detview --model wb_v4_combo --fullscreen --no-tracking --shot 8 > /userdata/50k_link_evidence/hdmi_live.log 2>&1 < /dev/null & echo $! > /userdata/50k_link_evidence/hdmi_live.pid'"
+        ]
+      ]
+    },
+    {
+      "path": "/userdata/linaro/fetch_driving_base.sh",
+      "realpath": "/userdata/linaro/fetch_driving_base.sh",
+      "matches": [
+        [
+          8,
+          "git -C \"$repo\" ls-tree --name-only origin/main RK3568/detview_tdm/driving_demo.h"
+        ],
+        [
+          9,
+          "git -C \"$repo\" show origin/main:RK3568/detview_tdm/main.cpp > /userdata/linaro/driving_remote_main.cpp"
+        ]
+      ]
+    },
+    {
+      "path": "/userdata/linaro/detview-tdm-build-20260928/run_detview.sh",
+      "realpath": "/userdata/linaro/detview-tdm-build-20260928/run_detview.sh",
+      "matches": [
+        [
+          2,
+          "# detview \u81ea\u6108\u5b88\u62a4\uff1a\u5e94\u7528\u4f1a\u81ea\u5df1 exit(3)\uff08\u8fde\u7eed DMA \u5931\u8d25\uff0c\u6216 60 \u79d2\u6ca1\u6709\u65b0\u5e27\u2014\u2014"
+        ],
+        [
+          8,
+          "# \u7528\u6cd5: sudo setsid bash run_detview.sh --fullscreen --rotate-model a,b"
+        ],
+        [
+          9,
+          "exec 9>/tmp/detview.lock"
+        ],
+        [
+          11,
+          "echo $$ > /tmp/detview_supervisor.pid   # \u4fbf\u4e8e\u5916\u90e8\u7528 PID \u7cbe\u786e\u505c\u6b62\uff08\u4e0d\u8981\u7528 pkill -f\uff0c\u4f1a\u8bef\u4f24\u8c03\u7528\u65b9\uff09"
+        ],
+        [
+          19,
+          "    ./detview \"$@\""
+        ],
+        [
+          23,
+          "    echo \"[supervisor] detview exited rc=$rc (consecutive=$fails); restart in 3s\" >&2"
+        ],
+        [
+          31,
+          "        rmmod pango_pci_driver 2>/dev/null"
+        ],
+        [
+          36,
+          "        insmod /root/ov5640/pango_pci_driver.ko 2>/dev/null"
+        ],
+        [
+          37,
+          "        ls /dev/pango_pci_driver > /dev/null 2>&1 && echo \"[supervisor] driver reloaded\" >&2"
+        ]
+      ]
+    },
+    {
+      "path": "/userdata/linaro/detview-tdm-build-20260928/bringup.sh",
+      "realpath": "/userdata/linaro/detview-tdm-build-20260928/bringup.sh",
+      "matches": [
+        [
+          3,
+          "#   \u7528\u6cd5: sudo bash bringup.sh [detview \u53c2\u6570...]"
+        ],
+        [
+          8,
+          "echo \"[1/5] \u6e05\u7406\u6b8b\u7559 detview \u5b9e\u4f8b...\""
+        ],
+        [
+          9,
+          "pkill -9 -x detview 2>/dev/null"
+        ],
+        [
+          13,
+          "if lsmod | grep -q pango_pci_driver; then"
+        ],
+        [
+          15,
+          "    rmmod pango_pci_driver 2>/dev/null"
+        ],
+        [
+          23,
+          "insmod /root/ov5640/pango_pci_driver.ko 2>/dev/null"
+        ],
+        [
+          25,
+          "if ! ls /dev/pango_pci_driver >/dev/null 2>&1; then"
+        ],
+        [
+          26,
+          "    echo \"FATAL: /dev/pango_pci_driver \u672a\u51fa\u73b0\uff08\u68c0\u67e5 PCIe rescan / \u4f4d\u6d41\u662f\u5426\u5df2\u56fa\u5316\uff09\""
+        ],
+        [
+          29,
+          "echo \"  \u8bbe\u5907\u5c31\u7eea: $(ls -l /dev/pango_pci_driver)\""
+        ],
+        [
+          31,
+          "echo \"[3/5] \u542f\u52a8 detview \u5b88\u62a4...\""
+        ],
+        [
+          32,
+          "rm -f /tmp/detview.lock /tmp/detview_supervisor.pid"
+        ],
+        [
+          33,
+          "setsid bash ./run_detview.sh \"$@\" > /tmp/detview_watch.log 2>&1 < /dev/null &"
+        ],
+        [
+          35,
+          "echo \"  supervisor=$(cat /tmp/detview_supervisor.pid 2>/dev/null)\""
+        ],
+        [
+          39,
+          "echo \"panes=$(grep -ac '\\[panes\\]' /tmp/detview_watch.log) recover=$(grep -ac '\\[recover\\]' /tmp/detview_watch.log)\""
+        ],
+        [
+          40,
+          "grep -a '\\[panes\\]' /tmp/detview_watch.log | tail -2"
+        ],
+        [
+          42,
+          "echo \"[5/5] \u5b8c\u6210\u3002\u65e5\u5fd7: /tmp/detview_watch.log\uff08\u5b88\u62a4\u4f1a\u6301\u7eed\u81ea\u6108\uff1a60s \u65e0\u65b0\u5e27\u6216\u8fde\u7eed 6 \u6b21 ioctl \u5931\u8d25\u81ea\u52a8\u91cd\u542f\uff09\""
+        ]
+      ]
+    },
+    {
+      "path": "/userdata/linaro/detview-driving-demo-src/run_driving_demo.sh",
+      "realpath": "/userdata/linaro/detview-driving-demo-src/run_driving_demo.sh",
+      "matches": [
+        [
+          5,
+          "# Optional environment: DETVIEW_DRIVING_APP (absolute executable), DISPLAY,"
+        ],
+        [
+          11,
+          "DEVICE=/dev/pango_pci_driver"
+        ],
+        [
+          13,
+          "APP=${DETVIEW_DRIVING_APP:-/userdata/detview-driving-demo/detview-driving-demo}"
+        ],
+        [
+          30,
+          "say() { printf '[driving-demo] %s\\n' \"$*\"; }"
+        ],
+        [
+          40,
+          "        \"QT_X11_NO_MITSHM=$QT_X11_NO_MITSHM\" \"DETVIEW_DRIVING_APP=$APP\" \\"
+        ],
+        [
+          250,
+          "        \"$APP\" --driving-demo --fullscreen --no-tracking \\"
+        ]
+      ]
+    },
+    {
+      "path": "/userdata/linaro/fpga_v8_viewer_native_build_20261005/build_prepared_viewer.sh",
+      "realpath": "/userdata/linaro/fpga_v8_viewer_native_build_20261005/build_prepared_viewer.sh",
+      "matches": [
+        [
+          13,
+          "# Inherited detview.pro retains c++17/opencv4 and the original RKNN/RGA link flags."
+        ],
+        [
+          14,
+          "\"${QMAKE:-qmake}\" \"$candidate_root/src/detview.pro\" \"TARGET=detview-native-candidate\""
+        ],
+        [
+          16,
+          "sha256sum \"$native_build_dir/detview-native-candidate\""
+        ]
+      ]
+    },
+    {
+      "path": "/userdata/linaro/fpga_v8_viewer_native_build_20261005/qmake_evidence.sh",
+      "realpath": "/userdata/linaro/fpga_v8_viewer_native_build_20261005/qmake_evidence.sh",
+      "matches": [
+        [
+          3,
+          "exec /usr/lib/qt5/bin/qmake \"$@\" -after 'TARGET=detview-native-candidate'"
+        ]
+      ]
+    },
+    {
+      "path": "/userdata/linaro/fpga_v8_viewer_binding_20261005_current_rebuild_02_9af743d7dff0/build_isolated.sh",
+      "realpath": "/userdata/linaro/fpga_v8_viewer_binding_20261005_current_rebuild_02_9af743d7dff0/build_isolated.sh",
+      "matches": [
+        [
+          2,
+          "# Invoked only in the newly created evidence root. Never install or execute detview."
+        ],
+        [
+          4,
+          "if [ -e build_return_code.txt ] || [ -e detview ] || [ -e main.o ]; then"
+        ],
+        [
+          8,
+          "printf '%s\\n' '/usr/lib/qt5/bin/qmake -o Makefile detview.pro' > commands.txt"
+        ],
+        [
+          9,
+          "/usr/lib/qt5/bin/qmake -o Makefile detview.pro > qmake.log 2>&1"
+        ]
+      ]
+    },
+    {
+      "path": "/userdata/linaro/fpga_v8_viewer_binding_20261005/build_isolated.sh",
+      "realpath": "/userdata/linaro/fpga_v8_viewer_binding_20261005/build_isolated.sh",
+      "matches": [
+        [
+          2,
+          "# Invoked only in the newly created evidence root. Never install or execute detview."
+        ],
+        [
+          4,
+          "if [ -e build_return_code.txt ] || [ -e detview ] || [ -e main.o ]; then"
+        ],
+        [
+          8,
+          "printf '%s\\n' '/usr/lib/qt5/bin/qmake -o Makefile detview.pro' > commands.txt"
+        ],
+        [
+          9,
+          "/usr/lib/qt5/bin/qmake -o Makefile detview.pro > qmake.log 2>&1"
+        ]
+      ]
+    },
+    {
+      "path": "/userdata/linaro/fpga_v8_viewer_binding_20261005_native_build_02_2597e95edba5/build_isolated.sh",
+      "realpath": "/userdata/linaro/fpga_v8_viewer_binding_20261005_native_build_02_2597e95edba5/build_isolated.sh",
+      "matches": [
+        [
+          2,
+          "# Invoked only in the newly created evidence root. Never install or execute detview."
+        ],
+        [
+          4,
+          "if [ -e build_return_code.txt ] || [ -e detview ] || [ -e main.o ]; then"
+        ],
+        [
+          8,
+          "printf '%s\\n' '/usr/lib/qt5/bin/qmake -o Makefile detview.pro -after TARGET=detview-native-current-candidate' > commands.txt"
+        ],
+        [
+          9,
+          "/usr/lib/qt5/bin/qmake -o Makefile detview.pro -after TARGET=detview-native-current-candidate > qmake.log 2>&1"
+        ]
+      ]
+    },
+    {
+      "path": "/userdata/model_compare_20261004/board_guard.sh",
+      "realpath": "/userdata/model_compare_20261004/board_guard.sh",
+      "matches": [
+        [
+          58,
+          "viewers={pid for pid,(cmd,ppid,st,start) in processes.items() if cmd.split() and pathlib.Path(cmd.split()[0]).name.startswith('detview')}"
+        ],
+        [
+          69,
+          "                if os.readlink(fd)=='/dev/pango_pci_driver':owners.add(pid)"
+        ],
+        [
+          135,
+          "                if os.readlink(fd)=='/dev/pango_pci_driver':owners.add(int(p.name))"
+        ]
+      ]
+    },
+    {
+      "path": "/etc/xdg/autostart/xscreensaver.desktop",
+      "realpath": "/etc/xdg/autostart/xscreensaver.desktop",
+      "matches": [
+        [
+          125,
+          "Exec=/usr/share/xscreensaver/xscreensaver-wrapper.sh -no-splash"
+        ]
+      ]
+    },
+    {
+      "path": "/etc/xdg/autostart/xfce4-power-manager.desktop",
+      "realpath": "/etc/xdg/autostart/xfce4-power-manager.desktop",
+      "matches": [
+        [
+          125,
+          "Exec=xfce4-power-manager"
+        ]
+      ]
+    },
+    {
+      "path": "/etc/xdg/autostart/light-locker.desktop",
+      "realpath": "/etc/xdg/autostart/light-locker.desktop",
+      "matches": [
+        [
+          61,
+          "Exec=light-locker"
+        ]
+      ]
+    },
+    {
+      "path": "/etc/xdg/autostart/blueman.desktop",
+      "realpath": "/etc/xdg/autostart/blueman.desktop",
+      "matches": [
+        [
+          64,
+          "Exec=blueman-applet"
+        ]
+      ]
+    },
+    {
+      "path": "/etc/xdg/autostart/nm-applet.desktop",
+      "realpath": "/etc/xdg/autostart/nm-applet.desktop",
+      "matches": [
+        [
+          146,
+          "Exec=nm-applet"
+        ]
+      ]
+    },
+    {
+      "path": "/etc/xdg/autostart/xfsettingsd.desktop",
+      "realpath": "/etc/xdg/autostart/xfsettingsd.desktop",
+      "matches": [
+        [
+          110,
+          "Exec=xfsettingsd"
+        ]
+      ]
+    },
+    {
+      "path": "/etc/xdg/autostart/polkit-gnome-authentication-agent-1.desktop",
+      "realpath": "/etc/xdg/autostart/polkit-gnome-authentication-agent-1.desktop",
+      "matches": [
+        [
+          82,
+          "Exec=/usr/lib/policykit-1-gnome/polkit-gnome-authentication-agent-1"
+        ]
+      ]
+    },
+    {
+      "path": "/etc/xdg/autostart/tracker-miner-fs-3.desktop",
+      "realpath": "/etc/xdg/autostart/tracker-miner-fs-3.desktop",
+      "matches": [
+        [
+          4,
+          "Exec=/usr/libexec/tracker-miner-fs-3"
+        ],
+        [
+          8,
+          "X-GNOME-Autostart-enabled=true"
+        ]
+      ]
+    },
+    {
+      "path": "/etc/xdg/autostart/xdg-user-dirs-kde.desktop",
+      "realpath": "/etc/xdg/autostart/xdg-user-dirs-kde.desktop",
+      "matches": [
+        [
+          5,
+          "Exec=xdg-user-dirs-update"
+        ]
+      ]
+    },
+    {
+      "path": "/home/linaro/.config/xfce4/panel/launcher-17/17886976441.desktop",
+      "realpath": "/home/linaro/.config/xfce4/panel/launcher-17/17886976441.desktop",
+      "matches": [
+        [
+          4,
+          "Exec=exo-open --launch TerminalEmulator"
+        ]
+      ]
+    },
+    {
+      "path": "/home/linaro/.config/xfce4/panel/launcher-18/17886976442.desktop",
+      "realpath": "/home/linaro/.config/xfce4/panel/launcher-18/17886976442.desktop",
+      "matches": [
+        [
+          4,
+          "Exec=exo-open --launch FileManager %u"
+        ]
+      ]
+    },
+    {
+      "path": "/home/linaro/.config/xfce4/panel/launcher-19/17886976443.desktop",
+      "realpath": "/home/linaro/.config/xfce4/panel/launcher-19/17886976443.desktop",
+      "matches": [
+        [
+          4,
+          "Exec=exo-open --launch WebBrowser %u"
+        ]
+      ]
+    },
+    {
+      "path": "/home/linaro/.config/xfce4/panel/launcher-20/17886976444.desktop",
+      "realpath": "/home/linaro/.config/xfce4/panel/launcher-20/17886976444.desktop",
+      "matches": [
+        [
+          3,
+          "Exec=xfce4-appfinder"
+        ]
+      ]
+    }
+  ],
+  "commands": [
+    {
+      "argv": [
+        "systemctl",
+        "list-units",
+        "--all",
+        "--no-pager",
+        "--plain"
+      ],
+      "returncode": 0,
+      "stdout": "UNIT                                                                                        LOAD      ACTIVE   SUB       DESCRIPTION\nproc-sys-fs-binfmt_misc.automount                                                           loaded    inactive dead      Arbitrary Executable File Formats File System Automount Point\ndev-disk-by\\x2ddiskseq-11.device                                                            loaded    active   plugged   /dev/disk/by-diskseq/11\ndev-disk-by\\x2ddiskseq-12.device                                                            loaded    active   plugged   /dev/disk/by-diskseq/12\ndev-disk-by\\x2ddiskseq-13.device                                                            loaded    active   plugged   /dev/disk/by-diskseq/13\ndev-disk-by\\x2did-mmc\\x2dSPeMMC_0x004acd53.device                                           loaded    active   plugged   /dev/disk/by-id/mmc-SPeMMC_0x004acd53\ndev-disk-by\\x2did-mmc\\x2dSPeMMC_0x004acd53\\x2dpart1.device                                  loaded    active   plugged   /dev/disk/by-id/mmc-SPeMMC_0x004acd53-part1\ndev-disk-by\\x2did-mmc\\x2dSPeMMC_0x004acd53\\x2dpart2.device                                  loaded    active   plugged   /dev/disk/by-id/mmc-SPeMMC_0x004acd53-part2\ndev-disk-by\\x2did-mmc\\x2dSPeMMC_0x004acd53\\x2dpart3.device                                  loaded    active   plugged   /dev/disk/by-id/mmc-SPeMMC_0x004acd53-part3\ndev-disk-by\\x2did-mmc\\x2dSPeMMC_0x004acd53\\x2dpart4.device                                  loaded    active   plugged   /dev/disk/by-id/mmc-SPeMMC_0x004acd53-part4\ndev-disk-by\\x2did-mmc\\x2dSPeMMC_0x004acd53\\x2dpart5.device                                  loaded    active   plugged   /dev/disk/by-id/mmc-SPeMMC_0x004acd53-part5\ndev-disk-by\\x2did-mmc\\x2dSPeMMC_0x004acd53\\x2dpart6.device                                  loaded    active   plugged   /dev/disk/by-id/mmc-SPeMMC_0x004acd53-part6\ndev-disk-by\\x2did-mmc\\x2dSPeMMC_0x004acd53\\x2dpart7.device                                  loaded    active   plugged   /dev/disk/by-id/mmc-SPeMMC_0x004acd53-part7\ndev-disk-by\\x2did-mmc\\x2dSPeMMC_0x004acd53\\x2dpart8.device                                  loaded    active   plugged   /dev/disk/by-id/mmc-SPeMMC_0x004acd53-part8\ndev-disk-by\\x2dlabel-oem.device                                                             loaded    active   plugged   /dev/disk/by-label/oem\ndev-disk-by\\x2dlabel-userdata.device                                                        loaded    active   plugged   /dev/disk/by-label/userdata\ndev-disk-by\\x2dpartlabel-backup.device                                                      loaded    active   plugged   /dev/disk/by-partlabel/backup\ndev-disk-by\\x2dpartlabel-boot.device                                                        loaded    active   plugged   /dev/disk/by-partlabel/boot\ndev-disk-by\\x2dpartlabel-misc.device                                                        loaded    active   plugged   /dev/disk/by-partlabel/misc\ndev-disk-by\\x2dpartlabel-oem.device                                                         loaded    active   plugged   /dev/disk/by-partlabel/oem\ndev-disk-by\\x2dpartlabel-recovery.device                                                    loaded    active   plugged   /dev/disk/by-partlabel/recovery\ndev-disk-by\\x2dpartlabel-rootfs.device                                                      loaded    active   plugged   /dev/disk/by-partlabel/rootfs\ndev-disk-by\\x2dpartlabel-uboot.device                                                       loaded    active   plugged   /dev/disk/by-partlabel/uboot\ndev-disk-by\\x2dpartlabel-userdata.device                                                    loaded    active   plugged   /dev/disk/by-partlabel/userdata\ndev-disk-by\\x2dpartuuid-25720000\\x2d0000\\x2d4e3f\\x2d8000\\x2d1b6e00004c40.device             loaded    active   plugged   /dev/disk/by-partuuid/25720000-0000-4e3f-8000-1b6e00004c40\ndev-disk-by\\x2dpartuuid-614e0000\\x2d0000\\x2d4b53\\x2d8000\\x2d1d28000054a9.device             loaded    active   plugged   /dev/disk/by-partuuid/614e0000-0000-4b53-8000-1d28000054a9\ndev-disk-by\\x2dpartuuid-6e510000\\x2d0000\\x2d464a\\x2d8000\\x2d7b4400000cef.device             loaded    active   plugged   /dev/disk/by-partuuid/6e510000-0000-464a-8000-7b4400000cef\ndev-disk-by\\x2dpartuuid-83260000\\x2d0000\\x2d4447\\x2d8000\\x2d395100003753.device             loaded    active   plugged   /dev/disk/by-partuuid/83260000-0000-4447-8000-395100003753\ndev-disk-by\\x2dpartuuid-a4530000\\x2d0000\\x2d4536\\x2d8000\\x2d62830000419a.device             loaded    active   plugged   /dev/disk/by-partuuid/a4530000-0000-4536-8000-62830000419a\ndev-disk-by\\x2dpartuuid-ac1b0000\\x2d0000\\x2d4308\\x2d8000\\x2d460500006f28.device             loaded    active   plugged   /dev/disk/by-partuuid/ac1b0000-0000-4308-8000-460500006f28\ndev-disk-by\\x2dpartuuid-e4090000\\x2d0000\\x2d4729\\x2d8000\\x2d3f6a00000172.device             loaded    active   plugged   /dev/disk/by-partuuid/e4090000-0000-4729-8000-3f6a00000172\ndev-disk-by\\x2dpartuuid-ef770000\\x2d0000\\x2d4a60\\x2d8000\\x2d6a4c00001025.device             loaded    active   plugged   /dev/disk/by-partuuid/ef770000-0000-4a60-8000-6a4c00001025\ndev-disk-by\\x2dpath-platform\\x2dfe310000.mmc.device                                         loaded    active   plugged   /dev/disk/by-path/platform-fe310000.mmc\ndev-disk-by\\x2dpath-platform\\x2dfe310000.mmc\\x2dboot0.device                                loaded    active   plugged   /dev/disk/by-path/platform-fe310000.mmc-boot0\ndev-disk-by\\x2dpath-platform\\x2dfe310000.mmc\\x2dboot1.device                                loaded    active   plugged   /dev/disk/by-path/platform-fe310000.mmc-boot1\ndev-disk-by\\x2dpath-platform\\x2dfe310000.mmc\\x2dpart1.device                                loaded    active   plugged   /dev/disk/by-path/platform-fe310000.mmc-part1\ndev-disk-by\\x2dpath-platform\\x2dfe310000.mmc\\x2dpart2.device                                loaded    active   plugged   /dev/disk/by-path/platform-fe310000.mmc-part2\ndev-disk-by\\x2dpath-platform\\x2dfe310000.mmc\\x2dpart3.device                                loaded    active   plugged   /dev/disk/by-path/platform-fe310000.mmc-part3\ndev-disk-by\\x2dpath-platform\\x2dfe310000.mmc\\x2dpart4.device                                loaded    active   plugged   /dev/disk/by-path/platform-fe310000.mmc-part4\ndev-disk-by\\x2dpath-platform\\x2dfe310000.mmc\\x2dpart5.device                                loaded    active   plugged   /dev/disk/by-path/platform-fe310000.mmc-part5\ndev-disk-by\\x2dpath-platform\\x2dfe310000.mmc\\x2dpart6.device                                loaded    active   plugged   /dev/disk/by-path/platform-fe310000.mmc-part6\ndev-disk-by\\x2dpath-platform\\x2dfe310000.mmc\\x2dpart7.device                                loaded    active   plugged   /dev/disk/by-path/platform-fe310000.mmc-part7\ndev-disk-by\\x2dpath-platform\\x2dfe310000.mmc\\x2dpart8.device                                loaded    active   plugged   /dev/disk/by-path/platform-fe310000.mmc-part8\ndev-disk-by\\x2duuid-39a805dd\\x2d7ec2\\x2d4da0\\x2db486\\x2d5d49655efc05.device                 loaded    active   plugged   /dev/disk/by-uuid/39a805dd-7ec2-4da0-b486-5d49655efc05\ndev-disk-by\\x2duuid-3be4bf8a\\x2dbfce\\x2d440d\\x2db9be\\x2d322b0101a13f.device                 loaded    active   plugged   /dev/disk/by-uuid/3be4bf8a-bfce-440d-b9be-322b0101a13f\ndev-disk-by\\x2duuid-7c3c4887\\x2d2e6b\\x2d4df2\\x2da18c\\x2d123e19e3dcb5.device                 loaded    active   plugged   /dev/disk/by-uuid/7c3c4887-2e6b-4df2-a18c-123e19e3dcb5\ndev-mmcblk0.device                                                                          loaded    active   plugged   /dev/mmcblk0\ndev-mmcblk0boot0.device                                                                     loaded    active   plugged   /dev/mmcblk0boot0\ndev-mmcblk0boot1.device                                                                     loaded    active   plugged   /dev/mmcblk0boot1\ndev-mmcblk0p1.device                                                                        loaded    active   plugged   /dev/mmcblk0p1\ndev-mmcblk0p2.device                                                                        loaded    active   plugged   /dev/mmcblk0p2\ndev-mmcblk0p3.device                                                                        loaded    active   plugged   /dev/mmcblk0p3\ndev-mmcblk0p4.device                                                                        loaded    active   plugged   /dev/mmcblk0p4\ndev-mmcblk0p5.device                                                                        loaded    active   plugged   /dev/mmcblk0p5\ndev-mmcblk0p6.device                                                                        loaded    active   plugged   /dev/mmcblk0p6\ndev-mmcblk0p7.device                                                                        loaded    active   plugged   /dev/mmcblk0p7\ndev-mmcblk0p8.device                                                                        loaded    active   plugged   /dev/mmcblk0p8\ndev-ptp0.device                                                                             loaded    active   plugged   /dev/ptp0\ndev-ptp1.device                                                                             loaded    active   plugged   /dev/ptp1\ndev-ram0.device                                                                             loaded    active   plugged   /dev/ram0\ndev-rfkill.device                                                                           loaded    active   plugged   /dev/rfkill\ndev-snd-by\\x2dpath-platform\\x2des8388\\x2dsound.device                                       loaded    active   plugged   /dev/snd/by-path/platform-es8388-sound\ndev-snd-by\\x2dpath-platform\\x2dhdmi\\x2dsound.device                                         loaded    active   plugged   /dev/snd/by-path/platform-hdmi-sound\ndev-snd-controlC0.device                                                                    loaded    active   plugged   /dev/snd/controlC0\ndev-snd-controlC1.device                                                                    loaded    active   plugged   /dev/snd/controlC1\ndev-ttyFIQ0.device                                                                          loaded    active   plugged   /dev/ttyFIQ0\ndev-ttyS0.device                                                                            loaded    active   plugged   /dev/ttyS0\ndev-ttyS3.device                                                                            loaded    active   plugged   /dev/ttyS3\ndev-ttyS4.device                                                                            loaded    active   plugged   /dev/ttyS4\ndev-ttyS7.device                                                                            loaded    active   plugged   /dev/ttyS7\ndev-ttyS8.device                                                                            loaded    active   plugged   /dev/ttyS8\ndev-zram0.device                                                                            loaded    active   plugged   /dev/zram0\nsys-devices-platform-backlight-backlight-backlight.device                                   loaded    active   plugged   /sys/devices/platform/backlight/backlight/backlight\nsys-devices-platform-es8388\\x2dsound-sound-card0-controlC0.device                           loaded    active   plugged   /sys/devices/platform/es8388-sound/sound/card0/controlC0\nsys-devices-platform-fd800000.usb-usb5-5\\x2d1-5\\x2d1:1.0-bluetooth-hci0.device              loaded    active   plugged   /sys/devices/platform/fd800000.usb/usb5/5-1/5-1:1.0/bluetooth/hci0\nsys-devices-platform-fd800000.usb-usb5-5\\x2d1-5\\x2d1:1.2-net-wlx84fc1420fd6e.device         loaded    active   plugged   802.11n_WLAN_Adapter\nsys-devices-platform-fdd50000.serial-tty-ttyS0.device                                       loaded    active   plugged   /sys/devices/platform/fdd50000.serial/tty/ttyS0\nsys-devices-platform-fe010000.ethernet-net-end1.device                                      loaded    active   plugged   /sys/devices/platform/fe010000.ethernet/net/end1\nsys-devices-platform-fe010000.ethernet-ptp-ptp1.device                                      loaded    active   plugged   /sys/devices/platform/fe010000.ethernet/ptp/ptp1\nsys-devices-platform-fe2a0000.ethernet-net-end0.device                                      loaded    active   plugged   /sys/devices/platform/fe2a0000.ethernet/net/end0\nsys-devices-platform-fe2a0000.ethernet-ptp-ptp0.device                                      loaded    active   plugged   /sys/devices/platform/fe2a0000.ethernet/ptp/ptp0\nsys-devices-platform-fe310000.mmc-mmc_host-mmc0-mmc0:0001-block-mmcblk0-mmcblk0boot0.device loaded    active   plugged   /sys/devices/platform/fe310000.mmc/mmc_host/mmc0/mmc0:0001/block/mmcblk0/mmcblk0boot0\nsys-devices-platform-fe310000.mmc-mmc_host-mmc0-mmc0:0001-block-mmcblk0-mmcblk0boot1.device loaded    active   plugged   /sys/devices/platform/fe310000.mmc/mmc_host/mmc0/mmc0:0001/block/mmcblk0/mmcblk0boot1\nsys-devices-platform-fe310000.mmc-mmc_host-mmc0-mmc0:0001-block-mmcblk0-mmcblk0p1.device    loaded    active   plugged   /sys/devices/platform/fe310000.mmc/mmc_host/mmc0/mmc0:0001/block/mmcblk0/mmcblk0p1\nsys-devices-platform-fe310000.mmc-mmc_host-mmc0-mmc0:0001-block-mmcblk0-mmcblk0p2.device    loaded    active   plugged   /sys/devices/platform/fe310000.mmc/mmc_host/mmc0/mmc0:0001/block/mmcblk0/mmcblk0p2\nsys-devices-platform-fe310000.mmc-mmc_host-mmc0-mmc0:0001-block-mmcblk0-mmcblk0p3.device    loaded    active   plugged   /sys/devices/platform/fe310000.mmc/mmc_host/mmc0/mmc0:0001/block/mmcblk0/mmcblk0p3\nsys-devices-platform-fe310000.mmc-mmc_host-mmc0-mmc0:0001-block-mmcblk0-mmcblk0p4.device    loaded    active   plugged   /sys/devices/platform/fe310000.mmc/mmc_host/mmc0/mmc0:0001/block/mmcblk0/mmcblk0p4\nsys-devices-platform-fe310000.mmc-mmc_host-mmc0-mmc0:0001-block-mmcblk0-mmcblk0p5.device    loaded    active   plugged   /sys/devices/platform/fe310000.mmc/mmc_host/mmc0/mmc0:0001/block/mmcblk0/mmcblk0p5\nsys-devices-platform-fe310000.mmc-mmc_host-mmc0-mmc0:0001-block-mmcblk0-mmcblk0p6.device    loaded    active   plugged   /sys/devices/platform/fe310000.mmc/mmc_host/mmc0/mmc0:0001/block/mmcblk0/mmcblk0p6\nsys-devices-platform-fe310000.mmc-mmc_host-mmc0-mmc0:0001-block-mmcblk0-mmcblk0p7.device    loaded    active   plugged   /sys/devices/platform/fe310000.mmc/mmc_host/mmc0/mmc0:0001/block/mmcblk0/mmcblk0p7\nsys-devices-platform-fe310000.mmc-mmc_host-mmc0-mmc0:0001-block-mmcblk0-mmcblk0p8.device    loaded    active   plugged   /sys/devices/platform/fe310000.mmc/mmc_host/mmc0/mmc0:0001/block/mmcblk0/mmcblk0p8\nsys-devices-platform-fe310000.mmc-mmc_host-mmc0-mmc0:0001-block-mmcblk0.device              loaded    active   plugged   /sys/devices/platform/fe310000.mmc/mmc_host/mmc0/mmc0:0001/block/mmcblk0\nsys-devices-platform-fe570000.can-net-can0.device                                           loaded    active   plugged   /sys/devices/platform/fe570000.can/net/can0\nsys-devices-platform-fe580000.can-net-can1.device                                           loaded    active   plugged   /sys/devices/platform/fe580000.can/net/can1\nsys-devices-platform-fe670000.serial-tty-ttyS3.device                                       loaded    active   plugged   /sys/devices/platform/fe670000.serial/tty/ttyS3\nsys-devices-platform-fe680000.serial-tty-ttyS4.device                                       loaded    active   plugged   /sys/devices/platform/fe680000.serial/tty/ttyS4\nsys-devices-platform-fe6b0000.serial-tty-ttyS7.device                                       loaded    active   plugged   /sys/devices/platform/fe6b0000.serial/tty/ttyS7\nsys-devices-platform-fe6c0000.serial-tty-ttyS8.device                                       loaded    active   plugged   /sys/devices/platform/fe6c0000.serial/tty/ttyS8\nsys-devices-platform-fiq_debugger.0-tty-ttyFIQ0.device                                      loaded    active   plugged   /sys/devices/platform/fiq_debugger.0/tty/ttyFIQ0\nsys-devices-platform-hdmi\\x2dsound-sound-card1-controlC1.device                             loaded    active   plugged   /sys/devices/platform/hdmi-sound/sound/card1/controlC1\nsys-devices-virtual-block-ram0.device                                                       loaded    active   plugged   /sys/devices/virtual/block/ram0\nsys-devices-virtual-block-zram0.device                                                      loaded    active   plugged   /sys/devices/virtual/block/zram0\nsys-devices-virtual-misc-rfkill.device                                                      loaded    active   plugged   /sys/devices/virtual/misc/rfkill\nsys-module-configfs.device                                                                  loaded    active   plugged   /sys/module/configfs\nsys-module-fuse.device                                                                      loaded    active   plugged   /sys/module/fuse\nsys-subsystem-bluetooth-devices-hci0.device                                                 loaded    active   plugged   /sys/subsystem/bluetooth/devices/hci0\nsys-subsystem-net-devices-can0.device                                                       loaded    active   plugged   /sys/subsystem/net/devices/can0\nsys-subsystem-net-devices-can1.device                                                       loaded    active   plugged   /sys/subsystem/net/devices/can1\nsys-subsystem-net-devices-end0.device                                                       loaded    active   plugged   /sys/subsystem/net/devices/end0\nsys-subsystem-net-devices-end1.device                                                       loaded    active   plugged   /sys/subsystem/net/devices/end1\nsys-subsystem-net-devices-wlx84fc1420fd6e.device                                            loaded    active   plugged   802.11n_WLAN_Adapter\n-.mount                                                                                     loaded    active   mounted   Root Mount\ndev-hugepages.mount                                                                         loaded    inactive dead      Huge Pages File System\ndev-mqueue.mount                                                                            loaded    inactive dead      POSIX Message Queue File System\nhome.mount                                                                                  not-found inactive dead      home.mount\noem.mount                                                                                   loaded    active   mounted   /oem\nproc-sys-fs-binfmt_misc.mount                                                               loaded    inactive dead      Arbitrary Executable File Formats File System\nrun-credentials-systemd\\x2dsysctl.service.mount                                             loaded    active   mounted   /run/credentials/systemd-sysctl.service\nrun-credentials-systemd\\x2dsysusers.service.mount                                           loaded    active   mounted   /run/credentials/systemd-sysusers.service\nrun-credentials-systemd\\x2dtmpfiles\\x2dsetup.service.mount                                  loaded    active   mounted   /run/credentials/systemd-tmpfiles-setup.service\nrun-credentials-systemd\\x2dtmpfiles\\x2dsetup\\x2ddev.service.mount                           loaded    active   mounted   /run/credentials/systemd-tmpfiles-setup-dev.service\nrun-user-1000.mount                                                                         loaded    active   mounted   /run/user/1000\nsys-fs-fuse-connections.mount                                                               loaded    active   mounted   FUSE Control File System\nsys-kernel-config.mount                                                                     loaded    active   mounted   Kernel Configuration File System\nsys-kernel-debug.mount                                                                      loaded    active   mounted   /sys/kernel/debug\nsys-kernel-tracing.mount                                                                    loaded    active   mounted   Kernel Trace File System\ntmp.mount                                                                                   not-found inactive dead      tmp.mount\nuserdata.mount                                                                              loaded    active   mounted   /userdata\nacpid.path                                                                                  loaded    active   running   ACPI Events Check\nntpsec-systemd-netif.path                                                                   loaded    active   waiting   ntpsec-systemd-netif.path\nsystemd-ask-password-console.path                                                           loaded    active   waiting   Dispatch Password <redacted> to Console Directory Watch\nsystemd-ask-password-wall.path                                                              loaded    active   waiting   Forward Password <redacted> to Wall Directory Watch\ninit.scope                                                                                  loaded    active   running   System and Service Manager\nsession-c3.scope                                                                            loaded    active   running   Session c3 of User linaro\nsession-c4.scope                                                                            loaded    active   running   Session c4 of User linaro\nacpid.service                                                                               loaded    active   running   ACPI event daemon\nalsa-restore.service                                                                        loaded    active   exited    Save/Restore Sound Card State\nalsa-state.service                                                                          loaded    inactive dead      Manage Sound Card State (restore and store)\nanacron.service                                                                             loaded    active   running   Run anacron jobs\napparmor.service                                                                            not-found inactive dead      apparmor.service\napt-daily-upgrade.service                                                                   loaded    inactive dead      Daily apt upgrade and clean activities\napt-daily.service                                                                           loaded    inactive dead      Daily apt download activities\nasync-commit.service                                                                        loaded    inactive dead      Enable ASYNC_COMMIT for Rockchip BSP kernel > 4.4\nauditd.service                                                                              not-found inactive dead      auditd.service\nbinfmt-support.service                                                                      loaded    active   exited    Enable support for additional executable binary formats\nblueman-mechanism.service                                                                   loaded    inactive dead      Bluetooth management mechanism\nbluetooth.service                                                                           loaded    active   running   Bluetooth service\nbootanim.service                                                                            loaded    inactive dead      Boot time animation\nconnman.service                                                                             not-found inactive dead      connman.service\nconsole-screen.service                                                                      not-found inactive dead      console-screen.service\nconsole-setup.service                                                                       loaded    active   exited    Set console font and keymap\ncpufrequtils.service                                                                        loaded    active   exited    LSB: set CPUFreq kernel parameters\ndbus.service                                                                                loaded    active   running   D-Bus System Message Bus\ndpkg-db-backup.service                                                                      loaded    inactive dead      Daily dpkg database backup service\ne2scrub_all.service                                                                         loaded    inactive dead      Online ext4 Metadata Check for All Filesystems\ne2scrub_reap.service                                                                        loaded    inactive dead      Remove Stale Online ext4 Metadata Check Snapshots\nemergency.service                                                                           loaded    inactive dead      Emergency Shell\nfstrim.service                                                                              loaded    inactive dead      Discard unused blocks on filesystems from /etc/fstab\ngetty-static.service                                                                        loaded    inactive dead      getty on tty2-tty6 if dbus and logind are not available\ngetty@tty1.service                                                                          loaded    active   running   Getty on tty1\nifupdown-pre.service                                                                        loaded    active   exited    Helper to synchronize boot up for ifupdown\ninitrd-cleanup.service                                                                      loaded    inactive dead      Cleaning Up and Shutting Down Daemons\ninitrd-parse-etc.service                                                                    loaded    inactive dead      Mountpoints Configured in the Real Root\ninitrd-switch-root.service                                                                  loaded    inactive dead      Switch Root\ninitrd-udevadm-cleanup-db.service                                                           loaded    inactive dead      Cleanup udev Database\ninput-event-daemon.service                                                                  loaded    active   running   Input Event Daemon\nirqbalance.service                                                                          loaded    active   running   irqbalance daemon\nkbd.service                                                                                 not-found inactive dead      kbd.service\nkeyboard-setup.service                                                                      loaded    active   exited    Set the console keyboard layout\nkmod-static-nodes.service                                                                   loaded    inactive dead      Create List of Static Device Nodes\nlightdm.service                                                                             loaded    active   running   Light Display Manager\nloadcpufreq.service                                                                         loaded    active   exited    LSB: Load kernel modules needed to enable cpufreq scaling\nlog-guardian.service                                                                        loaded    active   exited    Truncate log files when no space left on device\nloliafrp.service                                                                            loaded    active   running   LoliaFRP frpc client (OV5640 RK3568 SSH tunnel)\nman-db.service                                                                              loaded    inactive dead      Daily man-db regeneration\nmodprobe@configfs.service                                                                   loaded    inactive dead      Load Kernel Module configfs\nmodprobe@dm_mod.service                                                                     loaded    inactive dead      Load Kernel Module dm_mod\nmodprobe@drm.service                                                                        loaded    inactive dead      Load Kernel Module drm\nmodprobe@efi_pstore.service                                                                 loaded    inactive dead      Load Kernel Module efi_pstore\nmodprobe@fuse.service                                                                       loaded    inactive dead      Load Kernel Module fuse\nmodprobe@loop.service                                                                       loaded    inactive dead      Load Kernel Module loop\nnetworking.service                                                                          loaded    active   exited    Raise network interfaces\nNetworkManager-wait-online.service                                                          masked    inactive dead      NetworkManager-wait-online.service\nNetworkManager.service                                                                      loaded    active   running   Network Manager\nnpu-dmc-performance.service                                                                 loaded    active   exited    NPU/DDR performance governor for detection inference\nntpsec-rotate-stats.service                                                                 loaded    inactive dead      Rotate ntpd stats\nntpsec-systemd-netif.service                                                                loaded    inactive dead      ntpsec-systemd-netif.service\nntpsec.service                                                                              loaded    active   running   Network Time Service\nopenvpn.service                                                                             loaded    active   exited    OpenVPN service\nplymouth-quit-wait.service                                                                  not-found inactive dead      plymouth-quit-wait.service\nplymouth-quit.service                                                                       not-found inactive dead      plymouth-quit.service\nplymouth-start.service                                                                      not-found inactive dead      plymouth-start.service\npolkit.service                                                                              loaded    active   running   Authorization Manager\nrc-local.service                                                                            loaded    active   exited    /etc/rc.local Compatibility\nrescue.service                                                                              loaded    inactive dead      Rescue Shell\nresize-all.service                                                                          loaded    active   exited    Resize all internal mounted partitions\nresolvconf.service                                                                          loaded    active   exited    Nameserver information manager\nrkaiq_3A.service                                                                            loaded    inactive dead      Enable Rockchip camera engine rkaiq\nrkwifibt.service                                                                            not-found inactive dead      rkwifibt.service\nrockchip.service                                                                            loaded    inactive dead      Setup rockchip platform environment\nrsyslog.service                                                                             loaded    active   running   System Logging Service\nserial-getty@ttyFIQ0.service                                                                loaded    active   running   Serial Getty on ttyFIQ0\nssh.service                                                                                 loaded    active   running   OpenBSD Secure Shell server\nstrongswan-starter.service                                                                  loaded    active   running   strongSwan IPsec IKEv1/IKEv2 daemon using ipsec.conf\nsystemd-ask-password-console.service                                                        loaded    inactive dead      Dispatch Password <redacted> to Console\nsystemd-ask-password-wall.service                                                           loaded    inactive dead      Forward Password <redacted> to Wall\nsystemd-backlight@backlight:backlight.service                                               loaded    active   exited    Load/Save Screen Backlight Brightness of backlight:backlight\nsystemd-binfmt.service                                                                      loaded    inactive dead      Set Up Additional Binary Formats\nsystemd-firstboot.service                                                                   loaded    inactive dead      First Boot Wizard\nsystemd-fsck-root.service                                                                   loaded    inactive dead      File System Check on Root Device\nsystemd-fsck@dev-disk-by\\x2dpartlabel-oem.service                                           loaded    active   exited    File System Check on /dev/disk/by-partlabel/oem\nsystemd-fsck@dev-disk-by\\x2dpartlabel-userdata.service                                      loaded    active   exited    File System Check on /dev/disk/by-partlabel/userdata\nsystemd-fsckd.service                                                                       loaded    inactive dead      File System Check Daemon to report status\nsystemd-hwdb-update.service                                                                 not-found inactive dead      systemd-hwdb-update.service\nsystemd-initctl.service                                                                     loaded    inactive dead      initctl Compatibility Daemon\nsystemd-journal-flush.service                                                               loaded    active   exited    Flush Journal to Persistent Storage\nsystemd-journald.service                                                                    loaded    active   running   Journal Service\nsystemd-logind.service                                                                      loaded    active   running   User Login Management\nsystemd-machine-id-commit.service                                                           loaded    inactive dead      Commit a transient machine-id on disk\nsystemd-modules-load.service                                                                loaded    active   exited    Load Kernel Modules\nsystemd-networkd.service                                                                    loaded    inactive dead      Network Configuration\nsystemd-oomd.service                                                                        not-found inactive dead      systemd-oomd.service\nsystemd-pcrphase-initrd.service                                                             loaded    inactive dead      TPM2 PCR Barrier (initrd)\nsystemd-pcrphase-sysinit.service                                                            loaded    inactive dead      TPM2 PCR Barrier (Initialization)\nsystemd-pcrphase.service                                                                    loaded    inactive dead      TPM2 PCR Barrier (User)\nsystemd-pstore.service                                                                      loaded    active   exited    Platform Persistent Storage Archival\nsystemd-quotacheck.service                                                                  loaded    inactive dead      File System Quota Check\nsystemd-random-seed.service                                                                 loaded    active   exited    Load/Save Random Seed\nsystemd-remount-fs.service                                                                  loaded    active   exited    Remount Root and Kernel File Systems\nsystemd-repart.service                                                                      loaded    inactive dead      Repartition Root Disk\nsystemd-rfkill.service                                                                      loaded    inactive dead      Load/Save RF Kill Switch Status\nsystemd-sysctl.service                                                                      loaded    active   exited    Apply Kernel Variables\nsystemd-sysext.service                                                                      loaded    inactive dead      Merge System Extension Images into /usr/ and /opt/\nsystemd-sysusers.service                                                                    loaded    active   exited    Create System Users\nsystemd-timesyncd.service                                                                   not-found inactive dead      systemd-timesyncd.service\nsystemd-tmpfiles-clean.service                                                              loaded    inactive dead      Cleanup of Temporary Directories\nsystemd-tmpfiles-setup-dev.service                                                          loaded    active   exited    Create Static Device Nodes in /dev\nsystemd-tmpfiles-setup.service                                                              loaded    active   exited    Create System Files and Directories\nsystemd-udev-settle.service                                                                 loaded    inactive dead      Wait for udev To Complete Device Initialization\nsystemd-udev-trigger.service                                                                loaded    active   exited    Coldplug All udev Devices\nsystemd-udevd.service                                                                       loaded    active   running   Rule-based Manager for Device Events and Files\nsystemd-update-done.service                                                                 not-found inactive dead      systemd-update-done.service\nsystemd-update-utmp-runlevel.service                                                        loaded    inactive dead      Record Runlevel Change in UTMP\nsystemd-update-utmp.service                                                                 loaded    active   exited    Record System Boot/Shutdown in UTMP\nsystemd-user-sessions.service                                                               loaded    active   exited    Permit User Sessions\nsystemd-vconsole-setup.service                                                              not-found inactive dead      systemd-vconsole-setup.service\nudisks2.service                                                                             loaded    active   running   Disk Manager\nupower.service                                                                              loaded    active   running   Daemon for power management\nusbdevice.service                                                                           loaded    failed   failed    Manage USB device functions\nuser-runtime-dir@1000.service                                                               loaded    active   exited    User Runtime Directory /run/user/1000\nuser@1000.service                                                                           loaded    active   running   User Manager for UID 1000\nwifibt-init.service                                                                         loaded    active   exited    Init Rockchip Wifi/BT\nwpa_supplicant.service                                                                      loaded    active   running   WPA supplicant\nxl2tpd.service                                                                              loaded    active   running   LSB: layer 2 tunelling protocol daemon\n-.slice                                                                                     loaded    active   active    Root Slice\nsystem-getty.slice                                                                          loaded    active   active    Slice /system/getty\nsystem-modprobe.slice                                                                       loaded    active   active    Slice /system/modprobe\nsystem-serial\\x2dgetty.slice                                                                loaded    active   active    Slice /system/serial-getty\nsystem-systemd\\x2dbacklight.slice                                                           loaded    active   active    Slice /system/systemd-backlight\nsystem-systemd\\x2dfsck.slice                                                                loaded    active   active    Slice /system/systemd-fsck\nsystem.slice                                                                                loaded    active   active    System Slice\nuser-1000.slice                                                                             loaded    active   active    User Slice of UID 1000\nuser.slice                                                                                  loaded    active   active    User and Session Slice\nacpid.socket                                                                                loaded    active   running   ACPID Listen Socket\ndbus.socket                                                                                 loaded    active   running   D-Bus System Message Bus Socket\nsyslog.socket                                                                               loaded    active   running   Syslog Socket\nsystemd-fsckd.socket                                                                        loaded    active   listening fsck to fsckd communication Socket\nsystemd-initctl.socket                                                                      loaded    active   listening initctl Compatibility Named Pipe\nsystemd-journald-audit.socket                                                               loaded    inactive dead      Journal Audit Socket\nsystemd-journald-dev-log.socket                                                             loaded    active   running   Journal Socket (/dev/log)\nsystemd-journald.socket                                                                     loaded    active   running   Journal Socket\nsystemd-networkd.socket                                                                     loaded    inactive dead      Network Service Netlink Socket\nsystemd-rfkill.socket                                                                       loaded    active   listening Load/Save RF Kill Switch Status /dev/rfkill Watch\nsystemd-udevd-control.socket                                                                loaded    active   running   udev Control Socket\nsystemd-udevd-kernel.socket                                                                 loaded    active   running   udev Kernel Socket\nbasic.target                                                                                loaded    active   active    Basic System\nblockdev@dev-disk-by\\x2dpartlabel-oem.target                                                loaded    inactive dead      Block Device Preparation for /dev/disk/by-partlabel/oem\nblockdev@dev-disk-by\\x2dpartlabel-userdata.target                                           loaded    inactive dead      Block Device Preparation for /dev/disk/by-partlabel/userdata\nblockdev@dev-mmcblk0p7.target                                                               loaded    inactive dead      Block Device Preparation for /dev/mmcblk0p7\nblockdev@dev-mmcblk0p8.target                                                               loaded    inactive dead      Block Device Preparation for /dev/mmcblk0p8\nbluetooth.target                                                                            loaded    active   active    Bluetooth Support\ncryptsetup-pre.target                                                                       loaded    inactive dead      Local Encrypted Volumes (Pre)\ncryptsetup.target                                                                           loaded    active   active    Local Encrypted Volumes\nemergency.target                                                                            loaded    inactive dead      Emergency Mode\nfirst-boot-complete.target                                                                  loaded    inactive dead      First Boot Complete\ngetty-pre.target                                                                            loaded    inactive dead      Preparation for Logins\ngetty.target                                                                                loaded    active   active    Login Prompts\ngraphical.target                                                                            loaded    active   active    Graphical Interface\ninitrd-fs.target                                                                            loaded    inactive dead      Initrd File Systems\ninitrd-root-device.target                                                                   loaded    inactive dead      Initrd Root Device\ninitrd-root-fs.target                                                                       loaded    inactive dead      Initrd Root File System\ninitrd-switch-root.target                                                                   loaded    inactive dead      Switch Root\ninitrd-usr-fs.target                                                                        loaded    inactive dead      Initrd /usr File System\ninitrd.target                                                                               loaded    inactive dead      Initrd Default Target\nintegritysetup.target                                                                       loaded    active   active    Local Integrity Protected Volumes\nlocal-fs-pre.target                                                                         loaded    active   active    Preparation for Local File Systems\nlocal-fs.target                                                                             loaded    active   active    Local File Systems\nmulti-user.target                                                                           loaded    active   active    Multi-User System\nnetwork-online.target                                                                       loaded    active   active    Network is Online\nnetwork-pre.target                                                                          loaded    active   active    Preparation for Network\nnetwork.target                                                                              loaded    active   active    Network\nnss-lookup.target                                                                           loaded    inactive dead      Host and Network Name Lookups\nnss-user-lookup.target                                                                      loaded    inactive dead      User and Group Name Lookups\npaths.target                                                                                loaded    active   active    Path Units\nremote-cryptsetup.target                                                                    loaded    inactive dead      Remote Encrypted Volumes\nremote-fs-pre.target                                                                        loaded    inactive dead      Preparation for Remote File Systems\nremote-fs.target                                                                            loaded    active   active    Remote File Systems\nremote-veritysetup.target                                                                   loaded    inactive dead      Remote Verity Protected Volumes\nrescue.target                                                                               loaded    inactive dead      Rescue Mode\nshutdown.target                                                                             loaded    inactive dead      System Shutdown\nslices.target                                                                               loaded    active   active    Slice Units\nsockets.target                                                                              loaded    active   active    Socket Units\nsound.target                                                                                loaded    active   active    Sound Card\nswap.target                                                                                 loaded    active   active    Swaps\nsysinit.target                                                                              loaded    active   active    System Initialization\nsyslog.target                                                                               not-found inactive dead      syslog.target\ntime-set.target                                                                             loaded    inactive dead      System Time Set\ntime-sync.target                                                                            loaded    inactive dead      System Time Synchronized\ntimers.target                                                                               loaded    active   active    Timer Units\numount.target                                                                               loaded    inactive dead      Unmount All Filesystems\nveritysetup-pre.target                                                                      loaded    inactive dead      Local Verity Protected Volumes (Pre)\nveritysetup.target                                                                          loaded    active   active    Local Verity Protected Volumes\nanacron.timer                                                                               loaded    active   waiting   Trigger anacron every hour\napt-daily-upgrade.timer                                                                     loaded    active   waiting   Daily apt upgrade and clean activities\napt-daily.timer                                                                             loaded    active   waiting   Daily apt download activities\ndpkg-db-backup.timer                                                                        loaded    active   waiting   Daily dpkg database backup timer\ne2scrub_all.timer                                                                           loaded    active   waiting   Periodic ext4 Online Metadata Check for All Filesystems\nfstrim.timer                                                                                loaded    active   waiting   Discard unused blocks once a week\nman-db.timer                                                                                loaded    active   waiting   Daily man-db regeneration\nntpsec-rotate-stats.timer                                                                   loaded    active   waiting   Rotate ntpd stats daily\nsystemd-tmpfiles-clean.timer                                                                loaded    active   waiting   Daily Cleanup of Temporary Directories\n\nLOAD   = Reflects whether the unit definition was properly loaded.\nACTIVE = The high-level unit activation state, i.e. generalization of SUB.\nSUB    = The low-level unit activation state, values depend on unit type.\n330 loaded units listed.\nTo show all installed unit files use 'systemctl list-unit-files'.\n",
+      "stderr": "",
+      "stdout_sha256": "e06ac81463f96d0a69bc738bc218d7bcbf2fcd0cab2422f9c2ee632009a623ed",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "argv": [
+        "ps",
+        "-eo",
+        "pid,ppid,comm"
+      ],
+      "returncode": 0,
+      "stdout": "    PID    PPID COMMAND\n      1       0 systemd\n      2       0 kthreadd\n      3       2 rcu_gp\n      4       2 rcu_par_gp\n      5       2 slub_flushwq\n      6       2 netns\n      7       2 kworker/0:0-device_link_wq\n      8       2 kworker/0:0H-kblockd\n      9       2 kworker/u8:0-events_power_efficient\n     10       2 mm_percpu_wq\n     11       2 rcu_tasks_rude_kthread\n     12       2 ksoftirqd/0\n     13       2 rcu_sched\n     14       2 migration/0\n     15       2 cpuhp/0\n     16       2 cpuhp/1\n     17       2 migration/1\n     18       2 ksoftirqd/1\n     19       2 kworker/1:0-pm\n     20       2 kworker/1:0H-events_highpri\n     21       2 cpuhp/2\n     22       2 migration/2\n     23       2 ksoftirqd/2\n     24       2 kworker/2:0-device_link_wq\n     25       2 kworker/2:0H-events_highpri\n     26       2 cpuhp/3\n     27       2 migration/3\n     28       2 ksoftirqd/3\n     29       2 kworker/3:0-events\n     30       2 kworker/3:0H\n     31       2 kdevtmpfs\n     32       2 inet_frag_wq\n     33       2 kworker/0:1-device_link_wq\n     34       2 kworker/1:1-events_freezable\n     35       2 oom_reaper\n     36       2 kworker/u8:1-events_power_efficient\n     37       2 writeback\n     38       2 kblockd\n     39       2 kconsole\n     40       2 tpm_dev_wq\n     41       2 edac-poller\n     42       2 devfreq_wq\n     43       2 watchdogd\n     44       2 kworker/u8:2-events_freezable_power_\n     45       2 kworker/3:1-mm_percpu_wq\n     46       2 kworker/u8:3-events_power_efficient\n     47       2 kworker/1:1H-kblockd\n     48       2 rpciod\n     49       2 xprtiod\n     50       2 cfg80211\n     51       2 irq/22-rockchip_thermal\n     52       2 kswapd0\n     53       2 nfsiod\n     54       2 xfsalloc\n     55       2 xfs_mru_cache\n     57       2 kworker/1:2-events\n     59       2 kworker/3:2+events\n     60       2 irq/27-rockchip_usb2phy\n     61       2 irq/28-rockchip_usb2phy\n     63       2 mpp_worker_0\n     64       2 mpp_worker_1\n     65       2 mpp_worker_2\n     66       2 mpp_worker_3\n     67       2 mpp_worker_4\n     68       2 mpp_worker_5\n     69       2 kworker/2:1-rcu_gp\n     70       2 hwrng\n     72       2 kworker/2:2-device_link_wq\n     73       2 kworker/2:3-device_link_wq\n     75       2 kworker/2:4-events\n     76       2 kworker/2:5-device_link_wq\n     78       2 kworker/2:6-mm_percpu_wq\n     79       2 kworker/2:7-rcu_gp\n     80       2 kworker/2:8\n     81       2 nvme-wq\n     82       2 nvme-reset-wq\n     83       2 nvme-delete-wq\n     84       2 spi0\n     85       2 spi2\n     87       2 kworker/2:1H-kblockd\n     88       2 stmmac_wq\n     90       2 stmmac_wq\n     92       2 kworker/u8:4\n     93       2 uas\n     94       2 goodix_wq\n     95       2 irq/67-rk817\n     96       2 kworker/0:2-pm\n     97       2 kworker/0:3-events\n     98       2 kworker/0:4-rcu_gp\n     99       2 kworker/1:3\n    100       2 kworker/1:4-events_freezable\n    101       2 cfinteractive\n    103       2 kworker/u9:0-mali_kbase_hwcnt\n    104       2 sdhci\n    105       2 irq/102-mmc0\n    106       2 cryptodev_queue\n    107       2 mmc_complete\n    108       2 spi4\n    109       2 mld\n    110       2 kworker/0:1H-kblockd\n    111       2 ipv6_addrconf\n    112       2 krfcommd\n    173       2 irq/107-rga2\n    174       2 iommu_wq\n    175       2 hpd_queue\n    176       2 irq/50-fe0a0000.hdmi\n    177       2 cec-dw_hdmi\n    178       2 irq/50-dw-hdmi-cec\n    179       2 card0-crtc0\n    180       2 card0-crtc1\n    181       2 display-error-event-thread\n    182       2 gpu_power_off_w\n    183       2 free_pages_work\n    184       2 mali-simple-power-model-temp-poll\n    185       2 kbase_event\n    186       2 kbase_job_fault\n    187       2 kworker/u9:1-mali_jd\n    188       2 irq/117-headset_input\n    189       2 rknpu_power_off\n    194       2 jbd2/mmcblk0p6-8\n    195       2 ext4-rsv-conver\n    201       2 kworker/3:1H-kblockd\n    235       1 systemd-journal\n    262       2 kworker/1:2H-kblockd\n    263       2 kworker/2:2H-kblockd\n    267       1 systemd-udevd\n    271       2 kworker/3:2H\n    363       2 jbd2/mmcblk0p7-8\n    364       2 ext4-rsv-conver\n    368       2 jbd2/mmcblk0p8-8\n    372       2 ext4-rsv-conver\n    606       1 log-guardian\n    624     606 sleep\n    852       2 kworker/3:3-events\n    959       1 acpid\n   1014       1 anacron\n   1022       1 dbus-daemon\n   1026       1 input-event-dae\n   1031       1 irqbalance\n   1035       1 rsyslogd\n   1042       1 systemd-logind\n   1044       1 udisksd\n   1064       1 power-key.sh\n   1084    1064 inotifywait\n   1113       1 NetworkManager\n   1119       1 wpa_supplicant\n   1157       1 polkitd\n   1287       1 starter\n   1321    1287 charon\n   1331       2 RTW_CMD_THREAD\n   1353       1 sshd\n   1378       1 agetty\n   1380       1 lightdm\n   1382       1 sh\n   1393       2 kworker/0:2H-kblockd\n   1397       1 xl2tpd\n   1406       2 btfwwork\n   1407    1380 Xorg\n   1415       1 bluetoothd\n   1417       2 kworker/u9:2-mali_kbase_hwcnt\n   1486       2 kbase_event\n   1598       1 systemd\n   1604    1598 (sd-pam)\n   1627    1598 pipewire\n   1630    1598 pipewire-pulse\n   1631    1382 bash\n   1766       1 ntpd\n   1774    1380 lightdm\n   1785    1774 xfce4-session\n   1805    1598 wireplumber\n   1825       1 dbus-launch\n   1826       1 dbus-daemon\n   1846    1785 ssh-agent\n   1864       1 xfconfd\n   1876    1598 gpg-agent\n   1878    1785 xfwm4\n   1883       1 gvfsd\n   1906    1785 xfsettingsd\n   1909       1 upowerd\n   1914       2 kworker/u9:3-kbase_pm_poweroff_wait\n   1915    1785 xfce4-panel\n   1923    1785 Thunar\n   1932    1785 xfdesktop\n   1935    1785 xfce4-power-man\n   1936    1785 light-locker\n   1937    1785 blueman-applet\n   1938    1785 nm-applet\n   1940    1785 polkit-gnome-au\n   1941    1785 tracker-miner-f\n   1944       1 gvfs-udisks2-vo\n   1958    1883 gvfsd-trash\n   1962       1 dconf-service\n   1973       1 gvfsd-metadata\n   1975    1915 panel-6-systray\n   1979    1915 panel-8-pulseau\n   1994       1 frpc\n   2049    1915 panel-14-action\n   2054       1 obexd\n   2056       1 blueman-tray\n   2111    1353 sshd\n   2125    2111 sshd\n   2163    2125 bash\n   2164    2163 sudo\n   2169    2164 python3\n   2171    2169 ps\n",
+      "stderr": "",
+      "stdout_sha256": "25c74c802b563fcc9b642193ad5277dc68a6b5164e150e58965a78660d62d74a",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "argv": [
+        "cat",
+        "/userdata/detview-driving-demo/run_driving_demo.sh"
+      ],
+      "returncode": 0,
+      "stdout": "#!/usr/bin/env bash\n# Existing HDMI driver/app only: never program FPGA, reload modules, or rebind PCIe.\n# Usage: sudo -n bash run_driving_demo.sh [start|restart|stop|status] [app arguments]\n# Default command: start. Example: ... restart --driving-lane\n# Optional environment: DETVIEW_DRIVING_APP (absolute executable), DISPLAY,\n# XAUTHORITY, DRIVING_DEMO_CHECK_MODELS=0 (skip the filename preflight).\n# start/restart detach a setsid supervisor; exit 0 from the app ends supervision.\nset -u\numask 077\n\nDEVICE=/dev/pango_pci_driver\nLOG_DIR=/userdata/driving_demo_evidence\nAPP=${DETVIEW_DRIVING_APP:-/userdata/detview-driving-demo/detview-driving-demo}\nexport DISPLAY=${DISPLAY-:0}\nexport XAUTHORITY=${XAUTHORITY-/var/run/lightdm/root/:0}\nexport QT_X11_NO_MITSHM=${QT_X11_NO_MITSHM:-1}\nexport QT_QPA_PLATFORM=${QT_QPA_PLATFORM:-xcb}\nexport QT_XCB_GL_INTEGRATION=${QT_XCB_GL_INTEGRATION:-xcb_egl}\nVIDEO_INPUT=\nexpect_video=0\nfor option in \"$@\"; do\n    if (( expect_video )); then VIDEO_INPUT=$option; expect_video=0; fi\n    [[ $option == --video ]] && expect_video=1\ndone\n(( expect_video == 0 )) || { printf '%s\\n' '--video needs a local file' >&2; exit 1; }\nCHECK_MODELS=${DRIVING_DEMO_CHECK_MODELS:-1}\nSCRIPT=$(readlink -f -- \"${BASH_SOURCE[0]}\") || exit 1\nBASH_EXE=$(readlink -f -- \"$(command -v bash)\") || exit 1\n\nsay() { printf '[driving-demo] %s\\n' \"$*\"; }\ndie() { say \"$*\" >&2; exit 1; }\nusage() {\n    printf 'Usage: %s [start|restart|stop|status] [app arguments]\\n' \"$SCRIPT\"\n    printf 'Default: start; app options such as --driving-lane are passed through.\\n'\n}\n\nif [[ ${1-} == --help || ${1-} == -h ]]; then usage; exit 0; fi\nif (( EUID != 0 )); then\n    exec sudo -n env \"DISPLAY=$DISPLAY\" \"XAUTHORITY=$XAUTHORITY\" \\\n        \"QT_X11_NO_MITSHM=$QT_X11_NO_MITSHM\" \"DETVIEW_DRIVING_APP=$APP\" \\\n        \"DRIVING_DEMO_CHECK_MODELS=$CHECK_MODELS\" \"$BASH_EXE\" \"$SCRIPT\" \"$@\"\nfi\nfor tool in flock fuser setsid stat readlink date sleep mv mkdir cat rm; do\n    command -v \"$tool\" >/dev/null 2>&1 || die \"Required command missing: $tool\"\ndone\n\n# Never follow state-directory/lock symlinks. A root-owned, non-writable parent\n# makes checking then creating its files safe from unprivileged replacements.\nsecure_dir() {\n    local dir=$1 mode\n    [[ -d $dir && ! -L $dir && $(stat -c %u -- \"$dir\") == 0 ]] || return 1\n    mode=$(stat -c %a -- \"$dir\") || return 1\n    (( (8#$mode & 0022) == 0 ))\n}\nif [[ -d /run && -w /run ]] && secure_dir /run; then\n    STATE=/run/driving_demo\nelse\n    [[ -d /tmp && ! -L /tmp && $(stat -c %u /tmp) == 0 ]] || die 'Unsafe /tmp'\n    tmp_mode=$(stat -c %a /tmp) || exit 1\n    (( (8#$tmp_mode & 01000) != 0 )) || die '/tmp must have its sticky bit set'\n    STATE=/tmp/driving_demo\nfi\nif [[ ! -e $STATE && ! -L $STATE ]]; then\n    mkdir -m 700 -- \"$STATE\" 2>/dev/null || : # Another launcher may create it.\nfi\nsecure_dir \"$STATE\" || die \"Unsafe state directory: $STATE (need root owner, no group/world writes)\"\n\nsecure_file() {\n    local file=$1 mode\n    [[ -f $file && ! -L $file && $(stat -c %u -- \"$file\") == 0 &&\n       $(stat -c %h -- \"$file\") == 1 ]] || return 1\n    mode=$(stat -c %a -- \"$file\") || return 1\n    (( (8#$mode & 0022) == 0 ))\n}\nlock_file() {\n    local file=$1\n    if [[ ! -e $file && ! -L $file ]]; then\n        (set -o noclobber; : > \"$file\") 2>/dev/null || :\n    fi\n    secure_file \"$file\" || die \"Unsafe lock file: $file\"\n}\nlock_file \"$STATE/supervisor.lock\"\nlock_file \"$STATE/control.lock\"\n\n# /proc stat's comm can contain spaces or ')'; remove through its final ') '.\nstart_time() {\n    local stat_line rest\n    IFS= read -r stat_line < \"/proc/$1/stat\" 2>/dev/null || return 1\n    rest=${stat_line##*) }\n    local -a fields\n    read -r -a fields <<< \"$rest\"\n    [[ ${fields[19]-} =~ ^[0-9]+$ ]] || return 1\n    printf '%s\\n' \"${fields[19]}\"\n}\natomic_text() {\n    local destination=$1; shift\n    local temp=\"$STATE/.write.$$\"\n    (set -o noclobber; printf '%s\\n' \"$@\" > \"$temp\") || return 1\n    mv -fT -- \"$temp\" \"$destination\"\n}\nrecord_process() {\n    local kind=$1 pid=$2 exe=$3 birth\n    birth=$(start_time \"$pid\") || return 1\n    [[ $(readlink -- \"/proc/$pid/exe\" 2>/dev/null) == \"$exe\" ]] || return 1\n    atomic_text \"$STATE/$kind.pid\" \"$pid\" \"$birth\" \"$exe\"\n}\n# Sets OWN_PID only for an exact executable AND process birth time. Every signal\n# rechecks this; PID reuse and stale files must never authorize a kill.\nowned_process() {\n    local kind=$1 expected actual birth\n    local -a record\n    OWN_PID=\n    secure_file \"$STATE/$kind.pid\" || return 1\n    mapfile -t record < \"$STATE/$kind.pid\"\n    [[ ${#record[@]} == 3 && ${record[0]} =~ ^[1-9][0-9]*$ &&\n       ${record[1]} =~ ^[0-9]+$ ]] || return 1\n    if [[ $kind == app ]]; then\n        secure_file \"$STATE/app.path\" || return 1\n        IFS= read -r expected < \"$STATE/app.path\" || return 1\n    else\n        expected=$BASH_EXE\n    fi\n    [[ $expected == /* && ${record[2]} == \"$expected\" ]] || return 1\n    actual=$(readlink -- \"/proc/${record[0]}/exe\" 2>/dev/null) || return 1\n    [[ $actual == \"$expected\" ]] || return 1\n    birth=$(start_time \"${record[0]}\") || return 1\n    [[ $birth == \"${record[1]}\" ]] || return 1\n    OWN_PID=${record[0]}\n}\nsignal_app() {\n    local signal=$1\n    owned_process app || return 1\n    kill -s \"$signal\" -- \"$OWN_PID\"\n}\n\n# fuser is only an ownership check. Never signal its results. restart can ignore\n# only the app whose recorded executable and birth time still match.\ndevice_available() {\n    [[ -n $VIDEO_INPUT ]] && return 0\n    local allow_owned=${1:-0} allowed= owners rc owner err=\"$STATE/.fuser.$$\"\n    if [[ $allow_owned == 1 ]] && owned_process app; then allowed=$OWN_PID; fi\n    owners=$(LC_ALL=C fuser \"$DEVICE\" 2> \"$err\") && rc=0 || rc=$?\n    if [[ -z $owners && $rc == 1 && ! -s $err ]]; then rm -f -- \"$err\"; return 0; fi\n    if (( rc != 0 )) || [[ -z $owners ]]; then\n        say \"Cannot establish device ownership: $DEVICE\" >&2\n        cat \"$err\" >&2\n        rm -f -- \"$err\"\n        return 1\n    fi\n    rm -f -- \"$err\"\n    for owner in $owners; do\n        [[ $owner =~ ^[1-9][0-9]*$ ]] || { say 'Unexpected fuser output' >&2; return 1; }\n        if [[ $owner != \"$allowed\" ]]; then\n            say \"$DEVICE is owned by PID $owner; refusing to interfere\" >&2\n            return 1\n        fi\n    done\n}\n\ncheck_models() {\n    # Match scanModels()'s nonrecursive *.rknn scan, including file symlinks.\n    local -a dirs=(/root/npu/yolov8n/zebra640 /root/npu/yolov8n/vehicle640\n        /root/npu /root/npu/yolo11n /root/models/yolo26_rk3568 /root/npu/tt100k\n        /root/npu/tt100k_yolov8n /root/npu/lane_linknet /root/npu/whiteboard_3cls\n        /root/npu/trafficlight)\n    local dir file base traffic=0 whiteboard=0\n    shopt -s nullglob\n    for dir in \"${dirs[@]}\"; do\n        for file in \"$dir\"/*.rknn; do\n            [[ -f $file && -r $file ]] || continue\n            base=${file##*/}\n            [[ $base == *trafficlight-16cls* ]] && ((traffic+=1))\n            [[ $base == *wb_v4_combo* ]] && ((whiteboard+=1))\n        done\n    done\n    shopt -u nullglob\n    [[ $traffic == 1 && $whiteboard == 1 ]] || {\n        say \"Need one scanner-visible .rknn per default model: trafficlight-16cls=$traffic, wb_v4_combo=$whiteboard\" >&2\n        return 1\n    }\n}\npreflight() {\n    [[ $APP == /* && -f $APP && -x $APP ]] || { say \"Executable missing: $APP\" >&2; return 1; }\n    APP=$(readlink -f -- \"$APP\") || return 1\n    if [[ -n $VIDEO_INPUT ]]; then\n        [[ $VIDEO_INPUT == /* && -f $VIDEO_INPUT && -r $VIDEO_INPUT ]] || {\n            say 'Video simulation needs a readable absolute local file' >&2; return 1;\n        }\n        command -v ffmpeg >/dev/null || { say 'ffmpeg is missing' >&2; return 1; }\n    else\n        [[ -e $DEVICE ]] || { say \"Device missing: $DEVICE (prepare the existing driver separately)\" >&2; return 1; }\n    fi\n    [[ -n $DISPLAY && -n $XAUTHORITY && -r $XAUTHORITY ]] || {\n        say \"GUI requires DISPLAY and readable XAUTHORITY (currently '$DISPLAY', '$XAUTHORITY')\" >&2\n        return 1\n    }\n    [[ $CHECK_MODELS == 0 ]] || check_models || return 1\n}\n\nsupervisor_active() {\n    # Use another open description; never unlock the supervisor's inherited FD.\n    (exec 7<> \"$STATE/supervisor.lock\"; ! flock -n 7)\n}\nrequest_stop() {\n    atomic_text \"$STATE/stop\" stop || return 1\n    # TERM first, then CONT wakes a stopped app so it can handle TERM gracefully.\n    signal_app TERM 2>/dev/null || :\n    signal_app CONT 2>/dev/null || :\n}\nstop_demo() {\n    local until=$((SECONDS + 5)) last_signaled=\n    atomic_text \"$STATE/stop\" stop || return 1\n    while supervisor_active || owned_process app; do\n        # Also catches a child that was still execing when the stop was requested.\n        if owned_process app && [[ $OWN_PID != \"$last_signaled\" ]]; then\n            last_signaled=$OWN_PID\n            signal_app TERM 2>/dev/null || :\n            signal_app CONT 2>/dev/null || :\n        fi\n        if (( SECONDS >= until )); then\n            say 'Stop timed out after at most 5 seconds; no SIGKILL or driver reset was attempted' >&2\n            return 1\n        fi\n        sleep 0.1\n    done\n    say 'Stopped'\n}\n\nsupervise() {\n    local log=$1; shift\n    # The start command holds this SAME inherited open description. App and\n    # helper subprocesses explicitly close it; only this supervisor retains it.\n    [[ ${DRIVING_DEMO_LOCK_FD-} == 9 && -e /proc/$$/fd/9 &&\n       /proc/$$/fd/9 -ef $STATE/supervisor.lock ]] || die 'supervise is an internal command'\n    flock -n 9 || die 'Supervisor lock unavailable'\n    secure_file \"$log\" || die \"Unsafe log: $log\"\n    exec >> \"$log\" 2>&1\n    unset DRIVING_DEMO_LOCK_FD\n    local child= child_birth= rc=0 retries=0 observed=0 i\n    trap 'request_stop; :' TERM INT HUP\n    trap 'rm -f -- \"$STATE/supervisor.pid\" \"$STATE/ready\"' EXIT\n    record_process supervisor \"$$\" \"$BASH_EXE\" || die 'Cannot record supervisor identity'\n    atomic_text \"$STATE/app.path\" \"$APP\" || die 'Cannot record app path'\n    atomic_text \"$STATE/log.path\" \"$log\" || die 'Cannot record log path'\n    say \"Supervisor $$; app=$APP; DISPLAY=$DISPLAY; log=$log\"\n    while [[ ! -e $STATE/stop ]]; do\n        preflight || return 1\n        device_available || return 1\n        [[ ! -e $STATE/stop ]] || break\n        \"$APP\" --driving-demo --fullscreen --no-tracking \\\n            --rotate-model trafficlight-16cls,wb_v4_combo \"$@\" 9>&- &\n        child=$!\n        child_birth=$(start_time \"$child\" 2>/dev/null) || child_birth=\n        observed=0\n        for ((i=0; i<40; i++)); do\n            if record_process app \"$child\" \"$APP\"; then observed=1; break; fi\n            [[ -n $child_birth && $(start_time \"$child\" 2>/dev/null) == \"$child_birth\" ]] || break\n            sleep 0.025 9>&-\n        done\n        if (( observed )); then\n            atomic_text \"$STATE/ready\" \"$child\" || request_stop\n            say \"App started: PID $child (recovery $retries/3)\"\n            [[ ! -e $STATE/stop ]] || request_stop\n        else\n            say \"App PID $child exited before its executable identity could be recorded\"\n        fi\n        # A signal may interrupt wait without reaping the child. Keep the lock\n        # until the actual child exits, including when graceful stop times out.\n        while :; do\n            wait \"$child\" && rc=0 || rc=$?\n            [[ -n $child_birth && $(start_time \"$child\" 2>/dev/null) == \"$child_birth\" ]] || break\n            [[ ! -e $STATE/stop ]] || request_stop\n        done\n        rm -f -- \"$STATE/app.pid\"\n        say \"App exited: status=$rc\"\n        [[ ! -e $STATE/stop ]] || break\n        (( rc != 0 )) || break\n        if (( retries >= 3 )); then say 'Recovery limit reached (3 retries)'; return \"$rc\"; fi\n        ((retries+=1))\n        say \"Recovery in $((1 << (retries - 1))) seconds; driver remains as configured\"\n        for ((i=0; i < (1 << (retries - 1)) * 10; i++)); do\n            [[ ! -e $STATE/stop ]] || break\n            sleep 0.1 9>&-\n        done\n    done\n    return \"$rc\"\n}\n\ncommand=start\ncase ${1-} in\n    start|restart|stop|status|supervise) command=$1; shift ;;\n    '') ;;\n    --*) ;; # Default start with app options.\n    *) usage >&2; exit 2 ;;\nesac\nif [[ $command == supervise ]]; then\n    [[ $# -ge 1 ]] || die 'Missing supervisor log'\n    supervise \"$@\"\n    exit $?\nfi\n[[ $command != stop && $command != status || $# == 0 ]] || { usage >&2; exit 2; }\n\n# A restart without arguments retains the previous input source and options.\nif [[ $command == start || $command == restart ]] && (( $# == 0 )) && secure_file \"$STATE/launch.args\"; then\n    mapfile -d '' -t saved_args < \"$STATE/launch.args\"\n    set -- \"${saved_args[@]}\"\n    VIDEO_INPUT=\n    expect_video=0\n    for option in \"$@\"; do\n        if (( expect_video )); then VIDEO_INPUT=$option; expect_video=0; fi\n        [[ $option == --video ]] && expect_video=1\n    done\nfi\n\n# Serializes controllers, including restart's stop/start transaction. This lock\n# is never passed to the supervisor. The supervisor owns just its lifecycle lock.\nexec 8<> \"$STATE/control.lock\"\nflock -w 10 8 || die 'Another controller is busy'\ncase $command in\n    status)\n        if supervisor_active; then\n            if owned_process supervisor; then say \"Supervisor running: PID $OWN_PID\";\n            else say 'Supervisor lock held; identity unavailable'; fi\n            if owned_process app; then say \"App running: PID $OWN_PID\";\n            else say 'App is starting, recovering, or stopping'; fi\n            if secure_file \"$STATE/log.path\"; then\n                IFS= read -r log < \"$STATE/log.path\"; say \"Log: $log\"\n            fi\n            [[ ! -e $STATE/stop ]] || say 'Stop requested'\n            exit 0\n        fi\n        if owned_process app; then say \"Owned app still running: PID $OWN_PID\"; exit 1; fi\n        say 'Stopped'; exit 3\n        ;;\n    stop) stop_demo; exit $? ;;\n    restart)\n        preflight || exit 1\n        device_available 1 || exit 1\n        stop_demo || exit 1\n        ;;\n    start)\n        if supervisor_active; then say 'Already running; use status or restart'; exit 0; fi\n        owned_process app && die \"Owned app PID $OWN_PID remains; stop it before starting\"\n        ;;\nesac\npreflight || exit 1\ndevice_available || exit 1\nargs_temp=\"$STATE/.args.$$\"\nif (( $# )); then\n    (set -o noclobber; printf '%s\\0' \"$@\" > \"$args_temp\") || exit 1\nelse\n    (set -o noclobber; : > \"$args_temp\") || exit 1\nfi\nmv -fT -- \"$args_temp\" \"$STATE/launch.args\" || exit 1\nsecure_dir /userdata || die 'Unsafe or missing /userdata'\nif [[ ! -e $LOG_DIR && ! -L $LOG_DIR ]]; then mkdir -m 700 -- \"$LOG_DIR\" || exit 1; fi\nsecure_dir \"$LOG_DIR\" || die \"Unsafe evidence directory: $LOG_DIR\"\nlog=\"$LOG_DIR/ready_$(date -u +%Y%m%dT%H%M%S.%NZ)_$$.log\"\n(set -o noclobber; : > \"$log\") || die 'Cannot create evidence log'\nexec 9<> \"$STATE/supervisor.lock\"\nflock -n 9 || die 'Supervisor is already running'\nrm -f -- \"$STATE/stop\" \"$STATE/ready\" \"$STATE/app.pid\" \"$STATE/supervisor.pid\"\nexport DRIVING_DEMO_LOCK_FD=9\nsetsid \"$BASH_EXE\" \"$SCRIPT\" supervise \"$log\" \"$@\" </dev/null >> \"$log\" 2>&1 8>&- &\n# Close, do not flock -u: the child holds the same open description.\nexec 9>&-\nuntil_ready=$((SECONDS + 5))\nwhile (( SECONDS < until_ready )); do\n    if secure_file \"$STATE/ready\" && owned_process app && supervisor_active; then\n        say \"Started: app PID $OWN_PID; log: $log\"\n        exit 0\n    fi\n    supervisor_active || { say \"Supervisor exited during startup; see $log\" >&2; exit 1; }\n    sleep 0.1\ndone\nsay \"Startup not confirmed within 5 seconds; inspect status and $log\" >&2\nexit 1\n",
+      "stderr": "",
+      "stdout_sha256": "b38db583e900f8a095d1c9e1985c44d8d181c2908bf5326932e67d9a6bcc5108",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "argv": [
+        "sha256sum",
+        "/userdata/detview-driving-demo/detview-driving-demo",
+        "/userdata/detview-driving-demo/run_driving_demo.sh"
+      ],
+      "returncode": 0,
+      "stdout": "72cd352aba95fce2a9897fb3fefe7214940b080d3937a2c8bad8afa72f25a703  /userdata/detview-driving-demo/detview-driving-demo\nb38db583e900f8a095d1c9e1985c44d8d181c2908bf5326932e67d9a6bcc5108  /userdata/detview-driving-demo/run_driving_demo.sh\n",
+      "stderr": "",
+      "stdout_sha256": "01eafa860223d7c9df9cb3374a43a0121287e13008810f06d20cfb7e3076a27b",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "argv": [
+        "ls",
+        "-la",
+        "/run/driving_demo",
+        "/tmp/driving_demo"
+      ],
+      "returncode": 2,
+      "stdout": "",
+      "stderr": "ls: \u65e0\u6cd5\u8bbf\u95ee '/run/driving_demo': \u6ca1\u6709\u90a3\u4e2a\u6587\u4ef6\u6216\u76ee\u5f55\nls: \u65e0\u6cd5\u8bbf\u95ee '/tmp/driving_demo': \u6ca1\u6709\u90a3\u4e2a\u6587\u4ef6\u6216\u76ee\u5f55\n",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "c2ed8655f13080eb1fdd78f409591054a233246af73d994ad4a38a68f96a39a9"
+    },
+    {
+      "argv": [
+        "cat",
+        "/etc/rc.local"
+      ],
+      "returncode": 0,
+      "stdout": "#!/bin/sh -e\n#\n# rc.local\n#\n# This script is executed at the end of each multiuser runlevel.\n# Make sure that the script will \"exit 0\" on success or any other\n# value on error.\n#\n# In order to enable or disable this script just change the execution\n# bits.\n#\n# By default this script does nothing.\n# Generate the SSH keys if non-existent\nif [ ! -f /etc/ssh/ssh_host_rsa_key ]\nthen\n    # else ssh service start in dpkg-reconfigure will fail\n    systemctl stop ssh.socket||true\n    dpkg-reconfigure openssh-server\nfi\n\nexit 0\n",
+      "stderr": "",
+      "stdout_sha256": "0ea34b76490aae158456a5714e7bf7f9d0af66e0a3af67d10a9d92401ed03d7d",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "argv": [
+        "systemctl",
+        "list-unit-files",
+        "--no-pager",
+        "--plain"
+      ],
+      "returncode": 0,
+      "stdout": "UNIT FILE                                  STATE           PRESET\nproc-sys-fs-binfmt_misc.automount          static          -\ndev-hugepages.mount                        static          -\ndev-mqueue.mount                           static          -\noem.mount                                  generated       -\nproc-sys-fs-binfmt_misc.mount              disabled        disabled\nsys-fs-fuse-connections.mount              static          -\nsys-kernel-config.mount                    static          -\nsys-kernel-debug.mount                     generated       -\nsys-kernel-tracing.mount                   static          -\nuserdata.mount                             generated       -\nacpid.path                                 enabled         enabled\nntpsec-systemd-netif.path                  enabled         enabled\nresolvconf-pull-resolved.path              enabled         enabled\nsystemd-ask-password-console.path          static          -\nsystemd-ask-password-wall.path             static          -\nsession-c3.scope                           transient       -\nsession-c4.scope                           transient       -\nacpid.service                              disabled        enabled\nalsa-restore.service                       static          -\nalsa-state.service                         static          -\nalsa-utils.service                         masked          enabled\nanacron.service                            enabled         enabled\napt-daily-upgrade.service                  static          -\napt-daily.service                          static          -\nasync-commit.service                       enabled         enabled\nautovt@.service                            alias           -\nbinfmt-support.service                     enabled         enabled\nblueman-mechanism.service                  enabled         enabled\nbluetooth.service                          enabled         enabled\nbootanim.service                           enabled         enabled\nbootlogs.service                           masked          enabled\nbootmisc.service                           masked          enabled\nbrightness.service                         masked          enabled\ncheckfs.service                            masked          enabled\ncheckroot-bootclean.service                masked          enabled\ncheckroot.service                          masked          enabled\nconsole-getty.service                      disabled        disabled\nconsole-setup.service                      enabled         enabled\ncontainer-getty@.service                   static          -\ncpufrequtils.service                       generated       -\ncryptdisks-early.service                   masked          enabled\ncryptdisks.service                         masked          enabled\ndbus-fi.w1.wpa_supplicant1.service         alias           -\ndbus-org.bluez.service                     alias           -\ndbus-org.freedesktop.hostname1.service     alias           -\ndbus-org.freedesktop.locale1.service       alias           -\ndbus-org.freedesktop.login1.service        alias           -\ndbus-org.freedesktop.nm-dispatcher.service alias           -\ndbus-org.freedesktop.timedate1.service     alias           -\ndbus.service                               static          -\ndebug-shell.service                        disabled        disabled\ndisplay-manager.service                    alias           -\ndpkg-db-backup.service                     static          -\ne2scrub@.service                           static          -\ne2scrub_all.service                        static          -\ne2scrub_fail@.service                      static          -\ne2scrub_reap.service                       enabled         enabled\nemergency.service                          static          -\nfstrim.service                             static          -\ngetty-static.service                       static          -\ngetty@.service                             enabled         enabled\nhalt.service                               masked          enabled\nhostname.service                           masked          enabled\nhwclock.service                            masked          enabled\nifup@.service                              static          -\nifupdown-pre.service                       static          -\nifupdown-wait-online.service               disabled        enabled\ninitrd-cleanup.service                     static          -\ninitrd-parse-etc.service                   static          -\ninitrd-switch-root.service                 static          -\ninitrd-udevadm-cleanup-db.service          static          -\ninput-event-daemon.service                 enabled         enabled\nipsec.service                              alias           -\nirqbalance.service                         enabled         enabled\nkeyboard-setup.service                     enabled         enabled\nkillprocs.service                          masked          enabled\nkmod-static-nodes.service                  static          -\nkmod.service                               alias           -\nl2tpd.service                              alias           -\nlightdm.service                            enabled         enabled\nloadcpufreq.service                        generated       -\nlog-guardian.service                       enabled         enabled\nloliafrp.service                           enabled         enabled\nman-db.service                             static          -\nmodprobe@.service                          static          -\nmount-configfs.service                     masked          enabled\nmountall-bootclean.service                 masked          enabled\nmountall.service                           masked          enabled\nmountdevsubfs.service                      masked          enabled\nmountkernfs.service                        masked          enabled\nmountnfs-bootclean.service                 masked          enabled\nmountnfs.service                           masked          enabled\nnetworking.service                         enabled         enabled\nNetworkManager-dispatcher.service          enabled         enabled\nNetworkManager-wait-online.service         masked          enabled\nNetworkManager.service                     enabled         enabled\nnm-priv-helper.service                     static          -\nnpu-dmc-performance.service                enabled         enabled\nntp.service                                alias           -\nntpd.service                               alias           -\nntpsec-rotate-stats.service                static          -\nntpsec-systemd-netif.service               static          -\nntpsec-wait.service                        disabled        enabled\nntpsec.service                             enabled         enabled\nopenvpn-client@.service                    disabled        enabled\nopenvpn-server@.service                    disabled        enabled\nopenvpn.service                            enabled         enabled\nopenvpn@.service                           disabled        enabled\npam_namespace.service                      static          -\npolkit.service                             static          -\npowertop.service                           disabled        enabled\nprocps.service                             alias           -\nquotaon.service                            static          -\nrc-local.service                           enabled-runtime enabled\nrc.local.service                           masked          enabled\nrc.service                                 masked          enabled\nrcS.service                                masked          enabled\nreboot.service                             masked          enabled\nrescue.service                             static          -\nresize-all.service                         enabled         enabled\nresize-disk.service                        generated       -\nresolvconf-pull-resolved.service           enabled         enabled\nresolvconf.service                         enabled         enabled\nrkaiq_3A.service                           enabled         enabled\nrmnologin.service                          masked          enabled\nrockchip.service                           enabled         enabled\nrsyslog.service                            enabled         enabled\nS49weston.service                          generated       -\nsendsigs.service                           masked          enabled\nserial-getty@.service                      indirect        enabled\nsingle.service                             masked          enabled\nssh.service                                enabled         enabled\nsshd.service                               alias           -\nstrongswan-starter.service                 enabled         enabled\nsudo.service                               masked          enabled\nsyslog.service                             alias           -\nsystem-update-cleanup.service              static          -\nsystemd-ask-password-console.service       static          -\nsystemd-ask-password-wall.service          static          -\nsystemd-backlight@.service                 static          -\nsystemd-binfmt.service                     static          -\nsystemd-boot-check-no-failures.service     disabled        disabled\nsystemd-exit.service                       static          -\nsystemd-firstboot.service                  static          -\nsystemd-fsck-root.service                  static          -\nsystemd-fsck@.service                      static          -\nsystemd-fsckd.service                      static          -\nsystemd-halt.service                       static          -\nsystemd-hibernate-resume@.service          static          -\nsystemd-hibernate.service                  static          -\nsystemd-hostnamed.service                  static          -\nsystemd-hybrid-sleep.service               static          -\nsystemd-initctl.service                    static          -\nsystemd-journal-flush.service              static          -\nsystemd-journald.service                   static          -\nsystemd-journald@.service                  static          -\nsystemd-kexec.service                      static          -\nsystemd-localed.service                    static          -\nsystemd-logind.service                     static          -\nsystemd-machine-id-commit.service          static          -\nsystemd-modules-load.service               static          -\nsystemd-network-generator.service          disabled        enabled\nsystemd-networkd-wait-online.service       masked          disabled\nsystemd-networkd-wait-online@.service      disabled        enabled\nsystemd-networkd.service                   disabled        enabled\nsystemd-pcrphase-initrd.service            static          -\nsystemd-pcrphase-sysinit.service           static          -\nsystemd-pcrphase.service                   static          -\nsystemd-poweroff.service                   static          -\nsystemd-pstore.service                     enabled         enabled\nsystemd-quotacheck.service                 static          -\nsystemd-random-seed.service                static          -\nsystemd-reboot.service                     static          -\nsystemd-remount-fs.service                 enabled-runtime enabled\nsystemd-repart.service                     static          -\nsystemd-rfkill.service                     static          -\nsystemd-suspend-then-hibernate.service     static          -\nsystemd-suspend.service                    static          -\nsystemd-sysctl.service                     static          -\nsystemd-sysext.service                     disabled        enabled\nsystemd-sysusers.service                   static          -\nsystemd-time-wait-sync.service             disabled        disabled\nsystemd-timedated.service                  static          -\nsystemd-tmpfiles-clean.service             static          -\nsystemd-tmpfiles-setup-dev.service         static          -\nsystemd-tmpfiles-setup.service             static          -\nsystemd-udev-settle.service                static          -\nsystemd-udev-trigger.service               static          -\nsystemd-udevd.service                      static          -\nsystemd-update-utmp-runlevel.service       static          -\nsystemd-update-utmp.service                static          -\nsystemd-user-sessions.service              static          -\nsystemd-volatile-root.service              static          -\ntriggerhappy.service                       disabled        enabled\nudev.service                               alias           -\nudisks2.service                            enabled         enabled\numountfs.service                           masked          enabled\numountnfs.service                          masked          enabled\numountroot.service                         masked          enabled\nupower.service                             disabled        enabled\nurandom.service                            masked          enabled\nusb_modeswitch@.service                    static          -\nusbdevice.service                          enabled         enabled\nuser-runtime-dir@.service                  static          -\nuser@.service                              static          -\nvpnc@.service                              disabled        enabled\nweston.service                             alias           -\nwifibt-init.service                        enabled         enabled\nwpa_supplicant-nl80211@.service            masked          enabled\nwpa_supplicant-wired@.service              masked          enabled\nwpa_supplicant.service                     enabled         enabled\nwpa_supplicant@.service                    masked          enabled\nx11-common.service                         masked          enabled\nxl2tpd.service                             generated       -\nmachine.slice                              static          -\nsystem-systemd\\x2dcryptsetup.slice         static          -\nuser.slice                                 static          -\nacpid.socket                               enabled         enabled\ndbus.socket                                static          -\nssh.socket                                 disabled        enabled\nsyslog.socket                              static          -\nsystemd-fsckd.socket                       static          -\nsystemd-initctl.socket                     static          -\nsystemd-journald-audit.socket              static          -\nsystemd-journald-dev-log.socket            static          -\nsystemd-journald-varlink@.socket           static          -\nsystemd-journald.socket                    static          -\nsystemd-journald@.socket                   static          -\nsystemd-networkd.socket                    disabled        enabled\nsystemd-rfkill.socket                      static          -\nsystemd-udevd-control.socket               static          -\nsystemd-udevd-kernel.socket                static          -\ntriggerhappy.socket                        disabled        enabled\nbasic.target                               static          -\nblockdev@.target                           static          -\nbluetooth.target                           static          -\nboot-complete.target                       static          -\ncryptsetup-pre.target                      static          -\ncryptsetup.target                          static          -\nctrl-alt-del.target                        alias           -\ndefault.target                             alias           -\nemergency.target                           static          -\nexit.target                                disabled        disabled\nfactory-reset.target                       static          -\nfinal.target                               static          -\nfirst-boot-complete.target                 static          -\ngetty-pre.target                           static          -\ngetty.target                               static          -\ngraphical.target                           static          -\nhalt.target                                disabled        disabled\nhibernate.target                           static          -\nhybrid-sleep.target                        static          -\ninitrd-fs.target                           static          -\ninitrd-root-device.target                  static          -\ninitrd-root-fs.target                      static          -\ninitrd-switch-root.target                  static          -\ninitrd-usr-fs.target                       static          -\ninitrd.target                              static          -\nintegritysetup-pre.target                  static          -\nintegritysetup.target                      static          -\nkexec.target                               disabled        disabled\nlocal-fs-pre.target                        static          -\nlocal-fs.target                            static          -\nmulti-user.target                          static          -\nnetwork-online.target                      static          -\nnetwork-pre.target                         static          -\nnetwork.target                             static          -\nnss-lookup.target                          static          -\nnss-user-lookup.target                     static          -\npaths.target                               static          -\npoweroff.target                            disabled        disabled\nprinter.target                             static          -\nreboot.target                              disabled        enabled\nremote-cryptsetup.target                   disabled        enabled\nremote-fs-pre.target                       static          -\nremote-fs.target                           enabled         enabled\nremote-veritysetup.target                  disabled        enabled\nrescue-ssh.target                          static          -\nrescue.target                              static          -\nrpcbind.target                             static          -\nrunlevel0.target                           alias           -\nrunlevel1.target                           alias           -\nrunlevel2.target                           alias           -\nrunlevel3.target                           alias           -\nrunlevel4.target                           alias           -\nrunlevel5.target                           alias           -\nrunlevel6.target                           alias           -\nshutdown.target                            static          -\nsigpwr.target                              static          -\nsleep.target                               static          -\nslices.target                              static          -\nsmartcard.target                           static          -\nsockets.target                             static          -\nsound.target                               static          -\nsuspend-then-hibernate.target              static          -\nsuspend.target                             static          -\nswap.target                                static          -\nsysinit.target                             static          -\nsystem-update-pre.target                   static          -\nsystem-update.target                       static          -\ntime-set.target                            static          -\ntime-sync.target                           static          -\ntimers.target                              static          -\numount.target                              static          -\nusb-gadget.target                          static          -\nveritysetup-pre.target                     static          -\nveritysetup.target                         static          -\nanacron.timer                              enabled         enabled\napt-daily-upgrade.timer                    enabled         enabled\napt-daily.timer                            enabled         enabled\ndpkg-db-backup.timer                       enabled         enabled\ne2scrub_all.timer                          enabled         enabled\nfstrim.timer                               enabled         enabled\nman-db.timer                               enabled         enabled\nntpsec-rotate-stats.timer                  enabled         enabled\nntpsec.timer                               masked          enabled\nsystemd-tmpfiles-clean.timer               static          -\n\n317 unit files listed.\n",
+      "stderr": "",
+      "stdout_sha256": "4690899e175bd026b9d0e7807fb05d88be6ffd3aa3fb11c5345c9c9e210fbb38",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "scan_errors": [],
+  "device_opened": false,
+  "hostname": "linaro-alip",
+  "pci_raw": [],
+  "home_paths": [
+    "/home/linaro",
+    "/root",
+    "/userdata/linaro"
+  ]
+}

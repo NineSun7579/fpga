@@ -1,0 +1,9 @@
+sudo -n python3 -u - <<'DELIVERY10'
+from pathlib import Path
+assert Path("/proc/sys/kernel/random/boot_id").read_text().strip() == 'a6d0e49a-220a-45e0-bdc0-2723223f91ec'
+import subprocess,json
+p=Path('/sys/bus/pci/devices/0002:21:00.0')
+r=subprocess.run(['setpci','-s',p.name,'COMMAND'],capture_output=True,text=True);print(r.returncode,r.stdout,r.stderr);assert r.returncode==0 and int(r.stdout.strip(),16)!=65535
+resources=(p/'resource').read_text();print(resources);assert any(int(line.split()[0],16)>0 for line in resources.splitlines())
+
+DELIVERY10

@@ -1,0 +1,94 @@
+--- build01/rtl/v7_sfd_candidate.v
++++ build02/rtl/v7_sfd_candidate.v
+@@ -1,3 +1,5 @@
++// ADS guide printed pp52,83-84,91-93,103-104; Pango attribute reference p88.
++// Isolated mapping candidate: stage count, reset polarity and all enables unchanged.
+ // Isolated diagnostic sideband. No image data ports. DATA_WIDTH=16 / DELAY=2.
+ // All inputs below are sampled PRE-NBA at posedge cam_clk.
+ module v7_sfd_counter #(parameter W=24) (
+@@ -47,11 +49,16 @@
+     // Either reset cancels the entire diagnostic session, including a leased
+     // host snapshot. Async assert, independent synchronous deassert per clock.
+     wire reset_any=cam_reset | host_reset;
+-    (* syn_preserve=1, syn_allow_retiming=0 *) reg [1:0] cr, hr;
+-    always @(posedge cam_clk or posedge reset_any)
+-        if(reset_any) cr<=3; else cr<={cr[0],1'b0};
+-    always @(posedge host_clk or posedge reset_any)
+-        if(reset_any) hr<=3; else hr<={hr[0],1'b0};
++    (* syn_keep=1 *) wire [1:0] cr;
++    (* syn_keep=1 *) wire [1:0] hr;
++    (* syn_keep=1 *) wire cr_d0 = 1'b0;
++    (* syn_keep=1 *) wire cr_d1 = cr[0];
++    GTP_DFF_PE #(.GRS_EN("TRUE"),.INIT(1'b1)) cr_ff0 (.Q(cr[0]),.D(cr_d0),.CLK(cam_clk),.P(reset_any),.CE(1'b1));
++    GTP_DFF_PE #(.GRS_EN("TRUE"),.INIT(1'b1)) cr_ff1 (.Q(cr[1]),.D(cr_d1),.CLK(cam_clk),.P(reset_any),.CE(1'b1));
++    (* syn_keep=1 *) wire hr_d0 = 1'b0;
++    (* syn_keep=1 *) wire hr_d1 = hr[0];
++    GTP_DFF_PE #(.GRS_EN("TRUE"),.INIT(1'b1)) hr_ff0 (.Q(hr[0]),.D(hr_d0),.CLK(host_clk),.P(reset_any),.CE(1'b1));
++    GTP_DFF_PE #(.GRS_EN("TRUE"),.INIT(1'b1)) hr_ff1 (.Q(hr[1]),.D(hr_d1),.CLK(host_clk),.P(reset_any),.CE(1'b1));
+     wire rst_c=cr[1], rst_h=hr[1];
+     reg [1:0] raw_vs_d, href_d, accept_d;
+     reg valid_d, vs_q, href_q, parity, armed, have_prev;
+@@ -89,7 +96,11 @@
+     reg request, sticky_overrun;
+     reg [511:0] mailbox;
+     reg ack;
+-    (* syn_preserve=1, syn_allow_retiming=0 *) reg [1:0] ack_sync;
++    (* syn_keep=1 *) wire [1:0] ack_sync;
++    (* syn_keep=1 *) wire ack_sync_d0 = ack;
++    (* syn_keep=1 *) wire ack_sync_d1 = ack_sync[0];
++    GTP_DFF_CE #(.GRS_EN("TRUE"),.INIT(1'b0)) ack_sync_ff0 (.Q(ack_sync[0]),.D(ack_sync_d0),.CLK(cam_clk),.C(rst_c),.CE(1'b1));
++    GTP_DFF_CE #(.GRS_EN("TRUE"),.INIT(1'b0)) ack_sync_ff1 (.Q(ack_sync[1]),.D(ack_sync_d1),.CLK(cam_clk),.C(rst_c),.CE(1'b1));
+     wire busy=request != ack_sync[1];
+     wire wrap_now=((&bytes_q)&byte_en) | ((&aligned_q)&valid_d) |
+         ((&native_q)&capture_valid) | ((&segments_q)&seg_inc) |
+@@ -106,14 +117,14 @@
+             prev_bytes<=0; prev_aligned<=0; prev_native<=0;
+             prev_odd<=0; prev_segments<=0; prev_start_aligned<=0;
+             prev_end_aligned<=0; prev_bad<=0;
+-            request<=0; sticky_overrun<=0; mailbox<=0; ack_sync<=0;
++            request<=0; sticky_overrun<=0; mailbox<=0; 
+         end else begin
+             raw_vs_d<={raw_vs_d[0],raw_vsync};
+             href_d<={href_d[0],raw_href};
+             accept_d<={accept_d[0],raw_byte_accept & raw_href};
+             valid_d<=capture_valid;
+             vs_q<=capture_vsync; href_q<=href;
+-            ack_sync<={ack_sync[0],ack};
++            
+             if(edge_vs) begin
+                 armed<=1; have_prev<=armed;
+                 parity<=byte_en; seen_href<=href;
+@@ -163,18 +174,28 @@
+     // Bundled-data handshake: mailbox is written with request, held until ACK.
+     // Three synchronizer stages plus a separate capture edge give data settling
+     // time. Constrain mailbox->host_bank max delay in eventual integration.
+-    (* syn_preserve=1, syn_allow_retiming=0 *) reg [2:0] req_sync;
+-    (* syn_preserve=1, syn_allow_retiming=0 *) reg [1:0] overrun_sync;
++    (* syn_keep=1 *) wire [2:0] req_sync;
++    (* syn_keep=1 *) wire req_sync_d0 = request;
++    (* syn_keep=1 *) wire req_sync_d1 = req_sync[0];
++    (* syn_keep=1 *) wire req_sync_d2 = req_sync[1];
++    (* syn_keep=1 *) wire [1:0] overrun_sync;
++    (* syn_keep=1 *) wire overrun_sync_d0 = sticky_overrun;
++    (* syn_keep=1 *) wire overrun_sync_d1 = overrun_sync[0];
++    GTP_DFF_CE #(.GRS_EN("TRUE"),.INIT(1'b0)) req_sync_ff0 (.Q(req_sync[0]),.D(req_sync_d0),.CLK(host_clk),.C(rst_h),.CE(1'b1));
++    GTP_DFF_CE #(.GRS_EN("TRUE"),.INIT(1'b0)) req_sync_ff1 (.Q(req_sync[1]),.D(req_sync_d1),.CLK(host_clk),.C(rst_h),.CE(1'b1));
++    GTP_DFF_CE #(.GRS_EN("TRUE"),.INIT(1'b0)) req_sync_ff2 (.Q(req_sync[2]),.D(req_sync_d2),.CLK(host_clk),.C(rst_h),.CE(1'b1));
++    GTP_DFF_CE #(.GRS_EN("TRUE"),.INIT(1'b0)) overrun_sync_ff0 (.Q(overrun_sync[0]),.D(overrun_sync_d0),.CLK(host_clk),.C(rst_h),.CE(1'b1));
++    GTP_DFF_CE #(.GRS_EN("TRUE"),.INIT(1'b0)) overrun_sync_ff1 (.Q(overrun_sync[1]),.D(overrun_sync_d1),.CLK(host_clk),.C(rst_h),.CE(1'b1));
+     reg [511:0] host_bank;
+     assign overrun=overrun_sync[1];
+     assign snapshot_available=!rst_h && !snapshot_valid && (req_sync[2]!=ack);
+     always @(posedge host_clk or posedge rst_h) begin
+         if(rst_h) begin
+-            req_sync<=0; overrun_sync<=0; ack<=0;
++              ack<=0;
+             host_bank<=0; snapshot_valid<=0; read_valid<=0; read_data<=0; read_error<=0;
+         end else begin
+-            req_sync<={req_sync[1:0],request};
+-            overrun_sync<={overrun_sync[0],sticky_overrun};
++            
++            
+             read_valid<=read_strobe;
+             read_error<=read_strobe && ((read_word<16 && !snapshot_valid) || read_word>16);
+             if(snapshot_available && acquire_strobe) begin

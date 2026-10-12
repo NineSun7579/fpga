@@ -1,0 +1,9 @@
+{
+  "command": "sudo -n python3 - <<'PY'\nimport os,json,subprocess,stat\nfrom pathlib import Path\ndef rd(p):\n try:return Path(p).read_text().strip()\n except OSError as e:return str(e)\nprint('IDENTITY',rd('/proc/sys/kernel/random/boot_id'),rd('/proc/version'),rd('/proc/uptime'))\nprint('MODEL',Path('/proc/device-tree/model').read_bytes())\nfor p in sorted(Path('/sys/bus/platform/devices').glob('*pcie*')):\n print('PLATFORM',p.name,'REAL',p.resolve(),'DRIVER',os.path.realpath(p/'driver') if (p/'driver').exists() else 'UNBOUND','OF',os.path.realpath(p/'of_node'))\n print('UEVENT',rd(p/'uevent'))\n print('RESOURCE',rd(p/'resource'))\n for q in sorted((p/'of_node').glob('*')):\n  if q.is_file():print('DT',q.name,q.read_bytes().hex())\n print('CHILDREN',[str(q) for q in p.resolve().iterdir()])\nprint('DRIVERS',[p.name for p in Path('/sys/bus/platform/drivers').glob('*pci*')])\nprint('PCI',[(p.name,str(p.resolve())) for p in Path('/sys/bus/pci/devices').glob('*')])\nprint('BUS',[(p.name,str(p.resolve())) for p in Path('/sys/class/pci_bus').glob('*')])\nprint('MODULES',rd('/proc/modules'))\np=Path('/userdata/detview-driving-demo/detview-driving-demo');print('ADMISSION',oct(stat.S_IMODE(p.stat().st_mode)))\nprint('NODES',[str(p) for p in Path('/dev').glob('*pango*')])\nfor argv in [['lspci','-nnvv'],['dmesg'],['ps','-eo','pid,comm,args']]:\n r=subprocess.run(argv,capture_output=True);print('COMMAND',argv,'RC',r.returncode);print(r.stdout.decode(errors='replace'));print(r.stderr.decode(errors='replace'))\nPY\n",
+  "host": "192.168.10.203",
+  "rc": 0,
+  "started_utc": "2026-10-07T07:15:09.976890+00:00",
+  "ended_utc": "2026-10-07T07:15:12.165494+00:00",
+  "stdout_sha256": "ed30621e508ded34c574383346fb7e702bc1a6ea8d35ed3fd4b592fa78cadb2f",
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+}

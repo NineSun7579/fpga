@@ -1,0 +1,218 @@
+{
+  "schema": "independent_control_mapped_review_v1",
+  "run": "run_20261003_212303",
+  "status": "resolved",
+  "scope": "CAM1-4 ready/reset/RAM enable and adapter registered control boundary only",
+  "resource_gate_acceptance": null,
+  "excluded": ["changed_q/select_q/update data functions", "local block counter truths", "resource proof"],
+  "real_control_issues": [],
+  "input_hashes": {
+    "mapped_dump.txt": "8c291ebb8843cd956d84218e302f7243abae431ee56eae903ff4344177958524",
+    "mapped_dump.v": "eaf0974fc723227dfa0f71717f3f2fc1c26d50689193ee816f0aba351b07b7f0",
+    "inputs/source/motion/block_motion_detector.v": "d6afdc1661772d39cbeb09e90465da1141c77e2f349253c6a0e7ac290ac1f80a",
+    "inputs/source/motion/motion_stream_adapter.v": "70960e885ffd390b19594b4cd258ac2de3d47180d7d1fac225e3552134103d22",
+    "inputs/source/ov5640/ov5640_top.v": "1e2ca4e634d8fc5016e9307bbf2f0898fb15e5688ff2eeb6d42b647953af5fc4",
+    "inputs/source/top.v": "ba90f96605423210f9563990a470e0d9585529c4f7edcda1c086bf3fae3c45b2"
+  },
+  "evidence_convention": {
+    "quotes": "Literal substrings of the specified file; file hashes above bind original bytes. All mapped quotes below are from mapped_dump.v unless file is explicit.",
+    "block_sha256": "SHA256 of UTF-8 encoding of complete primitive block matched from gop primitive type through closing );, preserving decoded original CRLF. Includes type, parameter values, instance name and all ports.",
+    "lut_index": "sum(Ik * 2**k); printed INIT binary is MSB first",
+    "packed_layout": "gopLUT6L5/gopLUT6L5Q: L6=INIT[63:32], L5=INIT[31:0], each indexed by I0..I4. RAM uses a combinational output, not L5Q."
+  },
+  "frozen_rtl_contract": {
+    "ready": "adapter_rst_n = ddr_init_done; detector_rst_n = ddr_init_done && !overflow_reset",
+    "reset_asserted": "!ddr_init_done || overflow_reset",
+    "RAM_enable": "detector_rst_n && accept_sample",
+    "source_quotes": [
+      {"file": "inputs/source/top.v", "quote": "assign axi_rst = ~ddr_init_done;"},
+      {"file": "inputs/source/top.v", "quote": ".video_clk(axi_clk)"},
+      {"file": "inputs/source/top.v", "quote": ".video_rst(axi_rst)"},
+      {"file": "inputs/source/ov5640/ov5640_top.v", "quote": ".clk(video_clk), .rst_n(~video_rst),"},
+      {"file": "inputs/source/motion/motion_stream_adapter.v", "quote": ".clk(clk), .rst_n(rst_n && !overflow_reset), .frame_start(core_start),"},
+      {"file": "inputs/source/motion/motion_stream_adapter.v", "quote": ".frame_end(core_end), .pixel_valid(core_valid), .pixel_rgb565(core_rgb),"},
+      {"file": "inputs/source/motion/motion_stream_adapter.v", "quote": "overflow_reset <= overflow;"},
+      {"file": "inputs/source/motion/motion_stream_adapter.v", "quote": "core_valid <= fire;"},
+      {"file": "inputs/source/motion/block_motion_detector.v", "quote": "if (rst_n && accept_sample) begin"},
+      {"file": "inputs/source/motion/block_motion_detector.v", "quote": "always @(posedge clk or negedge rst_n) begin"},
+      {"file": "inputs/source/motion/block_motion_detector.v", "quote": "compare_pending <= 0;"},
+      {"file": "inputs/source/motion/block_motion_detector.v", "quote": "current_q <= 0;"},
+      {"file": "inputs/source/motion/block_motion_detector.v", "quote": "compare_pending <= accept_sample;"}
+    ]
+  },
+  "four_audit_uncertainties": {
+    "RAM_enable_LUT_truth_table_matches_ready_AND_accept_sample": {
+      "status": "resolved",
+      "actual_equation": "N63 = ddr_init_done && !overflow_reset && accept_sample = detector_rst_n && accept_sample",
+      "exhaustive_verification": "32/32 indices per packed output on all four cameras; independent of I1 and I4, so unused/floating inputs cannot alter output",
+      "helper_cause": "control_summary locates only L6=N63. CAM2 has L5=N63. Other cameras use a packed enable cell outside detector hierarchy. lut_matches expects raw ddr_init_done AND accept_sample without the required overflow_reset mask. The audit's null enable witnesses for CAM1/3/4 do not reflect the actual mapped drivers; current logic_witnesses can collect external drivers, so the nulls alone should not be attributed to hierarchy filtering."
+    },
+    "RAM_enable_output_is_N63": {
+      "status": "resolved",
+      "actual_connections": "ADIF CONNECT driver L5 for CAM2, L6 for CAM1/3/4; all eight CEA[0] and WEA[0] pins per detector connect to its N63",
+      "helper_cause": "CAM2 output search assumes L6. CAM1/3/4 actually have L6=N63 in packed cells under u_cam_fir3; the supplied audit's null enable witnesses are stale or incomplete. FF_RS of the unrelated packed filter register does not determine the combinational RAM-enable output."
+    },
+    "reset_LUT_truth_table_matches_NOT_ready_OR_overflow_reset": {
+      "status": "resolved",
+      "actual_equation": "N1615 = !ddr_init_done || overflow_reset",
+      "exhaustive_verification": "64/64 INIT indices per camera; INIT=0xdddddddddddddddd, I0=ddr_init_done, I1=overflow_reset",
+      "helper_cause": "Hardcoded N78 lookup. Actual N78 INIT=0x8888888888888888 and inputs changed_q/update_pending compute their conjunction. N78 is no longer reset."
+    },
+    "comparison_registers_async_reset_from_N78": {
+      "status": "resolved",
+      "actual_connections": "compare_pending plus current_q[0..7] all RS=N1615 on all four cameras (36 registers verified)",
+      "actual_parameters": {"FF_RS": "RESET", "RS_MODE": "ASYNC", "LRS_EN": "TRUE", "LRS_POL": "FALSE", "CLK_POL": "FALSE", "LATCH_EN": "FALSE"},
+      "helper_cause": "Hardcoded expected RS=N78; the implemented active-high asynchronous reset is N1615."
+    }
+  },
+  "shared_control_findings": {
+    "enable_selected_table_hex": "0x0a000a00",
+    "enable_input_order": {"I0": "ddr_init_done", "I2": "adapter overflow_reset", "I3": "detector accept_sample"},
+    "enable_equation": "I0 && !I2 && I3",
+    "reset_INIT_hex": "0xdddddddddddddddd",
+    "reset_input_order": {"I0": "ddr_init_done", "I1": "adapter overflow_reset"},
+    "reset_equation": "!I0 || I1",
+    "reset_truth_rows": [
+      {"ddr_init_done": 0, "overflow_reset": 0, "N1615": 1},
+      {"ddr_init_done": 0, "overflow_reset": 1, "N1615": 1},
+      {"ddr_init_done": 1, "overflow_reset": 0, "N1615": 0},
+      {"ddr_init_done": 1, "overflow_reset": 1, "N1615": 1}
+    ],
+    "adapter_registered_stage": "Each adapter maps fire to L6 and core_valid to L6Q in one gopLUT6Q; overflow to L6 and overflow_reset to L6Q in another. QMUX_SEL=YX, CLK=axi_clk, CLK_POL=FALSE, LCE_EN=FALSE, LATCH_EN=FALSE. Both registers have FF_RS=RESET, RS_MODE=ASYNC, RS=ddr_init_done, LRS_POL=TRUE (active low). Thus core_valid and overflow_reset are registered signals, not current-edge FIFO combinational controls.",
+    "RAM_on_overflow": "N63 is forced low while overflow_reset is high; N1615 asynchronously clears comparison control. RAM storage is not asynchronously cleared.",
+    "comparison_pending": "accept_sample is combinational L6 and compare_pending is registered L6Q of the same LUT6Q. QMUX_SEL=YX, LCE_EN=FALSE, CLK=axi_clk; RAM uses pre-edge accept_sample while compare_pending captures it at that edge.",
+    "accept_sample_truth": "Exhaustive 64/64 INIT indices on each camera match accept_pixel && !x[0] && !x[1] && !y[0] && !y[1], the frozen SAMPLE_STEP=4 predicate. CAM1 uses accept_pixel at I0; CAM2/3/4 use it at I4. No raw adapter fire enters this LUT.",
+    "registered_marker_boundary": "accept_pixel LUT inputs include core_valid and core_end on all four cameras; its N1 input cone includes core_start. core_start/core_end are Q outputs of asynchronous-reset axi_clk packed registers: CAM1 core_start/opit_0_inv_L6QL5Q contains both, CAM2/3/4 tail_bad/opit_0_inv_L6QL5Q contains core_start and core_rgb[0]/opit_0_inv_L6QL5Q contains core_end. The register identities and reset/clock parameters were traced, without claiming complete marker data-cone equivalence.",
+    "limits": "This report verifies the control identities and registered boundary, not the complete FIFO fire/overflow cones, changed/select/update functions, geometry or aggregate resource acceptance."
+  },
+  "cameras": [
+    {
+      "camera": "CAM1",
+      "detector": "ov5640_top/u_motion_tap/u_detector",
+      "status": "resolved",
+      "enable": {
+        "instance": "ov5640_top/u_cam_fir3/r1[4]/opit_0_L5Q",
+        "primitive": "gopLUT6L5Q",
+        "output": "L6",
+        "INIT_hex": "0x0a000a0088888888",
+        "block_sha256": "7270eab542caa0e69e11db5e6d361e6634daab6191a64981adda8c57f07b3b32",
+        "quote": "ov5640_top/u_cam_fir3/r1[4]/opit_0_L5Q  (\r\n            .CECO (),\r\n            .L5Q (\\ov5640_top/u_cam_fir3/r1 [4] ),\r\n            .L6 (\\ov5640_top/u_motion_tap/u_detector/N63 ),\r\n            .RSCO (),\r\n            .CE (\\ov5640_top/u_cam_fir3/N91 ),\r\n            .CLK (axi_clk),\r\n            .I0 (ddr_init_done),\r\n            .I1 (\\ov5640_top/sh_video_data [15] ),\r\n            .I2 (\\ov5640_top/u_motion_tap/overflow_reset ),\r\n            .I3 (\\ov5640_top/u_motion_tap/u_detector/accept_sample ),\r\n            .I4 (),\r\n            .I5 (1'b1),\r\n            .RS ());"
+      },
+      "reset": {
+        "instance": "ov5640_top/u_motion_tap/u_detector/N1615/gateop",
+        "block_sha256": "34218b18c09fd725438a93a5baf34d18aa6320e6026ef71d8ad96c3d96b830fc",
+        "quote": "ov5640_top/u_motion_tap/u_detector/N1615/gateop  (\r\n            .L6 (\\ov5640_top/u_motion_tap/u_detector/N1615 ),\r\n            .I0 (ddr_init_done),\r\n            .I1 (\\ov5640_top/u_motion_tap/overflow_reset ),\r\n            .I2 (1'bx),\r\n            .I3 (1'bx),\r\n            .I4 (1'bx),\r\n            .I5 (1'bx));"
+      },
+      "comparison_reset": {
+        "verified_register_count": 9,
+        "register_suffixes": ["compare_pending/opit_0_L6Q", "current_q[0]/opit_0_AQ", "current_q[1]/opit_0_AQ", "current_q[2]/opit_0_AQ", "current_q[3]/opit_0_AQ", "current_q[4]/opit_0_AQ", "current_q[5]/opit_0_AQ", "current_q[6]/opit_0_AQ", "current_q[7]/opit_0_AQ"],
+        "block_sha256_in_suffix_order": ["0986bf3c3858f0870ef95a995e17fd4bd645ea993846fccfd5da4753d1b92bef", "27ac0a0461f58026413f1fc4f522d02e89bf4e5b0454da92ebe95b9a20610b10", "36cabc50d3be89e916d63325a1d6cd02b768d6e68b8abe0319f92cee3c789059", "b9862769e71caa694451db8a9e7eea131deb6eb3bce15268fb5b3027b0eaeea4", "e8c2139bc55ecdfe0965fdd99f560cf52021b43e58a99c6fcbd02912c5d02a86", "c0945e725c54f8d7814d5684498ea33d3ef831b757220fbed6d80186affd6b5d", "d2477b103d6c9af9b0fa189b007def07e65b45410126122ee5b01c69d4aed04f", "ca73cca0e9f29a4e0ca68a754679de7187b5cdf0bd493e1d60711f9f5b7dd5c6", "d2246f7e857d2281dc15a9426df49f3f03b6cb633621be4cfc7bc250cfd58050"],
+        "quote": ".RS (\\ov5640_top/u_motion_tap/u_detector/N1615 ));"
+      },
+      "adapter": {
+        "core_valid_instance": "ov5640_top/u_motion_tap/core_valid/opit_0_inv_L6Q",
+        "core_valid_block_sha256": "5d649d1049a51ee927c2b30b7972c20d9f6dcbb2734f949e98de499543fcf331",
+        "core_valid_quote": ".L6 (\\ov5640_top/u_motion_tap/fire ),\r\n            .L6Q (\\ov5640_top/u_motion_tap/core_valid ),",
+        "overflow_reset_instance": "ov5640_top/u_motion_tap/overflow_reset/opit_0_inv_L6Q",
+        "overflow_reset_block_sha256": "c040e4688c3e0a11ca113cb6ac9d75e3c47f1a97e74604b104890641c203ade6",
+        "overflow_reset_quote": ".L6 (\\ov5640_top/u_motion_tap/overflow ),\r\n            .L6Q (\\ov5640_top/u_motion_tap/overflow_reset ),"
+      }
+    },
+    {
+      "camera": "CAM2",
+      "detector": "cam2_ov5640_top/u_motion_tap/u_detector",
+      "status": "resolved",
+      "enable": {
+        "instance": "cam2_ov5640_top/u_motion_tap/N77/LUT6D_inst",
+        "primitive": "gopLUT6L5",
+        "output": "L5",
+        "INIT_hex": "0xfcfcfcfc0a000a00",
+        "block_sha256": "172c96fbfb01d936f3e24f772ff71f483a089c37fab7ba41049458a7f35bbab5",
+        "quote": "cam2_ov5640_top/u_motion_tap/N77/LUT6D_inst  (\r\n            .L5 (\\cam2_ov5640_top/u_motion_tap/u_detector/N63 ),\r\n            .L6 (\\cam2_ov5640_top/u_motion_tap/N77 ),\r\n            .I0 (ddr_init_done),\r\n            .I1 (\\cam2_ov5640_top/u_motion_tap/overflow ),\r\n            .I2 (\\cam2_ov5640_top/u_motion_tap/overflow_reset ),\r\n            .I3 (\\cam2_ov5640_top/u_motion_tap/u_detector/accept_sample ),\r\n            .I4 (),\r\n            .I5 (1'b1));"
+      },
+      "reset": {
+        "instance": "cam2_ov5640_top/u_motion_tap/u_detector/N1615/gateop",
+        "block_sha256": "8960232497b16251a849674bc9a16eac75caac83f7cc22750becfe90e6fb5643",
+        "quote": "cam2_ov5640_top/u_motion_tap/u_detector/N1615/gateop  (\r\n            .L6 (\\cam2_ov5640_top/u_motion_tap/u_detector/N1615 ),\r\n            .I0 (ddr_init_done),\r\n            .I1 (\\cam2_ov5640_top/u_motion_tap/overflow_reset ),\r\n            .I2 (1'bx),\r\n            .I3 (1'bx),\r\n            .I4 (1'bx),\r\n            .I5 (1'bx));"
+      },
+      "comparison_reset": {
+        "verified_register_count": 9,
+        "register_suffixes": ["compare_pending/opit_0_L6Q", "current_q[0]/opit_0_AQ", "current_q[1]/opit_0_AQ", "current_q[2]/opit_0_AQ", "current_q[3]/opit_0_AQ", "current_q[4]/opit_0_AQ", "current_q[5]/opit_0_AQ", "current_q[6]/opit_0_AQ", "current_q[7]/opit_0_AQ"],
+        "block_sha256_in_suffix_order": ["7e3bbb112d821404e3203815a92e45c4120967c4fba983c8d7ec75e0a5533b44", "d2e2d2203bb40ea9f8f75617d295f4014128c90c80703346d9c963f3a2809619", "d760b33185fd27ecf9a46c5f6594746aed02463d481e2a355316e226cf2707da", "dfdc0ec1486fea6cdfb871a6582f05db65d8ee240e31f333a000cdf67bad0ad1", "37875972758a9d89e4c7b381773ee6c744b33b7085f8d4c73163d6197d6f4cb1", "9711df0278bbe7c1ac3143db350cec08f8239c0a54e5c7d7f9b9079839775fbe", "a1221bbaf7a9abec3b8db6b1b4111990f7ed36551e11dd021b45528c69955626", "46097dd9fc17e6e24c06213879e18dbdb406800852bcf978294dc7b4433c7de9", "16fd0bef88659e42ab4264a74afd9e62d9360e0f416b07420b043228f0d96fcd"],
+        "quote": ".RS (\\cam2_ov5640_top/u_motion_tap/u_detector/N1615 ));"
+      },
+      "adapter": {
+        "core_valid_instance": "cam2_ov5640_top/u_motion_tap/core_valid/opit_0_inv_L6Q",
+        "core_valid_block_sha256": "a31ebf08427144c6b52a8a759fd02d5a95710d1fd81d82db33cd224ddd7da9f8",
+        "core_valid_quote": ".L6 (\\cam2_ov5640_top/u_motion_tap/fire ),\r\n            .L6Q (\\cam2_ov5640_top/u_motion_tap/core_valid ),",
+        "overflow_reset_instance": "cam2_ov5640_top/u_motion_tap/overflow_reset/opit_0_inv_L6Q",
+        "overflow_reset_block_sha256": "3cbbf6e907b77dde02103a0051126c56b2574e7fd4f4676c68990caa80b7c99d",
+        "overflow_reset_quote": ".L6 (\\cam2_ov5640_top/u_motion_tap/overflow ),\r\n            .L6Q (\\cam2_ov5640_top/u_motion_tap/overflow_reset ),"
+      }
+    },
+    {
+      "camera": "CAM3",
+      "detector": "cam3_ov5640_top/u_motion_tap/u_detector",
+      "status": "resolved",
+      "enable": {
+        "instance": "cam3_ov5640_top/u_cam_fir3/r1[4]/opit_0_L5Q",
+        "primitive": "gopLUT6L5Q",
+        "output": "L6",
+        "INIT_hex": "0x0a000a0088888888",
+        "block_sha256": "5500e956a2a7ac7df55d4f2c7772fa7c1319854069d0a4dc9162cbfed75fd88f",
+        "quote": "cam3_ov5640_top/u_cam_fir3/r1[4]/opit_0_L5Q  (\r\n            .CECO (),\r\n            .L5Q (\\cam3_ov5640_top/u_cam_fir3/r1 [4] ),\r\n            .L6 (\\cam3_ov5640_top/u_motion_tap/u_detector/N63 ),\r\n            .RSCO (),\r\n            .CE (\\cam3_ov5640_top/u_cam_fir3/N91 ),\r\n            .CLK (axi_clk),\r\n            .I0 (ddr_init_done),\r\n            .I1 (\\cam3_ov5640_top/sh_video_data [15] ),\r\n            .I2 (\\cam3_ov5640_top/u_motion_tap/overflow_reset ),\r\n            .I3 (\\cam3_ov5640_top/u_motion_tap/u_detector/accept_sample ),\r\n            .I4 (),\r\n            .I5 (1'b1),\r\n            .RS ());"
+      },
+      "reset": {
+        "instance": "cam3_ov5640_top/u_motion_tap/u_detector/N1615/gateop",
+        "block_sha256": "37a337b9da846a3f34c082acc1e1d9411e0417eae2df8e1d8479a7425e0993f5",
+        "quote": "cam3_ov5640_top/u_motion_tap/u_detector/N1615/gateop  (\r\n            .L6 (\\cam3_ov5640_top/u_motion_tap/u_detector/N1615 ),\r\n            .I0 (ddr_init_done),\r\n            .I1 (\\cam3_ov5640_top/u_motion_tap/overflow_reset ),\r\n            .I2 (1'bx),\r\n            .I3 (1'bx),\r\n            .I4 (1'bx),\r\n            .I5 (1'bx));"
+      },
+      "comparison_reset": {
+        "verified_register_count": 9,
+        "register_suffixes": ["compare_pending/opit_0_L6Q", "current_q[0]/opit_0_AQ", "current_q[1]/opit_0_AQ", "current_q[2]/opit_0_AQ", "current_q[3]/opit_0_AQ", "current_q[4]/opit_0_AQ", "current_q[5]/opit_0_AQ", "current_q[6]/opit_0_AQ", "current_q[7]/opit_0_AQ"],
+        "block_sha256_in_suffix_order": ["063b854c19f2505855f2ac4e2941fdda958d5337cae88cf45f0cd080217964a0", "6b3d02092acc944eaa95e04677522ad9d8b20167711d10f98c9a7483b7cb3e35", "9f0bcd4e911e88d7c8bce95f0bad86fcb5a22f7aa26424feccb2bf2e359f4765", "2a25108a7b4f0598fe0e56096e1ccb50a6457c02ea285f0da1293a86ad0857b2", "1f901f13dfb1097249ca596546e001cce3f409adbadcd25e19c5b1002f94acb0", "4e15a9297a9fb07bc17173883ad5ad4e628b0a954c8e961f7d9942b768c05376", "6c7804d99f73987a990e54725491c0612c0ad329fd72bbf4131b0dd54fad1d3e", "b4820027db5f7ac674305207ffabf81512b668ad08189b0f855446a42e1247a6", "bcd0bca1ffe35bb5e993e83f7ced789f7f3d51d12f5cdb4f0849fea91acd50a6"],
+        "quote": ".RS (\\cam3_ov5640_top/u_motion_tap/u_detector/N1615 ));"
+      },
+      "adapter": {
+        "core_valid_instance": "cam3_ov5640_top/u_motion_tap/core_valid/opit_0_inv_L6Q",
+        "core_valid_block_sha256": "b8f24b37e5563d22b5225ea9bb3ff2a8cca4e4a3505b4dfcab1117b6d0c4815e",
+        "core_valid_quote": ".L6 (\\cam3_ov5640_top/u_motion_tap/fire ),\r\n            .L6Q (\\cam3_ov5640_top/u_motion_tap/core_valid ),",
+        "overflow_reset_instance": "cam3_ov5640_top/u_motion_tap/overflow_reset/opit_0_inv_L6Q",
+        "overflow_reset_block_sha256": "a18f4f57fb5c6ab6e626cd1f4b88411a3fc95ddf90d0e65675fb2a5698b983e3",
+        "overflow_reset_quote": ".L6 (\\cam3_ov5640_top/u_motion_tap/overflow ),\r\n            .L6Q (\\cam3_ov5640_top/u_motion_tap/overflow_reset ),"
+      }
+    },
+    {
+      "camera": "CAM4",
+      "detector": "cam4_ov5640_top/u_motion_tap/u_detector",
+      "status": "resolved",
+      "enable": {
+        "instance": "cam4_ov5640_top/u_cam_fir3/r1[4]/opit_0_L5Q",
+        "primitive": "gopLUT6L5Q",
+        "output": "L6",
+        "INIT_hex": "0x0a000a0088888888",
+        "block_sha256": "e54c6841392bddc5a3d542453eb68c7e537566ef5bc4041cbd7d594a11fe6e91",
+        "quote": "cam4_ov5640_top/u_cam_fir3/r1[4]/opit_0_L5Q  (\r\n            .CECO (),\r\n            .L5Q (\\cam4_ov5640_top/u_cam_fir3/r1 [4] ),\r\n            .L6 (\\cam4_ov5640_top/u_motion_tap/u_detector/N63 ),\r\n            .RSCO (),\r\n            .CE (\\cam4_ov5640_top/u_cam_fir3/N91 ),\r\n            .CLK (axi_clk),\r\n            .I0 (ddr_init_done),\r\n            .I1 (\\cam4_ov5640_top/sh_video_data [15] ),\r\n            .I2 (\\cam4_ov5640_top/u_motion_tap/overflow_reset ),\r\n            .I3 (\\cam4_ov5640_top/u_motion_tap/u_detector/accept_sample ),\r\n            .I4 (),\r\n            .I5 (1'b1),\r\n            .RS ());"
+      },
+      "reset": {
+        "instance": "cam4_ov5640_top/u_motion_tap/u_detector/N1615/gateop",
+        "block_sha256": "55538950288873bc03828c1a6eeb05ea289f19df1158aa52738f144e1605c1b7",
+        "quote": "cam4_ov5640_top/u_motion_tap/u_detector/N1615/gateop  (\r\n            .L6 (\\cam4_ov5640_top/u_motion_tap/u_detector/N1615 ),\r\n            .I0 (ddr_init_done),\r\n            .I1 (\\cam4_ov5640_top/u_motion_tap/overflow_reset ),\r\n            .I2 (1'bx),\r\n            .I3 (1'bx),\r\n            .I4 (1'bx),\r\n            .I5 (1'bx));"
+      },
+      "comparison_reset": {
+        "verified_register_count": 9,
+        "register_suffixes": ["compare_pending/opit_0_L6Q", "current_q[0]/opit_0_AQ", "current_q[1]/opit_0_AQ", "current_q[2]/opit_0_AQ", "current_q[3]/opit_0_AQ", "current_q[4]/opit_0_AQ", "current_q[5]/opit_0_AQ", "current_q[6]/opit_0_AQ", "current_q[7]/opit_0_AQ"],
+        "block_sha256_in_suffix_order": ["f5747678ef4f7c0e8dba81aadc3e116777fd2fb75101b0da4e10ec0b574a3c71", "e54f53576fbd941052be18a46e187e78d54c3040d8d5485a26f60cb138c5ce0f", "bf2820a24e3a77c79e98b8f3592635ab5830d8530a3a38eba3654f02e26dc53f", "f01ba089838903f80bb7a33fff16bbf517e3d7b788d39e345d99b7d540a24f80", "ced8e13cbcba41509630c4188197798454f8bc102d736361776382dbaa12c054", "1a32eca879a55a006f5a29c69ca96bf2d4d08018edd72a44691e6ccba70d9e9a", "9341a36007e00360f7ba7a116968fa3350be9723ddeb70a5f49464259e9f35d0", "41cbec7b45d863fb6ffbefebae7e00a7b8e1ff790934df938460cd2fceac657b", "110bcbc2af57f22ed052c6107c00a4eaa4ba7a1566330733044cf7ea6afbb5bb"],
+        "quote": ".RS (\\cam4_ov5640_top/u_motion_tap/u_detector/N1615 ));"
+      },
+      "adapter": {
+        "core_valid_instance": "cam4_ov5640_top/u_motion_tap/core_valid/opit_0_inv_L6Q",
+        "core_valid_block_sha256": "bacb25f7bed279540ade5ffb3ce9229702f2906fb66aadc86582c01b5b42f230",
+        "core_valid_quote": ".L6 (\\cam4_ov5640_top/u_motion_tap/fire ),\r\n            .L6Q (\\cam4_ov5640_top/u_motion_tap/core_valid ),",
+        "overflow_reset_instance": "cam4_ov5640_top/u_motion_tap/overflow_reset/opit_0_inv_L6Q",
+        "overflow_reset_block_sha256": "a4a079857392e711998051d2b7d6f18725863f149c3b40df9f13bb55703601bd",
+        "overflow_reset_quote": ".L6 (\\cam4_ov5640_top/u_motion_tap/overflow ),\r\n            .L6Q (\\cam4_ov5640_top/u_motion_tap/overflow_reset ),"
+      }
+    }
+  ]
+}

@@ -1,0 +1,1399 @@
+{
+  "status": "PASS",
+  "utc": "2026-10-04T18:26:55.954685+00:00",
+  "python": "3.12.4 | packaged by Anaconda, Inc. | (main, Jun 18 2024, 15:03:56) [MSC v.1929 64 bit (AMD64)]",
+  "python_executable": "C:\\Users\\NineSun\\anaconda3\\python.exe",
+  "random_cycles_per_table": 1800,
+  "sources_sha256": {
+    "fpga_v8_conv_finish.v": "84d9e9309d71018d41d896c9bc3be971189e526896fec22a002936e54b84e80c",
+    "tb_fpga_v8_conv_finish.v": "c7634234067dfeb56e0b71befc2793a98c59abcac5df0b93050c4c2daf90cf54",
+    "golden.py": "77add50b23f96a2c6e68e5a18d769ff7dd2c5dec380ee1b8ab85554e12f432fd",
+    "test_golden.py": "601e7797818c7ebf4b396c37895fc1975d941bbbc261a9081ec8a358e06b7411",
+    "run_tests.py": "e4e9c0851f0fc0fd20b3ae279ef384b60bd3772f28bcc3ca8fe142f0ab40165b"
+  },
+  "activation_lut_sha256_before": "c9bd6eeb046f1064f39492d70467e7aacc54279d28a3692f0e39d8284f280470",
+  "activation_lut_sha256_after": "c9bd6eeb046f1064f39492d70467e7aacc54279d28a3692f0e39d8284f280470",
+  "compile_command": [
+    "C:\\modeltech64_10.6e\\win64\\vlog.exe",
+    "-work",
+    "work",
+    "-vlog01compat",
+    "C:\\Users\\NineSun\\Desktop\\ov56401\\project\\fpga_v8_migration\\activation\\fpga_v8_activation_lut.v",
+    "C:\\Users\\NineSun\\Desktop\\ov56401\\project\\fpga_v8_migration\\finish\\fpga_v8_conv_finish.v",
+    "C:\\Users\\NineSun\\Desktop\\ov56401\\project\\fpga_v8_migration\\finish\\tb_fpga_v8_conv_finish.v"
+  ],
+  "simulation_commands": [
+    [
+      "C:\\modeltech64_10.6e\\win64\\vsim.exe",
+      "-c",
+      "-lib",
+      "work",
+      "tb_fpga_v8_conv_finish",
+      "-gLANES=1",
+      "+STIMULUS=C:/Users/NineSun/Desktop/ov56401/project/fpga_v8_migration/finish/test_results/lanes1_seed56401.stimulus.txt",
+      "+TRACE=C:/Users/NineSun/Desktop/ov56401/project/fpga_v8_migration/finish/test_results/lanes1_seed56401.trace.txt",
+      "-do",
+      "run -all; quit -f"
+    ],
+    [
+      "C:\\modeltech64_10.6e\\win64\\vsim.exe",
+      "-c",
+      "-lib",
+      "work",
+      "tb_fpga_v8_conv_finish",
+      "-gLANES=1",
+      "+STIMULUS=C:/Users/NineSun/Desktop/ov56401/project/fpga_v8_migration/finish/test_results/lanes1_seed20261007.stimulus.txt",
+      "+TRACE=C:/Users/NineSun/Desktop/ov56401/project/fpga_v8_migration/finish/test_results/lanes1_seed20261007.trace.txt",
+      "-do",
+      "run -all; quit -f"
+    ],
+    [
+      "C:\\modeltech64_10.6e\\win64\\vsim.exe",
+      "-c",
+      "-lib",
+      "work",
+      "tb_fpga_v8_conv_finish",
+      "-gLANES=3",
+      "+STIMULUS=C:/Users/NineSun/Desktop/ov56401/project/fpga_v8_migration/finish/test_results/lanes3_seed56401.stimulus.txt",
+      "+TRACE=C:/Users/NineSun/Desktop/ov56401/project/fpga_v8_migration/finish/test_results/lanes3_seed56401.trace.txt",
+      "-do",
+      "run -all; quit -f"
+    ],
+    [
+      "C:\\modeltech64_10.6e\\win64\\vsim.exe",
+      "-c",
+      "-lib",
+      "work",
+      "tb_fpga_v8_conv_finish",
+      "-gLANES=3",
+      "+STIMULUS=C:/Users/NineSun/Desktop/ov56401/project/fpga_v8_migration/finish/test_results/lanes3_seed20261007.stimulus.txt",
+      "+TRACE=C:/Users/NineSun/Desktop/ov56401/project/fpga_v8_migration/finish/test_results/lanes3_seed20261007.trace.txt",
+      "-do",
+      "run -all; quit -f"
+    ],
+    [
+      "C:\\modeltech64_10.6e\\win64\\vsim.exe",
+      "-c",
+      "-lib",
+      "work",
+      "tb_fpga_v8_conv_finish",
+      "-gLANES=16",
+      "+STIMULUS=C:/Users/NineSun/Desktop/ov56401/project/fpga_v8_migration/finish/test_results/lanes16_seed56401.stimulus.txt",
+      "+TRACE=C:/Users/NineSun/Desktop/ov56401/project/fpga_v8_migration/finish/test_results/lanes16_seed56401.trace.txt",
+      "-do",
+      "run -all; quit -f"
+    ],
+    [
+      "C:\\modeltech64_10.6e\\win64\\vsim.exe",
+      "-c",
+      "-lib",
+      "work",
+      "tb_fpga_v8_conv_finish",
+      "-gLANES=16",
+      "+STIMULUS=C:/Users/NineSun/Desktop/ov56401/project/fpga_v8_migration/finish/test_results/lanes16_seed20261007.stimulus.txt",
+      "+TRACE=C:/Users/NineSun/Desktop/ov56401/project/fpga_v8_migration/finish/test_results/lanes16_seed20261007.trace.txt",
+      "-do",
+      "run -all; quit -f"
+    ]
+  ],
+  "totals": {
+    "cycles": 35027,
+    "config_writes": 3099,
+    "idle_config_priority": 27,
+    "input_stall_cycles": 10390,
+    "inputs": 18587,
+    "bypass_inputs": 9178,
+    "lut_inputs": 9409,
+    "input_last": 5984,
+    "lane_checks": 85308,
+    "clamp_low_lanes": 17900,
+    "clamp_high_lanes": 17689,
+    "negative_folded_bias_lanes": 40799,
+    "half_tie_lanes": 5344,
+    "outputs": 18539,
+    "output_last": 5948,
+    "fullscale_extrema_lanes": 1642,
+    "config_rejected_busy": 3367,
+    "config_rejected_internal_lut_empty": 248,
+    "output_stall_cycles": 10882,
+    "config_rejected_output_consumption": 1409,
+    "directed_full_pipeline_stall_cycles": 144,
+    "scale_changes_full_pipeline_stalled": 144,
+    "bias_changes_full_pipeline_stalled": 144,
+    "zp_changes_full_pipeline_stalled": 144,
+    "bypass_changes_full_pipeline_stalled": 81,
+    "reset_occupied_edges": 30,
+    "reset_discarded_words": 48
+  },
+  "runs": [
+    {
+      "name": "lanes1_seed56401",
+      "lanes": 1,
+      "seed": 56401,
+      "simulation_warnings": [
+        "# ** Warning: (vsim-8891) All optimizations are turned off because the -novopt switch is in effect. This will cause your simulation to run very slowly. If you are using this switch to preserve visibility for Debug or PLI features please see the User's Manual section on Preserving Object Visibility with vopt."
+      ],
+      "stimulus_sha256": "0d878fd5856d4a0e60d9b61d83f15a37129da205270412ac0eb5c3b1679040d5",
+      "trace_sha256": "1afa720f40cf43cfa26d571ceacdbccbd58f567cb3e0c74e2277a84200a04e8b",
+      "counts": {
+        "cycles": 7411,
+        "config_writes": 517,
+        "idle_config_priority": 5,
+        "input_stall_cycles": 1749,
+        "inputs": 4686,
+        "bypass_inputs": 2335,
+        "lut_inputs": 2351,
+        "input_last": 1812,
+        "lane_checks": 4686,
+        "clamp_low_lanes": 638,
+        "clamp_high_lanes": 598,
+        "negative_folded_bias_lanes": 2260,
+        "half_tie_lanes": 602,
+        "outputs": 4678,
+        "output_last": 1806,
+        "fullscale_extrema_lanes": 65,
+        "config_rejected_busy": 580,
+        "config_rejected_internal_lut_empty": 43,
+        "output_stall_cycles": 1782,
+        "config_rejected_output_consumption": 248,
+        "directed_full_pipeline_stall_cycles": 24,
+        "scale_changes_full_pipeline_stalled": 24,
+        "bias_changes_full_pipeline_stalled": 24,
+        "zp_changes_full_pipeline_stalled": 24,
+        "bypass_changes_full_pipeline_stalled": 14,
+        "reset_occupied_edges": 5,
+        "reset_discarded_words": 8
+      },
+      "rejected_occupancy_masks": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "reset_occupancy_masks": [
+        1,
+        2,
+        4,
+        8,
+        15
+      ],
+      "address_coverage": {
+        "all_addresses_table_a": 256,
+        "all_addresses_bypass_a": 256,
+        "all_addresses_table_b": 256,
+        "all_addresses_bypass_b": 256
+      },
+      "observed_raw_q16_min": -140737488355328,
+      "observed_raw_q16_max": 140737505001472,
+      "throughput_words": 96,
+      "unstalled_latency_edges": 4,
+      "phases": {
+        "initial_reset": {
+          "cycles": 3
+        },
+        "program_table_a": {
+          "cycles": 257,
+          "config_writes": 256
+        },
+        "idle_config_priority": {
+          "cycles": 9,
+          "config_writes": 3,
+          "inputs": 1,
+          "outputs": 1
+        },
+        "arithmetic_extrema_a": {
+          "cycles": 199,
+          "inputs": 194,
+          "outputs": 194
+        },
+        "all_addresses_table_a": {
+          "cycles": 261,
+          "inputs": 256,
+          "outputs": 256
+        },
+        "all_addresses_bypass_a": {
+          "cycles": 261,
+          "inputs": 256,
+          "outputs": 256
+        },
+        "rounding_a": {
+          "cycles": 785,
+          "inputs": 780,
+          "outputs": 780
+        },
+        "continuous_throughput": {
+          "cycles": 101,
+          "inputs": 96,
+          "outputs": 96
+        },
+        "reject_product_only": {
+          "cycles": 7,
+          "inputs": 1,
+          "outputs": 1
+        },
+        "reject_sum_only": {
+          "cycles": 7,
+          "inputs": 1,
+          "outputs": 1
+        },
+        "reject_byte_only": {
+          "cycles": 7,
+          "inputs": 1,
+          "outputs": 1
+        },
+        "reject_output_only": {
+          "cycles": 8,
+          "inputs": 1,
+          "outputs": 1
+        },
+        "reject_full_pipeline": {
+          "cycles": 19,
+          "inputs": 5,
+          "outputs": 5
+        },
+        "config_on_output_consumption": {
+          "cycles": 12,
+          "inputs": 2,
+          "outputs": 2,
+          "config_writes": 1
+        },
+        "stall_changing_constants": {
+          "cycles": 35,
+          "inputs": 5,
+          "outputs": 5
+        },
+        "reset_product": {
+          "cycles": 5,
+          "inputs": 1
+        },
+        "reset_sum": {
+          "cycles": 6,
+          "inputs": 1
+        },
+        "reset_byte": {
+          "cycles": 7,
+          "inputs": 1
+        },
+        "reset_output": {
+          "cycles": 8,
+          "inputs": 1
+        },
+        "reset_full_pipeline": {
+          "cycles": 8,
+          "inputs": 4
+        },
+        "lut_persists_after_reset": {
+          "cycles": 30,
+          "inputs": 5,
+          "outputs": 5
+        },
+        "random_a": {
+          "cycles": 1806,
+          "inputs": 805,
+          "outputs": 805
+        },
+        "program_table_b": {
+          "cycles": 257,
+          "config_writes": 256
+        },
+        "all_addresses_table_b": {
+          "cycles": 261,
+          "inputs": 256,
+          "outputs": 256
+        },
+        "all_addresses_bypass_b": {
+          "cycles": 261,
+          "inputs": 256,
+          "outputs": 256
+        },
+        "arithmetic_extrema_b": {
+          "cycles": 199,
+          "inputs": 194,
+          "outputs": 194
+        },
+        "rounding_b": {
+          "cycles": 785,
+          "inputs": 780,
+          "outputs": 780
+        },
+        "random_b": {
+          "cycles": 1806,
+          "inputs": 783,
+          "outputs": 783,
+          "config_writes": 1
+        },
+        "final_drain": {
+          "cycles": 1
+        }
+      }
+    },
+    {
+      "name": "lanes1_seed20261007",
+      "lanes": 1,
+      "seed": 20261007,
+      "simulation_warnings": [
+        "# ** Warning: (vsim-8891) All optimizations are turned off because the -novopt switch is in effect. This will cause your simulation to run very slowly. If you are using this switch to preserve visibility for Debug or PLI features please see the User's Manual section on Preserving Object Visibility with vopt."
+      ],
+      "stimulus_sha256": "9d6272e0192160be1909f26daaccff9ed244cf8d969cae882c6ca13beae3f744",
+      "trace_sha256": "84f82791cf3f32bc280bcee429782728ce667fbe4d3ade12a7dcc3041cdc7526",
+      "counts": {
+        "cycles": 7409,
+        "config_writes": 517,
+        "idle_config_priority": 5,
+        "input_stall_cycles": 1671,
+        "inputs": 4714,
+        "bypass_inputs": 2332,
+        "lut_inputs": 2382,
+        "input_last": 1788,
+        "lane_checks": 4714,
+        "clamp_low_lanes": 604,
+        "clamp_high_lanes": 645,
+        "negative_folded_bias_lanes": 2293,
+        "half_tie_lanes": 602,
+        "outputs": 4706,
+        "output_last": 1782,
+        "fullscale_extrema_lanes": 66,
+        "config_rejected_busy": 553,
+        "config_rejected_internal_lut_empty": 42,
+        "output_stall_cycles": 1767,
+        "config_rejected_output_consumption": 237,
+        "directed_full_pipeline_stall_cycles": 24,
+        "scale_changes_full_pipeline_stalled": 24,
+        "bias_changes_full_pipeline_stalled": 24,
+        "zp_changes_full_pipeline_stalled": 24,
+        "bypass_changes_full_pipeline_stalled": 13,
+        "reset_occupied_edges": 5,
+        "reset_discarded_words": 8
+      },
+      "rejected_occupancy_masks": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "reset_occupancy_masks": [
+        1,
+        2,
+        4,
+        8,
+        15
+      ],
+      "address_coverage": {
+        "all_addresses_table_a": 256,
+        "all_addresses_bypass_a": 256,
+        "all_addresses_table_b": 256,
+        "all_addresses_bypass_b": 256
+      },
+      "observed_raw_q16_min": -140737488355328,
+      "observed_raw_q16_max": 140737505001472,
+      "throughput_words": 96,
+      "unstalled_latency_edges": 4,
+      "phases": {
+        "initial_reset": {
+          "cycles": 3
+        },
+        "program_table_a": {
+          "cycles": 257,
+          "config_writes": 256
+        },
+        "idle_config_priority": {
+          "cycles": 9,
+          "config_writes": 3,
+          "inputs": 1,
+          "outputs": 1
+        },
+        "arithmetic_extrema_a": {
+          "cycles": 199,
+          "inputs": 194,
+          "outputs": 194
+        },
+        "all_addresses_table_a": {
+          "cycles": 261,
+          "inputs": 256,
+          "outputs": 256
+        },
+        "all_addresses_bypass_a": {
+          "cycles": 261,
+          "inputs": 256,
+          "outputs": 256
+        },
+        "rounding_a": {
+          "cycles": 785,
+          "inputs": 780,
+          "outputs": 780
+        },
+        "continuous_throughput": {
+          "cycles": 101,
+          "inputs": 96,
+          "outputs": 96
+        },
+        "reject_product_only": {
+          "cycles": 7,
+          "inputs": 1,
+          "outputs": 1
+        },
+        "reject_sum_only": {
+          "cycles": 7,
+          "inputs": 1,
+          "outputs": 1
+        },
+        "reject_byte_only": {
+          "cycles": 7,
+          "inputs": 1,
+          "outputs": 1
+        },
+        "reject_output_only": {
+          "cycles": 8,
+          "inputs": 1,
+          "outputs": 1
+        },
+        "reject_full_pipeline": {
+          "cycles": 19,
+          "inputs": 5,
+          "outputs": 5
+        },
+        "config_on_output_consumption": {
+          "cycles": 12,
+          "inputs": 2,
+          "outputs": 2,
+          "config_writes": 1
+        },
+        "stall_changing_constants": {
+          "cycles": 35,
+          "inputs": 5,
+          "outputs": 5
+        },
+        "reset_product": {
+          "cycles": 5,
+          "inputs": 1
+        },
+        "reset_sum": {
+          "cycles": 6,
+          "inputs": 1
+        },
+        "reset_byte": {
+          "cycles": 7,
+          "inputs": 1
+        },
+        "reset_output": {
+          "cycles": 8,
+          "inputs": 1
+        },
+        "reset_full_pipeline": {
+          "cycles": 8,
+          "inputs": 4
+        },
+        "lut_persists_after_reset": {
+          "cycles": 30,
+          "inputs": 5,
+          "outputs": 5
+        },
+        "random_a": {
+          "cycles": 1806,
+          "inputs": 811,
+          "outputs": 811
+        },
+        "program_table_b": {
+          "cycles": 257,
+          "config_writes": 256
+        },
+        "all_addresses_table_b": {
+          "cycles": 261,
+          "inputs": 256,
+          "outputs": 256
+        },
+        "all_addresses_bypass_b": {
+          "cycles": 261,
+          "inputs": 256,
+          "outputs": 256
+        },
+        "arithmetic_extrema_b": {
+          "cycles": 199,
+          "inputs": 194,
+          "outputs": 194
+        },
+        "rounding_b": {
+          "cycles": 785,
+          "inputs": 780,
+          "outputs": 780
+        },
+        "random_b": {
+          "cycles": 1804,
+          "inputs": 805,
+          "outputs": 805,
+          "config_writes": 1
+        },
+        "final_drain": {
+          "cycles": 1
+        }
+      }
+    },
+    {
+      "name": "lanes3_seed56401",
+      "lanes": 3,
+      "seed": 56401,
+      "simulation_warnings": [
+        "# ** Warning: (vsim-8891) All optimizations are turned off because the -novopt switch is in effect. This will cause your simulation to run very slowly. If you are using this switch to preserve visibility for Debug or PLI features please see the User's Manual section on Preserving Object Visibility with vopt."
+      ],
+      "stimulus_sha256": "716b649a78317521c22f32c818363d0a61027df9d0fd6cee546e2f7c404f7e83",
+      "trace_sha256": "015828101ba3af456954f00e15f13b64a9987f684577041874dab50c2f94260e",
+      "counts": {
+        "cycles": 5451,
+        "config_writes": 516,
+        "idle_config_priority": 4,
+        "input_stall_cycles": 1668,
+        "inputs": 2752,
+        "bypass_inputs": 1347,
+        "lut_inputs": 1405,
+        "input_last": 817,
+        "lane_checks": 8256,
+        "clamp_low_lanes": 1585,
+        "clamp_high_lanes": 1480,
+        "negative_folded_bias_lanes": 3927,
+        "half_tie_lanes": 700,
+        "outputs": 2744,
+        "output_last": 811,
+        "fullscale_extrema_lanes": 157,
+        "config_rejected_busy": 529,
+        "config_rejected_internal_lut_empty": 38,
+        "output_stall_cycles": 1772,
+        "config_rejected_output_consumption": 225,
+        "directed_full_pipeline_stall_cycles": 24,
+        "scale_changes_full_pipeline_stalled": 24,
+        "bias_changes_full_pipeline_stalled": 24,
+        "zp_changes_full_pipeline_stalled": 24,
+        "bypass_changes_full_pipeline_stalled": 13,
+        "reset_occupied_edges": 5,
+        "reset_discarded_words": 8
+      },
+      "rejected_occupancy_masks": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "reset_occupancy_masks": [
+        1,
+        2,
+        4,
+        8,
+        15
+      ],
+      "address_coverage": {
+        "all_addresses_table_a": 256,
+        "all_addresses_bypass_a": 256,
+        "all_addresses_table_b": 256,
+        "all_addresses_bypass_b": 256
+      },
+      "observed_raw_q16_min": -140737488355328,
+      "observed_raw_q16_max": 140737505001472,
+      "throughput_words": 96,
+      "unstalled_latency_edges": 4,
+      "phases": {
+        "initial_reset": {
+          "cycles": 3
+        },
+        "program_table_a": {
+          "cycles": 257,
+          "config_writes": 256
+        },
+        "idle_config_priority": {
+          "cycles": 9,
+          "config_writes": 3,
+          "inputs": 1,
+          "outputs": 1
+        },
+        "arithmetic_extrema_a": {
+          "cycles": 79,
+          "inputs": 74,
+          "outputs": 74
+        },
+        "all_addresses_table_a": {
+          "cycles": 91,
+          "inputs": 86,
+          "outputs": 86
+        },
+        "all_addresses_bypass_a": {
+          "cycles": 91,
+          "inputs": 86,
+          "outputs": 86
+        },
+        "rounding_a": {
+          "cycles": 265,
+          "inputs": 260,
+          "outputs": 260
+        },
+        "continuous_throughput": {
+          "cycles": 101,
+          "inputs": 96,
+          "outputs": 96
+        },
+        "reject_product_only": {
+          "cycles": 7,
+          "inputs": 1,
+          "outputs": 1
+        },
+        "reject_sum_only": {
+          "cycles": 7,
+          "inputs": 1,
+          "outputs": 1
+        },
+        "reject_byte_only": {
+          "cycles": 7,
+          "inputs": 1,
+          "outputs": 1
+        },
+        "reject_output_only": {
+          "cycles": 8,
+          "inputs": 1,
+          "outputs": 1
+        },
+        "reject_full_pipeline": {
+          "cycles": 19,
+          "inputs": 5,
+          "outputs": 5
+        },
+        "config_on_output_consumption": {
+          "cycles": 12,
+          "inputs": 2,
+          "outputs": 2,
+          "config_writes": 1
+        },
+        "stall_changing_constants": {
+          "cycles": 35,
+          "inputs": 5,
+          "outputs": 5
+        },
+        "reset_product": {
+          "cycles": 5,
+          "inputs": 1
+        },
+        "reset_sum": {
+          "cycles": 6,
+          "inputs": 1
+        },
+        "reset_byte": {
+          "cycles": 7,
+          "inputs": 1
+        },
+        "reset_output": {
+          "cycles": 8,
+          "inputs": 1
+        },
+        "reset_full_pipeline": {
+          "cycles": 8,
+          "inputs": 4
+        },
+        "lut_persists_after_reset": {
+          "cycles": 30,
+          "inputs": 5,
+          "outputs": 5
+        },
+        "random_a": {
+          "cycles": 1806,
+          "inputs": 800,
+          "outputs": 800
+        },
+        "program_table_b": {
+          "cycles": 257,
+          "config_writes": 256
+        },
+        "all_addresses_table_b": {
+          "cycles": 91,
+          "inputs": 86,
+          "outputs": 86
+        },
+        "all_addresses_bypass_b": {
+          "cycles": 91,
+          "inputs": 86,
+          "outputs": 86
+        },
+        "arithmetic_extrema_b": {
+          "cycles": 79,
+          "inputs": 74,
+          "outputs": 74
+        },
+        "rounding_b": {
+          "cycles": 265,
+          "inputs": 260,
+          "outputs": 260
+        },
+        "random_b": {
+          "cycles": 1806,
+          "inputs": 814,
+          "outputs": 814
+        },
+        "final_drain": {
+          "cycles": 1
+        }
+      }
+    },
+    {
+      "name": "lanes3_seed20261007",
+      "lanes": 3,
+      "seed": 20261007,
+      "simulation_warnings": [
+        "# ** Warning: (vsim-8891) All optimizations are turned off because the -novopt switch is in effect. This will cause your simulation to run very slowly. If you are using this switch to preserve visibility for Debug or PLI features please see the User's Manual section on Preserving Object Visibility with vopt."
+      ],
+      "stimulus_sha256": "456a5e60680b9dcf28688f4e4e61766137f101cb72e0f8a6281ff52e1c7f7a44",
+      "trace_sha256": "68e9ed2ee3c6ca28804a555f72b06904b2456723a717f8c144c39b28ef2aa659",
+      "counts": {
+        "cycles": 5451,
+        "config_writes": 516,
+        "idle_config_priority": 4,
+        "input_stall_cycles": 1717,
+        "inputs": 2716,
+        "bypass_inputs": 1341,
+        "lut_inputs": 1375,
+        "input_last": 822,
+        "lane_checks": 8148,
+        "clamp_low_lanes": 1465,
+        "clamp_high_lanes": 1479,
+        "negative_folded_bias_lanes": 3942,
+        "half_tie_lanes": 700,
+        "outputs": 2708,
+        "output_last": 816,
+        "fullscale_extrema_lanes": 156,
+        "config_rejected_busy": 527,
+        "config_rejected_internal_lut_empty": 37,
+        "output_stall_cycles": 1813,
+        "config_rejected_output_consumption": 228,
+        "directed_full_pipeline_stall_cycles": 24,
+        "scale_changes_full_pipeline_stalled": 24,
+        "bias_changes_full_pipeline_stalled": 24,
+        "zp_changes_full_pipeline_stalled": 24,
+        "bypass_changes_full_pipeline_stalled": 13,
+        "reset_occupied_edges": 5,
+        "reset_discarded_words": 8
+      },
+      "rejected_occupancy_masks": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "reset_occupancy_masks": [
+        1,
+        2,
+        4,
+        8,
+        15
+      ],
+      "address_coverage": {
+        "all_addresses_table_a": 256,
+        "all_addresses_bypass_a": 256,
+        "all_addresses_table_b": 256,
+        "all_addresses_bypass_b": 256
+      },
+      "observed_raw_q16_min": -140737488355328,
+      "observed_raw_q16_max": 140737505001472,
+      "throughput_words": 96,
+      "unstalled_latency_edges": 4,
+      "phases": {
+        "initial_reset": {
+          "cycles": 3
+        },
+        "program_table_a": {
+          "cycles": 257,
+          "config_writes": 256
+        },
+        "idle_config_priority": {
+          "cycles": 9,
+          "config_writes": 3,
+          "inputs": 1,
+          "outputs": 1
+        },
+        "arithmetic_extrema_a": {
+          "cycles": 79,
+          "inputs": 74,
+          "outputs": 74
+        },
+        "all_addresses_table_a": {
+          "cycles": 91,
+          "inputs": 86,
+          "outputs": 86
+        },
+        "all_addresses_bypass_a": {
+          "cycles": 91,
+          "inputs": 86,
+          "outputs": 86
+        },
+        "rounding_a": {
+          "cycles": 265,
+          "inputs": 260,
+          "outputs": 260
+        },
+        "continuous_throughput": {
+          "cycles": 101,
+          "inputs": 96,
+          "outputs": 96
+        },
+        "reject_product_only": {
+          "cycles": 7,
+          "inputs": 1,
+          "outputs": 1
+        },
+        "reject_sum_only": {
+          "cycles": 7,
+          "inputs": 1,
+          "outputs": 1
+        },
+        "reject_byte_only": {
+          "cycles": 7,
+          "inputs": 1,
+          "outputs": 1
+        },
+        "reject_output_only": {
+          "cycles": 8,
+          "inputs": 1,
+          "outputs": 1
+        },
+        "reject_full_pipeline": {
+          "cycles": 19,
+          "inputs": 5,
+          "outputs": 5
+        },
+        "config_on_output_consumption": {
+          "cycles": 12,
+          "inputs": 2,
+          "outputs": 2,
+          "config_writes": 1
+        },
+        "stall_changing_constants": {
+          "cycles": 35,
+          "inputs": 5,
+          "outputs": 5
+        },
+        "reset_product": {
+          "cycles": 5,
+          "inputs": 1
+        },
+        "reset_sum": {
+          "cycles": 6,
+          "inputs": 1
+        },
+        "reset_byte": {
+          "cycles": 7,
+          "inputs": 1
+        },
+        "reset_output": {
+          "cycles": 8,
+          "inputs": 1
+        },
+        "reset_full_pipeline": {
+          "cycles": 8,
+          "inputs": 4
+        },
+        "lut_persists_after_reset": {
+          "cycles": 30,
+          "inputs": 5,
+          "outputs": 5
+        },
+        "random_a": {
+          "cycles": 1806,
+          "inputs": 763,
+          "outputs": 763
+        },
+        "program_table_b": {
+          "cycles": 257,
+          "config_writes": 256
+        },
+        "all_addresses_table_b": {
+          "cycles": 91,
+          "inputs": 86,
+          "outputs": 86
+        },
+        "all_addresses_bypass_b": {
+          "cycles": 91,
+          "inputs": 86,
+          "outputs": 86
+        },
+        "arithmetic_extrema_b": {
+          "cycles": 79,
+          "inputs": 74,
+          "outputs": 74
+        },
+        "rounding_b": {
+          "cycles": 265,
+          "inputs": 260,
+          "outputs": 260
+        },
+        "random_b": {
+          "cycles": 1806,
+          "inputs": 815,
+          "outputs": 815
+        },
+        "final_drain": {
+          "cycles": 1
+        }
+      }
+    },
+    {
+      "name": "lanes16_seed56401",
+      "lanes": 16,
+      "seed": 56401,
+      "simulation_warnings": [
+        "# ** Warning: (vsim-8891) All optimizations are turned off because the -novopt switch is in effect. This will cause your simulation to run very slowly. If you are using this switch to preserve visibility for Debug or PLI features please see the User's Manual section on Preserving Object Visibility with vopt."
+      ],
+      "stimulus_sha256": "0c2a470d4a8b1c2d5e412aa21923f08b6a22c69a82f5d7043e22aac0637d5233",
+      "trace_sha256": "2b04d9146e01c42d435239cbc1c7a4879d457b5912de3b135e0dba07f5258c6d",
+      "counts": {
+        "cycles": 4652,
+        "config_writes": 516,
+        "idle_config_priority": 4,
+        "input_stall_cycles": 1721,
+        "inputs": 1923,
+        "bypass_inputs": 944,
+        "lut_inputs": 979,
+        "input_last": 383,
+        "lane_checks": 30768,
+        "clamp_low_lanes": 7006,
+        "clamp_high_lanes": 6923,
+        "negative_folded_bias_lanes": 14791,
+        "half_tie_lanes": 1370,
+        "outputs": 1915,
+        "output_last": 377,
+        "fullscale_extrema_lanes": 621,
+        "config_rejected_busy": 566,
+        "config_rejected_internal_lut_empty": 43,
+        "output_stall_cycles": 1812,
+        "config_rejected_output_consumption": 226,
+        "directed_full_pipeline_stall_cycles": 24,
+        "scale_changes_full_pipeline_stalled": 24,
+        "bias_changes_full_pipeline_stalled": 24,
+        "zp_changes_full_pipeline_stalled": 24,
+        "bypass_changes_full_pipeline_stalled": 12,
+        "reset_occupied_edges": 5,
+        "reset_discarded_words": 8
+      },
+      "rejected_occupancy_masks": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "reset_occupancy_masks": [
+        1,
+        2,
+        4,
+        8,
+        15
+      ],
+      "address_coverage": {
+        "all_addresses_table_a": 256,
+        "all_addresses_bypass_a": 256,
+        "all_addresses_table_b": 256,
+        "all_addresses_bypass_b": 256
+      },
+      "observed_raw_q16_min": -140737488355328,
+      "observed_raw_q16_max": 140737505001472,
+      "throughput_words": 96,
+      "unstalled_latency_edges": 4,
+      "phases": {
+        "initial_reset": {
+          "cycles": 3
+        },
+        "program_table_a": {
+          "cycles": 257,
+          "config_writes": 256
+        },
+        "idle_config_priority": {
+          "cycles": 9,
+          "config_writes": 3,
+          "inputs": 1,
+          "outputs": 1
+        },
+        "arithmetic_extrema_a": {
+          "cycles": 31,
+          "inputs": 26,
+          "outputs": 26
+        },
+        "all_addresses_table_a": {
+          "cycles": 21,
+          "inputs": 16,
+          "outputs": 16
+        },
+        "all_addresses_bypass_a": {
+          "cycles": 21,
+          "inputs": 16,
+          "outputs": 16
+        },
+        "rounding_a": {
+          "cycles": 54,
+          "inputs": 49,
+          "outputs": 49
+        },
+        "continuous_throughput": {
+          "cycles": 101,
+          "inputs": 96,
+          "outputs": 96
+        },
+        "reject_product_only": {
+          "cycles": 7,
+          "inputs": 1,
+          "outputs": 1
+        },
+        "reject_sum_only": {
+          "cycles": 7,
+          "inputs": 1,
+          "outputs": 1
+        },
+        "reject_byte_only": {
+          "cycles": 7,
+          "inputs": 1,
+          "outputs": 1
+        },
+        "reject_output_only": {
+          "cycles": 8,
+          "inputs": 1,
+          "outputs": 1
+        },
+        "reject_full_pipeline": {
+          "cycles": 19,
+          "inputs": 5,
+          "outputs": 5
+        },
+        "config_on_output_consumption": {
+          "cycles": 12,
+          "inputs": 2,
+          "outputs": 2,
+          "config_writes": 1
+        },
+        "stall_changing_constants": {
+          "cycles": 35,
+          "inputs": 5,
+          "outputs": 5
+        },
+        "reset_product": {
+          "cycles": 5,
+          "inputs": 1
+        },
+        "reset_sum": {
+          "cycles": 6,
+          "inputs": 1
+        },
+        "reset_byte": {
+          "cycles": 7,
+          "inputs": 1
+        },
+        "reset_output": {
+          "cycles": 8,
+          "inputs": 1
+        },
+        "reset_full_pipeline": {
+          "cycles": 8,
+          "inputs": 4
+        },
+        "lut_persists_after_reset": {
+          "cycles": 30,
+          "inputs": 5,
+          "outputs": 5
+        },
+        "random_a": {
+          "cycles": 1805,
+          "inputs": 778,
+          "outputs": 778
+        },
+        "program_table_b": {
+          "cycles": 257,
+          "config_writes": 256
+        },
+        "all_addresses_table_b": {
+          "cycles": 21,
+          "inputs": 16,
+          "outputs": 16
+        },
+        "all_addresses_bypass_b": {
+          "cycles": 21,
+          "inputs": 16,
+          "outputs": 16
+        },
+        "arithmetic_extrema_b": {
+          "cycles": 31,
+          "inputs": 26,
+          "outputs": 26
+        },
+        "rounding_b": {
+          "cycles": 54,
+          "inputs": 49,
+          "outputs": 49
+        },
+        "random_b": {
+          "cycles": 1806,
+          "inputs": 805,
+          "outputs": 805
+        },
+        "final_drain": {
+          "cycles": 1
+        }
+      }
+    },
+    {
+      "name": "lanes16_seed20261007",
+      "lanes": 16,
+      "seed": 20261007,
+      "simulation_warnings": [
+        "# ** Warning: (vsim-8891) All optimizations are turned off because the -novopt switch is in effect. This will cause your simulation to run very slowly. If you are using this switch to preserve visibility for Debug or PLI features please see the User's Manual section on Preserving Object Visibility with vopt."
+      ],
+      "stimulus_sha256": "304160079794449703e318adf8c7425c8f71272ebb80316703d0f4602c2f2de1",
+      "trace_sha256": "33bba3878f4366e402327a0518c25a5d9d7b510777dbbbeece5be30456b4f1b9",
+      "counts": {
+        "cycles": 4653,
+        "config_writes": 517,
+        "idle_config_priority": 5,
+        "input_stall_cycles": 1864,
+        "inputs": 1796,
+        "bypass_inputs": 879,
+        "lut_inputs": 917,
+        "input_last": 362,
+        "lane_checks": 28736,
+        "clamp_low_lanes": 6602,
+        "clamp_high_lanes": 6564,
+        "negative_folded_bias_lanes": 13586,
+        "half_tie_lanes": 1370,
+        "outputs": 1788,
+        "output_last": 356,
+        "fullscale_extrema_lanes": 577,
+        "config_rejected_busy": 612,
+        "config_rejected_internal_lut_empty": 45,
+        "output_stall_cycles": 1936,
+        "config_rejected_output_consumption": 245,
+        "directed_full_pipeline_stall_cycles": 24,
+        "scale_changes_full_pipeline_stalled": 24,
+        "bias_changes_full_pipeline_stalled": 24,
+        "zp_changes_full_pipeline_stalled": 24,
+        "bypass_changes_full_pipeline_stalled": 16,
+        "reset_occupied_edges": 5,
+        "reset_discarded_words": 8
+      },
+      "rejected_occupancy_masks": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "reset_occupancy_masks": [
+        1,
+        2,
+        4,
+        8,
+        15
+      ],
+      "address_coverage": {
+        "all_addresses_table_a": 256,
+        "all_addresses_bypass_a": 256,
+        "all_addresses_table_b": 256,
+        "all_addresses_bypass_b": 256
+      },
+      "observed_raw_q16_min": -140737488355328,
+      "observed_raw_q16_max": 140737505001472,
+      "throughput_words": 96,
+      "unstalled_latency_edges": 4,
+      "phases": {
+        "initial_reset": {
+          "cycles": 3
+        },
+        "program_table_a": {
+          "cycles": 257,
+          "config_writes": 256
+        },
+        "idle_config_priority": {
+          "cycles": 9,
+          "config_writes": 3,
+          "inputs": 1,
+          "outputs": 1
+        },
+        "arithmetic_extrema_a": {
+          "cycles": 31,
+          "inputs": 26,
+          "outputs": 26
+        },
+        "all_addresses_table_a": {
+          "cycles": 21,
+          "inputs": 16,
+          "outputs": 16
+        },
+        "all_addresses_bypass_a": {
+          "cycles": 21,
+          "inputs": 16,
+          "outputs": 16
+        },
+        "rounding_a": {
+          "cycles": 54,
+          "inputs": 49,
+          "outputs": 49
+        },
+        "continuous_throughput": {
+          "cycles": 101,
+          "inputs": 96,
+          "outputs": 96
+        },
+        "reject_product_only": {
+          "cycles": 7,
+          "inputs": 1,
+          "outputs": 1
+        },
+        "reject_sum_only": {
+          "cycles": 7,
+          "inputs": 1,
+          "outputs": 1
+        },
+        "reject_byte_only": {
+          "cycles": 7,
+          "inputs": 1,
+          "outputs": 1
+        },
+        "reject_output_only": {
+          "cycles": 8,
+          "inputs": 1,
+          "outputs": 1
+        },
+        "reject_full_pipeline": {
+          "cycles": 19,
+          "inputs": 5,
+          "outputs": 5
+        },
+        "config_on_output_consumption": {
+          "cycles": 12,
+          "inputs": 2,
+          "outputs": 2,
+          "config_writes": 1
+        },
+        "stall_changing_constants": {
+          "cycles": 35,
+          "inputs": 5,
+          "outputs": 5
+        },
+        "reset_product": {
+          "cycles": 5,
+          "inputs": 1
+        },
+        "reset_sum": {
+          "cycles": 6,
+          "inputs": 1
+        },
+        "reset_byte": {
+          "cycles": 7,
+          "inputs": 1
+        },
+        "reset_output": {
+          "cycles": 8,
+          "inputs": 1
+        },
+        "reset_full_pipeline": {
+          "cycles": 8,
+          "inputs": 4
+        },
+        "lut_persists_after_reset": {
+          "cycles": 30,
+          "inputs": 5,
+          "outputs": 5
+        },
+        "random_a": {
+          "cycles": 1806,
+          "inputs": 711,
+          "outputs": 711
+        },
+        "program_table_b": {
+          "cycles": 257,
+          "config_writes": 256
+        },
+        "all_addresses_table_b": {
+          "cycles": 21,
+          "inputs": 16,
+          "outputs": 16
+        },
+        "all_addresses_bypass_b": {
+          "cycles": 21,
+          "inputs": 16,
+          "outputs": 16
+        },
+        "arithmetic_extrema_b": {
+          "cycles": 31,
+          "inputs": 26,
+          "outputs": 26
+        },
+        "rounding_b": {
+          "cycles": 54,
+          "inputs": 49,
+          "outputs": 49
+        },
+        "random_b": {
+          "cycles": 1806,
+          "inputs": 745,
+          "outputs": 745,
+          "config_writes": 1
+        },
+        "final_drain": {
+          "cycles": 1
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+{
+  "captured_utc": "2026-10-06T23:36:36.536064+00:00",
+  "command": "python3 - <<'PY'\nfrom pathlib import Path\nimport json,struct\nroot=Path('/sys/firmware/devicetree/base');providers=[]\nfor f in root.rglob('phandle'):\n if f.parent.name=='gpio@fe770000':providers.append({'node':str(f.parent),'phandle':struct.unpack('>I',f.read_bytes())[0]})\nconsumers=[]\nfor provider in providers:\n needle=struct.pack('>II',provider['phandle'],16)\n for f in root.rglob('*'):\n  if f.is_file() and ('gpio' in f.name or 'reset' in f.name):\n   try:\n    raw=f.read_bytes()\n    if needle in raw:consumers.append({'property':str(f),'raw_hex':raw.hex(),'properties':{p.name:p.read_bytes().hex() for p in f.parent.iterdir() if p.is_file()}})\n   except OSError:pass\nprint(json.dumps({'boot_id':Path('/proc/sys/kernel/random/boot_id').read_text().strip(),'gpio4_providers':providers,'pin16_consumers':consumers},indent=2))\nPY",
+  "exit_code": 0,
+  "stdout_sha256": "18bbd86876b2ed509b1c2f57c057ce3dbe21fac6b5a62a7022ea0f001ee7f6db",
+  "device_opened": false,
+  "reset_executed": false
+}

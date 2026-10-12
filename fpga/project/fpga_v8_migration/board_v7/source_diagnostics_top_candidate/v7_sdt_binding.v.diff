@@ -1,0 +1,35 @@
+--- C:\Users\NineSun\Desktop\ov56401\project\fpga_v8_migration\whole_candidate_v7_route_01\rtl\ov5640_tc03_binding.v
++++ v7_sdt_binding.v
+@@ -1,4 +1,4 @@
+-module ov5640 #(
++module v7_sdt_binding #(
+     //DVP锟斤拷锟斤拷锟轿伙拷锟�
+     parameter [7:0] SENSOR_PLL_MULT = 8'h54,
+     parameter   DATA_WIDTH = 16,
+@@ -17,6 +17,13 @@
+     parameter integer VSYNC_STABLE_CYCLES = 0,
+     parameter DEVICE = "PG"
+ )(
++    output wire diag_clk,
++    output wire diag_reset,
++    output wire diag_raw_vsync,
++    output wire diag_raw_href,
++    output wire diag_raw_byte_accept,
++    output wire diag_capture_vsync,
++    output wire diag_capture_valid,
+     
+ 
+ 	input              clk_50m            ,  // Clock i2c锟侥参匡拷时锟斤拷
+@@ -385,4 +392,12 @@
+ );
+ 
+ 
++
++assign diag_clk = cam_pclk;
++assign diag_reset = !ov_rst_n | !cam_rst_n;
++assign diag_raw_vsync = capture_vsync;
++assign diag_raw_href = cam_href;
++assign diag_raw_byte_accept = cam_href;
++assign diag_capture_vsync = cmos_frame_vsync_r;
++assign diag_capture_valid = cmos_frame_valid_r;
+ endmodule

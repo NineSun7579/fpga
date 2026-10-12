@@ -1,0 +1,33 @@
+--- audited_v2/fpga_v8_pcie_dma_h2f.v
++++ candidate/fpga_v8_pcie_dma_h2f_rfg01.v
+@@ -12,12 +12,14 @@
+ // Library:
+ // Filename:ips2l_pcie_dma.v
+ //////////////////////////////////////////////////////////////////////////////
+-module fpga_v8_pcie_dma_h2f #(
++module fpga_v8_pcie_dma_h2f_rfg01 #(
+     parameter                           DEVICE_TYPE = 3'd0      ,   //3'd0:EP,3'd1:Legacy EP,3'd4:RC
+     parameter   integer                 AXIS_SLAVE_NUM = 3      ,
+     parameter                           ADDR_WIDTH  = 4'd11
+ 
+ )(
++
++    input wire i_admit,
+     input                               pclk                    ,
+     input                               prst_n                  ,
+     input                               clk                     ,            //gen1:62.5MHz,gen2:125MHz
+@@ -325,12 +327,13 @@
+     //.o_dbg_bus_rx_ctrl          (dbg_bus_rx_ctrl            )
+ );
+ 
+-fpga_v8_pcie_dma_controller_h2f #(
++fpga_v8_pcie_dma_controller_h2f_rfg01 #(
+     .DEVICE_TYPE                (DEVICE_TYPE                ),  //3'd0:EP,3'd1:Legacy EP,3'd4:RC
+     .ADDR_WIDTH                 (ADDR_WIDTH                 )
+ )
+ u_ips2l_pcie_dma_controller
+ (
++    .i_admit(i_admit),
+     .clk                        (clk                        ),  //gen1:62.5MHz,gen2:125MHz
+     .rst_n                      (rst_n                      ),
+     ////

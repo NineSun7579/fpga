@@ -1,0 +1,3 @@
+set_arch -family Logos2 -device PG2L100H -speedgrade -6 -package FBG484
+.switch_db -input {C:/Users/NineSun/Desktop/ov56401/project/fpga_v8_migration/whole_candidate_v2_route_01/place_route/fpga_v8_cooperative_top_v2_pnr.adf} -output {C:/Users/NineSun/Desktop/ov56401/project/fpga_v8_migration/whole_candidate_v2_route_01/final_export/routed_dump.txt}
+report_timing -input_db_file {C:/Users/NineSun/Desktop/ov56401/project/fpga_v8_migration/whole_candidate_v2_route_01/place_route/fpga_v8_cooperative_top_v2_pnr.adf} -force_to_run -delay_type min_max -nworst 1 -max_path 15000 -slack_less_than 0 -input_pins TRUE -report_exception TRUE

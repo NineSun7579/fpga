@@ -1,0 +1,128 @@
+--- candidate_viewer\main.cpp
++++ candidate_concurrent_viewer\main.cpp
+@@ -614,7 +614,6 @@
+ 
+     bool regWrite(uint32_t addr, uint32_t val) {
+         QMutexLocker dmaLock(dmaMutex_.get());
+-        if (shared_ && shared_->consumerHeld) return false;
+         if (!tx_)
+             return false;
+         memcpy(tx_, &val, 4);
+@@ -627,7 +626,6 @@
+ 
+     bool regRead(uint32_t addr, uint32_t &val) {
+         QMutexLocker dmaLock(dmaMutex_.get());
+-        if (shared_ && shared_->consumerHeld) return false;
+         DmaOp op{};
+         op.offset_addr = tdm::cameraScratchOffset;
+         op.ddr3_addr = addr;
+@@ -645,7 +643,6 @@
+         if (len > tdm::cameraAllocationBytes || (!out && len)) return false;
+         QMutexLocker dmaLock(dmaMutex_.get());
+         uint8_t* destination = static_cast<uint8_t*>(out);
+-        if (shared_ && shared_->consumerHeld) return false;
+         for (uint32_t copied = 0; copied < len;) {
+             const uint32_t bytes = std::min(len - copied,
+                 tdm::cameraAllocationBytes - tdm::cameraScratchOffset);
+@@ -676,7 +673,6 @@
+                    qint64& capturedMs) {
+         if (camera < 0 || camera >= CAM_COUNT) return -1;
+         QMutexLocker lock(dmaMutex_.get());
+-        if (shared_ && shared_->consumerHeld) return 0;
+         uint32_t a = 0, b = 0;
+         if (!cameraTagLocked(ping + FRAME_BYTES, a) || !cameraTagLocked(pong + FRAME_BYTES, b)) return -1;
+         const int bank = tdm::newestCameraBank(a, b, delivered, last);
+@@ -789,8 +785,9 @@
+         const uint32_t jobs = reg(0x90);
+         write(0x20, 3); poll(true, jobs); validate();
+         // RGB destination is now immutable under this sole converter owner.
+-        // Retire the camera hold before BEGIN globally excludes DMA, then make
+-        // the RGB payload the final F2H publication (scratch reads change ready).
++        // Retire the camera hold before BEGIN and restore converter defaults.
++        // Single admission keeps this RGB destination immutable until retirement;
++        // camera/scratch DMA may continue outside the reserved host RX slot.
+         write(0x20, 0);
+         check((reg(0x10) & 7) == 0, "camera release failed");
+         write(0xc0, 4); write(0xd0, 0);
+--- candidate_viewer\scheme2_protocol_test_body.h
++++ candidate_concurrent_viewer\scheme2_protocol_test_body.h
+@@ -56,7 +56,12 @@
+         assert(held && lease->token == uint64_t(begins)); held = false; ++ends; return 0;
+     }
+     auto* op = static_cast<DmaOp*>(data);
+-    assert(!held); // no scratch or ordinary camera DMA between BEGIN and END
++    if (held) {
++        assert(command == H2F_CMD || command == F2H_CMD);
++        if (command == F2H_CMD)
++            assert(uint64_t(op->offset_addr) + op->total_length <= scheme2::Offset ||
++                   op->offset_addr >= scheme2::Offset + scheme2::SquareBytes);
++    }
+     if (command == MAP_CMD) {
+         ++mapCalls; assert(op->cmd <= 1);
+         assert(op->total_length == (scheme2::enabled() ? (op->cmd ? scheme2::Window : 0x1000) : 0x400000));
+@@ -102,8 +107,8 @@
+         } else if (op->ddr3_addr == regs[0x30] + scheme2::RawBytes) {
+             assert(op->total_length == 16); memcpy(out, &regs[0xe0], 4);
+         } else if (op->ddr3_addr == regs[0x30]) {
+-            assert((regs[0x10] & 7) == 3 && op->total_length == scheme2::RawBytes + 16);
+-            memset(out, uint8_t(regs[0xc0]+1), scheme2::RawBytes);
++            assert((held || (regs[0x10] & 7) == 3) && op->total_length == scheme2::RawBytes + 16);
++            memset(out, uint8_t(held ? (regs[0xe0]-101)%6+1 : regs[0xc0]+1), scheme2::RawBytes);
+             memcpy(out + scheme2::RawBytes, &regs[0xe0], 4); ++rawReads;
+         } else {
+             assert(op->offset_addr == scheme2::Offset);
+@@ -117,7 +122,9 @@
+             } else memset(out, uint8_t(oldCamera+1), op->total_length);
+             ++rgbReads;
+         }
+-        readyOffset = op->offset_addr; readyLength = op->total_length;
++        if (op->offset_addr == scheme2::Offset) {
++            readyOffset = op->offset_addr; readyLength = op->total_length;
++        }
+     }
+     return 0;
+ }
+@@ -177,10 +184,26 @@
+             assert(input->goldenRgb == scheme2::golden(raw.data(), height));
+             assert(scheme2::mismatch(input->goldenRgb.data(), rx.data()+scheme2::Offset, input->goldenRgb.size()) == input->goldenRgb.size());
+         } else assert(rx[scheme2::Offset] == camera+1 && rx[scheme2::Offset+scheme2::bytes(height)-1] == camera+1);
+-        uint32_t ignored; assert(!dev.regRead(Base, ignored)); // globally blocked while consumer owns RX
++        const std::vector<uint8_t> reserved(rx.begin()+scheme2::Offset,
++            rx.begin()+scheme2::Offset+scheme2::SquareBytes);
++        const auto converterRegs = regs;
++        uint32_t ignored; assert(dev.regRead(Base, ignored) && ignored == 0x444c5632);
++        assert(dev.regWrite(0x20000000, 0x12345678));
++        uint32_t metadata = 0; assert(dev.ddrRead(Base, 4, &metadata) && metadata == ignored);
++        for (int ordinaryCamera = 0; ordinaryCamera < 6; ++ordinaryCamera) {
++            std::vector<uint8_t> ordinary(scheme2::RawBytes);
++            uint32_t ordinaryTag = 0;
++            assert(dev.cameraRead(ordinaryCamera, regs[0x30], regs[0x30], false, 0,
++                ordinary.data(), ordinaryTag, dma, copy, capture) == 1);
++            assert(ordinaryTag == tag && ordinary == raw);
++        }
++        scheme2::admission().arm((camera+1)%6, 7);
++        assert(!scheme2::admission().claim((camera+1)%6, 7));
++        assert(regs == converterRegs && rgbReads == begins);
++        assert(std::equal(reserved.begin(), reserved.end(), rx.begin()+scheme2::Offset));
+         input->complete(); assert(!held); input.reset();
+     }
+-    assert(begins == 12 && ends == 12 && rawReads == 12 && rgbReads == 12);
++    assert(begins == 12 && ends == 12 && rawReads == 84 && rgbReads == 12);
+     std::vector<uint8_t> raw(scheme2::RawBytes);
+     uint32_t tag=0; qint64 dma=0,copy=0,capture=0;
+     std::shared_ptr<scheme2::Input> cancelled;
+@@ -188,12 +211,12 @@
+     assert(scheme2::admission().claim(0,8));
+     assert(dev.cameraReadFpga(0,8,480,false,0,raw.data(),tag,dma,copy,capture,cancelled)==1);
+     assert(!held); cancelled->complete(); cancelled.reset();
+-    assert(begins==12 && ends==12 && rgbReads==12 && rawReads==13);
++    assert(begins==12 && ends==12 && rgbReads==12 && rawReads==85);
+     unpublished=true;
+     scheme2::admission().arm(1,8); assert(scheme2::admission().claim(1,8));
+     assert(dev.cameraReadFpga(1,8,480,false,0,raw.data(),tag,dma,copy,capture,cancelled)==0);
+     assert(!cancelled && !held && regs[0x10]==0 && regs[0xc0]==4 && regs[0xd0]==0);
+-    assert(begins==12 && ends==12 && rawReads==13);
++    assert(begins==12 && ends==12 && rawReads==85);
+     scheme2::admission().arm(1,8); assert(scheme2::admission().claim(1,8)); scheme2::admission().retire();
+     std::puts("scheme2 actual PangoDev mode0 RAW/RGB acquisition + lease contract PASS (6 cameras, both geometries)");
+ }

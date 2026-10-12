@@ -1,0 +1,81 @@
+{
+  "top": "fpga_v8_cooperative_core",
+  "device": "PG2L100H",
+  "family": "Logos2",
+  "speedgrade": "-6",
+  "package": "FBG484",
+  "clock_port": "core_clk",
+  "clock_mhz_nominal": 150,
+  "parameters": {
+    "WIDTH": 640,
+    "HEIGHT": 480,
+    "OUT_HEIGHT": 640,
+    "TOP_ROWS": 80,
+    "FILL_VALUE": 114,
+    "OUTPUT_BANK0_ADDR": 134217728,
+    "OUTPUT_BANK1_ADDR": 136314880,
+    "DDR_ADDRESS_LIMIT": 268435456,
+    "AXI_ID": 1
+  },
+  "derived_output_length": 1228800,
+  "output_length_expression": "32'd3 * WIDTH * OUT_HEIGHT",
+  "fixed_interface": {
+    "ID_WIDTH": 4,
+    "MASTER_COUNT": 7,
+    "CAMERA_COUNT": 6,
+    "ADDR_WIDTH": 32,
+    "DATA_WIDTH": 128,
+    "OWNER_WIDTH": 3,
+    "output_banks": 2
+  },
+  "sources": [
+    {
+      "path": "../../cooperative_core/fpga_v8_cooperative_core.v",
+      "bytes": 12012,
+      "sha256": "c94c7aa1cd97535d3bbe50239199c7595198b3f0f74aa19af26670358757064e"
+    },
+    {
+      "path": "../../cooperative_control/fpga_v8_coop_control_axil.v",
+      "bytes": 15684,
+      "sha256": "fec948ff58fbc4fb7f4e70483d8182d052aaa5932c1fd53c0d40930e72a6a2ae"
+    },
+    {
+      "path": "../../cooperative_axi/fpga_v8_raw_frame_axi.v",
+      "bytes": 12562,
+      "sha256": "c2bdc1a3622fa0c84fc487a9859ba27220ddad4c5d304bc4221157906c47bc6f"
+    },
+    {
+      "path": "../../cooperative_arbiter/fpga_v8_ddr_write_arbiter.v",
+      "bytes": 8477,
+      "sha256": "c0982b49617f416f96d3b338df822c5ce0e0701aa8425f766da85f00a8ffc969"
+    },
+    {
+      "path": "../../raw_preprocess/fpga_v8_raw_letterbox.v",
+      "bytes": 4316,
+      "sha256": "b1ffda1799c350973444ff3bbd6cea2288c6155426397ca8ee62c1cca7d5d1ad"
+    },
+    {
+      "path": "../../raw_preprocess/fpga_v8_rgb888_pack128.v",
+      "bytes": 2832,
+      "sha256": "20b691d328b6dc43feb42b6352b169156002a3931a43d003f871fff2289613af"
+    }
+  ],
+  "allowed_stages": ["compile", "synthesize"],
+  "production_constraints": false,
+  "vendor_ip": false,
+  "physical_io": false,
+  "board_timing_acceptance": false,
+  "simulation_evidence_read_only": "../../cooperative_core/REPORT.md",
+  "historical_projects_immutable": [
+    "../raw_frame_axi_02",
+    "../raw_frame_axi_03",
+    "../coop_control_01",
+    "../ddr_write_arbiter_01"
+  ],
+  "external_requirements": [
+    "common reset of core and outstanding AXI/lease participants",
+    "certified stable RAW source lease held through release",
+    "safe and mutually disjoint physical allocations",
+    "production endpoint, host protocol and CDC integration"
+  ]
+}

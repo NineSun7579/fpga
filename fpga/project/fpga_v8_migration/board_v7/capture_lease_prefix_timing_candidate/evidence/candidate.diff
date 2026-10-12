@@ -1,0 +1,39 @@
+--- original/fpga_v8_capture_lease_tc04.v
++++ candidate/fpga_v8_capture_lease_prefix.v
+@@ -1,6 +1,6 @@
+ // Isolated RAW ownership candidate. All interfaces use the capture AXI clock.
+ // The event inputs MUST come from fpga_v8_capture_ov5640_ddr, not software.
+-module fpga_v8_capture_lease_tc04 #(
++module fpga_v8_capture_lease_prefix #(
+     parameter [31:0] BANK0_ADDR = 32'h01800000,
+     parameter [31:0] BANK1_ADDR = 32'h01a00000,
+     parameter [31:0] DDR_LIMIT = 32'h10000000,
+@@ -153,11 +153,27 @@
+     end
+     // Four-bit local incrementers: late publication does not enter a 32-bit
+     // increment ripple. Carry qualification depends only on registered count.
++    // Exact CURRENT count predicates. Reset dominates every event.
++    // Configuration, generation restart, retirement/abort and releases do not
++    // assign published_count in the frozen RTL; they hold these predicates too.
++    reg [7:1] published_prefix;
++    genvar prefix;
++    generate for (prefix=1; prefix<8; prefix=prefix+1) begin : prefix_predicates
++        // (C_low + 1) is all ones iff C_low is all ones except bit zero.
++        // This decode uses only registered count; late publish selects it.
++        wire before_all_ones = (&published_count[prefix*4-1:1]) &&
++                               !published_count[0];
++        always @(posedge clk) begin
++            if (rst) published_prefix[prefix] <= 1'b0;
++            else if (publish_success)
++                published_prefix[prefix] <= before_all_ones;
++        end
++    end endgenerate
+     genvar chunk;
+     generate for (chunk=0; chunk<8; chunk=chunk+1) begin : published_chunks
+         wire carry_in;
+         if (chunk == 0) assign carry_in = publish_success;
+-        else assign carry_in = publish_success && (&published_count[chunk*4-1:0]);
++        else assign carry_in = publish_success && published_prefix[chunk];
+         always @(posedge clk) begin
+             if (rst) published_count[chunk*4 +: 4] <= 0;
+             else published_count[chunk*4 +: 4] <=

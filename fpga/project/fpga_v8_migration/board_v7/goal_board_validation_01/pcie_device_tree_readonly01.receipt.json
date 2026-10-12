@@ -1,0 +1,9 @@
+{
+  "captured_utc": "2026-10-06T23:30:03.370902+00:00",
+  "command": "python3 - <<'PY'\nfrom pathlib import Path\nimport json\nroot=Path('/sys/firmware/devicetree/base');rows=[]\nfor path in root.rglob('compatible'):\n try: raw=path.read_bytes()\n except OSError:continue\n if b'pcie' not in raw.lower():continue\n row={'node':str(path.parent),'compatible':raw.replace(b'\\0',b'|').decode(errors='replace'),'properties':{}}\n for prop in ['status','reg','reset-gpios','vpcie3v3-supply','phys','phy-names','resets','reset-names','linux,pci-domain','num-lanes','max-link-speed']:\n  f=path.parent/prop\n  if f.exists():row['properties'][prop]={'hex':f.read_bytes().hex()}\n rows.append(row)\nresult={'boot_id':Path('/proc/sys/kernel/random/boot_id').read_text().strip(),'pcie_dt':rows,'module_build':str(Path('/lib/modules/6.1.99/build').resolve()),'build_exists':Path('/lib/modules/6.1.99/build').exists(),'usr_src':list(str(f) for f in Path('/usr/src').glob('*'))}\nprint(json.dumps(result,indent=2))\nPY",
+  "exit_code": 0,
+  "stdout_sha256": "554305e999d9cdadcb3b36d07b9683052e4c4c0c35f4e4de6455713c1526db0e",
+  "device_opened": false,
+  "dma_submitted": false,
+  "reset_executed": false
+}

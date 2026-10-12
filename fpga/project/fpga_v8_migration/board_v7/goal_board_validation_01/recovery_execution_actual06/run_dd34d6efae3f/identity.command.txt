@@ -1,0 +1,9 @@
+cat /proc/sys/kernel/random/boot_id
+date -u +%Y-%m-%dT%H:%M:%SZ
+uname -r
+cat /proc/uptime
+cat /proc/modules
+cat /sys/module/pango_pci_driver/initstate
+sha256sum /userdata/linaro/projects/fpga/RK3568/driver/pango_pci_driver_fixed_20260926.ko
+od -An -tx1 /sys/module/pango_pci_driver/notes/.note.gnu.build-id
+readelf -n /userdata/linaro/projects/fpga/RK3568/driver/pango_pci_driver_fixed_20260926.ko

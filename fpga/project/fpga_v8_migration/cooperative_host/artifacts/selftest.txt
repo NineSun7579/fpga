@@ -1,0 +1,52 @@
+PASS two-bank FIFO, explicit copy/ACK, fast DDR/RX reuse, physical/endian fixture
+PASS one empty poll bounded and no descriptor reads/writes
+PASS known-rejected CLAIM remains Idle and does not consume metadata
+PASS existing host claim blocks second helper and hardware rejects duplicate CLAIM
+PASS uncertain CLAIM with hardware effect faults, no retry, no destructor ACK
+PASS delivery-only control transport verifies CLAIM, stages and ACK through readbacks
+PASS delivery-only rejected CLAIM detected without DMA or blind retry
+PASS wrong captured ACK sequence rejects and preserves Owned until explicit valid retry
+PASS delivery-only rejected ACK observed held, explicit retry only
+PASS known-rejected ACK staging does not ring bell and permits explicit restaging
+PASS delivery-only staging mismatch faults before doorbell
+PASS uncertain ACK write at local 64 faults without second bell
+PASS uncertain ACK write at local 68 faults without second bell
+PASS uncertain ACK write at local 72 faults without second bell
+PASS uncertain ACK write at local 76 faults without second bell
+PASS post-ACK read failure faults even after release, keeps owned bytes
+PASS known OK ACK contradictory held observation faults
+PASS stale generation
+PASS zero sequence
+PASS zero token
+PASS short length
+PASS oversized length
+PASS wrong output bank address
+PASS physical DDR overflow
+PASS RAW/output alias
+PASS wrong source address
+PASS source bank out of range
+PASS camera out of range
+PASS different camera identity domain
+PASS reset mid-metadata changes generation, rejects mixed words before DMA
+PASS reset between CLAIM and COPY rejected before DMA
+PASS reset during DMA keeps complete copy but faults lease and prevents ACK
+PASS wrong caller vector size retains Claimed without DMA or ACK
+PASS DMA error/partial/truncated/exception/unknown response mode 0
+PASS DMA error/partial/truncated/exception/unknown response mode 1
+PASS DMA error/partial/truncated/exception/unknown response mode 2
+PASS DMA error/partial/truncated/exception/unknown response mode 3
+PASS DMA error/partial/truncated/exception/unknown response mode 4
+PASS DMA error/partial/truncated/exception/unknown response mode 5
+PASS uncertain metadata read faults and retains lease without DMA
+PASS upper 96 nonzero read is rejected before claim
+PASS unsupported ID and version fail before CLAIM
+PASS invalid hint or contradictory bound bank/status fails closed
+PASS other-bank completion during metadata reads leaves all bound fields frozen
+PASS transport exceptions retain possible claim and owned data without cleanup
+PASS concurrent public polls serialize to one CLAIM
+PASS destruction in Claimed and Owned never ACKs
+PASS all seven absent external reservations fail constructor with no I/O
+PASS RX reservation/capacity failure is detected before all transport I/O
+PASS RAW/output physical bounds, alias, layout and identity config failures have zero FPGA effect
+PASS known map and endian primitives, exact standalone frame constants
+COOP_HOST_PASS cases=51 checks=5085 writes=122 reads=1219 dma=25

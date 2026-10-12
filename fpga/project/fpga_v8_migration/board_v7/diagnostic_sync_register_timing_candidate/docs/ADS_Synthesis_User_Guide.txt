@@ -1,0 +1,367 @@
+FILE: C:\pango\PDS_2022.2-SP6.4\doc\ADS_Synthesis_User_Guide.pdf
+PDF PAGE: 53
+                              第5 章 Attribute Reference 
+ 
+ 
+                  52 / 129             ADS Synthesis User Guide 
+5  Attribute Reference 
+attribute 的设置方式有两种，一种是在HDL 源文件中设置，一种是在fdc 约
+束文件中设置。fdc 中设置的约束作用在synthesize 阶段，若要设置的attribute
+在compile 阶段有效，则需将attribute 设置到HDL 源文件中。 
+其中ADS 已支持的attribute 中只支持在HDL 源文件中设置的attribute 如下： 
+ syn_black_box 
+ syn_looplimit  
+ syn_keep 
+ syn_noprune 
+ syn_preserve 
+用户通过fdc 文件设定attribute，设定方式如下： 
+define_attribute <ObjectName> <AttributeName> <AttributeValue> 
+用户在HDL 源文件中设定attribute ，设定方式如下： 
+(Verilog-1995 meta-comments) 
+/*synthesis <AttributeName> = <AttributeValue> */ 
+或者 (Verilog-2001 attribute) 
+(* <AttributeName> = <AttributeValue> *) 
+以下是ADS 支持的Synthesis Attributes 及说明。 
+ 
+5.1 syn_allow_retiming 
+用于指定register 是否允许进行Retiming 优化。 
+主要应用于在Option 中打开全局的Retiming 优化时，用该属性指定部分寄
+存器不进行Retiming 优化。 
+syn_allow_retiming Values 
+Global Object 
+Yes 
+Register 
+ 
+
+FILE: C:\pango\PDS_2022.2-SP6.4\doc\ADS_Synthesis_User_Guide.pdf
+PDF PAGE: 54
+                              第5 章 Attribute Reference 
+ 
+ 
+                  53 / 129             ADS Synthesis User Guide 
+属性值 
+作用 
+1 
+允许进行Retiming 优化，在综合配置选项中开启全局Retiming 优化时该
+register 可以进行优化。 
+0 
+不允许进行Retiming 优化，在综合配置选项中开启全局Retiming 优化时
+该register 不进行优化。 
+Syntax Specification 
+FDC file 
+define_attribute {i:instance} syn_allow_retiming {0} 
+全局属性： 
+define_global_attribute  syn_allow_retiming {0} 
+Verilog 
+object /* synthesis syn_allow_retiming = 1 */; 
+Verilog Example 
+ 
+ module test (a, rs, out, clk) ; 
+input [15:0] a; 
+input rs; 
+input clk; 
+output out; 
+ 
+reg [15:0] ar; 
+ 
+always @ (posedge clk) 
+begin 
+ar <= a; 
+end 
+ 
+wire t; 
+assign t = |ar; 
+ 
+reg tr /* synthesis syn_allow_retiming = 0 */ ; 
+
+FILE: C:\pango\PDS_2022.2-SP6.4\doc\ADS_Synthesis_User_Guide.pdf
+PDF PAGE: 84
+                              第5 章 Attribute Reference 
+ 
+ 
+                  83 / 129             ADS Synthesis User Guide 
+5.11 syn_keep 
+用于指定需要保留的net，对带有syn_keep 属性的net，通过插入特定的
+keepbuf 的方法，综合工具保证net 不会被优化掉，并保持原名称出现在综合结
+果文件中。 
+ 
+syn_keep Values 
+Global Object 
+No 
+Verilog net, port 
+ 
+属性值 
+作用 
+1 
+保持该net 不被优化 
+0 
+允许该net 被优化 
+Syntax Specification 
+Verilog 
+object /* synthesis syn_keep= 1 */ 
+Verilog Example 
+ 
+ module test(out1, out2, out3, clk, a,b,c); 
+ 
+output out1, out2, out3; 
+ 
+input clk; 
+ 
+input a,b,c; 
+ 
+wire w1 /* synthesis syn_keep=1 */; 
+ 
+wire w2 /* synthesis syn_keep=1 */; 
+ 
+wire w3 ; 
+ 
+reg out1, out2, out3; 
+ 
+assign w1=a&b; 
+ 
+assign w2=a&c; 
+ 
+assign w3=w1&w2; 
+ 
+ 
+ 
+always @(posedge clk) 
+
+FILE: C:\pango\PDS_2022.2-SP6.4\doc\ADS_Synthesis_User_Guide.pdf
+PDF PAGE: 85
+                              第5 章 Attribute Reference 
+ 
+ 
+                  84 / 129             ADS Synthesis User Guide 
+ 
+begin 
+ 
+    out3<=w3; 
+ 
+end 
+endmodule 
+如范例中未应用该属性之前综合后的网表中w1 和w2 两根net 会被优化，如
+下图 
+ 
+图 5-19 未应用syn_keep 属性 
+应用了syn_keep=1 综合后的网表中w1 和w2 两根net 不会被优化，如下图 
+ 
+图 5-20 应用syn_keep 属性 
+注意：若设置了syn_keep 属性的net 在设计中没有实际的连接，则即使在
+compile 阶段插入了keepbuf，在Synthesize 阶段还是会被优化。 
+ 
+ 
+
+FILE: C:\pango\PDS_2022.2-SP6.4\doc\ADS_Synthesis_User_Guide.pdf
+PDF PAGE: 92
+                              第5 章 Attribute Reference 
+ 
+ 
+                  91 / 129             ADS Synthesis User Guide 
+5.15 syn_preserve 
+ 
+该属性用于控制是否保留在综合过程中被优化的sequential (registers).  
+syn_preserve Values 
+Global 
+Object 
+No 
+module, port, register 
+ 
+属性值 
+作用 
+0 
+不保留在综合过程中被优化的registers 
+1 
+保留在综合过程中被优化的registers 
+Syntax Specification 
+verilog 
+object /* synthesis syn_preserve = value */; 
+Verilog Example 
+ 
+module syn_preserve_1_reg (out1,out2, data, rst, clk); 
+ 
+output [7:0] out1,out2; 
+ 
+input [7:0] data; 
+ 
+input rst,clk; 
+ 
+ 
+reg [7:0] out1; 
+ 
+reg [7:0] out2 /* synthesis syn_preserve=1 */; 
+ 
+ 
+// create the 8-bit register 
+ 
+always @(posedge clk or negedge rst ) 
+ 
+begin 
+ 
+ 
+if (!rst ) begin 
+ 
+ 
+ 
+out1 <= 8'b0; 
+ 
+ 
+ 
+out2 <= 8'b0; 
+ 
+ 
+end 
+ 
+ 
+else begin 
+
+FILE: C:\pango\PDS_2022.2-SP6.4\doc\ADS_Synthesis_User_Guide.pdf
+PDF PAGE: 93
+                              第5 章 Attribute Reference 
+ 
+ 
+                  92 / 129             ADS Synthesis User Guide 
+ 
+ 
+ 
+out1 <= data; 
+ 
+ 
+ 
+out2 <= data; 
+ 
+ 
+end 
+ 
+end 
+ 
+ 
+ 
+endmodule 
+如范例中未使用该属性前，综合后的网表中不会保留在综合过程中被优化的
+register(out2[7:0])，如下图 
+ 
+图 5-27 未应用syn_preserve 属性 
+ 
+应用了syn_preserve=1 之后，综合后的网表中保留在综合过程中被优化
+的register(out2[7:0])，如下图 
+
+FILE: C:\pango\PDS_2022.2-SP6.4\doc\ADS_Synthesis_User_Guide.pdf
+PDF PAGE: 94
+                              第5 章 Attribute Reference 
+ 
+ 
+                  93 / 129             ADS Synthesis User Guide 
+ 
+图 5-28 应用syn_preserve 属性 
+5.16 syn_ramstyle 
+ 
+用于指定inferred ram 的实现方式。 
+syn_ramstyle Values 
+Global 
+Object 
+Yes 
+module, ram-signal 
+ 
+ 
+属性值 
+作用 
+block_ram 
+指定inferred RAM 可以map 到DRM 资源 
+lut_ram 
+指定inferred RAM 可以map 到Distributed RAM 资源 
+registers 
+指定inferred RAM 可以map 到Registers 
+no_rw_check 
+Infer RAM 时不插入bypass 逻辑去做读写检查，可能会出现RTL 仿真和
+综合后仿真的不一致的情况 
+block_ram,low_power 
+指定inferred RAM 可以map 到DRM 资源，同时优先匹配data width,再
+匹配address 
+注：属性值select_ram 与lut_ram 等效 
+Syntax Specification 
+fdc file 
+define_global_attribute { syn_ramstyle } {value} 
+define_attribute {object} { syn_ramstyle } { value } 
+verilog 
+object /* synthesis syn_ramstyle ="value" */; 
+Verilog Example 
+ 
+ 
+module syn_ramstyle_lut_ram_port ( 
+
+FILE: C:\pango\PDS_2022.2-SP6.4\doc\ADS_Synthesis_User_Guide.pdf
+PDF PAGE: 104
+                              第5 章 Attribute Reference 
+ 
+ 
+                  103 / 129             ADS Synthesis User Guide 
+ 
+图 5-34 应用syn_romstyle 属性 
+5.19 syn_srlstyle 
+    该属性用于指定inferred shift register 的实现方式。 
+    syn_srlstyle Values 
+Global 
+Object 
+Yes 
+module, instance, register 
+ 
+属性值 
+作用 
+block_ram 
+指定infered shift register 可以map 到DRM 资源 
+lut_ram 
+指定infered shift register 可以map 到Distributed RAM 资源 
+registers 
+指定infered shift register 可以map 到Registers 
+    注：属性值select_ram 与lut_ram 等效 
+    Syntax Specification 
+fdc file 
+define_global_attribute { syn_srlstyle } {value} 
+define_attribute {object} { syn_srlstyle } { value } 
+verilog 
+object /* synthesis syn_srlstyle ="value" */; 
+Verilog Example 
+module test( 
+
+FILE: C:\pango\PDS_2022.2-SP6.4\doc\ADS_Synthesis_User_Guide.pdf
+PDF PAGE: 105
+                              第5 章 Attribute Reference 
+ 
+ 
+                  104 / 129             ADS Synthesis User Guide 
+     
+input din, 
+     
+input en, 
+     
+output dout1, 
+     
+input clk 
+     
+); 
+ 
+ 
+     
+reg [3:0] pool /* synthesis syn_srlstyle = "block_ram" */; 
+     
+     
+always @(posedge clk) 
+     
+begin 
+         
+if (en) 
+             pool <= {pool[2:0], din}; 
+     
+end 
+     
+     
+assign dout1 = pool[3]; 
+ 
+ 
+ 
+endmodule 
+如范例中未使用该属性前，综合后infer 出Registers，如下图 
+ 
+图 5-35 未应用syn_srlstyle 属性 
+应用了syn_srlstyle = "block_ram"之后，综合后可以map 到DRM，如下图 

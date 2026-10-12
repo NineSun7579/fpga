@@ -1,0 +1,19 @@
+sudo -n python3 -u - <<'DELIVERY10'
+from pathlib import Path
+assert Path("/proc/sys/kernel/random/boot_id").read_text().strip() == '7d6a03a4-afdb-4ed4-bece-c9a2f8ed7993'
+import time,os,json,signal
+root=Path('/userdata/driving_demo_evidence/functional_delivery10_1791382476_driving');pid=2514;expected='5376'
+for n in range(140):
+ if (root/'exit.json').exists():break
+ time.sleep(1)
+else:
+ p=Path('/proc')/str(pid)
+ assert os.readlink(p/'exe')=='/userdata/detview-driving-demo/detview-driving-demo' and (p/'stat').read_text().rsplit(')',1)[1].split()[19]==expected
+ os.kill(pid,signal.SIGTERM)
+ for n in range(10):
+  if (root/'exit.json').exists():break
+  time.sleep(1)
+ assert (root/'exit.json').exists(), 'Owned viewer did not exit; admission remains held'
+print((root/'exit.json').read_text())
+
+DELIVERY10

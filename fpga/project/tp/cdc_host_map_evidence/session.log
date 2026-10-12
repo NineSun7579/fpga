@@ -1,0 +1,32 @@
+pkill -9 -x run_camview.sh || true
+
+pkill -9 -x camview || true
+
+sleep 2; rmmod pango_pci_driver; echo 1 > /sys/bus/pci/devices/0002:21:00.0/remove
+
+echo 1 > /sys/bus/pci/rescan; sleep 3; insmod /root/ov5640/pango_pci_driver.ko; sleep 3; test -L /sys/bus/pci/devices/0002:21:00.0/driver
+
+python3 -u /tmp/verify_cdc_stage_board.py
+CAM 1 success/s 45.02007140440767 offered_pixels [307200] faults ['0x0'] overflow_count_delta 0 short_count_delta 0
+CAM 2 success/s 45.02007140440767 offered_pixels [307200] faults ['0x0'] overflow_count_delta 0 short_count_delta 0
+CAM 3 success/s 25.725755088232955 offered_pixels [307200] faults ['0x0'] overflow_count_delta 0 short_count_delta 0
+CDC 1 {'input': [307200], 'output': [307200], 'drop': [0]}
+CDC 2 {'input': [307200], 'output': [307200], 'drop': [0]}
+CDC 3 {'input': [307200], 'output': [307200], 'drop': [0]}
+PCLK_Hz VSYNC_s FRAMES_s [[84001871.9656397, 44.98847176409244, 44.98847176409244], [84000982.27127485, 44.984886292775144, 44.984886292775144], [48000406.38672501, 25.65640048037195, 25.65640048037195]]
+
+rmmod pango_pci_driver; insmod /root/ov5640/pango_pci_driver.ko; sleep 2; test -L /sys/bus/pci/devices/0002:21:00.0/driver
+
+rm -f /tmp/camview.lock; setsid nohup /root/ov5640/run_camview.sh > /tmp/camview.log 2>&1 < /dev/null &
+
+sleep 10; pgrep -a -x camview
+9088 ./camview
+
+DISPLAY=:0 XAUTHORITY=/var/run/lightdm/root/:0 /root/ov5640/qshot/qshot /tmp/init48_screen.png 900
+OK 900x506 330499
+QStandardPaths: XDG_RUNTIME_DIR not set, defaulting to '/tmp/runtime-root'
+
+DISPLAY=:0 XAUTHORITY=/var/run/lightdm/root/:0 /root/ov5640/qshot/qshot /tmp/init48_screen.png 900
+OK 900x506 309278
+QStandardPaths: XDG_RUNTIME_DIR not set, defaulting to '/tmp/runtime-root'
+

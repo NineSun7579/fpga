@@ -1,0 +1,922 @@
+
+/userdata/detview-driving-demo/detview-driving-demo：     文件格式 elf64-littleaarch64
+
+
+Disassembly of section .init:
+
+Disassembly of section .plt:
+
+Disassembly of section .text:
+
+0000000000041ba0 <_ZN15InferenceThread7runOnceERK6QImageRK7QStringiy>:
+   41ba0:	a9a37bfd 	stp	x29, x30, [sp, #-464]!
+   41ba4:	910003fd 	mov	x29, sp
+   41ba8:	a90153f3 	stp	x19, x20, [sp, #16]
+   41bac:	aa0003f3 	mov	x19, x0
+   41bb0:	a9025bf5 	stp	x21, x22, [sp, #32]
+   41bb4:	aa0103f5 	mov	x21, x1
+   41bb8:	a90363f7 	stp	x23, x24, [sp, #48]
+   41bbc:	a9046bf9 	stp	x25, x26, [sp, #64]
+   41bc0:	294e6414 	ldp	w20, w25, [x0, #112]
+   41bc4:	a90573fb 	stp	x27, x28, [sp, #80]
+   41bc8:	b00003dc 	adrp	x28, ba000 <_IO_stdin_used+0x3030>
+   41bcc:	910a8380 	add	x0, x28, #0x2a0
+   41bd0:	6d0627e8 	stp	d8, d9, [sp, #96]
+   41bd4:	5280001b 	mov	w27, #0x0                   	// #0
+   41bd8:	6d072fea 	stp	d10, d11, [sp, #112]
+   41bdc:	f90053e2 	str	x2, [sp, #160]
+   41be0:	b900afe3 	str	w3, [sp, #172]
+   41be4:	f9005be4 	str	x4, [sp, #176]
+   41be8:	97ff46be 	bl	136e0 <_Z25qEnvironmentVariableIsSetPKc@plt>
+   41bec:	3941be61 	ldrb	w1, [x19, #111]
+   41bf0:	12001c18 	and	w24, w0, #0xff
+   41bf4:	340019e1 	cbz	w1, 41f30 <_ZN15InferenceThread7runOnceERK6QImageRK7QStringiy+0x390>
+   41bf8:	d00003c0 	adrp	x0, bb000 <_ZTSZN17DetViewControllerC4ERK7QVectorI9ModelInfoERK7QStringRK13VisionOptionsEUlRK11VisionFrameE1_+0x20>
+   41bfc:	3dc0e000 	ldr	q0, [x0, #896]
+   41c00:	3d8047e0 	str	q0, [sp, #272]
+   41c04:	35001918 	cbnz	w24, 41f24 <_ZN15InferenceThread7runOnceERK6QImageRK7QStringiy+0x384>
+   41c08:	910543f7 	add	x23, sp, #0x150
+   41c0c:	9101c261 	add	x1, x19, #0x70
+   41c10:	aa1703e8 	mov	x8, x23
+   41c14:	aa1503e0 	mov	x0, x21
+   41c18:	97ff7e96 	bl	21670 <_ZN3tdm15networkRgbFrameERK6QImageRKNS_17InferenceGeometryE>
+   41c1c:	aa1703e0 	mov	x0, x23
+   41c20:	97ff4540 	bl	13120 <_ZNK6QImage6isNullEv@plt>
+   41c24:	72001c1a 	ands	w26, w0, #0xff
+   41c28:	540006a1 	b.ne	41cfc <_ZN15InferenceThread7runOnceERK6QImageRK7QStringiy+0x15c>  // b.any
+   41c2c:	1b147f39 	mul	w25, w25, w20
+   41c30:	0b190739 	add	w25, w25, w25, lsl #1
+   41c34:	350007fb 	cbnz	w27, 41d30 <_ZN15InferenceThread7runOnceERK6QImageRK7QStringiy+0x190>
+   41c38:	aa1703e0 	mov	x0, x23
+   41c3c:	97ff4655 	bl	13590 <_ZNK6QImage12bytesPerLineEv@plt>
+   41c40:	b9407261 	ldr	w1, [x19, #112]
+   41c44:	0b010421 	add	w1, w1, w1, lsl #1
+   41c48:	6b00003f 	cmp	w1, w0
+   41c4c:	54003e40 	b.eq	42414 <_ZN15InferenceThread7runOnceERK6QImageRK7QStringiy+0x874>  // b.none
+   41c50:	91028276 	add	x22, x19, #0xa0
+   41c54:	2a1903e1 	mov	w1, w25
+   41c58:	aa1603e0 	mov	x0, x22
+   41c5c:	97ff4061 	bl	11de0 <_ZN10QByteArray6resizeEi@plt>
+   41c60:	b9407660 	ldr	w0, [x19, #116]
+   41c64:	7100001f 	cmp	w0, #0x0
+   41c68:	540009ed 	b.le	41da4 <_ZN15InferenceThread7runOnceERK6QImageRK7QStringiy+0x204>
+   41c6c:	52800015 	mov	w21, #0x0                   	// #0
+   41c70:	1400001a 	b	41cd8 <_ZN15InferenceThread7runOnceERK6QImageRK7QStringiy+0x138>
+   41c74:	29408821 	ldp	w1, w2, [x1, #4]
+   41c78:	aa1603e0 	mov	x0, x22
+   41c7c:	11000421 	add	w1, w1, #0x1
+   41c80:	531f7c42 	lsr	w2, w2, #31
+   41c84:	97ff459f 	bl	13300 <_ZN10QByteArray11reallocDataEj6QFlagsIN10QArrayData16AllocationOptionEE@plt>
+   41c88:	f94002d4 	ldr	x20, [x22]
+   41c8c:	f9400a83 	ldr	x3, [x20, #16]
+   41c90:	2a1503e1 	mov	w1, w21
+   41c94:	b9407262 	ldr	w2, [x19, #112]
+   41c98:	aa1703e0 	mov	x0, x23
+   41c9c:	1b027ea2 	mul	w2, w21, w2
+   41ca0:	0b020442 	add	w2, w2, w2, lsl #1
+   41ca4:	8b22c062 	add	x2, x3, w2, sxtw
+   41ca8:	8b020294 	add	x20, x20, x2
+   41cac:	97ff46c1 	bl	137b0 <_ZNK6QImage13constScanLineEi@plt>
+   41cb0:	b9407262 	ldr	w2, [x19, #112]
+   41cb4:	aa0003e1 	mov	x1, x0
+   41cb8:	aa1403e0 	mov	x0, x20
+   41cbc:	110006b5 	add	w21, w21, #0x1
+   41cc0:	0b020442 	add	w2, w2, w2, lsl #1
+   41cc4:	93407c42 	sxtw	x2, w2
+   41cc8:	97ff3fd6 	bl	11c20 <memcpy@plt>
+   41ccc:	b9407660 	ldr	w0, [x19, #116]
+   41cd0:	6b15001f 	cmp	w0, w21
+   41cd4:	5400104d 	b.le	41edc <_ZN15InferenceThread7runOnceERK6QImageRK7QStringiy+0x33c>
+   41cd8:	f94002c1 	ldr	x1, [x22]
+   41cdc:	b9400020 	ldr	w0, [x1]
+   41ce0:	7100041f 	cmp	w0, #0x1
+   41ce4:	54fffc88 	b.hi	41c74 <_ZN15InferenceThread7runOnceERK6QImageRK7QStringiy+0xd4>  // b.pmore
+   41ce8:	f9400823 	ldr	x3, [x1, #16]
+   41cec:	aa0103f4 	mov	x20, x1
+   41cf0:	f100607f 	cmp	x3, #0x18
+   41cf4:	54fffc01 	b.ne	41c74 <_ZN15InferenceThread7runOnceERK6QImageRK7QStringiy+0xd4>  // b.any
+   41cf8:	17ffffe6 	b	41c90 <_ZN15InferenceThread7runOnceERK6QImageRK7QStringiy+0xf0>
+   41cfc:	5280001a 	mov	w26, #0x0                   	// #0
+   41d00:	aa1703e0 	mov	x0, x23
+   41d04:	97ff415f 	bl	12280 <_ZN6QImageD1Ev@plt>
+   41d08:	a94153f3 	ldp	x19, x20, [sp, #16]
+   41d0c:	2a1a03e0 	mov	w0, w26
+   41d10:	a9425bf5 	ldp	x21, x22, [sp, #32]
+   41d14:	a94363f7 	ldp	x23, x24, [sp, #48]
+   41d18:	a9446bf9 	ldp	x25, x26, [sp, #64]
+   41d1c:	a94573fb 	ldp	x27, x28, [sp, #80]
+   41d20:	6d4627e8 	ldp	d8, d9, [sp, #96]
+   41d24:	6d472fea 	ldp	d10, d11, [sp, #112]
+   41d28:	a8dd7bfd 	ldp	x29, x30, [sp], #464
+   41d2c:	d65f03c0 	ret
+   41d30:	91028276 	add	x22, x19, #0xa0
+   41d34:	2a1903e1 	mov	w1, w25
+   41d38:	aa1603e0 	mov	x0, x22
+   41d3c:	97ff4029 	bl	11de0 <_ZN10QByteArray6resizeEi@plt>
+   41d40:	b9407660 	ldr	w0, [x19, #116]
+   41d44:	7100001f 	cmp	w0, #0x0
+   41d48:	54fff92c 	b.gt	41c6c <_ZN15InferenceThread7runOnceERK6QImageRK7QStringiy+0xcc>
+   41d4c:	d503201f 	nop
+   41d50:	f9405261 	ldr	x1, [x19, #160]
+   41d54:	b9400020 	ldr	w0, [x1]
+   41d58:	7100041f 	cmp	w0, #0x1
+   41d5c:	54002a29 	b.ls	422a0 <_ZN15InferenceThread7runOnceERK6QImageRK7QStringiy+0x700>  // b.plast
+   41d60:	29408821 	ldp	w1, w2, [x1, #4]
+   41d64:	aa1603e0 	mov	x0, x22
+   41d68:	11000421 	add	w1, w1, #0x1
+   41d6c:	531f7c42 	lsr	w2, w2, #31
+   41d70:	97ff4564 	bl	13300 <_ZN10QByteArray11reallocDataEj6QFlagsIN10QArrayData16AllocationOptionEE@plt>
+   41d74:	f9405260 	ldr	x0, [x19, #160]
+   41d78:	f9400802 	ldr	x2, [x0, #16]
+   41d7c:	7100033f 	cmp	w25, #0x0
+   41d80:	54005bed 	b.le	428fc <_ZN15InferenceThread7runOnceERK6QImageRK7QStringiy+0xd5c>
+   41d84:	8b020000 	add	x0, x0, x2
+   41d88:	8b39c002 	add	x2, x0, w25, sxtw
+   41d8c:	d503201f 	nop
+   41d90:	39400001 	ldrb	w1, [x0]
+   41d94:	51020021 	sub	w1, w1, #0x80
+   41d98:	38001401 	strb	w1, [x0], #1
+   41d9c:	eb02001f 	cmp	x0, x2
+   41da0:	54ffff81 	b.ne	41d90 <_ZN15InferenceThread7runOnceERK6QImageRK7QStringiy+0x1f0>  // b.any
+   41da4:	35000a18 	cbnz	w24, 41ee4 <_ZN15InferenceThread7runOnceERK6QImageRK7QStringiy+0x344>
+   41da8:	9105c3f4 	add	x20, sp, #0x170
+   41dac:	2f00e408 	movi	d8, #0x0
+   41db0:	f9405260 	ldr	x0, [x19, #160]
+   41db4:	a9177fff 	stp	xzr, xzr, [sp, #368]
+   41db8:	a9017e9f 	stp	xzr, xzr, [x20, #16]
+   41dbc:	f9400801 	ldr	x1, [x0, #16]
+   41dc0:	8b010002 	add	x2, x0, x1
+   41dc4:	d00003c0 	adrp	x0, bb000 <_ZTSZN17DetViewControllerC4ERK7QVectorI9ModelInfoERK7QStringRK13VisionOptionsEUlRK11VisionFrameE1_+0x20>
+   41dc8:	52800063 	mov	w3, #0x3                   	// #3
+   41dcc:	4b1b0063 	sub	w3, w3, w27
+   41dd0:	52800035 	mov	w21, #0x1                   	// #1
+   41dd4:	3dc0e000 	ldr	q0, [x0, #896]
+   41dd8:	910483e0 	add	x0, sp, #0x120
+   41ddc:	f90063e0 	str	x0, [sp, #192]
+   41de0:	f900bfe2 	str	x2, [sp, #376]
+   41de4:	3d804be0 	str	q0, [sp, #288]
+   41de8:	b90183f9 	str	w25, [sp, #384]
+   41dec:	b9018be3 	str	w3, [sp, #392]
+   41df0:	b9018ff5 	str	w21, [sp, #396]
+   41df4:	97ff3fbf 	bl	11cf0 <_ZN13QElapsedTimer5startEv@plt>
+   41df8:	f9404a60 	ldr	x0, [x19, #144]
+   41dfc:	aa1403e2 	mov	x2, x20
+   41e00:	2a1503e1 	mov	w1, w21
+   41e04:	97ff3f8b 	bl	11c30 <rknn_inputs_set@plt>
+   41e08:	35fff7a0 	cbnz	w0, 41cfc <_ZN15InferenceThread7runOnceERK6QImageRK7QStringiy+0x15c>
+   41e0c:	2f00e409 	movi	d9, #0x0
+   41e10:	35002eb8 	cbnz	w24, 423e4 <_ZN15InferenceThread7runOnceERK6QImageRK7QStringiy+0x844>
+   41e14:	f9404a60 	ldr	x0, [x19, #144]
+   41e18:	d2800001 	mov	x1, #0x0                   	// #0
+   41e1c:	97ff3ef5 	bl	119f0 <rknn_run@plt>
+   41e20:	35fff6e0 	cbnz	w0, 41cfc <_ZN15InferenceThread7runOnceERK6QImageRK7QStringiy+0x15c>
+   41e24:	2f00e40b 	movi	d11, #0x0
+   41e28:	35002258 	cbnz	w24, 42270 <_ZN15InferenceThread7runOnceERK6QImageRK7QStringiy+0x6d0>
+   41e2c:	910803e1 	add	x1, sp, #0x200
+   41e30:	b9409a60 	ldr	w0, [x19, #152]
+   41e34:	2a0003f5 	mov	w21, w0
+   41e38:	a933fc3f 	stp	xzr, xzr, [x1, #-200]
+   41e3c:	34000840 	cbz	w0, 41f44 <_ZN15InferenceThread7runOnceERK6QImageRK7QStringiy+0x3a4>
+   41e40:	52800301 	mov	w1, #0x18                  	// #24
+   41e44:	9ba17c16 	umull	x22, w0, w1
+   41e48:	aa1603e0 	mov	x0, x22
+   41e4c:	97ff4325 	bl	12ae0 <_Znwm@plt>
+   41e50:	aa0003f4 	mov	x20, x0
+   41e54:	8b160016 	add	x22, x0, x22
+   41e58:	a91353f4 	stp	x20, x20, [sp, #304]
+   41e5c:	91006000 	add	x0, x0, #0x18
+   41e60:	b9409a61 	ldr	w1, [x19, #152]
+   41e64:	a9007e9f 	stp	xzr, xzr, [x20]
+   41e68:	f9000a9f 	str	xzr, [x20, #16]
+   41e6c:	f900a3f6 	str	x22, [sp, #320]
+   41e70:	f10006bf 	cmp	x21, #0x1
+   41e74:	540000e1 	b.ne	41e90 <_ZN15InferenceThread7runOnceERK6QImageRK7QStringiy+0x2f0>  // b.any
+   41e78:	14000009 	b	41e9c <_ZN15InferenceThread7runOnceERK6QImageRK7QStringiy+0x2fc>
+   41e7c:	a9400e82 	ldp	x2, x3, [x20]
+   41e80:	a9000c02 	stp	x2, x3, [x0]
+   41e84:	91006000 	add	x0, x0, #0x18
+   41e88:	f9400a82 	ldr	x2, [x20, #16]
+   41e8c:	f81f8002 	stur	x2, [x0, #-8]
+   41e90:	eb16001f 	cmp	x0, x22
+   41e94:	54ffff41 	b.ne	41e7c <_ZN15InferenceThread7runOnceERK6QImageRK7QStringiy+0x2dc>  // b.any
+   41e98:	aa1603e0 	mov	x0, x22
+   41e9c:	f9009fe0 	str	x0, [sp, #312]
+   41ea0:	340005a1 	cbz	w1, 41f54 <_ZN15InferenceThread7runOnceERK6QImageRK7QStringiy+0x3b4>
+   41ea4:	4f000400 	movi	v0.4s, #0x0
+   41ea8:	91000680 	add	x0, x20, #0x1
+   41eac:	52800002 	mov	w2, #0x0                   	// #0
+   41eb0:	52800023 	mov	w3, #0x1                   	// #1
+   41eb4:	d503201f 	nop
+   41eb8:	3d800000 	str	q0, [x0]
+   41ebc:	91006000 	add	x0, x0, #0x18
+   41ec0:	381e7003 	sturb	w3, [x0, #-25]
+   41ec4:	b81eb002 	stur	w2, [x0, #-21]
+   41ec8:	11000442 	add	w2, w2, #0x1
+   41ecc:	f81f701f 	stur	xzr, [x0, #-9]
+   41ed0:	6b01005f 	cmp	w2, w1
+   41ed4:	54ffff21 	b.ne	41eb8 <_ZN15InferenceThread7runOnceERK6QImageRK7QStringiy+0x318>  // b.any
+   41ed8:	1400001f 	b	41f54 <_ZN15InferenceThread7runOnceERK6QImageRK7QStringiy+0x3b4>
+   41edc:	35fff3bb 	cbnz	w27, 41d50 <_ZN15InferenceThread7runOnceERK6QImageRK7QStringiy+0x1b0>
+   41ee0:	34fff658 	cbz	w24, 41da8 <_ZN15InferenceThread7runOnceERK6QImageRK7QStringiy+0x208>
+   41ee4:	910443f5 	add	x21, sp, #0x110
+   41ee8:	9105c3f4 	add	x20, sp, #0x170
+   41eec:	aa1503e0 	mov	x0, x21
+   41ef0:	97ff4300 	bl	12af0 <_ZNK13QElapsedTimer12nsecsElapsedEv@plt>
+   41ef4:	aa0003e1 	mov	x1, x0
+   41ef8:	d2d09000 	mov	x0, #0x848000000000        	// #145685290680320
+   41efc:	f2e825c0 	movk	x0, #0x412e, lsl #48
+   41f00:	9e670000 	fmov	d0, x0
+   41f04:	9e620028 	scvtf	d8, x1
+   41f08:	aa1503e0 	mov	x0, x21
+   41f0c:	1e601908 	fdiv	d8, d8, d0
+   41f10:	97ff4048 	bl	12030 <_ZN13QElapsedTimer7restartEv@plt>
+   41f14:	a9177fff 	stp	xzr, xzr, [sp, #368]
+   41f18:	f9405260 	ldr	x0, [x19, #160]
+   41f1c:	a9017e9f 	stp	xzr, xzr, [x20, #16]
+   41f20:	17ffffa7 	b	41dbc <_ZN15InferenceThread7runOnceERK6QImageRK7QStringiy+0x21c>
+   41f24:	910443e0 	add	x0, sp, #0x110
+   41f28:	97ff3f72 	bl	11cf0 <_ZN13QElapsedTimer5startEv@plt>
+   41f2c:	17ffff37 	b	41c08 <_ZN15InferenceThread7runOnceERK6QImageRK7QStringiy+0x68>
+   41f30:	b00003c0 	adrp	x0, ba000 <_IO_stdin_used+0x3030>
+   41f34:	910ac000 	add	x0, x0, #0x2b0
+   41f38:	97ff45ea 	bl	136e0 <_Z25qEnvironmentVariableIsSetPKc@plt>
+   41f3c:	12001c1b 	and	w27, w0, #0xff
+   41f40:	17ffff2e 	b	41bf8 <_ZN15InferenceThread7runOnceERK6QImageRK7QStringiy+0x58>
+   41f44:	d2800014 	mov	x20, #0x0                   	// #0
+   41f48:	52800001 	mov	w1, #0x0                   	// #0
+   41f4c:	a9137fff 	stp	xzr, xzr, [sp, #304]
+   41f50:	f900a3ff 	str	xzr, [sp, #320]
+   41f54:	f9404a60 	ldr	x0, [x19, #144]
+   41f58:	aa1403e2 	mov	x2, x20
+   41f5c:	d2800003 	mov	x3, #0x0                   	// #0
+   41f60:	97ff43c0 	bl	12e60 <rknn_outputs_get@plt>
+   41f64:	2a0003f5 	mov	w21, w0
+   41f68:	35002320 	cbnz	w0, 423cc <_ZN15InferenceThread7runOnceERK6QImageRK7QStringiy+0x82c>
+   41f6c:	6d0837ec 	stp	d12, d13, [sp, #128]
+   41f70:	6d093fee 	stp	d14, d15, [sp, #144]
+   41f74:	35003218 	cbnz	w24, 425b4 <_ZN15InferenceThread7runOnceERK6QImageRK7QStringiy+0xa14>
+   41f78:	2f00e40d 	movi	d13, #0x0
+   41f7c:	f9403e76 	ldr	x22, [x19, #120]
+   41f80:	1e6041ae 	fmov	d14, d13
+   41f84:	910643e0 	add	x0, sp, #0x190
+   41f88:	f90077e0 	str	x0, [sp, #232]
+   41f8c:	97ff3ef9 	bl	11b70 <_ZN6QImageC1Ev@plt>
+   41f90:	3941ba60 	ldrb	w0, [x19, #110]
+   41f94:	d00005e1 	adrp	x1, ff000 <_ZTIZN14VisionPipeline8selfTestEvEUlvE149_+0x8>
+   41f98:	f9468421 	ldr	x1, [x1, #3336]
+   41f9c:	f9005fe1 	str	x1, [sp, #184]
+   41fa0:	f90083e1 	str	x1, [sp, #256]
+   41fa4:	340024a0 	cbz	w0, 42438 <_ZN15InferenceThread7runOnceERK6QImageRK7QStringiy+0x898>
+   41fa8:	f94002c1 	ldr	x1, [x22]
+   41fac:	910403e3 	add	x3, sp, #0x100
+   41fb0:	f9400680 	ldr	x0, [x20, #8]
+   41fb4:	9106c3f6 	add	x22, sp, #0x1b0
+   41fb8:	b9406a62 	ldr	w2, [x19, #104]
+   41fbc:	aa1603e8 	mov	x8, x22
+   41fc0:	f9006be3 	str	x3, [sp, #208]
+   41fc4:	97ff5a0f 	bl	18800 <_ZN15InferenceThread14decodeLaneMaskERK12_rknn_outputRK17_rknn_tensor_attri.isra.0>
+   41fc8:	f940d7e1 	ldr	x1, [sp, #424]
+   41fcc:	910403e3 	add	x3, sp, #0x100
+   41fd0:	f940e7e2 	ldr	x2, [sp, #456]
+   41fd4:	aa1603e0 	mov	x0, x22
+   41fd8:	f9006be3 	str	x3, [sp, #208]
+   41fdc:	f900d7e2 	str	x2, [sp, #424]
+   41fe0:	f900e7e1 	str	x1, [sp, #456]
+   41fe4:	97ff40a7 	bl	12280 <_ZN6QImageD1Ev@plt>
+   41fe8:	350034f8 	cbnz	w24, 42684 <_ZN15InferenceThread7runOnceERK6QImageRK7QStringiy+0xae4>
+   41fec:	f9404a60 	ldr	x0, [x19, #144]
+   41ff0:	aa1403e2 	mov	x2, x20
+   41ff4:	b9409a61 	ldr	w1, [x19, #152]
+   41ff8:	97ff414a 	bl	12520 <rknn_outputs_release@plt>
+   41ffc:	2f00e40c 	movi	d12, #0x0
+   42000:	fd007fec 	str	d12, [sp, #248]
+   42004:	f94063e0 	ldr	x0, [sp, #192]
+   42008:	91018279 	add	x25, x19, #0x60
+   4200c:	97ff42b9 	bl	12af0 <_ZNK13QElapsedTimer12nsecsElapsedEv@plt>
+   42010:	9e62000a 	scvtf	d10, x0
+   42014:	d2d09001 	mov	x1, #0x848000000000        	// #145685290680320
+   42018:	f2e825c1 	movk	x1, #0x412e, lsl #48
+   4201c:	9e670020 	fmov	d0, x1
+   42020:	f9403261 	ldr	x1, [x19, #96]
+   42024:	1e60194a 	fdiv	d10, d10, d0
+   42028:	91004020 	add	x0, x1, #0x10
+   4202c:	b9400000 	ldr	w0, [x0]
+   42030:	7100041f 	cmp	w0, #0x1
+   42034:	54002b88 	b.hi	425a4 <_ZN15InferenceThread7runOnceERK6QImageRK7QStringiy+0xa04>  // b.pmore
+   42038:	b9402421 	ldr	w1, [x1, #36]
+   4203c:	f94053f4 	ldr	x20, [sp, #160]
+   42040:	aa1403e0 	mov	x0, x20
+   42044:	97ff3f0b 	bl	11c70 <_Z5qHashRK7QStringj@plt>
+   42048:	aa1403e1 	mov	x1, x20
+   4204c:	2a0003e2 	mov	w2, w0
+   42050:	2a0003fb 	mov	w27, w0
+   42054:	aa1903e0 	mov	x0, x25
+   42058:	97ffa7da 	bl	2bfc0 <_ZNK5QHashI7QStringiE8findNodeERKS0_j>
+   4205c:	aa0003f4 	mov	x20, x0
+   42060:	f9403260 	ldr	x0, [x19, #96]
+   42064:	f9400282 	ldr	x2, [x20]
+   42068:	91006041 	add	x1, x2, #0x18
+   4206c:	eb00005f 	cmp	x2, x0
+   42070:	54003400 	b.eq	426f0 <_ZN15InferenceThread7runOnceERK6QImageRK7QStringiy+0xb50>  // b.none
+   42074:	b9400022 	ldr	w2, [x1]
+   42078:	910a8380 	add	x0, x28, #0x2a0
+   4207c:	11000454 	add	w20, w2, #0x1
+   42080:	b9000034 	str	w20, [x1]
+   42084:	97ff4597 	bl	136e0 <_Z25qEnvironmentVariableIsSetPKc@plt>
+   42088:	72001c1f 	tst	w0, #0xff
+   4208c:	54002bc1 	b.ne	42604 <_ZN15InferenceThread7runOnceERK6QImageRK7QStringiy+0xa64>  // b.any
+   42090:	7100069f 	cmp	w20, #0x1
+   42094:	54000160 	b.eq	420c0 <_ZN15InferenceThread7runOnceERK6QImageRK7QStringiy+0x520>  // b.none
+   42098:	529999a0 	mov	w0, #0xcccd                	// #52429
+   4209c:	52933302 	mov	w2, #0x9998                	// #39320
+   420a0:	72b99980 	movk	w0, #0xcccc, lsl #16
+   420a4:	72a33322 	movk	w2, #0x1999, lsl #16
+   420a8:	52999981 	mov	w1, #0xcccc                	// #52428
+   420ac:	1b000a80 	madd	w0, w20, w0, w2
+   420b0:	72a19981 	movk	w1, #0xccc, lsl #16
+   420b4:	13800800 	ror	w0, w0, #2
+   420b8:	6b01001f 	cmp	w0, w1
+   420bc:	54001128 	b.hi	422e0 <_ZN15InferenceThread7runOnceERK6QImageRK7QStringiy+0x740>  // b.pmore
+   420c0:	f94053e0 	ldr	x0, [sp, #160]
+   420c4:	aa1603e8 	mov	x8, x22
+   420c8:	b00005e1 	adrp	x1, ff000 <_ZTIZN14VisionPipeline8selfTestEvEUlvE149_+0x8>
+   420cc:	f9466021 	ldr	x1, [x1, #3264]
+   420d0:	f90073e1 	str	x1, [sp, #224]
+   420d4:	f9400000 	ldr	x0, [x0]
+   420d8:	f9400039 	ldr	x25, [x1]
+   420dc:	97ff5a5e 	bl	18a54 <_ZNKR7QString11toLocal8BitEv.isra.0>
+   420e0:	f940dbe2 	ldr	x2, [sp, #432]
+   420e4:	1e604140 	fmov	d0, d10
+   420e8:	b940afe4 	ldr	w4, [sp, #172]
+   420ec:	900003c1 	adrp	x1, ba000 <_IO_stdin_used+0x3030>
+   420f0:	aa1903e0 	mov	x0, x25
+   420f4:	910ba021 	add	x1, x1, #0x2e8
+   420f8:	f9400845 	ldr	x5, [x2, #16]
+   420fc:	2a1403e3 	mov	w3, w20
+   42100:	8b050042 	add	x2, x2, x5
+   42104:	97ff40bf 	bl	12400 <fprintf@plt>
+   42108:	aa1603e0 	mov	x0, x22
+   4210c:	97ff78bd 	bl	20400 <_ZN10QByteArrayD1Ev>
+   42110:	3941be60 	ldrb	w0, [x19, #111]
+   42114:	34000e60 	cbz	w0, 422e0 <_ZN15InferenceThread7runOnceERK6QImageRK7QStringiy+0x740>
+   42118:	7100069f 	cmp	w20, #0x1
+   4211c:	54000cc1 	b.ne	422b4 <_ZN15InferenceThread7runOnceERK6QImageRK7QStringiy+0x714>  // b.any
+   42120:	f94073e0 	ldr	x0, [sp, #224]
+   42124:	900003c1 	adrp	x1, ba000 <_IO_stdin_used+0x3030>
+   42128:	f94083f9 	ldr	x25, [sp, #256]
+   4212c:	2a1403e2 	mov	w2, w20
+   42130:	f9400000 	ldr	x0, [x0]
+   42134:	910ca021 	add	x1, x1, #0x328
+   42138:	f9405be3 	ldr	x3, [sp, #176]
+   4213c:	b9400724 	ldr	w4, [x25, #4]
+   42140:	97ff40b0 	bl	12400 <fprintf@plt>
+   42144:	b9400720 	ldr	w0, [x25, #4]
+   42148:	7100001f 	cmp	w0, #0x0
+   4214c:	54000cad 	b.le	422e0 <_ZN15InferenceThread7runOnceERK6QImageRK7QStringiy+0x740>
+   42150:	900003c0 	adrp	x0, ba000 <_IO_stdin_used+0x3030>
+   42154:	d280001c 	mov	x28, #0x0                   	// #0
+   42158:	910e8000 	add	x0, x0, #0x3a0
+   4215c:	f90063f9 	str	x25, [sp, #192]
+   42160:	f9007be0 	str	x0, [sp, #240]
+   42164:	1400003d 	b	42258 <_ZN15InferenceThread7runOnceERK6QImageRK7QStringiy+0x6b8>
+   42168:	f94083e0 	ldr	x0, [sp, #256]
+   4216c:	b9400801 	ldr	w1, [x0, #8]
+   42170:	f240783f 	tst	x1, #0x7fffffff
+   42174:	540033e1 	b.ne	427f0 <_ZN15InferenceThread7runOnceERK6QImageRK7QStringiy+0xc50>  // b.any
+   42178:	52800043 	mov	w3, #0x2                   	// #2
+   4217c:	d2800002 	mov	x2, #0x0                   	// #0
+   42180:	d2800101 	mov	x1, #0x8                   	// #8
+   42184:	d2800b00 	mov	x0, #0x58                  	// #88
+   42188:	97ff3e4e 	bl	11ac0 <_ZN10QArrayData8allocateEmmm6QFlagsINS_16AllocationOptionEE@plt>
+   4218c:	aa0003f4 	mov	x20, x0
+   42190:	f90083e0 	str	x0, [sp, #256]
+   42194:	f9400a80 	ldr	x0, [x20, #16]
+   42198:	f94073e1 	ldr	x1, [sp, #224]
+   4219c:	8b000380 	add	x0, x28, x0
+   421a0:	8b000299 	add	x25, x20, x0
+   421a4:	b8606a9b 	ldr	w27, [x20, x0]
+   421a8:	f9400021 	ldr	x1, [x1]
+   421ac:	a90c07f4 	stp	x20, x1, [sp, #192]
+   421b0:	37f800db 	tbnz	w27, #31, 421c8 <_ZN15InferenceThread7runOnceERK6QImageRK7QStringiy+0x628>
+   421b4:	f9404261 	ldr	x1, [x19, #128]
+   421b8:	29410820 	ldp	w0, w2, [x1, #8]
+   421bc:	4b000042 	sub	w2, w2, w0
+   421c0:	6b02037f 	cmp	w27, w2
+   421c4:	54002f8b 	b.lt	427b4 <_ZN15InferenceThread7runOnceERK6QImageRK7QStringiy+0xc14>  // b.tstop
+   421c8:	f9405fe0 	ldr	x0, [sp, #184]
+   421cc:	f90087e0 	str	x0, [sp, #264]
+   421d0:	b00005e1 	adrp	x1, ff000 <_ZTIZN14VisionPipeline8selfTestEvEUlvE149_+0x8>
+   421d4:	f9468421 	ldr	x1, [x1, #3336]
+   421d8:	d2800000 	mov	x0, #0x0                   	// #0
+   421dc:	d503201f 	nop
+   421e0:	b9400421 	ldr	w1, [x1, #4]
+   421e4:	aa1603e8 	mov	x8, x22
+   421e8:	97ff45d6 	bl	13940 <_ZN7QString18toLocal8Bit_helperEPK5QChari@plt>
+   421ec:	2d408720 	ldp	s0, s1, [x25, #4]
+   421f0:	2a1b03e2 	mov	w2, w27
+   421f4:	2d418f22 	ldp	s2, s3, [x25, #12]
+   421f8:	f940dbe3 	ldr	x3, [sp, #432]
+   421fc:	1e22c000 	fcvt	d0, s0
+   42200:	bd401724 	ldr	s4, [x25, #20]
+   42204:	1e22c021 	fcvt	d1, s1
+   42208:	f94067e0 	ldr	x0, [sp, #200]
+   4220c:	1e22c042 	fcvt	d2, s2
+   42210:	f9400864 	ldr	x4, [x3, #16]
+   42214:	1e22c063 	fcvt	d3, s3
+   42218:	f9407be1 	ldr	x1, [sp, #240]
+   4221c:	1e22c084 	fcvt	d4, s4
+   42220:	8b040063 	add	x3, x3, x4
+   42224:	97ff4077 	bl	12400 <fprintf@plt>
+   42228:	aa1603e0 	mov	x0, x22
+   4222c:	97ff7875 	bl	20400 <_ZN10QByteArrayD1Ev>
+   42230:	910423e0 	add	x0, sp, #0x108
+   42234:	97ff78ef 	bl	205f0 <_ZN7QStringD1Ev>
+   42238:	b9400680 	ldr	w0, [x20, #4]
+   4223c:	52800141 	mov	w1, #0xa                   	// #10
+   42240:	110006b5 	add	w21, w21, #0x1
+   42244:	9101639c 	add	x28, x28, #0x58
+   42248:	6b01001f 	cmp	w0, w1
+   4224c:	1a81d000 	csel	w0, w0, w1, le
+   42250:	6b0002bf 	cmp	w21, w0
+   42254:	5400046a 	b.ge	422e0 <_ZN15InferenceThread7runOnceERK6QImageRK7QStringiy+0x740>  // b.tcont
+   42258:	f94063e0 	ldr	x0, [sp, #192]
+   4225c:	b9400000 	ldr	w0, [x0]
+   42260:	7100041f 	cmp	w0, #0x1
+   42264:	54fff828 	b.hi	42168 <_ZN15InferenceThread7runOnceERK6QImageRK7QStringiy+0x5c8>  // b.pmore
+   42268:	f94083f4 	ldr	x20, [sp, #256]
+   4226c:	17ffffca 	b	42194 <_ZN15InferenceThread7runOnceERK6QImageRK7QStringiy+0x5f4>
+   42270:	910443f4 	add	x20, sp, #0x110
+   42274:	aa1403e0 	mov	x0, x20
+   42278:	97ff421e 	bl	12af0 <_ZNK13QElapsedTimer12nsecsElapsedEv@plt>
+   4227c:	aa0003e1 	mov	x1, x0
+   42280:	d2d09000 	mov	x0, #0x848000000000        	// #145685290680320
+   42284:	f2e825c0 	movk	x0, #0x412e, lsl #48
+   42288:	9e670000 	fmov	d0, x0
+   4228c:	9e62002b 	scvtf	d11, x1
+   42290:	aa1403e0 	mov	x0, x20
+   42294:	1e60196b 	fdiv	d11, d11, d0
+   42298:	97ff3f66 	bl	12030 <_ZN13QElapsedTimer7restartEv@plt>
+   4229c:	17fffee4 	b	41e2c <_ZN15InferenceThread7runOnceERK6QImageRK7QStringiy+0x28c>
+   422a0:	f9400822 	ldr	x2, [x1, #16]
+   422a4:	aa0103e0 	mov	x0, x1
+   422a8:	f100605f 	cmp	x2, #0x18
+   422ac:	54ffd5a1 	b.ne	41d60 <_ZN15InferenceThread7runOnceERK6QImageRK7QStringiy+0x1c0>  // b.any
+   422b0:	17fffeb3 	b	41d7c <_ZN15InferenceThread7runOnceERK6QImageRK7QStringiy+0x1dc>
+   422b4:	529999a0 	mov	w0, #0xcccd                	// #52429
+   422b8:	52933302 	mov	w2, #0x9998                	// #39320
+   422bc:	72b99980 	movk	w0, #0xcccc, lsl #16
+   422c0:	72a33322 	movk	w2, #0x1999, lsl #16
+   422c4:	52999981 	mov	w1, #0xcccc                	// #52428
+   422c8:	1b000a80 	madd	w0, w20, w0, w2
+   422cc:	72a19981 	movk	w1, #0xccc, lsl #16
+   422d0:	13800800 	ror	w0, w0, #2
+   422d4:	6b01001f 	cmp	w0, w1
+   422d8:	54fff249 	b.ls	42120 <_ZN15InferenceThread7runOnceERK6QImageRK7QStringiy+0x580>  // b.plast
+   422dc:	d503201f 	nop
+   422e0:	34000358 	cbz	w24, 42348 <_ZN15InferenceThread7runOnceERK6QImageRK7QStringiy+0x7a8>
+   422e4:	91082260 	add	x0, x19, #0x208
+   422e8:	fd411663 	ldr	d3, [x19, #552]
+   422ec:	91082261 	add	x1, x19, #0x208
+   422f0:	b9424262 	ldr	w2, [x19, #576]
+   422f4:	6d400800 	ldp	d0, d2, [x0]
+   422f8:	1e6329ad 	fadd	d13, d13, d3
+   422fc:	6d411001 	ldp	d1, d4, [x0, #16]
+   42300:	11000442 	add	w2, w2, #0x1
+   42304:	1e622929 	fadd	d9, d9, d2
+   42308:	fd411a62 	ldr	d2, [x19, #560]
+   4230c:	1e602900 	fadd	d0, d8, d0
+   42310:	1e61296b 	fadd	d11, d11, d1
+   42314:	fd411e61 	ldr	d1, [x19, #568]
+   42318:	1e62298c 	fadd	d12, d12, d2
+   4231c:	fd407fe2 	ldr	d2, [sp, #248]
+   42320:	1e6429ce 	fadd	d14, d14, d4
+   42324:	6d002420 	stp	d0, d9, [x1]
+   42328:	1e612848 	fadd	d8, d2, d1
+   4232c:	6d01382b 	stp	d11, d14, [x1, #16]
+   42330:	fd01166d 	str	d13, [x19, #552]
+   42334:	fd011a6c 	str	d12, [x19, #560]
+   42338:	fd011e68 	str	d8, [x19, #568]
+   4233c:	b9024262 	str	w2, [x19, #576]
+   42340:	7100245f 	cmp	w2, #0x9
+   42344:	5400290c 	b.gt	42864 <_ZN15InferenceThread7runOnceERK6QImageRK7QStringiy+0xcc4>
+   42348:	3941ba60 	ldrb	w0, [x19, #110]
+   4234c:	340000a0 	cbz	w0, 42360 <_ZN15InferenceThread7runOnceERK6QImageRK7QStringiy+0x7c0>
+   42350:	f94077e0 	ldr	x0, [sp, #232]
+   42354:	97ff4373 	bl	13120 <_ZNK6QImage6isNullEv@plt>
+   42358:	72001c1f 	tst	w0, #0xff
+   4235c:	540002c1 	b.ne	423b4 <_ZN15InferenceThread7runOnceERK6QImageRK7QStringiy+0x814>  // b.any
+   42360:	f94053e2 	ldr	x2, [sp, #160]
+   42364:	aa1303e0 	mov	x0, x19
+   42368:	b940afe1 	ldr	w1, [sp, #172]
+   4236c:	52800023 	mov	w3, #0x1                   	// #1
+   42370:	97fffcf8 	bl	41750 <_ZN15InferenceThread12recordMetricEiRK7QStringi>
+   42374:	3941ba60 	ldrb	w0, [x19, #110]
+   42378:	1e604008 	fmov	d8, d0
+   4237c:	34000ea0 	cbz	w0, 42550 <_ZN15InferenceThread7runOnceERK6QImageRK7QStringiy+0x9b0>
+   42380:	f94077e1 	ldr	x1, [sp, #232]
+   42384:	aa1603e0 	mov	x0, x22
+   42388:	97ff459e 	bl	13a00 <_ZN6QImageC1ERKS_@plt>
+   4238c:	f9405be3 	ldr	x3, [sp, #176]
+   42390:	1e604141 	fmov	d1, d10
+   42394:	1e604100 	fmov	d0, d8
+   42398:	b940afe2 	ldr	w2, [sp, #172]
+   4239c:	aa1603e1 	mov	x1, x22
+   423a0:	aa1303e0 	mov	x0, x19
+   423a4:	97ff5870 	bl	18564 <_ZN15InferenceThread13laneMaskReadyE6QImageiydd>
+   423a8:	aa1603e0 	mov	x0, x22
+   423ac:	97ff3fb5 	bl	12280 <_ZN6QImageD1Ev@plt>
+   423b0:	5280003a 	mov	w26, #0x1                   	// #1
+   423b4:	f9406be0 	ldr	x0, [sp, #208]
+   423b8:	97ff944e 	bl	274f0 <_ZN7QVectorI9DetectionED1Ev>
+   423bc:	f94077e0 	ldr	x0, [sp, #232]
+   423c0:	97ff3fb0 	bl	12280 <_ZN6QImageD1Ev@plt>
+   423c4:	6d4837ec 	ldp	d12, d13, [sp, #128]
+   423c8:	6d493fee 	ldp	d14, d15, [sp, #144]
+   423cc:	f9409be0 	ldr	x0, [sp, #304]
+   423d0:	b4ffc980 	cbz	x0, 41d00 <_ZN15InferenceThread7runOnceERK6QImageRK7QStringiy+0x160>
+   423d4:	f940a3e1 	ldr	x1, [sp, #320]
+   423d8:	cb000021 	sub	x1, x1, x0
+   423dc:	97ff3cbd 	bl	116d0 <_ZdlPvm@plt>
+   423e0:	17fffe48 	b	41d00 <_ZN15InferenceThread7runOnceERK6QImageRK7QStringiy+0x160>
+   423e4:	910443f4 	add	x20, sp, #0x110
+   423e8:	aa1403e0 	mov	x0, x20
+   423ec:	97ff41c1 	bl	12af0 <_ZNK13QElapsedTimer12nsecsElapsedEv@plt>
+   423f0:	aa0003e1 	mov	x1, x0
+   423f4:	d2d09000 	mov	x0, #0x848000000000        	// #145685290680320
+   423f8:	f2e825c0 	movk	x0, #0x412e, lsl #48
+   423fc:	9e670000 	fmov	d0, x0
+   42400:	9e620029 	scvtf	d9, x1
+   42404:	aa1403e0 	mov	x0, x20
+   42408:	1e601929 	fdiv	d9, d9, d0
+   4240c:	97ff3f09 	bl	12030 <_ZN13QElapsedTimer7restartEv@plt>
+   42410:	17fffe81 	b	41e14 <_ZN15InferenceThread7runOnceERK6QImageRK7QStringiy+0x274>
+   42414:	35002078 	cbnz	w24, 42820 <_ZN15InferenceThread7runOnceERK6QImageRK7QStringiy+0xc80>
+   42418:	9105c3f4 	add	x20, sp, #0x170
+   4241c:	2f00e408 	movi	d8, #0x0
+   42420:	a9177fff 	stp	xzr, xzr, [sp, #368]
+   42424:	a9017e9f 	stp	xzr, xzr, [x20, #16]
+   42428:	aa1703e0 	mov	x0, x23
+   4242c:	97ff3d91 	bl	11a70 <_ZNK6QImage9constBitsEv@plt>
+   42430:	aa0003e2 	mov	x2, x0
+   42434:	17fffe64 	b	41dc4 <_ZN15InferenceThread7runOnceERK6QImageRK7QStringiy+0x224>
+   42438:	910403e0 	add	x0, sp, #0x100
+   4243c:	910423f9 	add	x25, sp, #0x108
+   42440:	aa1603e2 	mov	x2, x22
+   42444:	aa1903e8 	mov	x8, x25
+   42448:	9104c3e1 	add	x1, sp, #0x130
+   4244c:	f9006be0 	str	x0, [sp, #208]
+   42450:	aa1303e0 	mov	x0, x19
+   42454:	97ffbf3b 	bl	32140 <_ZN15InferenceThread6decodeERKSt6vectorI12_rknn_outputSaIS1_EERKS0_I17_rknn_tensor_attrSaIS6_EE>
+   42458:	f9405fe1 	ldr	x1, [sp, #184]
+   4245c:	9106c3f6 	add	x22, sp, #0x1b0
+   42460:	f94087fb 	ldr	x27, [sp, #264]
+   42464:	aa1603e0 	mov	x0, x22
+   42468:	a91007fb 	stp	x27, x1, [sp, #256]
+   4246c:	f900dbe1 	str	x1, [sp, #432]
+   42470:	97ff9420 	bl	274f0 <_ZN7QVectorI9DetectionED1Ev>
+   42474:	aa1903e0 	mov	x0, x25
+   42478:	97ff941e 	bl	274f0 <_ZN7QVectorI9DetectionED1Ev>
+   4247c:	b9400360 	ldr	w0, [x27]
+   42480:	7100041f 	cmp	w0, #0x1
+   42484:	54001c49 	b.ls	4280c <_ZN15InferenceThread7runOnceERK6QImageRK7QStringiy+0xc6c>  // b.plast
+   42488:	f94083e0 	ldr	x0, [sp, #256]
+   4248c:	b9400801 	ldr	w1, [x0, #8]
+   42490:	f240783f 	tst	x1, #0x7fffffff
+   42494:	54001600 	b.eq	42754 <_ZN15InferenceThread7runOnceERK6QImageRK7QStringiy+0xbb4>  // b.none
+   42498:	f9400401 	ldr	x1, [x0, #8]
+   4249c:	52800002 	mov	w2, #0x0                   	// #0
+   424a0:	910403e0 	add	x0, sp, #0x100
+   424a4:	f9006be0 	str	x0, [sp, #208]
+   424a8:	12007821 	and	w1, w1, #0x7fffffff
+   424ac:	97ffa6ed 	bl	2c060 <_ZN7QVectorI9DetectionE7reallocEi6QFlagsIN10QArrayData16AllocationOptionEE>
+   424b0:	f94083e1 	ldr	x1, [sp, #256]
+   424b4:	aa0103e0 	mov	x0, x1
+   424b8:	f9400802 	ldr	x2, [x0, #16]
+   424bc:	8b020019 	add	x25, x0, x2
+   424c0:	b9400000 	ldr	w0, [x0]
+   424c4:	7100041f 	cmp	w0, #0x1
+   424c8:	54001ca9 	b.ls	4285c <_ZN15InferenceThread7runOnceERK6QImageRK7QStringiy+0xcbc>  // b.plast
+   424cc:	b9400820 	ldr	w0, [x1, #8]
+   424d0:	f240781f 	tst	x0, #0x7fffffff
+   424d4:	54002061 	b.ne	428e0 <_ZN15InferenceThread7runOnceERK6QImageRK7QStringiy+0xd40>  // b.any
+   424d8:	52800043 	mov	w3, #0x2                   	// #2
+   424dc:	d2800002 	mov	x2, #0x0                   	// #0
+   424e0:	d2800101 	mov	x1, #0x8                   	// #8
+   424e4:	d2800b00 	mov	x0, #0x58                  	// #88
+   424e8:	97ff3d76 	bl	11ac0 <_ZN10QArrayData8allocateEmmm6QFlagsINS_16AllocationOptionEE@plt>
+   424ec:	f90083e0 	str	x0, [sp, #256]
+   424f0:	f9400802 	ldr	x2, [x0, #16]
+   424f4:	52800b03 	mov	w3, #0x58                  	// #88
+   424f8:	b9400401 	ldr	w1, [x0, #4]
+   424fc:	9b230821 	smaddl	x1, w1, w3, x2
+   42500:	8b010001 	add	x1, x0, x1
+   42504:	eb01033f 	cmp	x25, x1
+   42508:	54ffd700 	b.eq	41fe8 <_ZN15InferenceThread7runOnceERK6QImageRK7QStringiy+0x448>  // b.none
+   4250c:	b9407662 	ldr	w2, [x19, #116]
+   42510:	52805000 	mov	w0, #0x280                 	// #640
+   42514:	4b020000 	sub	w0, w0, w2
+   42518:	0b407c00 	add	w0, w0, w0, lsr #31
+   4251c:	1e270000 	fmov	s0, w0
+   42520:	0f3f0402 	sshr	v2.2s, v0.2s, #1
+   42524:	5e21d842 	scvtf	s2, s2
+   42528:	bd400f21 	ldr	s1, [x25, #12]
+   4252c:	91016339 	add	x25, x25, #0x58
+   42530:	bc5bc320 	ldur	s0, [x25, #-68]
+   42534:	1e222821 	fadd	s1, s1, s2
+   42538:	1e222800 	fadd	s0, s0, s2
+   4253c:	bc1b4321 	stur	s1, [x25, #-76]
+   42540:	bc1bc320 	stur	s0, [x25, #-68]
+   42544:	eb19003f 	cmp	x1, x25
+   42548:	54ffff01 	b.ne	42528 <_ZN15InferenceThread7runOnceERK6QImageRK7QStringiy+0x988>  // b.any
+   4254c:	17fffea7 	b	41fe8 <_ZN15InferenceThread7runOnceERK6QImageRK7QStringiy+0x448>
+   42550:	f94053e0 	ldr	x0, [sp, #160]
+   42554:	f9400000 	ldr	x0, [x0]
+   42558:	f90087e0 	str	x0, [sp, #264]
+   4255c:	97ff7785 	bl	20370 <_ZN9QtPrivate8RefCount3refEv>
+   42560:	f9406be1 	ldr	x1, [sp, #208]
+   42564:	aa1603e0 	mov	x0, x22
+   42568:	97ff9426 	bl	27600 <_ZN7QVectorI9DetectionEC1ERKS1_>
+   4256c:	f9405be3 	ldr	x3, [sp, #176]
+   42570:	1e604141 	fmov	d1, d10
+   42574:	1e604100 	fmov	d0, d8
+   42578:	b940afe2 	ldr	w2, [sp, #172]
+   4257c:	910423f9 	add	x25, sp, #0x108
+   42580:	aa1303e0 	mov	x0, x19
+   42584:	aa1903e1 	mov	x1, x25
+   42588:	aa1603e4 	mov	x4, x22
+   4258c:	97ff57e1 	bl	18510 <_ZN15InferenceThread15detectionsReadyE7QStringiy7QVectorI9DetectionEdd>
+   42590:	aa1603e0 	mov	x0, x22
+   42594:	97ff93d7 	bl	274f0 <_ZN7QVectorI9DetectionED1Ev>
+   42598:	aa1903e0 	mov	x0, x25
+   4259c:	97ff7815 	bl	205f0 <_ZN7QStringD1Ev>
+   425a0:	17ffff84 	b	423b0 <_ZN15InferenceThread7runOnceERK6QImageRK7QStringiy+0x810>
+   425a4:	aa1903e0 	mov	x0, x25
+   425a8:	97ffb846 	bl	306c0 <_ZN5QHashI7QStringiE13detach_helperEv>
+   425ac:	f9403261 	ldr	x1, [x19, #96]
+   425b0:	17fffea2 	b	42038 <_ZN15InferenceThread7runOnceERK6QImageRK7QStringiy+0x498>
+   425b4:	910443f9 	add	x25, sp, #0x110
+   425b8:	aa1903e0 	mov	x0, x25
+   425bc:	97ff414d 	bl	12af0 <_ZNK13QElapsedTimer12nsecsElapsedEv@plt>
+   425c0:	aa0003e1 	mov	x1, x0
+   425c4:	d2d09000 	mov	x0, #0x848000000000        	// #145685290680320
+   425c8:	f2e825c0 	movk	x0, #0x412e, lsl #48
+   425cc:	9e67000a 	fmov	d10, x0
+   425d0:	9e62002e 	scvtf	d14, x1
+   425d4:	aa1903e0 	mov	x0, x25
+   425d8:	1e6a19ce 	fdiv	d14, d14, d10
+   425dc:	97ff3e95 	bl	12030 <_ZN13QElapsedTimer7restartEv@plt>
+   425e0:	f9403e76 	ldr	x22, [x19, #120]
+   425e4:	aa1903e0 	mov	x0, x25
+   425e8:	97ff4142 	bl	12af0 <_ZNK13QElapsedTimer12nsecsElapsedEv@plt>
+   425ec:	aa0003e1 	mov	x1, x0
+   425f0:	aa1903e0 	mov	x0, x25
+   425f4:	9e62002d 	scvtf	d13, x1
+   425f8:	1e6a19ad 	fdiv	d13, d13, d10
+   425fc:	97ff3e8d 	bl	12030 <_ZN13QElapsedTimer7restartEv@plt>
+   42600:	17fffe61 	b	41f84 <_ZN15InferenceThread7runOnceERK6QImageRK7QStringiy+0x3e4>
+   42604:	aa1603e1 	mov	x1, x22
+   42608:	52800020 	mov	w0, #0x1                   	// #1
+   4260c:	a91b7fff 	stp	xzr, xzr, [sp, #432]
+   42610:	97ff3d10 	bl	11a50 <clock_gettime@plt>
+   42614:	d2d9aca0 	mov	x0, #0xcd6500000000        	// #225833675390976
+   42618:	6d5b3fe0 	ldp	d0, d15, [sp, #432]
+   4261c:	f2e839a0 	movk	x0, #0x41cd, lsl #48
+   42620:	9e670001 	fmov	d1, x0
+   42624:	910423f9 	add	x25, sp, #0x108
+   42628:	f94053e0 	ldr	x0, [sp, #160]
+   4262c:	5e61d9ef 	scvtf	d15, d15
+   42630:	5e61d800 	scvtf	d0, d0
+   42634:	aa1903e8 	mov	x8, x25
+   42638:	b00005e1 	adrp	x1, ff000 <_ZTIZN14VisionPipeline8selfTestEvEUlvE149_+0x8>
+   4263c:	f9466021 	ldr	x1, [x1, #3264]
+   42640:	1e6119ef 	fdiv	d15, d15, d1
+   42644:	f9400000 	ldr	x0, [x0]
+   42648:	f940003b 	ldr	x27, [x1]
+   4264c:	1e6029ef 	fadd	d15, d15, d0
+   42650:	97ff5901 	bl	18a54 <_ZNKR7QString11toLocal8BitEv.isra.0>
+   42654:	f94087e2 	ldr	x2, [sp, #264]
+   42658:	1e6041e0 	fmov	d0, d15
+   4265c:	1e604141 	fmov	d1, d10
+   42660:	900003c1 	adrp	x1, ba000 <_IO_stdin_used+0x3030>
+   42664:	aa1b03e0 	mov	x0, x27
+   42668:	910b0021 	add	x1, x1, #0x2c0
+   4266c:	f9400843 	ldr	x3, [x2, #16]
+   42670:	8b030042 	add	x2, x2, x3
+   42674:	97ff3f63 	bl	12400 <fprintf@plt>
+   42678:	aa1903e0 	mov	x0, x25
+   4267c:	97ff7761 	bl	20400 <_ZN10QByteArrayD1Ev>
+   42680:	17fffe84 	b	42090 <_ZN15InferenceThread7runOnceERK6QImageRK7QStringiy+0x4f0>
+   42684:	910443f9 	add	x25, sp, #0x110
+   42688:	aa1903e0 	mov	x0, x25
+   4268c:	97ff4119 	bl	12af0 <_ZNK13QElapsedTimer12nsecsElapsedEv@plt>
+   42690:	aa0003e1 	mov	x1, x0
+   42694:	d2d09000 	mov	x0, #0x848000000000        	// #145685290680320
+   42698:	f2e825c0 	movk	x0, #0x412e, lsl #48
+   4269c:	9e670000 	fmov	d0, x0
+   426a0:	9e62002c 	scvtf	d12, x1
+   426a4:	aa1903e0 	mov	x0, x25
+   426a8:	1e60198c 	fdiv	d12, d12, d0
+   426ac:	97ff3e61 	bl	12030 <_ZN13QElapsedTimer7restartEv@plt>
+   426b0:	f9404a60 	ldr	x0, [x19, #144]
+   426b4:	aa1403e2 	mov	x2, x20
+   426b8:	b9409a61 	ldr	w1, [x19, #152]
+   426bc:	97ff3f99 	bl	12520 <rknn_outputs_release@plt>
+   426c0:	aa1903e0 	mov	x0, x25
+   426c4:	97ff410b 	bl	12af0 <_ZNK13QElapsedTimer12nsecsElapsedEv@plt>
+   426c8:	aa0003e1 	mov	x1, x0
+   426cc:	d2d09000 	mov	x0, #0x848000000000        	// #145685290680320
+   426d0:	f2e825c0 	movk	x0, #0x412e, lsl #48
+   426d4:	9e670000 	fmov	d0, x0
+   426d8:	9e620021 	scvtf	d1, x1
+   426dc:	aa1903e0 	mov	x0, x25
+   426e0:	1e601820 	fdiv	d0, d1, d0
+   426e4:	fd007fe0 	str	d0, [sp, #248]
+   426e8:	97ff3e52 	bl	12030 <_ZN13QElapsedTimer7restartEv@plt>
+   426ec:	17fffe46 	b	42004 <_ZN15InferenceThread7runOnceERK6QImageRK7QStringiy+0x464>
+   426f0:	b9401443 	ldr	w3, [x2, #20]
+   426f4:	b9402041 	ldr	w1, [x2, #32]
+   426f8:	6b01007f 	cmp	w3, w1
+   426fc:	5400040a 	b.ge	4277c <_ZN15InferenceThread7runOnceERK6QImageRK7QStringiy+0xbdc>  // b.tcont
+   42700:	52800101 	mov	w1, #0x8                   	// #8
+   42704:	97ff445b 	bl	13870 <_ZN9QHashData12allocateNodeEi@plt>
+   42708:	f94053e1 	ldr	x1, [sp, #160]
+   4270c:	aa0003f9 	mov	x25, x0
+   42710:	f9400280 	ldr	x0, [x20]
+   42714:	f9400021 	ldr	x1, [x1]
+   42718:	f9000320 	str	x0, [x25]
+   4271c:	b9000b3b 	str	w27, [x25, #8]
+   42720:	f9000b21 	str	x1, [x25, #16]
+   42724:	b9400020 	ldr	w0, [x1]
+   42728:	11000400 	add	w0, w0, #0x1
+   4272c:	7100041f 	cmp	w0, #0x1
+   42730:	540003c8 	b.hi	427a8 <_ZN15InferenceThread7runOnceERK6QImageRK7QStringiy+0xc08>  // b.pmore
+   42734:	b9001b3f 	str	wzr, [x25, #24]
+   42738:	91006321 	add	x1, x25, #0x18
+   4273c:	f9000299 	str	x25, [x20]
+   42740:	f9403262 	ldr	x2, [x19, #96]
+   42744:	b9401440 	ldr	w0, [x2, #20]
+   42748:	11000400 	add	w0, w0, #0x1
+   4274c:	b9001440 	str	w0, [x2, #20]
+   42750:	17fffe49 	b	42074 <_ZN15InferenceThread7runOnceERK6QImageRK7QStringiy+0x4d4>
+   42754:	d2800101 	mov	x1, #0x8                   	// #8
+   42758:	52800043 	mov	w3, #0x2                   	// #2
+   4275c:	d2800002 	mov	x2, #0x0                   	// #0
+   42760:	d2800b00 	mov	x0, #0x58                  	// #88
+   42764:	97ff3cd7 	bl	11ac0 <_ZN10QArrayData8allocateEmmm6QFlagsINS_16AllocationOptionEE@plt>
+   42768:	f90083e0 	str	x0, [sp, #256]
+   4276c:	910403e1 	add	x1, sp, #0x100
+   42770:	f9006be1 	str	x1, [sp, #208]
+   42774:	aa0003e1 	mov	x1, x0
+   42778:	17ffff50 	b	424b8 <_ZN15InferenceThread7runOnceERK6QImageRK7QStringiy+0x918>
+   4277c:	79c03c41 	ldrsh	w1, [x2, #30]
+   42780:	aa0203e0 	mov	x0, x2
+   42784:	11000421 	add	w1, w1, #0x1
+   42788:	97ff42ee 	bl	13340 <_ZN9QHashData6rehashEi@plt>
+   4278c:	f94053e1 	ldr	x1, [sp, #160]
+   42790:	2a1b03e2 	mov	w2, w27
+   42794:	aa1903e0 	mov	x0, x25
+   42798:	97ffa60a 	bl	2bfc0 <_ZNK5QHashI7QStringiE8findNodeERKS0_j>
+   4279c:	aa0003f4 	mov	x20, x0
+   427a0:	f9403260 	ldr	x0, [x19, #96]
+   427a4:	17ffffd7 	b	42700 <_ZN15InferenceThread7runOnceERK6QImageRK7QStringiy+0xb60>
+   427a8:	52800020 	mov	w0, #0x1                   	// #1
+   427ac:	9401d1e9 	bl	b6f50 <__aarch64_ldadd4_acq_rel>
+   427b0:	17ffffe1 	b	42734 <_ZN15InferenceThread7runOnceERK6QImageRK7QStringiy+0xb94>
+   427b4:	93407f62 	sxtw	x2, w27
+   427b8:	8b20c040 	add	x0, x2, w0, sxtw
+   427bc:	8b000c20 	add	x0, x1, x0, lsl #3
+   427c0:	f9400801 	ldr	x1, [x0, #16]
+   427c4:	f9006fe1 	str	x1, [sp, #216]
+   427c8:	f90087e1 	str	x1, [sp, #264]
+   427cc:	aa0103e0 	mov	x0, x1
+   427d0:	97ff76e8 	bl	20370 <_ZN9QtPrivate8RefCount3refEv>
+   427d4:	f9405fe0 	ldr	x0, [sp, #184]
+   427d8:	f9406fe1 	ldr	x1, [sp, #216]
+   427dc:	eb00003f 	cmp	x1, x0
+   427e0:	54ffcf80 	b.eq	421d0 <_ZN15InferenceThread7runOnceERK6QImageRK7QStringiy+0x630>  // b.none
+   427e4:	f9400820 	ldr	x0, [x1, #16]
+   427e8:	8b000020 	add	x0, x1, x0
+   427ec:	17fffe7d 	b	421e0 <_ZN15InferenceThread7runOnceERK6QImageRK7QStringiy+0x640>
+   427f0:	f9400401 	ldr	x1, [x0, #8]
+   427f4:	52800002 	mov	w2, #0x0                   	// #0
+   427f8:	f9406be0 	ldr	x0, [sp, #208]
+   427fc:	12007821 	and	w1, w1, #0x7fffffff
+   42800:	97ffa618 	bl	2c060 <_ZN7QVectorI9DetectionE7reallocEi6QFlagsIN10QArrayData16AllocationOptionEE>
+   42804:	f94083f4 	ldr	x20, [sp, #256]
+   42808:	17fffe63 	b	42194 <_ZN15InferenceThread7runOnceERK6QImageRK7QStringiy+0x5f4>
+   4280c:	f94083e1 	ldr	x1, [sp, #256]
+   42810:	910403e0 	add	x0, sp, #0x100
+   42814:	f9006be0 	str	x0, [sp, #208]
+   42818:	aa0103e0 	mov	x0, x1
+   4281c:	17ffff27 	b	424b8 <_ZN15InferenceThread7runOnceERK6QImageRK7QStringiy+0x918>
+   42820:	910443f5 	add	x21, sp, #0x110
+   42824:	9105c3f4 	add	x20, sp, #0x170
+   42828:	aa1503e0 	mov	x0, x21
+   4282c:	97ff40b1 	bl	12af0 <_ZNK13QElapsedTimer12nsecsElapsedEv@plt>
+   42830:	aa0003e1 	mov	x1, x0
+   42834:	d2d09000 	mov	x0, #0x848000000000        	// #145685290680320
+   42838:	f2e825c0 	movk	x0, #0x412e, lsl #48
+   4283c:	9e670000 	fmov	d0, x0
+   42840:	9e620028 	scvtf	d8, x1
+   42844:	aa1503e0 	mov	x0, x21
+   42848:	1e601908 	fdiv	d8, d8, d0
+   4284c:	97ff3df9 	bl	12030 <_ZN13QElapsedTimer7restartEv@plt>
+   42850:	a9177fff 	stp	xzr, xzr, [sp, #368]
+   42854:	a9017e9f 	stp	xzr, xzr, [x20, #16]
+   42858:	17fffef4 	b	42428 <_ZN15InferenceThread7runOnceERK6QImageRK7QStringiy+0x888>
+   4285c:	aa0103e0 	mov	x0, x1
+   42860:	17ffff24 	b	424f0 <_ZN15InferenceThread7runOnceERK6QImageRK7QStringiy+0x950>
+   42864:	1e692801 	fadd	d1, d0, d9
+   42868:	1e620047 	scvtf	d7, w2
+   4286c:	b00005f4 	adrp	x20, ff000 <_ZTIZN14VisionPipeline8selfTestEvEUlvE149_+0x8>
+   42870:	f9466294 	ldr	x20, [x20, #3264]
+   42874:	900003c1 	adrp	x1, ba000 <_IO_stdin_used+0x3030>
+   42878:	910fc021 	add	x1, x1, #0x3f0
+   4287c:	1e6719a4 	fdiv	d4, d13, d7
+   42880:	1e6b2821 	fadd	d1, d1, d11
+   42884:	1e671906 	fdiv	d6, d8, d7
+   42888:	f9400280 	ldr	x0, [x20]
+   4288c:	1e671985 	fdiv	d5, d12, d7
+   42890:	1e6e2821 	fadd	d1, d1, d14
+   42894:	1e6719c3 	fdiv	d3, d14, d7
+   42898:	1e671962 	fdiv	d2, d11, d7
+   4289c:	1e671800 	fdiv	d0, d0, d7
+   428a0:	1e6d282d 	fadd	d13, d1, d13
+   428a4:	1e671921 	fdiv	d1, d9, d7
+   428a8:	1e6c29a9 	fadd	d9, d13, d12
+   428ac:	1e682929 	fadd	d9, d9, d8
+   428b0:	1e671927 	fdiv	d7, d9, d7
+   428b4:	97ff3ed3 	bl	12400 <fprintf@plt>
+   428b8:	f9400280 	ldr	x0, [x20]
+   428bc:	97ff3d15 	bl	11d10 <fflush@plt>
+   428c0:	6f00e400 	movi	v0.2d, #0x0
+   428c4:	91080260 	add	x0, x19, #0x200
+   428c8:	f9011e7f 	str	xzr, [x19, #568]
+   428cc:	3c808000 	stur	q0, [x0, #8]
+   428d0:	3c818000 	stur	q0, [x0, #24]
+   428d4:	3c828000 	stur	q0, [x0, #40]
+   428d8:	b902427f 	str	wzr, [x19, #576]
+   428dc:	17fffe9b 	b	42348 <_ZN15InferenceThread7runOnceERK6QImageRK7QStringiy+0x7a8>
+   428e0:	f9406be0 	ldr	x0, [sp, #208]
+   428e4:	52800002 	mov	w2, #0x0                   	// #0
+   428e8:	f9400421 	ldr	x1, [x1, #8]
+   428ec:	12007821 	and	w1, w1, #0x7fffffff
+   428f0:	97ffa5dc 	bl	2c060 <_ZN7QVectorI9DetectionE7reallocEi6QFlagsIN10QArrayData16AllocationOptionEE>
+   428f4:	f94083e0 	ldr	x0, [sp, #256]
+   428f8:	17fffefe 	b	424f0 <_ZN15InferenceThread7runOnceERK6QImageRK7QStringiy+0x950>
+   428fc:	35ffaf58 	cbnz	w24, 41ee4 <_ZN15InferenceThread7runOnceERK6QImageRK7QStringiy+0x344>
+   42900:	9105c3f4 	add	x20, sp, #0x170
+   42904:	a9177fff 	stp	xzr, xzr, [sp, #368]
+   42908:	2f00e408 	movi	d8, #0x0
+   4290c:	a9017e9f 	stp	xzr, xzr, [x20, #16]
+   42910:	17fffd2b 	b	41dbc <_ZN15InferenceThread7runOnceERK6QImageRK7QStringiy+0x21c>
+   42914:	aa0003f3 	mov	x19, x0
+   42918:	aa1603e0 	mov	x0, x22
+   4291c:	97ff92f5 	bl	274f0 <_ZN7QVectorI9DetectionED1Ev>
+   42920:	aa1903e0 	mov	x0, x25
+   42924:	97ff7733 	bl	205f0 <_ZN7QStringD1Ev>
+   42928:	f9406be0 	ldr	x0, [sp, #208]
+   4292c:	97ff92f1 	bl	274f0 <_ZN7QVectorI9DetectionED1Ev>
+   42930:	f94077e0 	ldr	x0, [sp, #232]
+   42934:	97ff3e53 	bl	12280 <_ZN6QImageD1Ev@plt>
+   42938:	6d4837ec 	ldp	d12, d13, [sp, #128]
+   4293c:	6d493fee 	ldp	d14, d15, [sp, #144]
+   42940:	9104c3e0 	add	x0, sp, #0x130
+   42944:	97ffa34b 	bl	2b670 <_ZNSt12_Vector_baseI12_rknn_outputSaIS0_EED1Ev>
+   42948:	aa1703e0 	mov	x0, x23
+   4294c:	6d0837ec 	stp	d12, d13, [sp, #128]
+   42950:	6d093fee 	stp	d14, d15, [sp, #144]
+   42954:	97ff3e4b 	bl	12280 <_ZN6QImageD1Ev@plt>
+   42958:	aa1303e0 	mov	x0, x19
+   4295c:	97ff3d61 	bl	11ee0 <_Unwind_Resume@plt>
+   42960:	910423f9 	add	x25, sp, #0x108
+   42964:	aa0003f3 	mov	x19, x0
+   42968:	17ffffee 	b	42920 <_ZN15InferenceThread7runOnceERK6QImageRK7QStringiy+0xd80>
+   4296c:	aa0003f3 	mov	x19, x0
+   42970:	aa1603e0 	mov	x0, x22
+   42974:	97ff3e43 	bl	12280 <_ZN6QImageD1Ev@plt>
+   42978:	17ffffec 	b	42928 <_ZN15InferenceThread7runOnceERK6QImageRK7QStringiy+0xd88>
+   4297c:	aa0003f3 	mov	x19, x0
+   42980:	aa1603e0 	mov	x0, x22
+   42984:	97ff769f 	bl	20400 <_ZN10QByteArrayD1Ev>
+   42988:	17ffffe8 	b	42928 <_ZN15InferenceThread7runOnceERK6QImageRK7QStringiy+0xd88>
+   4298c:	aa0003f3 	mov	x19, x0
+   42990:	17ffffe6 	b	42928 <_ZN15InferenceThread7runOnceERK6QImageRK7QStringiy+0xd88>
+   42994:	aa0003f3 	mov	x19, x0
+   42998:	17ffffea 	b	42940 <_ZN15InferenceThread7runOnceERK6QImageRK7QStringiy+0xda0>
+   4299c:	aa0003f3 	mov	x19, x0
+   429a0:	aa1603e0 	mov	x0, x22
+   429a4:	97ff7697 	bl	20400 <_ZN10QByteArrayD1Ev>
+   429a8:	910423e0 	add	x0, sp, #0x108
+   429ac:	97ff7711 	bl	205f0 <_ZN7QStringD1Ev>
+   429b0:	17ffffde 	b	42928 <_ZN15InferenceThread7runOnceERK6QImageRK7QStringiy+0xd88>
+   429b4:	aa0003f3 	mov	x19, x0
+   429b8:	17fffffc 	b	429a8 <_ZN15InferenceThread7runOnceERK6QImageRK7QStringiy+0xe08>
+   429bc:	aa0003f3 	mov	x19, x0
+   429c0:	aa1903e0 	mov	x0, x25
+   429c4:	97ff768f 	bl	20400 <_ZN10QByteArrayD1Ev>
+   429c8:	17ffffd8 	b	42928 <_ZN15InferenceThread7runOnceERK6QImageRK7QStringiy+0xd88>
+   429cc:	aa0003f3 	mov	x19, x0
+   429d0:	17ffffde 	b	42948 <_ZN15InferenceThread7runOnceERK6QImageRK7QStringiy+0xda8>
+
+Disassembly of section .fini:

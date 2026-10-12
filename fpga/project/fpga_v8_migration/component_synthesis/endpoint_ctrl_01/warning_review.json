@@ -1,0 +1,43 @@
+{
+  "scope": "Read-only review of emitted PDS diagnostics, endpoint source and mapped netlist",
+  "compile_warning_count": 22,
+  "synthesis_invocation_warning_count": 908,
+  "error_count": 0,
+  "undriven_function_net": {
+    "diagnostic": "Verilog-2021: Net eligible.addr_end_1 in fpga_v8_coop_axi128_endpoint does not have a driver, tie it to 0",
+    "count_per_invocation": 1,
+    "source": "../../cooperative_endpoint/fpga_v8_coop_axi128_endpoint.v",
+    "reported_line": 81,
+    "observed_source": "reg [32:0] addr_end is assigned unconditionally at line 83 to {1'b0, addr} + 33'd16, then compared with BASE_ADDR + WINDOW_BYTES at line 87",
+    "call_sites": [143, 175],
+    "mapped_names_retained": false,
+    "status": "Unresolved PDS elaboration diagnostic in address-bound eligibility logic; source assignment exists, but effect of generated addr_end_1 tie-off was not established",
+    "acceptance": "Compile and mapped-resource evidence only; not proof of synthesized address-rejection behavior",
+    "rtl_edit_or_simulation_rerun": false
+  },
+  "constant_probe_loop": {"count_per_invocation": 20, "status": "Retained compiler diagnostic without source locations"},
+  "constant_cleanup": {
+    "constant_warning_entries": 8,
+    "dangling_warning_entries": 137,
+    "dangling_groups": {
+      "endpoint_awprot_and_arprot_vectors": 2,
+      "endpoint_rdata_high_96_bits": 96,
+      "controller_cmd_dst_addr_constant_bits": 30,
+      "controller_bresp_and_rresp_low_bits": 2,
+      "controller_aw_addr_high_bits": 2,
+      "endpoint_bresp_and_rresp_low_bits": 2,
+      "endpoint_ar_addr_high_bits": 2,
+      "endpoint_aw_burst_low_bit": 1
+    },
+    "reasons": "Controller does not consume PROT; endpoint returns 32-bit data zero-extended to 128; fixed bank defaults constrain destination bits; responses are OKAY/SLVERR; local addresses are shifted by two; eligible endpoint accepts BURST 0 or 1",
+    "dynamic_controller_inputs": "All descriptor, bridge status, command readiness and source-release readiness exposed with no tie-offs",
+    "note": "These known optimization groups do not explain or dismiss the separate undriven-function-net warning"
+  },
+  "name_conflict_rename": {"count": 1, "from": "control/active_bank", "to": "control/active_bank_rnmt"},
+  "physical_io_excess": {"count": 1, "virtual_bits": 740, "package_pins": 285},
+  "unconstrained_virtual_outputs": 422,
+  "unconstrained_virtual_inputs": 317,
+  "latch_width_missing_module_diagnostics": 0,
+  "source_edits": false,
+  "synthesized_functional_equivalence_proven": false
+}

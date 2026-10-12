@@ -1,0 +1,381 @@
+{
+  "timestamp": "2026-10-05T10:16:58.790645+08:00",
+  "sources": [
+    {
+      "path": "../../ddr_adapter_contract/fpga_v8_ddr_adapter.v",
+      "bytes": 7666,
+      "sha256": "5b84936d95c74e10bec28734172b49a175e1a17725bc73b3fade9ae089a5e2b8",
+      "ascii": true,
+      "unchanged": true
+    },
+    {
+      "path": "../../../ipcore/ddr_fifo16_w/ddr_fifo16_w.v",
+      "bytes": 3759,
+      "sha256": "d5deeb12d206e7707a0629d911848f2f0af53abcfa71ae3ce16c230cf7013948",
+      "ascii": true,
+      "unchanged": true
+    },
+    {
+      "path": "../../../ipcore/ddr_fifo16_w/rtl/ipm_distributed_fifo_ctr_v1_1_ddr_fifo16_w.v",
+      "bytes": 12380,
+      "sha256": "e0c9990effd8907e68e329d76e28517a044821af16e8f644b2713099a958d4b5",
+      "ascii": true,
+      "unchanged": true
+    },
+    {
+      "path": "../../../ipcore/ddr_fifo16_w/rtl/ipm_distributed_fifo_v1_4_ddr_fifo16_w.v",
+      "bytes": 4296,
+      "sha256": "1e266d686b505166952ad8c3ee4a4948d96d355a862fc003c4a7c09b65bb7d24",
+      "ascii": true,
+      "unchanged": true
+    },
+    {
+      "path": "../../../ipcore/ddr_fifo16_w/rtl/ipm_distributed_sdpram_v1_3_ddr_fifo16_w.v",
+      "bytes": 3607,
+      "sha256": "d8936a8be42dd14679c99330cd2c162f6d193399a2af2ba15a73f5ac48936b12",
+      "ascii": true,
+      "unchanged": true
+    },
+    {
+      "path": "../../../ipcore/ddr_fifo16_r/ddr_fifo16_r.v",
+      "bytes": 3570,
+      "sha256": "d91a12b84d41250e0553769e9d786d6f55cd9af6f96e46c62dd499daec683436",
+      "ascii": true,
+      "unchanged": true
+    },
+    {
+      "path": "../../../ipcore/ddr_fifo16_r/rtl/ipm_distributed_fifo_ctr_v1_1_ddr_fifo16_r.v",
+      "bytes": 12380,
+      "sha256": "d94f42312d53f3be3e0cb9f5570fd8367e6d79783c9a0c7a6c949dcc673c8a33",
+      "ascii": true,
+      "unchanged": true
+    },
+    {
+      "path": "../../../ipcore/ddr_fifo16_r/rtl/ipm_distributed_fifo_v1_4_ddr_fifo16_r.v",
+      "bytes": 4296,
+      "sha256": "5f5ee9c450ffaf137829c576ebf224895d6e414535c683a5cae886afcc646052",
+      "ascii": true,
+      "unchanged": true
+    },
+    {
+      "path": "../../../ipcore/ddr_fifo16_r/rtl/ipm_distributed_sdpram_v1_3_ddr_fifo16_r.v",
+      "bytes": 3607,
+      "sha256": "a4186aa66fae0382599413af25772867891b41d7b67c48ade920021e515250e2",
+      "ascii": true,
+      "unchanged": true
+    }
+  ],
+  "binding_audit": {
+    "top": "fpga_v8_ddr_adapter",
+    "uninstantiated_roots": [
+      "fpga_v8_ddr_adapter"
+    ],
+    "modules": [
+      "fpga_v8_ddr_adapter",
+      "ddr_fifo16_w",
+      "ipm_distributed_fifo_ctr_v1_1_ddr_fifo16_w",
+      "ipm_distributed_fifo_v1_4_ddr_fifo16_w",
+      "ipm_distributed_sdpram_v1_3_ddr_fifo16_w",
+      "ddr_fifo16_r",
+      "ipm_distributed_fifo_ctr_v1_1_ddr_fifo16_r",
+      "ipm_distributed_fifo_v1_4_ddr_fifo16_r",
+      "ipm_distributed_sdpram_v1_3_ddr_fifo16_r"
+    ],
+    "top_ports": [
+      "clk",
+      "rst_n",
+      "s_awid",
+      "s_awaddr",
+      "s_awlen",
+      "s_awsize",
+      "s_awburst",
+      "s_awvalid",
+      "s_awready",
+      "s_wdata",
+      "s_wstrb",
+      "s_wlast",
+      "s_wvalid",
+      "s_wready",
+      "s_bid",
+      "s_bresp",
+      "s_bvalid",
+      "s_bready",
+      "s_arid",
+      "s_araddr",
+      "s_arlen",
+      "s_arsize",
+      "s_arburst",
+      "s_arvalid",
+      "s_arready",
+      "s_rid",
+      "s_rdata",
+      "s_rresp",
+      "s_rlast",
+      "s_rvalid",
+      "s_rready",
+      "v_awid",
+      "v_awaddr",
+      "v_awlen",
+      "v_awvalid",
+      "v_awready",
+      "v_wdata",
+      "v_wstrb",
+      "v_wready",
+      "v_wlast",
+      "v_wid",
+      "v_arid",
+      "v_araddr",
+      "v_arlen",
+      "v_arvalid",
+      "v_arready",
+      "v_rid",
+      "v_rdata",
+      "v_rlast",
+      "v_rvalid",
+      "error_flags",
+      "write_water_level",
+      "write_fifo_full",
+      "write_fifo_empty",
+      "read_fifo_full",
+      "read_fifo_empty",
+      "write_busy",
+      "read_busy"
+    ],
+    "top_parameter_declarations": "\n    parameter [31:0] DDR_ADDRESS_LIMIT = 32'h10000000\n",
+    "top_port_declarations": "\n    input wire clk, input wire rst_n,\n    input wire [3:0] s_awid,\n    input wire [31:0] s_awaddr,\n    input wire [7:0] s_awlen,\n    input wire [2:0] s_awsize,\n    input wire [1:0] s_awburst,\n    input wire s_awvalid, output wire s_awready,\n    input wire [127:0] s_wdata, input wire [15:0] s_wstrb,\n    input wire s_wlast, input wire s_wvalid, output wire s_wready,\n    output reg [3:0] s_bid, output reg [1:0] s_bresp,\n    output reg s_bvalid, input wire s_bready,\n    input wire [6:0] s_arid,\n    input wire [31:0] s_araddr,\n    input wire [7:0] s_arlen,\n    input wire [2:0] s_arsize,\n    input wire [1:0] s_arburst,\n    input wire s_arvalid, output wire s_arready,\n    output wire [6:0] s_rid, output wire [127:0] s_rdata,\n    output wire [1:0] s_rresp, output wire s_rlast,\n    output wire s_rvalid, input wire s_rready,\n    output wire [3:0] v_awid, output wire [27:0] v_awaddr,\n    output wire [3:0] v_awlen, output reg v_awvalid, input wire v_awready,\n    output wire [127:0] v_wdata, output wire [15:0] v_wstrb,\n    input wire v_wready, input wire v_wlast, input wire [3:0] v_wid,\n    output wire [3:0] v_arid, output wire [27:0] v_araddr,\n    output wire [3:0] v_arlen, output reg v_arvalid, input wire v_arready,\n    input wire [3:0] v_rid, input wire [127:0] v_rdata,\n    input wire v_rlast, input wire v_rvalid,\n    output reg [7:0] error_flags,\n    output wire [4:0] write_water_level,\n    output wire write_fifo_full, output wire write_fifo_empty,\n    output wire read_fifo_full, output wire read_fifo_empty,\n    output wire write_busy, output wire read_busy\n",
+    "instances": [
+      {
+        "owner": "fpga_v8_ddr_adapter",
+        "module_type": "ddr_fifo16_w",
+        "instance": "write_fifo",
+        "bindings": {
+          "clk": "clk",
+          "rst": "fifo_rst",
+          "wr_data": "{s_wstrb,s_wdata}",
+          "wr_en": "push_w",
+          "wr_water_level": "write_water_level",
+          "full": "write_fifo_full",
+          "almost_full": "",
+          "rd_data": "{v_wstrb,v_wdata}",
+          "rd_en": "pop_w",
+          "empty": "write_fifo_empty",
+          "almost_empty": ""
+        },
+        "expected_ports": 11,
+        "omitted_ports": [],
+        "unknown_ports": [],
+        "duplicate_ports": [],
+        "explicitly_open_ports": [
+          "almost_full",
+          "almost_empty"
+        ],
+        "parameter_overrides": ""
+      },
+      {
+        "owner": "fpga_v8_ddr_adapter",
+        "module_type": "ddr_fifo16_r",
+        "instance": "read_fifo",
+        "bindings": {
+          "clk": "clk",
+          "rst": "fifo_rst",
+          "wr_data": "{v_rid,v_rlast,v_rdata}",
+          "wr_en": "push_r",
+          "full": "read_fifo_full",
+          "almost_full": "",
+          "rd_data": "{fifo_rid,s_rlast,s_rdata}",
+          "rd_en": "s_rvalid && s_rready",
+          "empty": "read_fifo_empty",
+          "almost_empty": ""
+        },
+        "expected_ports": 10,
+        "omitted_ports": [],
+        "unknown_ports": [],
+        "duplicate_ports": [],
+        "explicitly_open_ports": [
+          "almost_full",
+          "almost_empty"
+        ],
+        "parameter_overrides": ""
+      },
+      {
+        "owner": "ddr_fifo16_w",
+        "module_type": "ipm_distributed_fifo_v1_4_ddr_fifo16_w",
+        "instance": "u_ipm_distributed_fifo_ddr_fifo16_w",
+        "bindings": {
+          "wr_data": "wr_data",
+          "wr_en": "wr_en",
+          "wr_clk": "clk",
+          "wr_rst": "rst",
+          "full": "full",
+          "almost_full": "almost_full",
+          "wr_water_level": "wr_water_level",
+          "rd_data": "rd_data",
+          "rd_en": "rd_en",
+          "rd_clk": "clk",
+          "rd_rst": "rst",
+          "empty": "empty",
+          "almost_empty": "almost_empty"
+        },
+        "expected_ports": 14,
+        "omitted_ports": [
+          "rd_water_level"
+        ],
+        "unknown_ports": [],
+        "duplicate_ports": [],
+        "explicitly_open_ports": [],
+        "parameter_overrides": "\n  .ADDR_WIDTH       (ADDR_WIDTH      ) ,  \n  .DATA_WIDTH       (DATA_WIDTH      ) ,  \n  .OUT_REG          (OUT_REG         ) ,  \n  .RST_TYPE         (RST_TYPE        ) ,\n  .FIFO_TYPE        (FIFO_TYPE       ) ,  \n  .ALMOST_FULL_NUM  (ALMOST_FULL_NUM ) ,  \n  .ALMOST_EMPTY_NUM (ALMOST_EMPTY_NUM)    \n"
+      },
+      {
+        "owner": "ipm_distributed_fifo_v1_4_ddr_fifo16_w",
+        "module_type": "ipm_distributed_fifo_ctr_v1_1_ddr_fifo16_w",
+        "instance": "u_ipm_distributed_fifo_ctr_ddr_fifo16_w",
+        "bindings": {
+          "wr_clk": "wr_clk",
+          "w_en": "wr_en",
+          "wr_addr": "wr_addr",
+          "wrst": "wr_rst",
+          "wfull": "full",
+          "almost_full": "almost_full",
+          "wr_water_level": "wr_water_level",
+          "rd_clk": "rd_clk",
+          "r_en": "rd_en",
+          "rd_addr": "rd_addr",
+          "rrst": "rd_rst",
+          "rempty": "empty",
+          "almost_empty": "almost_empty",
+          "rd_water_level": "rd_water_level"
+        },
+        "expected_ports": 14,
+        "omitted_ports": [],
+        "unknown_ports": [],
+        "duplicate_ports": [],
+        "explicitly_open_ports": [],
+        "parameter_overrides": "\n  .DEPTH            (ADDR_WIDTH      ),     \n  .FIFO_TYPE        (FIFO_TYPE       ),\n  .ALMOST_FULL_NUM  (ALMOST_FULL_NUM ),\n  .ALMOST_EMPTY_NUM (ALMOST_EMPTY_NUM)\n\n"
+      },
+      {
+        "owner": "ipm_distributed_fifo_v1_4_ddr_fifo16_w",
+        "module_type": "ipm_distributed_sdpram_v1_3_ddr_fifo16_w",
+        "instance": "ipm_distributed_sdpram_ddr_fifo16_w",
+        "bindings": {
+          "wr_data": "wr_data",
+          "wr_addr": "wr_addr",
+          "rd_addr": "rd_addr",
+          "wr_clk": "wr_clk",
+          "rd_clk": "rd_clk",
+          "wr_en": "wr_en_real",
+          "rst": "rd_rst",
+          "rd_data": "rd_data"
+        },
+        "expected_ports": 8,
+        "omitted_ports": [],
+        "unknown_ports": [],
+        "duplicate_ports": [],
+        "explicitly_open_ports": [],
+        "parameter_overrides": "\n .ADDR_WIDTH(ADDR_WIDTH )  ,    \n .DATA_WIDTH(DATA_WIDTH )  ,    \n .RST_TYPE  (RST_TYPE   )  ,    \n .OUT_REG   (OUT_REG    )\n "
+      },
+      {
+        "owner": "ddr_fifo16_r",
+        "module_type": "ipm_distributed_fifo_v1_4_ddr_fifo16_r",
+        "instance": "u_ipm_distributed_fifo_ddr_fifo16_r",
+        "bindings": {
+          "wr_data": "wr_data",
+          "wr_en": "wr_en",
+          "wr_clk": "clk",
+          "wr_rst": "rst",
+          "full": "full",
+          "almost_full": "almost_full",
+          "rd_data": "rd_data",
+          "rd_en": "rd_en",
+          "rd_clk": "clk",
+          "rd_rst": "rst",
+          "empty": "empty",
+          "almost_empty": "almost_empty"
+        },
+        "expected_ports": 14,
+        "omitted_ports": [
+          "rd_water_level",
+          "wr_water_level"
+        ],
+        "unknown_ports": [],
+        "duplicate_ports": [],
+        "explicitly_open_ports": [],
+        "parameter_overrides": "\n  .ADDR_WIDTH       (ADDR_WIDTH      ) ,  \n  .DATA_WIDTH       (DATA_WIDTH      ) ,  \n  .OUT_REG          (OUT_REG         ) ,  \n  .RST_TYPE         (RST_TYPE        ) ,\n  .FIFO_TYPE        (FIFO_TYPE       ) ,  \n  .ALMOST_FULL_NUM  (ALMOST_FULL_NUM ) ,  \n  .ALMOST_EMPTY_NUM (ALMOST_EMPTY_NUM)    \n"
+      },
+      {
+        "owner": "ipm_distributed_fifo_v1_4_ddr_fifo16_r",
+        "module_type": "ipm_distributed_fifo_ctr_v1_1_ddr_fifo16_r",
+        "instance": "u_ipm_distributed_fifo_ctr_ddr_fifo16_r",
+        "bindings": {
+          "wr_clk": "wr_clk",
+          "w_en": "wr_en",
+          "wr_addr": "wr_addr",
+          "wrst": "wr_rst",
+          "wfull": "full",
+          "almost_full": "almost_full",
+          "wr_water_level": "wr_water_level",
+          "rd_clk": "rd_clk",
+          "r_en": "rd_en",
+          "rd_addr": "rd_addr",
+          "rrst": "rd_rst",
+          "rempty": "empty",
+          "almost_empty": "almost_empty",
+          "rd_water_level": "rd_water_level"
+        },
+        "expected_ports": 14,
+        "omitted_ports": [],
+        "unknown_ports": [],
+        "duplicate_ports": [],
+        "explicitly_open_ports": [],
+        "parameter_overrides": "\n  .DEPTH            (ADDR_WIDTH      ),     \n  .FIFO_TYPE        (FIFO_TYPE       ),\n  .ALMOST_FULL_NUM  (ALMOST_FULL_NUM ),\n  .ALMOST_EMPTY_NUM (ALMOST_EMPTY_NUM)\n\n"
+      },
+      {
+        "owner": "ipm_distributed_fifo_v1_4_ddr_fifo16_r",
+        "module_type": "ipm_distributed_sdpram_v1_3_ddr_fifo16_r",
+        "instance": "ipm_distributed_sdpram_ddr_fifo16_r",
+        "bindings": {
+          "wr_data": "wr_data",
+          "wr_addr": "wr_addr",
+          "rd_addr": "rd_addr",
+          "wr_clk": "wr_clk",
+          "rd_clk": "rd_clk",
+          "wr_en": "wr_en_real",
+          "rst": "rd_rst",
+          "rd_data": "rd_data"
+        },
+        "expected_ports": 8,
+        "omitted_ports": [],
+        "unknown_ports": [],
+        "duplicate_ports": [],
+        "explicitly_open_ports": [],
+        "parameter_overrides": "\n .ADDR_WIDTH(ADDR_WIDTH )  ,    \n .DATA_WIDTH(DATA_WIDTH )  ,    \n .RST_TYPE  (RST_TYPE   )  ,    \n .OUT_REG   (OUT_REG    )\n "
+      }
+    ],
+    "binding_names_valid": true,
+    "generated_fifo_metadata": {
+      "ddr_fifo16_w": {
+        "ADDR_WIDTH": 4,
+        "DATA_WIDTH": 144,
+        "OUT_REG": 0,
+        "RST_TYPE": "SYNC",
+        "FIFO_TYPE": "SYNC_FIFO",
+        "ALMOST_FULL_NUM": 11,
+        "ALMOST_EMPTY_NUM": 4,
+        "WR_WATER_LEVEL_ENABLE": 1,
+        "RD_WATER_LEVEL_ENABLE": 0
+      },
+      "ddr_fifo16_r": {
+        "ADDR_WIDTH": 4,
+        "DATA_WIDTH": 133,
+        "OUT_REG": 0,
+        "RST_TYPE": "SYNC",
+        "FIFO_TYPE": "SYNC_FIFO",
+        "ALMOST_FULL_NUM": 11,
+        "ALMOST_EMPTY_NUM": 4,
+        "WR_WATER_LEVEL_ENABLE": 0,
+        "RD_WATER_LEVEL_ENABLE": 0
+      }
+    },
+    "fixed_limits_in_source": true,
+    "all_fifo_hashes_match_simulation_compile_list": true
+  }
+}

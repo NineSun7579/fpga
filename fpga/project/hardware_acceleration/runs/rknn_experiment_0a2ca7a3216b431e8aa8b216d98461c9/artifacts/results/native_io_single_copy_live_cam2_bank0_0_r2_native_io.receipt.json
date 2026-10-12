@@ -1,0 +1,4729 @@
+{
+  "label": "native_io_single_copy_live_cam2_bank0_0_r2_native_io",
+  "mode": "native_io",
+  "fixture": "live_cam2_bank0_0",
+  "command": {
+    "argv": [
+      "/userdata/linaro/100h_performance/hardware_4bc48205e42742118589c5ca82336f77/run/results/rknn_io_bench",
+      "--mode",
+      "native_io",
+      "--lib",
+      "/usr/lib/librknnrt.so",
+      "--model",
+      "/root/npu/whiteboard_3cls/det-yolov8n-3cls-wb_v4_combo-rk3568-raw-dfl6-int8.rknn",
+      "--manifest",
+      "/userdata/linaro/100h_performance/hardware_4bc48205e42742118589c5ca82336f77/package/prepared/manifest.json",
+      "--native-query",
+      "9",
+      "--dequant-scale",
+      "fp16",
+      "--fixture",
+      "/userdata/linaro/100h_performance/hardware_4bc48205e42742118589c5ca82336f77/package/prepared/fixtures/live_cam2_bank0_0.rgb565",
+      "--kind",
+      "rgb565_le",
+      "--prefix",
+      "/userdata/linaro/100h_performance/hardware_0a2ca7a3216b431e8aa8b216d98461c9/run/results/native_io_single_copy_live_cam2_bank0_0_r2_native_io",
+      "--warmup",
+      "5",
+      "--iterations",
+      "50"
+    ],
+    "cwd": "/userdata/linaro/100h_performance/hardware_0a2ca7a3216b431e8aa8b216d98461c9/run/results",
+    "returncode": 0,
+    "elapsed_seconds": 2.5361591319961008,
+    "stdout_sha256": "185a983bf51c9324f5762deba372c8759df2dfb9cfb9b7cc692902d1f32705a4",
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "events": [
+    {
+      "async": false,
+      "cache_sync": "explicit and runtime default enabled",
+      "dequant_scale": "fp16",
+      "diagnose_native": false,
+      "event": "identity",
+      "executable_sha256": "cce7924ef71d21a9da541de6e8219392090d5928ed4209fc6c474f7877455b50",
+      "manifest_sha256": "401bdab0769a38a4cb2b0d8c4767d8c5a9d0e5d2bf96ebdfad08eddb3b30d1df",
+      "mode": "native_io",
+      "model_path": "/root/npu/whiteboard_3cls/det-yolov8n-3cls-wb_v4_combo-rk3568-raw-dfl6-int8.rknn",
+      "model_sha256": "21451a51f680ececd9ee75bcbb4db3e4ccee05d210ef9ffef2f1b99da61a8b31",
+      "rknn_flags": 0
+    },
+    {
+      "create_mem": true,
+      "create_mem2": true,
+      "destroy_mem": true,
+      "event": "runtime_library",
+      "mem_sync": true,
+      "path": "/usr/lib/librknnrt.so",
+      "set_io_mem": true,
+      "sha256": "73993ed4b440460825f21611731564503cc1d5a0c123746477da6cd574f34885",
+      "sizeof_context": 8,
+      "sizeof_input": 32,
+      "sizeof_output": 24,
+      "sizeof_sdk_version": 512,
+      "sizeof_tensor_attr": 376,
+      "sizeof_tensor_mem": 40
+    },
+    {
+      "event": "load",
+      "timing": {
+        "thread_cpu_ms": 13.058208999999977,
+        "wall_ms": 15.28286001086235
+      }
+    },
+    {
+      "api": "2.3.0 (c949ad889d@2024-11-07T11:35:33)",
+      "driver": "0.9.8",
+      "event": "version",
+      "rc": 0
+    },
+    {
+      "event": "io_count",
+      "n_input": 1,
+      "n_output": 4
+    },
+    {
+      "attr": {
+        "dims": [
+          1,
+          640,
+          640,
+          3
+        ],
+        "dims_all": [
+          1,
+          640,
+          640,
+          3,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "fl": 0,
+        "fmt": 1,
+        "fmt_name": "NHWC",
+        "h_stride": 0,
+        "index": 0,
+        "n_dims": 4,
+        "n_elems": 1228800,
+        "name": "images",
+        "pass_through": 0,
+        "qnt_name": "AFFINE",
+        "qnt_type": 2,
+        "scale": 0.003921568859368563,
+        "size": 1228800,
+        "size_with_stride": 1228800,
+        "type": 2,
+        "type_name": "INT8",
+        "w_stride": 640,
+        "zp": -128
+      },
+      "event": "tensor",
+      "query": 1,
+      "rc": 0
+    },
+    {
+      "attr": {
+        "dims": [
+          1,
+          640,
+          640,
+          3
+        ],
+        "dims_all": [
+          1,
+          640,
+          640,
+          3,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "fl": 0,
+        "fmt": 1,
+        "fmt_name": "NHWC",
+        "h_stride": 0,
+        "index": 0,
+        "n_dims": 4,
+        "n_elems": 1228800,
+        "name": "images",
+        "pass_through": 0,
+        "qnt_name": "AFFINE",
+        "qnt_type": 2,
+        "scale": 0.003921568859368563,
+        "size": 1228800,
+        "size_with_stride": 1228800,
+        "type": 2,
+        "type_name": "INT8",
+        "w_stride": 640,
+        "zp": -128
+      },
+      "event": "tensor",
+      "query": 8,
+      "rc": 0
+    },
+    {
+      "attr": {
+        "dims": [
+          1,
+          640,
+          640,
+          3
+        ],
+        "dims_all": [
+          1,
+          640,
+          640,
+          3,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "fl": 0,
+        "fmt": 1,
+        "fmt_name": "NHWC",
+        "h_stride": 0,
+        "index": 0,
+        "n_dims": 4,
+        "n_elems": 1228800,
+        "name": "images",
+        "pass_through": 0,
+        "qnt_name": "AFFINE",
+        "qnt_type": 2,
+        "scale": 0.003921568859368563,
+        "size": 1228800,
+        "size_with_stride": 1228800,
+        "type": 2,
+        "type_name": "INT8",
+        "w_stride": 640,
+        "zp": -128
+      },
+      "event": "tensor",
+      "query": 10,
+      "rc": 0
+    },
+    {
+      "attr": {
+        "dims": [
+          1,
+          64,
+          80,
+          80
+        ],
+        "dims_all": [
+          1,
+          64,
+          80,
+          80,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "fl": 0,
+        "fmt": 0,
+        "fmt_name": "NCHW",
+        "h_stride": 0,
+        "index": 0,
+        "n_dims": 4,
+        "n_elems": 409600,
+        "name": "box_p3",
+        "pass_through": 0,
+        "qnt_name": "AFFINE",
+        "qnt_type": 2,
+        "scale": 0.0784313753247261,
+        "size": 409600,
+        "size_with_stride": 409600,
+        "type": 2,
+        "type_name": "INT8",
+        "w_stride": 0,
+        "zp": 0
+      },
+      "event": "tensor",
+      "query": 2,
+      "rc": 0
+    },
+    {
+      "attr": {
+        "dims": [
+          1,
+          8,
+          80,
+          80,
+          8
+        ],
+        "dims_all": [
+          1,
+          8,
+          80,
+          80,
+          8,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "fl": 0,
+        "fmt": 2,
+        "fmt_name": "NC1HWC2",
+        "h_stride": 0,
+        "index": 0,
+        "n_dims": 5,
+        "n_elems": 409600,
+        "name": "box_p3",
+        "pass_through": 0,
+        "qnt_name": "AFFINE",
+        "qnt_type": 2,
+        "scale": 0.0784313753247261,
+        "size": 409600,
+        "size_with_stride": 409600,
+        "type": 2,
+        "type_name": "INT8",
+        "w_stride": 0,
+        "zp": 0
+      },
+      "event": "tensor",
+      "query": 9,
+      "rc": 0
+    },
+    {
+      "attr": {
+        "dims": [
+          1,
+          80,
+          80,
+          64
+        ],
+        "dims_all": [
+          1,
+          80,
+          80,
+          64,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "fl": 0,
+        "fmt": 1,
+        "fmt_name": "NHWC",
+        "h_stride": 0,
+        "index": 0,
+        "n_dims": 4,
+        "n_elems": 409600,
+        "name": "box_p3",
+        "pass_through": 0,
+        "qnt_name": "AFFINE",
+        "qnt_type": 2,
+        "scale": 0.0784313753247261,
+        "size": 409600,
+        "size_with_stride": 409600,
+        "type": 2,
+        "type_name": "INT8",
+        "w_stride": 0,
+        "zp": 0
+      },
+      "event": "tensor",
+      "query": 11,
+      "rc": 0
+    },
+    {
+      "attr": {
+        "dims": [
+          1,
+          64,
+          40,
+          40
+        ],
+        "dims_all": [
+          1,
+          64,
+          40,
+          40,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "fl": 0,
+        "fmt": 0,
+        "fmt_name": "NCHW",
+        "h_stride": 0,
+        "index": 1,
+        "n_dims": 4,
+        "n_elems": 102400,
+        "name": "box_p4",
+        "pass_through": 0,
+        "qnt_name": "AFFINE",
+        "qnt_type": 2,
+        "scale": 0.0784313753247261,
+        "size": 102400,
+        "size_with_stride": 102400,
+        "type": 2,
+        "type_name": "INT8",
+        "w_stride": 0,
+        "zp": 0
+      },
+      "event": "tensor",
+      "query": 2,
+      "rc": 0
+    },
+    {
+      "attr": {
+        "dims": [
+          1,
+          8,
+          40,
+          40,
+          8
+        ],
+        "dims_all": [
+          1,
+          8,
+          40,
+          40,
+          8,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "fl": 0,
+        "fmt": 2,
+        "fmt_name": "NC1HWC2",
+        "h_stride": 0,
+        "index": 1,
+        "n_dims": 5,
+        "n_elems": 102400,
+        "name": "box_p4",
+        "pass_through": 0,
+        "qnt_name": "AFFINE",
+        "qnt_type": 2,
+        "scale": 0.0784313753247261,
+        "size": 102400,
+        "size_with_stride": 102400,
+        "type": 2,
+        "type_name": "INT8",
+        "w_stride": 0,
+        "zp": 0
+      },
+      "event": "tensor",
+      "query": 9,
+      "rc": 0
+    },
+    {
+      "attr": {
+        "dims": [
+          1,
+          40,
+          40,
+          64
+        ],
+        "dims_all": [
+          1,
+          40,
+          40,
+          64,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "fl": 0,
+        "fmt": 1,
+        "fmt_name": "NHWC",
+        "h_stride": 0,
+        "index": 1,
+        "n_dims": 4,
+        "n_elems": 102400,
+        "name": "box_p4",
+        "pass_through": 0,
+        "qnt_name": "AFFINE",
+        "qnt_type": 2,
+        "scale": 0.0784313753247261,
+        "size": 102400,
+        "size_with_stride": 102400,
+        "type": 2,
+        "type_name": "INT8",
+        "w_stride": 0,
+        "zp": 0
+      },
+      "event": "tensor",
+      "query": 11,
+      "rc": 0
+    },
+    {
+      "attr": {
+        "dims": [
+          1,
+          3,
+          80,
+          80
+        ],
+        "dims_all": [
+          1,
+          3,
+          80,
+          80,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "fl": 0,
+        "fmt": 0,
+        "fmt_name": "NCHW",
+        "h_stride": 0,
+        "index": 2,
+        "n_dims": 4,
+        "n_elems": 19200,
+        "name": "cls_p3",
+        "pass_through": 0,
+        "qnt_name": "AFFINE",
+        "qnt_type": 2,
+        "scale": 0.04749705642461777,
+        "size": 19200,
+        "size_with_stride": 51200,
+        "type": 2,
+        "type_name": "INT8",
+        "w_stride": 0,
+        "zp": 83
+      },
+      "event": "tensor",
+      "query": 2,
+      "rc": 0
+    },
+    {
+      "attr": {
+        "dims": [
+          1,
+          2,
+          80,
+          80,
+          8
+        ],
+        "dims_all": [
+          1,
+          2,
+          80,
+          80,
+          8,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "fl": 0,
+        "fmt": 2,
+        "fmt_name": "NC1HWC2",
+        "h_stride": 0,
+        "index": 2,
+        "n_dims": 5,
+        "n_elems": 102400,
+        "name": "cls_p3",
+        "pass_through": 0,
+        "qnt_name": "AFFINE",
+        "qnt_type": 2,
+        "scale": 0.04749705642461777,
+        "size": 102400,
+        "size_with_stride": 102400,
+        "type": 2,
+        "type_name": "INT8",
+        "w_stride": 0,
+        "zp": 83
+      },
+      "event": "tensor",
+      "query": 9,
+      "rc": 0
+    },
+    {
+      "attr": {
+        "dims": [
+          1,
+          80,
+          80,
+          8
+        ],
+        "dims_all": [
+          1,
+          80,
+          80,
+          8,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "fl": 0,
+        "fmt": 1,
+        "fmt_name": "NHWC",
+        "h_stride": 0,
+        "index": 2,
+        "n_dims": 4,
+        "n_elems": 51200,
+        "name": "cls_p3",
+        "pass_through": 0,
+        "qnt_name": "AFFINE",
+        "qnt_type": 2,
+        "scale": 0.04749705642461777,
+        "size": 51200,
+        "size_with_stride": 51200,
+        "type": 2,
+        "type_name": "INT8",
+        "w_stride": 0,
+        "zp": 83
+      },
+      "event": "tensor",
+      "query": 11,
+      "rc": 0
+    },
+    {
+      "attr": {
+        "dims": [
+          1,
+          3,
+          40,
+          40
+        ],
+        "dims_all": [
+          1,
+          3,
+          40,
+          40,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "fl": 0,
+        "fmt": 0,
+        "fmt_name": "NCHW",
+        "h_stride": 0,
+        "index": 3,
+        "n_dims": 4,
+        "n_elems": 4800,
+        "name": "cls_p4",
+        "pass_through": 0,
+        "qnt_name": "AFFINE",
+        "qnt_type": 2,
+        "scale": 0.049998946487903595,
+        "size": 4800,
+        "size_with_stride": 12800,
+        "type": 2,
+        "type_name": "INT8",
+        "w_stride": 0,
+        "zp": 72
+      },
+      "event": "tensor",
+      "query": 2,
+      "rc": 0
+    },
+    {
+      "attr": {
+        "dims": [
+          1,
+          2,
+          40,
+          40,
+          8
+        ],
+        "dims_all": [
+          1,
+          2,
+          40,
+          40,
+          8,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "fl": 0,
+        "fmt": 2,
+        "fmt_name": "NC1HWC2",
+        "h_stride": 0,
+        "index": 3,
+        "n_dims": 5,
+        "n_elems": 25600,
+        "name": "cls_p4",
+        "pass_through": 0,
+        "qnt_name": "AFFINE",
+        "qnt_type": 2,
+        "scale": 0.049998946487903595,
+        "size": 25600,
+        "size_with_stride": 25600,
+        "type": 2,
+        "type_name": "INT8",
+        "w_stride": 0,
+        "zp": 72
+      },
+      "event": "tensor",
+      "query": 9,
+      "rc": 0
+    },
+    {
+      "attr": {
+        "dims": [
+          1,
+          40,
+          40,
+          8
+        ],
+        "dims_all": [
+          1,
+          40,
+          40,
+          8,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "fl": 0,
+        "fmt": 1,
+        "fmt_name": "NHWC",
+        "h_stride": 0,
+        "index": 3,
+        "n_dims": 4,
+        "n_elems": 12800,
+        "name": "cls_p4",
+        "pass_through": 0,
+        "qnt_name": "AFFINE",
+        "qnt_type": 2,
+        "scale": 0.049998946487903595,
+        "size": 12800,
+        "size_with_stride": 12800,
+        "type": 2,
+        "type_name": "INT8",
+        "w_stride": 0,
+        "zp": 72
+      },
+      "event": "tensor",
+      "query": 11,
+      "rc": 0
+    },
+    {
+      "allocation_bytes": 409600,
+      "conversion_kernel": "aarch64_neon_nc1hwc2_c2_8",
+      "dequant_scale": "fp16",
+      "effective_scale": 0.07843017578125,
+      "event": "native_plan",
+      "float_elements": 409600,
+      "hardware_certified": false,
+      "metadata_eligible": true,
+      "output": 0,
+      "query": 9
+    },
+    {
+      "allocation_bytes": 102400,
+      "conversion_kernel": "aarch64_neon_nc1hwc2_c2_8",
+      "dequant_scale": "fp16",
+      "effective_scale": 0.07843017578125,
+      "event": "native_plan",
+      "float_elements": 102400,
+      "hardware_certified": false,
+      "metadata_eligible": true,
+      "output": 1,
+      "query": 9
+    },
+    {
+      "allocation_bytes": 102400,
+      "conversion_kernel": "aarch64_neon_nc1hwc2_c2_8",
+      "dequant_scale": "fp16",
+      "effective_scale": 0.0474853515625,
+      "event": "native_plan",
+      "float_elements": 19200,
+      "hardware_certified": false,
+      "metadata_eligible": true,
+      "output": 2,
+      "query": 9
+    },
+    {
+      "allocation_bytes": 25600,
+      "conversion_kernel": "aarch64_neon_nc1hwc2_c2_8",
+      "dequant_scale": "fp16",
+      "effective_scale": 0.04998779296875,
+      "event": "native_plan",
+      "float_elements": 4800,
+      "hardware_certified": false,
+      "metadata_eligible": true,
+      "output": 3,
+      "query": 9
+    },
+    {
+      "content_height": 480,
+      "content_width": 640,
+      "content_y": 80,
+      "event": "fixture",
+      "input_bytes": 1228800,
+      "input_sha256": "8202173fcb577437b9318d58c92395d6da63a36a7ed0efd9d7a2cce49bf4cb98",
+      "kind": "rgb565_le",
+      "pad_value": 114,
+      "path": "/userdata/linaro/100h_performance/hardware_4bc48205e42742118589c5ca82336f77/package/prepared/fixtures/live_cam2_bank0_0.rgb565",
+      "source_sha256": "ae5d4a53794b239f6b6d8330d7abdf42bc4599e476c3f3a49a8baea3e11a49fa"
+    },
+    {
+      "alloc_flags": 1,
+      "allocator": "create_mem2_cacheable2",
+      "event": "memory",
+      "fd": 8,
+      "flags": 1,
+      "metadata": {
+        "descriptor_hex": "5585a9d6d0",
+        "fd": 8,
+        "flags": 1,
+        "offset": 0,
+        "phys_addr_hex": "ffac5000",
+        "size": 409600,
+        "virt_addr_hex": "7f8483c000"
+      },
+      "native_allocator": "cacheable2",
+      "offset": 0,
+      "phys_addr_hex": "ffac5000",
+      "requested_size": 409600,
+      "role": "output0",
+      "size": 409600
+    },
+    {
+      "after": {
+        "dims": [
+          1,
+          8,
+          80,
+          80,
+          8
+        ],
+        "dims_all": [
+          1,
+          8,
+          80,
+          80,
+          8,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "fl": 0,
+        "fmt": 2,
+        "fmt_name": "NC1HWC2",
+        "h_stride": 0,
+        "index": 0,
+        "n_dims": 5,
+        "n_elems": 409600,
+        "name": "box_p3",
+        "pass_through": 0,
+        "qnt_name": "AFFINE",
+        "qnt_type": 2,
+        "scale": 0.0784313753247261,
+        "size": 409600,
+        "size_with_stride": 409600,
+        "type": 2,
+        "type_name": "INT8",
+        "w_stride": 0,
+        "zp": 0
+      },
+      "attributes_changed": false,
+      "before": {
+        "dims": [
+          1,
+          8,
+          80,
+          80,
+          8
+        ],
+        "dims_all": [
+          1,
+          8,
+          80,
+          80,
+          8,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "fl": 0,
+        "fmt": 2,
+        "fmt_name": "NC1HWC2",
+        "h_stride": 0,
+        "index": 0,
+        "n_dims": 5,
+        "n_elems": 409600,
+        "name": "box_p3",
+        "pass_through": 0,
+        "qnt_name": "AFFINE",
+        "qnt_type": 2,
+        "scale": 0.0784313753247261,
+        "size": 409600,
+        "size_with_stride": 409600,
+        "type": 2,
+        "type_name": "INT8",
+        "w_stride": 0,
+        "zp": 0
+      },
+      "event": "output_binding",
+      "memory_after": {
+        "descriptor_hex": "5585a9d6d0",
+        "fd": 8,
+        "flags": 1,
+        "offset": 0,
+        "phys_addr_hex": "ffac5000",
+        "size": 409600,
+        "virt_addr_hex": "7f8483c000"
+      },
+      "memory_before": {
+        "descriptor_hex": "5585a9d6d0",
+        "fd": 8,
+        "flags": 1,
+        "offset": 0,
+        "phys_addr_hex": "ffac5000",
+        "size": 409600,
+        "virt_addr_hex": "7f8483c000"
+      },
+      "memory_changed": false,
+      "output": 0,
+      "rc": 0
+    },
+    {
+      "alloc_flags": 1,
+      "allocator": "create_mem2_cacheable2",
+      "event": "memory",
+      "fd": 9,
+      "flags": 1,
+      "metadata": {
+        "descriptor_hex": "5585a9b690",
+        "fd": 9,
+        "flags": 1,
+        "offset": 0,
+        "phys_addr_hex": "ffaac000",
+        "size": 102400,
+        "virt_addr_hex": "7f84823000"
+      },
+      "native_allocator": "cacheable2",
+      "offset": 0,
+      "phys_addr_hex": "ffaac000",
+      "requested_size": 102400,
+      "role": "output1",
+      "size": 102400
+    },
+    {
+      "after": {
+        "dims": [
+          1,
+          8,
+          40,
+          40,
+          8
+        ],
+        "dims_all": [
+          1,
+          8,
+          40,
+          40,
+          8,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "fl": 0,
+        "fmt": 2,
+        "fmt_name": "NC1HWC2",
+        "h_stride": 0,
+        "index": 1,
+        "n_dims": 5,
+        "n_elems": 102400,
+        "name": "box_p4",
+        "pass_through": 0,
+        "qnt_name": "AFFINE",
+        "qnt_type": 2,
+        "scale": 0.0784313753247261,
+        "size": 102400,
+        "size_with_stride": 102400,
+        "type": 2,
+        "type_name": "INT8",
+        "w_stride": 0,
+        "zp": 0
+      },
+      "attributes_changed": false,
+      "before": {
+        "dims": [
+          1,
+          8,
+          40,
+          40,
+          8
+        ],
+        "dims_all": [
+          1,
+          8,
+          40,
+          40,
+          8,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "fl": 0,
+        "fmt": 2,
+        "fmt_name": "NC1HWC2",
+        "h_stride": 0,
+        "index": 1,
+        "n_dims": 5,
+        "n_elems": 102400,
+        "name": "box_p4",
+        "pass_through": 0,
+        "qnt_name": "AFFINE",
+        "qnt_type": 2,
+        "scale": 0.0784313753247261,
+        "size": 102400,
+        "size_with_stride": 102400,
+        "type": 2,
+        "type_name": "INT8",
+        "w_stride": 0,
+        "zp": 0
+      },
+      "event": "output_binding",
+      "memory_after": {
+        "descriptor_hex": "5585a9b690",
+        "fd": 9,
+        "flags": 1,
+        "offset": 0,
+        "phys_addr_hex": "ffaac000",
+        "size": 102400,
+        "virt_addr_hex": "7f84823000"
+      },
+      "memory_before": {
+        "descriptor_hex": "5585a9b690",
+        "fd": 9,
+        "flags": 1,
+        "offset": 0,
+        "phys_addr_hex": "ffaac000",
+        "size": 102400,
+        "virt_addr_hex": "7f84823000"
+      },
+      "memory_changed": false,
+      "output": 1,
+      "rc": 0
+    },
+    {
+      "alloc_flags": 1,
+      "allocator": "create_mem2_cacheable2",
+      "event": "memory",
+      "fd": 10,
+      "flags": 1,
+      "metadata": {
+        "descriptor_hex": "5585a9c820",
+        "fd": 10,
+        "flags": 1,
+        "offset": 0,
+        "phys_addr_hex": "ffa93000",
+        "size": 102400,
+        "virt_addr_hex": "7f8480a000"
+      },
+      "native_allocator": "cacheable2",
+      "offset": 0,
+      "phys_addr_hex": "ffa93000",
+      "requested_size": 102400,
+      "role": "output2",
+      "size": 102400
+    },
+    {
+      "after": {
+        "dims": [
+          1,
+          2,
+          80,
+          80,
+          8
+        ],
+        "dims_all": [
+          1,
+          2,
+          80,
+          80,
+          8,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "fl": 0,
+        "fmt": 2,
+        "fmt_name": "NC1HWC2",
+        "h_stride": 0,
+        "index": 2,
+        "n_dims": 5,
+        "n_elems": 102400,
+        "name": "cls_p3",
+        "pass_through": 0,
+        "qnt_name": "AFFINE",
+        "qnt_type": 2,
+        "scale": 0.04749705642461777,
+        "size": 102400,
+        "size_with_stride": 102400,
+        "type": 2,
+        "type_name": "INT8",
+        "w_stride": 0,
+        "zp": 83
+      },
+      "attributes_changed": false,
+      "before": {
+        "dims": [
+          1,
+          2,
+          80,
+          80,
+          8
+        ],
+        "dims_all": [
+          1,
+          2,
+          80,
+          80,
+          8,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "fl": 0,
+        "fmt": 2,
+        "fmt_name": "NC1HWC2",
+        "h_stride": 0,
+        "index": 2,
+        "n_dims": 5,
+        "n_elems": 102400,
+        "name": "cls_p3",
+        "pass_through": 0,
+        "qnt_name": "AFFINE",
+        "qnt_type": 2,
+        "scale": 0.04749705642461777,
+        "size": 102400,
+        "size_with_stride": 102400,
+        "type": 2,
+        "type_name": "INT8",
+        "w_stride": 0,
+        "zp": 83
+      },
+      "event": "output_binding",
+      "memory_after": {
+        "descriptor_hex": "5585a9c820",
+        "fd": 10,
+        "flags": 1,
+        "offset": 0,
+        "phys_addr_hex": "ffa93000",
+        "size": 102400,
+        "virt_addr_hex": "7f8480a000"
+      },
+      "memory_before": {
+        "descriptor_hex": "5585a9c820",
+        "fd": 10,
+        "flags": 1,
+        "offset": 0,
+        "phys_addr_hex": "ffa93000",
+        "size": 102400,
+        "virt_addr_hex": "7f8480a000"
+      },
+      "memory_changed": false,
+      "output": 2,
+      "rc": 0
+    },
+    {
+      "alloc_flags": 1,
+      "allocator": "create_mem2_cacheable2",
+      "event": "memory",
+      "fd": 11,
+      "flags": 1,
+      "metadata": {
+        "descriptor_hex": "5585a9f2f0",
+        "fd": 11,
+        "flags": 1,
+        "offset": 0,
+        "phys_addr_hex": "ffa8c000",
+        "size": 25600,
+        "virt_addr_hex": "7f89d07000"
+      },
+      "native_allocator": "cacheable2",
+      "offset": 0,
+      "phys_addr_hex": "ffa8c000",
+      "requested_size": 25600,
+      "role": "output3",
+      "size": 25600
+    },
+    {
+      "after": {
+        "dims": [
+          1,
+          2,
+          40,
+          40,
+          8
+        ],
+        "dims_all": [
+          1,
+          2,
+          40,
+          40,
+          8,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "fl": 0,
+        "fmt": 2,
+        "fmt_name": "NC1HWC2",
+        "h_stride": 0,
+        "index": 3,
+        "n_dims": 5,
+        "n_elems": 25600,
+        "name": "cls_p4",
+        "pass_through": 0,
+        "qnt_name": "AFFINE",
+        "qnt_type": 2,
+        "scale": 0.049998946487903595,
+        "size": 25600,
+        "size_with_stride": 25600,
+        "type": 2,
+        "type_name": "INT8",
+        "w_stride": 0,
+        "zp": 72
+      },
+      "attributes_changed": false,
+      "before": {
+        "dims": [
+          1,
+          2,
+          40,
+          40,
+          8
+        ],
+        "dims_all": [
+          1,
+          2,
+          40,
+          40,
+          8,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "fl": 0,
+        "fmt": 2,
+        "fmt_name": "NC1HWC2",
+        "h_stride": 0,
+        "index": 3,
+        "n_dims": 5,
+        "n_elems": 25600,
+        "name": "cls_p4",
+        "pass_through": 0,
+        "qnt_name": "AFFINE",
+        "qnt_type": 2,
+        "scale": 0.049998946487903595,
+        "size": 25600,
+        "size_with_stride": 25600,
+        "type": 2,
+        "type_name": "INT8",
+        "w_stride": 0,
+        "zp": 72
+      },
+      "event": "output_binding",
+      "memory_after": {
+        "descriptor_hex": "5585a9f2f0",
+        "fd": 11,
+        "flags": 1,
+        "offset": 0,
+        "phys_addr_hex": "ffa8c000",
+        "size": 25600,
+        "virt_addr_hex": "7f89d07000"
+      },
+      "memory_before": {
+        "descriptor_hex": "5585a9f2f0",
+        "fd": 11,
+        "flags": 1,
+        "offset": 0,
+        "phys_addr_hex": "ffa8c000",
+        "size": 25600,
+        "virt_addr_hex": "7f89d07000"
+      },
+      "memory_changed": false,
+      "output": 3,
+      "rc": 0
+    },
+    {
+      "alloc_flags": 1,
+      "allocator": "create_mem2_cacheable2",
+      "event": "memory",
+      "fd": 12,
+      "flags": 1,
+      "metadata": {
+        "descriptor_hex": "5585a9b900",
+        "fd": 12,
+        "flags": 1,
+        "offset": 0,
+        "phys_addr_hex": "ff960000",
+        "size": 1228800,
+        "virt_addr_hex": "7f846de000"
+      },
+      "native_allocator": "cacheable2",
+      "offset": 0,
+      "phys_addr_hex": "ff960000",
+      "requested_size": 1228800,
+      "role": "input_UINT8_NHWC_runtime_conversion",
+      "size": 1228800
+    },
+    {
+      "attr": {
+        "dims": [
+          1,
+          640,
+          640,
+          3
+        ],
+        "dims_all": [
+          1,
+          640,
+          640,
+          3,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "fl": 0,
+        "fmt": 1,
+        "fmt_name": "NHWC",
+        "h_stride": 640,
+        "index": 0,
+        "n_dims": 4,
+        "n_elems": 1228800,
+        "name": "images",
+        "pass_through": 0,
+        "qnt_name": "AFFINE",
+        "qnt_type": 2,
+        "scale": 0.003921568859368563,
+        "size": 1228800,
+        "size_with_stride": 1228800,
+        "type": 3,
+        "type_name": "UINT8",
+        "w_stride": 640,
+        "zp": -128
+      },
+      "driver_conversion_required": true,
+      "event": "input_binding",
+      "hardware_certified": false,
+      "subtract_128": false
+    },
+    {
+      "after": {
+        "dims": [
+          1,
+          640,
+          640,
+          3
+        ],
+        "dims_all": [
+          1,
+          640,
+          640,
+          3,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "fl": 0,
+        "fmt": 1,
+        "fmt_name": "NHWC",
+        "h_stride": 640,
+        "index": 0,
+        "n_dims": 4,
+        "n_elems": 1228800,
+        "name": "images",
+        "pass_through": 0,
+        "qnt_name": "AFFINE",
+        "qnt_type": 2,
+        "scale": 0.003921568859368563,
+        "size": 1228800,
+        "size_with_stride": 1228800,
+        "type": 3,
+        "type_name": "UINT8",
+        "w_stride": 640,
+        "zp": -128
+      },
+      "attributes_changed": false,
+      "before": {
+        "dims": [
+          1,
+          640,
+          640,
+          3
+        ],
+        "dims_all": [
+          1,
+          640,
+          640,
+          3,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "fl": 0,
+        "fmt": 1,
+        "fmt_name": "NHWC",
+        "h_stride": 640,
+        "index": 0,
+        "n_dims": 4,
+        "n_elems": 1228800,
+        "name": "images",
+        "pass_through": 0,
+        "qnt_name": "AFFINE",
+        "qnt_type": 2,
+        "scale": 0.003921568859368563,
+        "size": 1228800,
+        "size_with_stride": 1228800,
+        "type": 3,
+        "type_name": "UINT8",
+        "w_stride": 640,
+        "zp": -128
+      },
+      "event": "input_binding_result",
+      "memory_after": {
+        "descriptor_hex": "5585a9b900",
+        "fd": 12,
+        "flags": 1,
+        "offset": 0,
+        "phys_addr_hex": "ff960000",
+        "size": 1228800,
+        "virt_addr_hex": "7f846de000"
+      },
+      "memory_before": {
+        "descriptor_hex": "5585a9b900",
+        "fd": 12,
+        "flags": 1,
+        "offset": 0,
+        "phys_addr_hex": "ff960000",
+        "size": 1228800,
+        "virt_addr_hex": "7f846de000"
+      },
+      "memory_changed": false,
+      "rc": 0
+    },
+    {
+      "completion": 1,
+      "count": 1,
+      "detections": [
+        {
+          "class": 1,
+          "score": 0.32086119055747986,
+          "x1": 266.4342041015625,
+          "x2": 642.7591552734375,
+          "y1": 113.75238037109375,
+          "y2": 559.5307006835938
+        }
+      ],
+      "event": "completion",
+      "mode": "native_io",
+      "stages": {
+        "deblock_dequantize": {
+          "thread_cpu_ms": 1.6753329999999664,
+          "wall_ms": 1.6718769967556
+        },
+        "decode": {
+          "thread_cpu_ms": 1.0575829999999655,
+          "wall_ms": 1.0532360076904297
+        },
+        "input_set_or_copy": {
+          "thread_cpu_ms": 2.445333000000005,
+          "wall_ms": 2.435773015022278
+        },
+        "input_sync": {
+          "thread_cpu_ms": 0.42466699999999946,
+          "wall_ms": 0.4211779832839966
+        },
+        "output_sync": {
+          "thread_cpu_ms": 0.04200000000003001,
+          "wall_ms": 0.04200097918510437
+        },
+        "outputs_get": {
+          "thread_cpu_ms": 0.0008749999999508873,
+          "wall_ms": 0.001166015863418579
+        },
+        "release": {
+          "thread_cpu_ms": 0.0008750000000077307,
+          "wall_ms": 0.001166999340057373
+        },
+        "run": {
+          "thread_cpu_ms": 1.2894580000000246,
+          "wall_ms": 23.208277016878128
+        },
+        "snapshot_copy": {
+          "thread_cpu_ms": 2.0661669999999503,
+          "wall_ms": 2.061845988035202
+        }
+      },
+      "total": {
+        "thread_cpu_ms": 9.057999999999993,
+        "wall_ms": 30.97935599088669
+      }
+    },
+    {
+      "completion": 2,
+      "count": 1,
+      "detections": [
+        {
+          "class": 1,
+          "score": 0.32086119055747986,
+          "x1": 266.4342041015625,
+          "x2": 642.7591552734375,
+          "y1": 113.75238037109375,
+          "y2": 559.5307006835938
+        }
+      ],
+      "event": "completion",
+      "mode": "native_io",
+      "stages": {
+        "deblock_dequantize": {
+          "thread_cpu_ms": 1.985084000000029,
+          "wall_ms": 1.9798850119113922
+        },
+        "decode": {
+          "thread_cpu_ms": 1.588707999999997,
+          "wall_ms": 1.5858330130577087
+        },
+        "input_set_or_copy": {
+          "thread_cpu_ms": 0.8210410000000365,
+          "wall_ms": 0.8172709941864014
+        },
+        "input_sync": {
+          "thread_cpu_ms": 0.10558300000002419,
+          "wall_ms": 0.10412698984146118
+        },
+        "output_sync": {
+          "thread_cpu_ms": 0.07904199999995853,
+          "wall_ms": 0.07846099138259888
+        },
+        "outputs_get": {
+          "thread_cpu_ms": 0.0020420000000171967,
+          "wall_ms": 0.002042025327682495
+        },
+        "release": {
+          "thread_cpu_ms": 0.0017500000000154614,
+          "wall_ms": 0.0014590024948120117
+        },
+        "run": {
+          "thread_cpu_ms": 0.9689170000000331,
+          "wall_ms": 22.90635198354721
+        },
+        "snapshot_copy": {
+          "thread_cpu_ms": 0.0017500000000154614,
+          "wall_ms": 0.0017500221729278564
+        }
+      },
+      "total": {
+        "thread_cpu_ms": 5.586291999999958,
+        "wall_ms": 27.52734798192978
+      }
+    },
+    {
+      "completion": 3,
+      "count": 1,
+      "detections": [
+        {
+          "class": 1,
+          "score": 0.32086119055747986,
+          "x1": 266.4342041015625,
+          "x2": 642.7591552734375,
+          "y1": 113.75238037109375,
+          "y2": 559.5307006835938
+        }
+      ],
+      "event": "completion",
+      "mode": "native_io",
+      "stages": {
+        "deblock_dequantize": {
+          "thread_cpu_ms": 4.404749999999979,
+          "wall_ms": 4.396116018295288
+        },
+        "decode": {
+          "thread_cpu_ms": 4.5669169999999895,
+          "wall_ms": 4.8382939994335175
+        },
+        "input_set_or_copy": {
+          "thread_cpu_ms": 0.9365419999999745,
+          "wall_ms": 0.9316079914569855
+        },
+        "input_sync": {
+          "thread_cpu_ms": 0.17033300000002782,
+          "wall_ms": 0.16858798265457153
+        },
+        "output_sync": {
+          "thread_cpu_ms": 0.31237499999997453,
+          "wall_ms": 0.31063300371170044
+        },
+        "outputs_get": {
+          "thread_cpu_ms": 0.00408399999997755,
+          "wall_ms": 0.00437501072883606
+        },
+        "release": {
+          "thread_cpu_ms": 0.003792000000032658,
+          "wall_ms": 0.004083991050720215
+        },
+        "run": {
+          "thread_cpu_ms": 2.0256259999999884,
+          "wall_ms": 24.319262981414795
+        },
+        "snapshot_copy": {
+          "thread_cpu_ms": 0.004666999999983545,
+          "wall_ms": 0.005541980266571045
+        }
+      },
+      "total": {
+        "thread_cpu_ms": 12.493833999999993,
+        "wall_ms": 35.07067200541496
+      }
+    },
+    {
+      "completion": 4,
+      "count": 1,
+      "detections": [
+        {
+          "class": 1,
+          "score": 0.32086119055747986,
+          "x1": 266.4342041015625,
+          "x2": 642.7591552734375,
+          "y1": 113.75238037109375,
+          "y2": 559.5307006835938
+        }
+      ],
+      "event": "completion",
+      "mode": "native_io",
+      "stages": {
+        "deblock_dequantize": {
+          "thread_cpu_ms": 4.386374999999987,
+          "wall_ms": 4.37628099322319
+        },
+        "decode": {
+          "thread_cpu_ms": 4.370625000000018,
+          "wall_ms": 4.366365015506744
+        },
+        "input_set_or_copy": {
+          "thread_cpu_ms": 2.134416999999985,
+          "wall_ms": 2.4903149902820587
+        },
+        "input_sync": {
+          "thread_cpu_ms": 0.218166999999994,
+          "wall_ms": 0.5926820039749146
+        },
+        "output_sync": {
+          "thread_cpu_ms": 0.21991700000000947,
+          "wall_ms": 0.21933898329734802
+        },
+        "outputs_get": {
+          "thread_cpu_ms": 0.004083000000036918,
+          "wall_ms": 0.004665970802307129
+        },
+        "release": {
+          "thread_cpu_ms": 0.003500000000030923,
+          "wall_ms": 0.003500014543533325
+        },
+        "run": {
+          "thread_cpu_ms": 1.9559180000000538,
+          "wall_ms": 24.40709900856018
+        },
+        "snapshot_copy": {
+          "thread_cpu_ms": 0.0049579999999878055,
+          "wall_ms": 0.004959017038345337
+        }
+      },
+      "total": {
+        "thread_cpu_ms": 13.375250999999992,
+        "wall_ms": 36.574586004018784
+      }
+    },
+    {
+      "completion": 5,
+      "count": 1,
+      "detections": [
+        {
+          "class": 1,
+          "score": 0.32086119055747986,
+          "x1": 266.4342041015625,
+          "x2": 642.7591552734375,
+          "y1": 113.75238037109375,
+          "y2": 559.5307006835938
+        }
+      ],
+      "event": "completion",
+      "mode": "native_io",
+      "stages": {
+        "deblock_dequantize": {
+          "thread_cpu_ms": 3.3308339999999816,
+          "wall_ms": 3.560260981321335
+        },
+        "decode": {
+          "thread_cpu_ms": 1.5329999999999586,
+          "wall_ms": 1.5318740010261536
+        },
+        "input_set_or_copy": {
+          "thread_cpu_ms": 2.3753340000000094,
+          "wall_ms": 2.368687003850937
+        },
+        "input_sync": {
+          "thread_cpu_ms": 0.424082999999996,
+          "wall_ms": 0.42030301690101624
+        },
+        "output_sync": {
+          "thread_cpu_ms": 0.22108400000001893,
+          "wall_ms": 0.22021400928497314
+        },
+        "outputs_get": {
+          "thread_cpu_ms": 0.004083000000036918,
+          "wall_ms": 0.004667013883590698
+        },
+        "release": {
+          "thread_cpu_ms": 0.0017500000000154614,
+          "wall_ms": 0.0017510056495666504
+        },
+        "run": {
+          "thread_cpu_ms": 2.5208750000000464,
+          "wall_ms": 24.70989900827408
+        },
+        "snapshot_copy": {
+          "thread_cpu_ms": 0.0017500000000154614,
+          "wall_ms": 0.0020419955253601074
+        }
+      },
+      "total": {
+        "thread_cpu_ms": 10.474041999999997,
+        "wall_ms": 32.908656001091
+      }
+    },
+    {
+      "completion": 6,
+      "count": 1,
+      "detections": [
+        {
+          "class": 1,
+          "score": 0.32086119055747986,
+          "x1": 266.4342041015625,
+          "x2": 642.7591552734375,
+          "y1": 113.75238037109375,
+          "y2": 559.5307006835938
+        }
+      ],
+      "event": "completion",
+      "mode": "native_io",
+      "stages": {
+        "deblock_dequantize": {
+          "thread_cpu_ms": 3.48279100000002,
+          "wall_ms": 3.66143000125885
+        },
+        "decode": {
+          "thread_cpu_ms": 4.479125000000067,
+          "wall_ms": 4.4754509925842285
+        },
+        "input_set_or_copy": {
+          "thread_cpu_ms": 0.9791249999999536,
+          "wall_ms": 0.9736090004444122
+        },
+        "input_sync": {
+          "thread_cpu_ms": 0.24354200000004766,
+          "wall_ms": 0.239173024892807
+        },
+        "output_sync": {
+          "thread_cpu_ms": 0.08254099999999198,
+          "wall_ms": 0.08195999264717102
+        },
+        "outputs_get": {
+          "thread_cpu_ms": 0.0014579999999568827,
+          "wall_ms": 0.00145798921585083
+        },
+        "release": {
+          "thread_cpu_ms": 0.0037919999999758147,
+          "wall_ms": 0.004083007574081421
+        },
+        "run": {
+          "thread_cpu_ms": 1.093164999999999,
+          "wall_ms": 23.102357000112534
+        },
+        "snapshot_copy": {
+          "thread_cpu_ms": 0.004666000000042914,
+          "wall_ms": 0.004958003759384155
+        }
+      },
+      "total": {
+        "thread_cpu_ms": 10.42358200000001,
+        "wall_ms": 32.62906602025032
+      }
+    },
+    {
+      "completion": 7,
+      "count": 1,
+      "detections": [
+        {
+          "class": 1,
+          "score": 0.32086119055747986,
+          "x1": 266.4342041015625,
+          "x2": 642.7591552734375,
+          "y1": 113.75238037109375,
+          "y2": 559.5307006835938
+        }
+      ],
+      "event": "completion",
+      "mode": "native_io",
+      "stages": {
+        "deblock_dequantize": {
+          "thread_cpu_ms": 4.313750000000027,
+          "wall_ms": 4.303362995386124
+        },
+        "decode": {
+          "thread_cpu_ms": 4.543292000000065,
+          "wall_ms": 4.473408997058868
+        },
+        "input_set_or_copy": {
+          "thread_cpu_ms": 2.1787500000000364,
+          "wall_ms": 2.1688910126686096
+        },
+        "input_sync": {
+          "thread_cpu_ms": 0.4173749999999927,
+          "wall_ms": 0.4133029878139496
+        },
+        "output_sync": {
+          "thread_cpu_ms": 0.219333000000006,
+          "wall_ms": 0.21817299723625183
+        },
+        "outputs_get": {
+          "thread_cpu_ms": 0.0040840000000343935,
+          "wall_ms": 0.00437501072883606
+        },
+        "release": {
+          "thread_cpu_ms": 0.004083999999920707,
+          "wall_ms": 0.00437501072883606
+        },
+        "run": {
+          "thread_cpu_ms": 2.5952499999999645,
+          "wall_ms": 24.764149993658066
+        },
+        "snapshot_copy": {
+          "thread_cpu_ms": 0.005249999999932697,
+          "wall_ms": 0.006125003099441528
+        }
+      },
+      "total": {
+        "thread_cpu_ms": 14.363708999999972,
+        "wall_ms": 36.540210008621216
+      }
+    },
+    {
+      "completion": 8,
+      "count": 1,
+      "detections": [
+        {
+          "class": 1,
+          "score": 0.32086119055747986,
+          "x1": 266.4342041015625,
+          "x2": 642.7591552734375,
+          "y1": 113.75238037109375,
+          "y2": 559.5307006835938
+        }
+      ],
+      "event": "completion",
+      "mode": "native_io",
+      "stages": {
+        "deblock_dequantize": {
+          "thread_cpu_ms": 1.6767919999999776,
+          "wall_ms": 1.6727519929409027
+        },
+        "decode": {
+          "thread_cpu_ms": 1.0441660000000184,
+          "wall_ms": 1.040693998336792
+        },
+        "input_set_or_copy": {
+          "thread_cpu_ms": 2.304458000000068,
+          "wall_ms": 2.2963519990444183
+        },
+        "input_sync": {
+          "thread_cpu_ms": 0.4275830000000269,
+          "wall_ms": 0.4246779978275299
+        },
+        "output_sync": {
+          "thread_cpu_ms": 0.04112499999996544,
+          "wall_ms": 0.041125982999801636
+        },
+        "outputs_get": {
+          "thread_cpu_ms": 0.0011660000000119908,
+          "wall_ms": 0.001166999340057373
+        },
+        "release": {
+          "thread_cpu_ms": 0.0008749999999508873,
+          "wall_ms": 0.001166999340057373
+        },
+        "run": {
+          "thread_cpu_ms": 1.268750999999952,
+          "wall_ms": 23.19810900092125
+        },
+        "snapshot_copy": {
+          "thread_cpu_ms": 0.0011660000000119908,
+          "wall_ms": 0.001166999340057373
+        }
+      },
+      "total": {
+        "thread_cpu_ms": 6.814209000000005,
+        "wall_ms": 28.746630012989044
+      }
+    },
+    {
+      "completion": 9,
+      "count": 1,
+      "detections": [
+        {
+          "class": 1,
+          "score": 0.32086119055747986,
+          "x1": 266.4342041015625,
+          "x2": 642.7591552734375,
+          "y1": 113.75238037109375,
+          "y2": 559.5307006835938
+        }
+      ],
+      "event": "completion",
+      "mode": "native_io",
+      "stages": {
+        "deblock_dequantize": {
+          "thread_cpu_ms": 4.436833999999976,
+          "wall_ms": 4.425282984972
+        },
+        "decode": {
+          "thread_cpu_ms": 4.414667000000009,
+          "wall_ms": 4.408365994691849
+        },
+        "input_set_or_copy": {
+          "thread_cpu_ms": 0.7434590000000298,
+          "wall_ms": 0.7379360198974609
+        },
+        "input_sync": {
+          "thread_cpu_ms": 0.10266599999999926,
+          "wall_ms": 0.10062798857688904
+        },
+        "output_sync": {
+          "thread_cpu_ms": 0.22137499999996635,
+          "wall_ms": 0.22079801559448242
+        },
+        "outputs_get": {
+          "thread_cpu_ms": 0.0037919999999758147,
+          "wall_ms": 0.0040840208530426025
+        },
+        "release": {
+          "thread_cpu_ms": 0.004082999999923231,
+          "wall_ms": 0.004083991050720215
+        },
+        "run": {
+          "thread_cpu_ms": 1.8675419999999576,
+          "wall_ms": 24.050339996814728
+        },
+        "snapshot_copy": {
+          "thread_cpu_ms": 0.00437499999998181,
+          "wall_ms": 0.004667013883590698
+        }
+      },
+      "total": {
+        "thread_cpu_ms": 11.860042000000021,
+        "wall_ms": 34.050395011901855
+      }
+    },
+    {
+      "completion": 10,
+      "count": 1,
+      "detections": [
+        {
+          "class": 1,
+          "score": 0.32086119055747986,
+          "x1": 266.4342041015625,
+          "x2": 642.7591552734375,
+          "y1": 113.75238037109375,
+          "y2": 559.5307006835938
+        }
+      ],
+      "event": "completion",
+      "mode": "native_io",
+      "stages": {
+        "deblock_dequantize": {
+          "thread_cpu_ms": 4.349917000000005,
+          "wall_ms": 4.337780982255936
+        },
+        "decode": {
+          "thread_cpu_ms": 4.43420900000001,
+          "wall_ms": 4.430240988731384
+        },
+        "input_set_or_copy": {
+          "thread_cpu_ms": 2.2907490000000053,
+          "wall_ms": 2.6037760078907013
+        },
+        "input_sync": {
+          "thread_cpu_ms": 0.15429200000005494,
+          "wall_ms": 0.5226809978485107
+        },
+        "output_sync": {
+          "thread_cpu_ms": 0.22050000000001546,
+          "wall_ms": 0.21963000297546387
+        },
+        "outputs_get": {
+          "thread_cpu_ms": 0.004666999999926702,
+          "wall_ms": 0.005250006914138794
+        },
+        "release": {
+          "thread_cpu_ms": 0.003499999999917236,
+          "wall_ms": 0.003792017698287964
+        },
+        "run": {
+          "thread_cpu_ms": 2.6235410000000456,
+          "wall_ms": 24.73614999651909
+        },
+        "snapshot_copy": {
+          "thread_cpu_ms": 0.00437499999998181,
+          "wall_ms": 0.004667013883590698
+        }
+      },
+      "total": {
+        "thread_cpu_ms": 14.168291999999951,
+        "wall_ms": 36.982387989759445
+      }
+    },
+    {
+      "completion": 11,
+      "count": 1,
+      "detections": [
+        {
+          "class": 1,
+          "score": 0.32086119055747986,
+          "x1": 266.4342041015625,
+          "x2": 642.7591552734375,
+          "y1": 113.75238037109375,
+          "y2": 559.5307006835938
+        }
+      ],
+      "event": "completion",
+      "mode": "native_io",
+      "stages": {
+        "deblock_dequantize": {
+          "thread_cpu_ms": 4.32833299999993,
+          "wall_ms": 4.320280998945236
+        },
+        "decode": {
+          "thread_cpu_ms": 4.451416999999992,
+          "wall_ms": 4.767708986997604
+        },
+        "input_set_or_copy": {
+          "thread_cpu_ms": 2.351707000000033,
+          "wall_ms": 2.847907990217209
+        },
+        "input_sync": {
+          "thread_cpu_ms": 0.25054099999999835,
+          "wall_ms": 0.5183050036430359
+        },
+        "output_sync": {
+          "thread_cpu_ms": 0.22195799999997234,
+          "wall_ms": 0.22108998894691467
+        },
+        "outputs_get": {
+          "thread_cpu_ms": 0.00437499999998181,
+          "wall_ms": 0.004666000604629517
+        },
+        "release": {
+          "thread_cpu_ms": 0.003500000000030923,
+          "wall_ms": 0.0034999847412109375
+        },
+        "run": {
+          "thread_cpu_ms": 2.6944169999999303,
+          "wall_ms": 25.037741005420685
+        },
+        "snapshot_copy": {
+          "thread_cpu_ms": 0.00437499999998181,
+          "wall_ms": 0.0046669840812683105
+        }
+      },
+      "total": {
+        "thread_cpu_ms": 14.382955999999922,
+        "wall_ms": 37.83320200443268
+      }
+    },
+    {
+      "completion": 12,
+      "count": 1,
+      "detections": [
+        {
+          "class": 1,
+          "score": 0.32086119055747986,
+          "x1": 266.4342041015625,
+          "x2": 642.7591552734375,
+          "y1": 113.75238037109375,
+          "y2": 559.5307006835938
+        }
+      ],
+      "event": "completion",
+      "mode": "native_io",
+      "stages": {
+        "deblock_dequantize": {
+          "thread_cpu_ms": 4.400957999999946,
+          "wall_ms": 4.391448020935059
+        },
+        "decode": {
+          "thread_cpu_ms": 4.462499999999977,
+          "wall_ms": 4.457659006118774
+        },
+        "input_set_or_copy": {
+          "thread_cpu_ms": 2.2499149999999872,
+          "wall_ms": 2.760198026895523
+        },
+        "input_sync": {
+          "thread_cpu_ms": 0.109958000000006,
+          "wall_ms": 0.10908600687980652
+        },
+        "output_sync": {
+          "thread_cpu_ms": 0.22108300000002146,
+          "wall_ms": 0.2205049991607666
+        },
+        "outputs_get": {
+          "thread_cpu_ms": 0.004082999999923231,
+          "wall_ms": 0.00437501072883606
+        },
+        "release": {
+          "thread_cpu_ms": 0.003499999999917236,
+          "wall_ms": 0.003791987895965576
+        },
+        "run": {
+          "thread_cpu_ms": 1.9142079999999169,
+          "wall_ms": 24.132008999586105
+        },
+        "snapshot_copy": {
+          "thread_cpu_ms": 0.0037909999999783395,
+          "wall_ms": 0.003791987895965576
+        }
+      },
+      "total": {
+        "thread_cpu_ms": 13.434165000000007,
+        "wall_ms": 36.17240899801254
+      }
+    },
+    {
+      "completion": 13,
+      "count": 1,
+      "detections": [
+        {
+          "class": 1,
+          "score": 0.32086119055747986,
+          "x1": 266.4342041015625,
+          "x2": 642.7591552734375,
+          "y1": 113.75238037109375,
+          "y2": 559.5307006835938
+        }
+      ],
+      "event": "completion",
+      "mode": "native_io",
+      "stages": {
+        "deblock_dequantize": {
+          "thread_cpu_ms": 1.7949159999999438,
+          "wall_ms": 1.7908809781074524
+        },
+        "decode": {
+          "thread_cpu_ms": 1.0876250000000027,
+          "wall_ms": 1.0856119990348816
+        },
+        "input_set_or_copy": {
+          "thread_cpu_ms": 1.845124999999939,
+          "wall_ms": 1.8422560095787048
+        },
+        "input_sync": {
+          "thread_cpu_ms": 0.10237499999993815,
+          "wall_ms": 0.10091900825500488
+        },
+        "output_sync": {
+          "thread_cpu_ms": 0.04200000000003001,
+          "wall_ms": 0.04170900583267212
+        },
+        "outputs_get": {
+          "thread_cpu_ms": 0.001167000000009466,
+          "wall_ms": 0.001166999340057373
+        },
+        "release": {
+          "thread_cpu_ms": 0.001167000000009466,
+          "wall_ms": 0.001166015863418579
+        },
+        "run": {
+          "thread_cpu_ms": 0.6827920000000631,
+          "wall_ms": 22.65259501338005
+        },
+        "snapshot_copy": {
+          "thread_cpu_ms": 0.0014580000000705695,
+          "wall_ms": 0.0014590024948120117
+        }
+      },
+      "total": {
+        "thread_cpu_ms": 5.593917999999917,
+        "wall_ms": 27.56793200969696
+      }
+    },
+    {
+      "completion": 14,
+      "count": 1,
+      "detections": [
+        {
+          "class": 1,
+          "score": 0.32086119055747986,
+          "x1": 266.4342041015625,
+          "x2": 642.7591552734375,
+          "y1": 113.75238037109375,
+          "y2": 559.5307006835938
+        }
+      ],
+      "event": "completion",
+      "mode": "native_io",
+      "stages": {
+        "deblock_dequantize": {
+          "thread_cpu_ms": 4.3913330000000315,
+          "wall_ms": 4.548952996730804
+        },
+        "decode": {
+          "thread_cpu_ms": 4.583250000000021,
+          "wall_ms": 4.578703016042709
+        },
+        "input_set_or_copy": {
+          "thread_cpu_ms": 0.8248340000000098,
+          "wall_ms": 0.8210629820823669
+        },
+        "input_sync": {
+          "thread_cpu_ms": 0.10120899999992616,
+          "wall_ms": 0.10004499554634094
+        },
+        "output_sync": {
+          "thread_cpu_ms": 0.12774999999999181,
+          "wall_ms": 0.3004249930381775
+        },
+        "outputs_get": {
+          "thread_cpu_ms": 0.004375000000095497,
+          "wall_ms": 0.0046669840812683105
+        },
+        "release": {
+          "thread_cpu_ms": 0.0037919999999758147,
+          "wall_ms": 0.003791987895965576
+        },
+        "run": {
+          "thread_cpu_ms": 1.6356670000000122,
+          "wall_ms": 24.295054972171783
+        },
+        "snapshot_copy": {
+          "thread_cpu_ms": 0.00437499999998181,
+          "wall_ms": 0.00437501072883606
+        }
+      },
+      "total": {
+        "thread_cpu_ms": 11.738125999999966,
+        "wall_ms": 34.745454996824265
+      }
+    },
+    {
+      "completion": 15,
+      "count": 1,
+      "detections": [
+        {
+          "class": 1,
+          "score": 0.32086119055747986,
+          "x1": 266.4342041015625,
+          "x2": 642.7591552734375,
+          "y1": 113.75238037109375,
+          "y2": 559.5307006835938
+        }
+      ],
+      "event": "completion",
+      "mode": "native_io",
+      "stages": {
+        "deblock_dequantize": {
+          "thread_cpu_ms": 4.412915999999996,
+          "wall_ms": 4.40107399225235
+        },
+        "decode": {
+          "thread_cpu_ms": 4.442667000000029,
+          "wall_ms": 4.43724200129509
+        },
+        "input_set_or_copy": {
+          "thread_cpu_ms": 2.06508400000007,
+          "wall_ms": 2.0625120103359222
+        },
+        "input_sync": {
+          "thread_cpu_ms": 0.0997499999999718,
+          "wall_ms": 0.09858602285385132
+        },
+        "output_sync": {
+          "thread_cpu_ms": 0.22137500000008004,
+          "wall_ms": 0.2210889756679535
+        },
+        "outputs_get": {
+          "thread_cpu_ms": 0.0040840000000343935,
+          "wall_ms": 0.0046669840812683105
+        },
+        "release": {
+          "thread_cpu_ms": 0.003499999999917236,
+          "wall_ms": 0.003791987895965576
+        },
+        "run": {
+          "thread_cpu_ms": 1.9646680000000742,
+          "wall_ms": 24.16380199790001
+        },
+        "snapshot_copy": {
+          "thread_cpu_ms": 0.00437499999998181,
+          "wall_ms": 0.0046669840812683105
+        }
+      },
+      "total": {
+        "thread_cpu_ms": 13.290167999999994,
+        "wall_ms": 35.49805802106857
+      }
+    },
+    {
+      "completion": 16,
+      "count": 1,
+      "detections": [
+        {
+          "class": 1,
+          "score": 0.32086119055747986,
+          "x1": 266.4342041015625,
+          "x2": 642.7591552734375,
+          "y1": 113.75238037109375,
+          "y2": 559.5307006835938
+        }
+      ],
+      "event": "completion",
+      "mode": "native_io",
+      "stages": {
+        "deblock_dequantize": {
+          "thread_cpu_ms": 4.4289589999999635,
+          "wall_ms": 4.422365993261337
+        },
+        "decode": {
+          "thread_cpu_ms": 4.416124999999965,
+          "wall_ms": 4.595620006322861
+        },
+        "input_set_or_copy": {
+          "thread_cpu_ms": 2.5205839999999853,
+          "wall_ms": 2.5083989799022675
+        },
+        "input_sync": {
+          "thread_cpu_ms": 0.42408399999999347,
+          "wall_ms": 0.4220530092716217
+        },
+        "output_sync": {
+          "thread_cpu_ms": 0.22020899999995436,
+          "wall_ms": 0.21933898329734802
+        },
+        "outputs_get": {
+          "thread_cpu_ms": 0.0037909999999783395,
+          "wall_ms": 0.004374980926513672
+        },
+        "release": {
+          "thread_cpu_ms": 0.0037909999999783395,
+          "wall_ms": 0.003792017698287964
+        },
+        "run": {
+          "thread_cpu_ms": 2.4908329999999523,
+          "wall_ms": 24.74752601981163
+        },
+        "snapshot_copy": {
+          "thread_cpu_ms": 0.00437499999998181,
+          "wall_ms": 0.004667013883590698
+        }
+      },
+      "total": {
+        "thread_cpu_ms": 14.590624000000048,
+        "wall_ms": 37.03838899731636
+      }
+    },
+    {
+      "completion": 17,
+      "count": 1,
+      "detections": [
+        {
+          "class": 1,
+          "score": 0.32086119055747986,
+          "x1": 266.4342041015625,
+          "x2": 642.7591552734375,
+          "y1": 113.75238037109375,
+          "y2": 559.5307006835938
+        }
+      ],
+      "event": "completion",
+      "mode": "native_io",
+      "stages": {
+        "deblock_dequantize": {
+          "thread_cpu_ms": 4.395999999999958,
+          "wall_ms": 4.387948006391525
+        },
+        "decode": {
+          "thread_cpu_ms": 4.4581249999999955,
+          "wall_ms": 4.774417996406555
+        },
+        "input_set_or_copy": {
+          "thread_cpu_ms": 2.1236249999999472,
+          "wall_ms": 2.5098569989204407
+        },
+        "input_sync": {
+          "thread_cpu_ms": 0.24616600000001654,
+          "wall_ms": 0.5136390030384064
+        },
+        "output_sync": {
+          "thread_cpu_ms": 0.21933400000000347,
+          "wall_ms": 0.21875602006912231
+        },
+        "outputs_get": {
+          "thread_cpu_ms": 0.0037919999999758147,
+          "wall_ms": 0.004667013883590698
+        },
+        "release": {
+          "thread_cpu_ms": 0.0037909999999783395,
+          "wall_ms": 0.004083007574081421
+        },
+        "run": {
+          "thread_cpu_ms": 2.333334000000036,
+          "wall_ms": 24.730607986450195
+        },
+        "snapshot_copy": {
+          "thread_cpu_ms": 0.004666000000042914,
+          "wall_ms": 0.004959017038345337
+        }
+      },
+      "total": {
+        "thread_cpu_ms": 13.864666000000057,
+        "wall_ms": 37.25626999139786
+      }
+    },
+    {
+      "completion": 18,
+      "count": 1,
+      "detections": [
+        {
+          "class": 1,
+          "score": 0.32086119055747986,
+          "x1": 266.4342041015625,
+          "x2": 642.7591552734375,
+          "y1": 113.75238037109375,
+          "y2": 559.5307006835938
+        }
+      ],
+      "event": "completion",
+      "mode": "native_io",
+      "stages": {
+        "deblock_dequantize": {
+          "thread_cpu_ms": 1.822917000000075,
+          "wall_ms": 1.8177140057086945
+        },
+        "decode": {
+          "thread_cpu_ms": 1.0774169999999685,
+          "wall_ms": 1.0762780010700226
+        },
+        "input_set_or_copy": {
+          "thread_cpu_ms": 1.888832000000093,
+          "wall_ms": 2.4349800050258636
+        },
+        "input_sync": {
+          "thread_cpu_ms": 0.10325000000000273,
+          "wall_ms": 0.10208702087402344
+        },
+        "output_sync": {
+          "thread_cpu_ms": 0.0425839999999198,
+          "wall_ms": 0.042584002017974854
+        },
+        "outputs_get": {
+          "thread_cpu_ms": 0.0011660000000119908,
+          "wall_ms": 0.001166999340057373
+        },
+        "release": {
+          "thread_cpu_ms": 0.0011660000000119908,
+          "wall_ms": 0.0011659860610961914
+        },
+        "run": {
+          "thread_cpu_ms": 0.6515829999999596,
+          "wall_ms": 22.616428017616272
+        },
+        "snapshot_copy": {
+          "thread_cpu_ms": 0.001167000000009466,
+          "wall_ms": 0.001166999340057373
+        }
+      },
+      "total": {
+        "thread_cpu_ms": 5.625372999999968,
+        "wall_ms": 28.14257201552391
+      }
+    },
+    {
+      "completion": 19,
+      "count": 1,
+      "detections": [
+        {
+          "class": 1,
+          "score": 0.32086119055747986,
+          "x1": 266.4342041015625,
+          "x2": 642.7591552734375,
+          "y1": 113.75238037109375,
+          "y2": 559.5307006835938
+        }
+      ],
+      "event": "completion",
+      "mode": "native_io",
+      "stages": {
+        "deblock_dequantize": {
+          "thread_cpu_ms": 4.480000000000018,
+          "wall_ms": 4.624496012926102
+        },
+        "decode": {
+          "thread_cpu_ms": 4.414375000000064,
+          "wall_ms": 4.646372020244598
+        },
+        "input_set_or_copy": {
+          "thread_cpu_ms": 0.7907079999999951,
+          "wall_ms": 0.7866459786891937
+        },
+        "input_sync": {
+          "thread_cpu_ms": 0.10354199999994762,
+          "wall_ms": 0.10208597779273987
+        },
+        "output_sync": {
+          "thread_cpu_ms": 0.1283329999999978,
+          "wall_ms": 0.30013298988342285
+        },
+        "outputs_get": {
+          "thread_cpu_ms": 0.00437499999998181,
+          "wall_ms": 0.004667013883590698
+        },
+        "release": {
+          "thread_cpu_ms": 0.003500000000030923,
+          "wall_ms": 0.003500014543533325
+        },
+        "run": {
+          "thread_cpu_ms": 1.6333339999999907,
+          "wall_ms": 24.300305008888245
+        },
+        "snapshot_copy": {
+          "thread_cpu_ms": 0.00437499999998181,
+          "wall_ms": 0.004667013883590698
+        }
+      },
+      "total": {
+        "thread_cpu_ms": 11.622042000000079,
+        "wall_ms": 34.85804098844528
+      }
+    },
+    {
+      "completion": 20,
+      "count": 1,
+      "detections": [
+        {
+          "class": 1,
+          "score": 0.32086119055747986,
+          "x1": 266.4342041015625,
+          "x2": 642.7591552734375,
+          "y1": 113.75238037109375,
+          "y2": 559.5307006835938
+        }
+      ],
+      "event": "completion",
+      "mode": "native_io",
+      "stages": {
+        "deblock_dequantize": {
+          "thread_cpu_ms": 4.395415999999955,
+          "wall_ms": 4.387656986713409
+        },
+        "decode": {
+          "thread_cpu_ms": 4.443250000000035,
+          "wall_ms": 4.743499994277954
+        },
+        "input_set_or_copy": {
+          "thread_cpu_ms": 2.180499999999938,
+          "wall_ms": 2.457938998937607
+        },
+        "input_sync": {
+          "thread_cpu_ms": 0.464917000000014,
+          "wall_ms": 0.5734320282936096
+        },
+        "output_sync": {
+          "thread_cpu_ms": 0.22108299999990777,
+          "wall_ms": 0.2205049991607666
+        },
+        "outputs_get": {
+          "thread_cpu_ms": 0.0040840000000343935,
+          "wall_ms": 0.004083991050720215
+        },
+        "release": {
+          "thread_cpu_ms": 0.021875000000022737,
+          "wall_ms": 0.0904189944267273
+        },
+        "run": {
+          "thread_cpu_ms": 1.9544579999999314,
+          "wall_ms": 24.40014100074768
+        },
+        "snapshot_copy": {
+          "thread_cpu_ms": 0.00437499999998181,
+          "wall_ms": 0.004666000604629517
+        }
+      },
+      "total": {
+        "thread_cpu_ms": 13.799040999999988,
+        "wall_ms": 37.103141993284225
+      }
+    },
+    {
+      "completion": 21,
+      "count": 1,
+      "detections": [
+        {
+          "class": 1,
+          "score": 0.32086119055747986,
+          "x1": 266.4342041015625,
+          "x2": 642.7591552734375,
+          "y1": 113.75238037109375,
+          "y2": 559.5307006835938
+        }
+      ],
+      "event": "completion",
+      "mode": "native_io",
+      "stages": {
+        "deblock_dequantize": {
+          "thread_cpu_ms": 4.416417000000024,
+          "wall_ms": 4.406323999166489
+        },
+        "decode": {
+          "thread_cpu_ms": 4.442957999999976,
+          "wall_ms": 4.75662499666214
+        },
+        "input_set_or_copy": {
+          "thread_cpu_ms": 1.8453750000001037,
+          "wall_ms": 2.227600008249283
+        },
+        "input_sync": {
+          "thread_cpu_ms": 0.1047080000000733,
+          "wall_ms": 0.10383599996566772
+        },
+        "output_sync": {
+          "thread_cpu_ms": 0.219333000000006,
+          "wall_ms": 0.21904802322387695
+        },
+        "outputs_get": {
+          "thread_cpu_ms": 0.004083000000036918,
+          "wall_ms": 0.004958003759384155
+        },
+        "release": {
+          "thread_cpu_ms": 0.003500000000030923,
+          "wall_ms": 0.003792017698287964
+        },
+        "run": {
+          "thread_cpu_ms": 1.9016660000000911,
+          "wall_ms": 24.091174989938736
+        },
+        "snapshot_copy": {
+          "thread_cpu_ms": 0.00437499999998181,
+          "wall_ms": 0.005250006914138794
+        }
+      },
+      "total": {
+        "thread_cpu_ms": 13.010666000000015,
+        "wall_ms": 35.912234991788864
+      }
+    },
+    {
+      "completion": 22,
+      "count": 1,
+      "detections": [
+        {
+          "class": 1,
+          "score": 0.32086119055747986,
+          "x1": 266.4342041015625,
+          "x2": 642.7591552734375,
+          "y1": 113.75238037109375,
+          "y2": 559.5307006835938
+        }
+      ],
+      "event": "completion",
+      "mode": "native_io",
+      "stages": {
+        "deblock_dequantize": {
+          "thread_cpu_ms": 4.398916999999983,
+          "wall_ms": 4.388531982898712
+        },
+        "decode": {
+          "thread_cpu_ms": 4.5123740000000225,
+          "wall_ms": 4.887586981058121
+        },
+        "input_set_or_copy": {
+          "thread_cpu_ms": 1.9238330000000587,
+          "wall_ms": 2.482232004404068
+        },
+        "input_sync": {
+          "thread_cpu_ms": 0.1432079999999587,
+          "wall_ms": 0.1426289975643158
+        },
+        "output_sync": {
+          "thread_cpu_ms": 0.22108400000001893,
+          "wall_ms": 0.22050601243972778
+        },
+        "outputs_get": {
+          "thread_cpu_ms": 0.0040840000000343935,
+          "wall_ms": 0.00437501072883606
+        },
+        "release": {
+          "thread_cpu_ms": 0.0037919999999758147,
+          "wall_ms": 0.003792017698287964
+        },
+        "run": {
+          "thread_cpu_ms": 1.9468749999999773,
+          "wall_ms": 24.163800984621048
+        },
+        "snapshot_copy": {
+          "thread_cpu_ms": 0.0049579999999878055,
+          "wall_ms": 0.005250006914138794
+        }
+      },
+      "total": {
+        "thread_cpu_ms": 13.225914999999986,
+        "wall_ms": 36.393206000328064
+      }
+    },
+    {
+      "completion": 23,
+      "count": 1,
+      "detections": [
+        {
+          "class": 1,
+          "score": 0.32086119055747986,
+          "x1": 266.4342041015625,
+          "x2": 642.7591552734375,
+          "y1": 113.75238037109375,
+          "y2": 559.5307006835938
+        }
+      ],
+      "event": "completion",
+      "mode": "native_io",
+      "stages": {
+        "deblock_dequantize": {
+          "thread_cpu_ms": 4.395416000000068,
+          "wall_ms": 4.386198997497559
+        },
+        "decode": {
+          "thread_cpu_ms": 4.513543000000027,
+          "wall_ms": 4.885253012180328
+        },
+        "input_set_or_copy": {
+          "thread_cpu_ms": 1.7342500000000882,
+          "wall_ms": 2.1917240023612976
+        },
+        "input_sync": {
+          "thread_cpu_ms": 0.10208399999999074,
+          "wall_ms": 0.10121101140975952
+        },
+        "output_sync": {
+          "thread_cpu_ms": 0.2184589999999389,
+          "wall_ms": 0.21758902072906494
+        },
+        "outputs_get": {
+          "thread_cpu_ms": 0.004083000000036918,
+          "wall_ms": 0.00437501072883606
+        },
+        "release": {
+          "thread_cpu_ms": 0.0037909999999783395,
+          "wall_ms": 0.004083007574081421
+        },
+        "run": {
+          "thread_cpu_ms": 1.8882489999999734,
+          "wall_ms": 24.03429800271988
+        },
+        "snapshot_copy": {
+          "thread_cpu_ms": 0.004375000000095497,
+          "wall_ms": 0.004666000604629517
+        }
+      },
+      "total": {
+        "thread_cpu_ms": 12.931916999999999,
+        "wall_ms": 35.92594400048256
+      }
+    },
+    {
+      "completion": 24,
+      "count": 1,
+      "detections": [
+        {
+          "class": 1,
+          "score": 0.32086119055747986,
+          "x1": 266.4342041015625,
+          "x2": 642.7591552734375,
+          "y1": 113.75238037109375,
+          "y2": 559.5307006835938
+        }
+      ],
+      "event": "completion",
+      "mode": "native_io",
+      "stages": {
+        "deblock_dequantize": {
+          "thread_cpu_ms": 2.004332999999974,
+          "wall_ms": 1.9968020021915436
+        },
+        "decode": {
+          "thread_cpu_ms": 1.5376670000000559,
+          "wall_ms": 1.535374015569687
+        },
+        "input_set_or_copy": {
+          "thread_cpu_ms": 1.8188330000000406,
+          "wall_ms": 2.1975579857826233
+        },
+        "input_sync": {
+          "thread_cpu_ms": 0.11549999999999727,
+          "wall_ms": 0.1143370270729065
+        },
+        "output_sync": {
+          "thread_cpu_ms": 0.08166700000003857,
+          "wall_ms": 0.08137699961662292
+        },
+        "outputs_get": {
+          "thread_cpu_ms": 0.0014580000000705695,
+          "wall_ms": 0.0017499923706054688
+        },
+        "release": {
+          "thread_cpu_ms": 0.001167000000009466,
+          "wall_ms": 0.0014590024948120117
+        },
+        "run": {
+          "thread_cpu_ms": 0.9228330000000824,
+          "wall_ms": 22.897893011569977
+        },
+        "snapshot_copy": {
+          "thread_cpu_ms": 0.0020419999999603533,
+          "wall_ms": 0.0020419955253601074
+        }
+      },
+      "total": {
+        "thread_cpu_ms": 6.53245800000002,
+        "wall_ms": 28.895092010498047
+      }
+    },
+    {
+      "completion": 25,
+      "count": 1,
+      "detections": [
+        {
+          "class": 1,
+          "score": 0.32086119055747986,
+          "x1": 266.4342041015625,
+          "x2": 642.7591552734375,
+          "y1": 113.75238037109375,
+          "y2": 559.5307006835938
+        }
+      ],
+      "event": "completion",
+      "mode": "native_io",
+      "stages": {
+        "deblock_dequantize": {
+          "thread_cpu_ms": 1.9950000000000045,
+          "wall_ms": 1.9874689877033234
+        },
+        "decode": {
+          "thread_cpu_ms": 1.5522500000000719,
+          "wall_ms": 1.54966601729393
+        },
+        "input_set_or_copy": {
+          "thread_cpu_ms": 1.0852929999999787,
+          "wall_ms": 1.1261549890041351
+        },
+        "input_sync": {
+          "thread_cpu_ms": 0.17383300000005875,
+          "wall_ms": 0.17208799719810486
+        },
+        "output_sync": {
+          "thread_cpu_ms": 0.08195799999998599,
+          "wall_ms": 0.08166900277137756
+        },
+        "outputs_get": {
+          "thread_cpu_ms": 0.0017499999999017746,
+          "wall_ms": 0.0017499923706054688
+        },
+        "release": {
+          "thread_cpu_ms": 0.001167000000009466,
+          "wall_ms": 0.00145798921585083
+        },
+        "run": {
+          "thread_cpu_ms": 1.0319160000000238,
+          "wall_ms": 23.074064999818802
+        },
+        "snapshot_copy": {
+          "thread_cpu_ms": 0.0017500000000154614,
+          "wall_ms": 0.0017500221729278564
+        }
+      },
+      "total": {
+        "thread_cpu_ms": 5.96283399999993,
+        "wall_ms": 28.05469501018524
+      }
+    },
+    {
+      "completion": 26,
+      "count": 1,
+      "detections": [
+        {
+          "class": 1,
+          "score": 0.32086119055747986,
+          "x1": 266.4342041015625,
+          "x2": 642.7591552734375,
+          "y1": 113.75238037109375,
+          "y2": 559.5307006835938
+        }
+      ],
+      "event": "completion",
+      "mode": "native_io",
+      "stages": {
+        "deblock_dequantize": {
+          "thread_cpu_ms": 4.420499999999947,
+          "wall_ms": 4.4106999933719635
+        },
+        "decode": {
+          "thread_cpu_ms": 4.4697909999999865,
+          "wall_ms": 4.828376978635788
+        },
+        "input_set_or_copy": {
+          "thread_cpu_ms": 1.061666999999943,
+          "wall_ms": 1.0561520159244537
+        },
+        "input_sync": {
+          "thread_cpu_ms": 0.17383299999994506,
+          "wall_ms": 0.17267099022865295
+        },
+        "output_sync": {
+          "thread_cpu_ms": 0.21991700000000947,
+          "wall_ms": 0.2193390130996704
+        },
+        "outputs_get": {
+          "thread_cpu_ms": 0.0037909999999783395,
+          "wall_ms": 0.004667013883590698
+        },
+        "release": {
+          "thread_cpu_ms": 0.0037919999999758147,
+          "wall_ms": 0.003791987895965576
+        },
+        "run": {
+          "thread_cpu_ms": 1.9795410000000402,
+          "wall_ms": 24.26442900300026
+        },
+        "snapshot_copy": {
+          "thread_cpu_ms": 0.004667000000040389,
+          "wall_ms": 0.004667013883590698
+        }
+      },
+      "total": {
+        "thread_cpu_ms": 12.399042000000009,
+        "wall_ms": 35.054920971393585
+      }
+    },
+    {
+      "completion": 27,
+      "count": 1,
+      "detections": [
+        {
+          "class": 1,
+          "score": 0.32086119055747986,
+          "x1": 266.4342041015625,
+          "x2": 642.7591552734375,
+          "y1": 113.75238037109375,
+          "y2": 559.5307006835938
+        }
+      ],
+      "event": "completion",
+      "mode": "native_io",
+      "stages": {
+        "deblock_dequantize": {
+          "thread_cpu_ms": 4.402125000000069,
+          "wall_ms": 4.392324000597
+        },
+        "decode": {
+          "thread_cpu_ms": 4.461917999999969,
+          "wall_ms": 4.835377007722855
+        },
+        "input_set_or_copy": {
+          "thread_cpu_ms": 1.782666000000063,
+          "wall_ms": 2.1575980186462402
+        },
+        "input_sync": {
+          "thread_cpu_ms": 0.10295799999994415,
+          "wall_ms": 0.10208600759506226
+        },
+        "output_sync": {
+          "thread_cpu_ms": 0.2234169999999267,
+          "wall_ms": 0.22225597500801086
+        },
+        "outputs_get": {
+          "thread_cpu_ms": 0.00437499999998181,
+          "wall_ms": 0.004958003759384155
+        },
+        "release": {
+          "thread_cpu_ms": 0.0037909999999783395,
+          "wall_ms": 0.003791987895965576
+        },
+        "run": {
+          "thread_cpu_ms": 1.8681250000000773,
+          "wall_ms": 24.073091000318527
+        },
+        "snapshot_copy": {
+          "thread_cpu_ms": 0.00437499999998181,
+          "wall_ms": 0.004667013883590698
+        }
+      },
+      "total": {
+        "thread_cpu_ms": 12.919957999999951,
+        "wall_ms": 35.89240100979805
+      }
+    },
+    {
+      "completion": 28,
+      "count": 1,
+      "detections": [
+        {
+          "class": 1,
+          "score": 0.32086119055747986,
+          "x1": 266.4342041015625,
+          "x2": 642.7591552734375,
+          "y1": 113.75238037109375,
+          "y2": 559.5307006835938
+        }
+      ],
+      "event": "completion",
+      "mode": "native_io",
+      "stages": {
+        "deblock_dequantize": {
+          "thread_cpu_ms": 4.39104199999997,
+          "wall_ms": 4.3803649842739105
+        },
+        "decode": {
+          "thread_cpu_ms": 4.4966249999999945,
+          "wall_ms": 4.882337003946304
+        },
+        "input_set_or_copy": {
+          "thread_cpu_ms": 1.8328329999999369,
+          "wall_ms": 2.30868598818779
+        },
+        "input_sync": {
+          "thread_cpu_ms": 0.10179199999993216,
+          "wall_ms": 0.10121098160743713
+        },
+        "output_sync": {
+          "thread_cpu_ms": 0.22166700000002493,
+          "wall_ms": 0.22079700231552124
+        },
+        "outputs_get": {
+          "thread_cpu_ms": 0.004083000000036918,
+          "wall_ms": 0.00437501072883606
+        },
+        "release": {
+          "thread_cpu_ms": 0.004083000000036918,
+          "wall_ms": 0.00437501072883606
+        },
+        "run": {
+          "thread_cpu_ms": 1.8841660000000502,
+          "wall_ms": 24.092341005802155
+        },
+        "snapshot_copy": {
+          "thread_cpu_ms": 0.004666999999926702,
+          "wall_ms": 0.004667013883590698
+        }
+      },
+      "total": {
+        "thread_cpu_ms": 13.005707999999913,
+        "wall_ms": 36.092781990766525
+      }
+    },
+    {
+      "completion": 29,
+      "count": 1,
+      "detections": [
+        {
+          "class": 1,
+          "score": 0.32086119055747986,
+          "x1": 266.4342041015625,
+          "x2": 642.7591552734375,
+          "y1": 113.75238037109375,
+          "y2": 559.5307006835938
+        }
+      ],
+      "event": "completion",
+      "mode": "native_io",
+      "stages": {
+        "deblock_dequantize": {
+          "thread_cpu_ms": 1.775082999999995,
+          "wall_ms": 1.769005000591278
+        },
+        "decode": {
+          "thread_cpu_ms": 1.069250000000011,
+          "wall_ms": 1.0675280094146729
+        },
+        "input_set_or_copy": {
+          "thread_cpu_ms": 1.7785840000000235,
+          "wall_ms": 2.1570149958133698
+        },
+        "input_sync": {
+          "thread_cpu_ms": 0.10383300000000872,
+          "wall_ms": 0.10208597779273987
+        },
+        "output_sync": {
+          "thread_cpu_ms": 0.04258299999992232,
+          "wall_ms": 0.04229298233985901
+        },
+        "outputs_get": {
+          "thread_cpu_ms": 0.001167000000009466,
+          "wall_ms": 0.0008749961853027344
+        },
+        "release": {
+          "thread_cpu_ms": 0.0008749999999508873,
+          "wall_ms": 0.001166015863418579
+        },
+        "run": {
+          "thread_cpu_ms": 0.6390420000000177,
+          "wall_ms": 22.617594003677368
+        },
+        "snapshot_copy": {
+          "thread_cpu_ms": 0.0011660000000119908,
+          "wall_ms": 0.001166999340057373
+        }
+      },
+      "total": {
+        "thread_cpu_ms": 5.449501000000055,
+        "wall_ms": 27.81327199935913
+      }
+    },
+    {
+      "completion": 30,
+      "count": 1,
+      "detections": [
+        {
+          "class": 1,
+          "score": 0.32086119055747986,
+          "x1": 266.4342041015625,
+          "x2": 642.7591552734375,
+          "y1": 113.75238037109375,
+          "y2": 559.5307006835938
+        }
+      ],
+      "event": "completion",
+      "mode": "native_io",
+      "stages": {
+        "deblock_dequantize": {
+          "thread_cpu_ms": 4.338250000000016,
+          "wall_ms": 4.327572017908096
+        },
+        "decode": {
+          "thread_cpu_ms": 4.478541999999948,
+          "wall_ms": 4.650162994861603
+        },
+        "input_set_or_copy": {
+          "thread_cpu_ms": 0.79362500000002,
+          "wall_ms": 0.7878119945526123
+        },
+        "input_sync": {
+          "thread_cpu_ms": 0.11025000000006457,
+          "wall_ms": 0.10937798023223877
+        },
+        "output_sync": {
+          "thread_cpu_ms": 0.22079100000007656,
+          "wall_ms": 0.22021400928497314
+        },
+        "outputs_get": {
+          "thread_cpu_ms": 0.004083000000036918,
+          "wall_ms": 0.0043759942054748535
+        },
+        "release": {
+          "thread_cpu_ms": 0.0037919999999758147,
+          "wall_ms": 0.004083007574081421
+        },
+        "run": {
+          "thread_cpu_ms": 1.9471670000000358,
+          "wall_ms": 24.185092985630035
+        },
+        "snapshot_copy": {
+          "thread_cpu_ms": 0.004667000000040389,
+          "wall_ms": 0.004959017038345337
+        }
+      },
+      "total": {
+        "thread_cpu_ms": 11.960374000000002,
+        "wall_ms": 34.381153017282486
+      }
+    },
+    {
+      "completion": 31,
+      "count": 1,
+      "detections": [
+        {
+          "class": 1,
+          "score": 0.32086119055747986,
+          "x1": 266.4342041015625,
+          "x2": 642.7591552734375,
+          "y1": 113.75238037109375,
+          "y2": 559.5307006835938
+        }
+      ],
+      "event": "completion",
+      "mode": "native_io",
+      "stages": {
+        "deblock_dequantize": {
+          "thread_cpu_ms": 1.778583000000026,
+          "wall_ms": 1.7727960050106049
+        },
+        "decode": {
+          "thread_cpu_ms": 1.0123749999999063,
+          "wall_ms": 1.009777009487152
+        },
+        "input_set_or_copy": {
+          "thread_cpu_ms": 2.184582999999975,
+          "wall_ms": 2.5961939990520477
+        },
+        "input_sync": {
+          "thread_cpu_ms": 0.43516699999997854,
+          "wall_ms": 0.5261799991130829
+        },
+        "output_sync": {
+          "thread_cpu_ms": 0.04141700000002402,
+          "wall_ms": 0.041125982999801636
+        },
+        "outputs_get": {
+          "thread_cpu_ms": 0.0011660000000119908,
+          "wall_ms": 0.001166999340057373
+        },
+        "release": {
+          "thread_cpu_ms": 0.0008749999999508873,
+          "wall_ms": 0.0008749961853027344
+        },
+        "run": {
+          "thread_cpu_ms": 1.0990010000000439,
+          "wall_ms": 23.26927798986435
+        },
+        "snapshot_copy": {
+          "thread_cpu_ms": 0.0014580000000705695,
+          "wall_ms": 0.0014580190181732178
+        }
+      },
+      "total": {
+        "thread_cpu_ms": 6.59837600000003,
+        "wall_ms": 29.28301900625229
+      }
+    },
+    {
+      "completion": 32,
+      "count": 1,
+      "detections": [
+        {
+          "class": 1,
+          "score": 0.32086119055747986,
+          "x1": 266.4342041015625,
+          "x2": 642.7591552734375,
+          "y1": 113.75238037109375,
+          "y2": 559.5307006835938
+        }
+      ],
+      "event": "completion",
+      "mode": "native_io",
+      "stages": {
+        "deblock_dequantize": {
+          "thread_cpu_ms": 4.465124999999944,
+          "wall_ms": 4.490034997463226
+        },
+        "decode": {
+          "thread_cpu_ms": 4.3767500000000155,
+          "wall_ms": 4.374239981174469
+        },
+        "input_set_or_copy": {
+          "thread_cpu_ms": 0.8099580000000515,
+          "wall_ms": 0.8047299981117249
+        },
+        "input_sync": {
+          "thread_cpu_ms": 0.10966699999994489,
+          "wall_ms": 0.10908597707748413
+        },
+        "output_sync": {
+          "thread_cpu_ms": 0.13095799999996416,
+          "wall_ms": 0.3050920069217682
+        },
+        "outputs_get": {
+          "thread_cpu_ms": 0.0040840000000343935,
+          "wall_ms": 0.004666000604629517
+        },
+        "release": {
+          "thread_cpu_ms": 0.0037909999999783395,
+          "wall_ms": 0.004083007574081421
+        },
+        "run": {
+          "thread_cpu_ms": 1.627207999999996,
+          "wall_ms": 24.320722997188568
+        },
+        "snapshot_copy": {
+          "thread_cpu_ms": 0.004666999999926702,
+          "wall_ms": 0.004958003759384155
+        }
+      },
+      "total": {
+        "thread_cpu_ms": 11.591415999999981,
+        "wall_ms": 34.622660011053085
+      }
+    },
+    {
+      "completion": 33,
+      "count": 1,
+      "detections": [
+        {
+          "class": 1,
+          "score": 0.32086119055747986,
+          "x1": 266.4342041015625,
+          "x2": 642.7591552734375,
+          "y1": 113.75238037109375,
+          "y2": 559.5307006835938
+        }
+      ],
+      "event": "completion",
+      "mode": "native_io",
+      "stages": {
+        "deblock_dequantize": {
+          "thread_cpu_ms": 4.405916999999931,
+          "wall_ms": 4.395823985338211
+        },
+        "decode": {
+          "thread_cpu_ms": 4.4814589999999725,
+          "wall_ms": 4.477785021066666
+        },
+        "input_set_or_copy": {
+          "thread_cpu_ms": 2.066500000000019,
+          "wall_ms": 2.0639289915561676
+        },
+        "input_sync": {
+          "thread_cpu_ms": 0.10062499999992269,
+          "wall_ms": 0.09975200891494751
+        },
+        "output_sync": {
+          "thread_cpu_ms": 0.22137499999996635,
+          "wall_ms": 0.22079801559448242
+        },
+        "outputs_get": {
+          "thread_cpu_ms": 0.004082999999923231,
+          "wall_ms": 0.0043759942054748535
+        },
+        "release": {
+          "thread_cpu_ms": 0.0037919999999758147,
+          "wall_ms": 0.0040840208530426025
+        },
+        "run": {
+          "thread_cpu_ms": 1.2381249999999682,
+          "wall_ms": 23.356447011232376
+        },
+        "snapshot_copy": {
+          "thread_cpu_ms": 0.00437499999998181,
+          "wall_ms": 0.004666000604629517
+        }
+      },
+      "total": {
+        "thread_cpu_ms": 12.594790999999987,
+        "wall_ms": 34.72157800197601
+      }
+    },
+    {
+      "completion": 34,
+      "count": 1,
+      "detections": [
+        {
+          "class": 1,
+          "score": 0.32086119055747986,
+          "x1": 266.4342041015625,
+          "x2": 642.7591552734375,
+          "y1": 113.75238037109375,
+          "y2": 559.5307006835938
+        }
+      ],
+      "event": "completion",
+      "mode": "native_io",
+      "stages": {
+        "deblock_dequantize": {
+          "thread_cpu_ms": 4.3872499999999945,
+          "wall_ms": 4.522119015455246
+        },
+        "decode": {
+          "thread_cpu_ms": 4.490791000000058,
+          "wall_ms": 4.438991993665695
+        },
+        "input_set_or_copy": {
+          "thread_cpu_ms": 2.125083000000018,
+          "wall_ms": 2.115222007036209
+        },
+        "input_sync": {
+          "thread_cpu_ms": 0.41562499999997726,
+          "wall_ms": 0.41242802143096924
+        },
+        "output_sync": {
+          "thread_cpu_ms": 0.13125000000002274,
+          "wall_ms": 0.30334100127220154
+        },
+        "outputs_get": {
+          "thread_cpu_ms": 0.00437499999998181,
+          "wall_ms": 0.004667013883590698
+        },
+        "release": {
+          "thread_cpu_ms": 0.0037919999999758147,
+          "wall_ms": 0.003791987895965576
+        },
+        "run": {
+          "thread_cpu_ms": 2.3435399999999618,
+          "wall_ms": 24.824526995420456
+        },
+        "snapshot_copy": {
+          "thread_cpu_ms": 0.00437499999998181,
+          "wall_ms": 0.0046669840812683105
+        }
+      },
+      "total": {
+        "thread_cpu_ms": 13.986581999999999,
+        "wall_ms": 36.798342019319534
+      }
+    },
+    {
+      "completion": 35,
+      "count": 1,
+      "detections": [
+        {
+          "class": 1,
+          "score": 0.32086119055747986,
+          "x1": 266.4342041015625,
+          "x2": 642.7591552734375,
+          "y1": 113.75238037109375,
+          "y2": 559.5307006835938
+        }
+      ],
+      "event": "completion",
+      "mode": "native_io",
+      "stages": {
+        "deblock_dequantize": {
+          "thread_cpu_ms": 4.518207999999959,
+          "wall_ms": 4.662997990846634
+        },
+        "decode": {
+          "thread_cpu_ms": 4.458123999999998,
+          "wall_ms": 4.706165015697479
+        },
+        "input_set_or_copy": {
+          "thread_cpu_ms": 2.111083000000008,
+          "wall_ms": 2.102972000837326
+        },
+        "input_sync": {
+          "thread_cpu_ms": 0.4173749999999927,
+          "wall_ms": 0.41388601064682007
+        },
+        "output_sync": {
+          "thread_cpu_ms": 0.12950000000000728,
+          "wall_ms": 0.30129900574684143
+        },
+        "outputs_get": {
+          "thread_cpu_ms": 0.00437499999998181,
+          "wall_ms": 0.004667013883590698
+        },
+        "release": {
+          "thread_cpu_ms": 0.0037909999999783395,
+          "wall_ms": 0.003792017698287964
+        },
+        "run": {
+          "thread_cpu_ms": 2.258960000000002,
+          "wall_ms": 24.81344300508499
+        },
+        "snapshot_copy": {
+          "thread_cpu_ms": 0.00437499999998181,
+          "wall_ms": 0.004667013883590698
+        }
+      },
+      "total": {
+        "thread_cpu_ms": 13.984249999999975,
+        "wall_ms": 37.12647497653961
+      }
+    },
+    {
+      "completion": 36,
+      "count": 1,
+      "detections": [
+        {
+          "class": 1,
+          "score": 0.32086119055747986,
+          "x1": 266.4342041015625,
+          "x2": 642.7591552734375,
+          "y1": 113.75238037109375,
+          "y2": 559.5307006835938
+        }
+      ],
+      "event": "completion",
+      "mode": "native_io",
+      "stages": {
+        "deblock_dequantize": {
+          "thread_cpu_ms": 4.393957999999998,
+          "wall_ms": 4.382699012756348
+        },
+        "decode": {
+          "thread_cpu_ms": 4.4974979999999505,
+          "wall_ms": 4.947380006313324
+        },
+        "input_set_or_copy": {
+          "thread_cpu_ms": 2.165333999999916,
+          "wall_ms": 2.576651006937027
+        },
+        "input_sync": {
+          "thread_cpu_ms": 0.31120900000007623,
+          "wall_ms": 1.527873009443283
+        },
+        "output_sync": {
+          "thread_cpu_ms": 0.22166600000002745,
+          "wall_ms": 0.22079798579216003
+        },
+        "outputs_get": {
+          "thread_cpu_ms": 0.00437499999998181,
+          "wall_ms": 0.004666000604629517
+        },
+        "release": {
+          "thread_cpu_ms": 0.003500000000030923,
+          "wall_ms": 0.004083007574081421
+        },
+        "run": {
+          "thread_cpu_ms": 1.8847500000000537,
+          "wall_ms": 24.095841020345688
+        },
+        "snapshot_copy": {
+          "thread_cpu_ms": 0.004666999999926702,
+          "wall_ms": 0.004958987236022949
+        }
+      },
+      "total": {
+        "thread_cpu_ms": 13.56074799999999,
+        "wall_ms": 37.87170299887657
+      }
+    },
+    {
+      "completion": 37,
+      "count": 1,
+      "detections": [
+        {
+          "class": 1,
+          "score": 0.32086119055747986,
+          "x1": 266.4342041015625,
+          "x2": 642.7591552734375,
+          "y1": 113.75238037109375,
+          "y2": 559.5307006835938
+        }
+      ],
+      "event": "completion",
+      "mode": "native_io",
+      "stages": {
+        "deblock_dequantize": {
+          "thread_cpu_ms": 1.95474999999999,
+          "wall_ms": 1.9507179856300354
+        },
+        "decode": {
+          "thread_cpu_ms": 1.5321250000000646,
+          "wall_ms": 1.5292479991912842
+        },
+        "input_set_or_copy": {
+          "thread_cpu_ms": 1.4565830000000233,
+          "wall_ms": 1.7305870056152344
+        },
+        "input_sync": {
+          "thread_cpu_ms": 0.14612499999998363,
+          "wall_ms": 0.1446700096130371
+        },
+        "output_sync": {
+          "thread_cpu_ms": 0.12541699999997036,
+          "wall_ms": 0.12483599781990051
+        },
+        "outputs_get": {
+          "thread_cpu_ms": 0.0014590000000680448,
+          "wall_ms": 0.0017499923706054688
+        },
+        "release": {
+          "thread_cpu_ms": 0.0014579999999568827,
+          "wall_ms": 0.00145798921585083
+        },
+        "run": {
+          "thread_cpu_ms": 0.988166000000092,
+          "wall_ms": 22.950394988059998
+        },
+        "snapshot_copy": {
+          "thread_cpu_ms": 0.0017500000000154614,
+          "wall_ms": 0.0017499923706054688
+        }
+      },
+      "total": {
+        "thread_cpu_ms": 6.253623999999945,
+        "wall_ms": 28.499873995780945
+      }
+    },
+    {
+      "completion": 38,
+      "count": 1,
+      "detections": [
+        {
+          "class": 1,
+          "score": 0.32086119055747986,
+          "x1": 266.4342041015625,
+          "x2": 642.7591552734375,
+          "y1": 113.75238037109375,
+          "y2": 559.5307006835938
+        }
+      ],
+      "event": "completion",
+      "mode": "native_io",
+      "stages": {
+        "deblock_dequantize": {
+          "thread_cpu_ms": 1.9419169999999895,
+          "wall_ms": 1.9358430206775665
+        },
+        "decode": {
+          "thread_cpu_ms": 1.5464170000000195,
+          "wall_ms": 1.5432479977607727
+        },
+        "input_set_or_copy": {
+          "thread_cpu_ms": 1.0779999999999745,
+          "wall_ms": 1.1179879903793335
+        },
+        "input_sync": {
+          "thread_cpu_ms": 0.17441699999994853,
+          "wall_ms": 0.17208799719810486
+        },
+        "output_sync": {
+          "thread_cpu_ms": 0.08283299999993687,
+          "wall_ms": 0.08225300908088684
+        },
+        "outputs_get": {
+          "thread_cpu_ms": 0.0014580000000705695,
+          "wall_ms": 0.0014580190181732178
+        },
+        "release": {
+          "thread_cpu_ms": 0.0017499999999017746,
+          "wall_ms": 0.0017499923706054688
+        },
+        "run": {
+          "thread_cpu_ms": 1.0896660000000793,
+          "wall_ms": 23.16127499938011
+        },
+        "snapshot_copy": {
+          "thread_cpu_ms": 0.002041000000076565,
+          "wall_ms": 0.0020409822463989258
+        }
+      },
+      "total": {
+        "thread_cpu_ms": 5.956416999999988,
+        "wall_ms": 28.07657101750374
+      }
+    },
+    {
+      "completion": 39,
+      "count": 1,
+      "detections": [
+        {
+          "class": 1,
+          "score": 0.32086119055747986,
+          "x1": 266.4342041015625,
+          "x2": 642.7591552734375,
+          "y1": 113.75238037109375,
+          "y2": 559.5307006835938
+        }
+      ],
+      "event": "completion",
+      "mode": "native_io",
+      "stages": {
+        "deblock_dequantize": {
+          "thread_cpu_ms": 4.430708000000095,
+          "wall_ms": 4.571120023727417
+        },
+        "decode": {
+          "thread_cpu_ms": 4.469499999999925,
+          "wall_ms": 4.885253995656967
+        },
+        "input_set_or_copy": {
+          "thread_cpu_ms": 1.0517500000000837,
+          "wall_ms": 1.0447770059108734
+        },
+        "input_sync": {
+          "thread_cpu_ms": 0.17354100000000017,
+          "wall_ms": 0.17179599404335022
+        },
+        "output_sync": {
+          "thread_cpu_ms": 0.13533300000005966,
+          "wall_ms": 0.30159100890159607
+        },
+        "outputs_get": {
+          "thread_cpu_ms": 0.004083000000036918,
+          "wall_ms": 0.004083991050720215
+        },
+        "release": {
+          "thread_cpu_ms": 0.0037919999999758147,
+          "wall_ms": 0.0037910044193267822
+        },
+        "run": {
+          "thread_cpu_ms": 1.752917000000025,
+          "wall_ms": 24.30409699678421
+        },
+        "snapshot_copy": {
+          "thread_cpu_ms": 0.00437499999998181,
+          "wall_ms": 0.0046669840812683105
+        }
+      },
+      "total": {
+        "thread_cpu_ms": 12.089875000000006,
+        "wall_ms": 35.387428998947144
+      }
+    },
+    {
+      "completion": 40,
+      "count": 1,
+      "detections": [
+        {
+          "class": 1,
+          "score": 0.32086119055747986,
+          "x1": 266.4342041015625,
+          "x2": 642.7591552734375,
+          "y1": 113.75238037109375,
+          "y2": 559.5307006835938
+        }
+      ],
+      "event": "completion",
+      "mode": "native_io",
+      "stages": {
+        "deblock_dequantize": {
+          "thread_cpu_ms": 4.394250000000056,
+          "wall_ms": 4.385324001312256
+        },
+        "decode": {
+          "thread_cpu_ms": 4.448791000000028,
+          "wall_ms": 4.832459986209869
+        },
+        "input_set_or_copy": {
+          "thread_cpu_ms": 1.1800839999999653,
+          "wall_ms": 1.4158700108528137
+        },
+        "input_sync": {
+          "thread_cpu_ms": 0.11229100000002745,
+          "wall_ms": 0.11112800240516663
+        },
+        "output_sync": {
+          "thread_cpu_ms": 0.22020800000007057,
+          "wall_ms": 0.21963098645210266
+        },
+        "outputs_get": {
+          "thread_cpu_ms": 0.004082999999923231,
+          "wall_ms": 0.00437501072883606
+        },
+        "release": {
+          "thread_cpu_ms": 0.004083000000036918,
+          "wall_ms": 0.00437501072883606
+        },
+        "run": {
+          "thread_cpu_ms": 1.888832999999977,
+          "wall_ms": 24.079799979925156
+        },
+        "snapshot_copy": {
+          "thread_cpu_ms": 0.004083000000036918,
+          "wall_ms": 0.004666000604629517
+        }
+      },
+      "total": {
+        "thread_cpu_ms": 12.323499999999967,
+        "wall_ms": 35.15125700831413
+      }
+    },
+    {
+      "completion": 41,
+      "count": 1,
+      "detections": [
+        {
+          "class": 1,
+          "score": 0.32086119055747986,
+          "x1": 266.4342041015625,
+          "x2": 642.7591552734375,
+          "y1": 113.75238037109375,
+          "y2": 559.5307006835938
+        }
+      ],
+      "event": "completion",
+      "mode": "native_io",
+      "stages": {
+        "deblock_dequantize": {
+          "thread_cpu_ms": 1.9979170000000295,
+          "wall_ms": 1.9912599921226501
+        },
+        "decode": {
+          "thread_cpu_ms": 1.5548750000000382,
+          "wall_ms": 1.553748995065689
+        },
+        "input_set_or_copy": {
+          "thread_cpu_ms": 1.915958000000046,
+          "wall_ms": 2.3844790160655975
+        },
+        "input_sync": {
+          "thread_cpu_ms": 0.10704200000009223,
+          "wall_ms": 0.10646098852157593
+        },
+        "output_sync": {
+          "thread_cpu_ms": 0.08195799999998599,
+          "wall_ms": 0.08166900277137756
+        },
+        "outputs_get": {
+          "thread_cpu_ms": 0.0017499999999017746,
+          "wall_ms": 0.0017499923706054688
+        },
+        "release": {
+          "thread_cpu_ms": 0.001167000000009466,
+          "wall_ms": 0.00145798921585083
+        },
+        "run": {
+          "thread_cpu_ms": 0.9129159999999956,
+          "wall_ms": 22.875142991542816
+        },
+        "snapshot_copy": {
+          "thread_cpu_ms": 0.002333000000021457,
+          "wall_ms": 0.002333015203475952
+        }
+      },
+      "total": {
+        "thread_cpu_ms": 6.6184990000000425,
+        "wall_ms": 29.05518001317978
+      }
+    },
+    {
+      "completion": 42,
+      "count": 1,
+      "detections": [
+        {
+          "class": 1,
+          "score": 0.32086119055747986,
+          "x1": 266.4342041015625,
+          "x2": 642.7591552734375,
+          "y1": 113.75238037109375,
+          "y2": 559.5307006835938
+        }
+      ],
+      "event": "completion",
+      "mode": "native_io",
+      "stages": {
+        "deblock_dequantize": {
+          "thread_cpu_ms": 4.40095800000006,
+          "wall_ms": 4.389116019010544
+        },
+        "decode": {
+          "thread_cpu_ms": 4.395416999999952,
+          "wall_ms": 4.391157001256943
+        },
+        "input_set_or_copy": {
+          "thread_cpu_ms": 1.0803339999999935,
+          "wall_ms": 1.1209049820899963
+        },
+        "input_sync": {
+          "thread_cpu_ms": 0.1755830000000742,
+          "wall_ms": 0.17383697628974915
+        },
+        "output_sync": {
+          "thread_cpu_ms": 0.22050000000001546,
+          "wall_ms": 0.21963101625442505
+        },
+        "outputs_get": {
+          "thread_cpu_ms": 0.004666000000042914,
+          "wall_ms": 0.0046669840812683105
+        },
+        "release": {
+          "thread_cpu_ms": 0.003500000000030923,
+          "wall_ms": 0.003791987895965576
+        },
+        "run": {
+          "thread_cpu_ms": 2.02475000000004,
+          "wall_ms": 24.22680300474167
+        },
+        "snapshot_copy": {
+          "thread_cpu_ms": 0.004082999999923231,
+          "wall_ms": 0.00437501072883606
+        }
+      },
+      "total": {
+        "thread_cpu_ms": 12.368999999999915,
+        "wall_ms": 34.624700993299484
+      }
+    },
+    {
+      "completion": 43,
+      "count": 1,
+      "detections": [
+        {
+          "class": 1,
+          "score": 0.32086119055747986,
+          "x1": 266.4342041015625,
+          "x2": 642.7591552734375,
+          "y1": 113.75238037109375,
+          "y2": 559.5307006835938
+        }
+      ],
+      "event": "completion",
+      "mode": "native_io",
+      "stages": {
+        "deblock_dequantize": {
+          "thread_cpu_ms": 3.166125000000079,
+          "wall_ms": 3.1603749990463257
+        },
+        "decode": {
+          "thread_cpu_ms": 1.5382500000000618,
+          "wall_ms": 1.5365410149097443
+        },
+        "input_set_or_copy": {
+          "thread_cpu_ms": 2.1702920000000177,
+          "wall_ms": 2.0676790177822113
+        },
+        "input_sync": {
+          "thread_cpu_ms": 0.4202910000000202,
+          "wall_ms": 0.4194270074367523
+        },
+        "output_sync": {
+          "thread_cpu_ms": 0.22137500000008004,
+          "wall_ms": 0.22108900547027588
+        },
+        "outputs_get": {
+          "thread_cpu_ms": 0.004083000000036918,
+          "wall_ms": 0.004666000604629517
+        },
+        "release": {
+          "thread_cpu_ms": 0.0011660000000119908,
+          "wall_ms": 0.0014590024948120117
+        },
+        "run": {
+          "thread_cpu_ms": 2.5194179999999733,
+          "wall_ms": 24.720357984304428
+        },
+        "snapshot_copy": {
+          "thread_cpu_ms": 0.0014580000000705695,
+          "wall_ms": 0.00145798921585083
+        }
+      },
+      "total": {
+        "thread_cpu_ms": 10.106626000000006,
+        "wall_ms": 32.3162240087986
+      }
+    },
+    {
+      "completion": 44,
+      "count": 1,
+      "detections": [
+        {
+          "class": 1,
+          "score": 0.32086119055747986,
+          "x1": 266.4342041015625,
+          "x2": 642.7591552734375,
+          "y1": 113.75238037109375,
+          "y2": 559.5307006835938
+        }
+      ],
+      "event": "completion",
+      "mode": "native_io",
+      "stages": {
+        "deblock_dequantize": {
+          "thread_cpu_ms": 2.088624999999979,
+          "wall_ms": 2.1397229731082916
+        },
+        "decode": {
+          "thread_cpu_ms": 1.5560420000000477,
+          "wall_ms": 1.5549150109291077
+        },
+        "input_set_or_copy": {
+          "thread_cpu_ms": 0.9721250000000055,
+          "wall_ms": 0.9674830138683319
+        },
+        "input_sync": {
+          "thread_cpu_ms": 0.17295899999999165,
+          "wall_ms": 0.17179599404335022
+        },
+        "output_sync": {
+          "thread_cpu_ms": 0.08195799999998599,
+          "wall_ms": 0.08196097612380981
+        },
+        "outputs_get": {
+          "thread_cpu_ms": 0.0017500000000154614,
+          "wall_ms": 0.0017499923706054688
+        },
+        "release": {
+          "thread_cpu_ms": 0.001167000000009466,
+          "wall_ms": 0.00145798921585083
+        },
+        "run": {
+          "thread_cpu_ms": 1.078292999999917,
+          "wall_ms": 23.108482003211975
+        },
+        "snapshot_copy": {
+          "thread_cpu_ms": 0.0017500000000154614,
+          "wall_ms": 0.0017499923706054688
+        }
+      },
+      "total": {
+        "thread_cpu_ms": 5.994333999999981,
+        "wall_ms": 28.086779981851578
+      }
+    },
+    {
+      "completion": 45,
+      "count": 1,
+      "detections": [
+        {
+          "class": 1,
+          "score": 0.32086119055747986,
+          "x1": 266.4342041015625,
+          "x2": 642.7591552734375,
+          "y1": 113.75238037109375,
+          "y2": 559.5307006835938
+        }
+      ],
+      "event": "completion",
+      "mode": "native_io",
+      "stages": {
+        "deblock_dequantize": {
+          "thread_cpu_ms": 4.462499999999977,
+          "wall_ms": 4.450657993555069
+        },
+        "decode": {
+          "thread_cpu_ms": 4.360124999999925,
+          "wall_ms": 4.355865001678467
+        },
+        "input_set_or_copy": {
+          "thread_cpu_ms": 1.0079999999999245,
+          "wall_ms": 1.0036510229110718
+        },
+        "input_sync": {
+          "thread_cpu_ms": 0.17470800000000963,
+          "wall_ms": 0.17267099022865295
+        },
+        "output_sync": {
+          "thread_cpu_ms": 0.22108300000002146,
+          "wall_ms": 0.2199220061302185
+        },
+        "outputs_get": {
+          "thread_cpu_ms": 0.0037919999999758147,
+          "wall_ms": 0.004667013883590698
+        },
+        "release": {
+          "thread_cpu_ms": 0.003499999999917236,
+          "wall_ms": 0.003500998020172119
+        },
+        "run": {
+          "thread_cpu_ms": 2.0180410000000393,
+          "wall_ms": 24.22155299782753
+        },
+        "snapshot_copy": {
+          "thread_cpu_ms": 0.00437499999998181,
+          "wall_ms": 0.004083007574081421
+        }
+      },
+      "total": {
+        "thread_cpu_ms": 12.315917000000013,
+        "wall_ms": 34.526699006557465
+      }
+    },
+    {
+      "completion": 46,
+      "count": 1,
+      "detections": [
+        {
+          "class": 1,
+          "score": 0.32086119055747986,
+          "x1": 266.4342041015625,
+          "x2": 642.7591552734375,
+          "y1": 113.75238037109375,
+          "y2": 559.5307006835938
+        }
+      ],
+      "event": "completion",
+      "mode": "native_io",
+      "stages": {
+        "deblock_dequantize": {
+          "thread_cpu_ms": 4.346709000000033,
+          "wall_ms": 4.336614012718201
+        },
+        "decode": {
+          "thread_cpu_ms": 4.484665999999947,
+          "wall_ms": 4.824001997709274
+        },
+        "input_set_or_copy": {
+          "thread_cpu_ms": 2.382916000000023,
+          "wall_ms": 2.3748120069503784
+        },
+        "input_sync": {
+          "thread_cpu_ms": 0.41708300000004783,
+          "wall_ms": 0.41301098465919495
+        },
+        "output_sync": {
+          "thread_cpu_ms": 0.22254199999997581,
+          "wall_ms": 0.22138097882270813
+        },
+        "outputs_get": {
+          "thread_cpu_ms": 0.004083000000036918,
+          "wall_ms": 0.004083991050720215
+        },
+        "release": {
+          "thread_cpu_ms": 0.0037919999999758147,
+          "wall_ms": 0.003792017698287964
+        },
+        "run": {
+          "thread_cpu_ms": 2.683041000000003,
+          "wall_ms": 24.862736016511917
+        },
+        "snapshot_copy": {
+          "thread_cpu_ms": 0.004082999999923231,
+          "wall_ms": 0.00437501072883606
+        }
+      },
+      "total": {
+        "thread_cpu_ms": 14.625332999999955,
+        "wall_ms": 37.15710100531578
+      }
+    },
+    {
+      "completion": 47,
+      "count": 1,
+      "detections": [
+        {
+          "class": 1,
+          "score": 0.32086119055747986,
+          "x1": 266.4342041015625,
+          "x2": 642.7591552734375,
+          "y1": 113.75238037109375,
+          "y2": 559.5307006835938
+        }
+      ],
+      "event": "completion",
+      "mode": "native_io",
+      "stages": {
+        "deblock_dequantize": {
+          "thread_cpu_ms": 1.7497090000000526,
+          "wall_ms": 1.743628978729248
+        },
+        "decode": {
+          "thread_cpu_ms": 1.0065419999999676,
+          "wall_ms": 1.0056930184364319
+        },
+        "input_set_or_copy": {
+          "thread_cpu_ms": 2.0874579999999696,
+          "wall_ms": 2.573525995016098
+        },
+        "input_sync": {
+          "thread_cpu_ms": 0.10237499999993815,
+          "wall_ms": 0.10150301456451416
+        },
+        "output_sync": {
+          "thread_cpu_ms": 0.04170899999996891,
+          "wall_ms": 0.041417986154556274
+        },
+        "outputs_get": {
+          "thread_cpu_ms": 0.0011660000000119908,
+          "wall_ms": 0.0014580190181732178
+        },
+        "release": {
+          "thread_cpu_ms": 0.0008750000000645741,
+          "wall_ms": 0.0008749961853027344
+        },
+        "run": {
+          "thread_cpu_ms": 0.6203749999999673,
+          "wall_ms": 22.609136015176773
+        },
+        "snapshot_copy": {
+          "thread_cpu_ms": 0.0011660000000119908,
+          "wall_ms": 0.0014590024948120117
+        }
+      },
+      "total": {
+        "thread_cpu_ms": 5.649582999999893,
+        "wall_ms": 28.130905985832214
+      }
+    },
+    {
+      "completion": 48,
+      "count": 1,
+      "detections": [
+        {
+          "class": 1,
+          "score": 0.32086119055747986,
+          "x1": 266.4342041015625,
+          "x2": 642.7591552734375,
+          "y1": 113.75238037109375,
+          "y2": 559.5307006835938
+        }
+      ],
+      "event": "completion",
+      "mode": "native_io",
+      "stages": {
+        "deblock_dequantize": {
+          "thread_cpu_ms": 2.0827920000000404,
+          "wall_ms": 1.9361339807510376
+        },
+        "decode": {
+          "thread_cpu_ms": 1.5790829999999687,
+          "wall_ms": 1.5794170200824738
+        },
+        "input_set_or_copy": {
+          "thread_cpu_ms": 0.7772919999999885,
+          "wall_ms": 0.7726450264453888
+        },
+        "input_sync": {
+          "thread_cpu_ms": 0.10062499999992269,
+          "wall_ms": 0.09946101903915405
+        },
+        "output_sync": {
+          "thread_cpu_ms": 0.08341700000005403,
+          "wall_ms": 0.08283501863479614
+        },
+        "outputs_get": {
+          "thread_cpu_ms": 0.0017499999999017746,
+          "wall_ms": 0.0017499923706054688
+        },
+        "release": {
+          "thread_cpu_ms": 0.001458999999954358,
+          "wall_ms": 0.0014590024948120117
+        },
+        "run": {
+          "thread_cpu_ms": 0.9613339999999653,
+          "wall_ms": 22.927936017513275
+        },
+        "snapshot_copy": {
+          "thread_cpu_ms": 0.0017500000000154614,
+          "wall_ms": 0.0020419955253601074
+        }
+      },
+      "total": {
+        "thread_cpu_ms": 5.632376000000022,
+        "wall_ms": 27.64080899953842
+      }
+    },
+    {
+      "completion": 49,
+      "count": 1,
+      "detections": [
+        {
+          "class": 1,
+          "score": 0.32086119055747986,
+          "x1": 266.4342041015625,
+          "x2": 642.7591552734375,
+          "y1": 113.75238037109375,
+          "y2": 559.5307006835938
+        }
+      ],
+      "event": "completion",
+      "mode": "native_io",
+      "stages": {
+        "deblock_dequantize": {
+          "thread_cpu_ms": 4.310834,
+          "wall_ms": 4.29898801445961
+        },
+        "decode": {
+          "thread_cpu_ms": 4.523458000000005,
+          "wall_ms": 4.708498001098633
+        },
+        "input_set_or_copy": {
+          "thread_cpu_ms": 0.9528749999999491,
+          "wall_ms": 0.9473589956760406
+        },
+        "input_sync": {
+          "thread_cpu_ms": 0.1764580000000251,
+          "wall_ms": 0.1744219958782196
+        },
+        "output_sync": {
+          "thread_cpu_ms": 0.22020800000007057,
+          "wall_ms": 0.21963101625442505
+        },
+        "outputs_get": {
+          "thread_cpu_ms": 0.00437499999998181,
+          "wall_ms": 0.004667013883590698
+        },
+        "release": {
+          "thread_cpu_ms": 0.0037919999999758147,
+          "wall_ms": 0.003791987895965576
+        },
+        "run": {
+          "thread_cpu_ms": 2.099707999999964,
+          "wall_ms": 24.337931007146835
+        },
+        "snapshot_copy": {
+          "thread_cpu_ms": 0.00437499999998181,
+          "wall_ms": 0.0046669840812683105
+        }
+      },
+      "total": {
+        "thread_cpu_ms": 12.359375,
+        "wall_ms": 34.795913994312286
+      }
+    },
+    {
+      "completion": 50,
+      "count": 1,
+      "detections": [
+        {
+          "class": 1,
+          "score": 0.32086119055747986,
+          "x1": 266.4342041015625,
+          "x2": 642.7591552734375,
+          "y1": 113.75238037109375,
+          "y2": 559.5307006835938
+        }
+      ],
+      "event": "completion",
+      "mode": "native_io",
+      "stages": {
+        "deblock_dequantize": {
+          "thread_cpu_ms": 1.7689579999999978,
+          "wall_ms": 1.7622960209846497
+        },
+        "decode": {
+          "thread_cpu_ms": 0.9972080000000005,
+          "wall_ms": 0.996068000793457
+        },
+        "input_set_or_copy": {
+          "thread_cpu_ms": 2.1638739999999643,
+          "wall_ms": 2.5848180055618286
+        },
+        "input_sync": {
+          "thread_cpu_ms": 0.4360420000000431,
+          "wall_ms": 0.5197640061378479
+        },
+        "output_sync": {
+          "thread_cpu_ms": 0.041707999999971435,
+          "wall_ms": 0.04170897603034973
+        },
+        "outputs_get": {
+          "thread_cpu_ms": 0.0008750000000645741,
+          "wall_ms": 0.001166999340057373
+        },
+        "release": {
+          "thread_cpu_ms": 0.001167000000009466,
+          "wall_ms": 0.00145798921585083
+        },
+        "run": {
+          "thread_cpu_ms": 1.098416000000043,
+          "wall_ms": 23.27919501066208
+        },
+        "snapshot_copy": {
+          "thread_cpu_ms": 2.0434169999999767,
+          "wall_ms": 2.037927985191345
+        }
+      },
+      "total": {
+        "thread_cpu_ms": 8.606499999999983,
+        "wall_ms": 31.302863985300064
+      }
+    },
+    {
+      "bytes": 1638400,
+      "completion": 1,
+      "encoding": "little_endian_fp32",
+      "event": "output_snapshot",
+      "output": 0,
+      "path": "/userdata/linaro/100h_performance/hardware_0a2ca7a3216b431e8aa8b216d98461c9/run/results/native_io_single_copy_live_cam2_bank0_0_r2_native_io.c1.o0.f32",
+      "sha256": "908f038818810bce3333a102b5922354e805ded3fab17a772636bf5493419202"
+    },
+    {
+      "bytes": 409600,
+      "completion": 1,
+      "encoding": "little_endian_fp32",
+      "event": "output_snapshot",
+      "output": 1,
+      "path": "/userdata/linaro/100h_performance/hardware_0a2ca7a3216b431e8aa8b216d98461c9/run/results/native_io_single_copy_live_cam2_bank0_0_r2_native_io.c1.o1.f32",
+      "sha256": "400dee4ec338b1147cb06cff2a31cc21cb29731978eb7d6eb1a140277e2cf815"
+    },
+    {
+      "bytes": 76800,
+      "completion": 1,
+      "encoding": "little_endian_fp32",
+      "event": "output_snapshot",
+      "output": 2,
+      "path": "/userdata/linaro/100h_performance/hardware_0a2ca7a3216b431e8aa8b216d98461c9/run/results/native_io_single_copy_live_cam2_bank0_0_r2_native_io.c1.o2.f32",
+      "sha256": "be57740331624b1ad6f4efe65365d0cd2b7cf88bd1e0910d9711e20ce8d919a0"
+    },
+    {
+      "bytes": 19200,
+      "completion": 1,
+      "encoding": "little_endian_fp32",
+      "event": "output_snapshot",
+      "output": 3,
+      "path": "/userdata/linaro/100h_performance/hardware_0a2ca7a3216b431e8aa8b216d98461c9/run/results/native_io_single_copy_live_cam2_bank0_0_r2_native_io.c1.o3.f32",
+      "sha256": "5ed3fd977d4d7c7e86fd33523bc93a419d0722a488b1edfedfd75b3b18b2a5c8"
+    },
+    {
+      "bytes": 1638400,
+      "completion": 50,
+      "encoding": "little_endian_fp32",
+      "event": "output_snapshot",
+      "output": 0,
+      "path": "/userdata/linaro/100h_performance/hardware_0a2ca7a3216b431e8aa8b216d98461c9/run/results/native_io_single_copy_live_cam2_bank0_0_r2_native_io.c50.o0.f32",
+      "sha256": "908f038818810bce3333a102b5922354e805ded3fab17a772636bf5493419202"
+    },
+    {
+      "bytes": 409600,
+      "completion": 50,
+      "encoding": "little_endian_fp32",
+      "event": "output_snapshot",
+      "output": 1,
+      "path": "/userdata/linaro/100h_performance/hardware_0a2ca7a3216b431e8aa8b216d98461c9/run/results/native_io_single_copy_live_cam2_bank0_0_r2_native_io.c50.o1.f32",
+      "sha256": "400dee4ec338b1147cb06cff2a31cc21cb29731978eb7d6eb1a140277e2cf815"
+    },
+    {
+      "bytes": 76800,
+      "completion": 50,
+      "encoding": "little_endian_fp32",
+      "event": "output_snapshot",
+      "output": 2,
+      "path": "/userdata/linaro/100h_performance/hardware_0a2ca7a3216b431e8aa8b216d98461c9/run/results/native_io_single_copy_live_cam2_bank0_0_r2_native_io.c50.o2.f32",
+      "sha256": "be57740331624b1ad6f4efe65365d0cd2b7cf88bd1e0910d9711e20ce8d919a0"
+    },
+    {
+      "bytes": 19200,
+      "completion": 50,
+      "encoding": "little_endian_fp32",
+      "event": "output_snapshot",
+      "output": 3,
+      "path": "/userdata/linaro/100h_performance/hardware_0a2ca7a3216b431e8aa8b216d98461c9/run/results/native_io_single_copy_live_cam2_bank0_0_r2_native_io.c50.o3.f32",
+      "sha256": "5ed3fd977d4d7c7e86fd33523bc93a419d0722a488b1edfedfd75b3b18b2a5c8"
+    },
+    {
+      "attempted": 55,
+      "completed": 50,
+      "completed_fps": 29.97481830497235,
+      "event": "summary",
+      "failed": 0,
+      "full_viewer_fps_claim": false,
+      "hardware_certified": false,
+      "input_preprocess_timed": false,
+      "mode": "native_io",
+      "requested": 50,
+      "snapshot_policy": "first_and_last_timed_completion",
+      "status": "hardware_completed_requires_external_parity",
+      "warmed": 5,
+      "window": {
+        "thread_cpu_ms": 537.4281599999999,
+        "wall_ms": 1668.0668250024319
+      }
+    }
+  ],
+  "hardware_before": {
+    "monotonic_seconds": 235514.865233234,
+    "/proc/loadavg": "1.73 4.51 5.47 1/314 133943",
+    "/sys/class/devfreq/fdf80200.rkvdec/cur_freq": "0",
+    "/sys/class/devfreq/dmc/cur_freq": "1560000000",
+    "/sys/class/devfreq/fde40000.npu/cur_freq": "900000000",
+    "/sys/class/devfreq/fdf40000.rkvenc/cur_freq": "0",
+    "/sys/class/devfreq/fde60000.gpu/cur_freq": "200000000",
+    "/sys/class/devfreq/fdf80200.rkvdec/min_freq": "297000000",
+    "/sys/class/devfreq/dmc/min_freq": "324000000",
+    "/sys/class/devfreq/fde40000.npu/min_freq": "200000000",
+    "/sys/class/devfreq/fdf40000.rkvenc/min_freq": "297000000",
+    "/sys/class/devfreq/fde60000.gpu/min_freq": "200000000",
+    "/sys/class/devfreq/fdf80200.rkvdec/max_freq": "400000000",
+    "/sys/class/devfreq/dmc/max_freq": "1560000000",
+    "/sys/class/devfreq/fde40000.npu/max_freq": "900000000",
+    "/sys/class/devfreq/fdf40000.rkvenc/max_freq": "400000000",
+    "/sys/class/devfreq/fde60000.gpu/max_freq": "800000000",
+    "/sys/class/devfreq/fdf80200.rkvdec/governor": "vdec2_ondemand",
+    "/sys/class/devfreq/dmc/governor": "performance",
+    "/sys/class/devfreq/fde40000.npu/governor": "performance",
+    "/sys/class/devfreq/fdf40000.rkvenc/governor": "venc_ondemand",
+    "/sys/class/devfreq/fde60000.gpu/governor": "simple_ondemand",
+    "/sys/class/thermal/cooling_device1/type": "devfreq-fdf40000.rkvenc",
+    "/sys/class/thermal/thermal_zone0/type": "soc-thermal",
+    "/sys/class/thermal/cooling_device4/type": "devfreq-fde60000.gpu",
+    "/sys/class/thermal/cooling_device2/type": "devfreq-fdf80200.rkvdec",
+    "/sys/class/thermal/thermal_zone1/type": "gpu-thermal",
+    "/sys/class/thermal/cooling_device0/type": "cpufreq-cpu0",
+    "/sys/class/thermal/cooling_device3/type": "devfreq-dmc",
+    "/sys/class/thermal/thermal_zone0/temp": "61666",
+    "/sys/class/thermal/thermal_zone1/temp": "57222",
+    "/sys/devices/system/cpu/cpu3/cpufreq/scaling_cur_freq": "1992000",
+    "/sys/devices/system/cpu/cpu1/cpufreq/scaling_cur_freq": "1992000",
+    "/sys/devices/system/cpu/cpu2/cpufreq/scaling_cur_freq": "1992000",
+    "/sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq": "1992000",
+    "/sys/devices/system/cpu/cpu3/cpufreq/scaling_governor": "ondemand",
+    "/sys/devices/system/cpu/cpu1/cpufreq/scaling_governor": "ondemand",
+    "/sys/devices/system/cpu/cpu2/cpufreq/scaling_governor": "ondemand",
+    "/sys/devices/system/cpu/cpu0/cpufreq/scaling_governor": "ondemand"
+  },
+  "hardware_after": {
+    "monotonic_seconds": 235517.416147587,
+    "/proc/loadavg": "1.73 4.51 5.47 1/314 133944",
+    "/sys/class/devfreq/fdf80200.rkvdec/cur_freq": "0",
+    "/sys/class/devfreq/dmc/cur_freq": "1560000000",
+    "/sys/class/devfreq/fde40000.npu/cur_freq": "900000000",
+    "/sys/class/devfreq/fdf40000.rkvenc/cur_freq": "0",
+    "/sys/class/devfreq/fde60000.gpu/cur_freq": "200000000",
+    "/sys/class/devfreq/fdf80200.rkvdec/min_freq": "297000000",
+    "/sys/class/devfreq/dmc/min_freq": "324000000",
+    "/sys/class/devfreq/fde40000.npu/min_freq": "200000000",
+    "/sys/class/devfreq/fdf40000.rkvenc/min_freq": "297000000",
+    "/sys/class/devfreq/fde60000.gpu/min_freq": "200000000",
+    "/sys/class/devfreq/fdf80200.rkvdec/max_freq": "400000000",
+    "/sys/class/devfreq/dmc/max_freq": "1560000000",
+    "/sys/class/devfreq/fde40000.npu/max_freq": "900000000",
+    "/sys/class/devfreq/fdf40000.rkvenc/max_freq": "400000000",
+    "/sys/class/devfreq/fde60000.gpu/max_freq": "800000000",
+    "/sys/class/devfreq/fdf80200.rkvdec/governor": "vdec2_ondemand",
+    "/sys/class/devfreq/dmc/governor": "performance",
+    "/sys/class/devfreq/fde40000.npu/governor": "performance",
+    "/sys/class/devfreq/fdf40000.rkvenc/governor": "venc_ondemand",
+    "/sys/class/devfreq/fde60000.gpu/governor": "simple_ondemand",
+    "/sys/class/thermal/cooling_device1/type": "devfreq-fdf40000.rkvenc",
+    "/sys/class/thermal/thermal_zone0/type": "soc-thermal",
+    "/sys/class/thermal/cooling_device4/type": "devfreq-fde60000.gpu",
+    "/sys/class/thermal/cooling_device2/type": "devfreq-fdf80200.rkvdec",
+    "/sys/class/thermal/thermal_zone1/type": "gpu-thermal",
+    "/sys/class/thermal/cooling_device0/type": "cpufreq-cpu0",
+    "/sys/class/thermal/cooling_device3/type": "devfreq-dmc",
+    "/sys/class/thermal/thermal_zone0/temp": "60555",
+    "/sys/class/thermal/thermal_zone1/temp": "57222",
+    "/sys/devices/system/cpu/cpu3/cpufreq/scaling_cur_freq": "1608000",
+    "/sys/devices/system/cpu/cpu1/cpufreq/scaling_cur_freq": "1608000",
+    "/sys/devices/system/cpu/cpu2/cpufreq/scaling_cur_freq": "1608000",
+    "/sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq": "1608000",
+    "/sys/devices/system/cpu/cpu3/cpufreq/scaling_governor": "ondemand",
+    "/sys/devices/system/cpu/cpu1/cpufreq/scaling_governor": "ondemand",
+    "/sys/devices/system/cpu/cpu2/cpufreq/scaling_governor": "ondemand",
+    "/sys/devices/system/cpu/cpu0/cpufreq/scaling_governor": "ondemand"
+  },
+  "loaded_dependency_sha256": {
+    "/userdata/linaro/100h_performance/hardware_4bc48205e42742118589c5ca82336f77/run/results/rknn_io_bench": "cce7924ef71d21a9da541de6e8219392090d5928ed4209fc6c474f7877455b50",
+    "/usr/lib/aarch64-linux-gnu/libdl.so.2": "e97c2f373f3495f135eaf302041d9f24f3ce2ac44c15ca2743488b396c81a9a7",
+    "/usr/lib/aarch64-linux-gnu/libpthread.so.0": "9b60c3aa448ef2b7f22c8538962b0f4d7c944b7f08aafd34b563ac5ec51daf9d",
+    "/usr/lib/librknnrt.so": "73993ed4b440460825f21611731564503cc1d5a0c123746477da6cd574f34885",
+    "/usr/lib/locale/locale-archive": "e7319349b285a70dcb17dee6f145e004d5b96f9b8c88d7db6fb4c70da138ca36",
+    "/usr/lib/aarch64-linux-gnu/libmd.so.0.0.5": "be8d151f2f06935db812859f575ec818af7fd93eaab0ec4e7dae9e5ad7ca38bb",
+    "/usr/lib/aarch64-linux-gnu/libbsd.so.0.11.7": "24f2bb08fed31a04a80f4d0d0145f4cc5f42543af07a364b1fafdd3d2dcbe137",
+    "/usr/lib/aarch64-linux-gnu/libXdmcp.so.6.0.0": "cff589ca553d339123ba32528cdf45f071761624aef1ebb4b3970fe9180b7e3b",
+    "/usr/lib/aarch64-linux-gnu/libXau.so.6.0.0": "d43657a20d5b1b779e91e417f31e3deaccbcede10d7dd38991e31b86e550152b",
+    "/usr/lib/aarch64-linux-gnu/libbrotlicommon.so.1.0.9": "eb58e3a7decc81cb3bf7dbd3d2db8f5000b473b4fd3b6c2f6b7afbccf6d7dd60",
+    "/usr/lib/aarch64-linux-gnu/libxcb.so.1.1.0": "a1087fa3ff008f9b38c7dc70f3f4734fc26cb513025c033acc4e3a9b17475aa4",
+    "/usr/lib/aarch64-linux-gnu/libbrotlidec.so.1.0.9": "ee7db2a46ad6a5bc2a164827cfbe21b930450c1b0954594fa4e2aafb156977c3",
+    "/usr/lib/aarch64-linux-gnu/libX11.so.6.4.0": "8371115a64330431c1e0f332ea668bbff10a11bef18e0800b5306ffdca595e1a",
+    "/usr/lib/aarch64-linux-gnu/libpcre2-8.so.0.11.2": "cabf859fab34e77fba3ab3485878cc19014327246a7c6aa21ac0d2d1a32dcc81",
+    "/usr/lib/aarch64-linux-gnu/libicudata.so.72.1": "fc2600e8e114e772845b9a061fa0d6fd6f8d73b0f213d70e88763127b4d7443a",
+    "/usr/lib/aarch64-linux-gnu/libgraphite2.so.3.2.1": "5c39675fcec11e7aefd73ef7a8c2a881ff0cb1de4bb4e6e92abd7dacf8c7f727",
+    "/usr/lib/aarch64-linux-gnu/libfreetype.so.6.18.3": "aeb963698e88c23790f2db1bf36abdf650152253f7b25cdb90fee080c5e09c4a",
+    "/usr/lib/aarch64-linux-gnu/libGLX.so.0.0.0": "e2a6d5ea771bd4ab1b751528ba48264b41b63bce344041da599e37da251880a7",
+    "/usr/lib/aarch64-linux-gnu/libGLdispatch.so.0.0.0": "6d6da001d8112cdef30a72ed62b97f7e274cd81469effa759a133f9ba2c30c61",
+    "/usr/lib/aarch64-linux-gnu/libglib-2.0.so.0.7400.6": "2af7b8378fee794672cf67614b60568318cef2202454ddc88d300093aa52000d",
+    "/usr/lib/aarch64-linux-gnu/libzstd.so.1.5.4": "63ff891e4316be1d30a8e551ded6cbb0283772105b352103608e60c06c95ac15",
+    "/usr/lib/aarch64-linux-gnu/libpcre2-16.so.0.11.2": "584beddbb3c4644b6d73c576c5fb77f6373d8df0165133e9fc31cf4efcc69b6c",
+    "/usr/lib/aarch64-linux-gnu/libicuuc.so.72.1": "14fc1d32a6c09f0ae248b361dcfb7def2b6501b337612fd0c6200fc47d2de59c",
+    "/usr/lib/aarch64-linux-gnu/libicui18n.so.72.1": "d80af001f6da9b41b0a63a552aba33e53b0e4775ed56ae1161ca055ee841a1e2",
+    "/usr/lib/aarch64-linux-gnu/libdouble-conversion.so.3.1": "bf0bff7964d6f4371d7ff2ca370ac877f71ccfa331b8c162937f91623817e493",
+    "/usr/lib/aarch64-linux-gnu/libmd4c.so.0.4.8": "622b1826710bb70a88ad839e27bf8c04c7519a53eb3e0acc3b676138238e9477",
+    "/usr/lib/aarch64-linux-gnu/libharfbuzz.so.0.60000.0": "2b79a236dc9ff8f991a3123dae97eba4193c9f70d3c2a45b731b64d3b5b8677e",
+    "/usr/lib/aarch64-linux-gnu/libz.so.1.2.13": "ffb1ab496e6eced03ab679075f9f2c415c7728a145cc7f63d614497102d73822",
+    "/usr/lib/aarch64-linux-gnu/libpng16.so.16.39.0": "cd34276bdb36e09cacc1300da90b1f52bfdcde7c00f5078356482f0bebf05b04",
+    "/usr/lib/aarch64-linux-gnu/libGL.so.1.7.0": "99c2cde6f0586ad932d13c9cc344e752c694cd3d45a33d3b2633e0c971d7cef8",
+    "/usr/lib/aarch64-linux-gnu/libc.so.6": "50227f7a4dcb8b2a40b84aedff1c101f7e0aa5a4fc180ba882b52e53be226427",
+    "/usr/lib/aarch64-linux-gnu/libgcc_s.so.1": "8526cf244c909542d584aa8454212341290a4537020b9bd30c7f2d3f7c1bc308",
+    "/usr/lib/aarch64-linux-gnu/libm.so.6": "c36873edf7004eac309f7bea0b99930e050cba6b4c28482cc9178ec6ed1d5b2b",
+    "/usr/lib/aarch64-linux-gnu/libstdc++.so.6.0.30": "8e62ed4579918c515c4f0d939d7bbe44048e501021783db840220deb5bb982e0",
+    "/usr/lib/aarch64-linux-gnu/libQt5Core.so.5.15.8": "22876e842c8f20ff2ea5596eada42791228ea01d473126940d2a2742ff95c5f4",
+    "/usr/lib/aarch64-linux-gnu/libQt5Gui.so.5.15.8": "e9993d840b53fc1de0587873b2bc16668091fd4b313a509aa2d46eab37d19ed4",
+    "/usr/lib/aarch64-linux-gnu/ld-linux-aarch64.so.1": "a2db553caf40402c0db144234c5d146b2cf7a69d97508341724639661b226025"
+  }
+}

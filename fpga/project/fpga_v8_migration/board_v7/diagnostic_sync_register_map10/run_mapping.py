@@ -1,0 +1,89 @@
+"""Site-only experiment using hash-bound actual map09 synthesis artifacts."""
+from pathlib import Path
+import ctypes,json,shutil,traceback
+import audit_library as a
+
+H=Path(__file__).resolve().parent
+OLD=H.parent/'diagnostic_sync_register_map09'
+a.H=H
+a.E=H/'evidence'
+
+def main():
+    a.check_prepared();a.check_protected()
+    assert not (H/'execution').exists()
+    a.idle()
+    kernel=ctypes.WinDLL('kernel32',use_last_error=True)
+    kernel.CreateMutexW.argtypes=[ctypes.c_void_p,ctypes.c_bool,ctypes.c_wchar_p]
+    kernel.CreateMutexW.restype=ctypes.c_void_p
+    kernel.CloseHandle.argtypes=[ctypes.c_void_p]
+    handle=kernel.CreateMutexW(None,True,'Global\\ov56401_PDS_single_instance')
+    assert handle and ctypes.get_last_error()!=183
+    try:
+        assert not [p for p in a.processes() if p['Name'].lower() in {'pds.exe','pds_shell.exe','ta.exe'}]
+        work=H/'execution';work.mkdir()
+        shutil.copy2(OLD/'execution/parse_objects.py',work/'parse_objects.py')
+        provenance=[];results={}
+        for name in ['baseline','site']:
+            source=OLD/'execution'/name
+            arm=work/name;shutil.copytree(H/name,arm);(arm/'evidence').mkdir()
+            for p in (H/name).rglob('*'):
+                if p.is_file() and p.relative_to(H/name).as_posix()!='constraints/site.lcf':
+                    q=source/p.relative_to(H/name)
+                    assert a.sha(p)==a.sha(q),('Reused synthesis input mismatch',p)
+            for stage in ['compile','synthesis']:
+                artifact=json.loads((source/'evidence'/(stage+'_artifact.json')).read_bytes())
+                assert a.sha(artifact['adf'])==artifact['adf_sha256']
+                assert a.sha(artifact['native_db'])==artifact['native_db_sha256']
+                graphfile=source/'evidence'/stage/'analysis/graph.json'
+                hashes=json.loads((source/'evidence'/stage/'hashes.json').read_bytes())
+                assert a.sha(graphfile)==hashes['graph_sha256']
+                audit=a.audit_graph(json.loads(graphfile.read_bytes()),stage)
+                assert audit['passed']
+                provenance.append({'arm':name,'stage':stage,'artifact':artifact,
+                                   'graph_sha256':a.sha(graphfile),'reaudit':audit})
+            # These constraints are read during mapping, not during synthesis.
+            oldclock=source/'constraints/clock.fdc'
+            assert a.sha(oldclock)==a.sha(arm/'constraints/clock.fdc')
+            shutil.copytree(source/'synthesize',arm/'synthesize')
+            a.save('reuse_provenance.json',provenance)
+            syn=arm/'synthesize/map03_twoff_probe_syn.adf'
+            script=arm/'evidence/actual_map.tcl'
+            script.write_text('set_arch -family Logos2 -device PG2L100H -speedgrade -6 -package FBG484\nadd_constraint {'+(arm/'constraints/clock.fdc').as_posix()+'}\nadd_constraint {'+(arm/'constraints/site.lcf').as_posix()+'}\ndev_map -force_to_run -input_db_file {'+syn.as_posix()+'} -override_pcf true -devmap_remove_dups 0 -devmap_const_prop 0 -devmap_control_set_num 0\n',encoding='ascii')
+            raw=a.tool(arm,'mapping',[a.PDS,'-file',script,'-work_dir',arm,'-project_name','map03_twoff_probe'])
+            assert b'Process "Device Map" done.' in raw
+            db=arm/'device_map/map03_twoff_probe_map.adf'
+            graph=a.exported(arm,'mapping',db)
+            audit=a.audit_graph(graph,'mapping')
+            pcf=arm/'device_map/map03_twoff_probe.pcf'
+            lines=pcf.read_text(encoding='ascii',errors='backslashreplace').splitlines()
+            bindings=[]
+            if name=='site':
+                for row,site in zip(audit['rows'],['CLMA_33_450','CLMA_45_462']):
+                    cell=row.get('actual_cell','MISSING')
+                    matching=[]
+                    for line in lines:
+                        parts=line.strip().split()
+                        if len(parts)>=3 and parts[0]=='def_inst_site' and parts[1].strip('{}').lstrip('\\')==cell and parts[2]==site:
+                            matching.append(line)
+                    rec=graph['primitives'].get(cell,{})
+                    retained=[entry for entry in rec.get('attributes',[])+rec.get('cdb_entries',[]) if 'PAP_LOC' in json.dumps(entry) and site in json.dumps(entry)]
+                    bindings.append({'target':row['target'],'cell':cell,'site':site,
+                                     'pcf_lines':matching,'mapped_entries':retained,'passed':bool(matching and retained)})
+            results[name]={'mapping':audit,'bindings':bindings,'adf_sha256':a.sha(db),
+                           'graph_sha256':a.sha(arm/'evidence/mapping/analysis/graph.json'),
+                           'pcf_sha256':a.sha(pcf)}
+            a.save('partial_results.json',results)
+        passed=results['site']['mapping']['passed'] and all(r['passed'] for r in results['site']['bindings'])
+        baseline_packed=not results['baseline']['mapping']['passed']
+        a.save('actual_final_result.json',{'status':'PASS_METHOD_ONLY' if passed else 'FAIL',
+               'results':results,'anti_packing_effect_demonstrated':passed and baseline_packed,
+               'production_gate':'BLOCKED','scope':'twoFF site-only method; not production60 or delivery'})
+        a.check_prepared();a.check_protected()
+    finally:
+        kernel.CloseHandle(handle)
+
+if __name__=='__main__':
+    try:main()
+    except BaseException:
+        a.save('actual_failure.json',{'status':'FAIL','traceback':traceback.format_exc(),'production_gate':'BLOCKED'})
+        raise

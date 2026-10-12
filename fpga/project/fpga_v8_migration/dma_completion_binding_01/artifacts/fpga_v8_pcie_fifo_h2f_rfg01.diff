@@ -1,0 +1,81 @@
+--- C:\Users\NineSun\Desktop\ov56401\project\fpga_v8_migration\whole_candidate_v3_timing_route_01\rtl\fpga_v8_pcie_fifo_h2f_rfg01.v
++++ candidate_fpga_v8_pcie_fifo_h2f_rfg01.v
+@@ -1,4 +1,4 @@
+-module fpga_v8_pcie_fifo_h2f_rfg01 #(
++module fpga_v8_pcie_fifo_h2f_rfg01_dcb01_candidate #(
+     parameter ADDR_WIDTH = 12,
+               MSI_NUM = 5,
+ 
+@@ -577,7 +577,7 @@
+     end
+ end
+ 
+-assign fpga_data_ready = fpga_data_ready_r;
++assign fpga_data_ready = fpga_data_ready_r && !f2h_fault_sync2;
+ 
+ ////////////////////////////////////////////////////////////////////////
+ // FPGA --> CPU TX Done Logic
+@@ -609,7 +609,7 @@
+         fpga_tx_done_r <= 1'b0;
+     end
+ end
+-assign fpga_tx_done = fpga_tx_done_r;
++assign fpga_tx_done = fpga_tx_done_r && !f2h_fault_sync2;
+ 
+ 
+ 
+@@ -766,7 +766,7 @@
+ //         ar_sent <= 1'b1;
+ // end
+ 
+-assign axi_arvalid = (r_state == R_ADDR_SEND);// && !ar_sent;
++assign axi_arvalid = (r_state == R_ADDR_SEND) && !f2h_fault;// && !ar_sent;
+ 
+ //----------- RREADY & FIFO Write ----------
+ assign axi_rready = (r_state == R_DATA_WAIT);
+@@ -782,7 +782,7 @@
+         fifo_tx_wr_data  <= 128'd0;
+     end
+     else begin
+-        fifo_tx_wr_en    <= axi_rvalid && axi_rready && (axi_rid == 4'b0000);
++        fifo_tx_wr_en    <= axi_rvalid && axi_rready && (axi_rid == 0) && !f2h_bad_beat && !f2h_fault;
+         fifo_tx_wr_data  <= axi_rdata;
+     end
+ end
+@@ -802,4 +802,36 @@
+ // AXI Read Interface Logic - END
+ //====================================================
+ 
++// dcb01 isolated candidate: latch ARLEN at acceptance; check EVERY accepted R.
++// Sticky until coordinated reset, including across commands. No timeout recovery.
++reg f2h_fault;
++reg [4:0] f2h_burst_left;
++reg [31:0] f2h_beats_seen;
++wire f2h_bad_beat = (axi_rresp != 2'b00) || (axi_rid != 0) ||
++    (f2h_burst_left == 0) || (axi_rlast != (f2h_burst_left == 1)) ||
++    (f2h_beats_seen >= dma_total_beats);
++always @(posedge axi_clk or posedge rx_retire_axi_rst2) begin
++    if (rx_retire_axi_rst2) begin
++        f2h_fault <= 0; f2h_burst_left <= 0; f2h_beats_seen <= 0;
++    end else begin
++        if (tx_runing_axi_rising) f2h_beats_seen <= 0;
++        if (axi_arvalid && axi_arready) begin
++            if (f2h_burst_left != 0) f2h_fault <= 1;
++            f2h_burst_left <= {1'b0,axi_arlen} + 5'd1;
++        end
++        if (axi_rvalid && axi_rready) begin
++            if (f2h_bad_beat) f2h_fault <= 1;
++            else begin
++                f2h_burst_left <= f2h_burst_left - 1'b1;
++                f2h_beats_seen <= f2h_beats_seen + 1'b1;
++            end
++        end
++    end
++end
++(* ASYNC_REG = "TRUE" *) reg f2h_fault_sync1, f2h_fault_sync2;
++always @(posedge fifo_pcie_clk or posedge rx_retire_pcie_rst2) begin
++    if (rx_retire_pcie_rst2) begin f2h_fault_sync1<=0; f2h_fault_sync2<=0; end
++    else begin f2h_fault_sync1<=f2h_fault; f2h_fault_sync2<=f2h_fault_sync1; end
++end
++
+ endmodule

@@ -1,0 +1,222 @@
+{
+  "status": "PASS",
+  "prepared_project_sha256": "c07da86aec07805e5d24823fb54986f9ce4b4555c4a658e16dab0f869dd1e2bb",
+  "registered_source_files": [
+    "rtl/v7_sdt_top.v",
+    "rtl/v7_sdt_bus.v",
+    "rtl/v7_sfd_candidate.v",
+    "constraints/clock.fdc"
+  ],
+  "distinct_modules": [
+    "v7_sdt_top",
+    "v7_sdt_bus",
+    "v7_sfd_counter",
+    "v7_sfd_candidate"
+  ],
+  "all_43_connections_bound": true,
+  "primitive_groups": [
+    {
+      "owner": "source",
+      "type": "GTP_DFF_PE",
+      "instance": "cr_ff0",
+      "ports": {
+        "Q": "cr[0]",
+        "D": "cr_d0",
+        "CLK": "cam_clk",
+        "P": "reset_any",
+        "CE": "1'b1"
+      },
+      "parameter_bytes": ".GRS_EN(\"TRUE\"),.INIT(1'b1)"
+    },
+    {
+      "owner": "source",
+      "type": "GTP_DFF_PE",
+      "instance": "cr_ff1",
+      "ports": {
+        "Q": "cr[1]",
+        "D": "cr_d1",
+        "CLK": "cam_clk",
+        "P": "reset_any",
+        "CE": "1'b1"
+      },
+      "parameter_bytes": ".GRS_EN(\"TRUE\"),.INIT(1'b1)"
+    },
+    {
+      "owner": "source",
+      "type": "GTP_DFF_PE",
+      "instance": "hr_ff0",
+      "ports": {
+        "Q": "hr[0]",
+        "D": "hr_d0",
+        "CLK": "host_clk",
+        "P": "reset_any",
+        "CE": "1'b1"
+      },
+      "parameter_bytes": ".GRS_EN(\"TRUE\"),.INIT(1'b1)"
+    },
+    {
+      "owner": "source",
+      "type": "GTP_DFF_PE",
+      "instance": "hr_ff1",
+      "ports": {
+        "Q": "hr[1]",
+        "D": "hr_d1",
+        "CLK": "host_clk",
+        "P": "reset_any",
+        "CE": "1'b1"
+      },
+      "parameter_bytes": ".GRS_EN(\"TRUE\"),.INIT(1'b1)"
+    },
+    {
+      "owner": "source",
+      "type": "GTP_DFF_CE",
+      "instance": "ack_sync_ff0",
+      "ports": {
+        "Q": "ack_sync[0]",
+        "D": "ack_sync_d0",
+        "CLK": "cam_clk",
+        "C": "rst_c",
+        "CE": "1'b1"
+      },
+      "parameter_bytes": ".GRS_EN(\"TRUE\"),.INIT(1'b0)"
+    },
+    {
+      "owner": "source",
+      "type": "GTP_DFF_CE",
+      "instance": "ack_sync_ff1",
+      "ports": {
+        "Q": "ack_sync[1]",
+        "D": "ack_sync_d1",
+        "CLK": "cam_clk",
+        "C": "rst_c",
+        "CE": "1'b1"
+      },
+      "parameter_bytes": ".GRS_EN(\"TRUE\"),.INIT(1'b0)"
+    },
+    {
+      "owner": "source",
+      "type": "GTP_DFF_CE",
+      "instance": "req_sync_ff0",
+      "ports": {
+        "Q": "req_sync[0]",
+        "D": "req_sync_d0",
+        "CLK": "host_clk",
+        "C": "rst_h",
+        "CE": "1'b1"
+      },
+      "parameter_bytes": ".GRS_EN(\"TRUE\"),.INIT(1'b0)"
+    },
+    {
+      "owner": "source",
+      "type": "GTP_DFF_CE",
+      "instance": "req_sync_ff1",
+      "ports": {
+        "Q": "req_sync[1]",
+        "D": "req_sync_d1",
+        "CLK": "host_clk",
+        "C": "rst_h",
+        "CE": "1'b1"
+      },
+      "parameter_bytes": ".GRS_EN(\"TRUE\"),.INIT(1'b0)"
+    },
+    {
+      "owner": "source",
+      "type": "GTP_DFF_CE",
+      "instance": "req_sync_ff2",
+      "ports": {
+        "Q": "req_sync[2]",
+        "D": "req_sync_d2",
+        "CLK": "host_clk",
+        "C": "rst_h",
+        "CE": "1'b1"
+      },
+      "parameter_bytes": ".GRS_EN(\"TRUE\"),.INIT(1'b0)"
+    },
+    {
+      "owner": "source",
+      "type": "GTP_DFF_CE",
+      "instance": "overrun_sync_ff0",
+      "ports": {
+        "Q": "overrun_sync[0]",
+        "D": "overrun_sync_d0",
+        "CLK": "host_clk",
+        "C": "rst_h",
+        "CE": "1'b1"
+      },
+      "parameter_bytes": ".GRS_EN(\"TRUE\"),.INIT(1'b0)"
+    },
+    {
+      "owner": "source",
+      "type": "GTP_DFF_CE",
+      "instance": "overrun_sync_ff1",
+      "ports": {
+        "Q": "overrun_sync[1]",
+        "D": "overrun_sync_d1",
+        "CLK": "host_clk",
+        "C": "rst_h",
+        "CE": "1'b1"
+      },
+      "parameter_bytes": ".GRS_EN(\"TRUE\"),.INIT(1'b0)"
+    },
+    {
+      "owner": "bus",
+      "type": "GTP_DFF_PE",
+      "instance": "reset_pipe_ff0",
+      "ports": {
+        "Q": "reset_pipe[0]",
+        "D": "reset_pipe_d0",
+        "CLK": "clk",
+        "P": "reset_pipe_assert",
+        "CE": "1'b1"
+      },
+      "parameter_bytes": ".GRS_EN(\"TRUE\"),.INIT(1'b1)"
+    },
+    {
+      "owner": "bus",
+      "type": "GTP_DFF_PE",
+      "instance": "reset_pipe_ff1",
+      "ports": {
+        "Q": "reset_pipe[1]",
+        "D": "reset_pipe_d1",
+        "CLK": "clk",
+        "P": "reset_pipe_assert",
+        "CE": "1'b1"
+      },
+      "parameter_bytes": ".GRS_EN(\"TRUE\"),.INIT(1'b1)"
+    },
+    {
+      "owner": "bus",
+      "type": "GTP_DFF_PE",
+      "instance": "reset_pipe_ff2",
+      "ports": {
+        "Q": "reset_pipe[2]",
+        "D": "reset_pipe_d2",
+        "CLK": "clk",
+        "P": "reset_pipe_assert",
+        "CE": "1'b1"
+      },
+      "parameter_bytes": ".GRS_EN(\"TRUE\"),.INIT(1'b1)"
+    },
+    {
+      "owner": "bus",
+      "type": "GTP_DFF_PE",
+      "instance": "reset_pipe_ff3",
+      "ports": {
+        "Q": "reset_pipe[3]",
+        "D": "reset_pipe_d3",
+        "CLK": "clk",
+        "P": "reset_pipe_assert",
+        "CE": "1'b1"
+      },
+      "parameter_bytes": ".GRS_EN(\"TRUE\"),.INIT(1'b1)"
+    }
+  ],
+  "instances_per_camera": 15,
+  "sync_instances": 28,
+  "reset_instances": 32,
+  "root_clock_count": 5,
+  "timing_exceptions": 0,
+  "active_run_stable_input_count": 741,
+  "encoding": "Bytes preserved; generated ASCII is valid GBK",
+  "remote_or_program": false
+}

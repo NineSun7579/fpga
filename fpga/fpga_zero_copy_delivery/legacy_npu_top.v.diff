@@ -1,0 +1,72 @@
+--- letterbox/integrated/source/top.v
++++ integrated/source/top.v
+@@ -2649,22 +2649,53 @@
+     wire                        npu_s4_axi_rready  ;
+ 
+ 
+-// ===== NPU removed: tie off crossbar-facing NPU ports =====
+-// S02 write (npu_out) + S02 read (npu_s0)
+-assign npu_out_axi_awvalid = 1'b0;
+-assign npu_out_axi_wvalid  = 1'b0;
+-assign npu_out_axi_bready  = 1'b1;
+-assign npu_s0_axi_arvalid  = 1'b0;
+-assign npu_s0_axi_rready   = 1'b1;
+-// S03 read (npu_s1) ; S03 write (prep2) stays active
+-assign npu_s1_axi_arvalid  = 1'b0;
+-assign npu_s1_axi_rready   = 1'b1;
+-// S04/S05/S06 read (npu_s2/s3/s4)
+-assign npu_s2_axi_arvalid  = 1'b0;
+-assign npu_s2_axi_rready   = 1'b1;
+-// [VKFS 2026-09-25] S05 (npu_s3) is driven by cam1's vip_kf_stream read master
+-// (was tied off). Keep S02/S04/S06 tied off.
+-
++// Legacy FPGA NPU absent: deterministic inactive master requests.
++// Response READY only drains stale responses; no command success is generated.
++// S05 = cam1 KF history, S06 = delivery reads, M02 = delivery MMIO.
++assign npu_out_axi_awid = 4'd0;
++assign npu_out_axi_awaddr = 32'd0;
++assign npu_out_axi_awlen = 4'd0;
++assign npu_out_axi_awsize = 3'd0;
++assign npu_out_axi_awburst = 2'd0;
++assign npu_out_axi_awlock = 1'd0;
++assign npu_out_axi_awcache = 4'd0;
++assign npu_out_axi_awprot = 3'd0;
++assign npu_out_axi_awvalid = 1'd0;
++assign npu_out_axi_wdata = 128'd0;
++assign npu_out_axi_wstrb = 16'd0;
++assign npu_out_axi_wlast = 1'd0;
++assign npu_out_axi_wvalid = 1'd0;
++assign npu_out_axi_bready = 1'd1;
++assign npu_s0_axi_arid = 4'd0;
++assign npu_s0_axi_araddr = 32'd0;
++assign npu_s0_axi_arlen = 4'd0;
++assign npu_s0_axi_arsize = 3'd0;
++assign npu_s0_axi_arburst = 2'd0;
++assign npu_s0_axi_arlock = 1'd0;
++assign npu_s0_axi_arcache = 4'd0;
++assign npu_s0_axi_arprot = 3'd0;
++assign npu_s0_axi_arvalid = 1'd0;
++assign npu_s0_axi_rready = 1'd1;
++assign npu_s1_axi_arid = 4'd0;
++assign npu_s1_axi_araddr = 32'd0;
++assign npu_s1_axi_arlen = 4'd0;
++assign npu_s1_axi_arsize = 3'd0;
++assign npu_s1_axi_arburst = 2'd0;
++assign npu_s1_axi_arlock = 1'd0;
++assign npu_s1_axi_arcache = 4'd0;
++assign npu_s1_axi_arprot = 3'd0;
++assign npu_s1_axi_arvalid = 1'd0;
++assign npu_s1_axi_rready = 1'd1;
++assign npu_s2_axi_arid = 4'd0;
++assign npu_s2_axi_araddr = 32'd0;
++assign npu_s2_axi_arlen = 4'd0;
++assign npu_s2_axi_arsize = 3'd0;
++assign npu_s2_axi_arburst = 2'd0;
++assign npu_s2_axi_arlock = 1'd0;
++assign npu_s2_axi_arcache = 4'd0;
++assign npu_s2_axi_arprot = 3'd0;
++assign npu_s2_axi_arvalid = 1'd0;
++assign npu_s2_axi_rready = 1'd1;
+ 
+ // M02 (NPU register window) response inputs
+ 

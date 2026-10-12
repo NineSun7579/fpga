@@ -1,0 +1,319 @@
+--- build01/analysis_tools/classify_paths.py
++++ build02/analysis_tools/classify_paths.py
+@@ -1,42 +1,14 @@
++"""Analyze a new exported graph; fail closed on unresolved or packed stages."""
+ from pathlib import Path
+-import json,collections
++import json
++from graph_adapter import classify
+ HERE=Path(__file__).resolve().parent
+ def main():
+-    g=json.loads((HERE/'graph.json').read_bytes());o=json.loads((HERE/'objects.json').read_bytes())
+-    prim=g['primitives'];pn=g['pin_net'];np=g['netpins'];aliases=g['net_aliases']
+-    an={a:n for n,aa in aliases.items() for a in aa};drivers={n:[p for p in pp if prim[p.rsplit('/',1)[0]]['ports'][p.rsplit('/',1)[1]]['direction']=='OUTPUT'] for n,pp in np.items()}
+-    def rec(pin):return {'pin':pin,'net':pn.get(pin),'drivers':drivers.get(pn.get(pin),[]),'aliases':[a for a in aliases.get(pn.get(pin),[]) if '/@' in a]}
+-    reset=[];chains=[];ordinary=[];negedge=[]
+-    for cam in range(4):
+-        pre=f'source_diagnostics/cameras[{cam}].source/'
+-        for signal,width in [('req_sync',3),('ack_sync',2),('overrun_sync',2)]:
+-            for i in range(width):
+-                ip=pre+f'{signal}[{i}]';assert ip in prim
+-                d=rec(ip+'/D');q=rec(ip+'/Q');c=rec(ip+'/CLK')
+-                expected=pre+f'{signal}[{i-1}]/Q' if i else pre+({'req_sync':'request','ack_sync':'ack','overrun_sync':'sticky_overrun'}[signal])+'/Q'
+-                assert d['drivers']==[expected],(ip,d)
+-                chains.append({'camera':cam,'signal':signal,'stage':i,'classification':'cdc_first' if i==0 else 'sync_later','cell':ip,'type':prim[ip]['type'],'D':d,'CLK':c,'Q_fanout':np[q['net']]})
+-                if i:ordinary.append({'classification':'sync_later','launch_CLK':expected.rsplit('/',1)[0]+'/CLK','capture_D':ip+'/D'})
+-        for signal in ['cr','hr']:
+-            for i in range(2):
+-                alias=an.get(pre+f'@{signal}[{i}]')
+-                outs=drivers.get(alias,[])
+-                merged_via=None
+-                if signal=='hr' and i==0 and not outs:
+-                    hr1=an[pre+'@hr[1]'];hr1q=drivers[hr1]
+-                    assert len(hr1q)==1
+-                    capture=hr1q[0].rsplit('/',1)[0]
+-                    outs=drivers[pn[capture+'/D']]
+-                    merged_via={'next_stage_Q':hr1q[0],'next_stage_D':capture+'/D','evidence':'actual first-stage Q drives actual hr[1] D; RTL hr shift equation'}
+-                reset.append({'camera':cam,'logical':f'{signal}[{i}]','actual_Q':outs,'merged':not any(p==pre+f'{signal}[{i}]/Q' for p in outs),'aliases':aliases.get(alias,[])})
+-                if merged_via:reset[-1]['merged_via']=merged_via
+-        for i in range(4):
+-            ip=f'source_diagnostics/cameras[{cam}].reset_pipe[{i}]'
+-            reset.append({'camera':cam,'logical':f'reset_pipe[{i}]','actual_Q':[ip+'/Q'],'D':rec(ip+'/D'),'CLK':rec(ip+'/CLK'),'P':rec(ip+'/P')})
+-    for ip,r in o['classified_registers'].items():
+-        if r['classification']=='negedge_binding':negedge.append({'cell':ip,'type':prim[ip]['type'],'CLK':rec(ip+'/CLK'),'D':rec(ip+'/D'),'Q':rec(ip+'/Q'),'parameters':prim[ip]['parameters']})
+-    result={'chains':chains,'reset':reset,'negedge':negedge,'ordinary_pairs':ordinary,'all_classified_registers':o['classified_registers'],
+-            'limits':['Recovery/removal/minimum pulse width remain unverified until timing reports','ASYNC_REG propagation and negedge inversion require STA/library confirmation']}
+-    (HERE/'classification.json').write_text(json.dumps(result,indent=2));print('chain registers',len(chains),'reset logical bits',len(reset),'negedge',len(negedge),'ordinary sync pairs',len(ordinary))
+-    print('host resets',[(r['camera'],r['logical'],r['actual_Q']) for r in reset if r['logical'].startswith('hr')])
++    g=json.loads((HERE/'graph.json').read_bytes())
++    result=classify(g)
++    objects=json.loads((HERE/'objects.json').read_bytes())
++    result['all_classified_registers']=objects['classified_registers']
++    result['negedge']=[r for r in objects['classified_registers'].values() if r['classification']=='negedge_binding']
++    (HERE/'classification.json').write_bytes((json.dumps(result,indent=2)+'\n').encode('ascii'))
++    print('NEW_GRAPH_60_INDEPENDENT_ENDPOINTS_PASS')
+ if __name__=='__main__':main()
+--- /dev/null
++++ build02/analysis_tools/derive_new_constraints.py
+@@ -0,0 +1,69 @@
++"""Pure offline derivation from supplied NEW compile/synthesis graphs; no tool calls."""
++from pathlib import Path
++import argparse, hashlib, json, re
++from graph_adapter import Resolver, classify, require
++
++def sha(p):return hashlib.sha256(Path(p).read_bytes()).hexdigest()
++def coll(pins):
++    require(bool(pins),'Empty exact constraint collection')
++    return '[get_pins -hierarchical {'+' '.join(c.replace('/','.')+'/'+p for c,p in
++           (x.rsplit('/',1) for x in sorted(set(pins))))+'}]'
++def derive(compile_graph,synthesis_graph,mapping_manifest,frozen_clock):
++    cg=json.loads(Path(compile_graph).read_bytes());sg=json.loads(Path(synthesis_graph).read_bytes())
++    m=json.loads(Path(mapping_manifest).read_bytes());raw=Path(frozen_clock).read_bytes()
++    require(not m['errors'] and len(m['resolved'])==2048,'New exhaustive mailbox resolution incomplete')
++    classify(cg);classified=classify(sg)
++    clocks=set();groups=[]
++    for line in raw.decode('ascii').splitlines():
++        if line.lstrip().startswith('#'):continue
++        if line.startswith(('create_clock ','create_generated_clock ')):clocks.add(re.search(r'-name\s+\{([^}]+)\}',line)[1])
++        if line.startswith('set_clock_groups '):
++            require('-asynchronous' in line,'Unknown frozen clock group')
++            gs=re.findall(r'-group\s+\[get_clocks\s+\{?(\w+)\}?\]',line)
++            require(len(gs)==1,'Unknown frozen group syntax');groups.extend(gs)
++    u={(a,b) for a in clocks for b in clocks if a!=b and (a in groups or b in groups)}
++    carved={(f'cmos{i+1}_pclk','ddrphy_sysclk') for i in range(4)}
++    require(len(u)==368 and carved<=u and len(u-carved)==364,'Complete frozen U changed')
++    lines=['# Derived from supplied new graph hashes; qualification and runtime proof pending.']
++    for a,b in sorted(u-carved):lines.append(f'set_false_path -from [get_clocks {{{a}}}] -to [get_clocks {{{b}}}]')
++    rows=[];allpairs=set()
++    for cam in range(4):
++        cr=Resolver(cg);sr=Resolver(sg);cp=cr.clock_leaves(cam);sp=sr.clock_leaves(cam)
++        pre=f'source_diagnostics/cameras[{cam}].source/'
++        mb={k+'/'+p for k,r in cg['primitives'].items() if k.startswith(pre+'mailbox[') for p,v in r['ports'].items() if v['clock']}
++        host={k+'/'+p for k,r in cg['primitives'].items() if k.startswith(pre+'host_bank[') for p,v in r['ports'].items() if p.startswith('D[') and v['direction']=='INPUT'}
++        require(len(mb)==17 and len(host)==512 and mb<=set(cp['leaves']),'New compile mailbox contract failed')
++        mapped=[x['mapping'] for x in m['resolved'] if x['camera']==cam and x['mapping']['kind']=='register']
++        pairs={(x['launch_CLK'],x['capture_D']) for x in mapped}
++        require(len(pairs)==330,'Actual mapping must be re-evaluated; legacy 320/camera (1280 total) not accepted')
++        launches={a for a,b in pairs};captures={b for a,b in pairs}
++        require(launches<=set(sp['leaves']),'Clock traversal omitted mailbox leaves')
++        for a,b in pairs:
++            q=a.rsplit('/',1)[0]+'/Q'
++            require(sg['pin_net'][q]==sg['pin_net'][b] and set(sg['netpins'][sg['pin_net'][q]])=={q,b},'Mailbox path is not exclusive Q-D')
++        complement=(set(cp['leaves'])-mb)|(set(sp['leaves'])-launches)
++        lines += ['set_false_path -from '+coll(complement)+' -to [get_clocks {ddrphy_sysclk}]',
++                  'set_max_delay -datapath_only 15.238 -from '+coll(mb|launches)+' -to '+coll(host|captures),
++                  'set_false_path -hold -from '+coll(mb|launches)+' -to '+coll(host|captures)]
++        ack=classified['ack_first'][cam]
++        lines.append('set_false_path -from '+coll({ack['launch_CLK']})+' -to '+coll({ack['capture_D']}))
++        rows.append({'camera':cam,'compile':cp,'synthesis':sp,'compile_mailbox':sorted(mb),
++                     'physical_pairs':sorted(pairs),'complement':sorted(complement),'ack_first':ack})
++        allpairs |= pairs
++    require(len(allpairs)==1320,'Actual 1320 unique mailbox mapping required')
++    base=b'\n'.join(x for x in raw.splitlines() if not x.lstrip().startswith(b'set_clock_groups '))+b'\n'
++    result=base+'\n'.join(lines).encode('ascii')+b'\n'
++    proof={'structural_pass':True,'runtime_proven':False,'constraints_qualified':False,'physical_pairs':1320,
++           'legacy_1280_fallback':False,'U':sorted(u),'retained_clock_pairs':sorted(u-carved),
++           'carved_camera_to_ddr':sorted(carved),'same_domain_exemptions':[], 'mailbox_budget_ns':15.238,
++           'cameras':rows,'compile_graph_sha256':sha(compile_graph),'synthesis_graph_sha256':sha(synthesis_graph),
++           'mapping_manifest_sha256':sha(mapping_manifest),'frozen_clock_sha256':sha(frozen_clock),
++           'constraint_sha256':hashlib.sha256(result).hexdigest()}
++    return result,proof
++if __name__=='__main__':
++    ap=argparse.ArgumentParser()
++    for name in ['compile_graph','synthesis_graph','mapping_manifest','frozen_clock','output']:ap.add_argument('--'+name.replace('_','-'),required=True)
++    a=ap.parse_args();dest=Path(a.output)
++    require(not dest.exists(),'Refuse existing derived output');raw,proof=derive(a.compile_graph,a.synthesis_graph,a.mapping_manifest,a.frozen_clock)
++    dest.mkdir(parents=True);(dest/'clock.fdc').write_bytes(raw)
++    (dest/'coverageproof_new_graph.json').write_bytes((json.dumps(proof,indent=2)+'\n').encode('ascii'))
+--- /dev/null
++++ build02/analysis_tools/graph_adapter.py
+@@ -0,0 +1,137 @@
++"""Strict actual-graph resolver for cr_ff versus cr[] and KEEPBUFFER nets.
++
++Logical aliases and connected Q drivers determine identity. Names only provide
++an additional verified anchor; no whitelist or old-name assertion is deleted.
++"""
++import re
++
++def require(ok, message):
++    if not ok: raise RuntimeError(message)
++
++def transparent(record, clock=False):
++    typ=record['type']
++    keep='KEEPBUF' in typ.upper() or typ.lower() in {'syn_keepbuf','keepbuf'}
++    if keep: return True
++    base={'bmsWIDEBUF','bmsBUF','GTP_INBUF','GTP_CLKBUFG','GTP_CLKBUF','GTP_CLKBUFH'}
++    return typ in base or (clock and typ in {'bmsWIDEINV','bmsINV','GTP_INV'})
++
++class Resolver:
++    def __init__(self,g):
++        self.g=g;self.pr=g['primitives'];self.pn=g['pin_net'];self.np=g['netpins'];self.alias=g['net_aliases']
++    def drivers(self,n):
++        return [p for p in self.np.get(n,[]) if self.pr[p.rsplit('/',1)[0]]['ports'][p.rsplit('/',1)[1]]['direction']=='OUTPUT']
++    def strip(self,n):
++        seen=set()
++        while True:
++            require(n not in seen,'Transparent data buffer cycle');seen.add(n)
++            ds=self.drivers(n)
++            if len(ds)!=1:return n
++            cell=ds[0].rsplit('/',1)[0];r=self.pr[cell]
++            if not transparent(r):return n
++            ins=[cell+'/'+p for p,v in r['ports'].items() if v['direction']=='INPUT']
++            outs=[p for p,v in r['ports'].items() if v['direction']=='OUTPUT']
++            require(len(ins)==len(outs)==1 and ins[0] in self.pn,'Not a unit buffer: '+cell)
++            n=self.pn[ins[0]]
++    def equal(self,a,b): return self.strip(self.pn[a])==self.strip(self.pn[b])
++    def bind(self,cam,chain,bit):
++        prefix=f'source_diagnostics/cameras[{cam}].'
++        parent=prefix+('source/' if chain!='reset_pipe' else '')
++        logical=parent+f'{chain}[{bit}]';explicit=parent+f'{chain}_ff{bit}'
++        alias=(parent.rstrip('/')+'/@'+f'{chain}[{bit}]') if chain!='reset_pipe' else f'source_diagnostics/@cameras[{cam}].reset_pipe[{bit}]'
++        nets={n for n,aa in self.alias.items() if alias in aa}
++        for anchor in [explicit,logical]:
++            for cell,r in self.pr.items():
++                if cell==anchor or cell.startswith(anchor+'/'):
++                    for p in ['Q','Q0']:
++                        if cell+'/'+p in self.pn:nets.add(self.pn[cell+'/'+p])
++        ds={p for n in nets for p in self.drivers(self.strip(n))}
++        require(len(ds)==1,f'Unique actual Q driver required: {logical}: {ds}')
++        q=next(iter(ds));cell=q.rsplit('/',1)[0];r=self.pr[cell];ports=r['ports']
++        require(not any(t in r['type'].upper() for t in ['SRL','RAM','DRM']), 'Packed storage rejected: '+cell)
++        clocks=[p for p,v in ports.items() if v['clock']]
++        if not clocks and 'CLK' in ports and r['type'].startswith(('GTP_DFF','gopQ')):clocks=['CLK']
++        resets=[p for p in ports if p in {'P','C','RS','CLR','PRE','R','S'}]
++        require('D' in ports and len(clocks)==len(resets)==1,'Distinct D/clock/reset endpoint required: '+cell)
++        require(all(cell+'/'+p in self.pn for p in ['D',clocks[0],resets[0]]),'Unconnected endpoint: '+cell)
++        return {'camera':cam,'chain':chain,'bit':bit,'logical':logical,'cell':cell,'type':r['type'],
++                'Q':q,'D':cell+'/D','CLK':cell+'/'+clocks[0],'reset':cell+'/'+resets[0],
++                'alias':alias,'matching_nets':sorted(nets),'cdb_entries':r.get('cdb_entries',[])}
++    def constant(self,pin,value):
++        n=self.strip(self.pn[pin]);ds=self.drivers(n)
++        aliases=self.alias.get(n,[])
++        if any(a.endswith('/@$constant_'+str(value)) for a in aliases):return True
++        return len(ds)==1 and self.pr[ds[0].rsplit('/',1)[0]]['type'] in ({'GTP_GND','GND'} if value==0 else {'GTP_VCC','VCC'})
++    def signal_q(self,cam,signal):
++        parent=f'source_diagnostics/cameras[{cam}].source'
++        nets=[n for n,aa in self.alias.items() if parent+'/@'+signal in aa]
++        direct=parent+'/'+signal+'/Q'
++        if direct in self.pn:nets.append(self.pn[direct])
++        ds={p for n in nets for p in self.drivers(self.strip(n))}
++        require(len(ds)==1,'Unique source signal Q missing: '+signal)
++        return next(iter(ds))
++    def clock_leaves(self,cam):
++        name=f'cmos{cam+1}_pclk'
++        roots={n for n,aa in self.alias.items() if name in aa or '/@'+name in aa}
++        require(len(roots)==1,'Actual camera root not unique: '+name)
++        queue=list(roots);seen=set();leaves=set();edges={};unknown=[]
++        while queue:
++            net=queue.pop()
++            if net in seen:continue
++            seen.add(net)
++            for pin in self.np[net]:
++                cell,port=pin.rsplit('/',1);r=self.pr[cell];v=r['ports'][port]
++                if transparent(r,clock=True):
++                    ins=[p for p,x in r['ports'].items() if x['direction']=='INPUT']
++                    outs=[p for p,x in r['ports'].items() if x['direction']=='OUTPUT']
++                    require(len(ins)==len(outs)==1,'Clock gate is not transparent: '+cell)
++                    linked=[cell+'/'+p for p in ins+outs]
++                    require(all(p in self.pn for p in linked),'Unconnected clock buffer: '+cell)
++                    edges[cell]={'cell':cell,'type':r['type'],'pins':linked}
++                    queue.extend(self.pn[p] for p in linked)
++                elif v['direction']=='INPUT':
++                    allowed=r['type'].startswith(('bmsWIDEDFF','GTP_DFF','GTP_DRM','gopQ'))
++                    isclock=v['clock'] or (port=='CLK' and r['type'].startswith(('GTP_DFF','gopQ')))
++                    if isclock and allowed:leaves.add(pin)
++                    else:unknown.append({'pin':pin,'type':r['type'],'clock':v['clock']})
++        require(not unknown,'Unknown camera clock sink: '+repr(unknown))
++        require(leaves,'Empty camera leaves')
++        return {'clock':name,'roots':sorted(roots),'nets':sorted(seen),'leaves':sorted(leaves),
++                'transparent':list(edges.values()),'unknown':unknown}
++
++def classify(g):
++    r=Resolver(g); rows=[]; lookup={};chains=[];resets=[];ordinary=[]
++    for cam in range(4):
++        for chain,width in [('cr',2),('hr',2),('reset_pipe',4),('ack_sync',2),('req_sync',3),('overrun_sync',2)]:
++            for bit in range(width):
++                row=r.bind(cam,chain,bit);rows.append(row);lookup[(cam,chain,bit)]=row
++                if bit:
++                    prev=lookup[(cam,chain,bit-1)]
++                    require(r.equal(prev['Q'],row['D']),'Previous Q to D changed: '+row['logical'])
++                    require(r.equal(prev['CLK'],row['CLK']),'Chain clock changed: '+row['logical'])
++                if chain in {'cr','hr','reset_pipe'}:
++                    if not bit:require(r.constant(row['D'],0),'Reset release D0 not zero')
++                    resets.append({'camera':cam,'logical':f'{chain}[{bit}]','actual_Q':[row['Q']],
++                                   'D':row['D'],'CLK':row['CLK'],'reset':row['reset'],'merged':False})
++                else:
++                    if not bit:
++                        q=r.signal_q(cam,{'ack_sync':'ack','req_sync':'request','overrun_sync':'sticky_overrun'}[chain])
++                        require(r.equal(q,row['D']),'First-stage D source changed')
++                    release=lookup[(cam,'cr' if chain=='ack_sync' else 'hr',1)]
++                    require(r.equal(release['Q'],row['reset']),'Wrong reset release source')
++                    chains.append({**row,'signal':chain,'stage':bit,'classification':'cdc_first' if bit==0 else 'sync_later'})
++                    if bit:ordinary.append({'launch_CLK':prev['CLK'],'capture_D':row['D'],'classification':'sync_later'})
++    require(len(rows)==len({x['cell'] for x in rows})==60,'60 independent actual storage cells required')
++    require(len(chains)==28 and len(resets)==32 and len(ordinary)==16,'Chain/reset/stage counts changed')
++    # Cross-domain ACK first stage remains exempt; later same-domain checks above remain mandatory.
++    ack=[]
++    for cam in range(4):
++        q=r.signal_q(cam,'ack');cell=q.rsplit('/',1)[0]
++        cp=[p for p,v in r.pr[cell]['ports'].items() if v['clock']]
++        require(len(cp)==1,'ACK launch clock ambiguous')
++        launch=cell+'/'+cp[0];first=lookup[(cam,'ack_sync',0)]
++        require(not r.equal(launch,first['CLK']),'ACK first stage is not cross-domain')
++        ack.append({'camera':cam,'launch_CLK':launch,'capture_D':first['D']})
++    return {'status':'PASS','rows':rows,'chains':chains,'reset':resets,'ordinary_pairs':ordinary,
++            'ack_first':ack,'independent_registers':60,'independent_sync':28,'independent_reset':32,
++            'limits':['Structural new-graph binding only; INIT/GRS/async polarity and clock roots need endpoint audit',
++                      'Recovery/removal/MPW/setup/hold and routed independence need actual two-corner STA']}
+--- build01/analysis_tools/parse_objects.py
++++ build02/analysis_tools/parse_objects.py
+@@ -112,9 +112,9 @@
+         cl=None
+         if ip.startswith('source_diagnostics/'):
+             leaf=ip.split('/')[-1]
+-            if re.match(r'(req_sync|ack_sync|overrun_sync)\[0\]',leaf):cl='cdc_first'
+-            elif re.match(r'(req_sync|ack_sync|overrun_sync)\[[12]\]',leaf):cl='sync_later'
+-            elif re.match(r'(cr|hr)\[',leaf) or 'reset_pipe[' in leaf:cl='reset_chain'
++            if re.fullmatch(r'(req_sync|ack_sync|overrun_sync)(?:\[0\]|_ff0)',leaf):cl='cdc_first'
++            elif re.fullmatch(r'(req_sync|ack_sync|overrun_sync)(?:\[[12]\]|_ff[12])',leaf):cl='sync_later'
++            elif re.match(r'(cr|hr)(?:\[|_ff)',leaf) or re.match(r'reset_pipe(?:\[|_ff)',leaf):cl='reset_chain'
+             elif 'mailbox[' in leaf:cl='mailbox'
+             elif 'host_bank[' in leaf:cl='host_bank'
+             else:cl='ordinary_diagnostic'
+--- build01/analysis_tools/resolve_manifest.py
++++ build02/analysis_tools/resolve_manifest.py
+@@ -1,5 +1,6 @@
+ from pathlib import Path
+ import json,collections,re,hashlib
++from graph_adapter import transparent
+ HERE=Path(__file__).resolve().parent
+ def descendants(n,k):
+     if isinstance(n,list):
+@@ -36,8 +37,12 @@
+         trace=[step]
+         for p in outs:
+             ip,port=p.rsplit('/',1);t=prim[ip]['type']
+-            if t.startswith('GTP_CLKBUF'):trace+=clock_trace(ip+'/CLKIN',seen|{net})
+-            elif t.startswith('GTP_INBUF'):trace+=clock_trace(ip+'/I',seen|{net})
++            if transparent(prim[ip],clock=True):
++                inputs=[ip+'/'+p for p,v in prim[ip]['ports'].items() if v['direction']=='INPUT']
++                outputs=[p for p,v in prim[ip]['ports'].items() if v['direction']=='OUTPUT']
++                assert len(inputs)==len(outputs)==1,(ip,t,inputs,outputs)
++                assert inputs[0] in pn,(ip,'unconnected transparent clock input')
++                trace+=clock_trace(inputs[0],seen|{net})
+         return trace
+     provenance=[]
+     for cam in range(4):
+@@ -87,6 +92,12 @@
+                 result=('lut',sum(x<<j for j,x in enumerate(table)),remaining)
+                 for j,a in enumerate(remaining):
+                     if all(x==((m>>j)&1) for m,x in enumerate(table)):result=a;break
++        elif transparent(r):
++            inputs=[ip+'/'+p for p,a in r['ports'].items() if a['direction']=='INPUT']
++            outputs=[p for p,a in r['ports'].items() if a['direction']=='OUTPUT']
++            assert len(inputs)==len(outputs)==1,(ip,t,inputs,outputs)
++            assert inputs[0] in pn,(ip,'unconnected transparent data input')
++            result=symbolic(pn[inputs[0]],overrides,memo,active|{net})
+         elif t.startswith('GTP_MUX'):
+             args={p:symbolic(pn[ip+'/'+p],overrides,memo,active|{net}) for p,a in r['ports'].items() if a['direction']=='INPUT'}
+             result=('mux',args)

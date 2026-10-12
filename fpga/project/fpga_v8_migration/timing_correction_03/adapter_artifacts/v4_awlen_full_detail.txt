@@ -1,0 +1,150 @@
+Startpoint  : u_v8_cooperative_core/write_arbiter/awlen_reg[5]/opit_0_inv_L6Q_perm/CLK
+Endpoint    : ov5640_axi_dma_write/len[28]/opit_0_AQ_perm/CE
+Path Group  : ddrphy_sysclk
+Path Type   : max (slow corner)
+Path Class  : sequential timing path
+Clock Skew  :    -0.188  (Capture Clock Delay - Launch Clock Delay + Clock Pessimism Removal)
+  Capture Clock Delay     :  4.158
+  Launch Clock Delay      :  5.561
+  Clock Pessimism Removal :  1.215
+
+ Location                          Delay Type             Incr        Path         Logical Resource 
+----------------------------------------------------------------------------------------------------
+
+ Clock ddrphy_sysclk (rising edge)                       0.000       0.000 r                        
+ V4                                                      0.000       0.000 r       free_clk (port)  
+                                   net (fanout=1)        0.106       0.106         free_clk         
+ IOBD_372_468/PAD                                                                  free_clk_ibuf/opit_0/I
+ IOBD_372_468/DIN                  td                    1.117       1.223 r       free_clk_ibuf/opit_0/O
+                                   net (fanout=1)        0.000       1.223         free_clk_ibuf/ntD
+ IOLHR_364_468/DI                                                                  free_clk_ibuf/opit_1/DI
+ IOLHR_364_468/DI_TO_CLK           td                    0.105       1.328 r       free_clk_ibuf/opit_1/DI_TO_CLK
+                                   net (fanout=309)      0.294       1.622         nt_free_clk      
+ MRCKB_361_456/CLKIN_P                                                             ddr3/u_ddrphy_top/u_clkbufm/clkbufm_inst/CLKIN_P
+ MRCKB_361_456/CLKOUT_U_P          td                    0.148       1.770 r       ddr3/u_ddrphy_top/u_clkbufm/clkbufm_inst/CLKOUT_P
+                                   net (fanout=2)        0.432       2.202         ddr3/u_ddrphy_top/pll_refclk
+ RCKB_363_456/CLKIN                                                                ddr3/u_ddrphy_top/ddrphy_slice_top/i_dqs_bank[0].u_clkbufr/goprclk/CLKIN
+ RCKB_363_456/CLKOUT               td                    0.177       2.379 r       ddr3/u_ddrphy_top/ddrphy_slice_top/i_dqs_bank[0].u_clkbufr/goprclk/CLKOUT
+                                   net (fanout=1)        0.450       2.829         ddr3/u_ddrphy_top/ddrphy_slice_top/ppll_clkin [0]
+ PPLL_367_307/CLK_IN0                                                              ddr3/u_ddrphy_top/ddrphy_slice_top/i_dqs_bank[0].ddrphy_ppll/u_ppll/ppll_inst/CLKIN1
+ PPLL_367_307/CLKOUTPHY            td                    0.037       2.866 r       ddr3/u_ddrphy_top/ddrphy_slice_top/i_dqs_bank[0].ddrphy_ppll/u_ppll/ppll_inst/CLKOUTPHY
+                                   net (fanout=36)       0.000       2.866         ddr3/u_ddrphy_top/phy_ioclk_fb
+ DDRPHY_IOCLK_DIV_368_310/CLKIN                                                    ddr3/u_ddrphy_top/ddrphy_slice_top/i_dqs_bank[0].u_ddrphy_ioclkdiv/ddrphy_ioclk_div_inst/CLKIN
+ DDRPHY_IOCLK_DIV_368_310/CLKOUT   td                    0.123       2.989 r       ddr3/u_ddrphy_top/ddrphy_slice_top/i_dqs_bank[0].u_ddrphy_ioclkdiv/ddrphy_ioclk_div_inst/CLKOUT
+                                   net (fanout=35)       0.000       2.989         ddr3/u_ddrphy_top/phy_sysclk_fb
+ DDRPHY_CPD_369_466/PPLL_SYSCLK                                            r       ddr3/u_ddrphy_top/u_ddrphy_cpd/cpd_inst/CLK_PHY
+ GPLL_367_463/CLKOUT0                                    0.334       3.323 r       ddr3/u_ddrphy_top/ddrphy_gpll/u_gpll/gpll_inst/CLKOUT0
+                                   net (fanout=1)        0.753       4.076         ddr3/u_ddrphy_top/gpll_clkout0
+ USCM_215_576/CLKIN0                                                               ddr3/u_ddrphy_top/u_sysclk_bufg/gopclkbufg/CLK
+ USCM_215_576/CLKOUT               td                    0.168       4.244 r       ddr3/u_ddrphy_top/u_sysclk_bufg/gopclkbufg/CLKOUT
+                                   net (fanout=8)        0.602       4.846         axi_clk          
+ HCKB_213_533/CLKIN                                                                HCKBROUTE_40/CLKIN
+ HCKB_213_533/CLKOUT               td                    0.287       5.133 r       HCKBROUTE_40/CLKOUT
+                                   net (fanout=5124)     0.428       5.561         ntR12026         
+ CLMA_231_804/CLK                                                          r       u_v8_cooperative_core/write_arbiter/awlen_reg[5]/opit_0_inv_L6Q_perm/CLK
+
+ CLMA_231_804/Q0                   tco                   0.203       5.764 r       u_v8_cooperative_core/write_arbiter/awlen_reg[5]/opit_0_inv_L6Q_perm/L6Q
+                                   net (fanout=5)        0.745       6.509         arb_s_awlen[5]   
+ CLMA_261_780/B1                                                                   u_v8_ddr_adapter/N6_1_ac1_1/gateop_perm/I1
+ CLMA_261_780/Y1                   td                    0.224       6.733 r       u_v8_ddr_adapter/N6_1_ac1_1/gateop_perm/Y
+                                   net (fanout=2)        0.818       7.551         u_v8_ddr_adapter/N560 [6]
+ CLMA_201_786/C4                                                                   u_v8_ddr_adapter/N10_1_7/gateop_perm/I4
+ CLMA_201_786/COUT                 td                    0.285       7.836 f       u_v8_ddr_adapter/N10_1_8/gateop_perm/COUT
+                                   net (fanout=1)        0.000       7.836         u_v8_ddr_adapter/_N37462
+ CLMA_201_792/CIN                                                                  u_v8_ddr_adapter/N10_1_9/gateop_perm/CIN
+ CLMA_201_792/COUT                 td                    0.085       7.921 f       u_v8_ddr_adapter/N10_1_12/gateop_perm/COUT
+                                   net (fanout=1)        0.000       7.921         u_v8_ddr_adapter/_N37466
+ CLMA_201_798/CIN                                                                  u_v8_ddr_adapter/N10_1_13/gateop_perm/CIN
+ CLMA_201_798/COUT                 td                    0.085       8.006 f       u_v8_ddr_adapter/N10_1_16/gateop_perm/COUT
+                                   net (fanout=1)        0.000       8.006         u_v8_ddr_adapter/_N37470
+ CLMA_201_804/CIN                                                                  u_v8_ddr_adapter/N10_1_17/gateop_perm/CIN
+ CLMA_201_804/COUT                 td                    0.085       8.091 f       u_v8_ddr_adapter/N10_1_20/gateop_perm/COUT
+                                   net (fanout=1)        0.000       8.091         u_v8_ddr_adapter/_N37474
+ CLMA_201_810/CIN                                                                  u_v8_ddr_adapter/N10_1_21/gateop_perm/CIN
+ CLMA_201_810/COUT                 td                    0.085       8.176 f       u_v8_ddr_adapter/N10_1_24/gateop_perm/COUT
+                                   net (fanout=1)        0.000       8.176         u_v8_ddr_adapter/_N37478
+ CLMA_201_816/CIN                                                                  u_v8_ddr_adapter/N10_1_25/gateop_perm/CIN
+ CLMA_201_816/Y3                   td                    0.214       8.390 r       u_v8_ddr_adapter/N10_1_28/gateop_perm/Y
+                                   net (fanout=3)        0.938       9.328         u_v8_ddr_adapter/N562 [31]
+ CLMA_249_805/C1                                                                   u_v8_ddr_adapter/N57_9_cpy/LUT6_inst_perm/I1
+ CLMA_249_805/Y2                   td                    0.224       9.552 r       u_v8_ddr_adapter/N57_9_cpy/LUT6_inst_perm/L6
+                                   net (fanout=8)        0.781      10.333         _N283197_cpy     
+ CLMA_273_774/D5                                                                   ov5640_axi_dma_write/N10_2/LUT6_inst_perm/I5
+ CLMA_273_774/Y3                   td                    0.074      10.407 r       ov5640_axi_dma_write/N10_2/LUT6_inst_perm/L6
+                                   net (fanout=31)       0.635      11.042         ov5640_axi_dma_write/N10
+ CLMA_231_775/B3                                                                   ov5640_axi_dma_write/act_burst_len[2]/opit_0_inv_L5Q_perm/I3
+ CLMA_231_775/Y1                   td                    0.108      11.150 r       ov5640_axi_dma_write/act_burst_len[2]/opit_0_inv_L5Q_perm/L6
+                                   net (fanout=33)       0.565      11.715         ov5640_axi_dma_write/N377
+ CLMA_207_774/CE                                                                   ov5640_axi_dma_write/len[2]/opit_0_AQ_perm/CE
+ CLMA_207_774/CECO                 td                    0.136      11.851 r       ov5640_axi_dma_write/len[2]/opit_0_AQ_perm/CECO
+                                   net (fanout=4)        0.000      11.851         ntR762           
+ CLMA_207_780/CECI                                                                 ov5640_axi_dma_write/len[6]/opit_0_AQ_perm/CE
+ CLMA_207_780/CECO                 td                    0.136      11.987 r       ov5640_axi_dma_write/len[6]/opit_0_AQ_perm/CECO
+                                   net (fanout=4)        0.000      11.987         ntR761           
+ CLMA_207_786/CECI                                                                 ov5640_axi_dma_write/len[10]/opit_0_AQ_perm/CE
+ CLMA_207_786/CECO                 td                    0.136      12.123 r       ov5640_axi_dma_write/len[10]/opit_0_AQ_perm/CECO
+                                   net (fanout=4)        0.000      12.123         ntR760           
+ CLMA_207_792/CECI                                                                 ov5640_axi_dma_write/len[14]/opit_0_AQ_perm/CE
+ CLMA_207_792/CECO                 td                    0.136      12.259 r       ov5640_axi_dma_write/len[14]/opit_0_AQ_perm/CECO
+                                   net (fanout=4)        0.000      12.259         ntR759           
+ CLMA_207_798/CECI                                                                 ov5640_axi_dma_write/len[18]/opit_0_AQ_perm/CE
+ CLMA_207_798/CECO                 td                    0.136      12.395 r       ov5640_axi_dma_write/len[18]/opit_0_AQ_perm/CECO
+                                   net (fanout=4)        0.000      12.395         ntR758           
+ CLMA_207_804/CECI                                                                 ov5640_axi_dma_write/len[22]/opit_0_AQ_perm/CE
+ CLMA_207_804/CECO                 td                    0.136      12.531 r       ov5640_axi_dma_write/len[22]/opit_0_AQ_perm/CECO
+                                   net (fanout=4)        0.000      12.531         ntR757           
+ CLMA_207_810/CECI                                                                 ov5640_axi_dma_write/len[26]/opit_0_AQ_perm/CE
+ CLMA_207_810/CECO                 td                    0.136      12.667 r       ov5640_axi_dma_write/len[26]/opit_0_AQ_perm/CECO
+                                   net (fanout=2)        0.000      12.667         ntR756           
+ CLMA_207_816/CECI                                                         r       ov5640_axi_dma_write/len[28]/opit_0_AQ_perm/CE
+
+ Data arrival time                                                  12.667         Logic Levels: 17 
+                                                                                   Logic: 2.624ns(36.927%), Route: 4.482ns(63.073%)
+----------------------------------------------------------------------------------------------------
+
+ Clock ddrphy_sysclk (rising edge)                       7.619       7.619 r                        
+ V4                                                      0.000       7.619 r       free_clk (port)  
+                                   net (fanout=1)        0.106       7.725         free_clk         
+ IOBD_372_468/PAD                                                                  free_clk_ibuf/opit_0/I
+ IOBD_372_468/DIN                  td                    0.954       8.679 r       free_clk_ibuf/opit_0/O
+                                   net (fanout=1)        0.000       8.679         free_clk_ibuf/ntD
+ IOLHR_364_468/DI                                                                  free_clk_ibuf/opit_1/DI
+ IOLHR_364_468/DI_TO_CLK           td                    0.091       8.770 r       free_clk_ibuf/opit_1/DI_TO_CLK
+                                   net (fanout=309)      0.247       9.017         nt_free_clk      
+ MRCKB_361_456/CLKIN_P                                                             ddr3/u_ddrphy_top/u_clkbufm/clkbufm_inst/CLKIN_P
+ MRCKB_361_456/CLKOUT_U_P          td                    0.126       9.143 r       ddr3/u_ddrphy_top/u_clkbufm/clkbufm_inst/CLKOUT_P
+                                   net (fanout=2)        0.367       9.510         ddr3/u_ddrphy_top/pll_refclk
+ RCKB_363_456/CLKIN                                                                ddr3/u_ddrphy_top/ddrphy_slice_top/i_dqs_bank[0].u_clkbufr/goprclk/CLKIN
+ RCKB_363_456/CLKOUT               td                    0.149       9.659 r       ddr3/u_ddrphy_top/ddrphy_slice_top/i_dqs_bank[0].u_clkbufr/goprclk/CLKOUT
+                                   net (fanout=1)        0.383      10.042         ddr3/u_ddrphy_top/ddrphy_slice_top/ppll_clkin [0]
+ PPLL_367_307/CLK_IN0                                                              ddr3/u_ddrphy_top/ddrphy_slice_top/i_dqs_bank[0].ddrphy_ppll/u_ppll/ppll_inst/CLKIN1
+ PPLL_367_307/CLKOUTPHY            td                    0.026      10.068 r       ddr3/u_ddrphy_top/ddrphy_slice_top/i_dqs_bank[0].ddrphy_ppll/u_ppll/ppll_inst/CLKOUTPHY
+                                   net (fanout=36)       0.000      10.068         ddr3/u_ddrphy_top/phy_ioclk_fb
+ DDRPHY_IOCLK_DIV_368_310/CLKIN                                                    ddr3/u_ddrphy_top/ddrphy_slice_top/i_dqs_bank[0].u_ddrphy_ioclkdiv/ddrphy_ioclk_div_inst/CLKIN
+ DDRPHY_IOCLK_DIV_368_310/CLKOUT   td                    0.101      10.169 r       ddr3/u_ddrphy_top/ddrphy_slice_top/i_dqs_bank[0].u_ddrphy_ioclkdiv/ddrphy_ioclk_div_inst/CLKOUT
+                                   net (fanout=35)       0.000      10.169         ddr3/u_ddrphy_top/phy_sysclk_fb
+ DDRPHY_CPD_369_466/PPLL_SYSCLK                                            r       ddr3/u_ddrphy_top/u_ddrphy_cpd/cpd_inst/CLK_PHY
+ GPLL_367_463/CLKOUT0                                   -0.306       9.863 r       ddr3/u_ddrphy_top/ddrphy_gpll/u_gpll/gpll_inst/CLKOUT0
+                                   net (fanout=1)        0.642      10.505         ddr3/u_ddrphy_top/gpll_clkout0
+ USCM_215_576/CLKIN0                                                               ddr3/u_ddrphy_top/u_sysclk_bufg/gopclkbufg/CLK
+ USCM_215_576/CLKOUT               td                    0.143      10.648 r       ddr3/u_ddrphy_top/u_sysclk_bufg/gopclkbufg/CLKOUT
+                                   net (fanout=8)        0.515      11.163         axi_clk          
+ HCKB_213_507/CLKIN                                                                HCKBROUTE_43/CLKIN
+ HCKB_213_507/CLKOUT               td                    0.245      11.408 r       HCKBROUTE_43/CLKOUT
+                                   net (fanout=3591)     0.369      11.777         ntR12031         
+ CLMA_207_816/CLK                                                          r       ov5640_axi_dma_write/len[28]/opit_0_AQ_perm/CLK
+ clock pessimism                                         1.215      12.992                          
+ clock uncertainty                                      -0.150      12.842                          
+
+ Setup time                                             -0.226      12.616                          
+
+ Data required time                                                 12.616                          
+----------------------------------------------------------------------------------------------------
+ Data required time                                                 12.616                          
+ Data arrival time                                                  12.667                          
+----------------------------------------------------------------------------------------------------
+ Slack (VIOLATED)                                                   -0.051                          
+====================================================================================================
+
+====================================================================================================
+

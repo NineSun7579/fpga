@@ -1,0 +1,29 @@
+--- firstversion_top
++++ rtl/fpga_v8_cooperative_top_v2.v
+@@ -5,7 +5,7 @@
+ //`define USE_HDMI
+ 
+ 
+-module fpga_v8_cooperative_top #(
++module fpga_v8_cooperative_top_v2 #(
+     parameter   MSI_NUM = 5,
+     parameter   AXI_ID_LEN      = 4, 
+                 AXI_ID_M_LEN    = $clog2(7) + AXI_ID_LEN,
+@@ -443,7 +443,7 @@
+ 
+     assign msi_req = {1'd0, 1'b0, 2'b00}; //[MSIFIX 2026-09-13] freerun: xdma_req stuck high = MSI storm, camera MSI off
+ 
+-pcie_fifo #(
++fpga_v8_pcie_fifo_h2f #(
+     .MSI_NUM(MSI_NUM)
+ )
+ pcie_fifo(    
+@@ -3277,7 +3277,7 @@
+     .m_axi_write_bready(arb_s_bready)
+ );
+ 
+-fpga_v8_capture_control_axil #(
++fpga_v8_capture_control_axil_arm_v2 #(
+     .LOCAL_BASE(32'h00000100)
+ ) u_v8_capture_control (
+     .clk(axi_clk),

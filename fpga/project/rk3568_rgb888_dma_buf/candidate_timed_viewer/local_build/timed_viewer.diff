@@ -1,0 +1,102 @@
+--- candidate_short_hold_viewer/main.cpp
++++ candidate_timed_viewer/main.cpp
+@@ -701,7 +701,10 @@
+     int cameraReadFpga(int camera, int generation, int height, bool delivered, uint32_t last,
+                        void* output, uint32_t& selected, qint64& dmaNs, qint64& copyNs,
+                        qint64& capturedMs, std::shared_ptr<scheme2::Input>& input) {
++        FpgaReadTiming timing;
++        timing.start();
+         tdm::FairDmaGuard lock(dmaMutex_.get());
++        timing.mark(timing.acquisition);
+         if (!shared_ || shared_->consumerHeld) scheme2Quarantine("admission/transport mismatch");
+         constexpr uint32_t base = 0x40020000;
+         auto check = [](bool ok, const char* why) { if (!ok) scheme2Quarantine(why); };
+@@ -760,6 +763,7 @@
+                   "RGB destination overlaps writable camera bank");
+         }
+         const uint32_t epoch = reg(0x50);
++        timing.mark(timing.holdCommandIssue);
+         write(0x20, 1);
+         if (!poll(false, 0)) { scheme2::admission().retire(); return 0; }
+         const uint32_t source = reg(0x30), sequence = reg(0xe0);
+@@ -774,6 +778,7 @@
+                   "same-frame lease identity changed");
+         };
+         validate();
++        timing.mark(timing.holdValidated);
+         if (delivered && !tdm::newerCameraTag(sequence, last)) {
+             write(0x20, 0); write(0xc0, 4); write(0xd0, 0);
+             scheme2::admission().retire(); return 0;
+@@ -784,14 +789,18 @@
+         uint32_t rawTag = 0;
+         memcpy(&rawTag, rx_ + tdm::cameraSlotOffset(camera) + FRAME_BYTES, 4);
+         check(rawTag == sequence, "RAW commit tag differs from RGB lease");
++        timing.mark(timing.rawF2hTag);
+         const uint32_t jobs = reg(0x90);
++        timing.mark(timing.converterStart);
+         write(0x20, 3); poll(true, jobs); validate();
++        timing.mark(timing.converterDone);
+         // RGB destination is now immutable under this sole converter owner.
+         // Retire the camera hold before BEGIN and restore converter defaults.
+         // Single admission keeps this RGB destination immutable until retirement;
+         // camera/scratch DMA may continue outside the reserved host RX slot.
+         write(0x20, 0);
+         check((reg(0x10) & 7) == 0, "camera release failed");
++        timing.mark(timing.releaseVerified);
+         write(0xc0, 4); write(0xd0, 0);
+         check(reg(0xc0) == 4 && reg(0xd0) == 0 && reg(0x120) == 0 &&
+                reg(0x40) == 0x0a000000, "camera defaults restore failed");
+@@ -804,6 +813,7 @@
+         timer.restart();
+         tdm::copyCameraPixels(output, rx_ + tdm::cameraSlotOffset(camera), FRAME_BYTES);
+         copyNs = timer.nsecsElapsed();
++        timing.mark(timing.rawCpuCopy);
+         input = std::make_shared<scheme2::Input>();
+         input->fd = shared_->sharedFd; input->base = rx_; input->height = height;
+         if (scheme2::verify()) input->goldenRgb = scheme2::golden(output, height);
+@@ -854,12 +864,45 @@
+                     static_cast<long long>(monotonicMs() - *beganMs));
+         };
+         selected = sequence;
++        timing.mark(timing.publishReady);
++        timing.report(camera, generation, height, sequence);
+         return 1;
+     }
+ 
+     const char *lastErr() const { return err_; }
+ 
+ private:
++    // Per-call offsets share one steady clock. OFF performs no telemetry clock
++    // reads or logging. Hold wall includes command transport and release ack;
++    // it is not a measurement of the FPGA's internal hold duration.
++    struct FpgaReadTiming {
++        static bool enabled() {
++            static const bool value = qgetenv("DETVIEW_FPGA_INFER_TIMING") == "1" &&
++                                      QElapsedTimer::isMonotonic();
++            return value;
++        }
++        const bool active = enabled();
++        QElapsedTimer clock;
++        qint64 acquisition = 0, holdCommandIssue = 0, holdValidated = 0,
++               rawF2hTag = 0, converterStart = 0, converterDone = 0,
++               releaseVerified = 0, rawCpuCopy = 0, publishReady = 0;
++        void start() { if (active) clock.start(); }
++        void mark(qint64& phase) { if (active) phase = clock.nsecsElapsed(); }
++        void report(int camera, int generation, int height, uint32_t tag) {
++            if (!active) return;
++            const qint64 totalRead = clock.nsecsElapsed();
++            // The transport lock was released before RAW CPU copy and logging.
++            qInfo("[fpga-infer-timing] camera=%d generation=%d height=%d tag=%u clock=QElapsedTimer_monotonic phase_unit=ns phase_origin=read_entry acquisition_ns=%lld hold_command_issue_ns=%lld hold_validated_ns=%lld raw_f2h_tag_ns=%lld converter_start_ns=%lld converter_done_ns=%lld release_verified_ns=%lld raw_cpu_copy_ns=%lld publish_ready_ns=%lld hold_command_to_release_ack_wall_ns=%lld total_read_ns=%lld",
++                  camera + 1, generation, height, tag,
++                  static_cast<long long>(acquisition), static_cast<long long>(holdCommandIssue),
++                  static_cast<long long>(holdValidated), static_cast<long long>(rawF2hTag),
++                  static_cast<long long>(converterStart), static_cast<long long>(converterDone),
++                  static_cast<long long>(releaseVerified), static_cast<long long>(rawCpuCopy),
++                  static_cast<long long>(publishReady),
++                  static_cast<long long>(releaseVerified - holdCommandIssue),
++                  static_cast<long long>(totalRead));
++        }
++    };
+     bool failOpen() {
+         if (!shared_) return false;
+         // MAP performs allocation only: no H2F/F2H or consumer has started.

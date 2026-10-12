@@ -1,0 +1,34 @@
+sudo -n python3 -u - <<'DELIVERY10'
+from pathlib import Path
+assert Path("/proc/sys/kernel/random/boot_id").read_text().strip() == '6df0d786-2a2e-4f52-b65d-589f3649e875'
+from pathlib import Path
+import os,sys,subprocess,hashlib,json,datetime,stat
+def run(argv):
+ r=subprocess.run(argv,capture_output=True);print(json.dumps(dict(argv=argv,rc=r.returncode,stdout=r.stdout.decode(errors='replace'),stderr=r.stderr.decode(errors='replace'),stdout_sha256=hashlib.sha256(r.stdout).hexdigest(),stderr_sha256=hashlib.sha256(r.stderr).hexdigest())));return r
+p=Path('/sys/bus/platform/devices/3c0800000.pcie')
+assert Path('/proc/sys/kernel/random/boot_id').read_text().strip()=='6df0d786-2a2e-4f52-b65d-589f3649e875'
+assert str((p/'of_node').resolve())=='/sys/firmware/devicetree/base/pcie@fe280000'
+assert (p/'of_node/status').read_bytes()==b'okay\0'
+assert (p/'of_node/linux,pci-domain').read_bytes()==bytes.fromhex('00000002')
+assert not (p/'driver').exists()
+assert not list(Path('/sys/bus/pci/devices').glob('*'))
+assert not list(Path('/sys/class/pci_bus').glob('*'))
+assert not list(Path('/dev').glob('*pango*'))
+assert stat.S_IMODE(Path('/userdata/detview-driving-demo/detview-driving-demo').stat().st_mode)==0o644
+print('BEFORE_DMESG');run(['dmesg'])
+print('ACTION',"printf '%s' '3c0800000.pcie' > /sys/bus/platform/drivers/rk-pcie/bind",datetime.datetime.now(datetime.timezone.utc).isoformat())
+rc=0
+try:
+ with open('/sys/bus/platform/drivers/rk-pcie/bind','w') as f:
+  n=f.write('3c0800000.pcie');f.flush()
+ print('BIND_WRITE_RC',0,'BYTES',n)
+except OSError as e:
+ rc=1;print('BIND_WRITE_RC',rc,'ERRNO',e.errno,'ERROR',str(e))
+print('AFTER_DRIVER',str((p/'driver').resolve()) if (p/'driver').exists() else 'UNBOUND')
+print('AFTER_PCI',[(x.name,str(x.resolve())) for x in Path('/sys/bus/pci/devices').glob('*')])
+print('AFTER_BUS',[(x.name,str(x.resolve())) for x in Path('/sys/class/pci_bus').glob('*')])
+print('AFTER_BOOT',Path('/proc/sys/kernel/random/boot_id').read_text().strip())
+print('AFTER_DMESG');run(['dmesg']);run(['lspci','-nnvv']);run(['lspci','-t'])
+print('AFTER_IOMEM',Path('/proc/iomem').read_text())
+sys.exit(rc)
+DELIVERY10

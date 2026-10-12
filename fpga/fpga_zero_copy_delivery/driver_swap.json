@@ -1,0 +1,32 @@
+[
+  {
+    "command": "sha256sum /userdata/linaro/projects/fpga/RK3568/driver/pango_pci_driver_fixed_20260926.ko /userdata/linaro/fpga-zero-copy-driver-stage/pango_zc.ko",
+    "rc": 0,
+    "out": "0244c739f9758e0ab3296d14b72befbcf23050c7c02a97299531dfa514ce2861  /userdata/linaro/projects/fpga/RK3568/driver/pango_pci_driver_fixed_20260926.ko\n4506c0f7c3a3c6fb14315a03488ed2a9ec608a42eef7466a0c951983e91106f6  /userdata/linaro/fpga-zero-copy-driver-stage/pango_zc.ko\n",
+    "err": ""
+  },
+  {
+    "command": "pkill -x detview-hdmiful; sleep 1; fuser /dev/pango_pci_driver",
+    "rc": 1,
+    "out": "",
+    "err": ""
+  },
+  {
+    "command": "rmmod pango_pci_driver",
+    "rc": 0,
+    "out": "",
+    "err": ""
+  },
+  {
+    "command": "insmod /userdata/linaro/fpga-zero-copy-driver-stage/pango_zc.ko",
+    "rc": 0,
+    "out": "",
+    "err": ""
+  },
+  {
+    "command": "readlink /sys/bus/pci/devices/0002:21:00.0/driver; ls -l /dev/pango_pci_driver; cat /proc/modules; dmesg | tail -n 15",
+    "rc": 0,
+    "out": "../../../../../../bus/pci/drivers/pango_zc\ncrw------- 1 root root 511, 0 10\u6708 8\u65e5 17:30 /dev/pango_pci_driver\npango_zc 24576 0 - Live 0xffffffc0015ab000 (O)\nrtk_btusb 65536 0 - Live 0xffffffc00159a000 (O)\n8723du 1937408 0 - Live 0xffffffc0013c0000 (O)\n[22133.782894] pango_cdev_release.\n[22133.822410] [drm] only support 1 gamma\n[22133.905782] [drm] only support 1 gamma\n[22135.025497] device_destroy\n[22135.031477] class_destroy\n[22135.031587] exit cdev class.\n[22135.031921] iounmap\n[22135.031949] pci_release_region\n[22135.031967] pci_clear_master\n[22135.031978] pci_disable_device\n[22135.031985] pci_driver_remove.\n[22135.032089] exit pci pango driver.\n[22135.032103] exit cdev.\n[22135.032110] exit_pci_pango.\n[22135.217891] pwm-backlight backlight1: supply power not found, using dummy regulator\n",
+    "err": ""
+  }
+]

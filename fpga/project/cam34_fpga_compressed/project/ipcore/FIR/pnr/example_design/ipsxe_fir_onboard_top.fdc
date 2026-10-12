@@ -1,0 +1,30 @@
+###==== BEGIN Clocks 
+create_clock -name {i_clk} [get_ports {i_clk}] -period {10} -waveform {0.000 5.000}
+set_clock_groups -name g0 -asynchronous -group [get_clocks {i_clk}]
+###==== END Clocks
+###==== BEGIN Io Table
+#define_attribute {p:i_clk} {PAP_IO_DIRECTION} {Input}
+#define_attribute {p:i_clk} {PAP_IO_LOC} {AB27}
+#define_attribute {p:i_clk} {PAP_IO_VCCIO} {3.3}
+#define_attribute {p:i_clk} {PAP_IO_STANDARD} {LVCMOS33}
+#
+#define_attribute {p:i_rstn} {PAP_IO_DIRECTION} {Input}
+#define_attribute {p:i_rstn} {PAP_IO_LOC} {AB30}
+#define_attribute {p:i_rstn} {PAP_IO_VCCIO} {3.3}
+#define_attribute {p:i_rstn} {PAP_IO_STANDARD} {LVCMOS33}
+#
+#define_attribute {p:o_chk_err} {PAP_IO_DIRECTION} {Output}
+#define_attribute {p:o_chk_err} {PAP_IO_LOC} {Y25}
+#define_attribute {p:o_chk_err} {PAP_IO_VCCIO} {3.3}
+#define_attribute {p:o_chk_err} {PAP_IO_STANDARD} {LVCMOS33}
+#
+#define_attribute {p:o_chk_over} {PAP_IO_DIRECTION} {Output}
+#define_attribute {p:o_chk_over} {PAP_IO_LOC} {Y26}
+#define_attribute {p:o_chk_over} {PAP_IO_VCCIO} {3.3}
+#define_attribute {p:o_chk_over} {PAP_IO_STANDARD} {LVCMOS33}
+#
+#define_attribute {p:o_signal} {PAP_IO_DIRECTION} {Output}
+#define_attribute {p:o_signal} {PAP_IO_LOC} {AA26}
+#define_attribute {p:o_signal} {PAP_IO_VCCIO} {3.3}
+#define_attribute {p:o_signal} {PAP_IO_STANDARD} {LVCMOS33}
+####==== END Io Table

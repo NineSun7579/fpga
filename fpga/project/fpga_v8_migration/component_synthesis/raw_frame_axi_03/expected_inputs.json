@@ -1,0 +1,43 @@
+{
+  "top": "fpga_v8_raw_frame_axi",
+  "device": "PG2L100H",
+  "family": "Logos2",
+  "speedgrade": "-6",
+  "package": "FBG484",
+  "clock_port": "clk",
+  "clock_mhz_nominal": 150,
+  "parameters": {
+    "WIDTH": 640,
+    "HEIGHT": 480,
+    "OUT_HEIGHT": 640,
+    "TOP_ROWS": 80,
+    "FILL_VALUE": 114,
+    "ID_WIDTH": 4,
+    "AXI_ID": 1,
+    "DDR_ADDRESS_LIMIT": 268435456
+  },
+  "sources": [
+    {
+      "path": "../../raw_preprocess/fpga_v8_raw_letterbox.v",
+      "bytes": 4316,
+      "sha256": "b1ffda1799c350973444ff3bbd6cea2288c6155426397ca8ee62c1cca7d5d1ad"
+    },
+    {
+      "path": "../../raw_preprocess/fpga_v8_rgb888_pack128.v",
+      "bytes": 2832,
+      "sha256": "20b691d328b6dc43feb42b6352b169156002a3931a43d003f871fff2289613af"
+    },
+    {
+      "path": "../../cooperative_axi/fpga_v8_raw_frame_axi.v",
+      "bytes": 12562,
+      "sha256": "c2bdc1a3622fa0c84fc487a9859ba27220ddad4c5d304bc4221157906c47bc6f"
+    }
+  ],
+  "allowed_stages": ["compile", "synthesize"],
+  "production_constraints": false,
+  "vendor_ip": false,
+  "physical_io": false,
+  "board_timing_acceptance": false,
+  "historical_project_immutable": "../raw_frame_axi_02",
+  "source_simulation": "Promoted address fix; ModelSim PASS supplied by parent, not rerun here"
+}

@@ -1,0 +1,349 @@
+--- 
++++ 
+@@ -71,97 +71,187 @@
+     output  reg     [31:0]              o_ddr3_total_length
+ 
+ );
+-//apb register for rc
++wire total_length_cfg_done;
+ reg     [31:0]      apb_cmd_reg;
+ reg     [31:0]      apb_cmd_length;
+ reg     [31:0]      apb_cmd_l_addr;
+ reg     [31:0]      apb_cmd_h_addr;
+ reg     [31:0]      apb_cmd_data;
+-
+ reg     [31:0]      apb_pwdata;
+-
+ reg                 apb_cmd_reg_vld;
+ reg                 apb_cmd_length_vld;
+ reg                 apb_cmd_l_addr_vld;
+ reg                 apb_cmd_h_addr_vld;
+ reg                 apb_cmd_data_vld;
+-
+ reg                 apb_ctrl_cfg_done;
+ reg                 apb_length_cfg_done;
+ reg                 apb_l_addr_cfg_done;
+ reg                 apb_h_addr_cfg_done;
+ reg                 apb_data_cfg_done;
+-
+-// [鏂板�瀅 DDR3 address register for RC
+ reg     [31:0]      apb_ddr3_addr;
+ reg                 apb_ddr3_addr_vld;
+ reg                 apb_ddr3_addr_cfg_done;
+-
+-
+-//mwr register for ep
+ reg     [31:0]      dma_cmd_reg;
+ reg     [31:0]      dma_cmd_l_addr;
+ reg     [31:0]      dma_cmd_h_addr;
+-
+ reg     [31:0]      dma_wr_data;
+-
+ reg                 dma_cmd_reg_vld;
+ reg                 dma_cmd_l_addr_vld;
+ reg                 dma_cmd_h_addr_vld;
+-
+ reg                 dma_ctrl_cfg_done  ;
+ reg                 dma_l_addr_cfg_done;
+ reg                 dma_h_addr_cfg_done;
+-
+-// [鏂板�瀅 DDR3 address register for EP
+ reg     [31:0]      dma_ddr3_addr;
+ reg                 dma_ddr3_addr_vld;
+ reg                 dma_ddr3_addr_cfg_done;
+-
+-// [鏂板�瀅 Chunk Loop FSM 鍐呴儴淇″彿
+ reg [31:0] h2f_chunk_host_high;
+ reg     [31:0]      dma_total_length;
+ reg                 dma_total_length_vld;
+ reg                 dma_total_length_cfg_done;
+-
+ reg     [31:0]      apb_total_length;
+ reg                 apb_total_length_vld;
+ reg                 apb_total_length_cfg_done;
+-
+-// [鏂板�瀅 cfg_done 閲嶇疆鍚庣珛鍗抽噸鏂扮疆浣嶉�昏緫
+-reg                 chunk_done_d1;      // chunk_done 寤惰繜涓�鎷�
+-reg                 chunk_done_1shot;   // chunk_done 涓婂崌娌垮崟鍛ㄦ湡鑴夊啿
+-
++reg                 chunk_done_d1;
++reg                 chunk_done_1shot;
+ wire                user_define_data_flag;
+ wire                dma_32_64_addr_cmd_flag;
+ wire                dma_wr_rd_cmd_flag;
+-
+ wire                ack_rcv;
+-
+ wire                device_rc;
+ wire                device_ep;
+-
+ wire                apb_write;
+ wire                apb_read;
+-
+ wire                cmd_reg_cfg_done;
+ wire                l_addr_cfg_done;
+ wire                h_addr_cfg_done;
+-// [鏂板�瀅
+ wire                ddr3_addr_cfg_done;
+-
+ wire                mwr32_req_vld;
+ wire                mwr64_req_vld;
+ wire                mrd32_req_vld;
+ wire                mrd64_req_vld;
+-
+-//4KB boundary
+ wire    [12:0]      req_l_addr;
+ wire    [12:0]      total_data;
+ wire    [12:0]      target_addr;
+ wire                cross_4kb_boundary;
++wire                dma_check_success;
++localparam CHUNK_SIZE_LOG2 = 12;
++localparam CHUNK_SIZE_MAX  = 32'd4096;
++reg  [31:0]  chunk_rem_bytes;
++reg  [31:0]  chunk_host_addr;
++reg  [31:0]  chunk_ddr3_addr;
++reg  [15:0]  chunk_count;
++reg          chunk_loop_active;
++reg          chunk_first_write;
++wire         chunk_done;
++wire         chunk_loop_done;
++wire         is_last_chunk;
++wire         chunk_near_boundary;
++wire [31:0]  chunk_boundary_limit;
++wire [31:0]  chunk_cur_size;
++wire [31:0] h2f_chunk_capacity;
++wire [31:0] h2f_chunk_size;
++wire h2f_length_cmd_is_write;
++wire [32:0] h2f_host_low_next;
++wire [31:0] total_length_val;
++reg mwr_tx_busy_d1, mwr_tx_busy_d2;
++wire tx_done_pulse;
++reg mrd_rx_busy_d1, mrd_rx_busy_d2;
++wire rx_done_pulse;
++reg tx_active, rx_active;
++wire is_final_chunk;
++reg is_final_chunk_d1;
++
++//apb register for rc
++
++
++
++
++
++
++
++
++
++
++
++
++
++
++
++
++
++
++
++
++// [鏂板�瀅 DDR3 address register for RC
++
++
++
++
++
++//mwr register for ep
++
++
++
++
++
++
++
++
++
++
++
++
++
++
++// [鏂板�瀅 DDR3 address register for EP
++
++
++
++
++// [鏂板�瀅 Chunk Loop FSM 鍐呴儴淇″彿
++
++
++
++
++
++
++
++
++
++// [鏂板�瀅 cfg_done 閲嶇疆鍚庣珛鍗抽噸鏂扮疆浣嶉�昏緫
++      // chunk_done 寤惰繜涓�鎷�
++   // chunk_done 涓婂崌娌垮崟鍛ㄦ湡鑴夊啿
++
++
++
++
++
++
++
++
++
++
++
++
++
++
++
++
++// [鏂板�瀅
++
++
++
++
++
++
++
++//4KB boundary
++
++
++
++
+ //dma check
+-wire                dma_check_success;
++
+ 
+ assign device_rc = (DEVICE_TYPE == 3'b100 ) ? 1'b1 : 1'b0;
+ assign device_ep = (DEVICE_TYPE == 3'b000 || DEVICE_TYPE == 3'b001) ? 1'b1 : 1'b0;
+@@ -589,47 +679,47 @@
+ // PCIe 瑕佹眰鍗曚釜 TLP 鐨勮捣濮嬪湴鍧� + Length 涓嶈兘璺� 4KB 杈圭晫锛�
+ //   - 涓绘満鍦板潃浣� 12 浣� = x锛宑hunk 鏈�澶у瓧鑺傛暟 = 4096 - x
+ //   - 涓虹畝鍖栵紝鍥哄畾姣忎釜 chunk 鏈�澶� 4092 瀛楄妭锛�1022 DWs锛夛紝缁濆�逛笉璺ㄨ竟鐣�
+-localparam CHUNK_SIZE_LOG2 = 12;  // log2(4096)
+-localparam CHUNK_SIZE_MAX  = 32'd4096;  // 1022 DWs < 1024 (max TLP DW), 涓嶄細瑙﹀彂 cross_4kb_boundary
+-
+-reg  [31:0]  chunk_rem_bytes;    // remaining bytes to transfer
+-reg  [31:0]  chunk_host_addr;    // current host DMA address (accumulated)
+-reg  [31:0]  chunk_ddr3_addr;    // current DDR3 address (accumulated)
+-reg  [15:0]  chunk_count;        // number of chunks already completed
+-reg          chunk_loop_active;  // asserted while chunk loop is in progress
+-reg          chunk_first_write;  // first CMD_REG write (before total_length was set)
++  // log2(4096)
++  // 1022 DWs < 1024 (max TLP DW), 涓嶄細瑙﹀彂 cross_4kb_boundary
++
++    // remaining bytes to transfer
++    // current host DMA address (accumulated)
++    // current DDR3 address (accumulated)
++        // number of chunks already completed
++  // asserted while chunk loop is in progress
++  // first CMD_REG write (before total_length was set)
+ 
+ // chunk_done: one-shot pulse asserted when a single chunk TLP transfer finishes
+ // (recognized by the falling edge of i_mwr_tx_busy / i_mrd_rx_busy)
+ // For the last chunk: we DO NOT re-assert cmd_reg_cfg_done, so the controller
+ // stays idle and chunk_loop_done = 1 -> MSI fires once.
+ // For intermediate chunks: cmd_reg_cfg_done is re-asserted to accept the next CMD_REG write.
+-wire         chunk_done;
+-wire         chunk_loop_done;    // all chunks finished -> triggers MSI
+-wire         is_last_chunk;
++
++    // all chunks finished -> triggers MSI
++
+ 
+ // Size of the current chunk (may be smaller for the final partial chunk or when near 4KB boundary)
+ // PCIe 4KB boundary rule: single TLP cannot cross a 4KB boundary
+ //   chunk_cur_size = min(remaining_bytes, 4096 - host_addr[11:0])
+ //   娉ㄦ剰: 褰� host_addr[11:0] == 0 (4KB瀵归綈) 鏃�, "鍒拌竟鐣岀殑瀛楄妭鏁�" = 4096
+-wire         chunk_near_boundary;
+-wire [31:0]  chunk_boundary_limit;
+-wire [31:0]  chunk_cur_size;
++
++
++
+ assign chunk_near_boundary  = (chunk_host_addr[11:0] != 12'd0);  // 1=鏈�瀵归綈, 0=4KB瀵归綈
+ assign chunk_boundary_limit = chunk_near_boundary ?
+                               (32'h1000 - {20'd0, chunk_host_addr[11:0]}) :  // 鏈�瀵归綈: 4096 - offset
+                               32'h1000;                                       // 瀵归綈: 鏈�澶�4096
+-wire [31:0] h2f_chunk_capacity = (chunk_boundary_limit < CHUNK_SIZE_MAX) ? chunk_boundary_limit : CHUNK_SIZE_MAX;
+-wire [31:0] h2f_chunk_size = (chunk_rem_bytes < h2f_chunk_capacity) ? chunk_rem_bytes : h2f_chunk_capacity;
++assign h2f_chunk_capacity = (chunk_boundary_limit < CHUNK_SIZE_MAX) ? chunk_boundary_limit : CHUNK_SIZE_MAX;
++assign h2f_chunk_size = (chunk_rem_bytes < h2f_chunk_capacity) ? chunk_rem_bytes : h2f_chunk_capacity;
+ // CMD is latched on this same edge. Select its incoming direction for the
+ // first length, keeping F2H outputs identical from command acceptance onward.
+-wire h2f_length_cmd_is_write = (device_ep && dma_cmd_reg_vld) ? dma_wr_data[24] :
++assign h2f_length_cmd_is_write = (device_ep && dma_cmd_reg_vld) ? dma_wr_data[24] :
+     (device_rc && apb_cmd_reg_vld) ? apb_pwdata[24] : dma_wr_rd_cmd_flag;
+ assign chunk_cur_size = !dma_wr_rd_cmd_flag ? h2f_chunk_size :
+     ((chunk_rem_bytes[31:CHUNK_SIZE_LOG2] == 0) ? chunk_rem_bytes : CHUNK_SIZE_MAX);
+ assign is_last_chunk = !dma_wr_rd_cmd_flag ? (chunk_rem_bytes <= chunk_cur_size) :
+                                            (chunk_rem_bytes <= CHUNK_SIZE_MAX);
+-wire [32:0] h2f_host_low_next = {1'b0,chunk_host_addr}+{1'b0,chunk_cur_size};
++assign h2f_host_low_next = {1'b0,chunk_host_addr}+{1'b0,chunk_cur_size};
+ always @(posedge clk or negedge rst_n) begin
+     if (!rst_n) h2f_chunk_host_high <= 0;
+     else if (total_length_cfg_done)
+@@ -693,7 +783,7 @@
+ 
+ // o_ddr3_length: 瀹屽叏鐢� total_length 鍜� chunk FSM 鎺ㄥ�硷紙涓嶅啀渚濊禆澶栭儴 ddr3_length 瀵勫瓨鍣�锛�
+ // 绛変环浜� min(total_length, CHUNK_SIZE_MAX)锛岀敱 total_length_cfg_done 鍒濆�嬪寲锛屽悗缁�鐢� chunk FSM 鏇存柊
+-wire [31:0] total_length_val;
++
+ assign total_length_val = device_ep ? dma_total_length : apb_total_length;
+ always @(posedge clk or negedge rst_n) begin
+     if (!rst_n)
+@@ -952,7 +1042,7 @@
+ //**********************************************************************
+ 
+ // 1. 鎵撲袱鎷嶉槻浜氱ǔ鎬佸苟鎻愬彇 TX (鍐� DDR3 -> CPU) 蹇欎俊鍙风殑涓嬮檷娌�
+-reg mwr_tx_busy_d1, mwr_tx_busy_d2;
++
+ always @(posedge clk or negedge rst_n) begin
+     if (!rst_n) begin
+         mwr_tx_busy_d1 <= 1'b0;
+@@ -962,10 +1052,10 @@
+         mwr_tx_busy_d2 <= mwr_tx_busy_d1;
+     end
+ end
+-wire tx_done_pulse = ~mwr_tx_busy_d1 & mwr_tx_busy_d2;
++assign tx_done_pulse = ~mwr_tx_busy_d1 & mwr_tx_busy_d2;
+ 
+ // 2. 鎵撲袱鎷嶉槻浜氱ǔ鎬佸苟鎻愬彇 RX (璇� CPU -> DDR3) 蹇欎俊鍙风殑涓嬮檷娌�
+-reg mrd_rx_busy_d1, mrd_rx_busy_d2;
++
+ always @(posedge clk or negedge rst_n) begin
+     if (!rst_n) begin
+         mrd_rx_busy_d1 <= 1'b0;
+@@ -975,10 +1065,10 @@
+         mrd_rx_busy_d2 <= mrd_rx_busy_d1;
+     end
+ end
+-wire rx_done_pulse = ~mrd_rx_busy_d1 & mrd_rx_busy_d2;
++assign rx_done_pulse = ~mrd_rx_busy_d1 & mrd_rx_busy_d2;
+ 
+ // 3. DMA 娲昏穬鐘舵�佽窡韪� (闃叉�㈡剰澶栬烦鍙樺紩璧疯櫄鍋囦腑鏂�)
+-reg tx_active, rx_active;
++
+ always @(posedge clk or negedge rst_n) begin
+     if (!rst_n) begin
+         tx_active <= 1'b0;
+@@ -1000,14 +1090,14 @@
+ // 娉ㄦ剰: 鍦� chunk_done 涓婂崌娌挎椂鍒�, chunk_rem_bytes 灏氭湭琚�鏇存柊 (always鍧楁寜椤哄簭鎵ц��)
+ // 姝ゆ椂 chunk_rem_bytes 浠嶈〃绀哄綋鍓� chunk 鐨勫墿浣欏瓧鑺傛暟.
+ // 褰� (chunk_rem_bytes <= CHUNK_SIZE_MAX) 鏃�, 褰撳墠 chunk 灏辨槸鏈�鍚庝竴涓�.
+-wire is_final_chunk = !dma_wr_rd_cmd_flag ? (chunk_rem_bytes <= chunk_cur_size) :
++assign is_final_chunk = !dma_wr_rd_cmd_flag ? (chunk_rem_bytes <= chunk_cur_size) :
+                                           (chunk_rem_bytes <= CHUNK_SIZE_MAX);
+ 
+ // 5b. is_final_chunk 寤惰繜涓�鎷�: 鍦� chunk_done 涓婂崌娌挎墍鍦ㄥ懆鏈�, is_final_chunk 宸茬粡鍦�
+ // 鍚屼竴闈為樆濉炶祴鍊肩殑鍚屼竴 always 鍧椾腑鍙樹负 false.
+ // 鎵�浠� o_fpga_msi 鐨勬潯浠跺垽鏂�閲屽繀椤荤敤涓婁竴鍛ㄦ湡鐨� is_final_chunk 鍊�.
+ // 鍗�: "涓婁竴涓猚hunk鏄�鏈�鍚庝竴涓猚hunk" = is_final_chunk_d1.
+-reg is_final_chunk_d1;
++
+ always @(posedge clk or negedge rst_n) begin
+     if (!rst_n)
+         is_final_chunk_d1 <= 1'b0;

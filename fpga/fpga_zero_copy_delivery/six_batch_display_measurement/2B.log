@@ -1,0 +1,981 @@
+[thumbnail-config] enabled=1 cameras=all-six format=320x240-RGB565 bytes=153600 raw_vision=640x480 all_six_continuous=1 shared_input_reserved=1
+[display-latency-config] late_latch=1 trace=0 clock=CLOCK_MONOTONIC start=host_dma_return end=gl_call_return
+[display-config] update_idle_ms=0 texture_ring=1 publish_min_ms=24 hud_stats_ms=1000
+QStandardPaths: XDG_RUNTIME_DIR not set, defaulting to '/tmp/runtime-root'
+[tracking-policy] model=det-yolov8n-zebra-merged-v3-rk3568-raw-dfl6-int8.rknn vehicle_classes=1 interval_ms=33 template_side=48
+[tracking-policy] model=det-yolov8n-zebra-merged-v3-rk3568-raw-dfl6-int8.rknn vehicle_classes=1 interval_ms=33 template_side=48
+[tracking-policy] model=MVP_accuracy_round1_rk3568_int8.rknn vehicle_classes=1 interval_ms=33 template_side=48
+[model-tensor] model=/root/npu/yolov8n/zebra640/det-yolov8n-zebra-merged-v3-rk3568-raw-dfl6-int8.rknn input[0] shape=[1,640,640,3] fmt=NHWC type=INT8 quant=2 zp=-128 scale=0.00392156886 elems=1228800 bytes=1228800
+[model-tensor] model=/root/npu/yolov8n/zebra640/det-yolov8n-zebra-merged-v3-rk3568-raw-dfl6-int8.rknn output[0] shape=[1,64,80,80] fmt=NCHW type=INT8 quant=2 zp=28 scale=0.205114797 elems=409600 bytes=409600
+[model-tensor] model=/root/npu/yolov8n/zebra640/det-yolov8n-zebra-merged-v3-rk3568-raw-dfl6-int8.rknn output[1] shape=[1,64,40,40] fmt=NCHW type=INT8 quant=2 zp=28 scale=0.174357072 elems=102400 bytes=102400
+[model-tensor] model=/root/npu/yolov8n/zebra640/det-yolov8n-zebra-merged-v3-rk3568-raw-dfl6-int8.rknn output[2] shape=[1,64,20,20] fmt=NCHW type=INT8 quant=2 zp=25 scale=0.132650837 elems=25600 bytes=25600
+[model-tensor] model=/root/npu/yolov8n/zebra640/det-yolov8n-zebra-merged-v3-rk3568-raw-dfl6-int8.rknn output[3] shape=[1,3,80,80] fmt=NCHW type=INT8 quant=2 zp=114 scale=0.182238057 elems=19200 bytes=19200
+[model-tensor] model=/root/npu/yolov8n/zebra640/det-yolov8n-zebra-merged-v3-rk3568-raw-dfl6-int8.rknn output[4] shape=[1,3,40,40] fmt=NCHW type=INT8 quant=2 zp=118 scale=0.299091697 elems=4800 bytes=4800
+[model-tensor] model=/root/npu/yolov8n/zebra640/det-yolov8n-zebra-merged-v3-rk3568-raw-dfl6-int8.rknn output[5] shape=[1,3,20,20] fmt=NCHW type=INT8 quant=2 zp=118 scale=0.351934046 elems=1200 bytes=1200
+arm_release_ver: g24p0-00eac0, rk_so_ver: 7
+[model-tensor] model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn input[0] shape=[1,480,640,3] fmt=NHWC type=INT8 quant=2 zp=-128 scale=0.00392156886 elems=921600 bytes=921600
+[model-tensor] model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn output[0] shape=[1,64,60,80] fmt=NCHW type=INT8 quant=2 zp=75 scale=0.296376228 elems=307200 bytes=307200
+[model-tensor] model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn output[1] shape=[1,64,30,40] fmt=NCHW type=INT8 quant=2 zp=80 scale=0.350567162 elems=76800 bytes=76800
+[model-tensor] model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn output[2] shape=[1,64,15,20] fmt=NCHW type=INT8 quant=2 zp=75 scale=0.244628549 elems=19200 bytes=19200
+[model-tensor] model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn output[3] shape=[1,5,60,80] fmt=NCHW type=INT8 quant=2 zp=115 scale=0.218746603 elems=24000 bytes=24000
+[model-tensor] model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn output[4] shape=[1,5,30,40] fmt=NCHW type=INT8 quant=2 zp=120 scale=0.442996681 elems=6000 bytes=6000
+[model-tensor] model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn output[5] shape=[1,5,15,20] fmt=NCHW type=INT8 quant=2 zp=120 scale=0.478275806 elems=1500 bytes=1500
+[model] /root/npu/yolov8n/zebra640/det-yolov8n-zebra-merged-v3-rk3568-raw-dfl6-int8.rknn OK 640x640 RGB, 6 outputs cached
+[model] /root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn OK 640x480 RGB, 6 outputs cached
+[mvp] model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn frame=1 input=640x480 RGB uint8 /255 crop_y=80 detections=0 lane_points=0 decode_ok=1
+[tdm_bench] t=188.623381 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=49.059
+[tdm] model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn completed=1 ms=49.06 source_generation=3
+detview_gl_renderer=Mali-G52
+[box-filter] model=MVP_accuracy_round1_rk3568_int8.rknn observed=1 raw=0 visible=0 hidden=0 enabled=1
+[tdm_bench] t=189.151691 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=46.873
+[box-filter] model=MVP_accuracy_round1_rk3568_int8.rknn observed=2 raw=0 visible=0 hidden=0 enabled=1
+[panes] mode=6 submit_fps=35.9 have=111111 capture_fps=4.0/7.0/7.0/7.0/7.0/7.0 err=0/0/0/0/0/0
+[tdm_bench] t=189.354945 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=39.056
+[infer-diag] runs=3 平均运行=47.3ms 平均等帧=107.7ms 单次=155
+[box-filter] model=MVP_accuracy_round1_rk3568_int8.rknn observed=3 raw=0 visible=0 hidden=0 enabled=1
+[tdm_bench] t=189.610742 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=40.060
+[tdm_bench] t=189.885264 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=44.446
+[tdm_bench] t=190.114767 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=43.020
+[panes] mode=6 submit_fps=38.0 have=111111 capture_fps=4.0/8.0/8.0/8.0/8.0/8.0 err=0/0/0/0/0/0
+[tdm_bench] t=190.382556 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=43.183
+[infer-diag] runs=4 平均运行=44.0ms 平均等帧=62.8ms 单次=106
+[tdm_bench] t=190.640754 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=39.846
+[tdm_bench] t=190.896970 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=37.451
+[tdm_bench] t=191.162782 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=44.555
+[infer-split] n=10 prep=1.26 set=1.83 run=27.61 get=6.56 query=0.00 decode=6.74 release=0.01 | sum=44.01 ms
+[panes] mode=6 submit_fps=38.0 have=111111 capture_fps=4.0/8.0/8.0/8.0/8.0/8.0 err=0/0/0/0/0/0
+[tdm_bench] t=191.412138 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=42.249
+[infer-diag] runs=4 平均运行=42.5ms 平均等帧=14.8ms 单次=57
+[tdm_bench] t=191.679647 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=37.990
+[tdm_bench] t=191.945173 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=42.964
+[tdm_bench] t=192.190598 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=39.768
+[panes] mode=6 submit_fps=36.5 have=111111 capture_fps=4.0/8.0/8.0/8.0/8.0/8.0 err=0/0/0/0/0/0
+[tdm_bench] t=192.441816 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=39.123
+[infer-diag] runs=4 平均运行=41.8ms 平均等帧=15.8ms 单次=57
+[tdm_bench] t=192.693531 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=39.818
+[tdm_bench] t=192.961117 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=43.071
+[tdm_bench] t=193.214639 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=41.322
+[analysis] window_ms=5009 wall_ms_sum/count gray=27.35/19 snapshot=0.30/61 prepare=18.05/43 match=0.14/25 correct=0.05/18 replay=2.76/18 request_reject_pending=24 interval=222 duplicate=0 config=0 stale=0 newer=0 snapshot_requests_with_newer_ingress=0 skipped_tracking_frames=0 (not_capture_dropped_frames) vehicle_tracks=0 nonvehicle_outputs=0 vehicle_only=1 tracker_models=1 started_ms=188306 ended_ms=193315 raw_outputs=0
+[capture] camera=4 delivered_fps=7.38 tag_advance_rate=18.15 read_ms=129.581 frame_dma_ms=0.348 copy_ms=1.442 unstable=0
+[capture-format] camera=4 width=320 height=240 bytes=153600 thumbnail=1 metric_start=host_dma_return
+[capture] camera=3 delivered_fps=7.32 tag_advance_rate=18.01 read_ms=130.578 frame_dma_ms=0.369 copy_ms=1.606 unstable=0
+[capture-format] camera=3 width=320 height=240 bytes=153600 thumbnail=1 metric_start=host_dma_return
+[panes] mode=6 submit_fps=36.5 have=111111 capture_fps=4.0/8.0/8.0/8.0/8.0/8.0 err=0/0/0/0/0/0
+[capture] camera=5 delivered_fps=7.29 tag_advance_rate=33.11 read_ms=131.040 frame_dma_ms=0.315 copy_ms=1.425 unstable=0
+[capture-format] camera=5 width=320 height=240 bytes=153600 thumbnail=1 metric_start=host_dma_return
+[stats] take_fps=35.00 upload_new_fps=37.00 paint_new_fps=37.00 paint_fps=37.48 paint_avg_ms=3.05 npu_request_fps=3.00 npu_started_fps=3.00 npu_completed_fps=4.00 npu_failed_fps=0.00 infer_service_ms=41.32
+[display-perf] started_ms=188245 ended_ms=193402 seconds=5.157 take_fps=30.64 upload_fps=30.64 new_paint_fps=30.64 swap_fps=37.04 replaced_snapshots=29 hud_rebuilds=5 revision=1 periodic=5 expired=0 layout=1 upload_rects=65 upload_bytes=12211936 draw_rects=3056 text_hits=25 text_misses=25 text_clears=0
+[display-events] takes=158 uploads=158 new_paints=158 swaps=191
+[display-stage] name=camera_upload count=170 sum_ms=66.520 mean_ms=0.391 p50_le_ms=0.5 p95_le_ms=1.0 p99_le_ms=5.5 max_ms=7.286 overflow=0
+[display-stage] name=hud_regions count=191 sum_ms=115.586 mean_ms=0.605 p50_le_ms=0.5 p95_le_ms=0.5 p99_le_ms=0.5 max_ms=89.254 overflow=0
+[display-stage] name=hud_raster count=5 sum_ms=93.425 mean_ms=18.685 p50_le_ms=11.5 p95_le_ms=50.5 p99_le_ms=50.5 max_ms=50.076 overflow=0
+[display-stage] name=hud_pack count=5 sum_ms=5.455 mean_ms=1.091 p50_le_ms=1.5 p95_le_ms=2.0 p99_le_ms=2.0 max_ms=1.616 overflow=0
+[display-stage] name=hud_upload count=5 sum_ms=32.444 mean_ms=6.489 p50_le_ms=5.0 p95_le_ms=12.5 p99_le_ms=12.5 max_ms=12.197 overflow=0
+[display-stage] name=camera_draw count=191 sum_ms=202.335 mean_ms=1.059 p50_le_ms=1.0 p95_le_ms=1.5 p99_le_ms=35.5 max_ms=63.291 overflow=0
+[display-stage] name=hud_draw count=191 sum_ms=54.923 mean_ms=0.288 p50_le_ms=0.5 p95_le_ms=1.0 p99_le_ms=2.0 max_ms=2.182 overflow=0
+[display-stage] name=paint_total count=191 sum_ms=582.878 mean_ms=3.052 p50_le_ms=1.5 p95_le_ms=3.0 p99_le_ms=73.0 max_ms=187.469 overflow=1
+[display-stage] name=settings_paint count=0 sum_ms=0.000 mean_ms=0.000 p50_le_ms=0.0 p95_le_ms=0.0 p99_le_ms=0.0 max_ms=0.000 overflow=0
+[display-stage] name=gui_delay count=158 sum_ms=346.000 mean_ms=2.190 p50_le_ms=0.5 p95_le_ms=15.5 p99_le_ms=29.5 max_ms=35.000 overflow=0
+[display-stage] name=host_dma_return_to_upload count=192 sum_ms=3408.787 mean_ms=17.754 p50_le_ms=10.5 p95_le_ms=62.0 p99_le_ms=152.6 max_ms=152.584 overflow=2
+[display-upload] camera=1 count=18 bytes=2764800
+[display-upload] camera=2 count=35 bytes=5376000
+[display-upload] camera=3 count=35 bytes=5376000
+[display-upload] camera=4 count=35 bytes=5376000
+[display-upload] camera=5 count=34 bytes=5222400
+[display-upload] camera=6 count=35 bytes=5376000
+[display-latency] late_latch=1 camera=1 stage=dma_return_to_upload count=18 sum_ms=292.722612 mean_ms=16.262367 p50_le_ms=16.0 p95_le_ms=46.5 p99_le_ms=46.5 max_ms=46.421501 overflow=0 refreshed=5 started_ms=188245 ended_ms=193402
+[display-latency] late_latch=1 camera=1 stage=dma_return_to_draw count=18 sum_ms=554.220393 mean_ms=30.790022 p50_le_ms=16.5 p95_le_ms=228.2 p99_le_ms=228.2 max_ms=228.238565 overflow=1 refreshed=5 started_ms=188245 ended_ms=193402
+[display-latency] late_latch=1 camera=2 stage=dma_return_to_upload count=35 sum_ms=771.740120 mean_ms=22.049718 p50_le_ms=15.0 p95_le_ms=110.0 p99_le_ms=152.6 max_ms=152.583791 overflow=1 refreshed=6 started_ms=188245 ended_ms=193402
+[display-latency] late_latch=1 camera=2 stage=dma_return_to_draw count=35 sum_ms=1045.346490 mean_ms=29.867043 p50_le_ms=15.5 p95_le_ms=220.3 p99_le_ms=220.3 max_ms=220.302344 overflow=2 refreshed=6 started_ms=188245 ended_ms=193402
+[display-latency] late_latch=1 camera=3 stage=dma_return_to_upload count=35 sum_ms=477.166835 mean_ms=13.633338 p50_le_ms=8.0 p95_le_ms=67.0 p99_le_ms=98.0 max_ms=97.503465 overflow=0 refreshed=3 started_ms=188245 ended_ms=193402
+[display-latency] late_latch=1 camera=3 stage=dma_return_to_draw count=35 sum_ms=746.540211 mean_ms=21.329720 p50_le_ms=8.5 p95_le_ms=279.0 p99_le_ms=279.0 max_ms=279.010187 overflow=2 refreshed=3 started_ms=188245 ended_ms=193402
+[display-latency] late_latch=1 camera=4 stage=dma_return_to_upload count=35 sum_ms=789.713163 mean_ms=22.563233 p50_le_ms=13.0 p95_le_ms=107.5 p99_le_ms=137.2 max_ms=137.222655 overflow=1 refreshed=5 started_ms=188245 ended_ms=193402
+[display-latency] late_latch=1 camera=4 stage=dma_return_to_draw count=35 sum_ms=1060.356701 mean_ms=30.295906 p50_le_ms=14.0 p95_le_ms=318.6 p99_le_ms=318.6 max_ms=318.641583 overflow=2 refreshed=5 started_ms=188245 ended_ms=193402
+[display-latency] late_latch=1 camera=5 stage=dma_return_to_upload count=34 sum_ms=492.652350 mean_ms=14.489775 p50_le_ms=10.5 p95_le_ms=47.5 p99_le_ms=79.0 max_ms=78.579563 overflow=0 refreshed=8 started_ms=188245 ended_ms=193402
+[display-latency] late_latch=1 camera=5 stage=dma_return_to_draw count=34 sum_ms=783.106814 mean_ms=23.032553 p50_le_ms=11.5 p95_le_ms=112.0 p99_le_ms=261.4 max_ms=261.423322 overflow=1 refreshed=8 started_ms=188245 ended_ms=193402
+[display-latency] late_latch=1 camera=6 stage=dma_return_to_upload count=35 sum_ms=584.791740 mean_ms=16.708335 p50_le_ms=9.5 p95_le_ms=83.5 p99_le_ms=124.0 max_ms=123.952702 overflow=0 refreshed=6 started_ms=188245 ended_ms=193402
+[display-latency] late_latch=1 camera=6 stage=dma_return_to_draw count=35 sum_ms=876.268149 mean_ms=25.036233 p50_le_ms=10.5 p95_le_ms=188.1 p99_le_ms=188.1 max_ms=188.106739 overflow=2 refreshed=6 started_ms=188245 ended_ms=193402
+[capture] camera=2 delivered_fps=7.45 tag_advance_rate=35.29 read_ms=128.216 frame_dma_ms=0.356 copy_ms=1.769 unstable=0
+[capture-format] camera=2 width=320 height=240 bytes=153600 thumbnail=1 metric_start=host_dma_return
+[capture] camera=6 delivered_fps=7.41 tag_advance_rate=32.77 read_ms=128.895 frame_dma_ms=0.314 copy_ms=1.385 unstable=0
+[capture-format] camera=6 width=320 height=240 bytes=153600 thumbnail=1 metric_start=host_dma_return
+[tdm_bench] t=193.462033 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=38.741
+[infer-diag] runs=4 平均运行=41.8ms 平均等帧=12.8ms 单次=54
+[capture] camera=1 delivered_fps=3.84 tag_advance_rate=40.09 read_ms=254.830 frame_dma_ms=0.350 copy_ms=1.395 unstable=0
+[capture-format] camera=1 width=320 height=240 bytes=153600 thumbnail=1 metric_start=host_dma_return
+[mvp] model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn frame=21 input=640x480 RGB uint8 /255 crop_y=80 detections=0 lane_points=0 decode_ok=1
+[tdm_bench] t=193.722571 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=37.264
+[tdm] model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn completed=20 ms=37.26 source_generation=3
+[infer-split] n=10 prep=1.04 set=1.34 run=27.63 get=5.03 query=0.00 decode=6.21 release=0.02 | sum=41.26 ms
+[box-filter] model=MVP_accuracy_round1_rk3568_int8.rknn observed=20 raw=0 visible=0 hidden=0 enabled=1
+[tdm_bench] t=193.988369 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=37.162
+[tdm_bench] t=194.279329 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=43.032
+[panes] mode=6 submit_fps=38.6 have=111111 capture_fps=4.0/8.0/8.0/8.0/8.0/8.0 err=0/0/0/0/0/0
+[infer-diag] runs=3 平均运行=40.3ms 平均等帧=31.7ms 单次=72
+[tdm_bench] t=194.545812 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=42.454
+[tdm_bench] t=194.814107 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=38.523
+[tdm_bench] t=195.100228 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=35.683
+[tdm_bench] t=195.379930 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=38.367
+[panes] mode=6 submit_fps=35.7 have=111111 capture_fps=4.0/8.0/8.0/8.0/8.0/8.0 err=0/0/0/0/0/0
+[infer-diag] runs=4 平均运行=40.2ms 平均等帧=34.8ms 单次=75
+[tdm_bench] t=195.645221 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=43.233
+[tdm_bench] t=195.981685 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=45.947
+[tdm_bench] t=196.259023 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=40.100
+[panes] mode=6 submit_fps=35.6 have=111111 capture_fps=4.0/7.0/7.0/7.0/7.0/7.0 err=0/0/0/0/0/0
+[tdm_bench] t=196.520811 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=41.625
+[infer-split] n=10 prep=1.03 set=1.38 run=27.48 get=4.70 query=0.00 decode=7.03 release=0.01 | sum=41.64 ms
+[infer-diag] runs=4 平均运行=44.0ms 平均等帧=41.2ms 单次=85
+[tdm_bench] t=196.792996 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=45.389
+[tdm_bench] t=197.064336 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=37.649
+[tdm_bench] t=197.346776 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=38.763
+[panes] mode=6 submit_fps=36.6 have=111111 capture_fps=4.0/8.0/8.0/8.0/8.0/8.0 err=0/0/0/0/0/0
+[tdm_bench] t=197.657250 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=36.149
+[infer-diag] runs=4 平均运行=40.8ms 平均等帧=43.2ms 单次=84
+[tdm_bench] t=197.968162 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=40.373
+[tdm_bench] t=198.229434 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=40.594
+[analysis] window_ms=5015 wall_ms_sum/count gray=25.13/18 snapshot=0.27/54 prepare=12.46/36 match=0.07/18 correct=0.05/18 replay=0.02/18 request_reject_pending=0 interval=227 duplicate=23 config=0 stale=0 newer=0 snapshot_requests_with_newer_ingress=0 skipped_tracking_frames=0 (not_capture_dropped_frames) vehicle_tracks=0 nonvehicle_outputs=0 vehicle_only=1 tracker_models=1 started_ms=193315 ended_ms=198330 raw_outputs=0
+[capture] camera=4 delivered_fps=7.12 tag_advance_rate=18.60 read_ms=134.219 frame_dma_ms=0.317 copy_ms=1.342 unstable=0
+[capture-format] camera=4 width=320 height=240 bytes=153600 thumbnail=1 metric_start=host_dma_return
+[capture] camera=3 delivered_fps=7.12 tag_advance_rate=18.59 read_ms=134.271 frame_dma_ms=0.343 copy_ms=1.384 unstable=0
+[capture-format] camera=3 width=320 height=240 bytes=153600 thumbnail=1 metric_start=host_dma_return
+[panes] mode=6 submit_fps=35.5 have=111111 capture_fps=4.0/7.0/7.0/7.0/7.0/7.0 err=0/0/0/0/0/0
+[capture] camera=5 delivered_fps=7.12 tag_advance_rate=33.25 read_ms=134.152 frame_dma_ms=0.367 copy_ms=1.599 unstable=0
+[capture-format] camera=5 width=320 height=240 bytes=153600 thumbnail=1 metric_start=host_dma_return
+[capture] camera=2 delivered_fps=7.11 tag_advance_rate=34.56 read_ms=134.508 frame_dma_ms=0.419 copy_ms=1.699 unstable=0
+[capture-format] camera=2 width=320 height=240 bytes=153600 thumbnail=1 metric_start=host_dma_return
+[capture] camera=6 delivered_fps=7.13 tag_advance_rate=33.27 read_ms=134.142 frame_dma_ms=0.330 copy_ms=1.646 unstable=0
+[capture-format] camera=6 width=320 height=240 bytes=153600 thumbnail=1 metric_start=host_dma_return
+[tdm_bench] t=198.505881 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=37.488
+[stats] take_fps=35.00 upload_new_fps=36.00 paint_new_fps=36.00 paint_fps=44.97 paint_avg_ms=1.60 npu_request_fps=4.00 npu_started_fps=4.00 npu_completed_fps=4.00 npu_failed_fps=0.00 infer_service_ms=37.49
+[display-perf] started_ms=193402 ended_ms=198516 seconds=5.114 take_fps=36.57 upload_fps=36.37 new_paint_fps=36.37 swap_fps=44.97 replaced_snapshots=0 hud_rebuilds=5 revision=0 periodic=5 expired=0 layout=0 upload_rects=80 upload_bytes=4896920 draw_rects=3680 text_hits=44 text_misses=6 text_clears=0
+[display-events] takes=187 uploads=186 new_paints=186 swaps=230
+[display-stage] name=camera_upload count=197 sum_ms=60.642 mean_ms=0.308 p50_le_ms=0.5 p95_le_ms=1.0 p99_le_ms=1.5 max_ms=1.332 overflow=0
+[display-stage] name=hud_regions count=230 sum_ms=32.567 mean_ms=0.142 p50_le_ms=0.5 p95_le_ms=0.5 p99_le_ms=0.5 max_ms=0.645 overflow=0
+[display-stage] name=hud_raster count=5 sum_ms=40.750 mean_ms=8.150 p50_le_ms=7.5 p95_le_ms=11.0 p99_le_ms=11.0 max_ms=10.787 overflow=0
+[display-stage] name=hud_pack count=5 sum_ms=6.559 mean_ms=1.312 p50_le_ms=1.5 p95_le_ms=2.0 p99_le_ms=2.0 max_ms=1.818 overflow=0
+[display-stage] name=hud_upload count=5 sum_ms=21.041 mean_ms=4.208 p50_le_ms=4.5 p95_le_ms=6.0 p99_le_ms=6.0 max_ms=5.597 overflow=0
+[display-stage] name=camera_draw count=230 sum_ms=127.164 mean_ms=0.553 p50_le_ms=1.0 p95_le_ms=1.0 p99_le_ms=1.5 max_ms=1.560 overflow=0
+[display-stage] name=hud_draw count=230 sum_ms=69.121 mean_ms=0.301 p50_le_ms=0.5 p95_le_ms=1.0 p99_le_ms=1.0 max_ms=1.055 overflow=0
+[display-stage] name=paint_total count=230 sum_ms=369.954 mean_ms=1.608 p50_le_ms=1.5 p95_le_ms=3.0 p99_le_ms=15.0 max_ms=18.506 overflow=0
+[display-stage] name=settings_paint count=0 sum_ms=0.000 mean_ms=0.000 p50_le_ms=0.0 p95_le_ms=0.0 p99_le_ms=0.0 max_ms=0.000 overflow=0
+[display-stage] name=gui_delay count=187 sum_ms=247.000 mean_ms=1.321 p50_le_ms=0.5 p95_le_ms=10.5 p99_le_ms=16.5 max_ms=18.000 overflow=0
+[display-stage] name=host_dma_return_to_upload count=200 sum_ms=2071.955 mean_ms=10.360 p50_le_ms=9.0 p95_le_ms=24.5 p99_le_ms=30.0 max_ms=36.203 overflow=0
+[display-upload] camera=1 count=18 bytes=2764800
+[display-upload] camera=2 count=37 bytes=5683200
+[display-upload] camera=3 count=36 bytes=5529600
+[display-upload] camera=4 count=36 bytes=5529600
+[display-upload] camera=5 count=37 bytes=5683200
+[display-upload] camera=6 count=36 bytes=5529600
+[display-latency] late_latch=1 camera=1 stage=dma_return_to_upload count=18 sum_ms=211.783478 mean_ms=11.765749 p50_le_ms=10.0 p95_le_ms=26.5 p99_le_ms=26.5 max_ms=26.486446 overflow=0 refreshed=1 started_ms=193402 ended_ms=198516
+[display-latency] late_latch=1 camera=1 stage=dma_return_to_draw count=18 sum_ms=248.561544 mean_ms=13.808975 p50_le_ms=12.5 p95_le_ms=28.0 p99_le_ms=28.0 max_ms=27.927028 overflow=0 refreshed=1 started_ms=193402 ended_ms=198516
+[display-latency] late_latch=1 camera=2 stage=dma_return_to_upload count=37 sum_ms=498.242960 mean_ms=13.466026 p50_le_ms=12.0 p95_le_ms=34.0 p99_le_ms=36.5 max_ms=36.203008 overflow=0 refreshed=2 started_ms=193402 ended_ms=198516
+[display-latency] late_latch=1 camera=2 stage=dma_return_to_draw count=37 sum_ms=525.703892 mean_ms=14.208213 p50_le_ms=12.5 p95_le_ms=34.5 p99_le_ms=38.0 max_ms=37.954515 overflow=0 refreshed=2 started_ms=193402 ended_ms=198516
+[display-latency] late_latch=1 camera=3 stage=dma_return_to_upload count=36 sum_ms=227.018320 mean_ms=6.306064 p50_le_ms=5.5 p95_le_ms=13.5 p99_le_ms=20.5 max_ms=20.069892 overflow=0 refreshed=0 started_ms=193402 ended_ms=198516
+[display-latency] late_latch=1 camera=3 stage=dma_return_to_draw count=36 sum_ms=262.713944 mean_ms=7.297610 p50_le_ms=6.5 p95_le_ms=19.0 p99_le_ms=22.0 max_ms=21.667687 overflow=0 refreshed=0 started_ms=193402 ended_ms=198516
+[display-latency] late_latch=1 camera=4 stage=dma_return_to_upload count=36 sum_ms=353.637601 mean_ms=9.823267 p50_le_ms=6.0 p95_le_ms=26.0 p99_le_ms=26.0 max_ms=25.844720 overflow=0 refreshed=4 started_ms=193402 ended_ms=198516
+[display-latency] late_latch=1 camera=4 stage=dma_return_to_draw count=36 sum_ms=384.096032 mean_ms=10.669334 p50_le_ms=7.5 p95_le_ms=26.5 p99_le_ms=26.5 max_ms=26.477946 overflow=0 refreshed=4 started_ms=193402 ended_ms=198516
+[display-latency] late_latch=1 camera=5 stage=dma_return_to_upload count=37 sum_ms=406.650909 mean_ms=10.990565 p50_le_ms=9.0 p95_le_ms=27.0 p99_le_ms=30.0 max_ms=29.541407 overflow=0 refreshed=3 started_ms=193402 ended_ms=198516
+[display-latency] late_latch=1 camera=5 stage=dma_return_to_draw count=37 sum_ms=434.931117 mean_ms=11.754895 p50_le_ms=10.0 p95_le_ms=28.5 p99_le_ms=30.0 max_ms=29.919125 overflow=0 refreshed=3 started_ms=193402 ended_ms=198516
+[display-latency] late_latch=1 camera=6 stage=dma_return_to_upload count=36 sum_ms=374.621682 mean_ms=10.406158 p50_le_ms=9.0 p95_le_ms=22.5 p99_le_ms=27.0 max_ms=26.638992 overflow=0 refreshed=4 started_ms=193402 ended_ms=198516
+[display-latency] late_latch=1 camera=6 stage=dma_return_to_draw count=36 sum_ms=402.552749 mean_ms=11.182021 p50_le_ms=9.5 p95_le_ms=23.0 p99_le_ms=28.5 max_ms=28.258371 overflow=0 refreshed=4 started_ms=193402 ended_ms=198516
+[capture] camera=1 delivered_fps=3.55 tag_advance_rate=41.47 read_ms=275.124 frame_dma_ms=0.344 copy_ms=1.389 unstable=0
+[capture-format] camera=1 width=320 height=240 bytes=153600 thumbnail=1 metric_start=host_dma_return
+[tdm_bench] t=198.800194 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=40.578
+[tdm_bench] t=199.036059 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=36.628
+[infer-diag] runs=5 平均运行=40.2ms 平均等帧=75.4ms 单次=115
+[mvp] model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn frame=41 input=640x480 RGB uint8 /255 crop_y=80 detections=0 lane_points=0 decode_ok=1
+[tdm_bench] t=199.323850 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=41.347
+[tdm] model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn completed=40 ms=41.35 source_generation=3
+[infer-split] n=10 prep=0.85 set=1.17 run=26.72 get=4.87 query=0.00 decode=6.73 release=0.01 | sum=40.34 ms
+[box-filter] model=MVP_accuracy_round1_rk3568_int8.rknn observed=40 raw=0 visible=0 hidden=0 enabled=1
+[panes] mode=6 submit_fps=37.7 have=111111 capture_fps=4.0/8.0/8.0/8.0/8.0/8.0 err=0/0/0/0/0/0
+[tdm_bench] t=199.595211 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=42.344
+[tdm_bench] t=199.865149 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=37.931
+[infer-diag] runs=3 平均运行=42.0ms 平均等帧=34.3ms 单次=76
+[tdm_bench] t=200.135147 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=38.040
+[tdm_bench] t=200.408491 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=39.587
+[panes] mode=6 submit_fps=36.7 have=111111 capture_fps=4.0/7.0/8.0/8.0/8.0/8.0 err=0/0/0/0/0/0
+[tdm_bench] t=200.698655 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=46.952
+[tdm_bench] t=200.985834 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=44.180
+[infer-diag] runs=4 平均运行=43.5ms 平均等帧=36.5ms 单次=80
+[tdm_bench] t=201.247315 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=45.121
+[panes] mode=6 submit_fps=36.6 have=111111 capture_fps=4.0/8.0/7.0/7.0/8.0/8.0 err=0/0/0/0/0/0
+[tdm_bench] t=201.549719 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=38.235
+[tdm_bench] t=201.846208 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=38.987
+[tdm_bench] t=202.113101 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=37.677
+[infer-split] n=10 prep=0.98 set=1.33 run=27.35 get=5.24 query=0.00 decode=6.98 release=0.01 | sum=41.89 ms
+[infer-diag] runs=4 平均运行=41.2ms 平均等帧=40.5ms 单次=81
+[tdm_bench] t=202.388430 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=36.649
+[panes] mode=6 submit_fps=35.2 have=111111 capture_fps=4.0/7.0/8.0/8.0/8.0/8.0 err=0/0/0/0/0/0
+[tdm_bench] t=202.681007 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=45.055
+[tdm_bench] t=202.930619 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=41.293
+[tdm_bench] t=203.206142 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=36.127
+[analysis] window_ms=5007 wall_ms_sum/count gray=21.05/18 snapshot=0.26/54 prepare=12.93/36 match=0.06/18 correct=0.06/18 replay=0.03/18 request_reject_pending=0 interval=224 duplicate=22 config=0 stale=0 newer=0 snapshot_requests_with_newer_ingress=0 skipped_tracking_frames=0 (not_capture_dropped_frames) vehicle_tracks=0 nonvehicle_outputs=0 vehicle_only=1 tracker_models=1 started_ms=198330 ended_ms=203337 raw_outputs=0
+[infer-diag] runs=4 平均运行=40.8ms 平均等帧=32.2ms 单次=73
+[capture] camera=5 delivered_fps=7.20 tag_advance_rate=33.18 read_ms=132.434 frame_dma_ms=0.330 copy_ms=1.462 unstable=0
+[capture-format] camera=5 width=320 height=240 bytes=153600 thumbnail=1 metric_start=host_dma_return
+[tdm_bench] t=203.468731 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=40.174
+[capture] camera=4 delivered_fps=7.26 tag_advance_rate=18.46 read_ms=131.507 frame_dma_ms=0.319 copy_ms=1.347 unstable=0
+[capture-format] camera=4 width=320 height=240 bytes=153600 thumbnail=1 metric_start=host_dma_return
+[panes] mode=6 submit_fps=35.4 have=111111 capture_fps=4.0/7.0/8.0/8.0/8.0/8.0 err=0/0/0/0/0/0
+[capture] camera=3 delivered_fps=7.27 tag_advance_rate=18.48 read_ms=131.347 frame_dma_ms=0.365 copy_ms=1.478 unstable=0
+[capture-format] camera=3 width=320 height=240 bytes=153600 thumbnail=1 metric_start=host_dma_return
+[capture] camera=2 delivered_fps=6.91 tag_advance_rate=35.54 read_ms=135.376 frame_dma_ms=0.351 copy_ms=1.479 unstable=0
+[capture-format] camera=2 width=320 height=240 bytes=153600 thumbnail=1 metric_start=host_dma_return
+[stats] take_fps=35.00 upload_new_fps=33.00 paint_new_fps=33.00 paint_fps=44.85 paint_avg_ms=1.58 npu_request_fps=4.00 npu_started_fps=4.00 npu_completed_fps=4.00 npu_failed_fps=0.00 infer_service_ms=40.17
+[display-perf] started_ms=198516 ended_ms=203601 seconds=5.085 take_fps=35.99 upload_fps=35.40 new_paint_fps=35.40 swap_fps=44.84 replaced_snapshots=1 hud_rebuilds=5 revision=0 periodic=5 expired=0 layout=0 upload_rects=80 upload_bytes=4896920 draw_rects=3648 text_hits=47 text_misses=3 text_clears=0
+[display-events] takes=183 uploads=180 new_paints=180 swaps=228
+[display-stage] name=camera_upload count=190 sum_ms=60.149 mean_ms=0.317 p50_le_ms=0.5 p95_le_ms=1.0 p99_le_ms=1.0 max_ms=0.913 overflow=0
+[display-stage] name=hud_regions count=228 sum_ms=31.456 mean_ms=0.138 p50_le_ms=0.5 p95_le_ms=0.5 p99_le_ms=0.5 max_ms=0.478 overflow=0
+[display-stage] name=hud_raster count=5 sum_ms=38.702 mean_ms=7.740 p50_le_ms=7.0 p95_le_ms=14.5 p99_le_ms=14.5 max_ms=14.358 overflow=0
+[display-stage] name=hud_pack count=5 sum_ms=8.110 mean_ms=1.622 p50_le_ms=2.0 p95_le_ms=2.0 p99_le_ms=2.0 max_ms=1.827 overflow=0
+[display-stage] name=hud_upload count=5 sum_ms=23.531 mean_ms=4.706 p50_le_ms=5.0 p95_le_ms=5.5 p99_le_ms=5.5 max_ms=5.481 overflow=0
+[display-stage] name=camera_draw count=228 sum_ms=123.940 mean_ms=0.544 p50_le_ms=0.5 p95_le_ms=1.0 p99_le_ms=1.5 max_ms=1.633 overflow=0
+[display-stage] name=hud_draw count=228 sum_ms=65.115 mean_ms=0.286 p50_le_ms=0.5 p95_le_ms=1.0 p99_le_ms=1.0 max_ms=0.937 overflow=0
+[display-stage] name=paint_total count=228 sum_ms=362.516 mean_ms=1.590 p50_le_ms=1.5 p95_le_ms=3.0 p99_le_ms=14.0 max_ms=21.887 overflow=0
+[display-stage] name=settings_paint count=0 sum_ms=0.000 mean_ms=0.000 p50_le_ms=0.0 p95_le_ms=0.0 p99_le_ms=0.0 max_ms=0.000 overflow=0
+[display-stage] name=gui_delay count=183 sum_ms=306.000 mean_ms=1.672 p50_le_ms=0.5 p95_le_ms=11.5 p99_le_ms=24.5 max_ms=29.000 overflow=0
+[display-stage] name=host_dma_return_to_upload count=201 sum_ms=2083.894 mean_ms=10.368 p50_le_ms=9.5 p95_le_ms=24.0 p99_le_ms=32.0 max_ms=41.506 overflow=0
+[display-upload] camera=1 count=19 bytes=2918400
+[display-upload] camera=2 count=35 bytes=5376000
+[display-upload] camera=3 count=37 bytes=5683200
+[display-upload] camera=4 count=37 bytes=5683200
+[display-upload] camera=5 count=36 bytes=5529600
+[display-upload] camera=6 count=37 bytes=5683200
+[display-latency] late_latch=1 camera=1 stage=dma_return_to_upload count=19 sum_ms=223.765106 mean_ms=11.777111 p50_le_ms=11.0 p95_le_ms=24.5 p99_le_ms=24.5 max_ms=24.498682 overflow=0 refreshed=1 started_ms=198516 ended_ms=203601
+[display-latency] late_latch=1 camera=1 stage=dma_return_to_draw count=19 sum_ms=256.739359 mean_ms=13.512598 p50_le_ms=11.5 p95_le_ms=42.5 p99_le_ms=42.5 max_ms=42.141299 overflow=0 refreshed=1 started_ms=198516 ended_ms=203601
+[display-latency] late_latch=1 camera=2 stage=dma_return_to_upload count=35 sum_ms=484.650829 mean_ms=13.847167 p50_le_ms=13.5 p95_le_ms=32.0 p99_le_ms=42.0 max_ms=41.505531 overflow=0 refreshed=2 started_ms=198516 ended_ms=203601
+[display-latency] late_latch=1 camera=2 stage=dma_return_to_draw count=35 sum_ms=521.875324 mean_ms=14.910724 p50_le_ms=13.5 p95_le_ms=32.5 p99_le_ms=42.5 max_ms=42.377930 overflow=0 refreshed=2 started_ms=198516 ended_ms=203601
+[display-latency] late_latch=1 camera=3 stage=dma_return_to_upload count=37 sum_ms=247.721939 mean_ms=6.695188 p50_le_ms=5.0 p95_le_ms=14.5 p99_le_ms=15.5 max_ms=15.286675 overflow=0 refreshed=0 started_ms=198516 ended_ms=203601
+[display-latency] late_latch=1 camera=3 stage=dma_return_to_draw count=37 sum_ms=295.587229 mean_ms=7.988844 p50_le_ms=6.5 p95_le_ms=16.5 p99_le_ms=27.0 max_ms=26.836998 overflow=0 refreshed=0 started_ms=198516 ended_ms=203601
+[display-latency] late_latch=1 camera=4 stage=dma_return_to_upload count=37 sum_ms=365.113042 mean_ms=9.867920 p50_le_ms=6.5 p95_le_ms=26.5 p99_le_ms=27.0 max_ms=26.767371 overflow=0 refreshed=5 started_ms=198516 ended_ms=203601
+[display-latency] late_latch=1 camera=4 stage=dma_return_to_draw count=37 sum_ms=390.032401 mean_ms=10.541416 p50_le_ms=7.5 p95_le_ms=27.5 p99_le_ms=28.0 max_ms=27.564226 overflow=0 refreshed=5 started_ms=198516 ended_ms=203601
+[display-latency] late_latch=1 camera=5 stage=dma_return_to_upload count=36 sum_ms=354.173616 mean_ms=9.838156 p50_le_ms=10.0 p95_le_ms=17.5 p99_le_ms=20.5 max_ms=20.421902 overflow=0 refreshed=3 started_ms=198516 ended_ms=203601
+[display-latency] late_latch=1 camera=5 stage=dma_return_to_draw count=36 sum_ms=380.360178 mean_ms=10.565561 p50_le_ms=10.5 p95_le_ms=18.0 p99_le_ms=21.0 max_ms=20.913083 overflow=0 refreshed=3 started_ms=198516 ended_ms=203601
+[display-latency] late_latch=1 camera=6 stage=dma_return_to_upload count=37 sum_ms=408.469213 mean_ms=11.039708 p50_le_ms=9.5 p95_le_ms=27.0 p99_le_ms=37.5 max_ms=37.456126 overflow=0 refreshed=6 started_ms=198516 ended_ms=203601
+[display-latency] late_latch=1 camera=6 stage=dma_return_to_draw count=37 sum_ms=434.160217 mean_ms=11.734060 p50_le_ms=10.5 p95_le_ms=27.5 p99_le_ms=38.5 max_ms=38.045893 overflow=0 refreshed=6 started_ms=198516 ended_ms=203601
+[capture] camera=6 delivered_fps=7.22 tag_advance_rate=33.16 read_ms=132.399 frame_dma_ms=0.327 copy_ms=1.539 unstable=0
+[capture-format] camera=6 width=320 height=240 bytes=153600 thumbnail=1 metric_start=host_dma_return
+[tdm_bench] t=203.758955 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=40.167
+[capture] camera=1 delivered_fps=3.60 tag_advance_rate=41.44 read_ms=272.002 frame_dma_ms=0.293 copy_ms=1.234 unstable=0
+[capture-format] camera=1 width=320 height=240 bytes=153600 thumbnail=1 metric_start=host_dma_return
+[tdm_bench] t=204.069313 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=40.392
+[tdm_bench] t=204.380389 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=43.208
+[panes] mode=6 submit_fps=37.4 have=111111 capture_fps=4.0/7.0/7.0/7.0/7.0/7.0 err=0/0/0/0/0/0
+[infer-diag] runs=4 平均运行=42.2ms 平均等帧=51.2ms 单次=93
+[tdm_bench] t=204.664060 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=44.650
+[mvp] model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn frame=61 input=640x480 RGB uint8 /255 crop_y=80 detections=0 lane_points=0 decode_ok=1
+[tdm_bench] t=204.912406 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=41.083
+[tdm] model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn completed=60 ms=41.08 source_generation=3
+[infer-split] n=10 prep=0.88 set=1.31 run=27.97 get=5.33 query=0.00 decode=6.25 release=0.01 | sum=41.76 ms
+[box-filter] model=MVP_accuracy_round1_rk3568_int8.rknn observed=60 raw=0 visible=0 hidden=0 enabled=1
+[tdm_bench] t=205.177533 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=39.170
+[tdm_bench] t=205.478071 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=42.213
+[panes] mode=6 submit_fps=37.6 have=111111 capture_fps=4.0/8.0/8.0/8.0/8.0/8.0 err=0/0/0/0/0/0
+[infer-diag] runs=4 平均运行=42.8ms 平均等帧=31.8ms 单次=74
+[tdm_bench] t=205.745726 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=42.326
+[tdm_bench] t=206.014857 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=46.003
+[tdm_bench] t=206.284388 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=38.556
+[panes] mode=6 submit_fps=35.7 have=111111 capture_fps=4.0/7.0/7.0/7.0/8.0/8.0 err=0/0/0/0/0/0
+[tdm_bench] t=206.579553 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=42.416
+[infer-diag] runs=4 平均运行=43.2ms 平均等帧=31.5ms 单次=74
+[tdm_bench] t=206.877118 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=40.580
+[tdm_bench] t=207.177470 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=38.500
+[tdm_bench] t=207.495300 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=42.867
+[panes] mode=6 submit_fps=36.1 have=111111 capture_fps=4.0/7.0/7.0/7.0/7.0/7.0 err=0/0/0/0/0/0
+[tdm_bench] t=207.812925 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=43.906
+[infer-split] n=10 prep=1.09 set=1.34 run=27.49 get=5.77 query=0.00 decode=7.04 release=0.01 | sum=42.74 ms
+[infer-diag] runs=4 平均运行=42.8ms 平均等帧=65.5ms 单次=108
+[tdm_bench] t=208.113528 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=43.379
+[analysis] window_ms=5016 wall_ms_sum/count gray=21.95/18 snapshot=0.23/52 prepare=11.05/35 match=0.06/18 correct=0.05/17 replay=0.02/17 request_reject_pending=0 interval=217 duplicate=30 config=0 stale=0 newer=0 snapshot_requests_with_newer_ingress=0 skipped_tracking_frames=0 (not_capture_dropped_frames) vehicle_tracks=0 nonvehicle_outputs=0 vehicle_only=1 tracker_models=1 started_ms=203337 ended_ms=208353 raw_outputs=0
+[tdm_bench] t=208.374919 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=38.579
+[capture] camera=5 delivered_fps=6.90 tag_advance_rate=33.50 read_ms=138.834 frame_dma_ms=0.305 copy_ms=1.579 unstable=0
+[capture-format] camera=5 width=320 height=240 bytes=153600 thumbnail=1 metric_start=host_dma_return
+[capture] camera=4 delivered_fps=6.87 tag_advance_rate=18.86 read_ms=139.315 frame_dma_ms=0.354 copy_ms=1.396 unstable=0
+[capture-format] camera=4 width=320 height=240 bytes=153600 thumbnail=1 metric_start=host_dma_return
+[panes] mode=6 submit_fps=36.4 have=111111 capture_fps=4.0/7.0/7.0/7.0/7.0/7.0 err=0/0/0/0/0/0
+[capture] camera=3 delivered_fps=6.87 tag_advance_rate=18.85 read_ms=139.342 frame_dma_ms=0.367 copy_ms=1.605 unstable=0
+[capture-format] camera=3 width=320 height=240 bytes=153600 thumbnail=1 metric_start=host_dma_return
+[capture] camera=2 delivered_fps=6.88 tag_advance_rate=35.97 read_ms=139.208 frame_dma_ms=0.335 copy_ms=1.353 unstable=0
+[capture-format] camera=2 width=320 height=240 bytes=153600 thumbnail=1 metric_start=host_dma_return
+[tdm_bench] t=208.691328 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=39.333
+[capture] camera=6 delivered_fps=6.90 tag_advance_rate=33.50 read_ms=138.866 frame_dma_ms=0.308 copy_ms=1.458 unstable=0
+[capture-format] camera=6 width=320 height=240 bytes=153600 thumbnail=1 metric_start=host_dma_return
+[stats] take_fps=36.00 upload_new_fps=37.00 paint_new_fps=37.00 paint_fps=45.66 paint_avg_ms=1.49 npu_request_fps=4.00 npu_started_fps=4.00 npu_completed_fps=4.00 npu_failed_fps=0.00 infer_service_ms=39.33
+[display-perf] started_ms=203601 ended_ms=208705 seconds=5.104 take_fps=36.64 upload_fps=36.44 new_paint_fps=36.44 swap_fps=45.65 replaced_snapshots=0 hud_rebuilds=5 revision=0 periodic=5 expired=0 layout=0 upload_rects=80 upload_bytes=4896920 draw_rects=3728 text_hits=48 text_misses=2 text_clears=0
+[display-events] takes=187 uploads=186 new_paints=186 swaps=233
+[display-stage] name=camera_upload count=207 sum_ms=57.000 mean_ms=0.275 p50_le_ms=0.5 p95_le_ms=1.0 p99_le_ms=1.0 max_ms=1.114 overflow=0
+[display-stage] name=hud_regions count=233 sum_ms=30.168 mean_ms=0.129 p50_le_ms=0.5 p95_le_ms=0.5 p99_le_ms=0.5 max_ms=0.382 overflow=0
+[display-stage] name=hud_raster count=5 sum_ms=32.465 mean_ms=6.493 p50_le_ms=6.5 p95_le_ms=8.0 p99_le_ms=8.0 max_ms=7.612 overflow=0
+[display-stage] name=hud_pack count=5 sum_ms=7.712 mean_ms=1.542 p50_le_ms=1.5 p95_le_ms=2.0 p99_le_ms=2.0 max_ms=1.971 overflow=0
+[display-stage] name=hud_upload count=5 sum_ms=22.827 mean_ms=4.565 p50_le_ms=5.0 p95_le_ms=5.5 p99_le_ms=5.5 max_ms=5.380 overflow=0
+[display-stage] name=camera_draw count=233 sum_ms=124.133 mean_ms=0.533 p50_le_ms=0.5 p95_le_ms=1.0 p99_le_ms=1.5 max_ms=1.404 overflow=0
+[display-stage] name=hud_draw count=233 sum_ms=63.311 mean_ms=0.272 p50_le_ms=0.5 p95_le_ms=1.0 p99_le_ms=1.0 max_ms=0.917 overflow=0
+[display-stage] name=paint_total count=233 sum_ms=349.323 mean_ms=1.499 p50_le_ms=1.5 p95_le_ms=2.5 p99_le_ms=14.0 max_ms=15.455 overflow=0
+[display-stage] name=settings_paint count=0 sum_ms=0.000 mean_ms=0.000 p50_le_ms=0.0 p95_le_ms=0.0 p99_le_ms=0.0 max_ms=0.000 overflow=0
+[display-stage] name=gui_delay count=187 sum_ms=198.000 mean_ms=1.059 p50_le_ms=0.5 p95_le_ms=5.5 p99_le_ms=19.5 max_ms=21.000 overflow=0
+[display-stage] name=host_dma_return_to_upload count=194 sum_ms=1826.829 mean_ms=9.417 p50_le_ms=8.0 p95_le_ms=22.5 p99_le_ms=27.0 max_ms=28.638 overflow=0
+[display-upload] camera=1 count=17 bytes=2611200
+[display-upload] camera=2 count=35 bytes=5376000
+[display-upload] camera=3 count=35 bytes=5376000
+[display-upload] camera=4 count=35 bytes=5376000
+[display-upload] camera=5 count=36 bytes=5529600
+[display-upload] camera=6 count=36 bytes=5529600
+[display-latency] late_latch=1 camera=1 stage=dma_return_to_upload count=17 sum_ms=169.045543 mean_ms=9.943855 p50_le_ms=8.0 p95_le_ms=23.5 p99_le_ms=23.5 max_ms=23.125728 overflow=0 refreshed=3 started_ms=203601 ended_ms=208705
+[display-latency] late_latch=1 camera=1 stage=dma_return_to_draw count=17 sum_ms=189.367401 mean_ms=11.139259 p50_le_ms=9.5 p95_le_ms=24.0 p99_le_ms=24.0 max_ms=23.848206 overflow=0 refreshed=3 started_ms=203601 ended_ms=208705
+[display-latency] late_latch=1 camera=2 stage=dma_return_to_upload count=35 sum_ms=328.152847 mean_ms=9.375796 p50_le_ms=6.0 p95_le_ms=21.5 p99_le_ms=23.0 max_ms=22.507377 overflow=0 refreshed=5 started_ms=203601 ended_ms=208705
+[display-latency] late_latch=1 camera=2 stage=dma_return_to_draw count=35 sum_ms=350.751518 mean_ms=10.021472 p50_le_ms=7.0 p95_le_ms=21.5 p99_le_ms=23.0 max_ms=22.882762 overflow=0 refreshed=5 started_ms=203601 ended_ms=208705
+[display-latency] late_latch=1 camera=3 stage=dma_return_to_upload count=35 sum_ms=199.114463 mean_ms=5.688985 p50_le_ms=5.0 p95_le_ms=12.5 p99_le_ms=20.0 max_ms=19.738633 overflow=0 refreshed=2 started_ms=203601 ended_ms=208705
+[display-latency] late_latch=1 camera=3 stage=dma_return_to_draw count=35 sum_ms=246.188771 mean_ms=7.033965 p50_le_ms=6.0 p95_le_ms=17.5 p99_le_ms=21.5 max_ms=21.315718 overflow=0 refreshed=2 started_ms=203601 ended_ms=208705
+[display-latency] late_latch=1 camera=4 stage=dma_return_to_upload count=35 sum_ms=419.447723 mean_ms=11.984221 p50_le_ms=13.0 p95_le_ms=27.0 p99_le_ms=29.0 max_ms=28.637839 overflow=0 refreshed=5 started_ms=203601 ended_ms=208705
+[display-latency] late_latch=1 camera=4 stage=dma_return_to_draw count=35 sum_ms=444.071201 mean_ms=12.687749 p50_le_ms=13.5 p95_le_ms=27.5 p99_le_ms=30.0 max_ms=29.624283 overflow=0 refreshed=5 started_ms=203601 ended_ms=208705
+[display-latency] late_latch=1 camera=5 stage=dma_return_to_upload count=36 sum_ms=319.648323 mean_ms=8.879120 p50_le_ms=8.5 p95_le_ms=20.0 p99_le_ms=22.5 max_ms=22.124450 overflow=0 refreshed=7 started_ms=203601 ended_ms=208705
+[display-latency] late_latch=1 camera=5 stage=dma_return_to_draw count=36 sum_ms=354.149655 mean_ms=9.837490 p50_le_ms=9.5 p95_le_ms=20.5 p99_le_ms=23.5 max_ms=23.053725 overflow=0 refreshed=7 started_ms=203601 ended_ms=208705
+[display-latency] late_latch=1 camera=6 stage=dma_return_to_upload count=36 sum_ms=391.419738 mean_ms=10.872771 p50_le_ms=9.5 p95_le_ms=25.0 p99_le_ms=25.0 max_ms=24.890735 overflow=0 refreshed=2 started_ms=203601 ended_ms=208705
+[display-latency] late_latch=1 camera=6 stage=dma_return_to_draw count=36 sum_ms=415.788663 mean_ms=11.549685 p50_le_ms=10.0 p95_le_ms=25.5 p99_le_ms=26.0 max_ms=25.838386 overflow=0 refreshed=2 started_ms=203601 ended_ms=208705
+[infer-diag] runs=3 平均运行=42.0ms 平均等帧=50.3ms 单次=92
+[tdm_bench] t=209.010788 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=41.562
+[capture] camera=1 delivered_fps=3.43 tag_advance_rate=41.59 read_ms=285.018 frame_dma_ms=0.317 copy_ms=1.285 unstable=0
+[capture-format] camera=1 width=320 height=240 bytes=153600 thumbnail=1 metric_start=host_dma_return
+[tdm_bench] t=209.311157 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=39.622
+[panes] mode=6 submit_fps=34.7 have=111111 capture_fps=4.0/7.0/7.0/7.0/7.0/7.0 err=0/0/0/0/0/0
+[tdm_bench] t=209.621712 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=41.755
+[tdm_bench] t=209.890820 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=40.367
+[infer-diag] runs=4 平均运行=42.0ms 平均等帧=57.5ms 单次=99
+[tdm_bench] t=210.193972 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=38.540
+[tdm_bench] t=210.464589 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=41.969
+[panes] mode=6 submit_fps=37.8 have=111111 capture_fps=4.0/8.0/8.0/8.0/8.0/8.0 err=0/0/0/0/0/0
+[mvp] model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn frame=81 input=640x480 RGB uint8 /255 crop_y=80 detections=0 lane_points=0 decode_ok=1
+[tdm_bench] t=210.752289 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=39.869
+[tdm] model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn completed=80 ms=39.87 source_generation=3
+[infer-split] n=10 prep=0.81 set=1.22 run=26.53 get=5.46 query=0.00 decode=7.26 release=0.01 | sum=41.31 ms
+[box-filter] model=MVP_accuracy_round1_rk3568_int8.rknn observed=80 raw=0 visible=0 hidden=0 enabled=1
+[tdm_bench] t=211.077387 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=41.545
+[infer-diag] runs=4 平均运行=41.5ms 平均等帧=55.0ms 单次=96
+[tdm_bench] t=211.345822 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=42.468
+[panes] mode=6 submit_fps=37.9 have=111111 capture_fps=4.0/8.0/7.0/7.0/8.0/8.0 err=0/0/0/0/0/0
+[tdm_bench] t=211.613394 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=38.442
+[tdm_bench] t=211.870001 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=41.370
+[tdm_bench] t=212.160120 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=41.717
+[infer-diag] runs=4 平均运行=42.5ms 平均等帧=28.2ms 单次=70
+[tdm_bench] t=212.424783 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=39.227
+[panes] mode=6 submit_fps=38.4 have=111111 capture_fps=4.0/8.0/8.0/8.0/8.0/8.0 err=0/0/0/0/0/0
+[tdm_bench] t=212.687829 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=36.151
+[tdm_bench] t=212.975169 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=38.104
+[tdm_bench] t=213.264155 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=38.620
+[analysis] window_ms=5014 wall_ms_sum/count gray=22.51/17 snapshot=0.25/53 prepare=12.13/35 match=0.08/17 correct=0.06/18 replay=0.03/18 request_reject_pending=0 interval=219 duplicate=30 config=0 stale=0 newer=0 snapshot_requests_with_newer_ingress=0 skipped_tracking_frames=0 (not_capture_dropped_frames) vehicle_tracks=0 nonvehicle_outputs=0 vehicle_only=1 tracker_models=1 started_ms=208353 ended_ms=213367 raw_outputs=0
+[infer-diag] runs=4 平均运行=39.0ms 平均等帧=37.0ms 单次=76
+[capture] camera=5 delivered_fps=7.00 tag_advance_rate=33.39 read_ms=136.751 frame_dma_ms=0.320 copy_ms=1.566 unstable=0
+[capture-format] camera=5 width=320 height=240 bytes=153600 thumbnail=1 metric_start=host_dma_return
+[tdm_bench] t=213.557290 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=38.752
+[infer-split] n=10 prep=0.89 set=1.66 run=27.34 get=4.88 query=0.00 decode=5.74 release=0.00 | sum=40.53 ms
+[capture] camera=4 delivered_fps=6.98 tag_advance_rate=18.75 read_ms=137.100 frame_dma_ms=0.327 copy_ms=1.409 unstable=0
+[capture-format] camera=4 width=320 height=240 bytes=153600 thumbnail=1 metric_start=host_dma_return
+[capture] camera=3 delivered_fps=6.98 tag_advance_rate=18.74 read_ms=137.155 frame_dma_ms=0.331 copy_ms=1.413 unstable=0
+[capture-format] camera=3 width=320 height=240 bytes=153600 thumbnail=1 metric_start=host_dma_return
+[panes] mode=6 submit_fps=36.6 have=111111 capture_fps=4.0/7.0/7.0/7.0/7.0/7.0 err=0/0/0/0/0/0
+[capture] camera=2 delivered_fps=6.97 tag_advance_rate=35.06 read_ms=137.270 frame_dma_ms=0.323 copy_ms=1.369 unstable=0
+[capture-format] camera=2 width=320 height=240 bytes=153600 thumbnail=1 metric_start=host_dma_return
+[capture] camera=6 delivered_fps=6.96 tag_advance_rate=33.42 read_ms=137.492 frame_dma_ms=0.315 copy_ms=1.572 unstable=0
+[capture-format] camera=6 width=320 height=240 bytes=153600 thumbnail=1 metric_start=host_dma_return
+[stats] take_fps=36.00 upload_new_fps=36.00 paint_new_fps=36.00 paint_fps=45.51 paint_avg_ms=1.55 npu_request_fps=3.00 npu_started_fps=3.00 npu_completed_fps=3.00 npu_failed_fps=0.00 infer_service_ms=38.75
+[display-perf] started_ms=208705 ended_ms=213803 seconds=5.098 take_fps=37.07 upload_fps=37.07 new_paint_fps=37.07 swap_fps=45.51 replaced_snapshots=0 hud_rebuilds=5 revision=0 periodic=5 expired=0 layout=0 upload_rects=80 upload_bytes=4896920 draw_rects=3712 text_hits=48 text_misses=2 text_clears=0
+[display-events] takes=189 uploads=189 new_paints=189 swaps=232
+[display-stage] name=camera_upload count=206 sum_ms=59.700 mean_ms=0.290 p50_le_ms=0.5 p95_le_ms=1.0 p99_le_ms=1.0 max_ms=0.975 overflow=0
+[display-stage] name=hud_regions count=232 sum_ms=33.069 mean_ms=0.143 p50_le_ms=0.5 p95_le_ms=0.5 p99_le_ms=0.5 max_ms=0.618 overflow=0
+[display-stage] name=hud_raster count=5 sum_ms=34.123 mean_ms=6.825 p50_le_ms=6.5 p95_le_ms=9.5 p99_le_ms=9.5 max_ms=9.030 overflow=0
+[display-stage] name=hud_pack count=5 sum_ms=8.138 mean_ms=1.628 p50_le_ms=2.0 p95_le_ms=2.5 p99_le_ms=2.5 max_ms=2.050 overflow=0
+[display-stage] name=hud_upload count=5 sum_ms=23.768 mean_ms=4.754 p50_le_ms=5.5 p95_le_ms=5.5 p99_le_ms=5.5 max_ms=5.236 overflow=0
+[display-stage] name=camera_draw count=232 sum_ms=125.803 mean_ms=0.542 p50_le_ms=1.0 p95_le_ms=1.0 p99_le_ms=1.5 max_ms=1.552 overflow=0
+[display-stage] name=hud_draw count=232 sum_ms=64.104 mean_ms=0.276 p50_le_ms=0.5 p95_le_ms=1.0 p99_le_ms=1.0 max_ms=1.065 overflow=0
+[display-stage] name=paint_total count=232 sum_ms=361.158 mean_ms=1.557 p50_le_ms=1.5 p95_le_ms=3.0 p99_le_ms=14.5 max_ms=17.254 overflow=0
+[display-stage] name=settings_paint count=0 sum_ms=0.000 mean_ms=0.000 p50_le_ms=0.0 p95_le_ms=0.0 p99_le_ms=0.0 max_ms=0.000 overflow=0
+[display-stage] name=gui_delay count=189 sum_ms=158.000 mean_ms=0.836 p50_le_ms=0.5 p95_le_ms=5.5 p99_le_ms=14.5 max_ms=14.000 overflow=0
+[display-stage] name=host_dma_return_to_upload count=195 sum_ms=2039.538 mean_ms=10.459 p50_le_ms=8.5 p95_le_ms=25.0 p99_le_ms=30.0 max_ms=35.671 overflow=0
+[display-upload] camera=1 count=18 bytes=2764800
+[display-upload] camera=2 count=35 bytes=5376000
+[display-upload] camera=3 count=36 bytes=5529600
+[display-upload] camera=4 count=36 bytes=5529600
+[display-upload] camera=5 count=35 bytes=5376000
+[display-upload] camera=6 count=35 bytes=5376000
+[display-latency] late_latch=1 camera=1 stage=dma_return_to_upload count=18 sum_ms=216.612409 mean_ms=12.034023 p50_le_ms=9.5 p95_le_ms=28.0 p99_le_ms=28.0 max_ms=27.718480 overflow=0 refreshed=3 started_ms=208705 ended_ms=213803
+[display-latency] late_latch=1 camera=1 stage=dma_return_to_draw count=18 sum_ms=237.865584 mean_ms=13.214755 p50_le_ms=10.0 p95_le_ms=31.0 p99_le_ms=31.0 max_ms=30.681646 overflow=0 refreshed=3 started_ms=208705 ended_ms=213803
+[display-latency] late_latch=1 camera=2 stage=dma_return_to_upload count=35 sum_ms=395.071755 mean_ms=11.287764 p50_le_ms=9.5 p95_le_ms=25.0 p99_le_ms=25.5 max_ms=25.179993 overflow=0 refreshed=5 started_ms=208705 ended_ms=213803
+[display-latency] late_latch=1 camera=2 stage=dma_return_to_draw count=35 sum_ms=420.237167 mean_ms=12.006776 p50_le_ms=10.0 p95_le_ms=26.0 p99_le_ms=26.0 max_ms=25.642298 overflow=0 refreshed=5 started_ms=208705 ended_ms=213803
+[display-latency] late_latch=1 camera=3 stage=dma_return_to_upload count=36 sum_ms=192.897664 mean_ms=5.358268 p50_le_ms=4.5 p95_le_ms=11.5 p99_le_ms=12.5 max_ms=12.037127 overflow=0 refreshed=3 started_ms=208705 ended_ms=213803
+[display-latency] late_latch=1 camera=3 stage=dma_return_to_draw count=36 sum_ms=226.920069 mean_ms=6.303335 p50_le_ms=5.0 p95_le_ms=13.5 p99_le_ms=17.0 max_ms=16.502959 overflow=0 refreshed=3 started_ms=208705 ended_ms=213803
+[display-latency] late_latch=1 camera=4 stage=dma_return_to_upload count=36 sum_ms=417.365037 mean_ms=11.593473 p50_le_ms=10.0 p95_le_ms=26.5 p99_le_ms=27.0 max_ms=26.860331 overflow=0 refreshed=5 started_ms=208705 ended_ms=213803
+[display-latency] late_latch=1 camera=4 stage=dma_return_to_draw count=36 sum_ms=456.493378 mean_ms=12.680372 p50_le_ms=11.0 p95_le_ms=27.5 p99_le_ms=27.5 max_ms=27.436972 overflow=0 refreshed=5 started_ms=208705 ended_ms=213803
+[display-latency] late_latch=1 camera=5 stage=dma_return_to_upload count=35 sum_ms=390.171158 mean_ms=11.147747 p50_le_ms=9.5 p95_le_ms=23.0 p99_le_ms=24.5 max_ms=24.133213 overflow=0 refreshed=4 started_ms=208705 ended_ms=213803
+[display-latency] late_latch=1 camera=5 stage=dma_return_to_draw count=35 sum_ms=431.869278 mean_ms=12.339122 p50_le_ms=10.5 p95_le_ms=25.5 p99_le_ms=31.0 max_ms=30.769940 overflow=0 refreshed=4 started_ms=208705 ended_ms=213803
+[display-latency] late_latch=1 camera=6 stage=dma_return_to_upload count=35 sum_ms=427.419945 mean_ms=12.211998 p50_le_ms=10.5 p95_le_ms=30.0 p99_le_ms=36.0 max_ms=35.671077 overflow=0 refreshed=3 started_ms=208705 ended_ms=213803
+[display-latency] late_latch=1 camera=6 stage=dma_return_to_draw count=35 sum_ms=462.885557 mean_ms=13.225302 p50_le_ms=11.5 p95_le_ms=30.5 p99_le_ms=37.0 max_ms=36.853527 overflow=0 refreshed=3 started_ms=208705 ended_ms=213803
+[tdm_bench] t=213.877257 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=41.503
+[tdm_bench] t=214.141123 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=38.670
+[capture] camera=1 delivered_fps=3.54 tag_advance_rate=41.46 read_ms=276.603 frame_dma_ms=0.373 copy_ms=1.268 unstable=0
+[capture-format] camera=1 width=320 height=240 bytes=153600 thumbnail=1 metric_start=host_dma_return
+[tdm_bench] t=214.391782 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=37.970
+[infer-diag] runs=4 平均运行=40.5ms 平均等帧=41.5ms 单次=82
+[panes] mode=6 submit_fps=37.4 have=111111 capture_fps=4.0/8.0/8.0/8.0/8.0/8.0 err=0/0/0/0/0/0
+[tdm_bench] t=214.659426 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=40.546
+[tdm_bench] t=214.976698 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=38.765
+[tdm_bench] t=215.277295 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=40.883
+[tdm_bench] t=215.575748 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=38.511
+[panes] mode=6 submit_fps=33.9 have=111111 capture_fps=4.0/7.0/7.0/7.0/7.0/7.0 err=0/0/0/0/0/0
+[infer-diag] runs=4 平均运行=41.2ms 平均等帧=54.5ms 单次=95
+[tdm_bench] t=215.883520 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=38.625
+[tdm_bench] t=216.201311 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=38.765
+[mvp] model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn frame=101 input=640x480 RGB uint8 /255 crop_y=80 detections=0 lane_points=0 decode_ok=1
+[tdm_bench] t=216.536718 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=44.764
+[tdm] model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn completed=100 ms=44.76 source_generation=3
+[infer-split] n=10 prep=1.07 set=1.39 run=27.70 get=4.52 query=0.00 decode=6.28 release=0.01 | sum=40.97 ms
+[box-filter] model=MVP_accuracy_round1_rk3568_int8.rknn observed=100 raw=0 visible=0 hidden=0 enabled=1
+[panes] mode=6 submit_fps=35.7 have=111111 capture_fps=4.0/7.0/7.0/7.0/7.0/7.0 err=0/0/0/0/0/0
+[tdm_bench] t=216.815407 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=39.845
+[infer-diag] runs=4 平均运行=41.8ms 平均等帧=67.8ms 单次=109
+[tdm_bench] t=217.129233 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=42.357
+[tdm_bench] t=217.441543 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=39.521
+[panes] mode=6 submit_fps=35.6 have=111111 capture_fps=4.0/7.0/7.0/7.0/7.0/7.0 err=0/0/0/0/0/0
+[tdm_bench] t=217.751945 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=40.090
+[infer-diag] runs=3 平均运行=41.7ms 平均等帧=70.0ms 单次=111
+[tdm_bench] t=218.050787 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=44.553
+[tdm_bench] t=218.279584 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=39.924
+[analysis] window_ms=5017 wall_ms_sum/count gray=21.59/17 snapshot=0.34/51 prepare=12.01/34 match=0.13/17 correct=0.06/17 replay=0.02/17 request_reject_pending=0 interval=211 duplicate=34 config=0 stale=0 newer=0 snapshot_requests_with_newer_ingress=0 skipped_tracking_frames=0 (not_capture_dropped_frames) vehicle_tracks=0 nonvehicle_outputs=0 vehicle_only=1 tracker_models=1 started_ms=213367 ended_ms=218384 raw_outputs=0
+[capture] camera=5 delivered_fps=6.79 tag_advance_rate=33.56 read_ms=141.087 frame_dma_ms=0.324 copy_ms=1.531 unstable=0
+[capture-format] camera=5 width=320 height=240 bytes=153600 thumbnail=1 metric_start=host_dma_return
+[tdm_bench] t=218.562422 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=39.353
+[panes] mode=6 submit_fps=37.8 have=111111 capture_fps=4.0/8.0/8.0/8.0/8.0/8.0 err=0/0/0/0/0/0
+[capture] camera=4 delivered_fps=6.82 tag_advance_rate=18.90 read_ms=140.458 frame_dma_ms=0.360 copy_ms=1.432 unstable=0
+[capture-format] camera=4 width=320 height=240 bytes=153600 thumbnail=1 metric_start=host_dma_return
+[capture] camera=3 delivered_fps=6.82 tag_advance_rate=18.90 read_ms=140.458 frame_dma_ms=0.354 copy_ms=1.567 unstable=0
+[capture-format] camera=3 width=320 height=240 bytes=153600 thumbnail=1 metric_start=host_dma_return
+[capture] camera=2 delivered_fps=6.82 tag_advance_rate=35.28 read_ms=140.346 frame_dma_ms=0.324 copy_ms=1.334 unstable=0
+[capture-format] camera=2 width=320 height=240 bytes=153600 thumbnail=1 metric_start=host_dma_return
+[capture] camera=6 delivered_fps=6.86 tag_advance_rate=33.52 read_ms=139.625 frame_dma_ms=0.325 copy_ms=1.425 unstable=0
+[capture-format] camera=6 width=320 height=240 bytes=153600 thumbnail=1 metric_start=host_dma_return
+[tdm_bench] t=218.844239 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=41.982
+[stats] take_fps=37.00 upload_new_fps=37.00 paint_new_fps=37.00 paint_fps=44.30 paint_avg_ms=1.54 npu_request_fps=4.00 npu_started_fps=4.00 npu_completed_fps=4.00 npu_failed_fps=0.00 infer_service_ms=41.98
+[display-perf] started_ms=213803 ended_ms=218906 seconds=5.103 take_fps=35.86 upload_fps=35.67 new_paint_fps=35.67 swap_fps=44.29 replaced_snapshots=1 hud_rebuilds=5 revision=0 periodic=5 expired=0 layout=0 upload_rects=80 upload_bytes=4896920 draw_rects=3616 text_hits=49 text_misses=1 text_clears=0
+[display-events] takes=183 uploads=182 new_paints=182 swaps=226
+[display-stage] name=camera_upload count=198 sum_ms=61.336 mean_ms=0.310 p50_le_ms=0.5 p95_le_ms=1.0 p99_le_ms=1.5 max_ms=1.395 overflow=0
+[display-stage] name=hud_regions count=226 sum_ms=31.462 mean_ms=0.139 p50_le_ms=0.5 p95_le_ms=0.5 p99_le_ms=0.5 max_ms=0.573 overflow=0
+[display-stage] name=hud_raster count=5 sum_ms=28.786 mean_ms=5.757 p50_le_ms=5.5 p95_le_ms=8.0 p99_le_ms=8.0 max_ms=7.824 overflow=0
+[display-stage] name=hud_pack count=5 sum_ms=6.633 mean_ms=1.327 p50_le_ms=1.5 p95_le_ms=1.5 p99_le_ms=1.5 max_ms=1.412 overflow=0
+[display-stage] name=hud_upload count=5 sum_ms=21.345 mean_ms=4.269 p50_le_ms=4.5 p95_le_ms=5.5 p99_le_ms=5.5 max_ms=5.103 overflow=0
+[display-stage] name=camera_draw count=226 sum_ms=123.832 mean_ms=0.548 p50_le_ms=1.0 p95_le_ms=1.0 p99_le_ms=1.5 max_ms=1.423 overflow=0
+[display-stage] name=hud_draw count=226 sum_ms=63.633 mean_ms=0.282 p50_le_ms=0.5 p95_le_ms=1.0 p99_le_ms=1.0 max_ms=0.869 overflow=0
+[display-stage] name=paint_total count=226 sum_ms=348.889 mean_ms=1.544 p50_le_ms=1.5 p95_le_ms=3.0 p99_le_ms=13.0 max_ms=15.467 overflow=0
+[display-stage] name=settings_paint count=0 sum_ms=0.000 mean_ms=0.000 p50_le_ms=0.0 p95_le_ms=0.0 p99_le_ms=0.0 max_ms=0.000 overflow=0
+[display-stage] name=gui_delay count=183 sum_ms=286.000 mean_ms=1.563 p50_le_ms=0.5 p95_le_ms=11.5 p99_le_ms=20.5 max_ms=33.000 overflow=0
+[display-stage] name=host_dma_return_to_upload count=193 sum_ms=1742.304 mean_ms=9.027 p50_le_ms=7.0 p95_le_ms=24.0 p99_le_ms=31.5 max_ms=36.224 overflow=0
+[display-upload] camera=1 count=17 bytes=2611200
+[display-upload] camera=2 count=36 bytes=5529600
+[display-upload] camera=3 count=35 bytes=5376000
+[display-upload] camera=4 count=35 bytes=5376000
+[display-upload] camera=5 count=35 bytes=5376000
+[display-upload] camera=6 count=35 bytes=5376000
+[display-latency] late_latch=1 camera=1 stage=dma_return_to_upload count=17 sum_ms=171.251352 mean_ms=10.073609 p50_le_ms=6.5 p95_le_ms=30.0 p99_le_ms=30.0 max_ms=29.521989 overflow=0 refreshed=3 started_ms=213803 ended_ms=218906
+[display-latency] late_latch=1 camera=1 stage=dma_return_to_draw count=17 sum_ms=182.759092 mean_ms=10.750535 p50_le_ms=7.0 p95_le_ms=31.0 p99_le_ms=31.0 max_ms=30.916778 overflow=0 refreshed=3 started_ms=213803 ended_ms=218906
+[display-latency] late_latch=1 camera=2 stage=dma_return_to_upload count=36 sum_ms=348.964263 mean_ms=9.693452 p50_le_ms=7.0 p95_le_ms=25.5 p99_le_ms=26.0 max_ms=25.700091 overflow=0 refreshed=2 started_ms=213803 ended_ms=218906
+[display-latency] late_latch=1 camera=2 stage=dma_return_to_draw count=36 sum_ms=388.655743 mean_ms=10.795993 p50_le_ms=7.5 p95_le_ms=26.5 p99_le_ms=27.0 max_ms=26.621200 overflow=0 refreshed=2 started_ms=213803 ended_ms=218906
+[display-latency] late_latch=1 camera=3 stage=dma_return_to_upload count=35 sum_ms=199.809978 mean_ms=5.708857 p50_le_ms=5.5 p95_le_ms=11.0 p99_le_ms=11.5 max_ms=11.400985 overflow=0 refreshed=3 started_ms=213803 ended_ms=218906
+[display-latency] late_latch=1 camera=3 stage=dma_return_to_draw count=35 sum_ms=221.833553 mean_ms=6.338102 p50_le_ms=6.0 p95_le_ms=12.0 p99_le_ms=12.0 max_ms=11.780745 overflow=0 refreshed=3 started_ms=213803 ended_ms=218906
+[display-latency] late_latch=1 camera=4 stage=dma_return_to_upload count=35 sum_ms=334.031675 mean_ms=9.543762 p50_le_ms=7.0 p95_le_ms=24.5 p99_le_ms=36.5 max_ms=36.223509 overflow=0 refreshed=4 started_ms=213803 ended_ms=218906
+[display-latency] late_latch=1 camera=4 stage=dma_return_to_draw count=35 sum_ms=377.748185 mean_ms=10.792805 p50_le_ms=9.0 p95_le_ms=24.5 p99_le_ms=37.0 max_ms=36.789649 overflow=0 refreshed=4 started_ms=213803 ended_ms=218906
+[display-latency] late_latch=1 camera=5 stage=dma_return_to_upload count=35 sum_ms=347.908357 mean_ms=9.940239 p50_le_ms=8.5 p95_le_ms=21.0 p99_le_ms=27.0 max_ms=26.807664 overflow=0 refreshed=5 started_ms=213803 ended_ms=218906
+[display-latency] late_latch=1 camera=5 stage=dma_return_to_draw count=35 sum_ms=385.057013 mean_ms=11.001629 p50_le_ms=9.5 p95_le_ms=24.5 p99_le_ms=28.0 max_ms=27.632520 overflow=0 refreshed=5 started_ms=213803 ended_ms=218906
+[display-latency] late_latch=1 camera=6 stage=dma_return_to_upload count=35 sum_ms=340.338144 mean_ms=9.723947 p50_le_ms=8.5 p95_le_ms=25.0 p99_le_ms=31.5 max_ms=31.188785 overflow=0 refreshed=4 started_ms=213803 ended_ms=218906
+[display-latency] late_latch=1 camera=6 stage=dma_return_to_draw count=35 sum_ms=373.763784 mean_ms=10.678965 p50_le_ms=9.5 p95_le_ms=29.5 p99_le_ms=32.0 max_ms=31.742675 overflow=0 refreshed=4 started_ms=213803 ended_ms=218906
+[infer-diag] runs=4 平均运行=43.0ms 平均等帧=80.0ms 单次=123
+[tdm_bench] t=219.107814 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=39.207
+[tdm_bench] t=219.374371 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=39.070
+[infer-split] n=10 prep=0.82 set=1.36 run=27.86 get=4.58 query=0.00 decode=6.78 release=0.01 | sum=41.41 ms
+[capture] camera=1 delivered_fps=3.42 tag_advance_rate=41.60 read_ms=286.330 frame_dma_ms=0.373 copy_ms=1.353 unstable=0
+[capture-format] camera=1 width=320 height=240 bytes=153600 thumbnail=1 metric_start=host_dma_return
+[tdm_bench] t=219.667086 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=47.209
+[panes] mode=6 submit_fps=35.6 have=111111 capture_fps=4.0/8.0/8.0/8.0/7.0/8.0 err=0/0/0/0/0/0
+[tdm_bench] t=219.952469 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=46.063
+[infer-diag] runs=4 平均运行=44.0ms 平均等帧=33.0ms 单次=77
+[tdm_bench] t=220.199198 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=43.050
+[tdm_bench] t=220.475229 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=46.355
+[panes] mode=6 submit_fps=36.6 have=111111 capture_fps=4.0/8.0/7.0/7.0/8.0/7.0 err=0/0/0/0/0/0
+[tdm_bench] t=220.799015 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=48.610
+[tdm_bench] t=221.080676 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=40.083
+[infer-diag] runs=4 平均运行=45.5ms 平均等帧=36.2ms 单次=81
+[tdm_bench] t=221.358053 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=38.276
+[tdm_bench] t=221.625514 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=44.012
+[panes] mode=6 submit_fps=35.9 have=111111 capture_fps=4.0/8.0/8.0/8.0/8.0/8.0 err=0/0/0/0/0/0
+[tdm_bench] t=221.906093 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=40.333
+[mvp] model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn frame=121 input=640x480 RGB uint8 /255 crop_y=80 detections=0 lane_points=0 decode_ok=1
+[tdm_bench] t=222.179529 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=43.208
+[tdm] model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn completed=120 ms=43.21 source_generation=3
+[infer-split] n=10 prep=0.80 set=1.43 run=27.36 get=6.74 query=0.00 decode=8.17 release=0.00 | sum=44.52 ms
+[box-filter] model=MVP_accuracy_round1_rk3568_int8.rknn observed=120 raw=0 visible=0 hidden=0 enabled=1
+[infer-diag] runs=4 平均运行=42.0ms 平均等帧=32.5ms 单次=74
+[tdm_bench] t=222.462521 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=42.735
+[panes] mode=6 submit_fps=36.5 have=111111 capture_fps=4.0/8.0/8.0/8.0/8.0/8.0 err=0/0/0/0/0/0
+[tdm_bench] t=222.725586 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=40.206
+[tdm_bench] t=222.988707 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=36.567
+[tdm_bench] t=223.262867 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=43.332
+[analysis] window_ms=5001 wall_ms_sum/count gray=23.07/18 snapshot=0.28/54 prepare=13.11/36 match=0.07/18 correct=0.07/18 replay=0.03/18 request_reject_pending=0 interval=224 duplicate=21 config=0 stale=0 newer=0 snapshot_requests_with_newer_ingress=0 skipped_tracking_frames=0 (not_capture_dropped_frames) vehicle_tracks=0 nonvehicle_outputs=0 vehicle_only=1 tracker_models=1 started_ms=218384 ended_ms=223385 raw_outputs=0
+[infer-diag] runs=4 平均运行=43.0ms 平均等帧=27.8ms 单次=70
+[tdm_bench] t=223.533758 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=38.442
+[capture] camera=5 delivered_fps=7.06 tag_advance_rate=33.35 read_ms=135.486 frame_dma_ms=0.311 copy_ms=1.493 unstable=0
+[capture-format] camera=5 width=320 height=240 bytes=153600 thumbnail=1 metric_start=host_dma_return
+[panes] mode=6 submit_fps=35.4 have=111111 capture_fps=4.0/8.0/8.0/8.0/8.0/8.0 err=0/0/0/0/0/0
+[tdm_bench] t=223.806733 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=42.344
+[capture] camera=4 delivered_fps=7.21 tag_advance_rate=18.51 read_ms=132.550 frame_dma_ms=0.344 copy_ms=1.519 unstable=0
+[capture-format] camera=4 width=320 height=240 bytes=153600 thumbnail=1 metric_start=host_dma_return
+[capture] camera=3 delivered_fps=7.21 tag_advance_rate=18.51 read_ms=132.513 frame_dma_ms=0.358 copy_ms=1.488 unstable=0
+[capture-format] camera=3 width=320 height=240 bytes=153600 thumbnail=1 metric_start=host_dma_return
+[capture] camera=2 delivered_fps=7.18 tag_advance_rate=32.60 read_ms=132.789 frame_dma_ms=0.315 copy_ms=1.544 unstable=0
+[capture-format] camera=2 width=320 height=240 bytes=153600 thumbnail=1 metric_start=host_dma_return
+[capture] camera=6 delivered_fps=7.22 tag_advance_rate=33.16 read_ms=132.375 frame_dma_ms=0.326 copy_ms=1.525 unstable=0
+[capture-format] camera=6 width=320 height=240 bytes=153600 thumbnail=1 metric_start=host_dma_return
+[stats] take_fps=36.00 upload_new_fps=35.00 paint_new_fps=36.00 paint_fps=43.77 paint_avg_ms=1.64 npu_request_fps=3.00 npu_started_fps=3.00 npu_completed_fps=3.00 npu_failed_fps=0.00 infer_service_ms=42.34
+[display-perf] started_ms=218906 ended_ms=224001 seconds=5.095 take_fps=35.92 upload_fps=35.92 new_paint_fps=35.92 swap_fps=43.77 replaced_snapshots=0 hud_rebuilds=5 revision=0 periodic=5 expired=0 layout=0 upload_rects=80 upload_bytes=4896920 draw_rects=3568 text_hits=50 text_misses=0 text_clears=0
+[display-events] takes=183 uploads=183 new_paints=183 swaps=223
+[display-stage] name=camera_upload count=196 sum_ms=65.013 mean_ms=0.332 p50_le_ms=0.5 p95_le_ms=1.0 p99_le_ms=1.5 max_ms=1.720 overflow=0
+[display-stage] name=hud_regions count=223 sum_ms=32.011 mean_ms=0.144 p50_le_ms=0.5 p95_le_ms=0.5 p99_le_ms=0.5 max_ms=0.414 overflow=0
+[display-stage] name=hud_raster count=5 sum_ms=29.783 mean_ms=5.957 p50_le_ms=7.0 p95_le_ms=7.5 p99_le_ms=7.5 max_ms=7.005 overflow=0
+[display-stage] name=hud_pack count=5 sum_ms=7.888 mean_ms=1.578 p50_le_ms=2.0 p95_le_ms=2.0 p99_le_ms=2.0 max_ms=1.916 overflow=0
+[display-stage] name=hud_upload count=5 sum_ms=24.393 mean_ms=4.879 p50_le_ms=5.0 p95_le_ms=6.5 p99_le_ms=6.5 max_ms=6.319 overflow=0
+[display-stage] name=camera_draw count=223 sum_ms=128.432 mean_ms=0.576 p50_le_ms=1.0 p95_le_ms=1.5 p99_le_ms=1.5 max_ms=1.375 overflow=0
+[display-stage] name=hud_draw count=223 sum_ms=68.269 mean_ms=0.306 p50_le_ms=0.5 p95_le_ms=1.0 p99_le_ms=1.5 max_ms=1.590 overflow=0
+[display-stage] name=paint_total count=223 sum_ms=367.552 mean_ms=1.648 p50_le_ms=1.5 p95_le_ms=3.0 p99_le_ms=14.5 max_ms=15.637 overflow=0
+[display-stage] name=settings_paint count=0 sum_ms=0.000 mean_ms=0.000 p50_le_ms=0.0 p95_le_ms=0.0 p99_le_ms=0.0 max_ms=0.000 overflow=0
+[display-stage] name=gui_delay count=183 sum_ms=379.000 mean_ms=2.071 p50_le_ms=0.5 p95_le_ms=12.5 p99_le_ms=20.5 max_ms=29.000 overflow=0
+[display-stage] name=host_dma_return_to_upload count=201 sum_ms=2128.692 mean_ms=10.591 p50_le_ms=9.0 p95_le_ms=24.0 p99_le_ms=32.0 max_ms=39.896 overflow=0
+[display-upload] camera=1 count=19 bytes=2918400
+[display-upload] camera=2 count=36 bytes=5529600
+[display-upload] camera=3 count=36 bytes=5529600
+[display-upload] camera=4 count=37 bytes=5683200
+[display-upload] camera=5 count=36 bytes=5529600
+[display-upload] camera=6 count=37 bytes=5683200
+[display-latency] late_latch=1 camera=1 stage=dma_return_to_upload count=19 sum_ms=220.921901 mean_ms=11.627468 p50_le_ms=11.0 p95_le_ms=25.0 p99_le_ms=25.0 max_ms=24.745731 overflow=0 refreshed=3 started_ms=218906 ended_ms=224001
+[display-latency] late_latch=1 camera=1 stage=dma_return_to_draw count=19 sum_ms=235.427765 mean_ms=12.390935 p50_le_ms=12.0 p95_le_ms=26.0 p99_le_ms=26.0 max_ms=25.869262 overflow=0 refreshed=3 started_ms=218906 ended_ms=224001
+[display-latency] late_latch=1 camera=2 stage=dma_return_to_upload count=36 sum_ms=485.967204 mean_ms=13.499089 p50_le_ms=10.5 p95_le_ms=27.5 p99_le_ms=32.0 max_ms=31.616422 overflow=0 refreshed=4 started_ms=218906 ended_ms=224001
+[display-latency] late_latch=1 camera=2 stage=dma_return_to_draw count=36 sum_ms=522.960608 mean_ms=14.526684 p50_le_ms=11.0 p95_le_ms=30.0 p99_le_ms=33.0 max_ms=32.767371 overflow=0 refreshed=4 started_ms=218906 ended_ms=224001
+[display-latency] late_latch=1 camera=3 stage=dma_return_to_upload count=36 sum_ms=230.024821 mean_ms=6.389578 p50_le_ms=5.0 p95_le_ms=12.0 p99_le_ms=21.0 max_ms=20.583198 overflow=0 refreshed=1 started_ms=218906 ended_ms=224001
+[display-latency] late_latch=1 camera=3 stage=dma_return_to_draw count=36 sum_ms=252.783621 mean_ms=7.021767 p50_le_ms=5.5 p95_le_ms=12.5 p99_le_ms=21.5 max_ms=21.207966 overflow=0 refreshed=1 started_ms=218906 ended_ms=224001
+[display-latency] late_latch=1 camera=4 stage=dma_return_to_upload count=37 sum_ms=455.623482 mean_ms=12.314148 p50_le_ms=9.0 p95_le_ms=35.5 p99_le_ms=40.0 max_ms=39.895987 overflow=0 refreshed=4 started_ms=218906 ended_ms=224001
+[display-latency] late_latch=1 camera=4 stage=dma_return_to_draw count=37 sum_ms=481.364239 mean_ms=13.009844 p50_le_ms=10.0 p95_le_ms=36.0 p99_le_ms=41.5 max_ms=41.099145 overflow=0 refreshed=4 started_ms=218906 ended_ms=224001
+[display-latency] late_latch=1 camera=5 stage=dma_return_to_upload count=36 sum_ms=365.098165 mean_ms=10.141616 p50_le_ms=8.5 p95_le_ms=18.5 p99_le_ms=28.5 max_ms=28.375873 overflow=0 refreshed=4 started_ms=218906 ended_ms=224001
+[display-latency] late_latch=1 camera=5 stage=dma_return_to_draw count=36 sum_ms=405.024071 mean_ms=11.250669 p50_le_ms=9.5 p95_le_ms=27.0 p99_le_ms=29.5 max_ms=29.371651 overflow=0 refreshed=4 started_ms=218906 ended_ms=224001
+[display-latency] late_latch=1 camera=6 stage=dma_return_to_upload count=37 sum_ms=371.056376 mean_ms=10.028551 p50_le_ms=9.5 p95_le_ms=19.0 p99_le_ms=22.5 max_ms=22.351665 overflow=0 refreshed=6 started_ms=218906 ended_ms=224001
+[display-latency] late_latch=1 camera=6 stage=dma_return_to_draw count=37 sum_ms=405.581920 mean_ms=10.961674 p50_le_ms=10.0 p95_le_ms=23.5 p99_le_ms=25.5 max_ms=25.287412 overflow=0 refreshed=6 started_ms=218906 ended_ms=224001
+[tdm_bench] t=224.080264 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=41.881
+[tdm_bench] t=224.357062 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=39.878
+[infer-diag] runs=4 平均运行=42.0ms 平均等帧=31.5ms 单次=73
+[tdm_bench] t=224.672097 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=40.370
+[panes] mode=6 submit_fps=35.7 have=111111 capture_fps=4.0/8.0/7.0/7.0/8.0/8.0 err=0/0/0/0/0/0
+[capture] camera=1 delivered_fps=3.58 tag_advance_rate=41.48 read_ms=273.036 frame_dma_ms=0.331 copy_ms=1.384 unstable=0
+[capture-format] camera=1 width=320 height=240 bytes=153600 thumbnail=1 metric_start=host_dma_return
+[tdm_bench] t=224.969767 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=35.682
+[infer-split] n=10 prep=0.83 set=1.38 run=26.41 get=4.93 query=0.00 decode=7.41 release=0.01 | sum=40.97 ms
+[tdm_bench] t=225.245828 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=37.984
+[tdm_bench] t=225.512139 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=42.264
+[infer-diag] runs=4 平均运行=40.2ms 平均等帧=48.5ms 单次=88
+[panes] mode=6 submit_fps=34.4 have=111111 capture_fps=4.0/8.0/8.0/8.0/8.0/7.0 err=0/0/0/0/0/0
+[tdm_bench] t=225.782298 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=39.501
+[tdm_bench] t=226.006554 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=37.129
+[tdm_bench] t=226.303224 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=44.304
+[tdm_bench] t=226.649759 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=47.693
+[panes] mode=6 submit_fps=35.6 have=111111 capture_fps=4.0/7.0/7.0/7.0/7.0/7.0 err=0/0/0/0/0/0
+[infer-diag] runs=4 平均运行=43.2ms 平均等帧=91.2ms 单次=134
+[tdm_bench] t=226.922545 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=36.522
+[tdm_bench] t=227.214647 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=38.878
+[tdm_bench] t=227.515795 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=46.119
+[panes] mode=6 submit_fps=36.3 have=111111 capture_fps=4.0/7.0/7.0/7.0/7.0/7.0 err=0/0/0/0/0/0
+[mvp] model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn frame=141 input=640x480 RGB uint8 /255 crop_y=80 detections=0 lane_points=0 decode_ok=1
+[tdm_bench] t=227.816180 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=44.664
+[tdm] model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn completed=140 ms=44.66 source_generation=3
+[infer-split] n=10 prep=0.84 set=1.17 run=28.14 get=5.57 query=0.00 decode=6.62 release=0.01 | sum=42.34 ms
+[box-filter] model=MVP_accuracy_round1_rk3568_int8.rknn observed=140 raw=0 visible=0 hidden=0 enabled=1
+[infer-diag] runs=4 平均运行=42.8ms 平均等帧=48.5ms 单次=91
+[tdm_bench] t=228.080948 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=42.325
+[tdm_bench] t=228.374550 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=38.388
+[analysis] window_ms=5010 wall_ms_sum/count gray=20.99/18 snapshot=0.27/54 prepare=11.85/36 match=0.07/18 correct=0.06/18 replay=0.03/18 request_reject_pending=0 interval=221 duplicate=26 config=0 stale=0 newer=0 snapshot_requests_with_newer_ingress=0 skipped_tracking_frames=0 (not_capture_dropped_frames) vehicle_tracks=0 nonvehicle_outputs=0 vehicle_only=1 tracker_models=1 started_ms=223385 ended_ms=228395 raw_outputs=0
+[tdm_bench] t=228.678561 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=41.457
+[capture] camera=5 delivered_fps=6.86 tag_advance_rate=33.52 read_ms=139.603 frame_dma_ms=0.329 copy_ms=1.620 unstable=0
+[capture-format] camera=5 width=320 height=240 bytes=153600 thumbnail=1 metric_start=host_dma_return
+[panes] mode=6 submit_fps=36.6 have=111111 capture_fps=4.0/7.0/7.0/7.0/7.0/7.0 err=0/0/0/0/0/0
+[capture] camera=4 delivered_fps=6.87 tag_advance_rate=18.86 read_ms=139.311 frame_dma_ms=0.341 copy_ms=1.362 unstable=0
+[capture-format] camera=4 width=320 height=240 bytes=153600 thumbnail=1 metric_start=host_dma_return
+[capture] camera=3 delivered_fps=6.88 tag_advance_rate=18.86 read_ms=139.252 frame_dma_ms=0.364 copy_ms=1.587 unstable=0
+[capture-format] camera=3 width=320 height=240 bytes=153600 thumbnail=1 metric_start=host_dma_return
+[tdm_bench] t=228.980094 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=44.279
+[stats] take_fps=35.00 upload_new_fps=35.00 paint_new_fps=35.00 paint_fps=44.77 paint_avg_ms=1.52 npu_request_fps=4.00 npu_started_fps=4.00 npu_completed_fps=4.00 npu_failed_fps=0.00 infer_service_ms=44.28
+[display-perf] started_ms=224001 ended_ms=229004 seconds=5.003 take_fps=35.58 upload_fps=35.18 new_paint_fps=35.18 swap_fps=44.77 replaced_snapshots=0 hud_rebuilds=5 revision=0 periodic=5 expired=0 layout=0 upload_rects=80 upload_bytes=4896920 draw_rects=3584 text_hits=49 text_misses=1 text_clears=0
+[display-events] takes=178 uploads=176 new_paints=176 swaps=224
+[display-stage] name=camera_upload count=189 sum_ms=55.320 mean_ms=0.293 p50_le_ms=0.5 p95_le_ms=1.0 p99_le_ms=1.0 max_ms=0.954 overflow=0
+[display-stage] name=hud_regions count=224 sum_ms=28.787 mean_ms=0.129 p50_le_ms=0.5 p95_le_ms=0.5 p99_le_ms=0.5 max_ms=0.442 overflow=0
+[display-stage] name=hud_raster count=5 sum_ms=34.182 mean_ms=6.836 p50_le_ms=6.0 p95_le_ms=13.5 p99_le_ms=13.5 max_ms=13.311 overflow=0
+[display-stage] name=hud_pack count=5 sum_ms=7.230 mean_ms=1.446 p50_le_ms=1.5 p95_le_ms=2.0 p99_le_ms=2.0 max_ms=1.975 overflow=0
+[display-stage] name=hud_upload count=5 sum_ms=21.187 mean_ms=4.237 p50_le_ms=4.0 p95_le_ms=6.0 p99_le_ms=6.0 max_ms=5.886 overflow=0
+[display-stage] name=camera_draw count=224 sum_ms=119.821 mean_ms=0.535 p50_le_ms=0.5 p95_le_ms=1.0 p99_le_ms=1.5 max_ms=1.176 overflow=0
+[display-stage] name=hud_draw count=224 sum_ms=63.170 mean_ms=0.282 p50_le_ms=0.5 p95_le_ms=1.0 p99_le_ms=1.0 max_ms=0.915 overflow=0
+[display-stage] name=paint_total count=224 sum_ms=341.471 mean_ms=1.524 p50_le_ms=1.5 p95_le_ms=3.0 p99_le_ms=13.0 max_ms=20.166 overflow=0
+[display-stage] name=settings_paint count=0 sum_ms=0.000 mean_ms=0.000 p50_le_ms=0.0 p95_le_ms=0.0 p99_le_ms=0.0 max_ms=0.000 overflow=0
+[display-stage] name=gui_delay count=178 sum_ms=204.000 mean_ms=1.146 p50_le_ms=0.5 p95_le_ms=9.5 p99_le_ms=14.5 max_ms=18.000 overflow=0
+[display-stage] name=host_dma_return_to_upload count=187 sum_ms=1841.305 mean_ms=9.847 p50_le_ms=9.0 p95_le_ms=22.0 p99_le_ms=27.5 max_ms=29.426 overflow=0
+[display-upload] camera=1 count=17 bytes=2611200
+[display-upload] camera=2 count=34 bytes=5222400
+[display-upload] camera=3 count=35 bytes=5376000
+[display-upload] camera=4 count=34 bytes=5222400
+[display-upload] camera=5 count=34 bytes=5222400
+[display-upload] camera=6 count=33 bytes=5068800
+[display-latency] late_latch=1 camera=1 stage=dma_return_to_upload count=17 sum_ms=227.081909 mean_ms=13.357759 p50_le_ms=14.5 p95_le_ms=24.0 p99_le_ms=24.0 max_ms=23.516613 overflow=0 refreshed=1 started_ms=224001 ended_ms=229004
+[display-latency] late_latch=1 camera=1 stage=dma_return_to_draw count=17 sum_ms=237.861626 mean_ms=13.991860 p50_le_ms=14.5 p95_le_ms=25.0 p99_le_ms=25.0 max_ms=24.692062 overflow=0 refreshed=1 started_ms=224001 ended_ms=229004
+[display-latency] late_latch=1 camera=2 stage=dma_return_to_upload count=34 sum_ms=414.673087 mean_ms=12.196267 p50_le_ms=12.0 p95_le_ms=25.5 p99_le_ms=27.5 max_ms=27.245675 overflow=0 refreshed=4 started_ms=224001 ended_ms=229004
+[display-latency] late_latch=1 camera=2 stage=dma_return_to_draw count=34 sum_ms=448.745955 mean_ms=13.198410 p50_le_ms=12.5 p95_le_ms=27.5 p99_le_ms=28.5 max_ms=28.285204 overflow=0 refreshed=4 started_ms=224001 ended_ms=229004
+[display-latency] late_latch=1 camera=3 stage=dma_return_to_upload count=35 sum_ms=197.805882 mean_ms=5.651597 p50_le_ms=5.0 p95_le_ms=17.5 p99_le_ms=24.0 max_ms=23.992585 overflow=0 refreshed=1 started_ms=224001 ended_ms=229004
+[display-latency] late_latch=1 camera=3 stage=dma_return_to_draw count=35 sum_ms=218.740300 mean_ms=6.249723 p50_le_ms=5.5 p95_le_ms=18.0 p99_le_ms=24.5 max_ms=24.394513 overflow=0 refreshed=1 started_ms=224001 ended_ms=229004
+[display-latency] late_latch=1 camera=4 stage=dma_return_to_upload count=34 sum_ms=300.553835 mean_ms=8.839819 p50_le_ms=5.5 p95_le_ms=24.5 p99_le_ms=29.5 max_ms=29.425945 overflow=0 refreshed=3 started_ms=224001 ended_ms=229004
+[display-latency] late_latch=1 camera=4 stage=dma_return_to_draw count=34 sum_ms=342.704425 mean_ms=10.079542 p50_le_ms=7.5 p95_le_ms=25.0 p99_le_ms=31.0 max_ms=30.500767 overflow=0 refreshed=3 started_ms=224001 ended_ms=229004
+[display-latency] late_latch=1 camera=5 stage=dma_return_to_upload count=34 sum_ms=365.349762 mean_ms=10.745581 p50_le_ms=10.5 p95_le_ms=19.5 p99_le_ms=20.5 max_ms=20.495696 overflow=0 refreshed=1 started_ms=224001 ended_ms=229004
+[display-latency] late_latch=1 camera=5 stage=dma_return_to_draw count=34 sum_ms=387.349955 mean_ms=11.392646 p50_le_ms=11.0 p95_le_ms=20.5 p99_le_ms=21.0 max_ms=20.923000 overflow=0 refreshed=1 started_ms=224001 ended_ms=229004
+[display-latency] late_latch=1 camera=6 stage=dma_return_to_upload count=33 sum_ms=335.840104 mean_ms=10.176973 p50_le_ms=10.0 p95_le_ms=19.0 p99_le_ms=22.0 max_ms=21.570226 overflow=0 refreshed=4 started_ms=224001 ended_ms=229004
+[display-latency] late_latch=1 camera=6 stage=dma_return_to_draw count=33 sum_ms=396.666923 mean_ms=12.020210 p50_le_ms=10.5 p95_le_ms=24.5 p99_le_ms=35.5 max_ms=35.169688 overflow=0 refreshed=4 started_ms=224001 ended_ms=229004
+[capture] camera=6 delivered_fps=6.70 tag_advance_rate=33.68 read_ms=143.184 frame_dma_ms=0.337 copy_ms=1.414 unstable=0
+[capture-format] camera=6 width=320 height=240 bytes=153600 thumbnail=1 metric_start=host_dma_return
+[capture] camera=2 delivered_fps=6.85 tag_advance_rate=34.86 read_ms=139.739 frame_dma_ms=0.320 copy_ms=1.293 unstable=0
+[capture-format] camera=2 width=320 height=240 bytes=153600 thumbnail=1 metric_start=host_dma_return
+[infer-diag] runs=4 平均运行=42.8ms 平均等帧=48.2ms 单次=91
+[tdm_bench] t=229.258512 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=42.262
+[tdm_bench] t=229.597222 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=43.679
+[panes] mode=6 submit_fps=35.2 have=111111 capture_fps=4.0/7.0/7.0/7.0/7.0/7.0 err=0/0/0/0/0/0
+[tdm_bench] t=229.870751 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=37.577
+[capture] camera=1 delivered_fps=3.48 tag_advance_rate=41.54 read_ms=281.378 frame_dma_ms=0.331 copy_ms=1.221 unstable=0
+[capture-format] camera=1 width=320 height=240 bytes=153600 thumbnail=1 metric_start=host_dma_return
+[tdm_bench] t=230.146013 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=40.826
+[infer-diag] runs=4 平均运行=42.5ms 平均等帧=49.0ms 单次=91
+[tdm_bench] t=230.410280 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=41.287
+[tdm_bench] t=230.697132 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=43.820
+[infer-split] n=10 prep=1.02 set=1.46 run=27.14 get=6.08 query=0.00 decode=6.90 release=0.01 | sum=42.61 ms
+[panes] mode=6 submit_fps=40.4 have=111111 capture_fps=4.0/8.0/8.0/8.0/8.0/8.0 err=0/0/0/0/0/0
+[tdm_bench] t=230.967999 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=44.458
+[tdm_bench] t=231.313615 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=44.562
+[infer-diag] runs=4 平均运行=44.5ms 平均等帧=47.2ms 单次=91
+[tdm_bench] t=231.585290 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=36.810
+[panes] mode=6 submit_fps=34.8 have=111111 capture_fps=4.0/7.0/7.0/7.0/7.0/7.0 err=0/0/0/0/0/0
+[tdm_bench] t=231.892621 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=36.908
+[tdm_bench] t=232.161184 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=37.679
+[tdm_bench] t=232.457647 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=38.785
+[infer-diag] runs=4 平均运行=38.5ms 平均等帧=47.0ms 单次=85
+[tdm_bench] t=232.744355 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=43.639
+[panes] mode=6 submit_fps=37.9 have=111111 capture_fps=4.0/8.0/8.0/8.0/8.0/8.0 err=0/0/0/0/0/0
+[tdm_bench] t=233.007373 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=37.214
+[tdm_bench] t=233.299373 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=40.063
+[analysis] window_ms=5004 wall_ms_sum/count gray=20.01/17 snapshot=0.25/51 prepare=12.57/34 match=0.06/17 correct=0.08/17 replay=0.03/17 request_reject_pending=0 interval=212 duplicate=35 config=0 stale=0 newer=0 snapshot_requests_with_newer_ingress=0 skipped_tracking_frames=0 (not_capture_dropped_frames) vehicle_tracks=0 nonvehicle_outputs=0 vehicle_only=1 tracker_models=1 started_ms=228395 ended_ms=233399 raw_outputs=0
+[mvp] model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn frame=161 input=640x480 RGB uint8 /255 crop_y=80 detections=0 lane_points=0 decode_ok=1
+[tdm_bench] t=233.598092 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=42.398
+[tdm] model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn completed=160 ms=42.40 source_generation=3
+[infer-split] n=10 prep=0.82 set=1.29 run=26.62 get=5.52 query=0.00 decode=6.81 release=0.01 | sum=41.07 ms
+[box-filter] model=MVP_accuracy_round1_rk3568_int8.rknn observed=160 raw=0 visible=0 hidden=0 enabled=1
+[capture] camera=5 delivered_fps=6.93 tag_advance_rate=33.45 read_ms=138.188 frame_dma_ms=0.317 copy_ms=1.441 unstable=0
+[capture-format] camera=5 width=320 height=240 bytes=153600 thumbnail=1 metric_start=host_dma_return
+[infer-diag] runs=4 平均运行=42.0ms 平均等帧=43.0ms 单次=85
+[panes] mode=6 submit_fps=36.8 have=111111 capture_fps=4.0/8.0/7.0/8.0/7.0/7.0 err=0/0/0/0/0/0
+[tdm_bench] t=233.875188 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=39.387
+[capture] camera=4 delivered_fps=6.93 tag_advance_rate=18.80 read_ms=138.237 frame_dma_ms=0.357 copy_ms=1.608 unstable=0
+[capture-format] camera=4 width=320 height=240 bytes=153600 thumbnail=1 metric_start=host_dma_return
+[capture] camera=3 delivered_fps=6.93 tag_advance_rate=18.80 read_ms=138.213 frame_dma_ms=0.339 copy_ms=1.353 unstable=0
+[capture-format] camera=3 width=320 height=240 bytes=153600 thumbnail=1 metric_start=host_dma_return
+[capture] camera=6 delivered_fps=6.93 tag_advance_rate=33.46 read_ms=138.174 frame_dma_ms=0.351 copy_ms=1.492 unstable=0
+[capture-format] camera=6 width=320 height=240 bytes=153600 thumbnail=1 metric_start=host_dma_return
+[capture] camera=2 delivered_fps=6.94 tag_advance_rate=35.49 read_ms=137.949 frame_dma_ms=0.329 copy_ms=1.407 unstable=0
+[capture-format] camera=2 width=320 height=240 bytes=153600 thumbnail=1 metric_start=host_dma_return
+[stats] take_fps=37.00 upload_new_fps=37.00 paint_new_fps=37.00 paint_fps=43.36 paint_avg_ms=1.52 npu_request_fps=4.00 npu_started_fps=4.00 npu_completed_fps=3.00 npu_failed_fps=0.00 infer_service_ms=39.39
+[display-perf] started_ms=229004 ended_ms=234102 seconds=5.098 take_fps=36.88 upload_fps=36.88 new_paint_fps=36.88 swap_fps=43.35 replaced_snapshots=2 hud_rebuilds=5 revision=0 periodic=5 expired=0 layout=0 upload_rects=80 upload_bytes=4896920 draw_rects=3536 text_hits=48 text_misses=2 text_clears=0
+[display-events] takes=188 uploads=188 new_paints=188 swaps=221
+[display-stage] name=camera_upload count=203 sum_ms=56.250 mean_ms=0.277 p50_le_ms=0.5 p95_le_ms=1.0 p99_le_ms=1.0 max_ms=1.068 overflow=0
+[display-stage] name=hud_regions count=221 sum_ms=28.235 mean_ms=0.128 p50_le_ms=0.5 p95_le_ms=0.5 p99_le_ms=0.5 max_ms=0.386 overflow=0
+[display-stage] name=hud_raster count=5 sum_ms=35.419 mean_ms=7.084 p50_le_ms=7.5 p95_le_ms=11.5 p99_le_ms=11.5 max_ms=11.131 overflow=0
+[display-stage] name=hud_pack count=5 sum_ms=8.118 mean_ms=1.624 p50_le_ms=2.0 p95_le_ms=2.0 p99_le_ms=2.0 max_ms=1.763 overflow=0
+[display-stage] name=hud_upload count=5 sum_ms=23.571 mean_ms=4.714 p50_le_ms=5.0 p95_le_ms=5.5 p99_le_ms=5.5 max_ms=5.374 overflow=0
+[display-stage] name=camera_draw count=221 sum_ms=115.025 mean_ms=0.520 p50_le_ms=0.5 p95_le_ms=1.0 p99_le_ms=2.0 max_ms=2.153 overflow=0
+[display-stage] name=hud_draw count=221 sum_ms=58.695 mean_ms=0.266 p50_le_ms=0.5 p95_le_ms=1.0 p99_le_ms=1.0 max_ms=1.008 overflow=0
+[display-stage] name=paint_total count=221 sum_ms=336.678 mean_ms=1.523 p50_le_ms=1.5 p95_le_ms=2.5 p99_le_ms=15.5 max_ms=18.842 overflow=0
+[display-stage] name=settings_paint count=0 sum_ms=0.000 mean_ms=0.000 p50_le_ms=0.0 p95_le_ms=0.0 p99_le_ms=0.0 max_ms=0.000 overflow=0
+[display-stage] name=gui_delay count=188 sum_ms=222.000 mean_ms=1.181 p50_le_ms=0.5 p95_le_ms=7.5 p99_le_ms=15.5 max_ms=16.000 overflow=0
+[display-stage] name=host_dma_return_to_upload count=195 sum_ms=2088.848 mean_ms=10.712 p50_le_ms=10.5 p95_le_ms=24.5 p99_le_ms=33.5 max_ms=37.253 overflow=0
+[display-upload] camera=1 count=18 bytes=2764800
+[display-upload] camera=2 count=35 bytes=5376000
+[display-upload] camera=3 count=35 bytes=5376000
+[display-upload] camera=4 count=35 bytes=5376000
+[display-upload] camera=5 count=36 bytes=5529600
+[display-upload] camera=6 count=36 bytes=5529600
+[display-latency] late_latch=1 camera=1 stage=dma_return_to_upload count=18 sum_ms=230.445129 mean_ms=12.802507 p50_le_ms=11.0 p95_le_ms=26.0 p99_le_ms=26.0 max_ms=25.661257 overflow=0 refreshed=3 started_ms=229004 ended_ms=234102
+[display-latency] late_latch=1 camera=1 stage=dma_return_to_draw count=18 sum_ms=240.976337 mean_ms=13.387574 p50_le_ms=12.0 p95_le_ms=26.5 p99_le_ms=26.5 max_ms=26.136978 overflow=0 refreshed=3 started_ms=229004 ended_ms=234102
+[display-latency] late_latch=1 camera=2 stage=dma_return_to_upload count=35 sum_ms=418.983505 mean_ms=11.970957 p50_le_ms=12.5 p95_le_ms=23.5 p99_le_ms=24.5 max_ms=24.176924 overflow=0 refreshed=4 started_ms=229004 ended_ms=234102
+[display-latency] late_latch=1 camera=2 stage=dma_return_to_draw count=35 sum_ms=442.052688 mean_ms=12.630077 p50_le_ms=13.0 p95_le_ms=24.0 p99_le_ms=25.0 max_ms=24.623769 overflow=0 refreshed=4 started_ms=229004 ended_ms=234102
+[display-latency] late_latch=1 camera=3 stage=dma_return_to_upload count=35 sum_ms=221.798932 mean_ms=6.337112 p50_le_ms=4.5 p95_le_ms=13.0 p99_le_ms=30.5 max_ms=30.472474 overflow=0 refreshed=1 started_ms=229004 ended_ms=234102
+[display-latency] late_latch=1 camera=3 stage=dma_return_to_draw count=35 sum_ms=296.719558 mean_ms=8.477702 p50_le_ms=6.5 p95_le_ms=23.5 p99_le_ms=31.5 max_ms=31.154410 overflow=0 refreshed=1 started_ms=229004 ended_ms=234102
+[display-latency] late_latch=1 camera=4 stage=dma_return_to_upload count=35 sum_ms=460.270151 mean_ms=13.150576 p50_le_ms=11.5 p95_le_ms=33.5 p99_le_ms=37.5 max_ms=37.253412 overflow=0 refreshed=6 started_ms=229004 ended_ms=234102
+[display-latency] late_latch=1 camera=4 stage=dma_return_to_draw count=35 sum_ms=481.728666 mean_ms=13.763676 p50_le_ms=12.5 p95_le_ms=34.0 p99_le_ms=38.0 max_ms=37.975016 overflow=0 refreshed=6 started_ms=229004 ended_ms=234102
+[display-latency] late_latch=1 camera=5 stage=dma_return_to_upload count=36 sum_ms=398.539769 mean_ms=11.070549 p50_le_ms=11.0 p95_le_ms=19.5 p99_le_ms=23.0 max_ms=22.509460 overflow=0 refreshed=3 started_ms=229004 ended_ms=234102
+[display-latency] late_latch=1 camera=5 stage=dma_return_to_draw count=36 sum_ms=421.607286 mean_ms=11.711313 p50_le_ms=12.0 p95_le_ms=20.5 p99_le_ms=24.0 max_ms=23.652242 overflow=0 refreshed=3 started_ms=229004 ended_ms=234102
+[display-latency] late_latch=1 camera=6 stage=dma_return_to_upload count=36 sum_ms=358.810323 mean_ms=9.966953 p50_le_ms=10.0 p95_le_ms=17.5 p99_le_ms=19.0 max_ms=18.849483 overflow=0 refreshed=3 started_ms=229004 ended_ms=234102
+[display-latency] late_latch=1 camera=6 stage=dma_return_to_draw count=36 sum_ms=380.661723 mean_ms=10.573937 p50_le_ms=11.0 p95_le_ms=18.0 p99_le_ms=19.5 max_ms=19.434291 overflow=0 refreshed=3 started_ms=229004 ended_ms=234102
+[tdm_bench] t=234.142461 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=43.870
+[tdm_bench] t=234.416156 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=39.264
+[tdm_bench] t=234.699680 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=39.230
+[panes] mode=6 submit_fps=38.9 have=111111 capture_fps=4.0/8.0/7.0/7.0/8.0/8.0 err=0/0/0/0/0/0
+[infer-diag] runs=4 平均运行=41.2ms 平均等帧=34.2ms 单次=75
+[tdm_bench] t=235.029962 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=38.798
+[capture] camera=1 delivered_fps=3.48 tag_advance_rate=41.56 read_ms=281.286 frame_dma_ms=0.345 copy_ms=1.389 unstable=0
+[capture-format] camera=1 width=320 height=240 bytes=153600 thumbnail=1 metric_start=host_dma_return
+[tdm_bench] t=235.322398 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=36.744
+[tdm_bench] t=235.630336 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=42.851
+[panes] mode=6 submit_fps=35.8 have=111111 capture_fps=4.0/7.0/7.0/7.0/7.0/7.0 err=0/0/0/0/0/0
+[tdm_bench] t=235.942137 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=39.049
+[infer-diag] runs=4 平均运行=40.2ms 平均等帧=70.2ms 单次=110
+[tdm_bench] t=236.252585 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=43.291
+[tdm_bench] t=236.562958 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=36.477
+[infer-split] n=10 prep=0.68 set=0.90 run=27.13 get=5.34 query=0.00 decode=6.51 release=0.01 | sum=40.57 ms
+[tdm_bench] t=236.900094 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=43.580
+[panes] mode=6 submit_fps=33.5 have=111111 capture_fps=4.0/7.0/7.0/7.0/7.0/7.0 err=0/0/0/0/0/0
+[infer-diag] runs=3 平均运行=42.7ms 平均等帧=76.7ms 单次=119
+[tdm_bench] t=237.154936 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=36.581
+[tdm_bench] t=237.450957 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=42.523
+[tdm_bench] t=237.714489 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=39.261
+[panes] mode=6 submit_fps=38.2 have=111111 capture_fps=4.0/8.0/8.0/8.0/8.0/8.0 err=0/0/0/0/0/0
+[tdm_bench] t=238.013401 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=42.757
+[infer-diag] runs=4 平均运行=41.5ms 平均等帧=36.5ms 单次=78
+[tdm_bench] t=238.275169 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=39.207
+[analysis] window_ms=5019 wall_ms_sum/count gray=20.42/17 snapshot=0.31/51 prepare=11.43/34 match=0.06/17 correct=0.06/17 replay=0.02/17 request_reject_pending=0 interval=214 duplicate=35 config=0 stale=0 newer=0 snapshot_requests_with_newer_ingress=0 skipped_tracking_frames=0 (not_capture_dropped_frames) vehicle_tracks=0 nonvehicle_outputs=0 vehicle_only=1 tracker_models=1 started_ms=233399 ended_ms=238418 raw_outputs=0
+[tdm_bench] t=238.577085 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=41.266
+[tdm_bench] t=238.862145 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=40.746
+[capture] camera=5 delivered_fps=6.86 tag_advance_rate=33.54 read_ms=139.572 frame_dma_ms=0.324 copy_ms=1.542 unstable=0
+[capture-format] camera=5 width=320 height=240 bytes=153600 thumbnail=1 metric_start=host_dma_return
+[panes] mode=6 submit_fps=37.9 have=111111 capture_fps=4.0/8.0/8.0/8.0/8.0/8.0 err=0/0/0/0/0/0
+[capture] camera=4 delivered_fps=6.87 tag_advance_rate=18.86 read_ms=139.304 frame_dma_ms=0.362 copy_ms=1.455 unstable=0
+[capture-format] camera=4 width=320 height=240 bytes=153600 thumbnail=1 metric_start=host_dma_return
+[stats] take_fps=37.00 upload_new_fps=36.00 paint_new_fps=36.00 paint_fps=44.79 paint_avg_ms=1.54 npu_request_fps=4.00 npu_started_fps=4.00 npu_completed_fps=3.00 npu_failed_fps=0.00 infer_service_ms=40.75
+[display-perf] started_ms=234102 ended_ms=239103 seconds=5.001 take_fps=36.39 upload_fps=36.79 new_paint_fps=36.79 swap_fps=44.79 replaced_snapshots=2 hud_rebuilds=5 revision=0 periodic=5 expired=0 layout=0 upload_rects=80 upload_bytes=4896920 draw_rects=3584 text_hits=50 text_misses=0 text_clears=0
+[display-events] takes=182 uploads=184 new_paints=184 swaps=224
+[display-stage] name=camera_upload count=200 sum_ms=55.138 mean_ms=0.276 p50_le_ms=0.5 p95_le_ms=1.0 p99_le_ms=1.0 max_ms=1.074 overflow=0
+[display-stage] name=hud_regions count=224 sum_ms=30.709 mean_ms=0.137 p50_le_ms=0.5 p95_le_ms=0.5 p99_le_ms=0.5 max_ms=1.475 overflow=0
+[display-stage] name=hud_raster count=5 sum_ms=29.094 mean_ms=5.819 p50_le_ms=7.0 p95_le_ms=7.0 p99_le_ms=7.0 max_ms=6.834 overflow=0
+[display-stage] name=hud_pack count=5 sum_ms=8.688 mean_ms=1.738 p50_le_ms=2.0 p95_le_ms=2.5 p99_le_ms=2.5 max_ms=2.211 overflow=0
+[display-stage] name=hud_upload count=5 sum_ms=23.218 mean_ms=4.644 p50_le_ms=4.5 p95_le_ms=6.0 p99_le_ms=6.0 max_ms=5.914 overflow=0
+[display-stage] name=camera_draw count=224 sum_ms=121.251 mean_ms=0.541 p50_le_ms=0.5 p95_le_ms=1.5 p99_le_ms=1.5 max_ms=1.449 overflow=0
+[display-stage] name=hud_draw count=224 sum_ms=65.614 mean_ms=0.293 p50_le_ms=0.5 p95_le_ms=1.0 p99_le_ms=1.5 max_ms=1.798 overflow=0
+[display-stage] name=paint_total count=224 sum_ms=345.400 mean_ms=1.542 p50_le_ms=1.5 p95_le_ms=3.0 p99_le_ms=14.5 max_ms=15.847 overflow=0
+[display-stage] name=settings_paint count=0 sum_ms=0.000 mean_ms=0.000 p50_le_ms=0.0 p95_le_ms=0.0 p99_le_ms=0.0 max_ms=0.000 overflow=0
+[display-stage] name=gui_delay count=182 sum_ms=278.000 mean_ms=1.527 p50_le_ms=0.5 p95_le_ms=11.5 p99_le_ms=19.5 max_ms=19.000 overflow=0
+[display-stage] name=host_dma_return_to_upload count=189 sum_ms=2013.947 mean_ms=10.656 p50_le_ms=10.0 p95_le_ms=23.5 p99_le_ms=36.0 max_ms=41.469 overflow=0
+[display-upload] camera=1 count=17 bytes=2611200
+[display-upload] camera=2 count=35 bytes=5376000
+[display-upload] camera=3 count=34 bytes=5222400
+[display-upload] camera=4 count=35 bytes=5376000
+[display-upload] camera=5 count=34 bytes=5222400
+[display-upload] camera=6 count=34 bytes=5222400
+[display-latency] late_latch=1 camera=1 stage=dma_return_to_upload count=17 sum_ms=224.453460 mean_ms=13.203145 p50_le_ms=13.0 p95_le_ms=22.0 p99_le_ms=22.0 max_ms=21.675228 overflow=0 refreshed=3 started_ms=234102 ended_ms=239103
+[display-latency] late_latch=1 camera=1 stage=dma_return_to_draw count=17 sum_ms=232.809648 mean_ms=13.694685 p50_le_ms=13.5 p95_le_ms=22.5 p99_le_ms=22.5 max_ms=22.029030 overflow=0 refreshed=3 started_ms=234102 ended_ms=239103
+[display-latency] late_latch=1 camera=2 stage=dma_return_to_upload count=35 sum_ms=477.111374 mean_ms=13.631754 p50_le_ms=12.5 p95_le_ms=27.0 p99_le_ms=27.5 max_ms=27.446889 overflow=0 refreshed=4 started_ms=234102 ended_ms=239103
+[display-latency] late_latch=1 camera=2 stage=dma_return_to_draw count=35 sum_ms=509.826494 mean_ms=14.566471 p50_le_ms=13.5 p95_le_ms=28.0 p99_le_ms=29.0 max_ms=28.518211 overflow=0 refreshed=4 started_ms=234102 ended_ms=239103
+[display-latency] late_latch=1 camera=3 stage=dma_return_to_upload count=34 sum_ms=191.181284 mean_ms=5.622979 p50_le_ms=4.5 p95_le_ms=13.5 p99_le_ms=17.5 max_ms=17.202979 overflow=0 refreshed=1 started_ms=234102 ended_ms=239103
+[display-latency] late_latch=1 camera=3 stage=dma_return_to_draw count=34 sum_ms=224.984351 mean_ms=6.617187 p50_le_ms=5.5 p95_le_ms=18.0 p99_le_ms=18.5 max_ms=18.292967 overflow=0 refreshed=1 started_ms=234102 ended_ms=239103
+[display-latency] late_latch=1 camera=4 stage=dma_return_to_upload count=35 sum_ms=446.736897 mean_ms=12.763911 p50_le_ms=11.5 p95_le_ms=32.0 p99_le_ms=36.0 max_ms=35.906458 overflow=0 refreshed=6 started_ms=234102 ended_ms=239103
+[display-latency] late_latch=1 camera=4 stage=dma_return_to_draw count=35 sum_ms=471.176413 mean_ms=13.462183 p50_le_ms=12.0 p95_le_ms=33.5 p99_le_ms=36.5 max_ms=36.336679 overflow=0 refreshed=6 started_ms=234102 ended_ms=239103
+[display-latency] late_latch=1 camera=5 stage=dma_return_to_upload count=34 sum_ms=322.622197 mean_ms=9.488888 p50_le_ms=7.0 p95_le_ms=19.5 p99_le_ms=20.0 max_ms=19.713132 overflow=0 refreshed=4 started_ms=234102 ended_ms=239103
+[display-latency] late_latch=1 camera=5 stage=dma_return_to_draw count=34 sum_ms=358.668572 mean_ms=10.549076 p50_le_ms=7.5 p95_le_ms=21.0 p99_le_ms=33.5 max_ms=33.175383 overflow=0 refreshed=4 started_ms=234102 ended_ms=239103
+[display-latency] late_latch=1 camera=6 stage=dma_return_to_upload count=34 sum_ms=351.841967 mean_ms=10.348293 p50_le_ms=7.5 p95_le_ms=21.0 p99_le_ms=41.5 max_ms=41.469489 overflow=0 refreshed=5 started_ms=234102 ended_ms=239103
+[display-latency] late_latch=1 camera=6 stage=dma_return_to_draw count=34 sum_ms=400.889791 mean_ms=11.790876 p50_le_ms=9.5 p95_le_ms=21.5 p99_le_ms=42.5 max_ms=42.091923 overflow=0 refreshed=5 started_ms=234102 ended_ms=239103
+[tdm_bench] t=239.119607 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=37.630
+[capture] camera=3 delivered_fps=6.87 tag_advance_rate=18.85 read_ms=139.406 frame_dma_ms=0.328 copy_ms=1.231 unstable=0
+[capture-format] camera=3 width=320 height=240 bytes=153600 thumbnail=1 metric_start=host_dma_return
+[capture] camera=6 delivered_fps=6.86 tag_advance_rate=33.53 read_ms=139.579 frame_dma_ms=0.343 copy_ms=1.419 unstable=0
+[capture-format] camera=6 width=320 height=240 bytes=153600 thumbnail=1 metric_start=host_dma_return
+[capture] camera=2 delivered_fps=6.86 tag_advance_rate=34.30 read_ms=139.616 frame_dma_ms=0.337 copy_ms=1.528 unstable=0
+[capture-format] camera=2 width=320 height=240 bytes=153600 thumbnail=1 metric_start=host_dma_return
+[infer-diag] runs=4 平均运行=40.8ms 平均等帧=35.8ms 单次=76
+[mvp] model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn frame=181 input=640x480 RGB uint8 /255 crop_y=80 detections=0 lane_points=0 decode_ok=1
+[tdm_bench] t=239.411157 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=41.215
+[tdm] model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn completed=180 ms=41.21 source_generation=3
+[infer-split] n=10 prep=0.99 set=1.38 run=26.62 get=5.74 query=0.00 decode=6.72 release=0.01 | sum=41.46 ms
+[box-filter] model=MVP_accuracy_round1_rk3568_int8.rknn observed=180 raw=0 visible=0 hidden=0 enabled=1
+[tdm_bench] t=239.694009 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=40.872
+[panes] mode=6 submit_fps=36.7 have=111111 capture_fps=4.0/8.0/7.0/8.0/8.0/8.0 err=0/0/0/0/0/0
+[tdm_bench] t=239.982132 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=45.621
+[tdm_bench] t=240.255105 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=42.483
+[capture] camera=1 delivered_fps=3.46 tag_advance_rate=41.54 read_ms=282.715 frame_dma_ms=0.389 copy_ms=1.755 unstable=0
+[capture-format] camera=1 width=320 height=240 bytes=153600 thumbnail=1 metric_start=host_dma_return
+[infer-diag] runs=4 平均运行=43.8ms 平均等帧=40.0ms 单次=83
+[tdm_bench] t=240.517904 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=43.803
+[tdm_bench] t=240.793098 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=39.900
+[panes] mode=6 submit_fps=36.7 have=111111 capture_fps=4.0/8.0/8.0/8.0/8.0/8.0 err=0/0/0/0/0/0
+[tdm_bench] t=241.065315 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=40.581
+[tdm_bench] t=241.337754 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=39.962
+[infer-diag] runs=4 平均运行=42.5ms 平均等帧=28.2ms 单次=70
+[tdm_bench] t=241.603805 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=40.065
+[tdm_bench] t=241.880908 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=44.285
+[panes] mode=6 submit_fps=37.6 have=111111 capture_fps=4.0/8.0/8.0/8.0/8.0/8.0 err=0/0/0/0/0/0
+[tdm_bench] t=242.181813 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=39.450
+[infer-split] n=10 prep=1.01 set=1.25 run=27.37 get=5.86 query=0.00 decode=7.20 release=0.01 | sum=42.71 ms
+[tdm_bench] t=242.470779 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=43.793
+[infer-diag] runs=4 平均运行=43.5ms 平均等帧=39.8ms 单次=83
+[tdm_bench] t=242.780677 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=38.486
+[panes] mode=6 submit_fps=36.2 have=111111 capture_fps=4.0/7.0/7.0/7.0/7.0/7.0 err=0/0/0/0/0/0
+[tdm_bench] t=243.046663 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=39.149
+[tdm_bench] t=243.311141 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=37.384
+[analysis] window_ms=5000 wall_ms_sum/count gray=21.84/18 snapshot=0.27/54 prepare=12.76/36 match=0.07/18 correct=0.06/18 replay=0.02/18 request_reject_pending=0 interval=221 duplicate=24 config=0 stale=0 newer=0 snapshot_requests_with_newer_ingress=0 skipped_tracking_frames=0 (not_capture_dropped_frames) vehicle_tracks=0 nonvehicle_outputs=0 vehicle_only=1 tracker_models=1 started_ms=238418 ended_ms=243418 raw_outputs=0
+[tdm_bench] t=243.575714 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=36.149
+[infer-diag] runs=4 平均运行=39.2ms 平均等帧=36.5ms 单次=75
+[tdm_bench] t=243.865570 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=39.293
+[capture] camera=5 delivered_fps=7.12 tag_advance_rate=33.23 read_ms=134.295 frame_dma_ms=0.320 copy_ms=1.408 unstable=0
+[capture-format] camera=5 width=320 height=240 bytes=153600 thumbnail=1 metric_start=host_dma_return
+[panes] mode=6 submit_fps=36.8 have=111111 capture_fps=4.0/8.0/8.0/8.0/8.0/8.0 err=0/0/0/0/0/0
+[capture] camera=4 delivered_fps=7.07 tag_advance_rate=18.66 read_ms=135.258 frame_dma_ms=0.344 copy_ms=1.687 unstable=0
+[capture-format] camera=4 width=320 height=240 bytes=153600 thumbnail=1 metric_start=host_dma_return
+[tdm_bench] t=244.184274 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=37.422
+[stats] take_fps=37.00 upload_new_fps=37.00 paint_new_fps=37.00 paint_fps=44.73 paint_avg_ms=1.56 npu_request_fps=4.00 npu_started_fps=4.00 npu_completed_fps=4.00 npu_failed_fps=0.00 infer_service_ms=37.42
+[display-perf] started_ms=239103 ended_ms=244201 seconds=5.098 take_fps=36.48 upload_fps=37.07 new_paint_fps=37.07 swap_fps=44.72 replaced_snapshots=1 hud_rebuilds=5 revision=0 periodic=5 expired=0 layout=0 upload_rects=80 upload_bytes=4896920 draw_rects=3648 text_hits=48 text_misses=2 text_clears=0
+[display-events] takes=186 uploads=189 new_paints=189 swaps=228
+[display-stage] name=camera_upload count=207 sum_ms=59.845 mean_ms=0.289 p50_le_ms=0.5 p95_le_ms=1.0 p99_le_ms=1.0 max_ms=0.881 overflow=0
+[display-stage] name=hud_regions count=228 sum_ms=30.805 mean_ms=0.135 p50_le_ms=0.5 p95_le_ms=0.5 p99_le_ms=0.5 max_ms=0.337 overflow=0
+[display-stage] name=hud_raster count=5 sum_ms=36.670 mean_ms=7.334 p50_le_ms=7.0 p95_le_ms=10.5 p99_le_ms=10.5 max_ms=10.050 overflow=0
+[display-stage] name=hud_pack count=5 sum_ms=7.278 mean_ms=1.456 p50_le_ms=2.0 p95_le_ms=2.0 p99_le_ms=2.0 max_ms=1.658 overflow=0
+[display-stage] name=hud_upload count=5 sum_ms=21.916 mean_ms=4.383 p50_le_ms=5.0 p95_le_ms=5.0 p99_le_ms=5.0 max_ms=4.987 overflow=0
+[display-stage] name=camera_draw count=228 sum_ms=122.658 mean_ms=0.538 p50_le_ms=0.5 p95_le_ms=1.0 p99_le_ms=1.5 max_ms=1.367 overflow=0
+[display-stage] name=hud_draw count=228 sum_ms=66.265 mean_ms=0.291 p50_le_ms=0.5 p95_le_ms=1.0 p99_le_ms=1.0 max_ms=1.208 overflow=0
+[display-stage] name=paint_total count=228 sum_ms=357.314 mean_ms=1.567 p50_le_ms=1.5 p95_le_ms=2.5 p99_le_ms=14.0 max_ms=17.270 overflow=0
+[display-stage] name=settings_paint count=0 sum_ms=0.000 mean_ms=0.000 p50_le_ms=0.0 p95_le_ms=0.0 p99_le_ms=0.0 max_ms=0.000 overflow=0
+[display-stage] name=gui_delay count=186 sum_ms=304.000 mean_ms=1.634 p50_le_ms=0.5 p95_le_ms=8.5 p99_le_ms=22.5 max_ms=25.000 overflow=0
+[display-stage] name=host_dma_return_to_upload count=198 sum_ms=2200.135 mean_ms=11.112 p50_le_ms=10.0 p95_le_ms=24.5 p99_le_ms=33.0 max_ms=33.131 overflow=0
+[display-upload] camera=1 count=18 bytes=2764800
+[display-upload] camera=2 count=36 bytes=5529600
+[display-upload] camera=3 count=36 bytes=5529600
+[display-upload] camera=4 count=36 bytes=5529600
+[display-upload] camera=5 count=36 bytes=5529600
+[display-upload] camera=6 count=36 bytes=5529600
+[display-latency] late_latch=1 camera=1 stage=dma_return_to_upload count=18 sum_ms=250.151636 mean_ms=13.897313 p50_le_ms=11.5 p95_le_ms=26.0 p99_le_ms=26.0 max_ms=25.705924 overflow=0 refreshed=5 started_ms=239103 ended_ms=244201
+[display-latency] late_latch=1 camera=1 stage=dma_return_to_draw count=18 sum_ms=272.134122 mean_ms=15.118562 p50_le_ms=12.0 p95_le_ms=37.5 p99_le_ms=37.5 max_ms=37.012489 overflow=0 refreshed=5 started_ms=239103 ended_ms=244201
+[display-latency] late_latch=1 camera=2 stage=dma_return_to_upload count=36 sum_ms=472.309070 mean_ms=13.119696 p50_le_ms=12.5 p95_le_ms=29.0 p99_le_ms=29.0 max_ms=28.981807 overflow=0 refreshed=7 started_ms=239103 ended_ms=244201
+[display-latency] late_latch=1 camera=2 stage=dma_return_to_draw count=36 sum_ms=508.285114 mean_ms=14.119031 p50_le_ms=14.5 p95_le_ms=30.0 p99_le_ms=30.5 max_ms=30.007044 overflow=0 refreshed=7 started_ms=239103 ended_ms=244201
+[display-latency] late_latch=1 camera=3 stage=dma_return_to_upload count=36 sum_ms=216.063307 mean_ms=6.001759 p50_le_ms=5.0 p95_le_ms=17.0 p99_le_ms=29.0 max_ms=28.576046 overflow=0 refreshed=0 started_ms=239103 ended_ms=244201
+[display-latency] late_latch=1 camera=3 stage=dma_return_to_draw count=36 sum_ms=237.845292 mean_ms=6.606814 p50_le_ms=5.0 p95_le_ms=18.0 p99_le_ms=30.0 max_ms=29.553449 overflow=0 refreshed=0 started_ms=239103 ended_ms=244201
+[display-latency] late_latch=1 camera=4 stage=dma_return_to_upload count=36 sum_ms=384.738342 mean_ms=10.687176 p50_le_ms=9.0 p95_le_ms=33.0 p99_le_ms=33.5 max_ms=33.130756 overflow=0 refreshed=4 started_ms=239103 ended_ms=244201
+[display-latency] late_latch=1 camera=4 stage=dma_return_to_draw count=36 sum_ms=417.792386 mean_ms=11.605344 p50_le_ms=10.0 p95_le_ms=33.5 p99_le_ms=34.0 max_ms=33.819400 overflow=0 refreshed=4 started_ms=239103 ended_ms=244201
+[display-latency] late_latch=1 camera=5 stage=dma_return_to_upload count=36 sum_ms=451.419823 mean_ms=12.539440 p50_le_ms=12.0 p95_le_ms=20.5 p99_le_ms=25.0 max_ms=24.771732 overflow=0 refreshed=8 started_ms=239103 ended_ms=244201
+[display-latency] late_latch=1 camera=5 stage=dma_return_to_draw count=36 sum_ms=477.193373 mean_ms=13.255371 p50_le_ms=12.5 p95_le_ms=21.5 p99_le_ms=26.5 max_ms=26.170021 overflow=0 refreshed=8 started_ms=239103 ended_ms=244201
+[display-latency] late_latch=1 camera=6 stage=dma_return_to_upload count=36 sum_ms=425.453060 mean_ms=11.818141 p50_le_ms=10.5 p95_le_ms=19.5 p99_le_ms=20.0 max_ms=19.670256 overflow=0 refreshed=7 started_ms=239103 ended_ms=244201
+[display-latency] late_latch=1 camera=6 stage=dma_return_to_draw count=36 sum_ms=467.068925 mean_ms=12.974137 p50_le_ms=12.0 p95_le_ms=20.5 p99_le_ms=20.5 max_ms=20.221313 overflow=0 refreshed=7 started_ms=239103 ended_ms=244201
+[capture] camera=3 delivered_fps=7.07 tag_advance_rate=18.66 read_ms=135.238 frame_dma_ms=0.340 copy_ms=1.381 unstable=0
+[capture-format] camera=3 width=320 height=240 bytes=153600 thumbnail=1 metric_start=host_dma_return
+[capture] camera=6 delivered_fps=7.09 tag_advance_rate=33.29 read_ms=134.864 frame_dma_ms=0.319 copy_ms=1.583 unstable=0
+[capture-format] camera=6 width=320 height=240 bytes=153600 thumbnail=1 metric_start=host_dma_return
+[capture] camera=2 delivered_fps=7.07 tag_advance_rate=35.16 read_ms=135.260 frame_dma_ms=0.314 copy_ms=1.369 unstable=0
+[capture-format] camera=2 width=320 height=240 bytes=153600 thumbnail=1 metric_start=host_dma_return
+[tdm_bench] t=244.484671 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=36.848
+[tdm_bench] t=244.804875 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=38.163
+[infer-diag] runs=4 平均运行=39.2ms 平均等帧=68.0ms 单次=107
+[panes] mode=6 submit_fps=35.8 have=111111 capture_fps=4.0/7.0/7.0/7.0/7.0/7.0 err=0/0/0/0/0/0
+[mvp] model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn frame=201 input=640x480 RGB uint8 /255 crop_y=80 detections=0 lane_points=0 decode_ok=1
+[tdm_bench] t=245.109676 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=39.391
+[tdm] model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn completed=200 ms=39.39 source_generation=3
+[infer-split] n=10 prep=0.92 set=0.85 run=27.17 get=4.24 query=0.00 decode=6.33 release=0.01 | sum=39.53 ms
+[box-filter] model=MVP_accuracy_round1_rk3568_int8.rknn observed=200 raw=0 visible=0 hidden=0 enabled=1
+[tdm_bench] t=245.422446 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=37.439
+[capture] camera=1 delivered_fps=3.46 tag_advance_rate=41.57 read_ms=282.524 frame_dma_ms=0.326 copy_ms=1.636 unstable=0
+[capture-format] camera=1 width=320 height=240 bytes=153600 thumbnail=1 metric_start=host_dma_return
+[tdm_bench] t=245.695308 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=47.758
+[infer-diag] runs=3 平均运行=43.0ms 平均等帧=53.7ms 单次=96
+[tdm_bench] t=245.965803 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=46.009
+[panes] mode=6 submit_fps=36.9 have=111111 capture_fps=4.0/7.0/8.0/8.0/8.0/7.0 err=0/0/0/0/0/0
+[tdm_bench] t=246.273641 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=48.356
+[tdm_bench] t=246.581575 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=39.805
+[tdm_bench] t=246.871165 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=44.173
+[panes] mode=6 submit_fps=35.4 have=111111 capture_fps=4.0/7.0/7.0/7.0/7.0/7.0 err=0/0/0/0/0/0
+[infer-diag] runs=4 平均运行=46.0ms 平均等帧=47.2ms 单次=93
+[tdm_bench] t=247.131043 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=40.428
+[tdm_bench] t=247.400174 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=41.839
+[tdm_bench] t=247.679428 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=40.454
+[tdm_bench] t=247.943832 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=41.158
+[infer-split] n=10 prep=1.12 set=1.34 run=28.20 get=5.70 query=0.00 decode=7.49 release=0.01 | sum=43.86 ms
+[panes] mode=6 submit_fps=40.5 have=111111 capture_fps=4.0/8.0/8.0/8.0/8.0/8.0 err=0/0/0/0/0/0
+[infer-diag] runs=4 平均运行=42.2ms 平均等帧=26.0ms 单次=68
+[tdm_bench] t=248.228807 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=42.069
+[analysis] window_ms=5019 wall_ms_sum/count gray=19.95/17 snapshot=0.20/51 prepare=11.18/34 match=0.05/17 correct=0.06/17 replay=0.02/17 request_reject_pending=0 interval=212 duplicate=34 config=0 stale=0 newer=0 snapshot_requests_with_newer_ingress=0 skipped_tracking_frames=0 (not_capture_dropped_frames) vehicle_tracks=0 nonvehicle_outputs=0 vehicle_only=1 tracker_models=1 started_ms=243418 ended_ms=248437 raw_outputs=0
+[tdm_bench] t=248.486686 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=37.622
+[tdm_bench] t=248.765923 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=46.232
+[capture] camera=5 delivered_fps=7.00 tag_advance_rate=33.40 read_ms=136.698 frame_dma_ms=0.333 copy_ms=1.464 unstable=0
+[capture-format] camera=5 width=320 height=240 bytes=153600 thumbnail=1 metric_start=host_dma_return
+[tdm_bench] t=249.033394 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=46.912
+[panes] mode=6 submit_fps=37.7 have=111111 capture_fps=4.0/8.0/8.0/8.0/8.0/8.0 err=0/0/0/0/0/0
+[stats] take_fps=38.00 upload_new_fps=38.00 paint_new_fps=38.00 paint_fps=46.20 paint_avg_ms=1.49 npu_request_fps=3.00 npu_started_fps=3.00 npu_completed_fps=4.00 npu_failed_fps=0.00 infer_service_ms=46.91
+[display-perf] started_ms=244201 ended_ms=249201 seconds=5.000 take_fps=37.20 upload_fps=37.20 new_paint_fps=37.20 swap_fps=46.20 replaced_snapshots=1 hud_rebuilds=5 revision=0 periodic=5 expired=0 layout=0 upload_rects=80 upload_bytes=4896920 draw_rects=3696 text_hits=50 text_misses=0 text_clears=0
+[display-events] takes=186 uploads=186 new_paints=186 swaps=231
+[display-stage] name=camera_upload count=203 sum_ms=59.720 mean_ms=0.294 p50_le_ms=0.5 p95_le_ms=1.0 p99_le_ms=1.0 max_ms=1.307 overflow=0
+[display-stage] name=hud_regions count=231 sum_ms=33.289 mean_ms=0.144 p50_le_ms=0.5 p95_le_ms=0.5 p99_le_ms=0.5 max_ms=0.533 overflow=0
+[display-stage] name=hud_raster count=5 sum_ms=24.628 mean_ms=4.926 p50_le_ms=5.0 p95_le_ms=6.5 p99_le_ms=6.5 max_ms=6.064 overflow=0
+[display-stage] name=hud_pack count=5 sum_ms=6.903 mean_ms=1.381 p50_le_ms=1.5 p95_le_ms=2.5 p99_le_ms=2.5 max_ms=2.126 overflow=0
+[display-stage] name=hud_upload count=5 sum_ms=20.265 mean_ms=4.053 p50_le_ms=4.5 p95_le_ms=5.5 p99_le_ms=5.5 max_ms=5.188 overflow=0
+[display-stage] name=camera_draw count=231 sum_ms=124.920 mean_ms=0.541 p50_le_ms=1.0 p95_le_ms=1.0 p99_le_ms=1.5 max_ms=1.276 overflow=0
+[display-stage] name=hud_draw count=231 sum_ms=64.285 mean_ms=0.278 p50_le_ms=0.5 p95_le_ms=1.0 p99_le_ms=1.0 max_ms=0.946 overflow=0
+[display-stage] name=paint_total count=231 sum_ms=346.606 mean_ms=1.500 p50_le_ms=1.5 p95_le_ms=3.0 p99_le_ms=11.5 max_ms=14.560 overflow=0
+[display-stage] name=settings_paint count=0 sum_ms=0.000 mean_ms=0.000 p50_le_ms=0.0 p95_le_ms=0.0 p99_le_ms=0.0 max_ms=0.000 overflow=0
+[display-stage] name=gui_delay count=186 sum_ms=234.000 mean_ms=1.258 p50_le_ms=0.5 p95_le_ms=8.5 p99_le_ms=14.5 max_ms=16.000 overflow=0
+[display-stage] name=host_dma_return_to_upload count=194 sum_ms=2119.296 mean_ms=10.924 p50_le_ms=11.0 p95_le_ms=23.5 p99_le_ms=27.5 max_ms=27.461 overflow=0
+[display-upload] camera=1 count=18 bytes=2764800
+[display-upload] camera=2 count=35 bytes=5376000
+[display-upload] camera=3 count=36 bytes=5529600
+[display-upload] camera=4 count=35 bytes=5376000
+[display-upload] camera=5 count=35 bytes=5376000
+[display-upload] camera=6 count=35 bytes=5376000
+[display-latency] late_latch=1 camera=1 stage=dma_return_to_upload count=18 sum_ms=240.271816 mean_ms=13.348434 p50_le_ms=14.0 p95_le_ms=26.0 p99_le_ms=26.0 max_ms=25.972223 overflow=0 refreshed=1 started_ms=244201 ended_ms=249201
+[display-latency] late_latch=1 camera=1 stage=dma_return_to_draw count=18 sum_ms=251.567215 mean_ms=13.975956 p50_le_ms=14.5 p95_le_ms=27.5 p99_le_ms=27.5 max_ms=27.316844 overflow=0 refreshed=1 started_ms=244201 ended_ms=249201
+[display-latency] late_latch=1 camera=2 stage=dma_return_to_upload count=35 sum_ms=466.685125 mean_ms=13.333861 p50_le_ms=12.5 p95_le_ms=25.5 p99_le_ms=27.5 max_ms=27.461473 overflow=0 refreshed=7 started_ms=244201 ended_ms=249201
+[display-latency] late_latch=1 camera=2 stage=dma_return_to_draw count=35 sum_ms=516.198087 mean_ms=14.748517 p50_le_ms=13.0 p95_le_ms=29.0 p99_le_ms=34.5 max_ms=34.124200 overflow=0 refreshed=7 started_ms=244201 ended_ms=249201
+[display-latency] late_latch=1 camera=3 stage=dma_return_to_upload count=36 sum_ms=230.416165 mean_ms=6.400449 p50_le_ms=5.0 p95_le_ms=18.0 p99_le_ms=25.0 max_ms=24.603436 overflow=0 refreshed=3 started_ms=244201 ended_ms=249201
+[display-latency] late_latch=1 camera=3 stage=dma_return_to_draw count=36 sum_ms=269.020282 mean_ms=7.472786 p50_le_ms=6.0 p95_le_ms=19.0 p99_le_ms=25.5 max_ms=25.226745 overflow=0 refreshed=3 started_ms=244201 ended_ms=249201
+[display-latency] late_latch=1 camera=4 stage=dma_return_to_upload count=35 sum_ms=446.116592 mean_ms=12.746188 p50_le_ms=13.5 p95_le_ms=26.5 p99_le_ms=27.5 max_ms=27.024836 overflow=0 refreshed=5 started_ms=244201 ended_ms=249201
+[display-latency] late_latch=1 camera=4 stage=dma_return_to_draw count=35 sum_ms=471.215500 mean_ms=13.463300 p50_le_ms=14.0 p95_le_ms=28.0 p99_le_ms=28.0 max_ms=27.723438 overflow=0 refreshed=5 started_ms=244201 ended_ms=249201
+[display-latency] late_latch=1 camera=5 stage=dma_return_to_upload count=35 sum_ms=375.541579 mean_ms=10.729759 p50_le_ms=11.5 p95_le_ms=18.5 p99_le_ms=20.0 max_ms=19.781676 overflow=0 refreshed=4 started_ms=244201 ended_ms=249201
+[display-latency] late_latch=1 camera=5 stage=dma_return_to_draw count=35 sum_ms=408.360118 mean_ms=11.667432 p50_le_ms=12.0 p95_le_ms=19.5 p99_le_ms=21.0 max_ms=20.530988 overflow=0 refreshed=4 started_ms=244201 ended_ms=249201
+[display-latency] late_latch=1 camera=6 stage=dma_return_to_upload count=35 sum_ms=360.264784 mean_ms=10.293280 p50_le_ms=10.5 p95_le_ms=17.0 p99_le_ms=18.5 max_ms=18.403221 overflow=0 refreshed=3 started_ms=244201 ended_ms=249201
+[display-latency] late_latch=1 camera=6 stage=dma_return_to_draw count=35 sum_ms=384.063701 mean_ms=10.973249 p50_le_ms=11.5 p95_le_ms=18.0 p99_le_ms=19.5 max_ms=19.058615 overflow=0 refreshed=3 started_ms=244201 ended_ms=249201
+[infer-diag] runs=4 平均运行=44.2ms 平均等帧=28.0ms 单次=72
+[capture] camera=4 delivered_fps=7.01 tag_advance_rate=18.71 read_ms=136.436 frame_dma_ms=0.341 copy_ms=1.403 unstable=0
+[capture-format] camera=4 width=320 height=240 bytes=153600 thumbnail=1 metric_start=host_dma_return
+[tdm_bench] t=249.314460 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=37.914
+[capture] camera=3 delivered_fps=7.01 tag_advance_rate=18.71 read_ms=136.397 frame_dma_ms=0.354 copy_ms=1.515 unstable=0
+[capture-format] camera=3 width=320 height=240 bytes=153600 thumbnail=1 metric_start=host_dma_return
+[capture] camera=6 delivered_fps=7.03 tag_advance_rate=33.37 read_ms=136.211 frame_dma_ms=0.338 copy_ms=1.412 unstable=0
+[capture-format] camera=6 width=320 height=240 bytes=153600 thumbnail=1 metric_start=host_dma_return
+[capture] camera=2 delivered_fps=7.05 tag_advance_rate=35.82 read_ms=135.771 frame_dma_ms=0.361 copy_ms=1.502 unstable=0
+[capture-format] camera=2 width=320 height=240 bytes=153600 thumbnail=1 metric_start=host_dma_return
+[tdm_bench] t=249.576758 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=39.294
+[tdm_bench] t=249.848962 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=44.077
+[panes] mode=6 submit_fps=38.3 have=111111 capture_fps=4.0/8.0/8.0/8.0/8.0/8.0 err=0/0/0/0/0/0
+[tdm_bench] t=250.143806 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=40.238
+[infer-diag] runs=4 平均运行=42.0ms 平均等帧=35.5ms 单次=77
+[tdm_bench] t=250.446032 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=39.540
+[capture] camera=1 delivered_fps=3.57 tag_advance_rate=41.46 read_ms=273.922 frame_dma_ms=0.301 copy_ms=1.304 unstable=0
+[capture-format] camera=1 width=320 height=240 bytes=153600 thumbnail=1 metric_start=host_dma_return
+[mvp] model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn frame=221 input=640x480 RGB uint8 /255 crop_y=80 detections=0 lane_points=0 decode_ok=1
+[tdm_bench] t=250.746242 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=42.091
+[tdm] model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn completed=220 ms=42.09 source_generation=3
+[infer-split] n=10 prep=0.88 set=1.64 run=27.83 get=5.83 query=0.00 decode=6.29 release=0.01 | sum=42.47 ms
+[box-filter] model=MVP_accuracy_round1_rk3568_int8.rknn observed=220 raw=0 visible=0 hidden=0 enabled=1
+[tdm_bench] t=251.023372 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=38.586
+[panes] mode=6 submit_fps=33.9 have=111111 capture_fps=4.0/7.0/7.0/7.0/7.0/7.0 err=0/0/0/0/0/0
+[tdm_bench] t=251.330474 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=41.183
+[infer-diag] runs=4 平均运行=41.8ms 平均等帧=54.8ms 单次=96
+[tdm_bench] t=251.595840 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=38.364
+[tdm_bench] t=251.888509 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=35.802
+[panes] mode=6 submit_fps=36.6 have=111111 capture_fps=4.0/8.0/7.0/7.0/7.0/7.0 err=0/0/0/0/0/0
+[tdm_bench] t=252.180822 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=41.481
+[tdm_bench] t=252.437634 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=36.852
+[infer-diag] runs=4 平均运行=39.2ms 平均等帧=37.5ms 单次=76
+[tdm_bench] t=252.730651 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=41.993
+[tdm_bench] t=252.998044 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=40.888
+[panes] mode=6 submit_fps=38.7 have=111111 capture_fps=4.0/8.0/8.0/8.0/8.0/8.0 err=0/0/0/0/0/0
+[tdm_bench] t=253.263813 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=34.303
+[analysis] window_ms=5014 wall_ms_sum/count gray=22.22/18 snapshot=0.29/54 prepare=12.13/36 match=0.08/18 correct=0.06/18 replay=0.03/18 request_reject_pending=0 interval=223 duplicate=24 config=0 stale=0 newer=0 snapshot_requests_with_newer_ingress=0 skipped_tracking_frames=0 (not_capture_dropped_frames) vehicle_tracks=0 nonvehicle_outputs=0 vehicle_only=1 tracker_models=1 started_ms=248437 ended_ms=253451 raw_outputs=0
+[tdm_bench] t=253.526762 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=36.988
+[infer-split] n=10 prep=0.83 set=1.01 run=26.01 get=5.71 query=0.00 decode=5.90 release=0.01 | sum=39.47 ms
+[infer-diag] runs=4 平均运行=43.0ms 平均等帧=32.0ms 单次=75
+[tdm_bench] t=253.823788 model=/root/npu/mvp/MVP_accuracy_round1_rk3568_int8.rknn ms=36.766

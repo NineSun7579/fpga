@@ -1,0 +1,87 @@
+--- production/sfp_video_tx.v
++++ candidate/sfp_video_tx.v
+@@ -86,9 +86,28 @@
+     //   vid_data = {vs,hs,de,pix}: de=1 ;
+     //   de=0 Ö½È¡ vs/hs ×´Ì¬; FIFO Õ·Ð¿Ö¡
+     //--------------------------------------------------------------------------
+-    wire head_vs = fifo_rdata[18];
+-    wire head_hs = fifo_rdata[17];
+-    wire head_de = fifo_rdata[16];
++    // Capture the pre-pop FIFO head; consume it once on the next fabric edge.
++    reg [18:0] head_q;
++    reg head_valid_q;
++    reg head_go_q;
++    always @(posedge fab_clk or negedge fab_rst_n) begin
++        if (!fab_rst_n) begin
++            head_q       <= 19'b0;
++            head_valid_q <= 1'b0;
++            head_go_q    <= 1'b0;
++        end else begin
++            head_valid_q <= `UD fifo_pop;
++            head_go_q    <= `UD tx_go;
++            if (fifo_pop)
++                head_q <= `UD fifo_rdata;
++        end
++    end
++    wire consume_head = head_valid_q;
++    wire payload_go = tx_go && head_go_q;
++
++    wire head_vs = head_q[18];
++    wire head_hs = head_q[17];
++    wire head_de = head_q[16];
+ 
+     reg        pix_pend;                       // 
+     reg [15:0] pix0;
+@@ -105,7 +124,7 @@
+             last_vs <= 1'b0;
+             last_hs <= 1'b0;
+         end
+-        else if (fifo_pop) begin
++        else if (consume_head) begin
+             last_vs <= `UD head_vs;
+             last_hs <= `UD head_hs;
+         end
+@@ -118,21 +137,21 @@
+ 
+     always @(posedge fab_clk or negedge fab_rst_n) begin
+         if (!fab_rst_n) begin
+-            txd        <= `UD idle_word;
++            txd        <= `UD 32'hBC0028BC;
+             txk        <= `UD 4'b1001;
+             pix_pend   <= `UD 1'b0;
+             pix0       <= `UD 16'b0;
+             wait_frame <= `UD 1'b1;
+         end
+         else begin
+-            if (!tx_go) begin
++            if (!payload_go) begin
+                 // Â·Î´: Ö»Ð¿ (FIFO  empty )
+-                txd <= `UD (fifo_pop ? ctrl_word : idle_word);
++                txd <= `UD (consume_head ? ctrl_word : idle_word);
+                 txk <= `UD 4'b1001;
+                 pix_pend <= `UD 1'b0;
+                 wait_frame <= `UD 1'b1;
+             end
+-            else if (fifo_pop) begin
++            else if (consume_head) begin
+                 if (wait_frame) begin
+                     txd <= `UD ctrl_word;
+                     txk <= `UD ctrl_k;
+@@ -143,7 +162,7 @@
+                 else if (!pix_pend) begin
+                     if (head_de) begin
+                         pix_pend <= `UD 1'b1;      // Ç°, 
+-                        pix0     <= `UD fifo_rdata[15:0];
++                        pix0     <= `UD head_q[15:0];
+                     end
+                     txd <= `UD ctrl_word;          // Ú¼ä·¢(Ð¯ vs/hs)
+                     txk <= `UD ctrl_k;
+@@ -151,7 +170,7 @@
+                 else begin
+                     pix_pend <= `UD 1'b0;          // Rev3.1fix1: Ö·(Ô­ head_de Ê¹ pix0 , Å¼Ø¸); Î²Ô¶
+                     if (head_de) begin
+-                        txd <= `UD {fifo_rdata[15:0], pix0};  // : {pix1,pix0}
++                        txd <= `UD {head_q[15:0], pix0};  // : {pix1,pix0}
+                         txk <= `UD 4'b0000;
+                     end
+                     else begin

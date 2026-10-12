@@ -1,0 +1,328 @@
+FILE: C:\pango\PDS_2022.2-SP6.4\syn\doc\fpga_attribute_reference.pdf
+PDF PAGE: 90
+LO
+Chapter 2: Attributes and Directives
+Attributes and Directives Summary
+© 2022 Synopsys, Inc.
+Synplify Pro for Pango Attribute Reference
+86
+August 2022
+syn_keep Values 
+Description
+With this directive, the tool preserves the net without optimizing it away by 
+placing a temporary keep buffer primitive on the net as a placeholder. 
+syn_keep Syntax
+Verilog Example
+object /* synthesis syn_keep = 1 */;
+object is a wire or reg declaration for combinational logic. Make sure that there 
+is a space between the object name and the beginning of the comment slash 
+(/) .
+Here is the source code used to produce the results shown in Effect of Using 
+syn_keep, on page 88.
+module test(out1, out2, clk, in1, in2);
+output out1, out2;
+input clk;
+input in1, in2;
+wire and_out;
+wire top1 /* synthesis syn_keep=1 */;
+Value
+Description
+0 | false
+(Default)
+Allows nets to be optimized away. 
+1 | true
+Preserves the specified net and keeps it intact during optimization 
+and synthesis.
+Verilog
+object /* synthesis syn_keep = 1 */;
+Verilog Example
+VHDL
+attribute syn_keep : boolean
+attribute syn_keep of object : objectType is true;
+VHDL Example
+
+FILE: C:\pango\PDS_2022.2-SP6.4\syn\doc\fpga_attribute_reference.pdf
+PDF PAGE: 91
+Attributes and Directives Summary
+Chapter 2: Attributes and Directives
+Synplify Pro for Pango Attribute Reference
+© 2022 Synopsys, Inc.
+August 2022
+87
+wire top2 /* synthesis syn_keep=1 */;
+reg out1, out2;
+assign and_out=in1&in2;
+assign top1=and_out;
+assign top2=and_out;
+always @(posedge clk)begin;
+out1<=top1;
+out2<=to2;
+end
+endmodule
+VHDL Example
+attribute syn_keep of object: objectType is true;
+object is a single or multiple-bit signal. 
+entity test is
+port (in1, in2: in bit; 
+clk: in bit;
+out1, out2: out bit);
+end test;
+architecture rt1 of test is
+attribute syn_keep: boolean;
+signal and_out, top1, top2: bit;
+attribute syn_keep of top1, top2p2: signal is true;
+begin
+and_out <= in1 and in2;
+top1 <= and_out;
+top2 <= and_out;
+process(clk)
+begin
+if (clk'event and clk = '1') then
+out1 <= top1;
+out2 <= top2;
+end if;
+end process;
+end rt1;
+
+FILE: C:\pango\PDS_2022.2-SP6.4\syn\doc\fpga_attribute_reference.pdf
+PDF PAGE: 92
+LO
+Chapter 2: Attributes and Directives
+Attributes and Directives Summary
+© 2022 Synopsys, Inc.
+Synplify Pro for Pango Attribute Reference
+88
+August 2022
+Effect of Using syn_keep
+When you use syn_keep on duplicate logic, the tool retains it instead of 
+optimizing it away. The following figure shows the Technology view for two 
+versions of a design. 
+In the first, syn_keep is set on the top1 and top2 nets connected to the inputs of 
+the registers out1 and out2, to prevent sharing. The second figure shows the 
+same design without syn_keep. Setting syn_keep on the input wires for the 
+registers ensures that the design has duplicate registered outputs for out1 
+and out2. If you do not apply syn_keep to top1 and top2, the software optimizes 
+out1 and out2, and only has one register.
+With syn_keep
+Without syn_keep
+
+FILE: C:\pango\PDS_2022.2-SP6.4\syn\doc\fpga_attribute_reference.pdf
+PDF PAGE: 127
+Attributes and Directives Summary
+Chapter 2: Attributes and Directives
+Synplify Pro for Pango Attribute Reference
+© 2022 Synopsys, Inc.
+August 2022
+123
+syn_preserve 
+Directive
+Prevents sequential optimizations such as constant propagation, inverter 
+push-through, and FSM extraction. 
+syn_preserve Values
+Description
+The syn_preserve directive controls whether objects are optimized away. Use 
+syn_preserve to retain registers for simulation, or to preserve the logic of regis­
+ters driven by a constant 1 or 0. You can set syn_preserve on individual regis­
+ters or on the module/architecture so that the directive is applied to all regis­
+ters in the module. 
+syn_preserve Syntax
+Verilog Example
+In the following example, syn_preserve is applied to all registers in the module 
+to prevent them from being optimized away. For the results, see Effect of 
+using syn_preserve, on page 126. 
+Technology
+Global
+Object
+All
+Yes
+Register definition signal, module (Verilog)
+Output port or internal signal that holds the value of the 
+register or architecture (VHDL)
+Value
+Description
+1 | true 
+Preserves register logic.
+0 | false (Default)
+Optimizes registers as needed. 
+Verilog
+object /* synthesis syn_preserve = 0 |1 */
+Verilog Example
+VHDL
+attribute syn_preserve of object : objectType is true | false; 
+VHDL Examples
+
+FILE: C:\pango\PDS_2022.2-SP6.4\syn\doc\fpga_attribute_reference.pdf
+PDF PAGE: 130
+LO
+Chapter 2: Attributes and Directives
+Attributes and Directives Summary
+© 2022 Synopsys, Inc.
+Synplify Pro for Pango Attribute Reference
+126
+August 2022
+begin
+wait until clk'event and clk = '1';
+reg1 <= in1 and in2;
+reg2 <= in1 and in2;
+out1 <= not (reg1);
+out2 <= (not (reg1) and reg2);
+end process;
+end behave;
+Effect of using syn_preserve
+The following figure shows reg1 and out2 are preserved during optimization 
+with syn_preserve. 
+When syn_preserve is not set, reg1 and reg2 are shared because they are driven 
+by the same source. out2 gets the result of the AND of reg2 and NOT reg1. This 
+is equivalent to the AND of reg1 and NOT reg1, which is a 0. As this is a 
+constant, the tool removes out2 and the output out2 is always 0. 
+Verilog
+mod_preserve /* synthesis syn_preserve = 1 */
+VHDL
+attribute syn_preserve of behave : architecture is true; 
+Without syn_preserve
+
+FILE: C:\pango\PDS_2022.2-SP6.4\syn\doc\fpga_attribute_reference.pdf
+PDF PAGE: 161
+Attributes and Directives Summary
+Chapter 2: Attributes and Directives
+Synplify Pro for Pango Attribute Reference
+© 2022 Synopsys, Inc.
+August 2022
+157
+syn_srlstyle 
+Attribute
+Controls the mapping of sequential shift registers. 
+syn_srlstyle Values
+Description
+The tool infers sequential shift register components based on the attribute 
+specified. The syn_srlstyle attribute can be used to override the default 
+behavior of seqshift implementation depending on how you set the values.
+The syn_srlstyle attribute can be set globally, either on a module or a register 
+instance. The global attribute can be overridden by the attribute set on the 
+module or instances.
+Vendor
+Technology
+Pango
+Logos 2
+Titan 2 
+Default
+Global
+Object Type
+registers
+Yes
+Register
+Module
+Values
+Description
+registers 
+Sequential shift registers in the design are mapped using 
+registers.
+block_ram
+Sequential shift registers in the design are mapped using 
+blockram primitives.
+lut_ram 
+Sequential shift registers in the design are mapped using 
+distributed RAMs.
+
+FILE: C:\pango\PDS_2022.2-SP6.4\syn\doc\fpga_attribute_reference.pdf
+PDF PAGE: 162
+LO
+Chapter 2: Attributes and Directives
+Attributes and Directives Summary
+© 2022 Synopsys, Inc.
+Synplify Pro for Pango Attribute Reference
+158
+August 2022
+If the attribute value is set to block_ram, seqshift is inferred using either of the 
+primitives below depending on the depth and width of seqshift.
+•
+GTP_DRM18K_E1
+•
+GTP_DRM36K_E1
+If the attribute is set to lut_ram, seqshift is inferred using any of the 
+primitives below depending on the depth and width of seqshift.
+•
+GTP_RAM32X1DP
+•
+GTP_RAM32X1SP
+•
+GTP_RAM32X2DP
+•
+GTP_RAM32X2SP
+•
+GTP_RAM64X1DP
+•
+GTP_RAM64X1SP
+•
+GTP_RAM128X1DP
+•
+GTP_RAM128X1SP
+•
+GTP_RAM256X1SP
+syn_srlstyle Syntax
+FDC Example
+define_attribute  {v:p_seqshift } {syn_srlstyle} {registers | 
+block_ram | lut_ram}
+define_global_attribute syn_srlstyle {register | block_ram | 
+lut_ram}
+FDC
+define_attribute {<object>} {syn_srlstyle} {block_ram | 
+lut_ram | registers}
+FDC Example
+Verilog
+/*syn_srlstyle = "block_ram | lut_ram | registers"*/;
+Verilog Example
+VHDL
+attribute syn_srlstyle: string;
+attribute syn_srlstyle of object : signal is "registers | 
+block_ram | lut_ram";
+VHDL Example
+
+FILE: C:\pango\PDS_2022.2-SP6.4\syn\doc\fpga_attribute_reference.pdf
+PDF PAGE: 163
+Attributes and Directives Summary
+Chapter 2: Attributes and Directives
+Synplify Pro for Pango Attribute Reference
+© 2022 Synopsys, Inc.
+August 2022
+159
+Verilog Example
+module p_seqshift(clk, din, dout)/*synthesis 
+syn_srlstyle="lut_ram"*/;
+parameter SRL_WIDTH = 9;
+parameter SRL_DEPTH = 4;
+input clk;
+input [SRL_WIDTH-1:0] din;
+output [SRL_WIDTH-1:0] dout;
+reg [SRL_WIDTH-1:0] regBank[SRL_DEPTH-1:0];
+integer i;
+always @(posedge clk) begin
+for (i=SRL_DEPTH-1; i>0; i=i-1) begin
+regBank[i] <= regBank[i-1];
+end
+regBank[0] <= din;
+end
+assign dout = regBank[SRL_DEPTH-1];
+endmodule
+VHDL Example
+library ieee;
+use ieee.std_logic_1164.all;
+entity p_seqshift is
+generic (SRL_WIDTH : natural := 9;
+SRL_DEPTH : natural := 8);
+port(clk : in std_logic;
+din : in std_logic_vector((SRL_WIDTH-1) downto 0);
+dout : out std_logic_vector((SRL_WIDTH-1) downto 0));
+end p_seqshift;
+architecture archi of p_seqshift is
+type shift is array ((SRL_DEPTH-1) downto 0) of
+std_logic_vector((SRL_WIDTH-1) downto 0);
+signal tmp: shift;
+attribute syn_srlstyle : string;
+attribute syn_srlstyle of tmp : signal is "registers";
+begin
+process (clk)
+begin
+if rising_edge(clk) then
+for i in (SRL_DEPTH-1) downto 1 loop
+tmp(i) <= tmp(i-1);

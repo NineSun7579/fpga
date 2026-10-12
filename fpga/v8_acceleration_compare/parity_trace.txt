@@ -1,0 +1,32 @@
+dma-submit ioctl=c0045305 address=40020040 cmd=1 bytes=16
+dma-complete
+dma-submit ioctl=c0045305 address=a000000 cmd=1 bytes=1228800
+dma-complete
+dma-submit ioctl=c0045305 address=40020010 cmd=1 bytes=16
+dma-complete
+dma-submit ioctl=c0045305 address=40020030 cmd=1 bytes=16
+dma-complete
+dma-submit ioctl=c0045305 address=40020050 cmd=1 bytes=16
+dma-complete
+byte-mismatch offset=16 cpu=114 fpga=0
+byte-mismatch offset=17 cpu=114 fpga=0
+byte-mismatch offset=18 cpu=114 fpga=128
+byte-mismatch offset=19 cpu=114 fpga=128
+byte-mismatch offset=20 cpu=114 fpga=127
+byte-mismatch offset=21 cpu=114 fpga=239
+byte-mismatch offset=22 cpu=114 fpga=223
+byte-mismatch offset=23 cpu=114 fpga=255
+byte-mismatch offset=24 cpu=114 fpga=64
+byte-mismatch offset=25 cpu=114 fpga=0
+byte-mismatch offset=26 cpu=114 fpga=0
+byte-mismatch offset=27 cpu=114 fpga=128
+byte-parity sizes=1228800,1228800 differences=1004213
+FAIL: FPGA input byte mismatch
+QUARANTINE pid=2148: SIGSTOP; quiesce hardware before SIGCONT/exit
+    PID STAT WCHAN
+   2148 T<s  do_signal_stop
+0002:20:00.0 PCI bridge [0604]: Rockchip Electronics Co., Ltd RK3568 Remote Signal Processor [1d87:3566] (rev 01)
+0002:21:00.0 Memory controller [0580]: Device [0755:0755]
+-rw-r--r-- 1 root root 1228800 10月 8日 11:23 /userdata/linaro/fpga_accel_delivery/mismatch.cpu.rgb
+-rw-r--r-- 1 root root 1228800 10月 8日 11:23 /userdata/linaro/fpga_accel_delivery/mismatch.fpga.rgb
+-rw-r--r-- 1 root root  614400 10月 8日 11:23 /userdata/linaro/fpga_accel_delivery/mismatch.raw

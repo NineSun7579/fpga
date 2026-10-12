@@ -1,0 +1,49 @@
+--- C:\Users\NineSun\Desktop\ov56401\project\fpga_v8_migration\whole_candidate_v7_route_01\inputs\source\ov5640\ov5640_ddr\ov5640_ddr_w_ctrl.v
++++ ddr_ctrl_recovery.v
+@@ -1,5 +1,5 @@
+ //ï¿½ï¿½ï¿½ï¿½CMDï¿½ï¿½ï¿½ï¿½
+-module ov5640_ddr_w_ctrl #(
++module ddr_ctrl_recovery #(
+     parameter AXI_ADDR_WIDTH = 32,
+     parameter AXI_LEN_WIDTH  = 32,
+     parameter AXI_DATA_WIDTH = 128,
+@@ -53,9 +53,9 @@
+     reg [2 : 0] curr_state/*synthesis PAP_MARK_DEBUG="1"*/;
+     // [LEDGER 2026-09-19] both the frame command and the 16B tag command pulse
+     // dma_done; only the frame command's completion may advance frame state.
+-    wire frame_done = dma_done && frame_good && (curr_state == DATA);
++    wire frame_done = !dma_abort && dma_done && frame_good && (curr_state == DATA);
+     wire frame_failed = (dma_abort || (dma_done && !frame_good)) && (curr_state == DATA);
+-    wire publish = dma_done && (curr_state == WAIT_TAG_DONE);
++    wire publish = !dma_abort && dma_done && (curr_state == WAIT_TAG_DONE);
+     reg [2 : 0] next_state;
+ 
+     // [FRTAG 2026-09-14] frame-tag declarations (forward, before first use)
+@@ -84,7 +84,8 @@
+     end
+ 
+     always @(*) begin
+-        case (curr_state)
++        if(dma_abort) next_state = IDLE;
++        else case (curr_state)
+             IDLE: begin
+                 if(vsync_pending)begin
+                     next_state = ADDR;
+@@ -175,6 +176,7 @@
+         if(axi_rst)begin
+             vsync_pending <= 1'b0;
+         end
++        else if(dma_abort) vsync_pending <= 0;
+         else if(axi_vsync_rise && (curr_state == IDLE))begin
+             vsync_pending <= 1'b1;
+         end
+@@ -188,7 +190,8 @@
+             axi_cmd_valid <= 1'b0;
+         end
+         else begin
+-            if((curr_state == IDLE) && vsync_pending)begin
++            if(dma_abort) axi_cmd_valid <= 0;
++            else if((curr_state == IDLE) && vsync_pending)begin
+                 axi_cmd_valid <= 1'b1;
+             end
+             else if(frame_done)begin

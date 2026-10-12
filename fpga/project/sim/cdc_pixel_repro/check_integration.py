@@ -1,0 +1,44 @@
+from pathlib import Path
+import hashlib,json,re,subprocess
+HERE=Path(__file__).resolve().parent
+ROOT=HERE.parents[1]
+manifest=json.loads((HERE/'protected_before.json').read_text())
+changed=[]
+for name,digest in manifest.items():
+ if hashlib.sha256((ROOT/name).read_bytes()).hexdigest()!=digest: changed.append(name.replace('\\','/'))
+expected={'source/ov5640/ov5640/ov5640_cdc.v','source/ov5640/ov5640/ov5640.v','source/ov5640/ov5640_top.v','source/ov5640/ov5640_reg.v','source/ov5640/ovreg_axil_decode.v'}
+assert set(changed)==expected,changed
+print('PASS vendor/IP and all other RTL byte-identical, including top clocks, DMA, DDR bad-frame/AXI retirement')
+for name in expected|{'source/constraints/cdc.fdc'}:
+ p=ROOT/name; old=p.with_name(p.name+('.cdc_host_map.bak' if p.name=='ovreg_axil_decode.v' else '.cdc_pixel.bak')).read_bytes(); new=p.read_bytes()
+ assert [l for l in old.splitlines() if any(c>=128 for c in l)]==[l for l in new.splitlines() if any(c>=128 for c in l)],name
+ print('PASS backup and original non-ASCII lines preserved:',name)
+constraints=(ROOT/'source/constraints/cdc.fdc').read_bytes()
+assert not any(l.strip().startswith(b'set_false_path') and b'ov5640_cdc' in l for l in constraints.splitlines())
+clock=(ROOT/'source/constraints/clock.fdc').read_bytes()
+for c in [b'cmos1_pclk',b'cmos2_pclk',b'cmos3_pclk',b'ddrphy_sysclk']:
+ assert re.search(rb'^\s*set_clock_groups[^\n]*-asynchronous[^\n]*'+c,clock,re.M)
+print('PASS broad CDC exception removed; actual async clock groups retained')
+# Reuse the existing AXI-Lite transaction bench in an isolated generated copy.
+b=(ROOT/'sim/dma_timeout_repro/tb_rejection_regs.sv').read_bytes()
+b=b.replace(b'tb_rejection_regs',b'tb_cdc_regs')
+anchor=b" .dbg_input_pixels(32'd307200),"
+assert b.count(anchor)==1
+b=b.replace(anchor,b" .dbg_cdc_input(32'd307200),.dbg_cdc_output(32'd1290240),\n .dbg_cdc_drop(32'd7),.dbg_cdc_seq(32'd123),\n"+anchor)
+anchor=b" read_check(0,32'h80006123);"
+assert b.count(anchor)==1
+b=b.replace(anchor,b" read_check('h190,307200);read_check('h1a0,1290240);read_check('h1b0,7);read_check('h1c0,123);\n"+anchor)
+b=b.replace(b"ra=32'h20000000+offset;", b"ra=(32'h20000000+offset) & 32'hfffffff0;")
+(HERE/'tb_cdc_regs.sv').write_bytes(b)
+exe='C:/modeltech64_10.6e/win64/'
+args=[exe+'vlog.exe','-work','work_cdc','-sv']
+args += [str(ROOT/n) for n in ['source/ov5640/ov5640_reg.v','source/ov5640/ov5640_top.v','source/ov5640/ov5640/ov5640.v','source/ov5640/ov5640/i2c_dir.v','source/ov5640/ov5640/ov5640_i2c_rgb565_cfg.v','source/ov5640/pipe_cdc.v','source/ov5640/vip.v','source/ov5640/vip_kf_stream.v','source/ov5640/ov5640_ddr/ov5640_ddr.v','source/ov5640/ov5640_ddr/ov5640_ddr_w.v','source/ov5640/ov5640_ddr/ov5640_ddr_w_ctrl.v','source/ov5640/ov5640_ddr/ov5640_ddr_w_en.v']]
+args += ['tb_cdc_regs.sv']
+p=subprocess.run(args,cwd=HERE,stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
+(HERE/'compile_integration.log').write_bytes(p.stdout)
+assert p.returncode==0,p.stdout.decode(errors='replace')
+print('PASS modified production wrappers, register block and dependencies compile')
+p=subprocess.run([exe+'vsim.exe','-c','work_cdc.tb_cdc_regs','-do','run -all; quit -force'],cwd=HERE,stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
+(HERE/'cdc_regs.log').write_bytes(p.stdout)
+assert p.returncode==0 and b'PASS REJECTION REGISTERS' in p.stdout and b'** Fatal:' not in p.stdout
+print('PASS new diagnostic offsets and existing fault/input/reject registers; ACK/delay/enable writes preserved')

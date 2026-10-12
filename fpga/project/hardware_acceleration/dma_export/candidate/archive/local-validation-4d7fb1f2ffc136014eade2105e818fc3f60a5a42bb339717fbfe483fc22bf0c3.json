@@ -1,0 +1,193 @@
+{
+  "scope": "offline model and shared C policy only; no driver build or hardware",
+  "retained_api_audit": {
+    "checks": {
+      "pin:pango_pci_driver.c": true,
+      "pin:pango_pci_driver.h": true,
+      "pin:kernel-reference/include/linux/dma-buf.h": true,
+      "pin:kernel-reference/include/linux/dma-mapping.h": true,
+      "pin:kernel-reference/include/linux/scatterlist.h": true,
+      "pin:kernel-reference/include/linux/dma-map-ops.h": true,
+      "pin:kernel-reference/Makefile": true,
+      "dma_buf_ops:attach": true,
+      "dma_buf_ops:detach": true,
+      "dma_buf_ops:map_dma_buf": true,
+      "dma_buf_ops:unmap_dma_buf": true,
+      "dma_buf_ops:release": true,
+      "dma_buf_ops:begin_cpu_access": true,
+      "dma_buf_ops:end_cpu_access": true,
+      "dma_buf_ops:mmap": true,
+      "dma_buf_ops:owner_pin": true,
+      "dma_api:dma_get_sgtable": true,
+      "dma_api:dma_map_sgtable": true,
+      "dma_api:dma_mmap_coherent": true,
+      "dma_api:unmap_orig_nents": true,
+      "dma_api:cpu_sync_orig_nents": true,
+      "dma_api:device_sync_orig_nents": true,
+      "sg:orig_nents": true,
+      "candidate:ASCII": true,
+      "candidate:export_disabled": true,
+      "candidate:actual_attachment_backend_boundary": true,
+      "candidate:no_streaming_alias_calls": true,
+      "candidate:backend_hard_unsupported": true,
+      "candidate:source_direction_only": true,
+      "candidate:dma_mask32_only": true,
+      "candidate:complete_dma32_guards": true,
+      "candidate:input_usercopy_before_lock": true,
+      "candidate:single_input_snapshot": true,
+      "candidate:no_dma_address_page_cast": true,
+      "candidate:no_irq_launch_helpers": true,
+      "candidate:shared_range_policy": true,
+      "candidate:shared_unmap_policy": true
+    },
+    "sha256": {
+      "pango_pci_driver.c": "b7f61d8f628e4db7e7d520742b1a195dea4f2b18292203ff9ef5104c16460b72",
+      "pango_pci_driver.h": "7bb7ee3a4cdb0ad1f7254a8ac40e39aff3a28f4ec96f8f97672e8488115b7ec1",
+      "kernel-reference/include/linux/dma-buf.h": "ffd2ffec76ff3e97cb562fa933f32958c54e9adab73a32000a24f250ecef7115",
+      "kernel-reference/include/linux/dma-mapping.h": "068d8bdb38e34b6014244cb429850568570d83564d2ecb6bdcdc52cb46b000af",
+      "kernel-reference/include/linux/scatterlist.h": "3f5c8a11a0bfe36eebd772b30a3e0d15ac5182a4b911ed4e248eb0ac46ea466c",
+      "kernel-reference/include/linux/dma-map-ops.h": "8d9b6e86bd55da341aadbb98e4da69ef445a8b8076c616f5fdfcdbf6274ecb81",
+      "kernel-reference/Makefile": "3d9cd3c81e4b311fb7a892817539a6fa750d286695faf28b920ffa69ea73d673"
+    },
+    "passed": true
+  },
+  "model_tests": {
+    "run": 37,
+    "failures": 0,
+    "errors": 0,
+    "passed": true
+  },
+  "shared_C_policy": {
+    "status": "passed",
+    "runs": [
+      {
+        "command": [
+          "wsl.exe",
+          "--distribution",
+          "Ubuntu-24.04",
+          "--exec",
+          "gcc",
+          "-std=c11",
+          "-O1",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Wno-unused-parameter",
+          "-I",
+          "/mnt/c/Users/NineSun/Desktop/ov56401/project/hardware_acceleration/dma_export/candidate",
+          "/mnt/c/Users/NineSun/Desktop/ov56401/project/hardware_acceleration/dma_export/candidate/policy_harness.c",
+          "-o",
+          "/mnt/c/Users/NineSun/AppData/Local/Temp/pango-C-70a5r80m/harness"
+        ],
+        "returncode": 0,
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "command": [
+          "wsl.exe",
+          "--distribution",
+          "Ubuntu-24.04",
+          "--exec",
+          "/mnt/c/Users/NineSun/AppData/Local/Temp/pango-C-70a5r80m/harness"
+        ],
+        "returncode": 0,
+        "stdout": "",
+        "stderr": ""
+      }
+    ],
+    "environment": "local WSL userspace; no Kbuild"
+  },
+  "extracted_driver_C_events": {
+    "status": "passed",
+    "runs": [
+      {
+        "command": [
+          "wsl.exe",
+          "--distribution",
+          "Ubuntu-24.04",
+          "--exec",
+          "gcc",
+          "-std=c11",
+          "-O1",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Wno-unused-parameter",
+          "-I",
+          "/mnt/c/Users/NineSun/Desktop/ov56401/project/hardware_acceleration/dma_export/candidate",
+          "-I",
+          "/mnt/c/Users/NineSun/AppData/Local/Temp/pango-extracted-eaq9qd8_",
+          "/mnt/c/Users/NineSun/Desktop/ov56401/project/hardware_acceleration/dma_export/candidate/driver_event_harness.c",
+          "-o",
+          "/mnt/c/Users/NineSun/AppData/Local/Temp/pango-C-4_qrv5i3/harness"
+        ],
+        "returncode": 0,
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "command": [
+          "wsl.exe",
+          "--distribution",
+          "Ubuntu-24.04",
+          "--exec",
+          "/mnt/c/Users/NineSun/AppData/Local/Temp/pango-C-4_qrv5i3/harness"
+        ],
+        "returncode": 0,
+        "stdout": "Extracted driver event checks passed: usercopy/publication unlocked; pending rollback; DMA32; backend rejection\n",
+        "stderr": ""
+      }
+    ],
+    "environment": "local WSL userspace; no Kbuild",
+    "provenance": {
+      "source_sha256": "e72b9c67b49fc84d49e59d940a2883f0fb604e8239a8d0187c00b642be9e4ca3",
+      "extracted_sha256": {
+        "pango_buffer": "78a610afcdaf402f4ad23af46101f28abc6043cc27a3e8999be10a2834713458",
+        "pango_generation": "1cdec4158f366feff9a8a36c704e38d9e100f670215d4b2a05912ee39bf86548",
+        "pango_attachment": "5437d01539775c163a94d4394028e215f2c3e9771b55b5e2a78a2685ead5d978",
+        "pango_mapping": "00536c805ed2f3789de4e506eb2e1c80ab0cab825099a7565a8a24681ef5b69c",
+        "pango_view": "9dc0d44d274cfcd040ecab7e262352c6a2fd4de79857c6859e6a42b104c93bb4",
+        "pango_ioctl_request": "44a9525882c49a187eefb3f8ae1ec2883ad03f2d0d04cac204609fcdd9eda2cf",
+        "pango_import_backend_ready": "7183138b7650a993b137aff3336189bc75be02b9fd8f9dce7e23dc502cec0afd",
+        "pango_backend_map": "d99666333751f158125772391ac68268a5f059ea5429182b2d7ea535596370ba",
+        "pango_sync_slot": "cd11152794b5ffe199c2b5346ac0b67d43c3980cdf963ebca41caf566c81fbf4",
+        "pango_free_buffer": "1d9e882abeb6e3ef5f4ff2df4dff18335b3eaa5afbda685c8920b8fe9beaeebb",
+        "pango_live": "dadd105520d7799521afb738c165881b7f4a9f9fd7ce7ee462ed76f062e92ce1",
+        "pango_map_legacy": "75443671b2d2a261fa90840ecdaa2817c86c9b963ac53a164cbc8f36e3a67972",
+        "pango_unmap_legacy": "f279b20c69c6b4767addd02f0a03c0d1772f09b6597009f5ec69f22de556806c",
+        "pango_transfer": "f5946dc66f68385b069b5e162b990c197c0b4e84b1ec7a445e43c1b0d211592f",
+        "pango_buf_map": "167b83ad29b9ba677d7c63cf583725f742941e8a785d171ca99f465635d760de",
+        "pango_buf_release": "80e02b171986ce6e28dfcf7d0eacf803ffb7f4109310ecd4862166393c7103ad",
+        "pango_reserved_zero": "b7f5b084a84232a066b38caff25d8d4df2036c268072bafcc1b5adad8dc04ef9",
+        "pango_export_ioctl": "f895348be7155ea40749065a6bebff974cb1e5a50ee077956567eac26c419aee",
+        "pango_lease_ioctl": "3b4eb7c413186a71ca99668c0d7fa0c6f3a9f26cefb018827b50e9237c5a8c6e",
+        "pango_ioctl": "3a901c443112be3c6b93a450cdfec22b499fa1d4590bb2cd2bd4fe071e9b04da",
+        "pango_mmap": "3ea66ab51d624160dc8136aa9a93de3e52fa9355620274a115bb50a28df79701"
+      },
+      "scope": "Exact candidate function bodies with mocked kernel events; no kernel/hardware execution"
+    }
+  },
+  "driver_compile": {
+    "status": "pending_for_revised_bytes",
+    "reason": "Parent reported the earlier candidate compiled privately against 6.1.99/GCC12.2; that result does not cover this revision. Only selected target headers are retained locally"
+  },
+  "hardware_validation": "not performed",
+  "export_gate": "disabled; EOPNOTSUPP",
+  "original_loaded_module_rebuild_match": "not established",
+  "validated_candidate_inputs_sha256": {
+    "driver_event_harness.c": "0f51cf3942b41efd8c85a39e9656fb6f8f558fe91631d36fa3f76a4f8bdffd70",
+    "extract_event_harness.py": "ab18200b420239699740863264697a7198f76488b002c38561c1fd6ed8fb05b7",
+    "freeze_candidate.py": "dd8670f80a8de74a445c030906c8e2f88a79a8ff03f91845000bfb0c4a9270f8",
+    "lifecycle_model.py": "88ae1a1509a204fa71e43dc591bdc9f6e1fb26fca00882fb0a8abb87d4ea565b",
+    "Makefile": "86b62314908be796d876f25b5764b721570ae781b7393df06c5538e27e2d0db2",
+    "pango_dma_candidate.c": "e72b9c67b49fc84d49e59d940a2883f0fb604e8239a8d0187c00b642be9e4ca3",
+    "pango_dma_client.h": "86f139463be94a2acc613f61b96da1add13a818370e90a292228a88602ccf3e2",
+    "pango_dma_uapi.h": "5a1531ac651777e789119a7d16cf61c7fe6cabd6b60510ade87b5bb203ff729f",
+    "pango_policy.h": "4f38f1d250865533261e7509f561149386030bfda9d3b0267d48b4736681aa7d",
+    "policy_harness.c": "f6bccad0f9cc208b1491fab3665899548c1f012ed87159356d50c5f8e1d0364d",
+    "README.md": "5e865df55b75625d9bd4284876efd3161d1b322abbe22c197248e2fcaa88a9f6",
+    "test_lifecycle.py": "7ecd3a99387e42a3d05c2b3a09fd77c6d2dcb6ecbb7dc7658d2be9ea3439a514",
+    "validate_offline.py": "cbe8f6f92f2f107e365272f241ca406ef07add8231d0d54c6ac924c2c296bda0"
+  }
+}

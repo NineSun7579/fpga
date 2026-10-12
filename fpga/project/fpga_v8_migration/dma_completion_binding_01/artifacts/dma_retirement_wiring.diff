@@ -1,0 +1,11 @@
+--- routed/fpga_v8_pcie_dma_h2f_rfg01.v
++++ proposed/dma.v
+@@ -337,7 +337,7 @@
+     .clk                        (clk                        ),  //gen1:62.5MHz,gen2:125MHz
+     .rst_n                      (rst_n                      ),
+     ////
+-    .i_mwr_tx_busy              (~fpga_tx_done              ), // [鏂板�瀅
++    .i_mwr_tx_busy              (mwr_tx_busy | ~fpga_tx_done), // [鏂板�瀅
+     .i_mrd_rx_busy              (~fpga_rx_done              ), // [鏂板�瀅
+     .o_fpga_msi                 (fpga_msi_pulse             ), // [鏂板�瀅
+     //**********************************************************************

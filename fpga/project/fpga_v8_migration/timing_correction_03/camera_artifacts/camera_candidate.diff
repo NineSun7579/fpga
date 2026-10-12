@@ -1,0 +1,72 @@
+--- V4/inputs/source/ov5640/ov5640/ov5640_cdc.v
++++ timing_correction_03/rtl/ov5640_cdc_tc03.v
+@@ -1,5 +1,5 @@
+ //跨时钟域
+-module ov5640_cdc #(
++module ov5640_cdc_tc03 #(
+     parameter DATA_WIDTH = 24,
+     parameter DEVICE = "PG"
+ )
+@@ -213,12 +213,43 @@
+     reg src_vs_q, src_toggle;
+     reg [31:0] src_count, src_drop, src_seq;
+     reg [95:0] src_snapshot;
++    // Independent nibble updates: no 32-bit common clock-enable chain.
++    // Every carry uses the pre-edge value; all eight slices update together.
++    wire src_frame_start = s_vsync && !src_vs_q;
++    genvar stat_slice;
++    generate for (stat_slice = 0; stat_slice < 8; stat_slice = stat_slice + 1) begin : gen_src_stats
++        wire count_carry, drop_carry;
++        if (stat_slice == 0) begin : gen_low
++            assign count_carry = s_valid;
++            assign drop_carry = s_valid && full;
++        end else begin : gen_high
++            assign count_carry = s_valid && (&src_count[stat_slice*4-1:0]);
++            assign drop_carry = s_valid && full && (&src_drop[stat_slice*4-1:0]);
++        end
++        always @(posedge cam_clk or posedge cam_rst) begin
++            if (cam_rst) begin
++                src_count[stat_slice*4 +: 4] <= 4'd0;
++                src_drop[stat_slice*4 +: 4] <= 4'd0;
++            end else if (src_frame_start) begin
++                if (stat_slice == 0) begin
++                    src_count[stat_slice*4 +: 4] <= {3'd0, s_valid};
++                    src_drop[stat_slice*4 +: 4] <= {3'd0, (s_valid && full)};
++                end else begin
++                    src_count[stat_slice*4 +: 4] <= 4'd0;
++                    src_drop[stat_slice*4 +: 4] <= 4'd0;
++                end
++            end else begin
++                if (count_carry)
++                    src_count[stat_slice*4 +: 4] <= src_count[stat_slice*4 +: 4] + 4'd1;
++                if (drop_carry)
++                    src_drop[stat_slice*4 +: 4] <= src_drop[stat_slice*4 +: 4] + 4'd1;
++            end
++        end
++    end endgenerate
+     always @(posedge cam_clk or posedge cam_rst) begin
+         if (cam_rst) begin
+             src_vs_q <= 0;
+             src_toggle <= 0;
+-            src_count <= 0;
+-            src_drop <= 0;
+             src_seq <= 0;
+             src_snapshot <= 0;
+         end else begin
+@@ -227,11 +258,6 @@
+                 src_snapshot <= {src_seq + 32'd1, src_drop, src_count};
+                 src_toggle <= ~src_toggle;
+                 src_seq <= src_seq + 1'b1;
+-                src_count <= {31'd0, s_valid};
+-                src_drop <= {31'd0, (s_valid && full)};
+-            end else begin
+-                if (s_valid) src_count <= src_count + 1'b1;
+-                if (s_valid && full) src_drop <= src_drop + 1'b1;
+             end
+         end
+     end
+@@ -272,4 +298,4 @@
+         end
+     end
+ 
+-endmodule+endmodule

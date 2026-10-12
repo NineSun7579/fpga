@@ -1,0 +1,89 @@
+{
+  "scope": "offline model and shared C policy only; no driver build or hardware",
+  "retained_api_audit": {
+    "checks": {
+      "pin:pango_pci_driver.c": true,
+      "pin:pango_pci_driver.h": true,
+      "pin:kernel-reference/include/linux/dma-buf.h": true,
+      "pin:kernel-reference/include/linux/dma-mapping.h": true,
+      "pin:kernel-reference/include/linux/scatterlist.h": true,
+      "pin:kernel-reference/include/linux/dma-map-ops.h": true,
+      "pin:kernel-reference/Makefile": true,
+      "dma_buf_ops:attach": true,
+      "dma_buf_ops:detach": true,
+      "dma_buf_ops:map_dma_buf": true,
+      "dma_buf_ops:unmap_dma_buf": true,
+      "dma_buf_ops:release": true,
+      "dma_buf_ops:begin_cpu_access": true,
+      "dma_buf_ops:end_cpu_access": true,
+      "dma_buf_ops:mmap": true,
+      "dma_buf_ops:owner_pin": true,
+      "dma_api:dma_get_sgtable": true,
+      "dma_api:dma_map_sgtable": true,
+      "dma_api:dma_mmap_coherent": true,
+      "dma_api:unmap_orig_nents": true,
+      "dma_api:cpu_sync_orig_nents": true,
+      "dma_api:device_sync_orig_nents": true,
+      "sg:orig_nents": true,
+      "candidate:ASCII": true,
+      "candidate:export_disabled": true,
+      "candidate:actual_attachment_mapping": true,
+      "candidate:no_dma_address_page_cast": true,
+      "candidate:no_irq_launch_helpers": true,
+      "candidate:shared_range_policy": true,
+      "candidate:shared_unmap_policy": true
+    },
+    "sha256": {
+      "pango_pci_driver.c": "b7f61d8f628e4db7e7d520742b1a195dea4f2b18292203ff9ef5104c16460b72",
+      "pango_pci_driver.h": "7bb7ee3a4cdb0ad1f7254a8ac40e39aff3a28f4ec96f8f97672e8488115b7ec1",
+      "kernel-reference/include/linux/dma-buf.h": "ffd2ffec76ff3e97cb562fa933f32958c54e9adab73a32000a24f250ecef7115",
+      "kernel-reference/include/linux/dma-mapping.h": "068d8bdb38e34b6014244cb429850568570d83564d2ecb6bdcdc52cb46b000af",
+      "kernel-reference/include/linux/scatterlist.h": "3f5c8a11a0bfe36eebd772b30a3e0d15ac5182a4b911ed4e248eb0ac46ea466c",
+      "kernel-reference/include/linux/dma-map-ops.h": "8d9b6e86bd55da341aadbb98e4da69ef445a8b8076c616f5fdfcdbf6274ecb81",
+      "kernel-reference/Makefile": "3d9cd3c81e4b311fb7a892817539a6fa750d286695faf28b920ffa69ea73d673"
+    },
+    "passed": true
+  },
+  "model_tests": {
+    "run": 29,
+    "failures": 0,
+    "errors": 0,
+    "passed": true
+  },
+  "shared_C_policy": {
+    "status": "passed",
+    "runs": [
+      {
+        "command": [
+          "/usr/bin/cc",
+          "-std=c11",
+          "-O1",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "/mnt/c/Users/NineSun/Desktop/ov56401/project/hardware_acceleration/dma_export/candidate/policy_harness.c",
+          "-o",
+          "/tmp/pango-policy-gjgumdqm/policy"
+        ],
+        "returncode": 0,
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "command": [
+          "/tmp/pango-policy-gjgumdqm/policy"
+        ],
+        "returncode": 0,
+        "stdout": "",
+        "stderr": ""
+      }
+    ]
+  },
+  "driver_compile": {
+    "status": "pending",
+    "reason": "Full frozen generated kernel headers/config/Module.symvers are on the parent target; only selected headers retained locally"
+  },
+  "hardware_validation": "not performed",
+  "export_gate": "disabled; EOPNOTSUPP",
+  "original_loaded_module_rebuild_match": "not established"
+}

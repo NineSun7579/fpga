@@ -1,0 +1,196 @@
+Design Summary : Some Constraints Violated.
+
+Setup Summary(Slow Corner):
+****************************************************************************************************
+                                                                          TNS Failing      TNS Total
+ Launch Clock           Capture Clock              WNS(ns)     TNS(ns)      Endpoints      Endpoints
+----------------------------------------------------------------------------------------------------
+ sys_clk                sys_clk                     12.581       0.000              0           1263
+ cmos1_pclk             cmos1_pclk                   9.349       0.000              0             59
+ cmos2_pclk             cmos2_pclk                   7.487       0.000              0             59
+ cmos1_pclk_16bit       cmos1_pclk_16bit            15.907       0.000              0           3827
+ cmos1_pclk             cmos1_pclk_16bit             9.454       0.000              0             43
+ cmos2_pclk_16bit       cmos2_pclk_16bit            15.332       0.000              0           3816
+ cmos2_pclk             cmos2_pclk_16bit             4.793       0.000              0             43
+ cfg_clk                cfg_clk                     98.242       0.000              0             32
+ clk_25M                clk_25M                     34.488       0.000              0            459
+ cam2_sccb              clk_25M                     34.240       0.000              0             44
+ cam1_sccb              clk_25M                     34.086       0.000              0             44
+ sys_clk                cam1_sccb                   16.937       0.000              0              7
+ cam1_sccb              cam1_sccb                99993.404       0.000              0             91
+ sys_clk                cam2_sccb                   16.908       0.000              0              7
+ cam2_sccb              cam2_sccb                99994.218       0.000              0             91
+ p_clk2core_tx_2        p_clk2core_tx_2              2.902       0.000              0           1148
+ mrg_clk                p_clk2core_tx_2             -2.926    -630.206            298            298
+ mrg_clk                mrg_clk                      5.499       0.000              0          85087
+ p_clk2core_tx_2        mrg_clk                      6.257       0.000              0             10
+====================================================================================================
+
+Hold Summary(Slow Corner):
+****************************************************************************************************
+                                                                          THS Failing      THS Total
+ Launch Clock           Capture Clock              WHS(ns)     THS(ns)      Endpoints      Endpoints
+----------------------------------------------------------------------------------------------------
+ sys_clk                sys_clk                      0.339       0.000              0           1263
+ cmos1_pclk             cmos1_pclk                   0.296       0.000              0             59
+ cmos2_pclk             cmos2_pclk                   0.406       0.000              0             59
+ cmos1_pclk_16bit       cmos1_pclk_16bit            -0.188      -0.448              5           3827
+ cmos1_pclk             cmos1_pclk_16bit             0.397       0.000              0             43
+ cmos2_pclk_16bit       cmos2_pclk_16bit            -0.165      -0.458              4           3816
+ cmos2_pclk             cmos2_pclk_16bit            -3.057      -3.057              1             43
+ cfg_clk                cfg_clk                      0.401       0.000              0             32
+ clk_25M                clk_25M                      0.339       0.000              0            459
+ cam2_sccb              clk_25M                      2.594       0.000              0             44
+ cam1_sccb              clk_25M                      2.698       0.000              0             44
+ sys_clk                cam1_sccb                    0.461       0.000              0              7
+ cam1_sccb              cam1_sccb                    0.296       0.000              0             91
+ sys_clk                cam2_sccb                    0.446       0.000              0              7
+ cam2_sccb              cam2_sccb                    0.297       0.000              0             91
+ p_clk2core_tx_2        p_clk2core_tx_2              0.299       0.000              0           1148
+ mrg_clk                p_clk2core_tx_2              8.397       0.000              0            298
+ mrg_clk                mrg_clk                      0.271       0.000              0          85087
+ p_clk2core_tx_2        mrg_clk                      0.273       0.000              0             10
+====================================================================================================
+
+Recovery Summary(Slow Corner):
+****************************************************************************************************
+                                                                          TNS Failing      TNS Total
+ Launch Clock           Capture Clock              WNS(ns)     TNS(ns)      Endpoints      Endpoints
+----------------------------------------------------------------------------------------------------
+ sys_clk                sys_clk                     16.872       0.000              0            274
+ cfg_clk                sys_clk                     -4.826      -9.652              2              2
+ cmos1_pclk_16bit       cmos1_pclk_16bit            20.612       0.000              0             66
+ cmos2_pclk_16bit       cmos2_pclk_16bit            19.629       0.000              0             66
+ clk_25M                clk_25M                     37.676       0.000              0             84
+ sys_clk                clk_25M                     16.447       0.000              0             14
+ cfg_clk                clk_25M                     -5.093     -10.186              2              2
+ sys_clk                cam1_sccb                   17.717       0.000              0             17
+ sys_clk                cam2_sccb                   17.530       0.000              0             17
+ p_clk2core_tx_2        p_clk2core_tx_2              2.659       0.000              0            280
+ mrg_clk                mrg_clk                     12.076       0.000              0            130
+ p_clk2core_tx_2        mrg_clk                      2.729       0.000              0             35
+====================================================================================================
+
+Removal Summary(Slow Corner):
+****************************************************************************************************
+                                                                          THS Failing      THS Total
+ Launch Clock           Capture Clock              WHS(ns)     THS(ns)      Endpoints      Endpoints
+----------------------------------------------------------------------------------------------------
+ sys_clk                sys_clk                      0.645       0.000              0            274
+ cfg_clk                sys_clk                      3.697       0.000              0              2
+ cmos1_pclk_16bit       cmos1_pclk_16bit             0.506       0.000              0             66
+ cmos2_pclk_16bit       cmos2_pclk_16bit             1.311       0.000              0             66
+ clk_25M                clk_25M                      0.630       0.000              0             84
+ sys_clk                clk_25M                      1.637       0.000              0             14
+ cfg_clk                clk_25M                      4.168       0.000              0              2
+ sys_clk                cam1_sccb                    0.556       0.000              0             17
+ sys_clk                cam2_sccb                    0.476       0.000              0             17
+ p_clk2core_tx_2        p_clk2core_tx_2              2.870       0.000              0            280
+ mrg_clk                mrg_clk                      0.768       0.000              0            130
+ p_clk2core_tx_2        mrg_clk                      3.033       0.000              0             35
+====================================================================================================
+
+Minimum Pulse Width Summary(Slow Corner):
+****************************************************************************************************
+                                                                         WPWS Failing     WPWS Total
+ Clock                                            WPWS(ns)    TPWS(ns)      Endpoints      Endpoints
+----------------------------------------------------------------------------------------------------
+====================================================================================================
+
+Setup Summary(Fast Corner):
+****************************************************************************************************
+                                                                          TNS Failing      TNS Total
+ Launch Clock           Capture Clock              WNS(ns)     TNS(ns)      Endpoints      Endpoints
+----------------------------------------------------------------------------------------------------
+ sys_clk                sys_clk                     14.770       0.000              0           1263
+ cmos1_pclk             cmos1_pclk                  10.005       0.000              0             59
+ cmos2_pclk             cmos2_pclk                   8.694       0.000              0             59
+ cmos1_pclk_16bit       cmos1_pclk_16bit            18.196       0.000              0           3827
+ cmos1_pclk             cmos1_pclk_16bit            10.045       0.000              0             43
+ cmos2_pclk_16bit       cmos2_pclk_16bit            17.781       0.000              0           3816
+ cmos2_pclk             cmos2_pclk_16bit             6.963       0.000              0             43
+ cfg_clk                cfg_clk                     98.824       0.000              0             32
+ clk_25M                clk_25M                     36.106       0.000              0            459
+ cam2_sccb              clk_25M                     35.965       0.000              0             44
+ cam1_sccb              clk_25M                     35.855       0.000              0             44
+ sys_clk                cam1_sccb                   17.825       0.000              0              7
+ cam1_sccb              cam1_sccb                99995.279       0.000              0             91
+ sys_clk                cam2_sccb                   17.811       0.000              0              7
+ cam2_sccb              cam2_sccb                99995.886       0.000              0             91
+ p_clk2core_tx_2        p_clk2core_tx_2              4.372       0.000              0           1148
+ mrg_clk                p_clk2core_tx_2             -0.509     -11.720            112            298
+ mrg_clk                mrg_clk                      8.515       0.000              0          85087
+ p_clk2core_tx_2        mrg_clk                      5.236       0.000              0             10
+====================================================================================================
+
+Hold Summary(Fast Corner):
+****************************************************************************************************
+                                                                          THS Failing      THS Total
+ Launch Clock           Capture Clock              WHS(ns)     THS(ns)      Endpoints      Endpoints
+----------------------------------------------------------------------------------------------------
+ sys_clk                sys_clk                      0.264       0.000              0           1263
+ cmos1_pclk             cmos1_pclk                   0.200       0.000              0             59
+ cmos2_pclk             cmos2_pclk                   0.250       0.000              0             59
+ cmos1_pclk_16bit       cmos1_pclk_16bit            -0.189      -0.718             11           3827
+ cmos1_pclk             cmos1_pclk_16bit             0.223       0.000              0             43
+ cmos2_pclk_16bit       cmos2_pclk_16bit            -0.172      -0.601              7           3816
+ cmos2_pclk             cmos2_pclk_16bit            -1.928      -1.928              1             43
+ cfg_clk                cfg_clk                      0.314       0.000              0             32
+ clk_25M                clk_25M                      0.264       0.000              0            459
+ cam2_sccb              clk_25M                      1.712       0.000              0             44
+ cam1_sccb              clk_25M                      1.804       0.000              0             44
+ sys_clk                cam1_sccb                    0.301       0.000              0              7
+ cam1_sccb              cam1_sccb                    0.265       0.000              0             91
+ sys_clk                cam2_sccb                    0.305       0.000              0              7
+ cam2_sccb              cam2_sccb                    0.263       0.000              0             91
+ p_clk2core_tx_2        p_clk2core_tx_2              0.231       0.000              0           1148
+ mrg_clk                p_clk2core_tx_2              6.716       0.000              0            298
+ mrg_clk                mrg_clk                      0.177       0.000              0          85087
+ p_clk2core_tx_2        mrg_clk                      1.793       0.000              0             10
+====================================================================================================
+
+Recovery Summary(Fast Corner):
+****************************************************************************************************
+                                                                          TNS Failing      TNS Total
+ Launch Clock           Capture Clock              WNS(ns)     TNS(ns)      Endpoints      Endpoints
+----------------------------------------------------------------------------------------------------
+ sys_clk                sys_clk                     17.750       0.000              0            274
+ cfg_clk                sys_clk                     -3.417      -6.834              2              2
+ cmos1_pclk_16bit       cmos1_pclk_16bit            21.452       0.000              0             66
+ cmos2_pclk_16bit       cmos2_pclk_16bit            20.744       0.000              0             66
+ clk_25M                clk_25M                     38.307       0.000              0             84
+ sys_clk                clk_25M                     17.489       0.000              0             14
+ cfg_clk                clk_25M                     -3.456      -6.912              2              2
+ sys_clk                cam1_sccb                   18.356       0.000              0             17
+ sys_clk                cam2_sccb                   18.233       0.000              0             17
+ p_clk2core_tx_2        p_clk2core_tx_2              4.210       0.000              0            280
+ mrg_clk                mrg_clk                     13.164       0.000              0            130
+ p_clk2core_tx_2        mrg_clk                      2.822       0.000              0             35
+====================================================================================================
+
+Removal Summary(Fast Corner):
+****************************************************************************************************
+                                                                          THS Failing      THS Total
+ Launch Clock           Capture Clock              WHS(ns)     THS(ns)      Endpoints      Endpoints
+----------------------------------------------------------------------------------------------------
+ sys_clk                sys_clk                      0.468       0.000              0            274
+ cfg_clk                sys_clk                      2.552       0.000              0              2
+ cmos1_pclk_16bit       cmos1_pclk_16bit             0.339       0.000              0             66
+ cmos2_pclk_16bit       cmos2_pclk_16bit             0.884       0.000              0             66
+ clk_25M                clk_25M                      0.476       0.000              0             84
+ sys_clk                clk_25M                      1.049       0.000              0             14
+ cfg_clk                clk_25M                      2.791       0.000              0              2
+ sys_clk                cam1_sccb                    0.396       0.000              0             17
+ sys_clk                cam2_sccb                    0.337       0.000              0             17
+ p_clk2core_tx_2        p_clk2core_tx_2              1.934       0.000              0            280
+ mrg_clk                mrg_clk                      0.553       0.000              0            130
+ p_clk2core_tx_2        mrg_clk                      3.642       0.000              0             35
+====================================================================================================
+
+Minimum Pulse Width Summary(Fast Corner):
+****************************************************************************************************
+                                                                         WPWS Failing     WPWS Total
+ Clock                                            WPWS(ns)    TPWS(ns)      Endpoints      Endpoints
+----------------------------------------------------------------------------------------------------
+====================================================================================================
+

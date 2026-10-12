@@ -1,0 +1,5 @@
+import hashlib,json,shutil
+from pathlib import Path
+p=Path('/root/npu/trafficlight/det-yolov8n-trafficlight-16cls-640x480-rk3568-raw-dfl6-int8.rknn'); data=p.read_bytes(); assert hashlib.sha256(data).hexdigest()=='f96e09dd23c4edf9345e98e175284388c367d0ac3dcb144be417969a88ee233f'; Path('/userdata/linaro/current_native_runtime_probe_02_6cf1b30544e1479da71ea2c1c7ff041b/model/traffic.rknn').write_bytes(data)
+p=Path('/root/npu/whiteboard_3cls/det-yolov8n-3cls-wb_v4_combo-rk3568-raw-dfl6-int8.rknn'); data=p.read_bytes(); assert hashlib.sha256(data).hexdigest()=='21451a51f680ececd9ee75bcbb4db3e4ccee05d210ef9ffef2f1b99da61a8b31'; Path('/userdata/linaro/current_native_runtime_probe_02_6cf1b30544e1479da71ea2c1c7ff041b/model/wbv4.rknn').write_bytes(data)
+p=Path('/root/npu/whiteboard_3cls/det-yolov8n-3cls-wb_v8_w25_nop2c2f-rk3568-raw-dfl6-int8.rknn'); data=p.read_bytes(); assert hashlib.sha256(data).hexdigest()=='be7ee818eef1cb916c9706580a1b58426fc047c60df12b80d341646dfbbd2cf9'; Path('/userdata/linaro/current_native_runtime_probe_02_6cf1b30544e1479da71ea2c1c7ff041b/model/pinned.rknn').write_bytes(data)

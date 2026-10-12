@@ -1,0 +1,436 @@
+PDF PAGE 110
+ 
+开发流程 
+ 
+109 / 273 
+Pango Design Suite User Guide 
+【Optimize Multi-Corner Timing】对hold 违例进行修复时，是否打开multi-corner 功能，
+只有Optimize Hold Timing 打开后有效。启用后，hold fix 对slow corner 和fast corner 的hold
+违例都进行修复。不启用，hold fix 默认对fast corner 的违例进行修复。 
+【Place Only】只布局而不进行绕线。 
+【Optimize Hold Timing】 当设计有hold 违例时，是否对违例进行修复。 
+【Max Optimize Hold Timing Iterations】当Optimize Hold Timing 打勾时，该选项表示对
+违例进行修复的最大迭代次数，当达到最大迭代次数时停止修复Hold 违例。 
+【Fix Hold Violation Threshold(ps)】当Optimize Hold Timing 打勾时，可以使用该选项对
+slack 小于该值的时序路径进行Hold 时序优化，从而为Hold 时序留有一定余量（单位：ps）。 
+【Optimize Hold Timing In Route】 当设计有hold 违例时，是否在布线过程中对违例进行
+修复。 
+【Fix Hold Violation Threshold For Clock Path Cross SRB(ps)】当Optimize Hold Timing In 
+Route 打勾时，可以使用该选项对slack 小于该值的时序路径进行Hold 时序优化，从而为Hold
+时序留有一定余量（单位：ps）， 该参数仅对违例path 对应的时钟path 通过SRB 时生效。
+如果将该参数设置得过大， 可能由于需要修复的违例较多，修复时间较长. 如果将该参数设
+置得过小，则存在hold 时序违例的风险。建议参数值设置区间为[0, 1800]。 
+【Fix Hold Violation Threshold For Clock Path On Clock Tree(ps)】当Optimize Hold Timing 
+In Route 打勾时，可以使用该选项对slack 小于该值的时序路径进行Hold 时序优化，从而为
+Hold 时序留有一定余量（单位：ps），该参数仅对违例path 对应的时钟path 不通过SRB 时
+生效，设置区间为[0， 200]。 
+【Max Number Of Hold Violated Paths To Fix】当Optimize Hold Timing In Route 打勾时，
+可以使用该选项对hold fix 过程中可处理的path 数量进行限制，超过限制时，将不进行hold 违
+例修复。设置区间为[0，100000]。 
+  特别的对于修复hold 违例功能会报告下述warning： 
+1、 C: Route-2015 
+1)、触发场景：当最差的hold slack 值超过5000 ps 时就会报告此Critical Warning，并不
+进行hold 修复； 
+2)、示例：C: Route-2015:Hold violation is 6000 ps over the critical value of 5000 ps, beyond 
+the critical value will not be repaired. 上述warning 就表示工程中最差的slack 值为6000ps，超
+
+
+PDF PAGE 111
+ 
+开发流程 
+ 
+110 / 273 
+Pango Design Suite User Guide 
+过了5000ps； 
+3)、解决方法：当报告C:Route-2015 时，需要用户重新确认工程的时钟规划是否合理，
+超过了5000ps 的 hold 违例，此时需要用户根据实际情况调整工程。 
+2、 C: Route-2037 
+1)、触发场景：当工程中hold 违例path 数量超过"Max Number Of Hold Violated Paths To 
+Fix"选项设置的值，就不执行hold 时序修复流程，并报告此Critical Warning，并不进行hold
+修复； 
+2)、示例：C: Route-2037: Number of hold violated paths is 15012, over the limit 15000 and 
+hold violation fix will be stopped, you can change the value of option "Place & Route" -> "Max 
+Number Of Hold Violated Paths To Fix". 上述warning 就表示工程中hold 违例的path 数量为
+15012，而选项中设置的值为15000.此时就不进行hold 修复； 
+3)、解决方法：当报告C:Route-2037 时，用户可以根据warning 中提示的path 数量，修
+改option "Place & Route" -> "Max Number Of Hold Violated Paths To Fix"中的值，然后重新运
+行布局布线。 
+3、 C: STA-3017 和W: Timing-4105 
+1)、触发场景：当hold fix 开关打开， 修复hold 违例后，若endpoint 上的hold slack 不
+满足用户设置的hold violation threshold，会报告这两个Warning 进行提示（只针对launch clock
+或capture clock 走SRB 的path）；当hold fix 关闭，不报告该这两个 Warning；C: STA-3017
+用于提示用户存在不满足余量的path 条数，W:Timing-4105:用于提示用户不满足余量的hold 
+最差的path 的endpoint、clock 及对应slack； 
+2)、示例： 
+C: STA-3017: There are 10 clock cross SRB paths do not meet the required hold violation 
+threshold（500ps）.上述warning 表示有10 条时钟走SRB 的paths 的hold 余量不满足用户设
+置的值（默认值为500ps，可更改） 
+W:Timing-4105: The worst slack of endpoint t1daau_dp/dsmnbop[5]/opit_0/D of clock lclkp is 
+-115ps（fast corner）, but required hold violation threshold is 500ps. 上述warning 表示不满足余
+量的hold 最差的path 的endpoint 为t1daau_dp/dsmnbop[5]/opit_0/D、cock 为lclkp、hold slack
+为fast corner 下-115ps、而用户设置的余量为500ps； 
+3)、解决方法：当报告C: STA-3017 和W:Timing-4105 时，用户可以查看warning 中提示
+
+
+PDF PAGE 112
+ 
+开发流程 
+ 
+111 / 273 
+Pango Design Suite User Guide 
+的path 数量和slack 值，来确定当前工程的hold 余量是否满足预期，可根据实际工程情况来
+修改期望的hold 余量值即：option "Place & Route" -> " Fix Hold Violation Threshold For Clock 
+Path Cross SRB(ps)"中的值，然后重新运行布局布线。 
+【Action Timeout(min)】单种子工程超时参数，为0min 表示无超时机制，设置值大于0
+则启用超时机制，例如-action_timeout 60 表示设置超时时限为60min，当PNR 运行超过60min
+时单种子被杀死。 
+B、布局模块 
+【Placement Decongestion Mode】由于用户设计复杂，各逻辑间连接（Net）关系强，可
+能导致布局算法无法有效扩散，布局密度偏高，对时序优化以及布线时长造成不利影响。根
+据用户设计主要资源（通常指LUT、FF、APM、DRM）最大占比，设置面积扩展系数。设
+置值可选[0,1,2,3,4,5,6,7,8,9]中任意一整数。一般情况下,模式设置值越大，布局范围越大，布
+线速度越快，但时序将会变差。当资源（LUT、FF、APM、DRM）使用率超过70%时，模式
+设置值越大时，布线速度将会变得不确定，建议该参数的值可选为0，1，2，3，4。 
+【Placement Initial Method】该选项用于选择全局布局时的起始位置。该参数设置为Center
+时，表示起始位置从芯片中间开始；该参数设置为Quad 时，表示布局起始位置取决于位置
+约束和IO 布局结果。 
+【Early Block Placement】该选项用于设置Macro Instance 优先放置的模式，选定操作为
+下拉框操作。选择Greedy 选项时，按照网表时序特征优先；选择Global 选项时，按照布局
+距离特征优先；选择Grouped 选项时，按照网表设计特征优先；当选择Close 选项时，表示
+不允许Macro Instance 优先放置。选择除Close 外的选项时，才能对Auto Dispose Macro Object
+选项进行操作。 
+【Auto Dispose Macro Object】该选项是PDS 软件自适应选择宏模块优先放置开关。当该
+选项为不勾选时，用户可以通过Dispose DRM Prior 、Dispose APM Prior 、Dispose 
+Distribute-RAM Prior 和Dispose Carry Chain Prior 选项分别选择DRM、APM、DRAM、Carry 
+Chain 是否优先放置。 
+【Dispose DRM Prior】该选项表示布局时优先放置DRM。当不勾选Auto Dispose Macro 
+Object 时，可以操作该选项。 
+【Dispose APM Prior】该选项表示布局时优先放置APM。当不勾选Auto Dispose Macro 
+Object 时，可以操作该选项。 
+
+
+PDF PAGE 118
+ 
+开发流程 
+ 
+117 / 273 
+Pango Design Suite User Guide 
+all_route_constraint_ite.rcf 文件中保留最好的一次迭代结果。 
+若客户工程原始未添加rcf 文件，则布线自动迭代后使用的是PR 目录下迭代累加的
+“all_route_constraint_ite.rcf”文件，若想使用绕线迭代后的结果，可打开RCE 加载该文件后
+重跑PR 流程；若有原始user_rcf 文件，则布线使用的是user_rcf+ all_route_constraint_ite.rcf
+两个文件中的约束命令合集。若要重新跑PR 全流程时需要手动汇总两个rcf 文件结果到
+user_rcf。 
+【Enable Route Constraint Iterate】布线迭代开关，用于决定是否打开或关闭自动迭代，默
+认不勾选不进行布线迭代，勾选后按相关配置进行布线自动迭代。 
+【Route Constraint Iterate Times】执行布线自动迭代最大次数，当迭代次数达到最大后自
+动终止迭代。 
+【Route Constraint Slack Value(ns)】指定生成rcf 的net 对应的setup slack 阈值。 
+【Route Constraint Max Timing Path】指定每轮迭代中timing 报告的最大时序路径条数。 
+迭代次数和net 对应的setup slack 阈值两个参数也是布线迭代退出的条件，满足任意一个
+条件则会退出布线自动迭代过程。 
+以下是PNR 阶段不同系列的各选项支持情况与默认值详情的表格： 
+其中PG2L100H 是单线程布线器件，它的general，router 选项与Logos 的选项一致 
+类型 
+配置项 
+Titan系列 
+Logos系
+列 
+Compact
+系列 
+Logos2系列 
+Titan2系列 
+General 
+Mode 
+Normal 
+Normal 
+Normal 
+Normal 
+Normal 
+Optimize Multi-Corner Timing 
+× 
+× 
+× 
+无该选项 
+无该选项 
+Place Only 
+× 
+× 
+× 
+× 
+× 
+Optimize Hold Timing 
+× 
+× 
+× 
+无该选项 
+无该选项 
+Max Optimize Hold Timing Iterations 
+500 
+500 
+500 
+无该选项 
+无该选项 
+Fix Hold Violation Threshold(ps) 
+0 
+0 
+0 
+无该选项 
+无该选项 
+Optimize Hold Timing In Route 
+√ 
+√ 
+√ 
+√ 
+√ 
+Fix Hold Violation Threshold For Clock 
+Path Cross SRB(ps) 
+200 
+200 
+200 
+200 
+200 
+Fix Hold Violation Threshold For Clock 
+Path On Clock Tree(ps) 
+100 
+100 
+100 
+100 
+100 
+Max Number Of Hold Violated Paths 
+To Fix 
+15000 
+15000 
+15000 
+15000 
+30000 
+Action Timeout(min) 
+0 
+0 
+0 
+0 
+0 
+Placement 
+Placement Decongestion Mode 
+1 
+1 
+1 
+1 
+1 
+
+
+PDF PAGE 184
+ 
+时序约束命令 
+ 
+183 / 273 
+Pango Design Suite User Guide 
+即在物理上不同clock 与clock pin 之间都存在时钟通路，但逻辑上通路不会同时打开，典型
+如mux，例子如下： 
+例子1：Logically exclusive with no interaction 
+Q
+D
+FD0
+Q
+D
+FD1
+clkA
+IBUF
+SEL
+IBUF
+clkB
+IBUF
+CLKIN0
+CLKIN1
+CLKOUT
+SEL
+BUFGMUX
+ 
+图 6-10 Logically exclusive with no interaction 示例 
+本例中，clkA 和clkB 之间不存在任何逻辑路径，也不由任何 BUFGMUX 驱动的组合逻
+辑单元共享。因此，我们可以直接在clkA 和clkB 之间直接设置exclusive clock group，这样
+并没有遗漏任何真正的时序路径免于分析。约束命令为：set_clock_groups -logically_exclusive 
+-group clkA -group clkB 
+例子2：Logically exclusive with interaction 
+Q
+D
+FD0
+Q
+D
+FD1
+clkA
+IBUF
+SEL
+IBUF
+clkB
+IBUF
+CLKIN0
+CLKIN1
+CLKOUT
+SEL
+BUFGMUX
+Q
+D
+FD2
+ 
+图 6-11 Logically exclusive with interaction 示例 
+本例中，clkA 和clkB 输入到一个输出时钟驱动了FD0 和FD1 两个触发器的BUFGMUX。
+同时clkA 也驱动了和FD1 之间有时序路径的触发器FD2。因此clkA 和BUFGMUX 的输出
+时钟之间有影响。对于这种情况不建议直接在clkA 和clkB 之间直接设置时钟组，因为这样
+设置会忽略 BUFGMUX 选择clkB 时FD1 和FD2 之间的时序分析。所以可以先对BUFGMUX
+的输出时钟设置两个generated clock，再对这两个生成时钟设置时钟组。 
+约束命令如下： 
+
+
+PDF PAGE 252
+ 
+常用命令列表 
+ 
+251 / 273 
+Pango Design Suite User Guide 
+-master_configuration_clock_frequency_in_read_
+back 
+回读时钟选择 
+-disable_readback_crc 
+选择是否在回读时使能CRC 验证 
+-enable_crc_clock_in_read_back 
+使能回读CRC 时钟 
+-persist_ipal 
+控制配置完成后，内部并行端口是否保留用于
+回读 
+-bitstream_security 
+控制回读配置存储器 
+-encrypt_bitstream 
+选择是否加密位流文件 
+-select_key_type 
+配置是否使用内部KEY 
+-starting_cbc_value 
+用户手动输入初始的CBC 字符串，字符为16
+进制，输入长度为最多32 个字符 
+-input_encryption_key_file 
+选择nky 文件 
+-key_string 
+用户手动输入密钥字符串，字符为16 进制字
+符，输入长度为最多64 个字符 
+-sram_retention 
+开启SRAM retention 测试 
+表 9-10 位流 
+9.11 
+gen_netlist 生成网表 
+选项 
+ 
+-help 
+打印帮助消息 
+-func_sim_only 
+是否使能仅生成sim.v 文件 
+-sdf_annotate 
+勾选后在sim.v 中调用sdf 文件，不勾选则不
+调用 
+-process_corner 
+决定产生什么类型的sdf 文件 
+表 9-11 生成网表 
+9.12 
+pnr 布局和布线设计 
+选项 
+ 
+-help 
+打印帮助消息 
+-dc_duplication 
+勾选为自适应插入和复制逻辑单元，不勾选为
+不处理 
+-plc_decongestion 
+设置面积扩展系数 
+-gplace_seed 
+设置随机种子值 
+-gplace_times 
+设置运行多少个随机种子 
+-seed_step 
+设置种子的步长 
+-saved_outcome 
+设置保留最优的种子运行结果的数目 
+-parallel 
+设置同时执行种子的最大数目 
+-fast_router 
+勾选为使用全局布线，不勾选为不使用 
+-fast_router_mode 
+设置全局布线的模式 
+-share_router_control_signal 
+勾选为使用Control Chain，不勾选为不使用 
+
+
+PDF PAGE 253
+ 
+常用命令列表 
+ 
+252 / 273 
+Pango Design Suite User Guide 
+-use_global_ioclkgate 
+是否插入IOCLKGATE 
+-mode 
+pnr 运行的模式 
+-optimize_multi_corner_timing 
+控制在布局布线阶段是否要在所有的模式中
+都对design 进行优化来满足时序 
+-place_only 
+勾选表示只运行布局，不运行布线 
+-fix_hold_violation 
+勾选为修复hold 违例，不勾选则为不修复 
+-fix_hold_violation_iterations 
+最大修复hold 违例次数 
+-fix_hold_violation_threshold 
+使用该选项对slack 小于该值的时序路径进行
+Hold 时序优化 
+-fix_hold_violation_in_route 
+勾选为在布线中修复hold 违例，不勾选则为
+不修复 
+-fix_hold_violation_threshold_for_clock_path_cross_s
+rb 
+使用该选项对slack 小于该值的时序路径进行
+Hold 时序优化， 仅当对应时钟经过SRB 时生效 
+-fix_hold_violation_threshold_for_clk_tree 
+使用该选项对slack 小于该值的时序路径进行
+Hold 时序优化， 仅当对应时钟不经过SRB 时生效 
+-input_place_db_file 
+ 
+-refineplacement_cluster 
+使能详细布局过程中打包开关 
+-refineplacement_iteration 
+详细布局收敛属性 
+-plc_initial_method 
+全局布局初始化起始位置 
+-early_block_placement 
+使能Macro Instance 优先放置开关 
+-auto_dispose_macro 
+PDS 软件自适应选择宏模块优先放置开关 
+-dispose_drm_prior 
+当用户选择禁止PDS 软件自适应选择宏模块
+优先放置时，用户选择DRM 的放置顺序 
+-dispose_apm_prior 
+当用户选择禁止PDS 软件自适应选择宏模块
+优先放置时，用户选择APM 的放置顺序 
+-dispose_dram_prior 
+当用户选择禁止PDS 软件自适应选择宏模块
+优先放置时，用户选择DRAM 的放置顺序 
+-dispose_carrychain_prior 
+当用户选择禁止PDS 软件自适应选择宏模块
+优先放置时，用户独立选择Carry Chain 的放置顺
+序 
+-slack_prior_in_global_router 
+全局绕线Slack 优先模式 
+-slack_weight 
+控制时序因素在布线过程中的权重 
+-pin_cost_increasing_speed 
+拥塞Pin 增加的代价值 
+-congest_overlap_limit 
+控制拥塞布线模式下，最大布线迭代次数 
+-max_ctrl_chain_length 
+CE/RS 控制信号链最大长度 
+表 9-12 pnr 
+9.13 
+report_power 报告功耗信息 
+选项 
+ 
+-help 
+打印帮助消息 
+-tempgrade 
+温度等级 

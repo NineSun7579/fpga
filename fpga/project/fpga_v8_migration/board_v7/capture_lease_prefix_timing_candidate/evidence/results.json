@@ -1,0 +1,279 @@
+{
+  "pass_all": true,
+  "original_sha256": "a2f59e9e6f09d92e47e26dd0b59bcbd2124d3ee2bc946dfd2671e68abf7678a5",
+  "candidate_sha256": "0461af04c40f6c3bbdea0367d084fa6e4d33647c17bede58ea341323779017ed",
+  "tb_sha256": "6b91f2d27597eb7f3a035bbff7510858125a9a88fbfba594a505c79300e1db9f",
+  "diff_sha256": "7f81640c55cb3896b1d24bebb2e2d5d41dd686e4c4de6f477c7ead67674b48e4",
+  "public_outputs": [
+    "config_ready",
+    "config_accept",
+    "config_reject",
+    "epoch_start",
+    "armed",
+    "config_ok",
+    "lease_block",
+    "bank0_state",
+    "bank1_state",
+    "protocol_fault",
+    "input_valid",
+    "input_raw_valid",
+    "input_src_addr",
+    "input_length",
+    "input_seq",
+    "input_generation",
+    "input_camera",
+    "input_bank",
+    "input_token",
+    "release_ready",
+    "release_accept",
+    "release_reject",
+    "host_valid",
+    "host_src_addr",
+    "host_length",
+    "host_seq",
+    "host_generation",
+    "host_camera",
+    "host_bank",
+    "host_token",
+    "host_release_ready",
+    "host_release_accept",
+    "host_release_reject",
+    "published_count",
+    "failed_count",
+    "rejected_release_count"
+  ],
+  "internal_state_comparison": true,
+  "prefix_invariant_widths": [
+    4,
+    8,
+    12,
+    16,
+    20,
+    24,
+    28
+  ],
+  "compare_before_after_every_edge": true,
+  "negative_control_detected": true,
+  "protected_unchanged": true,
+  "protected_files": 1641,
+  "results": {
+    "host1_bad0": "LEASE_PREFIX_ACTUAL_RTL_DIFF_PASS cycles=52684 public_outputs=36 publications=1691 retirements=403 coop_accepts=1553 host_accepts=1553 fault_cycles=28302",
+    "host0_bad0": "LEASE_PREFIX_ACTUAL_RTL_DIFF_PASS cycles=52684 public_outputs=36 publications=1877 retirements=392 coop_accepts=1739 host_accepts=0 fault_cycles=28467",
+    "host1_bad1": "LEASE_PREFIX_ACTUAL_RTL_DIFF_PASS cycles=30608 public_outputs=36 publications=0 retirements=0 coop_accepts=0 host_accepts=0 fault_cycles=10405",
+    "host1_bad2": "LEASE_PREFIX_ACTUAL_RTL_DIFF_PASS cycles=30608 public_outputs=36 publications=0 retirements=0 coop_accepts=0 host_accepts=0 fault_cycles=10405",
+    "host1_bad3": "LEASE_PREFIX_ACTUAL_RTL_DIFF_PASS cycles=30608 public_outputs=36 publications=0 retirements=0 coop_accepts=0 host_accepts=0 fault_cycles=10405",
+    "host1_bad4": "LEASE_PREFIX_ACTUAL_RTL_DIFF_PASS cycles=30608 public_outputs=36 publications=0 retirements=0 coop_accepts=0 host_accepts=0 fault_cycles=10405",
+    "host1_bad5": "LEASE_PREFIX_ACTUAL_RTL_DIFF_PASS cycles=30608 public_outputs=36 publications=0 retirements=0 coop_accepts=0 host_accepts=0 fault_cycles=10405",
+    "host1_bad6": "LEASE_PREFIX_ACTUAL_RTL_DIFF_PASS cycles=30608 public_outputs=36 publications=0 retirements=0 coop_accepts=0 host_accepts=0 fault_cycles=10405",
+    "host1_bad7": "LEASE_PREFIX_ACTUAL_RTL_DIFF_PASS cycles=30608 public_outputs=36 publications=0 retirements=0 coop_accepts=0 host_accepts=0 fault_cycles=10405"
+  },
+  "commands": [
+    {
+      "args": [
+        "C:\\modeltech64_10.6e\\win64\\vlib.exe",
+        "work"
+      ],
+      "returncode": 0
+    },
+    {
+      "args": [
+        "C:\\modeltech64_10.6e\\win64\\vlog.exe",
+        "-quiet",
+        "-work",
+        "work",
+        "C:\\Users\\NineSun\\Desktop\\ov56401\\project\\fpga_v8_migration\\board_v7\\capture_lease_prefix_timing_candidate\\original\\fpga_v8_capture_lease_tc04.v",
+        "C:\\Users\\NineSun\\Desktop\\ov56401\\project\\fpga_v8_migration\\board_v7\\capture_lease_prefix_timing_candidate\\candidate\\fpga_v8_capture_lease_prefix.v"
+      ],
+      "returncode": 0
+    },
+    {
+      "args": [
+        "C:\\modeltech64_10.6e\\win64\\vlog.exe",
+        "-quiet",
+        "-sv",
+        "-work",
+        "work",
+        "C:\\Users\\NineSun\\Desktop\\ov56401\\project\\fpga_v8_migration\\board_v7\\capture_lease_prefix_timing_candidate\\tb_lease_prefix.sv"
+      ],
+      "returncode": 0
+    },
+    {
+      "args": [
+        "C:\\modeltech64_10.6e\\win64\\vsim.exe",
+        "-c",
+        "-quiet",
+        "-voptargs=+acc",
+        "-wlf",
+        "host1_bad0.wlf",
+        "tb_lease_tc04",
+        "-gHOST_REQUIRED=1",
+        "-gBAD_CFG=0",
+        "-do",
+        "run -all; quit -f"
+      ],
+      "returncode": 0
+    },
+    {
+      "args": [
+        "C:\\modeltech64_10.6e\\win64\\vsim.exe",
+        "-c",
+        "-quiet",
+        "-voptargs=+acc",
+        "-wlf",
+        "host0_bad0.wlf",
+        "tb_lease_tc04",
+        "-gHOST_REQUIRED=0",
+        "-gBAD_CFG=0",
+        "-do",
+        "run -all; quit -f"
+      ],
+      "returncode": 0
+    },
+    {
+      "args": [
+        "C:\\modeltech64_10.6e\\win64\\vsim.exe",
+        "-c",
+        "-quiet",
+        "-voptargs=+acc",
+        "-wlf",
+        "host1_bad1.wlf",
+        "tb_lease_tc04",
+        "-gHOST_REQUIRED=1",
+        "-gBAD_CFG=1",
+        "-do",
+        "run -all; quit -f"
+      ],
+      "returncode": 0
+    },
+    {
+      "args": [
+        "C:\\modeltech64_10.6e\\win64\\vsim.exe",
+        "-c",
+        "-quiet",
+        "-voptargs=+acc",
+        "-wlf",
+        "host1_bad2.wlf",
+        "tb_lease_tc04",
+        "-gHOST_REQUIRED=1",
+        "-gBAD_CFG=2",
+        "-do",
+        "run -all; quit -f"
+      ],
+      "returncode": 0
+    },
+    {
+      "args": [
+        "C:\\modeltech64_10.6e\\win64\\vsim.exe",
+        "-c",
+        "-quiet",
+        "-voptargs=+acc",
+        "-wlf",
+        "host1_bad3.wlf",
+        "tb_lease_tc04",
+        "-gHOST_REQUIRED=1",
+        "-gBAD_CFG=3",
+        "-do",
+        "run -all; quit -f"
+      ],
+      "returncode": 0
+    },
+    {
+      "args": [
+        "C:\\modeltech64_10.6e\\win64\\vsim.exe",
+        "-c",
+        "-quiet",
+        "-voptargs=+acc",
+        "-wlf",
+        "host1_bad4.wlf",
+        "tb_lease_tc04",
+        "-gHOST_REQUIRED=1",
+        "-gBAD_CFG=4",
+        "-do",
+        "run -all; quit -f"
+      ],
+      "returncode": 0
+    },
+    {
+      "args": [
+        "C:\\modeltech64_10.6e\\win64\\vsim.exe",
+        "-c",
+        "-quiet",
+        "-voptargs=+acc",
+        "-wlf",
+        "host1_bad5.wlf",
+        "tb_lease_tc04",
+        "-gHOST_REQUIRED=1",
+        "-gBAD_CFG=5",
+        "-do",
+        "run -all; quit -f"
+      ],
+      "returncode": 0
+    },
+    {
+      "args": [
+        "C:\\modeltech64_10.6e\\win64\\vsim.exe",
+        "-c",
+        "-quiet",
+        "-voptargs=+acc",
+        "-wlf",
+        "host1_bad6.wlf",
+        "tb_lease_tc04",
+        "-gHOST_REQUIRED=1",
+        "-gBAD_CFG=6",
+        "-do",
+        "run -all; quit -f"
+      ],
+      "returncode": 0
+    },
+    {
+      "args": [
+        "C:\\modeltech64_10.6e\\win64\\vsim.exe",
+        "-c",
+        "-quiet",
+        "-voptargs=+acc",
+        "-wlf",
+        "host1_bad7.wlf",
+        "tb_lease_tc04",
+        "-gHOST_REQUIRED=1",
+        "-gBAD_CFG=7",
+        "-do",
+        "run -all; quit -f"
+      ],
+      "returncode": 0
+    },
+    {
+      "args": [
+        "C:\\modeltech64_10.6e\\win64\\vlib.exe",
+        "negative"
+      ],
+      "returncode": 0
+    },
+    {
+      "args": [
+        "C:\\modeltech64_10.6e\\win64\\vlog.exe",
+        "-quiet",
+        "-work",
+        "negative",
+        "C:\\Users\\NineSun\\Desktop\\ov56401\\project\\fpga_v8_migration\\board_v7\\capture_lease_prefix_timing_candidate\\original\\fpga_v8_capture_lease_tc04.v",
+        "C:\\Users\\NineSun\\Desktop\\ov56401\\project\\fpga_v8_migration\\board_v7\\capture_lease_prefix_timing_candidate\\build\\prefix_mutant.v"
+      ],
+      "returncode": 0
+    },
+    {
+      "args": [
+        "C:\\modeltech64_10.6e\\win64\\vlog.exe",
+        "-quiet",
+        "-sv",
+        "-work",
+        "negative",
+        "C:\\Users\\NineSun\\Desktop\\ov56401\\project\\fpga_v8_migration\\board_v7\\capture_lease_prefix_timing_candidate\\tb_lease_prefix.sv"
+      ],
+      "returncode": 0
+    }
+  ],
+  "limitations": [
+    "Simulation equivalence, not exhaustive formal proof",
+    "No PDS: candidate WNS unmeasured",
+    "Boundary deposits are symmetric and legal; no force during execution"
+  ]
+}

@@ -1,0 +1,37 @@
+inputs\source\ov5640\axi_to_axi_lite.v:53:     output wire [AXI_DATA_LEN-1:0]    s_axi_rdata,
+inputs\source\ov5640\axi_to_axi_lite.v:62:     output wire [ADDR_WIDTH-1:0]      m_axil_awaddr,
+inputs\source\ov5640\axi_to_axi_lite.v:66:     output wire [DATA_WIDTH-1:0]      m_axil_wdata,
+inputs\source\ov5640\axi_to_axi_lite.v:75:     output wire [ADDR_WIDTH-1:0]      m_axil_araddr,
+inputs\source\ov5640\axi_to_axi_lite.v:92:     assign m_axil_awaddr   = s_axi_awaddr;
+inputs\source\ov5640\axi_to_axi_lite.v:98:     assign m_axil_wdata   = s_axi_wdata[31:0];
+inputs\source\ov5640\axi_to_axi_lite.v:123:     assign m_axil_araddr   = s_axi_araddr;
+inputs\source\ov5640\axi_to_axi_lite.v:130:     assign s_axi_rdata    = {96'b0, m_axil_rdata};
+rtl\ovreg_axil_decode_tc01.v:46:     wire motion_aw=(s_awaddr[31:8]==24'h200008);
+rtl\ovreg_axil_decode_tc01.v:54:         assign aw_live[0]=!page34 && (s_awaddr[9:8]==2'b00) && !motion_aw;
+rtl\ovreg_axil_decode_tc01.v:57:         assign aw_live=route_mask(motion_aw?4'h1:s_awaddr[ADDR_SEL_LSB+3:ADDR_SEL_LSB]);
+rtl\ovreg_axil_decode_tc01.v:59:     reg [4:0] aw_saved;
+rtl\ovreg_axil_decode_tc01.v:61:         if (rst) aw_saved<=5'b00001;
+rtl\ovreg_axil_decode_tc01.v:62:         else if (s_awvalid && s_awready) aw_saved<=aw_live;
+rtl\ovreg_axil_decode_tc01.v:64:     wire [4:0] aw=s_awvalid?aw_live:aw_saved;
+rtl\ovreg_axil_decode_tc01.v:65:     wire cdc_read=(s_araddr[31:11]==(32'h20000000>>11)) &&
+rtl\ovreg_axil_decode_tc01.v:69:     wire [3:0] ar_route=motion_ar?4'h1:cdc_read?{s_araddr[11:9],1'b0}:
+rtl\ovreg_axil_decode_tc01.v:77:     wire [4:0] br=aw_saved;
+rtl\ov5640_tc03_binding.v:353: reg cmos_frame_valid_r, cmos_frame_href_r, cmos_frame_vsync_r;
+rtl\ov5640_tc03_binding.v:356:     cmos_frame_valid_r <= cmos_frame_valid;
+rtl\ov5640_tc03_binding.v:358:     cmos_frame_vsync_r <= cmos_frame_vsync;
+rtl\ov5640_tc03_binding.v:372:     .cam_rst(!cam_rst_n),
+rtl\ov5640_tc03_binding.v:375:     .s_valid(cmos_frame_valid_r)    ,
+rtl\ov5640_tc03_binding.v:377:     .s_vsync(cmos_frame_vsync_r)    ,
+inputs\source\pcie_dma\pcie_fifo.v:7: 		        AXI_DATA_SIZE   = $clog2(AXI_DATA_LEN/8), 	        
+inputs\source\pcie_dma\pcie_fifo.v:326: reg  [31:0]  cur_addr;
+inputs\source\pcie_dma\pcie_fifo.v:353:         cur_addr     <= 32'd0;
+inputs\source\pcie_dma\pcie_fifo.v:358:         cur_addr     <= {(fpga_ddr3_addr >> AXI_DATA_SIZE), {AXI_DATA_SIZE{1'b0}}};  // Convert DW addr to byte addr
+inputs\source\pcie_dma\pcie_fifo.v:363:         cur_addr     <= cur_addr + ((axi_awlen + 4'd1) << 4);  // Advance by (beats sent * 16 bytes)
+inputs\source\pcie_dma\pcie_fifo.v:372: wire [31:0] burst_addr = cur_addr;
+inputs\source\pcie_dma\pcie_fifo.v:376: assign axi_awsize     = AXI_DATA_SIZE;   // 4 (16 bytes per beat)
+inputs\source\pcie_dma\pcie_fifo.v:628: reg [31:0] r_cur_addr;
+inputs\source\pcie_dma\pcie_fifo.v:665:         r_cur_addr <= 32'd0;
+inputs\source\pcie_dma\pcie_fifo.v:668:         r_cur_addr <= {(fpga_ddr3_addr >> AXI_DATA_SIZE), {AXI_DATA_SIZE{1'b0}}};
+inputs\source\pcie_dma\pcie_fifo.v:671:         r_cur_addr <= r_cur_addr + ((axi_arlen + 4'd1) << 4);  // Advance by beats * 16 bytes
+inputs\source\pcie_dma\pcie_fifo.v:710: assign axi_araddr     = r_cur_addr;
+inputs\source\pcie_dma\pcie_fifo.v:711: assign axi_arsize     = AXI_DATA_SIZE;   // 4 (16 bytes per beat)

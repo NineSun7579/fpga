@@ -1,0 +1,19 @@
+# Current native headless certification
+
+This directory is independent of `current_viewer_native_build_02`. `certify.py` snapshots the exact current gate/Qt/native headers, exact current native QVector conversion block, exact current `inference_geometry.h`, and `current_viewer_binding_02/current_retained_decoder.inc`. The retained harness is adapted to `prepare_current` with attributes queried once at context setup; preparation queries are counted.
+
+The remote attempt directory is new and recorded in `remote_stage.json`. The runner refuses an existing local stage; an atomic permanent remote `workload_started` directory prevents a second inference invocation, including after a failed attempt. A successful workload adds `workload_success`. Do not rerun `certify.py` to collect reports or add guard cases.
+
+`resume-before-workload` is restricted to recovery from staging/compilation failures: it first proves that both the remote workload marker and runtime report are absent, then uses the same permanent attempt lock. `summarize.py` only reads local evidence and cannot perform inference.
+
+The workload performs exactly 30 RKNN runs, with one native and one float output acquisition per run, and four confidence comparisons from those same heads. Both paths call the exact current canonical restore function. Output leases account for all 60 acquisitions and 360 head buffers. Rotation tests read immutable snapshots of the actual trafficlight and WB v4 bytes without creating their contexts. Geometry fallbacks use the actual pinned context cache; the channel mismatch changes only the cached channel field to test rejection.
+
+Runtime and RGB preparation compilation run as two concurrent CPU jobs while the existing viewer remains live. This is certification, not a timing/FPS experiment. No QWidget, viewer bootstrap, Pango device access, DMA operation, deployment, reset, or PDS build is involved. The test is a standalone adapter, not full `Viewer::runOnce` orchestration. Existing component selftest lease semantics are separate evidence and are not rerun here.
+
+Audits record current boot identity, executable hash, process start identity, RKNN mappings, original remote source/build inputs, local candidate/binding inputs, prepared input inventory, and compiler dependency/library hashes before and after. Differences are reported as drift, not suppressed by claims that historical identities still hold.
+
+Completed result: 120/120 strict cases passed at confidences 0.05, 0.25, 0.32, and 0.95; maximum score and coordinate errors were both zero. Exactly 30 runs, 60 successful gets, 60 successful releases, and 360 released buffers were recorded; every acquisition was released once and no leases remained. Eleven preparation checks passed, including actual trafficlight/WB v4 byte-hash rejection, trafficlight/rectangular/channel geometry fallbacks, opt-out, and input overrides. Context setup queried seven attributes once; preparation queried zero attributes and one SDK version on the enabled path. The separate setup SDK query makes two SDK queries total.
+
+Actual mapped RKNN runtime SHA256: `73993ed4b440460825f21611731564503cc1d5a0c123746477da6cd574f34885`; API `2.3.0 (c949ad889d@2024-11-07T11:35:33)`; driver `0.9.8`. The pinned model SHA256 is `be7ee818eef1cb916c9706580a1b58426fc047c60df12b80d341646dfbbd2cf9`.
+
+Live PID 2740 retained boot `12803068-a3fb-4341-b05e-4f31921cfb1b`, starttime `152164`, and executable SHA256 `f1fd98042a6f87c410cc44fbff574fc01f42e63a3f08827574cff3e51b6433b4`. Original guards, local inputs, compiler dependencies, and frozen old support headers matched; there was no observed historical hash drift. The pure repeat-guard check confirmed refusal without invoking inference. Detailed evidence is in `certification_summary.json`, `runtime_report.json`, `execution_audit.json`, and the retained commands/stdout/stderr.

@@ -1,0 +1,5 @@
+# Isolated component clock target only. No board pins or vendor IP constraints.
+# 150 MHz is nominal; synthesis is not routed board timing acceptance.
+create_clock -name {component_clk} [get_ports {clk}] -period {6.666667} -waveform {0.000000 3.333333}
+# Wide internal AXI interfaces are virtual ports, not physical board IO.
+define_attribute {p:*} {PAP_IS_VIRTUAL_IO} {TRUE}

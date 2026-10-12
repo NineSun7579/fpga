@@ -1,0 +1,430 @@
+#!/usr/bin/env bash
+# Existing HDMI driver/app only: never program FPGA, reload modules, or rebind PCIe.
+# Usage: sudo -n bash run_driving_demo.sh [start|restart|stop|status] [app arguments]
+# Default command: start. Example: ... restart --driving-lane
+# Optional environment: DETVIEW_DRIVING_APP (absolute executable), DISPLAY,
+# XAUTHORITY, DRIVING_DEMO_CHECK_MODELS=0 (skip the filename preflight).
+# start/restart detach a setsid supervisor; exit 0 from the app ends supervision.
+set -u
+umask 077
+
+DEVICE=/dev/pango_pci_driver
+LOG_DIR=/userdata/driving_demo_evidence
+APP=${DETVIEW_DRIVING_APP:-/userdata/detview-driving-demo/detview-driving-demo}
+export DISPLAY=${DISPLAY-:0}
+export XAUTHORITY=${XAUTHORITY-/var/run/lightdm/root/:0}
+export QT_X11_NO_MITSHM=${QT_X11_NO_MITSHM:-1}
+export QT_QPA_PLATFORM=${QT_QPA_PLATFORM:-xcb}
+export QT_XCB_GL_INTEGRATION=${QT_XCB_GL_INTEGRATION:-xcb_egl}
+VIDEO_INPUT=
+expect_video=0
+for option in "$@"; do
+    if (( expect_video )); then VIDEO_INPUT=$option; expect_video=0; fi
+    [[ $option == --video ]] && expect_video=1
+done
+(( expect_video == 0 )) || { printf '%s\n' '--video needs a local file' >&2; exit 1; }
+CHECK_MODELS=${DRIVING_DEMO_CHECK_MODELS:-1}
+SCRIPT=$(readlink -f -- "${BASH_SOURCE[0]}") || exit 1
+BASH_EXE=$(readlink -f -- "$(command -v bash)") || exit 1
+
+say() { printf '[driving-demo] %s\n' "$*"; }
+die() { say "$*" >&2; exit 1; }
+usage() {
+    printf 'Usage: %s [start|restart|stop|status] [app arguments]\n' "$SCRIPT"
+    printf 'Default: start; app options such as --driving-lane are passed through.\n'
+}
+
+if [[ ${1-} == --help || ${1-} == -h ]]; then usage; exit 0; fi
+if (( EUID != 0 )); then
+    exec sudo -n env "DISPLAY=$DISPLAY" "XAUTHORITY=$XAUTHORITY" \
+        "QT_X11_NO_MITSHM=$QT_X11_NO_MITSHM" "DETVIEW_DRIVING_APP=$APP" \
+        "DRIVING_DEMO_CHECK_MODELS=$CHECK_MODELS" "$BASH_EXE" "$SCRIPT" "$@"
+fi
+for tool in flock fuser setsid stat readlink date sleep mv mkdir cat rm; do
+    command -v "$tool" >/dev/null 2>&1 || die "Required command missing: $tool"
+done
+
+# Never follow state-directory/lock symlinks. A root-owned, non-writable parent
+# makes checking then creating its files safe from unprivileged replacements.
+secure_dir() {
+    local dir=$1 mode
+    [[ -d $dir && ! -L $dir && $(stat -c %u -- "$dir") == 0 ]] || return 1
+    mode=$(stat -c %a -- "$dir") || return 1
+    (( (8#$mode & 0022) == 0 ))
+}
+if [[ -d /run && -w /run ]] && secure_dir /run; then
+    STATE=/run/driving_demo
+else
+    [[ -d /tmp && ! -L /tmp && $(stat -c %u /tmp) == 0 ]] || die 'Unsafe /tmp'
+    tmp_mode=$(stat -c %a /tmp) || exit 1
+    (( (8#$tmp_mode & 01000) != 0 )) || die '/tmp must have its sticky bit set'
+    STATE=/tmp/driving_demo
+fi
+if [[ ! -e $STATE && ! -L $STATE ]]; then
+    mkdir -m 700 -- "$STATE" 2>/dev/null || : # Another launcher may create it.
+fi
+secure_dir "$STATE" || die "Unsafe state directory: $STATE (need root owner, no group/world writes)"
+
+secure_file() {
+    local file=$1 mode
+    [[ -f $file && ! -L $file && $(stat -c %u -- "$file") == 0 &&
+       $(stat -c %h -- "$file") == 1 ]] || return 1
+    mode=$(stat -c %a -- "$file") || return 1
+    (( (8#$mode & 0022) == 0 ))
+}
+lock_file() {
+    local file=$1
+    if [[ ! -e $file && ! -L $file ]]; then
+        (set -o noclobber; : > "$file") 2>/dev/null || :
+    fi
+    secure_file "$file" || die "Unsafe lock file: $file"
+}
+lock_file "$STATE/supervisor.lock"
+lock_file "$STATE/control.lock"
+
+# /proc stat's comm can contain spaces or ')'; remove through its final ') '.
+start_time() {
+    local stat_line rest
+    IFS= read -r stat_line < "/proc/$1/stat" 2>/dev/null || return 1
+    rest=${stat_line##*) }
+    local -a fields
+    read -r -a fields <<< "$rest"
+    [[ ${fields[19]-} =~ ^[0-9]+$ ]] || return 1
+    printf '%s\n' "${fields[19]}"
+}
+atomic_text() {
+    local destination=$1; shift
+    local temp="$STATE/.write.$$"
+    (set -o noclobber; printf '%s\n' "$@" > "$temp") || return 1
+    mv -fT -- "$temp" "$destination"
+}
+record_process() {
+    local kind=$1 pid=$2 exe=$3 birth
+    birth=$(start_time "$pid") || return 1
+    [[ $(readlink -- "/proc/$pid/exe" 2>/dev/null) == "$exe" ]] || return 1
+    atomic_text "$STATE/$kind.pid" "$pid" "$birth" "$exe"
+}
+# Sets OWN_PID only for an exact executable AND process birth time. Every signal
+# rechecks this; PID reuse and stale files must never authorize a kill.
+owned_process() {
+    local kind=$1 expected actual birth
+    local -a record
+    OWN_PID=
+    secure_file "$STATE/$kind.pid" || return 1
+    mapfile -t record < "$STATE/$kind.pid"
+    [[ ${#record[@]} == 3 && ${record[0]} =~ ^[1-9][0-9]*$ &&
+       ${record[1]} =~ ^[0-9]+$ ]] || return 1
+    if [[ $kind == app ]]; then
+        secure_file "$STATE/app.path" || return 1
+        IFS= read -r expected < "$STATE/app.path" || return 1
+    else
+        expected=$BASH_EXE
+    fi
+    [[ $expected == /* && ${record[2]} == "$expected" ]] || return 1
+    actual=$(readlink -- "/proc/${record[0]}/exe" 2>/dev/null) || return 1
+    [[ $actual == "$expected" ]] || return 1
+    birth=$(start_time "${record[0]}") || return 1
+    [[ $birth == "${record[1]}" ]] || return 1
+    OWN_PID=${record[0]}
+}
+signal_app() {
+    local signal=$1
+    owned_process app || return 1
+    kill -s "$signal" -- "$OWN_PID"
+}
+
+# fuser is only an ownership check. Never signal its results. restart can ignore
+# only the app whose recorded executable and birth time still match.
+device_available() {
+    [[ -n $VIDEO_INPUT ]] && return 0
+    local allow_owned=${1:-0} allowed= owners rc owner err="$STATE/.fuser.$$"
+    if [[ $allow_owned == 1 ]] && owned_process app; then allowed=$OWN_PID; fi
+    owners=$(LC_ALL=C fuser "$DEVICE" 2> "$err") && rc=0 || rc=$?
+    if [[ -z $owners && $rc == 1 && ! -s $err ]]; then rm -f -- "$err"; return 0; fi
+    if (( rc != 0 )) || [[ -z $owners ]]; then
+        say "Cannot establish device ownership: $DEVICE" >&2
+        cat "$err" >&2
+        rm -f -- "$err"
+        return 1
+    fi
+    rm -f -- "$err"
+    for owner in $owners; do
+        [[ $owner =~ ^[1-9][0-9]*$ ]] || { say 'Unexpected fuser output' >&2; return 1; }
+        if [[ $owner != "$allowed" ]]; then
+            say "$DEVICE is owned by PID $owner; refusing to interfere" >&2
+            return 1
+        fi
+    done
+}
+
+check_models() {
+    # Match scanModels()'s nonrecursive *.rknn scan, including file symlinks.
+    local -a dirs=(/root/npu/yolov8n/zebra640 /root/npu/yolov8n/vehicle640
+        /root/npu /root/npu/yolo11n /root/models/yolo26_rk3568 /root/npu/tt100k
+        /root/npu/tt100k_yolov8n /root/npu/lane_linknet /root/npu/whiteboard_3cls
+        /root/npu/trafficlight)
+    local dir file base traffic=0 whiteboard=0
+    shopt -s nullglob
+    for dir in "${dirs[@]}"; do
+        for file in "$dir"/*.rknn; do
+            [[ -f $file && -r $file ]] || continue
+            base=${file##*/}
+            [[ $base == *trafficlight-16cls* ]] && ((traffic+=1))
+            [[ $base == *wb_v4_combo* ]] && ((whiteboard+=1))
+        done
+    done
+    shopt -u nullglob
+    [[ $traffic == 1 && $whiteboard == 1 ]] || {
+        say "Need one scanner-visible .rknn per default model: trafficlight-16cls=$traffic, wb_v4_combo=$whiteboard" >&2
+        return 1
+    }
+}
+preflight() {
+    [[ $APP == /* && -f $APP && -x $APP ]] || { say "Executable missing: $APP" >&2; return 1; }
+    APP=$(readlink -f -- "$APP") || return 1
+    if [[ -n $VIDEO_INPUT ]]; then
+        [[ $VIDEO_INPUT == /* && -f $VIDEO_INPUT && -r $VIDEO_INPUT ]] || {
+            say 'Video simulation needs a readable absolute local file' >&2; return 1;
+        }
+        command -v ffmpeg >/dev/null || { say 'ffmpeg is missing' >&2; return 1; }
+    else
+        [[ -e $DEVICE ]] || { say "Device missing: $DEVICE (prepare the existing driver separately)" >&2; return 1; }
+    fi
+    [[ -n $DISPLAY && -n $XAUTHORITY && -r $XAUTHORITY ]] || {
+        say "GUI requires DISPLAY and readable XAUTHORITY (currently '$DISPLAY', '$XAUTHORITY')" >&2
+        return 1
+    }
+    [[ $CHECK_MODELS == 0 ]] || check_models || return 1
+}
+
+supervisor_active() {
+    # Use another open description; never unlock the supervisor's inherited FD.
+    (exec 7<> "$STATE/supervisor.lock"; ! flock -n 7)
+}
+request_stop() {
+    atomic_text "$STATE/stop" stop || return 1
+    # TERM first, then CONT wakes a stopped app so it can handle TERM gracefully.
+    signal_app TERM 2>/dev/null || :
+    signal_app CONT 2>/dev/null || :
+}
+stop_demo() {
+    local until=$((SECONDS + 5)) last_signaled=
+    atomic_text "$STATE/stop" stop || return 1
+    while supervisor_active || owned_process app; do
+        # Also catches a child that was still execing when the stop was requested.
+        if owned_process app && [[ $OWN_PID != "$last_signaled" ]]; then
+            last_signaled=$OWN_PID
+            signal_app TERM 2>/dev/null || :
+            signal_app CONT 2>/dev/null || :
+        fi
+        if (( SECONDS >= until )); then
+            say 'Stop timed out after at most 5 seconds; no SIGKILL or driver reset was attempted' >&2
+            return 1
+        fi
+        sleep 0.1
+    done
+    say 'Stopped'
+}
+
+supervise() {
+    local log=$1; shift
+    # The start command holds this SAME inherited open description. App and
+    # helper subprocesses explicitly close it; only this supervisor retains it.
+    [[ ${DRIVING_DEMO_LOCK_FD-} == 9 && -e /proc/$$/fd/9 &&
+       /proc/$$/fd/9 -ef $STATE/supervisor.lock ]] || die 'supervise is an internal command'
+    flock -n 9 || die 'Supervisor lock unavailable'
+    secure_file "$log" || die "Unsafe log: $log"
+    exec >> "$log" 2>&1
+    unset DRIVING_DEMO_LOCK_FD
+    local child= child_birth= rc=0 retries=0 observed=0 i
+    trap 'request_stop; :' TERM INT HUP
+    trap 'rm -f -- "$STATE/supervisor.pid" "$STATE/ready"' EXIT
+    record_process supervisor "$$" "$BASH_EXE" || die 'Cannot record supervisor identity'
+    atomic_text "$STATE/app.path" "$APP" || die 'Cannot record app path'
+    atomic_text "$STATE/log.path" "$log" || die 'Cannot record log path'
+    say "Supervisor $$; app=$APP; DISPLAY=$DISPLAY; log=$log"
+    while [[ ! -e $STATE/stop ]]; do
+        preflight || return 1
+        device_available || return 1
+        [[ ! -e $STATE/stop ]] || break
+        "$APP" --driving-demo --fullscreen --no-tracking \
+            --rotate-model trafficlight-16cls,wb_v4_combo "$@" 9>&- &
+        child=$!
+        child_birth=$(start_time "$child" 2>/dev/null) || child_birth=
+        observed=0
+        for ((i=0; i<40; i++)); do
+            if record_process app "$child" "$APP"; then observed=1; break; fi
+            [[ -n $child_birth && $(start_time "$child" 2>/dev/null) == "$child_birth" ]] || break
+            sleep 0.025 9>&-
+        done
+        if (( observed )); then
+            atomic_text "$STATE/ready" "$child" || request_stop
+            say "App started: PID $child (recovery $retries/3)"
+            [[ ! -e $STATE/stop ]] || request_stop
+        else
+            say "App PID $child exited before its executable identity could be recorded"
+        fi
+        # A signal may interrupt wait without reaping the child. Keep the lock
+        # until the actual child exits, including when graceful stop times out.
+        while :; do
+            wait "$child" && rc=0 || rc=$?
+            [[ -n $child_birth && $(start_time "$child" 2>/dev/null) == "$child_birth" ]] || break
+            [[ ! -e $STATE/stop ]] || request_stop
+        done
+        rm -f -- "$STATE/app.pid"
+        say "App exited: status=$rc"
+        [[ ! -e $STATE/stop ]] || break
+        (( rc != 0 )) || break
+        if (( retries >= 3 )); then say 'Recovery limit reached (3 retries)'; return "$rc"; fi
+        ((retries+=1))
+        say "Recovery in $((1 << (retries - 1))) seconds; driver remains as configured"
+        for ((i=0; i < (1 << (retries - 1)) * 10; i++)); do
+            [[ ! -e $STATE/stop ]] || break
+            sleep 0.1 9>&-
+        done
+    done
+    return "$rc"
+}
+
+command=start
+case ${1-} in
+    start|restart|stop|status|supervise) command=$1; shift ;;
+    '') ;;
+    --*) ;; # Default start with app options.
+    *) usage >&2; exit 2 ;;
+esac
+if [[ $command == supervise ]]; then
+    [[ $# -ge 1 ]] || die 'Missing supervisor log'
+    supervise "$@"
+    exit $?
+fi
+[[ $command != stop && $command != status || $# == 0 ]] || { usage >&2; exit 2; }
+
+# A restart without arguments retains the previous input source and options.
+if [[ $command == start || $command == restart ]] && (( $# == 0 )) && secure_file "$STATE/launch.args"; then
+    mapfile -d '' -t saved_args < "$STATE/launch.args"
+    set -- "${saved_args[@]}"
+    VIDEO_INPUT=
+    expect_video=0
+    for option in "$@"; do
+        if (( expect_video )); then VIDEO_INPUT=$option; expect_video=0; fi
+        [[ $option == --video ]] && expect_video=1
+    done
+fi
+
+# Serializes controllers, including restart's stop/start transaction. This lock
+# is never passed to the supervisor. The supervisor owns just its lifecycle lock.
+exec 8<> "$STATE/control.lock"
+flock -w 10 8 || die 'Another controller is busy'
+case $command in
+    status)
+        if supervisor_active; then
+            if owned_process supervisor; then say "Supervisor running: PID $OWN_PID";
+            else say 'Supervisor lock held; identity unavailable'; fi
+            if owned_process app; then say "App running: PID $OWN_PID";
+            else say 'App is starting, recovering, or stopping'; fi
+            if secure_file "$STATE/log.path"; then
+                IFS= read -r log < "$STATE/log.path"; say "Log: $log"
+            fi
+            [[ ! -e $STATE/stop ]] || say 'Stop requested'
+            exit 0
+        fi
+        if owned_process app; then say "Owned app still running: PID $OWN_PID"; exit 1; fi
+        say 'Stopped'; exit 3
+        ;;
+    stop) stop_demo; exit $? ;;
+    restart)
+        preflight || exit 1
+        device_available 1 || exit 1
+        stop_demo || exit 1
+        ;;
+    start)
+        if supervisor_active; then say 'Already running; use status or restart'; exit 0; fi
+        owned_process app && die "Owned app PID $OWN_PID remains; stop it before starting"
+        ;;
+esac
+preflight || exit 1
+device_available || exit 1
+args_temp="$STATE/.args.$$"
+if (( $# )); then
+    (set -o noclobber; printf '%s\0' "$@" > "$args_temp") || exit 1
+else
+    (set -o noclobber; : > "$args_temp") || exit 1
+fi
+mv -fT -- "$args_temp" "$STATE/launch.args" || exit 1
+secure_dir /userdata || die 'Unsafe or missing /userdata'
+if [[ ! -e $LOG_DIR && ! -L $LOG_DIR ]]; then mkdir -m 700 -- "$LOG_DIR" || exit 1; fi
+secure_dir "$LOG_DIR" || die "Unsafe evidence directory: $LOG_DIR"
+log="$LOG_DIR/ready_$(date -u +%Y%m%dT%H%M%S.%NZ)_$$.log"
+(set -o noclobber; : > "$log") || die 'Cannot create evidence log'
+exec 9<> "$STATE/supervisor.lock"
+flock -n 9 || die 'Supervisor is already running'
+rm -f -- "$STATE/stop" "$STATE/ready" "$STATE/app.pid" "$STATE/supervisor.pid"
+export DRIVING_DEMO_LOCK_FD=9
+setsid "$BASH_EXE" "$SCRIPT" supervise "$log" "$@" </dev/null >> "$log" 2>&1 8>&- &
+# Close, do not flock -u: the child holds the same open description.
+exec 9>&-
+until_ready=$((SECONDS + 5))
+while (( SECONDS < until_ready )); do
+    if secure_file "$STATE/ready" && owned_process app && supervisor_active; then
+        say "Started: app PID $OWN_PID; log: $log"
+        exit 0
+    fi
+    supervisor_active || { say "Supervisor exited during startup; see $log" >&2; exit 1; }
+    sleep 0.1
+done
+say "Startup not confirmed within 5 seconds; inspect status and $log" >&2
+exit 1
+	linux-vdso.so.1 (0x0000007f88eb5000)
+	librknnrt.so => /lib/librknnrt.so (0x0000007f88650000)
+	libopencv_calib3d.so.406 => /lib/aarch64-linux-gnu/libopencv_calib3d.so.406 (0x0000007f884a0000)
+	libopencv_imgproc.so.406 => /lib/aarch64-linux-gnu/libopencv_imgproc.so.406 (0x0000007f88110000)
+	libopencv_core.so.406 => /lib/aarch64-linux-gnu/libopencv_core.so.406 (0x0000007f87e40000)
+	libQt5Widgets.so.5 => /lib/aarch64-linux-gnu/libQt5Widgets.so.5 (0x0000007f87750000)
+	libQt5Gui.so.5 => /lib/aarch64-linux-gnu/libQt5Gui.so.5 (0x0000007f870a0000)
+	libQt5Core.so.5 => /lib/aarch64-linux-gnu/libQt5Core.so.5 (0x0000007f86b30000)
+	libstdc++.so.6 => /lib/aarch64-linux-gnu/libstdc++.so.6 (0x0000007f86910000)
+	libm.so.6 => /lib/aarch64-linux-gnu/libm.so.6 (0x0000007f86870000)
+	libgcc_s.so.1 => /lib/aarch64-linux-gnu/libgcc_s.so.1 (0x0000007f86830000)
+	libc.so.6 => /lib/aarch64-linux-gnu/libc.so.6 (0x0000007f86680000)
+	libpthread.so.0 => /lib/aarch64-linux-gnu/libpthread.so.0 (0x0000007f86650000)
+	libdl.so.2 => /lib/aarch64-linux-gnu/libdl.so.2 (0x0000007f86620000)
+	libopencv_features2d.so.406 => /lib/aarch64-linux-gnu/libopencv_features2d.so.406 (0x0000007f86570000)
+	libopencv_flann.so.406 => /lib/aarch64-linux-gnu/libopencv_flann.so.406 (0x0000007f864e0000)
+	/lib/ld-linux-aarch64.so.1 (0x0000007f88e78000)
+	libz.so.1 => /lib/aarch64-linux-gnu/libz.so.1 (0x0000007f864a0000)
+	libGLX.so.0 => /lib/aarch64-linux-gnu/libGLX.so.0 (0x0000007f86440000)
+	liblapack.so.3 => /lib/aarch64-linux-gnu/liblapack.so.3 (0x0000007f85ed0000)
+	libblas.so.3 => /lib/aarch64-linux-gnu/libblas.so.3 (0x0000007f85e50000)
+	libtbb.so.12 => /lib/aarch64-linux-gnu/libtbb.so.12 (0x0000007f85df0000)
+	libGL.so.1 => /lib/aarch64-linux-gnu/libGL.so.1 (0x0000007f85cf0000)
+	libpng16.so.16 => /lib/aarch64-linux-gnu/libpng16.so.16 (0x0000007f85c90000)
+	libharfbuzz.so.0 => /lib/aarch64-linux-gnu/libharfbuzz.so.0 (0x0000007f85b70000)
+	libmd4c.so.0 => /lib/aarch64-linux-gnu/libmd4c.so.0 (0x0000007f85b50000)
+	libdouble-conversion.so.3 => /lib/aarch64-linux-gnu/libdouble-conversion.so.3 (0x0000007f85b10000)
+	libicui18n.so.72 => /lib/aarch64-linux-gnu/libicui18n.so.72 (0x0000007f857d0000)
+	libicuuc.so.72 => /lib/aarch64-linux-gnu/libicuuc.so.72 (0x0000007f855b0000)
+	libpcre2-16.so.0 => /lib/aarch64-linux-gnu/libpcre2-16.so.0 (0x0000007f85510000)
+	libzstd.so.1 => /lib/aarch64-linux-gnu/libzstd.so.1 (0x0000007f85450000)
+	libglib-2.0.so.0 => /lib/aarch64-linux-gnu/libglib-2.0.so.0 (0x0000007f852f0000)
+	libGLdispatch.so.0 => /lib/aarch64-linux-gnu/libGLdispatch.so.0 (0x0000007f85160000)
+	libX11.so.6 => /lib/aarch64-linux-gnu/libX11.so.6 (0x0000007f85000000)
+	libgfortran.so.5 => /lib/aarch64-linux-gnu/libgfortran.so.5 (0x0000007f84e80000)
+	libfreetype.so.6 => /lib/aarch64-linux-gnu/libfreetype.so.6 (0x0000007f84da0000)
+	libgraphite2.so.3 => /lib/aarch64-linux-gnu/libgraphite2.so.3 (0x0000007f84d60000)
+	libicudata.so.72 => /lib/aarch64-linux-gnu/libicudata.so.72 (0x0000007f82f70000)
+	libpcre2-8.so.0 => /lib/aarch64-linux-gnu/libpcre2-8.so.0 (0x0000007f82ec0000)
+	libxcb.so.1 => /lib/aarch64-linux-gnu/libxcb.so.1 (0x0000007f82e70000)
+	libbrotlidec.so.1 => /lib/aarch64-linux-gnu/libbrotlidec.so.1 (0x0000007f82e40000)
+	libXau.so.6 => /lib/aarch64-linux-gnu/libXau.so.6 (0x0000007f82e20000)
+	libXdmcp.so.6 => /lib/aarch64-linux-gnu/libXdmcp.so.6 (0x0000007f82e00000)
+	libbrotlicommon.so.1 => /lib/aarch64-linux-gnu/libbrotlicommon.so.1 (0x0000007f82dc0000)
+	libbsd.so.0 => /lib/aarch64-linux-gnu/libbsd.so.0 (0x0000007f82d80000)
+	libmd.so.0 => /lib/aarch64-linux-gnu/libmd.so.0 (0x0000007f82d50000)
+[
+  {
+    "path": "/userdata/detview-driving-demo/detview-driving-demo",
+    "sha256": "72cd352aba95fce2a9897fb3fefe7214940b080d3937a2c8bad8afa72f25a703",
+    "original_mode": 493
+  }
+]

@@ -80,6 +80,17 @@ wire capture_complete = capture_open && (pixel_count == pixel_limit);
 wire frame_good = capture_complete && !capture_bad && !capture_overflow;
 wire capture_stop = capture_flush || capture_bad || capture_complete;
 assign dma_abort_req = capture_bad;
+// Idle capture metadata must not permanently block all future SOFs. Allow
+// the admitted-SOF/controller pipeline to settle before treating it as stale.
+// A busy engine or offered command always retains ownership of its AXI work.
+reg [3:0] idle_stop_count;
+wire idle_capture_stale = (idle_stop_count == 4'd8);
+always @(posedge axi_clk) begin
+    if(axi_rst || capture_flush || engine_busy || axi_cmd_valid ||
+       m_vsync || !capture_open || !(capture_complete || capture_bad))
+        idle_stop_count <= 0;
+    else if(!idle_capture_stale) idle_stop_count <= idle_stop_count + 1'b1;
+end
 // Read-only evidence, retained across local flush. First source fault wins.
 // Snapshot [31]=overflow, [30]=short, [29]=DMA abort without source fault,
 // [28]=tag phase, [27:0]=accepted pixel count at that event.
@@ -118,7 +129,7 @@ always @(posedge axi_clk) begin
         raw_vsync_q <= 0;
     end else begin
         raw_vsync_q <= s_vsync;
-        if(dma_abort || (dma_done && (!frame_active || !frame_good))) flush_count <= 4;
+        if(dma_abort || (dma_done && (!frame_active || !frame_good)) || idle_capture_stale) flush_count <= 4;
         else if(capture_flush) flush_count <= flush_count - 1'b1;
     end
 end

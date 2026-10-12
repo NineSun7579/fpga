@@ -1,0 +1,165 @@
+FILE: C:\pango\PDS_2022.2-SP6.4\doc\Pango_Design_Suite_User_Guide.pdf
+PDF PAGE: 107
+ 
+开发流程 
+ 
+106 / 273 
+Pango Design Suite User Guide 
+标注为注释的时序命令能够在PDS 流程中生效。默认不选中该选项。（ADS 综合不支持） 
+【Minimun Number of Register in a Control Set】用于控制同一种control set 下，最小触发
+器的数目。但触发器的数目小于门限时，则将门控信号作为数据通路用LUT 来实现。Control 
+set 是指触发器的时钟、使能信号，RST 信号。优化该控制信号可以增加资源使用率。默认值
+是0。 
+【Optimize Logic with Constant Input】主要用于优化输入的常量逻辑。常量逻辑主要是指
+VCC、GND 逻辑。该优化操作主要通过电路故有的特性，将原来的VCC、GND 断开或优化
+到最优状态。默认值是0。 
+【Remove Duplicated Logic】该功能主要作用是将部分重复逻辑合并，属于面积优化选项。
+但是该操作同样会影响到综合阶段的复制工作，使时序性能下降。默认值是0。 
+【Infer Internal Clock】该选项控制是否在map 阶段infer 内部时钟（比如内部触发器产生
+的分频时钟，不影响对pll 时钟的infer），在PGC 器件中默认打开，其他器件默认关闭。 
+完成设置后执行device map 后结果如下： 
+ 
+图 3-24 Device Map 后软件界面 
+单击Resource Usage Summary，结果如下： 
+
+FILE: C:\pango\PDS_2022.2-SP6.4\doc\Pango_Design_Suite_User_Guide.pdf
+PDF PAGE: 250
+ 
+常用命令列表 
+ 
+249 / 273 
+Pango Design Suite User Guide 
+-family 
+指定一个家族 
+-device 
+指定一个器件 
+-package 
+指定一个封装 
+-speedgrade 
+指定一个速度等级 
+表 9-7 set_arch 
+9.8 compile 编译用户设计 
+选项 
+ 
+-help 
+打印帮助消息 
+-top_module 
+设置top module 的名字 
+-include_path 
+设置工程的include 路径 
+ 
+ 
+表 9-8 compile 
+9.9 dev_map 映射设计到架构 
+选项 
+ 
+-help 
+打印帮助消息 
+-packing_io 
+设置top module 的名字 
+-detail 
+设置工程的include 路径 
+-generate_inferred_clocks 
+勾选后会对符合条件的design 插入时钟 
+-fanout 
+在报告中只打印fanout 大于该数值的Net 或
+port 对象 
+-fanout_number 
+在报告中打印的fanout 数量大于Min fanout
+数值的Net 数量的上限 
+-override_pcf 
+重新运行时覆盖pcf 文件 
+-enable_timing_commands 
+将OEM 注释掉的约束重新打开 
+-devmap_control_set_num 
+用于控制同一种control set 下，最小触发器的
+数目。但触发器的数目小于门限时，则将门控信号
+作为数据通路用LUT 来实现。Control set 是指触发
+器的时钟、使能信号，RST 信号。优化该控制信号
+可以增加资源使用率 
+-devmap_const_prop 
+主要用于优化输入的常量逻辑。常量逻辑主要
+是指VCC、GND 逻辑。该优化操作主要通过电路
+故有的特性，将原来的VCC、GND 断开或优化到
+最优状态。 
+-devmap_remove_dups 
+该功能主要作用是将部分重复逻辑合并，属于
+面积优化选项。但是该操作同样会影响到综合阶段
+的复制工作，使时序性能下降。 
+表 9-9 dev_map 
+
+FILE: C:\pango\PDS_2022.2-SP6.4\doc\Pango_Design_Suite_User_Guide.pdf
+PDF PAGE: 252
+ 
+常用命令列表 
+ 
+251 / 273 
+Pango Design Suite User Guide 
+-master_configuration_clock_frequency_in_read_
+back 
+回读时钟选择 
+-disable_readback_crc 
+选择是否在回读时使能CRC 验证 
+-enable_crc_clock_in_read_back 
+使能回读CRC 时钟 
+-persist_ipal 
+控制配置完成后，内部并行端口是否保留用于
+回读 
+-bitstream_security 
+控制回读配置存储器 
+-encrypt_bitstream 
+选择是否加密位流文件 
+-select_key_type 
+配置是否使用内部KEY 
+-starting_cbc_value 
+用户手动输入初始的CBC 字符串，字符为16
+进制，输入长度为最多32 个字符 
+-input_encryption_key_file 
+选择nky 文件 
+-key_string 
+用户手动输入密钥字符串，字符为16 进制字
+符，输入长度为最多64 个字符 
+-sram_retention 
+开启SRAM retention 测试 
+表 9-10 位流 
+9.11 
+gen_netlist 生成网表 
+选项 
+ 
+-help 
+打印帮助消息 
+-func_sim_only 
+是否使能仅生成sim.v 文件 
+-sdf_annotate 
+勾选后在sim.v 中调用sdf 文件，不勾选则不
+调用 
+-process_corner 
+决定产生什么类型的sdf 文件 
+表 9-11 生成网表 
+9.12 
+pnr 布局和布线设计 
+选项 
+ 
+-help 
+打印帮助消息 
+-dc_duplication 
+勾选为自适应插入和复制逻辑单元，不勾选为
+不处理 
+-plc_decongestion 
+设置面积扩展系数 
+-gplace_seed 
+设置随机种子值 
+-gplace_times 
+设置运行多少个随机种子 
+-seed_step 
+设置种子的步长 
+-saved_outcome 
+设置保留最优的种子运行结果的数目 
+-parallel 
+设置同时执行种子的最大数目 
+-fast_router 
+勾选为使用全局布线，不勾选为不使用 
+-fast_router_mode 
+设置全局布线的模式 
+-share_router_control_signal 
+勾选为使用Control Chain，不勾选为不使用 

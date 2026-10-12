@@ -1,0 +1,4 @@
+set_arch -family Logos2 -device PG2L100H -speedgrade -6 -package FBG484
+add_constraint -physical -pcf {C:/Users/NineSun/Desktop/ov56401/project/motion_100h/work/device_map/top.pcf}
+set mapped {C:/Users/NineSun/Desktop/ov56401/project/motion_100h/work/device_map/top_map.adf}
+pnr -input_db_file $mapped -force_to_run -optimize_multi_corner_timing -fix_hold_violation -fix_hold_violation_iterations 500 -fix_hold_violation_threshold 100 -fix_hold_violation_in_route TRUE -fix_hold_violation_threshold_for_clock_path_cross_srb 200 -fix_hold_violation_threshold_for_clk_tree 200 -max_hold_violated_paths_num 15000 -fast_router FALSE

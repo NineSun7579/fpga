@@ -1,0 +1,134 @@
+{
+  "status": "local_session_marker_compile_and_proof_checks_passed",
+  "source_sha256": {
+    "bench.cpp": "f2f23ec44a5656f6237fcbb2a092186cad73adfdda78749cebeffc8bcad02227",
+    "run_target.py": "2db6745d4e4d48135bbc030f1ec2511b61a5c794552238abd47d7d51fb63a167",
+    "dma_heap_import.h": "8c56714336f11c13e1a8116dc073f64f80508e0c75932869d7070f358daede34",
+    "dma_heap_import_selftest.cpp": "b9235a4fcd0bca48c822602e373186e2fa3cfa38267abd4c842d0b572f7737a0",
+    "fd_binding_policy.h": "cbab7e5ca28665ef5f9b01cc77ee785bf877e45243fdeda186826a8f3d609678",
+    "fd_binding_selftest.cpp": "1ce52c7f7293a1896550ef211e070dc2684dab0fe8aca5a29829f9cdbeb3e740",
+    "local_tests/fd_import_checks.py": "68356f323f0d17882307b3b688dd269a376062b875637080398f6a9e8886504b",
+    "README.md": "bb8e9517658435684c0a9f41b192dcb9bc384e56e03bb80296859c91ea1a8763",
+    "validation/fd_retirement_src/retirement_event_selftest.cpp": "5046c8fb1dd2c0e5dcf536c068b8db2bbee773a65020921246820c2fdb360759"
+  },
+  "files_changed_since_prior_receipt": [
+    "bench.cpp"
+  ],
+  "source_files_stable": true,
+  "source_edits_by_this_validation": false,
+  "prior_receipt_sha256": "260d4ee337463f14103bf3ef815a6dff71e022d73a36f1a1e923f8c7d3e38306",
+  "prior_receipt_unchanged": true,
+  "prior_commands_reused": [
+    {
+      "name": "benchmark_build",
+      "argv": [
+        "g++",
+        "-std=c++17",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-pedantic",
+        "-fPIC",
+        "-Iprepared",
+        "bench.cpp",
+        "-o",
+        "/mnt/c/Users/NineSun/Desktop/ov56401/project/hardware_acceleration/rknn_io/validation/fd_session_marker_01/checks/rknn_io_bench_host",
+        "-I/usr/include/x86_64-linux-gnu/qt5/QtCore",
+        "-I/usr/include/x86_64-linux-gnu/qt5",
+        "-DQT_GUI_LIB",
+        "-I/usr/include/x86_64-linux-gnu/qt5/QtGui",
+        "-DQT_CORE_LIB",
+        "-lQt5Gui",
+        "-lQt5Core",
+        "-ldl"
+      ],
+      "returncode": 0,
+      "expected_returncode": 0
+    },
+    {
+      "name": "retirement_event_build",
+      "argv": [
+        "g++",
+        "-std=c++17",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-pedantic",
+        "-fPIC",
+        "-Iprepared",
+        "/mnt/c/Users/NineSun/Desktop/ov56401/project/hardware_acceleration/rknn_io/validation/fd_retirement_src/retirement_event_selftest.cpp",
+        "-o",
+        "/mnt/c/Users/NineSun/Desktop/ov56401/project/hardware_acceleration/rknn_io/validation/fd_session_marker_01/checks/retirement_event_selftest",
+        "-I/usr/include/x86_64-linux-gnu/qt5/QtCore",
+        "-I/usr/include/x86_64-linux-gnu/qt5",
+        "-DQT_GUI_LIB",
+        "-I/usr/include/x86_64-linux-gnu/qt5/QtGui",
+        "-DQT_CORE_LIB",
+        "-lQt5Gui",
+        "-lQt5Core",
+        "-ldl"
+      ],
+      "returncode": 0,
+      "expected_returncode": 0
+    },
+    {
+      "name": "retirement_event",
+      "argv": [
+        "/mnt/c/Users/NineSun/Desktop/ov56401/project/hardware_acceleration/rknn_io/validation/fd_session_marker_01/checks/retirement_event_selftest"
+      ],
+      "returncode": 0,
+      "expected_returncode": 0
+    }
+  ],
+  "fd_checks_command": {
+    "argv": [
+      "/usr/bin/python3",
+      "/mnt/c/Users/NineSun/Desktop/ov56401/project/hardware_acceleration/rknn_io/local_tests/fd_import_checks.py",
+      "--binding-only",
+      "--out",
+      "/mnt/c/Users/NineSun/Desktop/ov56401/project/hardware_acceleration/rknn_io/validation/fd_session_marker_01/checks"
+    ],
+    "returncode": 0
+  },
+  "marker_in_constructor_verified": true,
+  "marker_acceptance_for_certification_and_timing_proofs_passed": true,
+  "marked_deferred_retirement_rejections_passed": true,
+  "actual_mocked_retirement_events_passed": true,
+  "sdk_qt_benchmark_compile_passed": true,
+  "compiler_warnings": false,
+  "lifecycle_asan_rerun": false,
+  "lifecycle_header_sha256_unchanged": "8c56714336f11c13e1a8116dc073f64f80508e0c75932869d7070f358daede34",
+  "benchmark_sha256": "cad26eb27e6d584dfd03222d9db57736f8e29186e45f31d61caf0d96ca0cc4ad",
+  "retirement_event_binary_sha256": "80d82eb847e696c4ba22c18c77eea1737a8c4dd4a5797a2788bf04ad065973a5",
+  "nested_receipt_sha256": "b5f18ebcbd90ee3fb7a635fc93a9480dd0a409d67601639d8451306b91830c24",
+  "log_sha256": {
+    "runner.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "runner.stdout": "aec25a03d7ec71b340342b798130786be34d7b1bd959699433ca74cc06bece80",
+    "checks/benchmark_build.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "checks/benchmark_build.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "checks/binding_policy.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "checks/binding_policy.stdout": "ccf8f24c4e1efbf431def949e67c29299dc5be6ce7189294d2da97052e63a460",
+    "checks/binding_policy_build.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "checks/binding_policy_build.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "checks/diagnostic_decline.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "checks/diagnostic_decline.stdout": "c2c95183512f1ef13dc405551d301e1ff235fd75dee5bfe80b7ac68fdf7d25af",
+    "checks/legacy_runner_regression.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "checks/legacy_runner_regression.stdout": "b9fa9a51e68020bc924c6afa476a8417fe01ba157391a5654ef6639c58e7d026",
+    "checks/missing_control.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "checks/missing_control.stdout": "3bae426fae5c8c43fd95a0c204d5fa8254d76ae31e512a1b234cf52e990616b6",
+    "checks/retirement_event.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "checks/retirement_event.stdout": "4ce795afee2d4998f0e130362b1e51529639b4bd0ab65e5487d4ada97666f2de",
+    "checks/retirement_event_build.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "checks/retirement_event_build.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "checks/wrong_query.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "checks/wrong_query.stdout": "3bae426fae5c8c43fd95a0c204d5fa8254d76ae31e512a1b234cf52e990616b6",
+    "checks/wrong_scale.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "checks/wrong_scale.stdout": "3bae426fae5c8c43fd95a0c204d5fa8254d76ae31e512a1b234cf52e990616b6"
+  },
+  "ssh_used": false,
+  "hardware_executed": false,
+  "hardware_certified": false,
+  "performance_claim": false,
+  "imported_constructor_executed_on_hardware": false,
+  "parent_restoration_guard_tests_rerun": false
+}

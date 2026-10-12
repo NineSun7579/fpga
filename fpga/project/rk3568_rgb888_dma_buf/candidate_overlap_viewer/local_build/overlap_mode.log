@@ -1,0 +1,12 @@
+scheme2 actual preflight: TX/RX ENOMEM and interrupted MAP clean idle UNMAP; rejected cleanup preserves ownership PASS
+overlap rejection mode PASS (no unsafe release/reuse)
+[diag] t=142.499 pango_ioctl tid=621 cmd=c0045302 selector=0 offset=0x00000000 addr=0x00000000 len=4096 ms=0.002 rc=-1 errno=12 (Cannot allocate memory) alarm=0
+[scheme2-preflight] FATAL map tx failed; tx_bytes=4096 rx_bytes=8388608; idle UNMAP confirmed, quitting; allocation failure: inspect CMA free/fragmentation and DMA mask (no DMA submitted)
+[diag] t=142.499 pango_ioctl tid=621 cmd=c0045302 selector=1 offset=0x00000000 addr=0x00000000 len=8388608 ms=0.000 rc=-1 errno=12 (Cannot allocate memory) alarm=0
+[scheme2-preflight] FATAL map rx failed; tx_bytes=4096 rx_bytes=8388608; idle UNMAP confirmed, quitting; allocation failure: inspect CMA free/fragmentation and DMA mask (no DMA submitted)
+[diag] t=142.499 pango_ioctl tid=621 cmd=c0045302 selector=0 offset=0x00000000 addr=0x00000000 len=4096 ms=0.000 rc=0 errno=0 (success) alarm=1
+[scheme2-preflight] FATAL map tx failed; tx_bytes=4096 rx_bytes=8388608; idle UNMAP confirmed, quitting; allocation failure: inspect CMA free/fragmentation and DMA mask (no DMA submitted)
+[diag] t=142.499 pango_ioctl tid=621 cmd=c0045302 selector=1 offset=0x00000000 addr=0x00000000 len=8388608 ms=0.000 rc=-1 errno=12 (Cannot allocate memory) alarm=0
+[diag] t=142.499 pango_ioctl tid=621 cmd=c0045307 selector=3 offset=0x00000000 addr=0x00000000 len=0 ms=0.000 rc=-1 errno=16 (Device or resource busy) alarm=0
+[scheme2] QUARANTINE pid=621: preflight UNMAP could not confirm idle cleanup; parent must quiesce hardware
+[scheme2] QUARANTINE pid=621: same-frame lease identity changed; parent must quiesce hardware

@@ -1,0 +1,45 @@
+--- C:\Users\NineSun\Desktop\ov56401\project\fpga_v8_migration\whole_candidate_v7_route_01\rtl\parent_tc04_c40cee500c37.v
++++ v7_sdt_camera.v
+@@ -1,4 +1,4 @@
+-module ov5640_top #(
++module v7_sdt_camera #(
+     //DVP锟斤拷锟斤拷锟轿伙拷锟�
+     parameter [7:0] SENSOR_PLL_MULT = 8'h54,
+     parameter DATA_WIDTH = 16,
+@@ -50,6 +50,13 @@
+     parameter [5:0]  KF_THR2        = 6'd20,
+ parameter        KF_RD_EN       = 1'b1
+ )(
++    output wire diag_clk,
++    output wire diag_reset,
++    output wire diag_raw_vsync,
++    output wire diag_raw_href,
++    output wire diag_raw_byte_accept,
++    output wire diag_capture_vsync,
++    output wire diag_capture_valid,
+     // input         pl_clk                ,  //锟斤拷时锟斤拷
+     input         clk_50m               ,
+     input         dbg_locked            ,
+@@ -271,7 +278,7 @@
+         end
+     end
+ 
+-    ov5640 #(
++    v7_sdt_binding #(
+         .SENSOR_PLL_MULT(SENSOR_PLL_MULT),
+         //DVP锟斤拷锟斤拷
+         .DATA_WIDTH(DATA_WIDTH),
+@@ -295,6 +302,13 @@
+         .clk_50m            (clk_50m      ),  // i2c锟侥参匡拷时锟斤拷Clock
+         .rst_n              (clk_50m_rst_n),  // Asynchronous reset active low
+ 
++        .diag_clk(diag_clk),
++        .diag_reset(diag_reset),
++        .diag_raw_vsync(diag_raw_vsync),
++        .diag_raw_href(diag_raw_href),
++        .diag_raw_byte_accept(diag_raw_byte_accept),
++        .diag_capture_vsync(diag_capture_vsync),
++        .diag_capture_valid(diag_capture_valid),
+         .ov_rst_n           (ov_rst_n ),
+         .cam_pclk           (cam_pclk ),  //cmos 锟斤拷锟斤拷锟斤拷锟斤拷时锟斤拷
+         // 使锟矫撅拷锟斤拷锟接迟达拷锟斤拷锟斤拷锟脚猴拷锟芥换原始锟杰斤拷锟脚猴拷

@@ -1,0 +1,88 @@
+sudo -n python3 -u - <<'DELIVERY10'
+from pathlib import Path
+
+import ctypes, fcntl, json, mmap, os, signal, struct, time
+
+def _al(s, f):
+    raise TimeoutError('dma alarm')
+signal.signal(signal.SIGALRM, _al)
+
+class O(ctypes.Structure):
+    _fields_ = [('cur', ctypes.c_uint32), ('off', ctypes.c_uint32), ('cmd', ctypes.c_uint32),
+                ('ddr', ctypes.c_uint32), ('ln', ctypes.c_uint32),
+                ('rb', ctypes.c_void_p), ('wb', ctypes.c_void_p)]
+
+def I(n):
+    return 0xC0000000 | (4 << 16) | (0x53 << 8) | n
+
+FD = os.open('/dev/pango_pci_driver', os.O_RDWR | os.O_SYNC)
+for c in (0, 1):
+    o = O(); o.cmd = c; o.ln = 4194304
+    signal.alarm(8); fcntl.ioctl(FD, I(2), o, True); signal.alarm(0)
+RX = mmap.mmap(FD, 4194304, prot=mmap.PROT_READ | mmap.PROT_WRITE, flags=mmap.MAP_SHARED, offset=1048576)
+TX = mmap.mmap(FD, 4194304, prot=mmap.PROT_READ | mmap.PROT_WRITE, flags=mmap.MAP_SHARED, offset=0)
+
+def op(n, a, ln=16):
+    o = O(); o.off = 0; o.ddr = a; o.ln = ln
+    t0 = time.time()
+    try:
+        signal.alarm(6)
+        try:
+            fcntl.ioctl(FD, I(n), o, True)
+        finally:
+            signal.alarm(0)
+        return True, round((time.time()-t0)*1000, 3)
+    except Exception as e:
+        return False, round((time.time()-t0)*1000, 3)
+
+def rd16(a):
+    ok, ms = op(5, a)
+    if not ok:
+        return dict(ok=False, ms=ms)
+    words = struct.unpack('<4I', bytes(RX[0:16]))
+    return dict(ok=True, ms=ms, words=['0x%08X' % w for w in words])
+
+out = {'boot_id': open('/proc/sys/kernel/random/boot_id').read().strip()}
+
+# A. DMA read health: camera tag should advance (cameras are streaming into DDR)
+out['tag_cam1_t0'] = rd16(0x00896000)
+time.sleep(1.0)
+out['tag_cam1_t1'] = rd16(0x00896000)
+out['tag_cam6_t0'] = rd16(0x01C96000)
+time.sleep(1.0)
+out['tag_cam6_t1'] = rd16(0x01C96000)
+
+# B. DDR write pattern test at NPU weights region (pre-read, write 4 distinct words, readback)
+a = 0x02000000
+out['ddr_pre'] = rd16(a)
+pattern = [0x11111111, 0x22222222, 0x33333333, 0x44444444]
+TX[0:16] = struct.pack('<4I', *pattern)
+ok, ms = op(4, a)
+out['ddr_write_16B'] = dict(ok=ok, ms=ms)
+out['ddr_post'] = rd16(a)
+# repeat at input-frame region and loopback region
+for addr in (0x06000000, 0x0B000000):
+    pre = rd16(addr)
+    TX[0:16] = struct.pack('<4I', 0x55555555, 0x66666666, 0x77777777, 0x88888888)
+    ok, ms = op(4, addr)
+    post = rd16(addr)
+    out['ddr_block_0x%08X' % addr] = dict(pre=pre, write=dict(ok=ok, ms=ms), post=post)
+
+# C. NPU register echo test (write layer-count then readback; write queue word then readback)
+TX[0:16] = struct.pack('<4I', 88, 0, 0, 0)
+ok, ms = op(4, 0x50000000)
+out['npu_layer_write'] = dict(ok=ok, ms=ms)
+out['npu_layer_readback'] = rd16(0x50000000)
+TX[0:16] = struct.pack('<4I', 0xDEADBEEF, 0, 0, 0)
+ok, ms = op(4, 0x40000000)
+out['npu_queue_write'] = dict(ok=ok, ms=ms)
+out['npu_queue_readback'] = rd16(0x40000000)
+
+# D. Motion snapshot: read twice, sequence should advance if motion engine runs
+out['motion_t0'] = rd16(0x20000800)
+time.sleep(0.5)
+out['motion_t1'] = rd16(0x20000800)
+
+print('NPU5 ' + json.dumps(out))
+
+DELIVERY10

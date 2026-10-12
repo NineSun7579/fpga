@@ -1,0 +1,235 @@
+--- frozen/current/main.cpp
++++ candidate/src/main.cpp
+@@ -68,6 +68,7 @@
+ #include "stereo_demo/stereo_depth.h"
+ 
+ #include "rknn_api.h"
++#include "current_native_qt.hpp"
+ 
+ #include <rga/im2d.h>
+ #include <rga/rga.h>
+@@ -1578,8 +1579,9 @@
+             uint32_t outputs = 0;
+             tdm::InferenceGeometry geometry;
+             std::vector<rknn_tensor_attr> outputAttrs;
++            viewer_native::Session native;
+         };
+-        QVector<CachedModel> cache;
++        std::vector<CachedModel> cache;
+         int next = 0;
+         /* 诊断（DET_BENCH）：每秒统计“等帧时间”与“单次运行时间”，判断推理线程是否被饿着 */
+         const bool diag = qEnvironmentVariableIsSet("DET_BENCH");
+@@ -1613,6 +1615,9 @@
+                 diagWaitMs += QDateTime::currentMSecsSinceEpoch() - waitStart;
+ 
+             if (reload) {
++                m_nativeSession = nullptr;
++                m_outputAttrs = nullptr;
++                m_ctx = 0;
+                 for (CachedModel &old : cache) rknn_destroy(old.context);
+                 cache.clear();
+                 next = 0;
+@@ -1665,16 +1670,21 @@
+                         continue;
+                     }
+                     item.outputs = ioNum.n_output;
+-                    cache.append(std::move(item));
++                    item.native = viewer_native::prepare_current(item.context, item.bytes, info.path,
++                        ioNum.n_input, item.outputs, info.nc, info.lane, info.trafficlight,
++                        item.geometry.width, item.geometry.height, inputAttr, item.outputAttrs,
++                        ++m_nativeContextSerial);
++                    cache.push_back(std::move(item));
+                     m_completed.remove(info.path);
+                     emit modelLoaded(info.path, true, QString("640x%1 RGB, %2 outputs cached")
+-                                     .arg(cache.last().geometry.height).arg(ioNum.n_output));
++                                     .arg(cache.back().geometry.height).arg(ioNum.n_output));
+                 }
+             }
+-            if (!frame.isNull() && !cache.isEmpty()) {
++            if (!frame.isNull() && !cache.empty()) {
+                 CachedModel &item = cache[next];
+-                next = (next + 1) % cache.size();
++                next = (next + 1) % static_cast<int>(cache.size());
+                 m_ctx = item.context;
++                m_nativeSession = &item.native;
+                 m_nOutput = item.outputs;
+                 m_nc = item.info.nc;
+                 m_xyxy = cache.size() == 1 ? m_manualFormat.load() : item.info.xyxy;
+@@ -1710,6 +1720,9 @@
+                 diagTimer.restart();
+             }
+         }
++        m_nativeSession = nullptr;
++        m_outputAttrs = nullptr;
++        m_ctx = 0;
+         for (CachedModel &item : cache) rknn_destroy(item.context);
+         m_ctx = 0;
+     }
+@@ -1774,6 +1787,26 @@
+            query=输出属性查询, decode=DFL+NMS, release=释放 */
+         const bool bench = qEnvironmentVariableIsSet("DET_BENCH");
+         const bool int8In = !m_trafficlight && qEnvironmentVariableIsSet("DET_INT8_IN");
++        bool nativeDecode = m_nativeSession && m_nativeSession->enabled;
++        if (nativeDecode) {
++            try {
++                if (!viewer_native::current_geometry_gate(m_trafficlight, m_geometry.width, m_geometry.height, 3) ||
++                    qEnvironmentVariableIsSet("DET_INT8_IN") || m_lane || m_nc != 3 || m_nOutput != 6)
++                    throw std::invalid_argument("current input/model settings require existing float path");
++                const float confidence = m_conf.load();
++                const auto config = viewer_native::decoder_config(confidence);
++                if (!m_nativeSession->decoder || m_nativeSession->confidence != confidence) {
++                    m_nativeSession->decoder.emplace(config);
++                    m_nativeSession->confidence = confidence;
++                }
++            } catch (const std::exception& e) {
++                nativeDecode = false; // Before outputs_get; use the original float path.
++                if (!m_nativeSession->run_fallback_reported) {
++                    viewer_native::report(modelPath, m_nativeSession->context_serial, false, e.what());
++                    m_nativeSession->run_fallback_reported = true;
++                }
++            }
++        }
+         QElapsedTimer lap;
+         double tPrep = 0, tSet = 0, tRun = 0, tGet = 0, tQuery = 0, tDecode = 0, tRel = 0;
+         if (bench)
+@@ -1819,23 +1852,52 @@
+         for (uint32_t i = 0; i < m_nOutput; i++) {
+             memset(&outs[i], 0, sizeof(rknn_output));
+             outs[i].index = i;
+-            outs[i].want_float = 1;
++            outs[i].want_float = nativeDecode ? 0 : 1;
+         }
+         if (rknn_outputs_get(m_ctx, m_nOutput, outs.data(), nullptr) != 0)
+             return false;
++        viewer_native::OutputLease outputLease(m_ctx, outs, &rknn_outputs_release);
+         if (bench) markLap(lap, tGet);
+         const std::vector<rknn_tensor_attr> &attrs = *m_outputAttrs;
+         if (bench) markLap(lap, tQuery);
+         QImage laneMask;
+         QVector<Detection> dets;
+-        if (m_lane)
++        if (nativeDecode) {
++            try {
++                for (uint32_t i = 0; i < m_nOutput; ++i)
++                    if (outs[i].index != i || outs[i].is_prealloc || outs[i].want_float != 0 ||
++                        !outs[i].buf || outs[i].size != attrs[i].n_elems)
++                        throw std::invalid_argument("native outputs_get did not return exact packed signed heads");
++                const auto owned = m_nativeSession->decoder->decode(outs, attrs);
++                dets.reserve(static_cast<int>(owned.size()));
++                for (const auto& box : owned) {
++                    Detection detection;
++                    detection.cls = box.cls; detection.score = box.score;
++                    detection.x1 = box.x1; detection.y1 = box.y1;
++                    detection.x2 = box.x2; detection.y2 = box.y2;
++                    dets.append(detection);
++                }
++            } catch (const std::exception& e) {
++                fprintf(stderr, "[v8-native-candidate] context=%llu decode failed: %s\n",
++                    static_cast<unsigned long long>(m_nativeSession->context_serial), e.what());
++                return false; // RAII releases; caller records failure. No second inference.
++            } catch (...) {
++                fprintf(stderr, "[v8-native-candidate] native decode failed\n");
++                return false;
++            }
++            tdm::restoreCanonicalDetections(dets, m_geometry);
++        } else if (m_lane)
+             laneMask = decodeLaneMask(outs[0], attrs[0], m_nc);
+         else {
+             dets = decode(outs, attrs);
+             tdm::restoreCanonicalDetections(dets, m_geometry);
+         }
+         if (bench) markLap(lap, tDecode);
+-        rknn_outputs_release(m_ctx, m_nOutput, outs.data());
++        const int releaseRet = outputLease.finish();
++        if (nativeDecode && releaseRet != RKNN_SUCC) {
++            fprintf(stderr, "[v8-native-candidate] outputs_release failed ret=%d\n", releaseRet);
++            return false;
++        }
+         if (bench) markLap(lap, tRel);
+         const double ms = timer.nsecsElapsed() / 1e6;
+         const int completed = ++m_completed[modelPath];
+@@ -2195,6 +2257,8 @@
+     std::atomic<bool> m_stop{false};
+     rknn_context m_ctx = 0;
+     uint32_t m_nOutput = 0;
++    viewer_native::Session* m_nativeSession = nullptr; // Bound only after cache growth finishes.
++    quint64 m_nativeContextSerial = 0;
+     QByteArray m_input;
+     QMutex m_metricsMutex;
+     int m_metricsGeneration = -1;
+--- /dev/null
++++ candidate/src/current_native_gate.hpp
+@@ -0,0 +1,18 @@
++#pragma once
++#include "viewer_native_guard.hpp"
++
++namespace viewer_native {
++// Only the existing pinned profile; current trafficlight/rectangular models
++// must retain their production float decoder even with identical head shapes.
++inline bool current_geometry_gate(bool trafficlight, int width, int height, int channels) noexcept {
++    return !trafficlight && width == 640 && height == 640 && channels == 3;
++}
++inline Decision check_current_profile(bool requested, const Identity& id,
++                                     const rknn_tensor_attr& input,
++                                     const std::vector<rknn_tensor_attr>& attrs,
++                                     bool trafficlight, int width, int height, int channels) {
++    if (!current_geometry_gate(trafficlight, width, height, channels))
++        return {false, "current native requires non-trafficlight 640x640 RGB3"};
++    return check_profile(requested, id, input, attrs);
++}
++} // namespace viewer_native
+--- /dev/null
++++ candidate/src/current_native_qt.hpp
+@@ -0,0 +1,52 @@
++#pragma once
++#include "viewer_native_qt.hpp"
++#include "current_native_gate.hpp"
++
++namespace viewer_native {
++// Consume the production cache; never requery input/output attributes.
++inline Session prepare_current(rknn_context context, const QByteArray& model_bytes,
++                               const QString& model_path, unsigned inputs, unsigned outputs,
++                               int classes, bool lane, bool trafficlight, int width, int height,
++                               const rknn_tensor_attr& input,
++                               const std::vector<rknn_tensor_attr>& attrs, quint64 serial) {
++    Session session;
++    session.context_serial = serial;
++    if (!opt_in(qgetenv("DET_V8_NATIVE").toStdString())) return session;
++    auto fallback = [&](const std::string& reason) {
++        report(model_path, serial, false, reason);
++        session.attrs.clear();
++        return session;
++    };
++    const int channels = input.n_dims == 4 ? static_cast<int>(
++        input.fmt == RKNN_TENSOR_NHWC ? input.dims[3] :
++        input.fmt == RKNN_TENSOR_NCHW ? input.dims[1] : 0) : 0;
++    if (!current_geometry_gate(trafficlight, width, height, channels))
++        return fallback("current native requires non-trafficlight 640x640 RGB3");
++    try {
++        Identity id;
++        id.model_sha = QCryptographicHash::hash(model_bytes, QCryptographicHash::Sha256).toHex().toStdString();
++        if (id.model_sha != kModelSha) return fallback("model SHA256 is outside pinned V8 profile");
++        id.inputs = inputs; id.outputs = outputs; id.classes = classes; id.lane = lane;
++        id.int8_input_override = qEnvironmentVariableIsSet("DET_INT8_IN");
++        if (inputs != 1 || outputs != 6 || classes != 3 || lane || id.int8_input_override)
++            return fallback("current input/model settings require existing float path");
++        std::string reason;
++        id.runtime_sha = hash_mapped_runtime(id.one_canonical_mapped_runtime, reason);
++        if (!id.one_canonical_mapped_runtime) return fallback(reason);
++        rknn_sdk_version version{};
++        const int ret = rknn_query(context, RKNN_QUERY_SDK_VERSION, &version, sizeof(version));
++        if (ret != RKNN_SUCC) return fallback("RKNN_QUERY_SDK_VERSION ret=" + std::to_string(ret));
++        if (!terminated(version.api_version, sizeof(version.api_version)) ||
++            !terminated(version.drv_version, sizeof(version.drv_version)))
++            return fallback("unterminated SDK/driver version");
++        id.api = version.api_version; id.driver = version.drv_version;
++        const auto decision = check_current_profile(true, id, input, attrs, trafficlight, width, height, channels);
++        if (!decision.enabled) return fallback(decision.reason);
++        session.attrs = attrs;
++        session.enabled = true;
++        report(model_path, serial, true, decision.reason);
++        return session;
++    } catch (const std::exception& e) { return fallback(e.what()); }
++      catch (...) { return fallback("unexpected native profile preparation failure"); }
++}
++} // namespace viewer_native

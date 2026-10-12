@@ -1,0 +1,68 @@
+{
+  "time": 1791319328.89495,
+  "map_gate": {
+    "status": "PENDING",
+    "reason": "map01 final_result.json absent",
+    "physical_start_allowed": false
+  },
+  "busy": [
+    {
+      "ProcessId": 4688,
+      "ParentProcessId": 56904,
+      "Name": "powershell.exe",
+      "CommandLine": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.EXE -NoLogo -NoProfile -NonInteractive -Command \"python -u project/fpga_v8_migration/board_v7/diagnostic_sync_register_map_01/run.py\""
+    },
+    {
+      "ProcessId": 49344,
+      "ParentProcessId": 4688,
+      "Name": "python.exe",
+      "CommandLine": "\"C:\\Users\\NineSun\\anaconda3\\python.exe\" -u project/fpga_v8_migration/board_v7/diagnostic_sync_register_map_01/run.py"
+    },
+    {
+      "ProcessId": 23608,
+      "ParentProcessId": 56904,
+      "Name": "powershell.exe",
+      "CommandLine": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.EXE -NoLogo -NoProfile -NonInteractive -Command \"$mappingExperiment = Get-CimInstance Win32_Process | Where-Object { $_.Name -eq 'python.exe' -and $_.CommandLine -match 'diagnostic_sync_register_map_01[/\\\\]run.py' }; if ($mappingExperiment) { Wait-Process -Id $mappingExperiment.ProcessId -ErrorAction SilentlyContinue }; python -u project/fpga_v8_migration/board_v7/diagnostic_sync_register_map_01/audit_final.py\""
+    },
+    {
+      "ProcessId": 48448,
+      "ParentProcessId": 56308,
+      "Name": "pds_shell.exe",
+      "CommandLine": "C:\\pango\\PDS_2022.2-SP6.4\\bin\\pds_shell.exe -file C:\\Users\\NineSun\\Desktop\\ov56401\\project\\fpga_v8_migration\\board_v7\\source_diagnostics_timing_build_01\\evidence\\compile_final_pnr\\export.tcl -work_dir C:\\Users\\NineSun\\Desktop\\ov56401\\project\\fpga_v8_migration\\board_v7\\source_diagnostics_timing_build_01\\evidence\\compile_final_pnr -project_name timing01_compile_final_pnr"
+    },
+    {
+      "ProcessId": 34304,
+      "ParentProcessId": 48448,
+      "Name": "pds_shell.exe",
+      "CommandLine": "C:\\pango\\PDS_2022.2-SP6.4\\bin\\pds_shell.exe  -shell_cmd .switch_db -input C:/Users/NineSun/Desktop/ov56401/project/fpga_v8_migration/board_v7/source_diagnostics_timing_build_01/compile/v7_sdt_top_comp.adf -output C:/Users/NineSun/Desktop/ov56401/project/fpga_v8_migration/board_v7/source_diagnostics_timing_build_01/evidence/compile_final_pnr/synthesis_export/synthesis_dump.txt -parent_process_key 48448"
+    }
+  ],
+  "observers_excluded": [
+    {
+      "ProcessId": 56904,
+      "ParentProcessId": 36736,
+      "Name": "opencode.exe",
+      "CommandLine": "C:\\Users\\NineSun\\.opencode\\bin\\opencode.exe serve --service"
+    },
+    {
+      "ProcessId": 79032,
+      "ParentProcessId": 56904,
+      "Name": "powershell.exe",
+      "CommandLine": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.EXE -NoLogo -NoProfile -NonInteractive -Command \"python -u 'project/fpga_v8_migration/board_v7/source_diagnostics_timing_build_02/runtime/controller02.py' --run *> 'project/fpga_v8_migration/board_v7/source_diagnostics_timing_build_02/evidence/runtime/controller02_console.log'\""
+    },
+    {
+      "ProcessId": 81360,
+      "ParentProcessId": 56904,
+      "Name": "powershell.exe",
+      "CommandLine": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.EXE -NoLogo -NoProfile -NonInteractive -Command \"Wait-Process -Id 57416,49344,11664 -ErrorAction SilentlyContinue; Get-Content 'project/fpga_v8_migration/board_v7/source_diagnostics_timing_build_02/evidence/runtime/actual_result.json' -ErrorAction SilentlyContinue; Get-Content 'project/fpga_v8_migration/board_v7/diagnostic_sync_register_map_01/evidence/final_result.json' -ErrorAction SilentlyContinue\""
+    },
+    {
+      "ProcessId": 65792,
+      "ParentProcessId": 56904,
+      "Name": "powershell.exe",
+      "CommandLine": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.EXE -NoLogo -NoProfile -NonInteractive -Command \"Wait-Process -Id 49344,11664,34224 -ErrorAction SilentlyContinue; python -u project/fpga_v8_migration/board_v7/physical_subagent_evidence_01/probe_stage_api19.py\""
+    }
+  ],
+  "map_controller_full_path": "diagnostic_sync_register_map_01/run.py or audit_final.py",
+  "policy": "No slot held while waiting; queued controller02 is not a prior blocker in map01"
+}

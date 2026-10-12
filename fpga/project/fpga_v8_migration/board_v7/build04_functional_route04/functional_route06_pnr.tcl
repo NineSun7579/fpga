@@ -1,0 +1,4 @@
+set_arch -family Logos2 -device PG2L100H -speedgrade -6 -package FBG484
+add_constraint {C:/Users/NineSun/Desktop/ov56401/project/fpga_v8_migration/board_v7/build04_functional_route04/functional_route06/work/device_map/v7_sdt_top.pcf}
+pnr -force_to_run -input_db_file {C:/Users/NineSun/Desktop/ov56401/project/fpga_v8_migration/board_v7/build04_functional_route04/functional_route06/work/device_map/v7_sdt_top_map.adf} -place_only -optimize_multi_corner_timing
+pnr -force_to_run -input_db_file {C:/Users/NineSun/Desktop/ov56401/project/fpga_v8_migration/board_v7/build04_functional_route04/functional_route06/work/place_route/v7_sdt_top_plc.adf} -optimize_multi_corner_timing -fix_hold_violation -fix_hold_violation_in_route TRUE -fix_hold_violation_iterations 12 -report_timing -max_hold_violated_paths_num 30000 -fix_hold_violation_threshold 100 -enable_route_constraint_iterate -route_constraint_iterate_times 3 -route_constraint_slack 0 -route_constraint_max_timing_path 32

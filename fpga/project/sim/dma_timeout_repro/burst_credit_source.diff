@@ -1,0 +1,247 @@
+--- source\top.v.burst_credit.bak
++++ source\top.v
+@@ -143,6 +143,7 @@
+ wire [2:0]                  ddr_axi_awprot     ;
+ wire [3:0]                  ddr_axi_awqos      ;
+ 
++wire [15:0] cam_s_data_available, cam2_s_data_available, cam3_s_data_available;
+ wire [AXI_DATA_LEN-1:0]     ddr_axi_wdata      /* synthesis PAP_MARK_DEBUG="true" */;
+ wire [AXI_DATA_LEN-1:0]     ddr_axi_wdata_ddr3      ;
+ wire [AXI_STRB_LEN-1:0]     ddr_axi_wstrb      /* synthesis PAP_MARK_DEBUG="true" */;
+@@ -1238,6 +1239,7 @@
+ 
+     //DMA?
+     .cam_dma_abort(cam_dma_abort),
++    .cam_s_data_available(cam_s_data_available),
+     .cam_dma_abort_req(cam_dma_abort_req),
+     .cam_dma_done(cam_dma_done),
+     .xdma_clk (pcie_clk) ,
+@@ -1360,6 +1362,7 @@
+     .cam_s_data_ready(cam2_s_data_ready),
+ 
+     .cam_dma_abort(cam2_dma_abort),
++    .cam_s_data_available(cam2_s_data_available),
+     .cam_dma_abort_req(cam2_dma_abort_req),
+     .cam_dma_done(cam2_dma_done),
+     .xdma_clk (pcie_clk),
+@@ -1430,6 +1433,7 @@
+     .cam_s_data_ready(cam3_s_data_ready),
+ 
+     .cam_dma_abort(cam3_dma_abort),
++    .cam_s_data_available(cam3_s_data_available),
+     .cam_dma_abort_req(cam3_dma_abort_req),
+     .cam_dma_done(cam3_dma_done),
+     .xdma_clk (pcie_clk),
+@@ -1530,11 +1534,13 @@
+ wire                    ov5640_axi_bready  /*synthesis PAP_MARK_DEBUG="1"*/;
+ 
+ axi_dma_write #(
++    .WAIT_FOR_DATA(1),
+ 	.BURST_LEN  (BURST_LEN)   ,
+ 	.ID_WIDTH   (AXI_ID_LEN)  ,
+ 	.DATA_WIDTH (AXI_DATA_LEN)
+ )
+ ov5640_axi_dma_write(
++    .data_in_available(cam_s_data_available),
+     .abort_req(cam_dma_abort_req),
+     .data_in_abort(cam_dma_abort),
+ 	.clk(axi_clk)                   ,
+@@ -1574,11 +1580,13 @@
+ );
+ 
+ axi_dma_write #(
++    .WAIT_FOR_DATA(1),
+ 	.BURST_LEN  (BURST_LEN)   ,
+ 	.ID_WIDTH   (AXI_ID_LEN)  ,
+ 	.DATA_WIDTH (AXI_DATA_LEN)
+ )
+ cam2_axi_dma_write(
++    .data_in_available(cam2_s_data_available),
+     .abort_req(cam2_dma_abort_req),
+     .data_in_abort(cam2_dma_abort),
+ 	.clk(axi_clk)                   ,
+@@ -1618,11 +1626,13 @@
+ );
+ 
+ axi_dma_write #(
++    .WAIT_FOR_DATA(1),
+ 	.BURST_LEN  (BURST_LEN)   ,
+ 	.ID_WIDTH   (AXI_ID_LEN)  ,
+ 	.DATA_WIDTH (AXI_DATA_LEN)
+ )
+ cam3_axi_dma_write(
++    .data_in_available(cam3_s_data_available),
+     .abort_req(cam3_dma_abort_req),
+     .data_in_abort(cam3_dma_abort),
+ 	.clk(axi_clk)                   ,
+@@ -1828,6 +1838,7 @@
+     .ID_WIDTH   (AXI_ID_LEN),
+     .DATA_WIDTH (AXI_DATA_LEN)
+ ) prep_axi_dma_write(
++    .data_in_available(16'd0),
+     .abort_req(1'b0),
+     .data_in_abort(),
+     .clk(axi_clk),
+--- source\axi_dma\axi_dma.v.burst_credit.bak
++++ source\axi_dma\axi_dma.v
+@@ -81,6 +81,7 @@
+         .DATA_WIDTH (DATA_WIDTH),
+         .KEEP_WIDTH (KEEP_WIDTH)	
+     ) axi_dma_write_inst(
++    .data_in_available(16'd0),
+     .abort_req(1'b0),
+     .data_in_abort(data_in_abort),
+     .clk            (clk),    // Clock
+--- source\axi_dma\axi_dma_write.v.burst_credit.bak
++++ source\axi_dma\axi_dma_write.v
+@@ -1,5 +1,6 @@
+ module axi_dma_write
+ 	#(
++		parameter WAIT_FOR_DATA = 0, // camera source supplies stored beat credits
+ 		parameter WD_LIMIT = 24'hFFFFFF,
+ 		parameter 		BURST_LEN 	= 8		,
+ 		parameter       ID_WIDTH  	= 4		,
+@@ -17,6 +18,7 @@
+ 	input			[ID_WIDTH - 1:0]    cmd_id          ,
+ 	output reg  	    				cmd_ready		,
+ 
++	input [15:0] data_in_available, // complete beats already stored upstream
+ 	input abort_req, // sticky source fault, held until retirement
+     output reg data_in_abort, // failed command, all AXI obligations retired
+ 
+@@ -150,6 +152,17 @@
+ 
+ reg burst_trans;
+ assign burst_len     = len > BURST_LEN ? BURST_LEN : len;
++// Do not reserve the shared DDR owner while waiting for future pixels.
++// Once advertised, AW remains irrevocable even if an abort arrives.
++wire source_burst_ready = !WAIT_FOR_DATA ||
++                         (data_in_valid && data_in_available >= max_burst_len);
++wire waiting_source = WAIT_FOR_DATA && trans && !burst_trans &&
++                      !m_axi_awvalid && (len != 0) && !source_burst_ready;
++reg [15:0] available_q;
++always @(posedge clk) begin
++    if(rst) available_q <= 0;
++    else available_q <= data_in_available;
++end
+ assign max_burst_len = (((addr & 12'hfff) + (burst_len << AXI_BURST_SIZE )) >> 12)  != 0 ? (13'h1000 - (addr & 12'hfff)) >> AXI_BURST_SIZE : burst_len;
+ always@(posedge clk)begin
+ 	if(rst == 1'b1)begin
+@@ -176,7 +189,7 @@
+ 			m_axi_awvalid <= 1'b0;
+ 		end
+ 		else begin
+-			if((trans == 1'b1) && (burst_trans == 1'b0) && (len != 32'd0) && (abort_r == 1'b0) && !abort_req)begin
++			if((trans == 1'b1) && (burst_trans == 1'b0) && (len != 32'd0) && (abort_r == 1'b0) && !abort_req && source_burst_ready)begin
+ 				m_axi_awvalid <= 1'b1;
+ 			end
+ 		end
+@@ -226,7 +239,12 @@
+ assign w_progress = (t_m_axi_wvalid == 1'b1) && (t_m_axi_wready == 1'b1);
+ 
+ always @(posedge clk) begin
+-	if((rst == 1'b1) || (burst_trans == 1'b0) || (abort_r == 1'b1) || (w_progress == 1'b1) || data_in_valid || !t_m_axi_wready)
++    if(rst || abort_r) wd_cnt <= 0;
++    else if(waiting_source) begin
++        if(data_in_available != available_q) wd_cnt <= 0;
++        else if(wd_cnt != 24'hFFFFFF) wd_cnt <= wd_cnt + 1'b1;
++    end
++    else if((rst == 1'b1) || (burst_trans == 1'b0) || (abort_r == 1'b1) || (w_progress == 1'b1) || data_in_valid || !t_m_axi_wready)
+ 		wd_cnt <= 24'd0;
+ 	else if(wd_cnt != 24'hFFFFFF)
+ 		wd_cnt <= wd_cnt + 24'd1;
+@@ -241,6 +259,8 @@
+         abort_r <= 1'b0;
+     else if(trans && abort_req)
+         abort_r <= 1'b1;
++    else if(waiting_source && (wd_cnt == WD_LIMIT))
++        abort_r <= 1'b1; // no AW exists: retire locally without owning DDR
+     else if(!abort_r && burst_trans && (act_burst_len != 0)
+             && !data_in_valid && t_m_axi_wready && !w_progress && (wd_cnt == WD_LIMIT))
+         abort_r <= 1'b1;
+--- source\ov5640\ov5640_top.v.burst_credit.bak
++++ source\ov5640\ov5640_top.v
+@@ -102,6 +102,7 @@
+     input                          video_rst      /*synthesis PAP_MARK_DEBUG="1"*/,
+     input                         cam_dma_abort,
+     output                        cam_dma_abort_req,
++    output [15:0]                 cam_s_data_available,
+     input                         cam_dma_done   ,  // [LEDGER 2026-09-19] DMA transaction-done pulse
+     output [AXI_ADDR_WIDTH-1 : 0]  cam_cmd_addr    /*synthesis PAP_MARK_DEBUG="1"*/,
+     output [AXI_LEN_WIDTH-1 : 0]   cam_cmd_len     /*synthesis PAP_MARK_DEBUG="1"*/,
+@@ -496,6 +497,7 @@
+         .dbg_input_pixels(diag_input_pixels),
+         .dma_abort      (cam_dma_abort),
+         .dma_abort_req  (cam_dma_abort_req),
++        .axi_data_available(cam_s_data_available),
+         .dma_done       (cam_dma_done),  // [LEDGER 2026-09-19]
+         .cam_data_addr_1(cam_addr_1),
+         .cam_data_addr_2(cam_addr_2),
+--- source\ov5640\ov5640_ddr\ov5640_ddr.v.burst_credit.bak
++++ source\ov5640\ov5640_ddr\ov5640_ddr.v
+@@ -10,6 +10,7 @@
+     input          axi_rst        , 
+     input          dma_abort,
+     output         dma_abort_req,
++    output [15:0] axi_data_available,
+     input          dma_done       ,  // [LEDGER 2026-09-19] DMA transaction-done pulse
+     input          axi_cam_en     ,      //锟斤拷锟斤拷头锟斤拷锟斤拷锟脚猴拷
+ 
+@@ -55,6 +56,7 @@
+     // [FRTAG 2026-09-14] frame-tag plumbing: the packer stream is detoured through
+     // w_* and the ctrl can substitute one counter beat during its DATA_TAG state.
+     wire [AXI_DATA_WIDTH-1 : 0] w_data  ;
++    wire [15:0] w_available;
+     wire                        w_valid ;
+     wire                        w_last  ;
+     wire                        w_ready ;
+@@ -174,6 +176,7 @@
+ 
+     .capture_flush (capture_flush),
+     .capture_overflow(capture_overflow),
++    .axi_data_available(w_available),
+     .data_len       (cam_data_len   ), //锟斤拷16锟街斤拷为锟斤拷位
+ 
+     .s_data         (m_data         ),
+@@ -193,6 +196,7 @@
+ 
+     // Only DATA may consume camera FIFO words. DATA_TAG presents one tag
+     // beat; WAIT_TAG_DONE presents no data and retains engine ownership.
++    assign axi_data_available = tag_active ? 16'd1 : (frame_active ? w_available : 16'd0);
+     assign axi_data       = tag_active ? tag_data : w_data;
+     assign axi_data_valid = tag_active | (frame_active & w_valid);
+     assign axi_data_last  = w_last;
+--- source\ov5640\ov5640_ddr\ov5640_ddr_w.v.burst_credit.bak
++++ source\ov5640\ov5640_ddr\ov5640_ddr_w.v
+@@ -8,6 +8,7 @@
+     input          axi_rst        ,
+     input          capture_flush,
+     output         capture_overflow,
++    output [15:0] axi_data_available,
+ 
+ 
+     input  [$clog2(CAM_DATA_LEN) : 0]  data_len       /*synthesis PAP_MARK_DEBUG="1"*/, //锟斤拷16锟街斤拷为锟斤拷位
+@@ -295,6 +296,23 @@
+ 
+ 
+     
++    // Stored credits span BOTH existing FIFOs and the DRM read pipeline.
++    // Count accepted 32-bit writes minus consumed AXI words; no new storage.
++    // Counting only the 16-deep output FIFO would deadlock at almost_full=15
++    // when the input is sparse and no DRM read is pending to fill slot 16.
++    localparam CREDIT_WORDS_PER_BEAT = AXI_DATA_WIDTH / 32;
++    reg [12:0] stored_words;
++    always @(posedge axi_clk) begin
++        if(local_rst) stored_words <= 0;
++        else case ({(wr_en && !full), rd_en})
++            2'b10: stored_words <= stored_words + 1'b1;
++            2'b01: stored_words <= stored_words - CREDIT_WORDS_PER_BEAT;
++            2'b11: stored_words <= stored_words - (CREDIT_WORDS_PER_BEAT-1);
++            default: stored_words <= stored_words;
++        endcase
++    end
++    assign axi_data_available = local_rst ? 16'd0 :
++                                stored_words / CREDIT_WORDS_PER_BEAT;
+     assign capture_overflow = !local_rst && ((wr_en && full) || (fifo_we && out_full));
+     assign dbg_axi_cnt = axi_cnt;
+     assign dbg_axi_num = axi_num;

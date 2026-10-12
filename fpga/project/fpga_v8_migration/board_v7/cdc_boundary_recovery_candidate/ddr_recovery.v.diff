@@ -1,0 +1,64 @@
+--- C:\Users\NineSun\Desktop\ov56401\project\fpga_v8_migration\whole_candidate_v7_route_01\rtl\ov5640_ddr_tc04.v
++++ ddr_recovery.v
+@@ -1,5 +1,5 @@
+ // Isolated actual V5 ov5640_ddr candidate. All dynamic interfaces retained.
+-module ov5640_ddr_tc04 #(
++module ddr_recovery #(
+     parameter DATA_WIDTH = 16,
+     parameter AXI_ADDR_WIDTH = 32,
+     parameter AXI_LEN_WIDTH = 32,
+@@ -10,6 +10,7 @@
+     input axi_clk,
+     input axi_rst,
+     input dma_abort,
++    input transport_abort,
+     output dma_abort_req,
+     output [15:0] axi_data_available,
+     input dma_done,
+@@ -65,9 +66,9 @@
+ wire raw_sof = s_vsync && !raw_vsync_q;
+ wire capture_overflow;
+ wire capture_complete = capture_open && (pixel_count == pixel_limit);
+-wire frame_good = capture_complete && !capture_bad && !capture_overflow;
+-wire capture_stop = capture_flush || capture_bad || capture_complete;
+-assign dma_abort_req = capture_bad;
++wire frame_good = capture_complete && !capture_bad && !capture_overflow && !transport_abort;
++wire capture_stop = capture_flush || capture_bad || capture_complete || transport_abort;
++assign dma_abort_req = capture_bad | transport_abort;
+ reg [15:0] diag_overflows, diag_shorts;
+ reg [31:0] diag_input_count;
+ wire diag_short = raw_sof && !capture_complete;
+@@ -102,7 +103,7 @@
+         raw_vsync_q <= 0;
+     end else begin
+         raw_vsync_q <= s_vsync;
+-        if(dma_abort || (dma_done && (!frame_active || !frame_good))) flush_count <= 4;
++        if(transport_abort || dma_abort || (dma_done && (!frame_active || !frame_good))) flush_count <= 4;
+         else if(capture_flush) flush_count <= flush_count - 1'b1;
+     end
+ end
+@@ -135,7 +136,7 @@
+         pixel_count[pixel_bit_tc04] <= (pixel_count[pixel_bit_tc04] ^ carry_tc04) & !pixel_clear_tc04;
+ end endgenerate
+ ov5640_ddr_w_en #(.DATA_WIDTH(DATA_WIDTH)) ov5640_ddr_w_en(
+-    .capture_stop(capture_stop), .engine_busy(engine_busy | capture_flush),
++    .capture_stop(capture_stop), .engine_busy(engine_busy | capture_flush | transport_abort),
+     .axi_clk(axi_clk), .axi_rst(axi_rst), .axi_cam_en(axi_cam_en), .frame_pending(xdma_req),
+     .s_data(s_data), .s_data_valid(s_data_valid), .s_hsync(s_hsync), .s_vsync(s_vsync),
+     .m_data(m_data), .m_data_valid(m_data_valid), .m_hsync(m_hsync), .m_vsync(m_vsync)
+@@ -154,13 +155,13 @@
+ assign axi_data_valid = tag_active | (frame_active & w_valid);
+ assign axi_data_last = w_last;
+ assign w_ready = axi_data_ready & frame_active;
+-ov5640_ddr_w_ctrl #(
++ddr_ctrl_recovery #(
+     .AXI_ADDR_WIDTH(AXI_ADDR_WIDTH), .AXI_LEN_WIDTH(AXI_LEN_WIDTH),
+     .AXI_DATA_WIDTH(AXI_DATA_WIDTH), .CAM_DATA_LEN(CAM_DATA_LEN)
+ ) ov5640_ddr_w_ctrl(
+     .axi_clk(axi_clk), .axi_rst(axi_rst),
+     .cam_data_addr_1(cam_data_addr_1), .cam_data_addr_2(cam_data_addr_2), .cam_data_len(cam_data_len),
+-    .s_vsync(m_vsync), .dma_abort(dma_abort), .frame_good(frame_good), .dma_done(dma_done),
++    .s_vsync(m_vsync), .dma_abort(dma_abort | transport_abort), .frame_good(frame_good), .dma_done(dma_done),
+     .axi_cmd_addr(axi_cmd_addr), .axi_cmd_len(axi_cmd_len), .axi_cmd_valid(axi_cmd_valid), .axi_cmd_ready(axi_cmd_ready),
+     .frame_active(frame_active), .tag_active(tag_active), .tag_data(tag_data), .tag_ready(axi_data_ready),
+     .engine_busy(engine_busy), .w_ping_o(w_ping_o), .dbg_state(dbg_state), .dbg_last_cnt(dbg_last_cnt),

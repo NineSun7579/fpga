@@ -1,0 +1,9 @@
+# 官方工程结构 twoFF 探针重试
+
+map03缺少_flow所需_comment，map04补该字段后仍在源文件登记处报Flow-0130。两次均未完成RTL编译，不能视为位置约束方法的物理失败；所有失败保留在原目录。
+
+本次使用实际成功的map02完整project.pds结构作为模板，改为单个twoff_probe.v和map03_twoff_probe顶层，将全部任务状态重置为0并改为对应局部输出名。所有RTL、clock.fdc、site.lcf、site参考和控制器与原map03逐字节一致；retry_binding.json记录模板和前次失败hash，prepared_hashes.json绑定本次输入。
+
+工程仅登记时钟约束；位置约束仍由未改动的控制器在dev_map前显式add_constraint，保持基线和site实验臂语义。两个臂的工程文本一致，位置文件差异保留。
+
+实际方法PASS依赖原生映射图的两个独立存储单元、端点/时钟/异步复位/INIT/GRS语义、PCF和FDC位置传递证据。即使PASS_METHOD_ONLY也不放行生产60级、最终时序/IO、bit或板级验证。

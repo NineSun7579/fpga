@@ -1,0 +1,14 @@
+sudo -n python3 -u - <<'DELIVERY10'
+from pathlib import Path
+assert Path("/proc/sys/kernel/random/boot_id").read_text().strip() == 'e91d0c8a-869b-4f70-bb68-dbdf78144852'
+import os,stat,hashlib,json
+p=Path('/userdata/detview-driving-demo/detview-driving-demo'); ledger=Path('/var/lib/fpga-recovery-actual06/admission.json')
+assert ledger.stat().st_uid==0 and not ledger.stat().st_mode & 0o077
+rows=json.loads(ledger.read_text()); assert len(rows)==1
+r=rows[0]; assert r['path']==str(p) and r['sha256']=='72cd352aba95fce2a9897fb3fefe7214940b080d3937a2c8bad8afa72f25a703' and r['original_mode']==0o755
+assert not p.is_symlink() and hashlib.sha256(p.read_bytes()).hexdigest()==r['sha256']
+os.chmod(p,420)
+assert stat.S_IMODE(p.stat().st_mode)==420
+print(json.dumps(dict(mode=oct(420),ledger=rows,sha256=r['sha256'],ledger_retained=True)))
+
+DELIVERY10

@@ -1,0 +1,380 @@
+
+/userdata/detview-driving-demo/detview-driving-demo：     文件格式 elf64-littleaarch64
+
+
+Disassembly of section .init:
+
+Disassembly of section .plt:
+
+Disassembly of section .text:
+
+0000000000032140 <_ZN15InferenceThread6decodeERKSt6vectorI12_rknn_outputSaIS1_EERKS0_I17_rknn_tensor_attrSaIS6_EE>:
+   32140:	a9ae7bfd 	stp	x29, x30, [sp, #-288]!
+   32144:	910003fd 	mov	x29, sp
+   32148:	a90153f3 	stp	x19, x20, [sp, #16]
+   3214c:	aa0803f4 	mov	x20, x8
+   32150:	a90363f7 	stp	x23, x24, [sp, #48]
+   32154:	b0000678 	adrp	x24, ff000 <_ZTIZN14VisionPipeline8selfTestEvEUlvE149_+0x8>
+   32158:	f9468718 	ldr	x24, [x24, #3336]
+   3215c:	f9000118 	str	x24, [x8]
+   32160:	91022003 	add	x3, x0, #0x88
+   32164:	88dffc65 	ldar	w5, [x3]
+   32168:	a9401023 	ldp	x3, x4, [x1]
+   3216c:	eb03009f 	cmp	x4, x3
+   32170:	54000b60 	b.eq	322dc <_ZN15InferenceThread6decodeERKSt6vectorI12_rknn_outputSaIS1_EERKS0_I17_rknn_tensor_attrSaIS6_EE+0x19c>  // b.none
+   32174:	6d0627e8 	stp	d8, d9, [sp, #96]
+   32178:	1e2700a8 	fmov	s8, w5
+   3217c:	aa0103f3 	mov	x19, x1
+   32180:	1e204100 	fmov	s0, s8
+   32184:	aa0803e3 	mov	x3, x8
+   32188:	a9025bf5 	stp	x21, x22, [sp, #32]
+   3218c:	aa0003f5 	mov	x21, x0
+   32190:	aa0203f6 	mov	x22, x2
+   32194:	97fffd83 	bl	317a0 <_ZN15InferenceThread12tryDecodeDflERKSt6vectorI12_rknn_outputSaIS1_EERKS0_I17_rknn_tensor_attrSaIS6_EEfR7QVectorI9DetectionE>
+   32198:	72001c00 	ands	w0, w0, #0xff
+   3219c:	540009c1 	b.ne	322d4 <_ZN15InferenceThread6decodeERKSt6vectorI12_rknn_outputSaIS1_EERKS0_I17_rknn_tensor_attrSaIS6_EE+0x194>  // b.any
+   321a0:	a9400667 	ldp	x7, x1, [x19]
+   321a4:	b201f3e2 	mov	x2, #0xaaaaaaaaaaaaaaaa    	// #-6148914691236517206
+   321a8:	f2955562 	movk	x2, #0xaaab
+   321ac:	cb070025 	sub	x5, x1, x7
+   321b0:	9343fca5 	asr	x5, x5, #3
+   321b4:	9b027ca5 	mul	x5, x5, x2
+   321b8:	eb07003f 	cmp	x1, x7
+   321bc:	540008c0 	b.eq	322d4 <_ZN15InferenceThread6decodeERKSt6vectorI12_rknn_outputSaIS1_EERKS0_I17_rknn_tensor_attrSaIS6_EE+0x194>  // b.none
+   321c0:	f94002c8 	ldr	x8, [x22]
+   321c4:	910020e7 	add	x7, x7, #0x8
+   321c8:	aa0703e3 	mov	x3, x7
+   321cc:	5280000c 	mov	w12, #0x0                   	// #0
+   321d0:	91001101 	add	x1, x8, #0x4
+   321d4:	d2800002 	mov	x2, #0x0                   	// #0
+   321d8:	5280000d 	mov	w13, #0x0                   	// #0
+   321dc:	5280000b 	mov	w11, #0x0                   	// #0
+   321e0:	d280000a 	mov	x10, #0x0                   	// #0
+   321e4:	d2800013 	mov	x19, #0x0                   	// #0
+   321e8:	52800016 	mov	w22, #0x0                   	// #0
+   321ec:	a9046bf9 	stp	x25, x26, [sp, #64]
+   321f0:	52800019 	mov	w25, #0x0                   	// #0
+   321f4:	1400000b 	b	32220 <_ZN15InferenceThread6decodeERKSt6vectorI12_rknn_outputSaIS1_EERKS0_I17_rknn_tensor_attrSaIS6_EE+0xe0>
+   321f8:	710010df 	cmp	w6, #0x4
+   321fc:	540007a0 	b.eq	322f0 <_ZN15InferenceThread6decodeERKSt6vectorI12_rknn_outputSaIS1_EERKS0_I17_rknn_tensor_attrSaIS6_EE+0x1b0>  // b.none
+   32200:	1a8692d6 	csel	w22, w22, w6, ls	// ls = plast
+   32204:	1a84916b 	csel	w11, w11, w4, ls	// ls = plast
+   32208:	9a89914a 	csel	x10, x10, x9, ls	// ls = plast
+   3220c:	91000442 	add	x2, x2, #0x1
+   32210:	9105e021 	add	x1, x1, #0x178
+   32214:	91006063 	add	x3, x3, #0x18
+   32218:	eb05005f 	cmp	x2, x5
+   3221c:	54000222 	b.cs	32260 <_ZN15InferenceThread6decodeERKSt6vectorI12_rknn_outputSaIS1_EERKS0_I17_rknn_tensor_attrSaIS6_EE+0x120>  // b.hs, b.nlast
+   32220:	b9400024 	ldr	w4, [x1]
+   32224:	71000c9f 	cmp	w4, #0x3
+   32228:	54ffff21 	b.ne	3220c <_ZN15InferenceThread6decodeERKSt6vectorI12_rknn_outputSaIS1_EERKS0_I17_rknn_tensor_attrSaIS6_EE+0xcc>  // b.any
+   3222c:	29411026 	ldp	w6, w4, [x1, #8]
+   32230:	f9400069 	ldr	x9, [x3]
+   32234:	7100189f 	cmp	w4, #0x6
+   32238:	54fffe01 	b.ne	321f8 <_ZN15InferenceThread6decodeERKSt6vectorI12_rknn_outputSaIS1_EERKS0_I17_rknn_tensor_attrSaIS6_EE+0xb8>  // b.any
+   3223c:	91000442 	add	x2, x2, #0x1
+   32240:	2a0603ed 	mov	w13, w6
+   32244:	aa0903f3 	mov	x19, x9
+   32248:	9105e021 	add	x1, x1, #0x178
+   3224c:	91006063 	add	x3, x3, #0x18
+   32250:	5280002c 	mov	w12, #0x1                   	// #1
+   32254:	eb05005f 	cmp	x2, x5
+   32258:	54fffe43 	b.cc	32220 <_ZN15InferenceThread6decodeERKSt6vectorI12_rknn_outputSaIS1_EERKS0_I17_rknn_tensor_attrSaIS6_EE+0xe0>  // b.lo, b.ul, b.last
+   3225c:	d503201f 	nop
+   32260:	f100027f 	cmp	x19, #0x0
+   32264:	52000181 	eor	w1, w12, #0x1
+   32268:	1a9f07e2 	cset	w2, ne	// ne = any
+   3226c:	72001c21 	ands	w1, w1, #0xff
+   32270:	7a401844 	ccmp	w2, #0x0, #0x4, ne	// ne = any
+   32274:	54000460 	b.eq	32300 <_ZN15InferenceThread6decodeERKSt6vectorI12_rknn_outputSaIS1_EERKS0_I17_rknn_tensor_attrSaIS6_EE+0x1c0>  // b.none
+   32278:	b40001a5 	cbz	x5, 322ac <_ZN15InferenceThread6decodeERKSt6vectorI12_rknn_outputSaIS1_EERKS0_I17_rknn_tensor_attrSaIS6_EE+0x16c>
+   3227c:	aa0803e1 	mov	x1, x8
+   32280:	d2800002 	mov	x2, #0x0                   	// #0
+   32284:	b9400423 	ldr	w3, [x1, #4]
+   32288:	71000c7f 	cmp	w3, #0x3
+   3228c:	54000dc1 	b.ne	32444 <_ZN15InferenceThread6decodeERKSt6vectorI12_rknn_outputSaIS1_EERKS0_I17_rknn_tensor_attrSaIS6_EE+0x304>  // b.any
+   32290:	f94000e3 	ldr	x3, [x7]
+   32294:	eb03027f 	cmp	x19, x3
+   32298:	54000d60 	b.eq	32444 <_ZN15InferenceThread6decodeERKSt6vectorI12_rknn_outputSaIS1_EERKS0_I17_rknn_tensor_attrSaIS6_EE+0x304>  // b.none
+   3229c:	b9401037 	ldr	w23, [x1, #16]
+   322a0:	6b1902ff 	cmp	w23, w25
+   322a4:	54000d01 	b.ne	32444 <_ZN15InferenceThread6decodeERKSt6vectorI12_rknn_outputSaIS1_EERKS0_I17_rknn_tensor_attrSaIS6_EE+0x304>  // b.any
+   322a8:	b5000b63 	cbnz	x3, 32414 <_ZN15InferenceThread6decodeERKSt6vectorI12_rknn_outputSaIS1_EERKS0_I17_rknn_tensor_attrSaIS6_EE+0x2d4>
+   322ac:	f100015f 	cmp	x10, #0x0
+   322b0:	7a441ac4 	ccmp	w22, #0x4, #0x4, ne	// ne = any
+   322b4:	54000c0d 	b.le	32434 <_ZN15InferenceThread6decodeERKSt6vectorI12_rknn_outputSaIS1_EERKS0_I17_rknn_tensor_attrSaIS6_EE+0x2f4>
+   322b8:	510012d6 	sub	w22, w22, #0x4
+   322bc:	2a0003ec 	mov	w12, w0
+   322c0:	2a0b03f9 	mov	w25, w11
+   322c4:	aa0a03f3 	mov	x19, x10
+   322c8:	52800022 	mov	w2, #0x1                   	// #1
+   322cc:	52800081 	mov	w1, #0x4                   	// #4
+   322d0:	14000011 	b	32314 <_ZN15InferenceThread6decodeERKSt6vectorI12_rknn_outputSaIS1_EERKS0_I17_rknn_tensor_attrSaIS6_EE+0x1d4>
+   322d4:	a9425bf5 	ldp	x21, x22, [sp, #32]
+   322d8:	6d4627e8 	ldp	d8, d9, [sp, #96]
+   322dc:	aa1403e0 	mov	x0, x20
+   322e0:	a94153f3 	ldp	x19, x20, [sp, #16]
+   322e4:	a94363f7 	ldp	x23, x24, [sp, #48]
+   322e8:	a8d27bfd 	ldp	x29, x30, [sp], #288
+   322ec:	d65f03c0 	ret
+   322f0:	f100027f 	cmp	x19, #0x0
+   322f4:	1a841339 	csel	w25, w25, w4, ne	// ne = any
+   322f8:	9a891273 	csel	x19, x19, x9, ne	// ne = any
+   322fc:	17ffffc4 	b	3220c <_ZN15InferenceThread6decodeERKSt6vectorI12_rknn_outputSaIS1_EERKS0_I17_rknn_tensor_attrSaIS6_EE+0xcc>
+   32300:	35001d01 	cbnz	w1, 326a0 <_ZN15InferenceThread6decodeERKSt6vectorI12_rknn_outputSaIS1_EERKS0_I17_rknn_tensor_attrSaIS6_EE+0x560>
+   32304:	52800016 	mov	w22, #0x0                   	// #0
+   32308:	52800001 	mov	w1, #0x0                   	// #0
+   3230c:	5280000b 	mov	w11, #0x0                   	// #0
+   32310:	d280000a 	mov	x10, #0x0                   	// #0
+   32314:	7100005f 	cmp	w2, #0x0
+   32318:	7a401984 	ccmp	w12, #0x0, #0x4, ne	// ne = any
+   3231c:	54001b80 	b.eq	3268c <_ZN15InferenceThread6decodeERKSt6vectorI12_rknn_outputSaIS1_EERKS0_I17_rknn_tensor_attrSaIS6_EE+0x54c>  // b.none
+   32320:	6d072fea 	stp	d10, d11, [sp, #112]
+   32324:	710001bf 	cmp	w13, #0x0
+   32328:	5400064d 	b.le	323f0 <_ZN15InferenceThread6decodeERKSt6vectorI12_rknn_outputSaIS1_EERKS0_I17_rknn_tensor_attrSaIS6_EE+0x2b0>
+   3232c:	52800315 	mov	w21, #0x18                  	// #24
+   32330:	d2efff00 	mov	x0, #0x7ff8000000000000    	// #9221120237041090560
+   32334:	0f00040a 	movi	v10.2s, #0x0
+   32338:	910303f6 	add	x22, sp, #0xc0
+   3233c:	9b354db5 	smaddl	x21, w13, w21, x19
+   32340:	9e670009 	fmov	d9, x0
+   32344:	b0000677 	adrp	x23, ff000 <_ZTIZN14VisionPipeline8selfTestEvEUlvE149_+0x8>
+   32348:	f94686f7 	ldr	x23, [x23, #3336]
+   3234c:	1400000b 	b	32378 <_ZN15InferenceThread6decodeERKSt6vectorI12_rknn_outputSaIS1_EERKS0_I17_rknn_tensor_attrSaIS6_EE+0x238>
+   32350:	3100041f 	cmn	w0, #0x1
+   32354:	540000c0 	b.eq	3236c <_ZN15InferenceThread6decodeERKSt6vectorI12_rknn_outputSaIS1_EERKS0_I17_rknn_tensor_attrSaIS6_EE+0x22c>  // b.none
+   32358:	aa1703e1 	mov	x1, x23
+   3235c:	12800000 	mov	w0, #0xffffffff            	// #-1
+   32360:	940212fc 	bl	b6f50 <__aarch64_ldadd4_acq_rel>
+   32364:	7100041f 	cmp	w0, #0x1
+   32368:	54000360 	b.eq	323d4 <_ZN15InferenceThread6decodeERKSt6vectorI12_rknn_outputSaIS1_EERKS0_I17_rknn_tensor_attrSaIS6_EE+0x294>  // b.none
+   3236c:	91006273 	add	x19, x19, #0x18
+   32370:	eb15027f 	cmp	x19, x21
+   32374:	540003e0 	b.eq	323f0 <_ZN15InferenceThread6decodeERKSt6vectorI12_rknn_outputSaIS1_EERKS0_I17_rknn_tensor_attrSaIS6_EE+0x2b0>  // b.none
+   32378:	bd401260 	ldr	s0, [x19, #16]
+   3237c:	1e282010 	fcmpe	s0, s8
+   32380:	54ffff64 	b.mi	3236c <_ZN15InferenceThread6decodeERKSt6vectorI12_rknn_outputSaIS1_EERKS0_I17_rknn_tensor_attrSaIS6_EE+0x22c>  // b.first
+   32384:	bd401661 	ldr	s1, [x19, #20]
+   32388:	aa1603e1 	mov	x1, x22
+   3238c:	2d401265 	ldp	s5, s4, [x19]
+   32390:	aa1403e0 	mov	x0, x20
+   32394:	2d410a63 	ldp	s3, s2, [x19, #8]
+   32398:	5ea1b821 	fcvtzs	s1, s1
+   3239c:	2d1913e5 	stp	s5, s4, [sp, #200]
+   323a0:	2d1a0be3 	stp	s3, s2, [sp, #208]
+   323a4:	2d1803e1 	stp	s1, s0, [sp, #192]
+   323a8:	f9006fff 	str	xzr, [sp, #216]
+   323ac:	bd00e3ea 	str	s10, [sp, #224]
+   323b0:	390393ff 	strb	wzr, [sp, #228]
+   323b4:	fd0077e9 	str	d9, [sp, #232]
+   323b8:	b900f3ff 	str	wzr, [sp, #240]
+   323bc:	a90fffff 	stp	xzr, xzr, [sp, #248]
+   323c0:	f90087f8 	str	x24, [sp, #264]
+   323c4:	390443ff 	strb	wzr, [sp, #272]
+   323c8:	97ffe7d2 	bl	2c310 <_ZN7QVectorI9DetectionE6appendERKS0_>
+   323cc:	b9400300 	ldr	w0, [x24]
+   323d0:	35fffc00 	cbnz	w0, 32350 <_ZN15InferenceThread6decodeERKSt6vectorI12_rknn_outputSaIS1_EERKS0_I17_rknn_tensor_attrSaIS6_EE+0x210>
+   323d4:	f94087e0 	ldr	x0, [sp, #264]
+   323d8:	d2800102 	mov	x2, #0x8                   	// #8
+   323dc:	d2800041 	mov	x1, #0x2                   	// #2
+   323e0:	91006273 	add	x19, x19, #0x18
+   323e4:	97ff7e07 	bl	11c00 <_ZN10QArrayData10deallocateEPS_mm@plt>
+   323e8:	eb15027f 	cmp	x19, x21
+   323ec:	54fffc61 	b.ne	32378 <_ZN15InferenceThread6decodeERKSt6vectorI12_rknn_outputSaIS1_EERKS0_I17_rknn_tensor_attrSaIS6_EE+0x238>  // b.any
+   323f0:	a9425bf5 	ldp	x21, x22, [sp, #32]
+   323f4:	aa1403e0 	mov	x0, x20
+   323f8:	a94153f3 	ldp	x19, x20, [sp, #16]
+   323fc:	a94363f7 	ldp	x23, x24, [sp, #48]
+   32400:	a9446bf9 	ldp	x25, x26, [sp, #64]
+   32404:	6d4627e8 	ldp	d8, d9, [sp, #96]
+   32408:	6d472fea 	ldp	d10, d11, [sp, #112]
+   3240c:	a8d27bfd 	ldp	x29, x30, [sp], #288
+   32410:	d65f03c0 	ret
+   32414:	b9400c36 	ldr	w22, [x1, #12]
+   32418:	52800001 	mov	w1, #0x0                   	// #0
+   3241c:	f100027f 	cmp	x19, #0x0
+   32420:	7a401b24 	ccmp	w25, #0x0, #0x4, ne	// ne = any
+   32424:	1a9fc7f8 	cset	w24, le
+   32428:	2a180018 	orr	w24, w0, w24
+   3242c:	72001f18 	ands	w24, w24, #0xff
+   32430:	54000220 	b.eq	32474 <_ZN15InferenceThread6decodeERKSt6vectorI12_rknn_outputSaIS1_EERKS0_I17_rknn_tensor_attrSaIS6_EE+0x334>  // b.none
+   32434:	a9425bf5 	ldp	x21, x22, [sp, #32]
+   32438:	a9446bf9 	ldp	x25, x26, [sp, #64]
+   3243c:	6d4627e8 	ldp	d8, d9, [sp, #96]
+   32440:	17ffffa7 	b	322dc <_ZN15InferenceThread6decodeERKSt6vectorI12_rknn_outputSaIS1_EERKS0_I17_rknn_tensor_attrSaIS6_EE+0x19c>
+   32444:	91000442 	add	x2, x2, #0x1
+   32448:	9105e021 	add	x1, x1, #0x178
+   3244c:	910060e7 	add	x7, x7, #0x18
+   32450:	eb05005f 	cmp	x2, x5
+   32454:	54fff181 	b.ne	32284 <_ZN15InferenceThread6decodeERKSt6vectorI12_rknn_outputSaIS1_EERKS0_I17_rknn_tensor_attrSaIS6_EE+0x144>  // b.any
+   32458:	f100015f 	cmp	x10, #0x0
+   3245c:	7a441ac4 	ccmp	w22, #0x4, #0x4, ne	// ne = any
+   32460:	54fff2cc 	b.gt	322b8 <_ZN15InferenceThread6decodeERKSt6vectorI12_rknn_outputSaIS1_EERKS0_I17_rknn_tensor_attrSaIS6_EE+0x178>
+   32464:	f100027f 	cmp	x19, #0x0
+   32468:	7a401804 	ccmp	w0, #0x0, #0x4, ne	// ne = any
+   3246c:	54fff5a1 	b.ne	32320 <_ZN15InferenceThread6decodeERKSt6vectorI12_rknn_outputSaIS1_EERKS0_I17_rknn_tensor_attrSaIS6_EE+0x1e0>  // b.any
+   32470:	17fffff1 	b	32434 <_ZN15InferenceThread6decodeERKSt6vectorI12_rknn_outputSaIS1_EERKS0_I17_rknn_tensor_attrSaIS6_EE+0x2f4>
+   32474:	710002df 	cmp	w22, #0x0
+   32478:	54fffded 	b.le	32434 <_ZN15InferenceThread6decodeERKSt6vectorI12_rknn_outputSaIS1_EERKS0_I17_rknn_tensor_attrSaIS6_EE+0x2f4>
+   3247c:	b9406aa0 	ldr	w0, [x21, #104]
+   32480:	a90573fb 	stp	x27, x28, [sp, #80]
+   32484:	6d072fea 	stp	d10, d11, [sp, #112]
+   32488:	7100001f 	cmp	w0, #0x0
+   3248c:	5400006d 	b.le	32498 <_ZN15InferenceThread6decodeERKSt6vectorI12_rknn_outputSaIS1_EERKS0_I17_rknn_tensor_attrSaIS6_EE+0x358>
+   32490:	6b0002df 	cmp	w22, w0
+   32494:	1a80d2d6 	csel	w22, w22, w0, le
+   32498:	9b377c3b 	smull	x27, w1, w23
+   3249c:	710002ff 	cmp	w23, #0x0
+   324a0:	5400036d 	b.le	3250c <_ZN15InferenceThread6decodeERKSt6vectorI12_rknn_outputSaIS1_EERKS0_I17_rknn_tensor_attrSaIS6_EE+0x3cc>
+   324a4:	8b1b0862 	add	x2, x3, x27, lsl #2
+   324a8:	528d6501 	mov	w1, #0x6b28                	// #27432
+   324ac:	72a9cdc1 	movk	w1, #0x4e6e, lsl #16
+   324b0:	528d6500 	mov	w0, #0x6b28                	// #27432
+   324b4:	d1001042 	sub	x2, x2, #0x4
+   324b8:	72b9cdc0 	movk	w0, #0xce6e, lsl #16
+   324bc:	1e270022 	fmov	s2, w1
+   324c0:	1e270001 	fmov	s1, w0
+   324c4:	d2800021 	mov	x1, #0x1                   	// #1
+   324c8:	bc617840 	ldr	s0, [x2, x1, lsl #2]
+   324cc:	1e202030 	fcmpe	s1, s0
+   324d0:	54000da4 	b.mi	32684 <_ZN15InferenceThread6decodeERKSt6vectorI12_rknn_outputSaIS1_EERKS0_I17_rknn_tensor_attrSaIS6_EE+0x544>  // b.first
+   324d4:	1e202050 	fcmpe	s2, s0
+   324d8:	54000d2c 	b.gt	3267c <_ZN15InferenceThread6decodeERKSt6vectorI12_rknn_outputSaIS1_EERKS0_I17_rknn_tensor_attrSaIS6_EE+0x53c>
+   324dc:	2a0103e0 	mov	w0, w1
+   324e0:	710f9c3f 	cmp	w1, #0x3e7
+   324e4:	7a57d000 	ccmp	w0, w23, #0x0, le
+   324e8:	91000421 	add	x1, x1, #0x1
+   324ec:	54fffeeb 	b.lt	324c8 <_ZN15InferenceThread6decodeERKSt6vectorI12_rknn_outputSaIS1_EERKS0_I17_rknn_tensor_attrSaIS6_EE+0x388>  // b.tstop
+   324f0:	1e2f1000 	fmov	s0, #1.500000000000000000e+00
+   324f4:	52800038 	mov	w24, #0x1                   	// #1
+   324f8:	1e202030 	fcmpe	s1, s0
+   324fc:	5400008c 	b.gt	3250c <_ZN15InferenceThread6decodeERKSt6vectorI12_rknn_outputSaIS1_EERKS0_I17_rknn_tensor_attrSaIS6_EE+0x3cc>
+   32500:	1e3c1000 	fmov	s0, #-5.000000000000000000e-01
+   32504:	1e202050 	fcmpe	s2, s0
+   32508:	1a9f57f8 	cset	w24, mi	// mi = first
+   3250c:	531f7b20 	lsl	w0, w25, #1
+   32510:	937e7ef7 	sbfiz	x23, x23, #2, #32
+   32514:	b90093e0 	str	w0, [sp, #144]
+   32518:	0b190000 	add	w0, w0, w25
+   3251c:	8b1b0861 	add	x1, x3, x27, lsl #2
+   32520:	1e2e100a 	fmov	s10, #1.000000000000000000e+00
+   32524:	1e2c100b 	fmov	s11, #5.000000000000000000e-01
+   32528:	a9087fe1 	stp	x1, xzr, [sp, #128]
+   3252c:	b90097e0 	str	w0, [sp, #148]
+   32530:	910283e0 	add	x0, sp, #0xa0
+   32534:	f9004fe0 	str	x0, [sp, #152]
+   32538:	a90a7fff 	stp	xzr, xzr, [sp, #160]
+   3253c:	f9005bff 	str	xzr, [sp, #176]
+   32540:	f94043fa 	ldr	x26, [sp, #128]
+   32544:	5280001b 	mov	w27, #0x0                   	// #0
+   32548:	1280001c 	mov	w28, #0xffffffff            	// #-1
+   3254c:	1e3e1009 	fmov	s9, #-1.000000000000000000e+00
+   32550:	14000007 	b	3256c <_ZN15InferenceThread6decodeERKSt6vectorI12_rknn_outputSaIS1_EERKS0_I17_rknn_tensor_attrSaIS6_EE+0x42c>
+   32554:	1e292010 	fcmpe	s0, s9
+   32558:	5400018c 	b.gt	32588 <_ZN15InferenceThread6decodeERKSt6vectorI12_rknn_outputSaIS1_EERKS0_I17_rknn_tensor_attrSaIS6_EE+0x448>
+   3255c:	1100077b 	add	w27, w27, #0x1
+   32560:	8b17035a 	add	x26, x26, x23
+   32564:	6b16037f 	cmp	w27, w22
+   32568:	540001c0 	b.eq	325a0 <_ZN15InferenceThread6decodeERKSt6vectorI12_rknn_outputSaIS1_EERKS0_I17_rknn_tensor_attrSaIS6_EE+0x460>  // b.none
+   3256c:	bd400340 	ldr	s0, [x26]
+   32570:	34ffff38 	cbz	w24, 32554 <_ZN15InferenceThread6decodeERKSt6vectorI12_rknn_outputSaIS1_EERKS0_I17_rknn_tensor_attrSaIS6_EE+0x414>
+   32574:	1e214000 	fneg	s0, s0
+   32578:	97ff8216 	bl	12dd0 <expf@plt>
+   3257c:	1e2a2800 	fadd	s0, s0, s10
+   32580:	1e201940 	fdiv	s0, s10, s0
+   32584:	17fffff4 	b	32554 <_ZN15InferenceThread6decodeERKSt6vectorI12_rknn_outputSaIS1_EERKS0_I17_rknn_tensor_attrSaIS6_EE+0x414>
+   32588:	2a1b03fc 	mov	w28, w27
+   3258c:	1100077b 	add	w27, w27, #0x1
+   32590:	1e204009 	fmov	s9, s0
+   32594:	8b17035a 	add	x26, x26, x23
+   32598:	6b16037f 	cmp	w27, w22
+   3259c:	54fffe81 	b.ne	3256c <_ZN15InferenceThread6decodeERKSt6vectorI12_rknn_outputSaIS1_EERKS0_I17_rknn_tensor_attrSaIS6_EE+0x42c>  // b.any
+   325a0:	1e282130 	fcmpe	s9, s8
+   325a4:	54000424 	b.mi	32628 <_ZN15InferenceThread6decodeERKSt6vectorI12_rknn_outputSaIS1_EERKS0_I17_rknn_tensor_attrSaIS6_EE+0x4e8>  // b.first
+   325a8:	37f8041c 	tbnz	w28, #31, 32628 <_ZN15InferenceThread6decodeERKSt6vectorI12_rknn_outputSaIS1_EERKS0_I17_rknn_tensor_attrSaIS6_EE+0x4e8>
+   325ac:	f94047e2 	ldr	x2, [sp, #136]
+   325b0:	b94093e0 	ldr	w0, [sp, #144]
+   325b4:	3941b2a4 	ldrb	w4, [x21, #108]
+   325b8:	0b020323 	add	w3, w25, w2
+   325bc:	0b020001 	add	w1, w0, w2
+   325c0:	b94097e0 	ldr	w0, [sp, #148]
+   325c4:	bc627a63 	ldr	s3, [x19, x2, lsl #2]
+   325c8:	0b020000 	add	w0, w0, w2
+   325cc:	bc63da62 	ldr	s2, [x19, w3, sxtw #2]
+   325d0:	bc61da61 	ldr	s1, [x19, w1, sxtw #2]
+   325d4:	bc60da60 	ldr	s0, [x19, w0, sxtw #2]
+   325d8:	350000e4 	cbnz	w4, 325f4 <_ZN15InferenceThread6decodeERKSt6vectorI12_rknn_outputSaIS1_EERKS0_I17_rknn_tensor_attrSaIS6_EE+0x4b4>
+   325dc:	1f0b8c25 	fmsub	s5, s1, s11, s3
+   325e0:	1f0b8804 	fmsub	s4, s0, s11, s2
+   325e4:	1f0b0c21 	fmadd	s1, s1, s11, s3
+   325e8:	1f0b0800 	fmadd	s0, s0, s11, s2
+   325ec:	1e2040a3 	fmov	s3, s5
+   325f0:	1e204082 	fmov	s2, s4
+   325f4:	a94a83e1 	ldp	x1, x0, [sp, #168]
+   325f8:	2d180fe9 	stp	s9, s3, [sp, #192]
+   325fc:	2d1907e2 	stp	s2, s1, [sp, #200]
+   32600:	bd00d3e0 	str	s0, [sp, #208]
+   32604:	b900d7fc 	str	w28, [sp, #212]
+   32608:	eb00003f 	cmp	x1, x0
+   3260c:	540004e0 	b.eq	326a8 <_ZN15InferenceThread6decodeERKSt6vectorI12_rknn_outputSaIS1_EERKS0_I17_rknn_tensor_attrSaIS6_EE+0x568>  // b.none
+   32610:	a94c0fe2 	ldp	x2, x3, [sp, #192]
+   32614:	91006024 	add	x4, x1, #0x18
+   32618:	f9406be0 	ldr	x0, [sp, #208]
+   3261c:	a9000c22 	stp	x2, x3, [x1]
+   32620:	f9000820 	str	x0, [x1, #16]
+   32624:	f90057e4 	str	x4, [sp, #168]
+   32628:	a94803e1 	ldp	x1, x0, [sp, #128]
+   3262c:	91000400 	add	x0, x0, #0x1
+   32630:	91001021 	add	x1, x1, #0x4
+   32634:	a90803e1 	stp	x1, x0, [sp, #128]
+   32638:	6b00033f 	cmp	w25, w0
+   3263c:	54fff82c 	b.gt	32540 <_ZN15InferenceThread6decodeERKSt6vectorI12_rknn_outputSaIS1_EERKS0_I17_rknn_tensor_attrSaIS6_EE+0x400>
+   32640:	f9404fe1 	ldr	x1, [sp, #152]
+   32644:	aa1403e0 	mov	x0, x20
+   32648:	52800002 	mov	w2, #0x0                   	// #0
+   3264c:	97fff915 	bl	30aa0 <_ZN15InferenceThread9nmsAppendER7QVectorI9DetectionERSt6vectorINS_5CandDESaIS5_EEb>
+   32650:	f94053e0 	ldr	x0, [sp, #160]
+   32654:	b4000080 	cbz	x0, 32664 <_ZN15InferenceThread6decodeERKSt6vectorI12_rknn_outputSaIS1_EERKS0_I17_rknn_tensor_attrSaIS6_EE+0x524>
+   32658:	f9405be1 	ldr	x1, [sp, #176]
+   3265c:	cb000021 	sub	x1, x1, x0
+   32660:	97ff7c1c 	bl	116d0 <_ZdlPvm@plt>
+   32664:	a9425bf5 	ldp	x21, x22, [sp, #32]
+   32668:	a9446bf9 	ldp	x25, x26, [sp, #64]
+   3266c:	a94573fb 	ldp	x27, x28, [sp, #80]
+   32670:	6d4627e8 	ldp	d8, d9, [sp, #96]
+   32674:	6d472fea 	ldp	d10, d11, [sp, #112]
+   32678:	17ffff19 	b	322dc <_ZN15InferenceThread6decodeERKSt6vectorI12_rknn_outputSaIS1_EERKS0_I17_rknn_tensor_attrSaIS6_EE+0x19c>
+   3267c:	1e204002 	fmov	s2, s0
+   32680:	17ffff97 	b	324dc <_ZN15InferenceThread6decodeERKSt6vectorI12_rknn_outputSaIS1_EERKS0_I17_rknn_tensor_attrSaIS6_EE+0x39c>
+   32684:	1e204001 	fmov	s1, s0
+   32688:	17ffff93 	b	324d4 <_ZN15InferenceThread6decodeERKSt6vectorI12_rknn_outputSaIS1_EERKS0_I17_rknn_tensor_attrSaIS6_EE+0x394>
+   3268c:	f100015f 	cmp	x10, #0x0
+   32690:	2a0b03f7 	mov	w23, w11
+   32694:	aa0a03e3 	mov	x3, x10
+   32698:	1a9f17e0 	cset	w0, eq	// eq = none
+   3269c:	17ffff60 	b	3241c <_ZN15InferenceThread6decodeERKSt6vectorI12_rknn_outputSaIS1_EERKS0_I17_rknn_tensor_attrSaIS6_EE+0x2dc>
+   326a0:	2a0c03e0 	mov	w0, w12
+   326a4:	17ffff6d 	b	32458 <_ZN15InferenceThread6decodeERKSt6vectorI12_rknn_outputSaIS1_EERKS0_I17_rknn_tensor_attrSaIS6_EE+0x318>
+   326a8:	f9404fe0 	ldr	x0, [sp, #152]
+   326ac:	910303e2 	add	x2, sp, #0xc0
+   326b0:	97fffbe0 	bl	31630 <_ZNSt6vectorIN15InferenceThread5CandDESaIS1_EE17_M_realloc_insertIJS1_EEEvN9__gnu_cxx17__normal_iteratorIPS1_S3_EEDpOT_>
+   326b4:	17ffffdd 	b	32628 <_ZN15InferenceThread6decodeERKSt6vectorI12_rknn_outputSaIS1_EERKS0_I17_rknn_tensor_attrSaIS6_EE+0x4e8>
+   326b8:	aa0003f3 	mov	x19, x0
+   326bc:	f9404fe0 	ldr	x0, [sp, #152]
+   326c0:	97ffd4e4 	bl	27a50 <_ZNSt12_Vector_baseIN15InferenceThread5CandDESaIS1_EED1Ev>
+   326c4:	aa1403e0 	mov	x0, x20
+   326c8:	97ffd38a 	bl	274f0 <_ZN7QVectorI9DetectionED1Ev>
+   326cc:	aa1303e0 	mov	x0, x19
+   326d0:	97ff7e04 	bl	11ee0 <_Unwind_Resume@plt>
+   326d4:	aa0003f3 	mov	x19, x0
+   326d8:	910423e0 	add	x0, sp, #0x108
+   326dc:	97ffb7c5 	bl	205f0 <_ZN7QStringD1Ev>
+   326e0:	a90573fb 	stp	x27, x28, [sp, #80]
+   326e4:	17fffff8 	b	326c4 <_ZN15InferenceThread6decodeERKSt6vectorI12_rknn_outputSaIS1_EERKS0_I17_rknn_tensor_attrSaIS6_EE+0x584>
+   326e8:	aa0003f3 	mov	x19, x0
+   326ec:	a9046bf9 	stp	x25, x26, [sp, #64]
+   326f0:	a90573fb 	stp	x27, x28, [sp, #80]
+   326f4:	6d072fea 	stp	d10, d11, [sp, #112]
+   326f8:	17fffff3 	b	326c4 <_ZN15InferenceThread6decodeERKSt6vectorI12_rknn_outputSaIS1_EERKS0_I17_rknn_tensor_attrSaIS6_EE+0x584>
+
+Disassembly of section .fini:

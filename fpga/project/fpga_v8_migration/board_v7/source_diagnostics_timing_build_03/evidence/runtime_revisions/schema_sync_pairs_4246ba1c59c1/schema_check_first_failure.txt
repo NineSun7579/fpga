@@ -1,0 +1,30 @@
+Traceback (most recent call last):
+  File "C:\Users\NineSun\Desktop\ov56401\project\fpga_v8_migration\board_v7\source_diagnostics_timing_build_03\runtime\controller03.py", line 145, in <module>
+    if a.prepare:prepare()
+                 ^^^^^^^^^
+  File "C:\Users\NineSun\Desktop\ov56401\project\fpga_v8_migration\board_v7\source_diagnostics_timing_build_03\runtime\controller03.py", line 50, in prepare
+    checks=check();save('offline_runtime_checks.json',checks)
+           ^^^^^^^
+  File "C:\Users\NineSun\Desktop\ov56401\project\fpga_v8_migration\board_v7\source_diagnostics_timing_build_03\runtime\offline_checks.py", line 64, in check
+    required=next(ast.literal_eval(n.value) for n in tree.body if isinstance(n,ast.Assign) and any(isinstance(t,ast.Name) and t.id=='AUDIT_ROLES' for t in n.targets))
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\NineSun\Desktop\ov56401\project\fpga_v8_migration\board_v7\source_diagnostics_timing_build_03\runtime\offline_checks.py", line 64, in <genexpr>
+    required=next(ast.literal_eval(n.value) for n in tree.body if isinstance(n,ast.Assign) and any(isinstance(t,ast.Name) and t.id=='AUDIT_ROLES' for t in n.targets))
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\NineSun\anaconda3\Lib\ast.py", line 112, in literal_eval
+    return _convert(node_or_string)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\NineSun\anaconda3\Lib\ast.py", line 94, in _convert
+    return set(map(_convert, node.elts))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\NineSun\anaconda3\Lib\ast.py", line 111, in _convert
+    return _convert_signed_num(node)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\NineSun\anaconda3\Lib\ast.py", line 85, in _convert_signed_num
+    return _convert_num(node)
+           ^^^^^^^^^^^^^^^^^^
+  File "C:\Users\NineSun\anaconda3\Lib\ast.py", line 76, in _convert_num
+    _raise_malformed_node(node)
+  File "C:\Users\NineSun\anaconda3\Lib\ast.py", line 73, in _raise_malformed_node
+    raise ValueError(msg + f': {node!r}')
+ValueError: malformed node or string on line 20: <ast.Starred object at 0x0000020EBA623690>

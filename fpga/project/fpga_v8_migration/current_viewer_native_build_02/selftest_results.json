@@ -1,0 +1,36 @@
+[
+  {
+    "argv": [
+      "/userdata/linaro/fpga_v8_viewer_binding_20261005_native_build_02_2597e95edba5/detview-native-current-candidate",
+      "--dfl-selftest"
+    ],
+    "environment": {
+      "QT_QPA_PLATFORM": "offscreen",
+      "XDG_RUNTIME_DIR": "/userdata/linaro/fpga_v8_viewer_binding_20261005_native_build_02_2597e95edba5/qt-runtime",
+      "XDG_CACHE_HOME": "/userdata/linaro/fpga_v8_viewer_binding_20261005_native_build_02_2597e95edba5/qt-cache",
+      "XDG_CONFIG_HOME": "/userdata/linaro/fpga_v8_viewer_binding_20261005_native_build_02_2597e95edba5/qt-config"
+    },
+    "rc": 0,
+    "stdout": "",
+    "stderr": "[dfl-selftest] got n=1 box=(156.0,68.0,188.0,116.0) score=0.90 cls=0\n[dfl-selftest] expect box=(156.0,68.0,188.0,116.0) score=0.90\n[dfl-selftest] got n=1 box=(156.0,68.0,188.0,116.0) score=0.90 cls=0\n[dfl-selftest] expect box=(156.0,68.0,188.0,116.0) score=0.90\nDFL_SELFTEST_PASS\n",
+    "ok_diagnostics": 0,
+    "fail_diagnostics": 0
+  },
+  {
+    "argv": [
+      "/userdata/linaro/fpga_v8_viewer_binding_20261005_native_build_02_2597e95edba5/detview-native-current-candidate",
+      "--trafficlight-selftest"
+    ],
+    "environment": {
+      "QT_QPA_PLATFORM": "offscreen",
+      "XDG_RUNTIME_DIR": "/userdata/linaro/fpga_v8_viewer_binding_20261005_native_build_02_2597e95edba5/qt-runtime",
+      "XDG_CACHE_HOME": "/userdata/linaro/fpga_v8_viewer_binding_20261005_native_build_02_2597e95edba5/qt-cache",
+      "XDG_CONFIG_HOME": "/userdata/linaro/fpga_v8_viewer_binding_20261005_native_build_02_2597e95edba5/qt-config"
+    },
+    "rc": 0,
+    "stdout": "",
+    "stderr": "[ok] RKNN NHWC rectangular dimensions set exact byte count and crop\n[ok] RKNN NCHW square dimensions preserve legacy geometry\n[ok] NCHW rectangular input is also understood\n[ok] non RGB input fails closed\n[ok] unsupported network height fails closed\n[ok] batch greater than one fails closed\n[ok] unknown tensor format fails closed\n[ok] canonical crop and raw fallback preserve every RGB pixel without resize\n[ok] square models retain exactly 80 gray rows each side\n[ok] square RGB fast path keeps shared image buffer\n[ok] non RGB888 canonical frames convert then crop correctly\n[ok] unexpected source geometry and empty frames fail closed\n[ok] emission restores y+80 exactly once and leaves x unchanged\n[ok] camera viewer subtracts canonical 80 to recover capture y\n[ok] square model restoration is identity\n[ok] HDMI keeps 640x360 content with 60 rows of network padding, both halves intact\n[ok] HDMI viewer y-140 maps restored cross-seam box onto 1280x480 transport\nINFERENCE_GEOMETRY_SELFTEST_PASS\n[ok] trafficlight metadata retains all 16 stable class IDs\n[ok] shuffled raw DFL6 box64/cls16 shapes are accepted\n[ok] class count mismatch is rejected before inference\n[ok] unsupported output layout fails closed\n[ok] duplicate head and missing scale are rejected\n[ok] inconsistent output element count is rejected\n[ok] production decoder preserves overlapping different classes and suppresses same class\n[ok] class 15 logits use sigmoid and regmax16 DFL at stride 8\n[ok] rectangular grids decode stride 16 and 32 without square-height scaling\n[ok] production decode result returns to canonical viewer space\n[ok] trafficlight NMS is class aware; legacy default remains class agnostic\n[ok] production decoder retains lower-score distinct detection after more than 300 candidates\nTRAFFICLIGHT_DECODER_SELFTEST_PASS\nTRAFFICLIGHT_SELFTEST_PASS\n",
+    "ok_diagnostics": 29,
+    "fail_diagnostics": 0
+  }
+]

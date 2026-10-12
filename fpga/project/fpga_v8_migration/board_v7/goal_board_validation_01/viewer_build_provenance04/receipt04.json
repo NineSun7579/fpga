@@ -1,0 +1,44 @@
+{
+  "host": "192.168.10.203",
+  "captured_utc": "2026-10-07T00:10:33.461556+00:00",
+  "operations": [
+    {
+      "command": "date -u; uname -a; id",
+      "exit_code": 0,
+      "stdout_file": "remote_readonly04_00.stdout.txt",
+      "stderr_file": "remote_readonly04_00.stderr.txt",
+      "stdout_sha256": "d125958d6865e9e8d11b3b5ddcdeb97e03869ba3e7e3d89eed8bb4034486689f"
+    },
+    {
+      "command": "find /userdata/detview-driving-demo /userdata/linaro/detview-driving-demo-src -maxdepth 5 -type f -printf '%p\\t%s\\t%TY-%Tm-%TdT%TH:%TM:%TS\\n' 2>&1",
+      "exit_code": 0,
+      "stdout_file": "remote_readonly04_01.stdout.txt",
+      "stderr_file": "remote_readonly04_01.stderr.txt",
+      "stdout_sha256": "37abb661c0ca43fda0d6ff4e36e4e02e9cb86e66bb84ac8feaa1234237dcd430"
+    },
+    {
+      "command": "sha256sum /userdata/detview-driving-demo/detview-driving-demo /userdata/linaro/detview-driving-demo-src/main.cpp; stat /userdata/detview-driving-demo/detview-driving-demo /userdata/linaro/detview-driving-demo-src/main.cpp",
+      "exit_code": 0,
+      "stdout_file": "remote_readonly04_02.stdout.txt",
+      "stderr_file": "remote_readonly04_02.stderr.txt",
+      "stdout_sha256": "164ba387ff0ee5ed2e3e271edb3771b4ea2ca4bedf62499674f1aefd51b58cc3"
+    },
+    {
+      "command": "command -v readelf; command -v cmake; command -v c++; readelf -n /userdata/detview-driving-demo/detview-driving-demo; readelf -p .comment /userdata/detview-driving-demo/detview-driving-demo; readelf -d /userdata/detview-driving-demo/detview-driving-demo; readelf -S /userdata/detview-driving-demo/detview-driving-demo",
+      "exit_code": 0,
+      "stdout_file": "remote_readonly04_03.stdout.txt",
+      "stderr_file": "remote_readonly04_03.stderr.txt",
+      "stdout_sha256": "33acd17a28252f55588993cd3ec9bd765343030126fb64342e880f714c6e36bd"
+    },
+    {
+      "command": "find /userdata -maxdepth 4 -type f \\( -name '*receipt*' -o -name '*build*.log' -o -name '*deploy*.log' -o -name 'CMakeCache.txt' -o -name 'compile_commands.json' -o -name '*driving*.sh' \\) -print 2>&1",
+      "exit_code": 1,
+      "stdout_file": "remote_readonly04_04.stdout.txt",
+      "stderr_file": "remote_readonly04_04.stderr.txt",
+      "stdout_sha256": "54f1c3377915e5598abf46dc645378bf7ed5e2a654a42bd73e453f6e445684ad"
+    }
+  ],
+  "viewer_executed": false,
+  "device_opened": false,
+  "build_or_deploy_executed": false
+}

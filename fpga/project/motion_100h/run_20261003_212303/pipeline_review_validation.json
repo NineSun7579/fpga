@@ -1,0 +1,84 @@
+{
+  "review_sha256": "e91519ed023d90cf5b40de46fb7dbee685ef11cfbd5407210ed00ecd4941f08b",
+  "listed_file_hashes_verified": 8,
+  "quotes_verified": 4875,
+  "scope_verified": true,
+  "remaining": [
+    {
+      "requirement": "Arithmetic absolute difference / RGB565 luma",
+      "reason": "Actual current_q AQ and difference arithmetic carry/subtract operators preserved as witnesses; operator semantics not decoded by scalar LUT evaluator."
+    },
+    {
+      "requirement": "Adapter core_start/core_valid complete fire/overflow cone",
+      "reason": "19 clock/reset-aligned tuple registers verified; RGB/end data verified relative to N77. CAM1/3/4 N77 is gopA MODE=XOR and requires operator Y/carry semantics. Start/valid complete predicates have not been exhaustively compared."
+    },
+    {
+      "requirement": "Complete-frame end predicate and all result capture gates",
+      "reason": "Mapped end_pending->publish_pending SRQ shift and result-strobe D connection establish two edges; complete-frame predicate, every result CE, bbox and snapshot functions remain unverified."
+    },
+    {
+      "detector": "ov5640_top/u_motion_tap/u_detector",
+      "requirement": "Bitmap next-state",
+      "failures": [
+        [
+          145,
+          0,
+          "arithmetic/operator boundary ov5640_top/u_motion_tap/u_detector/N9386_3/gateop:Y"
+        ],
+        [
+          145,
+          1,
+          "arithmetic/operator boundary ov5640_top/u_motion_tap/u_detector/N9386_3/gateop:Y"
+        ]
+      ]
+    },
+    {
+      "detector": "cam2_ov5640_top/u_motion_tap/u_detector",
+      "requirement": "Bitmap next-state",
+      "failures": [
+        [
+          74,
+          0,
+          "arithmetic/operator boundary cam2_ov5640_top/u_motion_tap/u_detector/N11978_3/gateop:Y"
+        ],
+        [
+          74,
+          1,
+          "arithmetic/operator boundary cam2_ov5640_top/u_motion_tap/u_detector/N11978_3/gateop:Y"
+        ]
+      ]
+    },
+    {
+      "detector": "cam3_ov5640_top/u_motion_tap/u_detector",
+      "requirement": "Bitmap next-state",
+      "failures": [
+        [
+          146,
+          0,
+          "arithmetic/operator boundary cam3_ov5640_top/u_motion_tap/u_detector/N9578_3/gateop:Y"
+        ],
+        [
+          146,
+          1,
+          "arithmetic/operator boundary cam3_ov5640_top/u_motion_tap/u_detector/N9578_3/gateop:Y"
+        ]
+      ]
+    },
+    {
+      "detector": "cam4_ov5640_top/u_motion_tap/u_detector",
+      "requirement": "Bitmap next-state",
+      "failures": [
+        [
+          68,
+          0,
+          "arithmetic/operator boundary cam4_ov5640_top/u_motion_tap/u_detector/N12122_3/gateop:Y"
+        ],
+        [
+          68,
+          1,
+          "arithmetic/operator boundary cam4_ov5640_top/u_motion_tap/u_detector/N12122_3/gateop:Y"
+        ]
+      ]
+    }
+  ]
+}

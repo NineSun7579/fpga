@@ -1,0 +1,98 @@
+--- golden
++++ candidate
+@@ -1,6 +1,6 @@
+ // Isolated diagnostic sideband. No image data ports. DATA_WIDTH=16 / DELAY=2.
+ // All inputs below are sampled PRE-NBA at posedge cam_clk.
+-module golden_sfd_counter #(parameter W=24) (
++module candidate_sfd_counter #(parameter W=24) (
+     input clk, rst, clear, seed, inc,
+     output reg [W-1:0] q,
+     output [W-1:0] next_q
+@@ -16,20 +16,17 @@
+             assign carry=inc & prefix[i];
+             always @(posedge clk or posedge rst)
+                 if(rst) prefix[i]<=0;
+-                else if(clear) prefix[i]<=0;
+-                else prefix[i]<=(&q[i*4-1:1]) & (q[0]^inc);
++                else prefix[i]<=((&q[i*4-1:1]) & (q[0]^inc)) & !clear;
+         end
+         assign next_q[i*4+:4]=q[i*4+:4]+carry;
+         always @(posedge clk or posedge rst)
+             if(rst) q[i*4+:4]<=0;
+-            else if(clear) begin
+-                if(i==0) q[i*4+:4]<={3'b0,seed};
+-                else q[i*4+:4]<=0;
+-            end else q[i*4+:4]<=next_q[i*4+:4];
++            else if(i==0) q[i*4+:4] <= (next_q[i*4+:4] & {4{!clear}}) | {3'b0,(clear & seed)};
++            else q[i*4+:4] <= next_q[i*4+:4] & {4{!clear}};
+     end endgenerate
+ endmodule
+ 
+-module golden_sfd (
++module candidate_sfd (
+     input cam_clk, cam_reset, host_clk, host_reset,
+     input raw_vsync, raw_href, raw_byte_accept,
+     input capture_vsync, capture_valid,
+@@ -66,21 +63,21 @@
+     wire [15:0] segments_q, odd_q, odd_next, gap_q;
+     wire [31:0] seq_q, seq_next;
+     wire count_on=armed;
+-    golden_sfd_counter cb(cam_clk,rst_c,edge_vs,byte_en,count_on & byte_en,bytes_q,);
+-    golden_sfd_counter ca(cam_clk,rst_c,edge_vs,valid_d,count_on & valid_d,aligned_q,);
+-    golden_sfd_counter cn(cam_clk,rst_c,edge_vs,capture_valid,count_on & capture_valid,native_q,);
+-    golden_sfd_counter co(cam_clk,rst_c,edge_vs,capture_valid & capture_vsync,
++    candidate_sfd_counter cb(cam_clk,rst_c,edge_vs,byte_en,count_on & byte_en,bytes_q,);
++    candidate_sfd_counter ca(cam_clk,rst_c,edge_vs,valid_d,count_on & valid_d,aligned_q,);
++    candidate_sfd_counter cn(cam_clk,rst_c,edge_vs,capture_valid,count_on & capture_valid,native_q,);
++    candidate_sfd_counter co(cam_clk,rst_c,edge_vs,capture_valid & capture_vsync,
+         count_on & capture_valid & capture_vsync,overlap_q,);
+-    golden_sfd_counter cro(cam_clk,rst_c,edge_vs,byte_en & vs,
++    candidate_sfd_counter cro(cam_clk,rst_c,edge_vs,byte_en & vs,
+         count_on & byte_en & vs,raw_overlap_q,);
+-    golden_sfd_counter #(.W(16)) cs(cam_clk,rst_c,edge_vs,href,
++    candidate_sfd_counter #(.W(16)) cs(cam_clk,rst_c,edge_vs,href,
+         count_on & seg_inc,segments_q,);
+     // next_q includes closure at the boundary; the new frame starts at zero.
+-    golden_sfd_counter #(.W(16)) cod(cam_clk,rst_c,edge_vs,1'b0,
++    candidate_sfd_counter #(.W(16)) cod(cam_clk,rst_c,edge_vs,1'b0,
+         count_on & (edge_vs ? close_odd : odd_inc),odd_q,odd_next);
+-    golden_sfd_counter #(.W(16)) cg(cam_clk,rst_c,edge_vs | href,1'b0,
+-        count_on & seen_href & !href & !(&gap_q),gap_q,);
+-    golden_sfd_counter #(.W(32)) cq(cam_clk,rst_c,1'b0,1'b0,
++    v7_camera_gap_boolean cg(cam_clk,rst_c,capture_vsync,vs_q,href,
++        count_on & seen_href & !href & !(&gap_q),gap_q);
++    candidate_sfd_counter #(.W(32)) cq(cam_clk,rst_c,1'b0,1'b0,
+         edge_vs & armed,seq_q,seq_next);
+ 
+     reg [23:0] prev_bytes, prev_aligned, prev_native;
+@@ -192,3 +189,30 @@
+         end
+     end
+ endmodule
++
++// Clear priority is unchanged. Late capture_vsync enters final bit gates only.
++module v7_camera_gap_boolean(input clk,rst,frame_vs,old_vs,href,inc,
++    output reg [15:0] q);
++    reg [3:1] prefix;
++    genvar s,b;
++    generate for(s=0;s<4;s=s+1) begin: slices
++        wire carry;
++        if(s==0) assign carry=inc;
++        else begin
++            assign carry=inc & prefix[s];
++            wire prefix_pred=(&q[s*4-1:1]) & (q[0]^inc);
++            always @(posedge clk or posedge rst)
++                if(rst) prefix[s]<=0;
++                else prefix[s]<=prefix_pred & !href & (!frame_vs | old_vs);
++        end
++        for(b=0;b<4;b=b+1) begin: bits
++            wire toggle_bit;
++            if(b==0) assign toggle_bit=carry;
++            else assign toggle_bit=carry & (&q[s*4+b-1:s*4]);
++            wire predicted_bit=q[s*4+b] ^ toggle_bit;
++            always @(posedge clk or posedge rst)
++                if(rst) q[s*4+b]<=0;
++                else q[s*4+b]<=predicted_bit & !href & (!frame_vs | old_vs);
++        end
++    end endgenerate
++endmodule

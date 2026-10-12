@@ -1183,12 +1183,15 @@ protected:
                 frames = 0;
                 rate.restart();
                 fprintf(stderr,
-                        "[panes] mode=%d submit_fps=%.1f have=%d%d%d%d%d%d capture_fps=%.1f/%.1f/%.1f/%.1f/%.1f/%.1f err=%llu/%llu/%llu/%llu/%llu/%llu\n",
+                        "[panes] mode=%d submit_fps=%.1f have=%d%d%d%d%d%d capture_fps=%.1f/%.1f/%.1f/%.1f/%.1f/%.1f err=%llu/%llu/%llu/%llu/%llu/%llu gen=%llu/%llu/%llu/%llu/%llu/%llu\n",
                         mode, fps, have[0], have[1], have[2], have[3], have[4], have[5], camFps[0],
                         camFps[1], camFps[2], camFps[3], camFps[4], camFps[5],
                         (unsigned long long)errors[0], (unsigned long long)errors[1],
                         (unsigned long long)errors[2], (unsigned long long)errors[3],
-                        (unsigned long long)errors[4], (unsigned long long)errors[5]);
+                        (unsigned long long)errors[4], (unsigned long long)errors[5],
+                        (unsigned long long)camGen[0], (unsigned long long)camGen[1],
+                        (unsigned long long)camGen[2], (unsigned long long)camGen[3],
+                        (unsigned long long)camGen[4], (unsigned long long)camGen[5]);
             }
             if (dumpComp && !dumped && startup.elapsed() >= 8000) {
                 dumped = true;

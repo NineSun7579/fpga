@@ -1,0 +1,206 @@
+{
+  "structure": {
+    "ascii": true,
+    "unique_module": true,
+    "primitive_ports_explicit": 40,
+    "candidate_sha256": "bfc3d785641640a4bec7ac19fc6b4e264e1a7d97e3dfe0ed6a42f7343ef67fa1",
+    "vendor_sha256": {
+      "GTP_APM_E2.v": "7211b9646140c6c7fc0c261a3fe2ee599b538f39d0714bcb9ff5ec0caee007de",
+      "GTP_GRS.v": "dae720bcc467ddb4ff99f2753368934e2649b87f6ac63b8a0d7219699bac1dec"
+    }
+  },
+  "valid": [
+    {
+      "mul_delay": 2,
+      "actual_register_alignment": 2,
+      "default_parameter_used": false,
+      "expected_input_pairs": 65536,
+      "actual_input_pairs": 65536,
+      "checked_products_per_lane": [
+        65536,
+        65536
+      ],
+      "recorded_edges": 65560,
+      "initial_fill_edges": 1,
+      "checked_edges_including_idle": 65559,
+      "exact_sampling": true,
+      "input_error_count": 0,
+      "unknown_count": 0,
+      "mismatch_count": 0,
+      "lane_mismatch_counts": [
+        0,
+        0
+      ],
+      "first_mismatches": [],
+      "first_unknown": [],
+      "warnings": [],
+      "pass_exact": true
+    },
+    {
+      "mul_delay": 3,
+      "actual_register_alignment": 3,
+      "default_parameter_used": false,
+      "expected_input_pairs": 65536,
+      "actual_input_pairs": 65536,
+      "checked_products_per_lane": [
+        65536,
+        65536
+      ],
+      "recorded_edges": 65560,
+      "initial_fill_edges": 2,
+      "checked_edges_including_idle": 65558,
+      "exact_sampling": true,
+      "input_error_count": 0,
+      "unknown_count": 0,
+      "mismatch_count": 0,
+      "lane_mismatch_counts": [
+        0,
+        0
+      ],
+      "first_mismatches": [],
+      "first_unknown": [],
+      "warnings": [],
+      "pass_exact": true
+    },
+    {
+      "mul_delay": 4,
+      "actual_register_alignment": 4,
+      "default_parameter_used": true,
+      "expected_input_pairs": 65536,
+      "actual_input_pairs": 65536,
+      "checked_products_per_lane": [
+        65536,
+        65536
+      ],
+      "recorded_edges": 65560,
+      "initial_fill_edges": 3,
+      "checked_edges_including_idle": 65557,
+      "exact_sampling": true,
+      "input_error_count": 0,
+      "unknown_count": 0,
+      "mismatch_count": 0,
+      "lane_mismatch_counts": [
+        0,
+        0
+      ],
+      "first_mismatches": [],
+      "first_unknown": [],
+      "warnings": [],
+      "pass_exact": true
+    },
+    {
+      "mul_delay": 6,
+      "actual_register_alignment": 6,
+      "default_parameter_used": false,
+      "expected_input_pairs": 65536,
+      "actual_input_pairs": 65536,
+      "checked_products_per_lane": [
+        65536,
+        65536
+      ],
+      "recorded_edges": 65560,
+      "initial_fill_edges": 5,
+      "checked_edges_including_idle": 65555,
+      "exact_sampling": true,
+      "input_error_count": 0,
+      "unknown_count": 0,
+      "mismatch_count": 0,
+      "lane_mismatch_counts": [
+        0,
+        0
+      ],
+      "first_mismatches": [],
+      "first_unknown": [],
+      "warnings": [],
+      "pass_exact": true
+    }
+  ],
+  "invalid": [
+    {
+      "int_width": 8,
+      "mul_delay": -1,
+      "returncode": 12,
+      "expected_missing_config_module": "fpga_v8_config_error_MUL_DELAY_must_be_at_least_2",
+      "rejection_phase": "elaboration",
+      "pass_rejected": true
+    },
+    {
+      "int_width": 8,
+      "mul_delay": 0,
+      "returncode": 12,
+      "expected_missing_config_module": "fpga_v8_config_error_MUL_DELAY_must_be_at_least_2",
+      "rejection_phase": "elaboration",
+      "pass_rejected": true
+    },
+    {
+      "int_width": 8,
+      "mul_delay": 1,
+      "returncode": 12,
+      "expected_missing_config_module": "fpga_v8_config_error_MUL_DELAY_must_be_at_least_2",
+      "rejection_phase": "elaboration",
+      "pass_rejected": true
+    },
+    {
+      "int_width": 7,
+      "mul_delay": 4,
+      "returncode": 12,
+      "expected_missing_config_module": "fpga_v8_config_error_INT_must_be_8",
+      "rejection_phase": "elaboration",
+      "pass_rejected": true
+    },
+    {
+      "int_width": 9,
+      "mul_delay": 4,
+      "returncode": 12,
+      "expected_missing_config_module": "fpga_v8_config_error_INT_must_be_8",
+      "rejection_phase": "elaboration",
+      "pass_rejected": true
+    },
+    {
+      "int_width": 16,
+      "mul_delay": 4,
+      "returncode": 12,
+      "expected_missing_config_module": "fpga_v8_config_error_INT_must_be_8",
+      "rejection_phase": "elaboration",
+      "pass_rejected": true
+    }
+  ],
+  "production_source_sha256": {
+    "source/npu/common/fifo_ram.v": "68d8b4d9f42873dfe78914ae4c6dbc0fb05b850d24fc9b08b58edcca812d650b",
+    "source/npu/common/pipe.v": "94783266c176c3abf947c6644623c31c3d19c862efc9d1ba9a0e77b59c3e04bb",
+    "source/npu/common/scale_mul_s3.v": "ca872b1cabea5d2164241eb6f814a55618ab87f98e62d11b101023e23874627e",
+    "source/npu/common/scale_mul_unsign.v": "bec5bc18e54b154e404d85ee9d7d39a6020f347d7dfbee03c48c467e2bd809c9",
+    "source/npu/common/scale_mul_unsign_s3.v": "daa77cc06ad1712bde7730d05cca62414222cd45088abbb46f4f30cadc6e5872",
+    "source/npu/common/spram.v": "a1400270d8d610b86561a8dde7ee42761162229e4ef0d1b96f1d0d4c64d47043",
+    "source/npu/common/spram_D.v": "eb5b395289c5c240b5450c872bf365acb894742645b1ad177ef4da1c58d245e1",
+    "source/npu/common/sync_fifo.v": "2a5d1d3eb70e323d74dbda0640a7c194de40a1d8c97808c13b18fd03a3684673",
+    "source/npu/common/sync_fifo_replay.v": "febe3b3ead59995908fdf573a72fb9c71dabeca46ed302c666bf6bada9baeebf",
+    "source/npu/conv/conv_add.v": "7c89444a45b39a5aef363555e40ff979365c2bc663501a13f4ca5e28f5418c0b",
+    "source/npu/conv/conv_conv.v": "b503be9435a438ccd41c0f9b24768411a52a2dfe66709dfcb8c6e8892c44c88e",
+    "source/npu/conv/conv_ctrl.v": "f0541c7fb5e146e86e41cfd4b9e96278e3f43cdfdc05d50c8bf142af1286d283",
+    "source/npu/conv/conv_in_buf.v": "3be3ab19dcd11283937c587b3cb428f294980125f16b2ad1a8c59f37b1aefc2d",
+    "source/npu/conv/conv_in_buf_ctrl.v": "b5de0dd3bf50db98027966ad6d771ed46780636ab7650783ac5a787443eafa66",
+    "source/npu/conv/conv_in_buf_top.v": "b8553875b8eb1af681b9313a92bddb25ef895edc9b82c53f049d94f8a6f8794a",
+    "source/npu/conv/conv_in_ctrl.v": "d243f04e4738aa72f62dbeeb51e879c21dd03d1bb50bf17f404ed27fdb17937a",
+    "source/npu/conv/conv_mul_E2.v": "47c620d9c477b0e1d4becc1063e2074669b7ee56c349aaeb998727241644b656",
+    "source/npu/conv/conv_top.v": "cdd93cd227ccba545677cc2cb1b57427598f16f1dbaabedcf3457b873976cff3",
+    "source/npu/conv/conv_weight.v": "dc31049e7b05bea77b6f6aa4c9e0d318a2609bf05a226f4334ecc2e5bbe913e5",
+    "source/npu/conv11_16/conv11_add.v": "4a284e1198b5b7d012895e46ec708903456b1ee3bc5bcdb8d149d8892c100303",
+    "source/npu/conv11_16/conv11_conv.v": "b939eabf03c0e427e38e6a790e99054b8f217ad43c5335ef903146d5404d07d4",
+    "source/npu/conv11_16/conv11_ctrl.v": "3a0ea0d1f2f8993a00ebe4c384fd30102f8a510673360370202def9435575365",
+    "source/npu/conv11_16/conv11_in_buf.v": "b080e9cf727567e5430aaee1d1498dbf659d630c4abace5ea40161d893fe94ac",
+    "source/npu/conv11_16/conv11_in_buf_ctrl.v": "b1f58553759cd397725e162f87c9124c9532d14697055058de0ac1f8cab3f72b",
+    "source/npu/conv11_16/conv11_in_buf_top.v": "f48991cd10413ef326a4dab93b543afe02060057fcf9da764286e71b1c118423",
+    "source/npu/conv11_16/conv11_in_ctrl.v": "2bd77a5d7ca52899198102d7b0348bc9264baaa501d4a435b6c68a381803dbd1",
+    "source/npu/conv11_16/conv11_mul_E2.v": "d510992a4e7efbeb520e12a139d8265ccdf208251e77a63e7bc7e8bdf4550200",
+    "source/npu/conv11_16/conv11_out_buf.v": "bb47d1b9a538be3a793a71850793fc834b8019c17d7cdb7fa72dd58ae3610c16",
+    "source/npu/conv11_16/conv11_out_buf_ctrl.v": "e65f15421f609ff575928597d5d2abe0c00622702244a72dd85324cfcf78701f",
+    "source/npu/conv11_16/conv11_out_buf_top.v": "3fcd19cc0dd172ef79f7f7233e0ebc69447b2ed5418f5454cf4e4bf199f4cf98",
+    "source/npu/conv11_16/conv11_para_top.v": "1071b30dc7aef5dc2391c70356f990709fbd35012a07a1ab709885c0009148ce",
+    "source/npu/conv11_16/conv11_weight.v": "cdcb293dd7d74f43e9bb883b7693747be07901d4d32e328fa2e3f77488ebde8a",
+    "source/npu/npu_top/config.v": "f9c08ca2827eaf441d9a93137353b85a928c64068dd1382d20055a37e0dcd9c2",
+    "source/npu/npu_top/npu_top.v": "9ce193ff215fdd9df767247bda7ceb1eb8c366a34519e90e011708eb9147627a"
+  },
+  "production_sources_unchanged": true,
+  "pass_exact": true
+}

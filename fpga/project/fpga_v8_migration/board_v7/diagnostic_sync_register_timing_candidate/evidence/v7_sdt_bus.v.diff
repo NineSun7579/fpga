@@ -1,0 +1,25 @@
+--- frozen/v7_sdt_bus.v
++++ candidate/v7_sdt_bus.v
+@@ -1,3 +1,5 @@
++// ADS guide printed pp52,83-84,91-93,103-104; Pango attribute reference p88.
++// Isolated mapping candidate: stage count, reset polarity and all enables unchanged.
+ // Isolated AXI-Lite interceptor, inserted AFTER axi_to_axi_lite and BEFORE
+ // ovreg_axil_decode_tc01. One outstanding read and one write, independently.
+ module v7_sdt_bus (
+@@ -36,10 +38,14 @@
+  generate for(g=0;g<4;g=g+1) begin: cameras
+   // Async assertion captures even camera reset pulses shorter than clk.
+   // Keep invalid high beyond the source's two-cycle host reset release.
+-  (* syn_preserve=1, syn_allow_retiming=0 *) reg [3:0] reset_pipe;
++  (* syn_preserve=1, syn_allow_retiming=0, syn_srlstyle="registers" *) reg [3:0] reset_pipe;
++    (* syn_keep=1 *) wire reset_pipe_d0 = 1'b0;
++    (* syn_keep=1 *) wire reset_pipe_d1 = reset_pipe[0];
++    (* syn_keep=1 *) wire reset_pipe_d2 = reset_pipe[1];
++    (* syn_keep=1 *) wire reset_pipe_d3 = reset_pipe[2];
+   always @(posedge clk or posedge cam_reset[g] or posedge rst)
+    if(rst || cam_reset[g]) reset_pipe<=4'hf;
+-   else reset_pipe<={reset_pipe[2:0],1'b0};
++   else reset_pipe<={reset_pipe_d3,reset_pipe_d2,reset_pipe_d1,reset_pipe_d0};
+   assign invalid[g]=reset_pipe[3] || (&epoch[g]);
+   v7_sfd_candidate source (
+    .cam_clk(cam_clk[g]),.cam_reset(cam_reset[g]),.host_clk(clk),.host_reset(rst),

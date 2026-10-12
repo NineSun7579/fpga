@@ -1,0 +1,9 @@
+{
+  "command": "sudo -n python3 -u - <<'PY'\nfrom pathlib import Path\nimport hashlib,subprocess,sys,stat\np=Path('/userdata/linaro/projects/fpga/RK3568/driver/pango_pci_driver_fixed_20260926.ko')\nassert Path('/proc/sys/kernel/random/boot_id').read_text().strip()=='925a0f3d-b23b-46e5-b02b-b387a380402e'\nassert hashlib.sha256(p.read_bytes()).hexdigest()=='0244c739f9758e0ab3296d14b72befbcf23050c7c02a97299531dfa514ce2861'\nr=subprocess.run(['readelf','-n',str(p)],capture_output=True);print('BUILDID_RC',r.returncode,r.stdout.decode(),r.stderr.decode());assert r.returncode==0 and b'1102cfd04acaeeea21ca4d03fe27ddbb32b7340a' in r.stdout\nep=Path('/sys/bus/pci/devices/0002:21:00.0');assert (ep/'vendor').read_text().strip()=='0x0755' and (ep/'device').read_text().strip()=='0x0755'\nassert not (ep/'driver').exists()\nassert stat.S_IMODE(Path('/userdata/detview-driving-demo/detview-driving-demo').stat().st_mode)==0o644\nr=subprocess.run(['insmod',str(p)],capture_output=True);print('INSMOD_RC',r.returncode,'STDOUT',r.stdout.decode(),'STDERR',r.stderr.decode(),'STDOUT_SHA256',hashlib.sha256(r.stdout).hexdigest(),'STDERR_SHA256',hashlib.sha256(r.stderr).hexdigest());sys.exit(r.returncode)\nPY\n",
+  "host": "192.168.10.203",
+  "rc": 0,
+  "started_utc": "2026-10-07T07:18:59.614196+00:00",
+  "ended_utc": "2026-10-07T07:19:01.472064+00:00",
+  "stdout_sha256": "8f0674ad2eb19429936be03ec7d7897b0d5cf328ebe1e8a64dc0db6fb4dc658e",
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+}

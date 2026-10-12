@@ -1,0 +1,38 @@
+{
+  "format": "fpga_v8_activation_lut_affine_u8_v1",
+  "activation": "SiLU: x / (1 + exp(-x))",
+  "calibration_status": "not_calibrated; parameters supplied by caller",
+  "entries": 256,
+  "input_scale": 0.0625,
+  "input_zero_point": 128,
+  "output_scale": 0.03125,
+  "output_zero_point": 16,
+  "rounding": "nearest, ties to even (numpy.rint)",
+  "clipping": "saturate rounded output code to [0, 255]",
+  "lane_byte_order": "lane i occupies bits [8*i +: 8]",
+  "table_sha256": "59dc66023a7894fa46e776b9913603eb6ba7baa5f5b8b245a0da4ea46a3d4a9f",
+  "input_float_range": [
+    -8.0,
+    7.9375
+  ],
+  "silu_float_range": [
+    -0.27837517353163604,
+    7.934666545584388
+  ],
+  "negative_input_count": 128,
+  "negative_silu_count": 128,
+  "clipped_low_count": 0,
+  "clipped_high_count": 8,
+  "unclipped_count": 248,
+  "error_units": "output float units; reconstructed u8 minus float64 SiLU",
+  "all_codes_error": {
+    "max_abs": 0.46591654558438833,
+    "mean_abs": 0.015252055109151489,
+    "rmse": 0.05120335723801144
+  },
+  "unclipped_codes_error": {
+    "max_abs": 0.015624435774123313,
+    "mean_abs": 0.007790988077797331,
+    "rmse": 0.008947360482597375
+  }
+}

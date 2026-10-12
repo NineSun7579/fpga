@@ -1,0 +1,62 @@
+--- frozen_0301_decoder
++++ current_retained_decoder
+@@ -5,7 +5,7 @@
+         int cls;
+     };
+ 
+-    static void nmsAppend(QVector<Detection> &dets, std::vector<CandD> &cands) {
++    static void nmsAppend(QVector<Detection> &dets, std::vector<CandD> &cands, bool classAware = false) {
+         std::sort(cands.begin(), cands.end(),
+                   [](const CandD &a, const CandD &b) { return a.score > b.score; });
+         std::vector<bool> removed(cands.size(), false);
+@@ -17,10 +17,12 @@
+             detection.cls = a.cls; detection.score = a.score;
+             detection.x1 = a.x1; detection.y1 = a.y1; detection.x2 = a.x2; detection.y2 = a.y2;
+             dets.append(detection);
++            if (classAware && dets.size() >= 300) break;
+             for (size_t j = i + 1; j < cands.size(); j++) {
+                 if (removed[j])
+                     continue;
+                 const CandD &b = cands[j];
++                if (classAware && a.cls != b.cls) continue;
+                 const float xx1 = std::max(a.x1, b.x1);
+                 const float yy1 = std::max(a.y1, b.y1);
+                 const float xx2 = std::min(a.x2, b.x2);
+@@ -81,8 +83,8 @@
+         if (scales.empty())
+             return false;
+ 
+-        bool sigmoid = false;
+-        {
++        bool sigmoid = m_trafficlight; // Package raw-dfl6 class heads always contain logits.
++        if (!m_trafficlight) {
+             const Scale &sc = scales[0];
+             float mx = -1e9f, mn = 1e9f;
+             const int n = std::min(sc.h * sc.w, 2000);
+@@ -124,7 +126,7 @@
+             return true;
+         std::sort(cands.begin(), cands.end(),
+                   [](const AC &a, const AC &b) { return a.score > b.score; });
+-        if (cands.size() > 300)
++        if (!m_trafficlight && cands.size() > 300)
+             cands.resize(300);
+ 
+         std::vector<CandD> boxes;
+@@ -132,7 +134,7 @@
+         for (const AC &c : cands) {
+             const Scale &sc = scales[c.s];
+             const int plane = sc.h * sc.w;
+-            const int stride = MODEL_W / sc.w;
++            const float stride = m_geometry.width / (float)sc.w;
+             const size_t base = (size_t)c.y * sc.w + c.x;
+             float d[4];
+             for (int k = 0; k < 4; k++) {
+@@ -157,7 +159,7 @@
+             boxes.push_back({c.score, cx - d[0] * stride, cy - d[1] * stride,
+                              cx + d[2] * stride, cy + d[3] * stride, c.cls});
+         }
+-        nmsAppend(dets, boxes);
++        nmsAppend(dets, boxes, m_trafficlight);
+         return true;
+     }
+ 

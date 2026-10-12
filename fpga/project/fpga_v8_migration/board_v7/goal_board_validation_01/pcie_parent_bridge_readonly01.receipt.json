@@ -1,0 +1,9 @@
+{
+  "captured_utc": "2026-10-06T23:51:14.071270+00:00",
+  "command": "python3 - <<'PY'\nfrom pathlib import Path\nimport subprocess,json\nroot=Path('/sys/bus/pci/devices');eps=[]\nfor dev in root.iterdir():\n try:\n  if dev.joinpath('vendor').read_text().strip()=='0x0755' and dev.joinpath('device').read_text().strip()=='0x0755':eps.append(dev)\n except OSError:pass\nresult={'boot_id':Path('/proc/sys/kernel/random/boot_id').read_text().strip(),'endpoints':[]}\nfor dev in eps:\n real=dev.resolve();parent=real.parent;bdf=parent.name\n rec={'endpoint':dev.name,'sysfs_realpath':str(real),'parent_bdf':bdf,'siblings':[p.name for p in parent.iterdir() if p.name.count(':')==2 and '.' in p.name],'commands':{}}\n for key,args in [('parent_lspci',['sudo','-n','lspci','-s',bdf,'-nnvv']),('bridge_control',['sudo','-n','setpci','-s',bdf,'BRIDGE_CONTROL']),('endpoint_command',['sudo','-n','setpci','-s',dev.name,'COMMAND'])]:\n  proc=subprocess.run(args,capture_output=True,text=True);rec['commands'][key]={'argv':args,'stdout':proc.stdout,'stderr':proc.stderr,'returncode':proc.returncode}\n result['endpoints'].append(rec)\nprint(json.dumps(result,indent=2))\nPY",
+  "exit_code": 0,
+  "stdout_sha256": "8c6f60ca465812030569ba7f13f905fd6b7373e44e6b9a837184c13006e41c19",
+  "device_opened": false,
+  "pci_config_written": false,
+  "reset_executed": false
+}

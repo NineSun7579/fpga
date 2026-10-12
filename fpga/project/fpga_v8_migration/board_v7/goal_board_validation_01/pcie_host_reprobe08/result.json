@@ -1,0 +1,100 @@
+{
+  "status": "HOST_REPROBE_AND_ENDPOINT_ENUMERATION_RECOVERED",
+  "functional_pass": false,
+  "dma_validated": false,
+  "viewer_validated": false,
+  "boot_id": "925a0f3d-b23b-46e5-b02b-b387a380402e",
+  "platform_device": "3c0800000.pcie",
+  "of_node": "/pcie@fe280000",
+  "host_driver": "rk-pcie",
+  "bind_attempts": 1,
+  "unbind_attempts": 0,
+  "rescan_attempts": 0,
+  "reboots": 0,
+  "fpga_programmer_invoked": false,
+  "pds_invoked": false,
+  "endpoint": {
+    "bdf": "0002:21:00.0",
+    "realpath": "/sys/devices/platform/3c0800000.pcie/pci0002:20/0002:20:00.0/0002:21:00.0",
+    "driver": "/sys/bus/pci/drivers/pango_pci_driver",
+    "attributes": {
+      "vendor": "0x0755",
+      "device": "0x0755",
+      "class": "0x058000",
+      "enable": "1",
+      "resource": "0x00000000f0200000 0x00000000f0201fff 0x0000000000040200\n0x00000000f0202000 0x00000000f0202fff 0x0000000000040200\n0x00000000f0203000 0x00000000f0203fff 0x0000000000140204\n0x0000000000000000 0x0000000000000000 0x0000000000000000\n0x0000000000000000 0x0000000000000000 0x0000000000000000\n0x0000000000000000 0x0000000000000000 0x0000000000000000\n0x0000000000000000 0x0000000000000000 0x0000000000000000",
+      "current_link_speed": "5.0 GT/s PCIe",
+      "current_link_width": "2",
+      "irq": "128",
+      "msi_bus": "1"
+    },
+    "msi_irqs": {
+      "130": "msi",
+      "129": "msi",
+      "131": "msi",
+      "128": "msi"
+    }
+  },
+  "admission_mode": "0o644",
+  "owners": [],
+  "owner_scan_errors": [],
+  "module_sha256": "0244c739f9758e0ab3296d14b72befbcf23050c7c02a97299531dfa514ce2861",
+  "module_build_id": "1102cfd04acaeeea21ca4d03fe27ddbb32b7340a",
+  "command_receipts": {
+    "bind_once": {
+      "command": "sudo -n python3 -u - <<'PY'\nfrom pathlib import Path\nimport os,sys,subprocess,hashlib,json,datetime,stat\ndef run(argv):\n r=subprocess.run(argv,capture_output=True);print(json.dumps(dict(argv=argv,rc=r.returncode,stdout=r.stdout.decode(errors='replace'),stderr=r.stderr.decode(errors='replace'),stdout_sha256=hashlib.sha256(r.stdout).hexdigest(),stderr_sha256=hashlib.sha256(r.stderr).hexdigest())));return r\np=Path('/sys/bus/platform/devices/3c0800000.pcie')\nassert Path('/proc/sys/kernel/random/boot_id').read_text().strip()=='925a0f3d-b23b-46e5-b02b-b387a380402e'\nassert str((p/'of_node').resolve())=='/sys/firmware/devicetree/base/pcie@fe280000'\nassert (p/'of_node/status').read_bytes()==b'okay\\0'\nassert (p/'of_node/linux,pci-domain').read_bytes()==bytes.fromhex('00000002')\nassert not (p/'driver').exists()\nassert not list(Path('/sys/bus/pci/devices').glob('*'))\nassert not list(Path('/sys/class/pci_bus').glob('*'))\nassert not list(Path('/dev').glob('*pango*'))\nassert stat.S_IMODE(Path('/userdata/detview-driving-demo/detview-driving-demo').stat().st_mode)==0o644\nprint('BEFORE_DMESG');run(['dmesg'])\nprint('ACTION',\"printf '%s' '3c0800000.pcie' > /sys/bus/platform/drivers/rk-pcie/bind\",datetime.datetime.now(datetime.timezone.utc).isoformat())\nrc=0\ntry:\n with open('/sys/bus/platform/drivers/rk-pcie/bind','w') as f:\n  n=f.write('3c0800000.pcie');f.flush()\n print('BIND_WRITE_RC',0,'BYTES',n)\nexcept OSError as e:\n rc=1;print('BIND_WRITE_RC',rc,'ERRNO',e.errno,'ERROR',str(e))\nprint('AFTER_DRIVER',str((p/'driver').resolve()) if (p/'driver').exists() else 'UNBOUND')\nprint('AFTER_PCI',[(x.name,str(x.resolve())) for x in Path('/sys/bus/pci/devices').glob('*')])\nprint('AFTER_BUS',[(x.name,str(x.resolve())) for x in Path('/sys/class/pci_bus').glob('*')])\nprint('AFTER_BOOT',Path('/proc/sys/kernel/random/boot_id').read_text().strip())\nprint('AFTER_DMESG');run(['dmesg']);run(['lspci','-nnvv']);run(['lspci','-t'])\nprint('AFTER_IOMEM',Path('/proc/iomem').read_text())\nsys.exit(rc)\nPY\n",
+      "host": "192.168.10.203",
+      "rc": 0,
+      "started_utc": "2026-10-07T07:17:47.229895+00:00",
+      "ended_utc": "2026-10-07T07:17:49.359512+00:00",
+      "stdout_sha256": "7df3fd70850acda040b0e098c9cb5921f3c7c7e904878d928e5d5f21d10733aa",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "enumeration": {
+      "command": "sudo -n python3 - <<'PY'\nfrom pathlib import Path\nimport subprocess,os,stat,hashlib\nprint('BOOT',Path('/proc/sys/kernel/random/boot_id').read_text().strip())\nfor p in Path('/sys/bus/pci/devices').glob('*'):\n print('PCI',p.name,p.resolve(),'DRIVER',os.path.realpath(p/'driver') if (p/'driver').exists() else 'UNBOUND')\n for n in ['vendor','device','class','enable','resource','current_link_speed','current_link_width','max_link_speed','max_link_width','irq','msi_bus']:\n  try:print(n,(p/n).read_text().strip())\n  except OSError as e:print(n,str(e))\n print('MSI_IRQS',[x.name for x in (p/'msi_irqs').glob('*')])\nprint('MODULES',Path('/proc/modules').read_text())\nprint('NODES',[str(x) for x in Path('/dev').glob('*pango*')])\nprint('ADMISSION',oct(stat.S_IMODE(Path('/userdata/detview-driving-demo/detview-driving-demo').stat().st_mode)))\nfor argv in [['lspci','-nnvv'],['lspci','-t'],['dmesg'],['sha256sum','/userdata/linaro/projects/fpga/RK3568/driver/pango_pci_driver_fixed_20260926.ko'],['readelf','-n','/userdata/linaro/projects/fpga/RK3568/driver/pango_pci_driver_fixed_20260926.ko'],['modinfo','/userdata/linaro/projects/fpga/RK3568/driver/pango_pci_driver_fixed_20260926.ko']]:\n r=subprocess.run(argv,capture_output=True);print('COMMAND',argv,'RC',r.returncode);print(r.stdout.decode(errors='replace'));print(r.stderr.decode(errors='replace'))\nprint('IOMEM',Path('/proc/iomem').read_text())\nPY\n",
+      "host": "192.168.10.203",
+      "rc": 0,
+      "started_utc": "2026-10-07T07:18:16.041639+00:00",
+      "ended_utc": "2026-10-07T07:18:18.069275+00:00",
+      "stdout_sha256": "e8582e9dd365123bc5fd285296700c334181279f6ea2c6b67ddbbeb4bf06f8fc",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "final": {
+      "command": "sudo -n python3 - <<'PY'\nfrom pathlib import Path\nimport os,json,subprocess,stat,hashlib\ndef rd(p):\n try:return Path(p).read_text().strip()\n except OSError as e:return {'error':str(e)}\ndef cmd(argv):\n r=subprocess.run(argv,capture_output=True);return dict(argv=argv,rc=r.returncode,stdout=r.stdout.decode(errors='replace'),stderr=r.stderr.decode(errors='replace'),stdout_sha256=hashlib.sha256(r.stdout).hexdigest(),stderr_sha256=hashlib.sha256(r.stderr).hexdigest())\npci=[]\nfor p in Path('/sys/bus/pci/devices').glob('*'):\n pci.append(dict(bdf=p.name,realpath=str(p.resolve()),driver=str((p/'driver').resolve()) if (p/'driver').exists() else None,attributes={n:rd(p/n) for n in ['vendor','device','class','enable','resource','current_link_speed','current_link_width','irq','msi_bus']},msi_irqs={q.name:rd(q) for q in (p/'msi_irqs').glob('*')}))\nnodes=[];targets=set()\nfor p in Path('/dev').glob('*pango*'):\n s=p.stat();targets.add(s.st_rdev);nodes.append(dict(path=str(p),mode=oct(stat.S_IMODE(s.st_mode)),major=os.major(s.st_rdev),minor=os.minor(s.st_rdev)))\nowners=[];processes=[];errors=[]\nfor p in Path('/proc').iterdir():\n if not p.name.isdigit():continue\n try:\n  comm=(p/'comm').read_text().strip()\n  if any(t in comm for t in ['detview','Xorg','ffmpeg']):processes.append(dict(pid=p.name,comm=comm,exe=os.readlink(p/'exe')))\n  for fd in (p/'fd').iterdir():\n   try:\n    s=fd.stat()\n    if stat.S_ISCHR(s.st_mode) and s.st_rdev in targets:owners.append(dict(pid=p.name,fd=fd.name,link=os.readlink(fd)))\n   except FileNotFoundError:pass\n  maps=(p/'maps').read_text()\n  if '/dev/pango' in maps or '/dev/xdma' in maps:owners.append(dict(pid=p.name,maps=True))\n except FileNotFoundError:pass\n except OSError as e:errors.append(dict(pid=p.name,error=str(e)))\nproducer=Path('/userdata/detview-driving-demo/detview-driving-demo')\nprint(json.dumps(dict(boot_id=rd('/proc/sys/kernel/random/boot_id'),kernel=rd('/proc/version'),host_driver=str(Path('/sys/bus/platform/devices/3c0800000.pcie/driver').resolve()),pci=pci,pci_buses=[p.name for p in Path('/sys/class/pci_bus').glob('*')],nodes=nodes,owners=owners,owner_scan_errors=errors,processes=processes,modules=rd('/proc/modules'),admission_mode=oct(stat.S_IMODE(producer.stat().st_mode)),admission_sha256=hashlib.sha256(producer.read_bytes()).hexdigest(),commands=[cmd(['lspci','-nnvv']),cmd(['lspci','-t']),cmd(['dmesg'])],iomem=rd('/proc/iomem'),interrupts=rd('/proc/interrupts'),dma_device_opened=False,bar_resource_opened=False,viewer_started=False),indent=2))\nPY\n",
+      "host": "192.168.10.203",
+      "rc": 0,
+      "started_utc": "2026-10-07T07:19:40.948226+00:00",
+      "ended_utc": "2026-10-07T07:19:43.530300+00:00",
+      "stdout_sha256": "2bf694b1f93ab14883086ca155defcf36241d0c5fe571f2043454fcab823f790",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "fresh": {
+      "command": "sudo -n python3 - <<'PY'\nimport os,json,subprocess,stat\nfrom pathlib import Path\ndef rd(p):\n try:return Path(p).read_text().strip()\n except OSError as e:return str(e)\nprint('IDENTITY',rd('/proc/sys/kernel/random/boot_id'),rd('/proc/version'),rd('/proc/uptime'))\nprint('MODEL',Path('/proc/device-tree/model').read_bytes())\nfor p in sorted(Path('/sys/bus/platform/devices').glob('*pcie*')):\n print('PLATFORM',p.name,'REAL',p.resolve(),'DRIVER',os.path.realpath(p/'driver') if (p/'driver').exists() else 'UNBOUND','OF',os.path.realpath(p/'of_node'))\n print('UEVENT',rd(p/'uevent'))\n print('RESOURCE',rd(p/'resource'))\n for q in sorted((p/'of_node').glob('*')):\n  if q.is_file():print('DT',q.name,q.read_bytes().hex())\n print('CHILDREN',[str(q) for q in p.resolve().iterdir()])\nprint('DRIVERS',[p.name for p in Path('/sys/bus/platform/drivers').glob('*pci*')])\nprint('PCI',[(p.name,str(p.resolve())) for p in Path('/sys/bus/pci/devices').glob('*')])\nprint('BUS',[(p.name,str(p.resolve())) for p in Path('/sys/class/pci_bus').glob('*')])\nprint('MODULES',rd('/proc/modules'))\np=Path('/userdata/detview-driving-demo/detview-driving-demo');print('ADMISSION',oct(stat.S_IMODE(p.stat().st_mode)))\nprint('NODES',[str(p) for p in Path('/dev').glob('*pango*')])\nfor argv in [['lspci','-nnvv'],['dmesg'],['ps','-eo','pid,comm,args']]:\n r=subprocess.run(argv,capture_output=True);print('COMMAND',argv,'RC',r.returncode);print(r.stdout.decode(errors='replace'));print(r.stderr.decode(errors='replace'))\nPY\n",
+      "host": "192.168.10.203",
+      "rc": 0,
+      "started_utc": "2026-10-07T07:15:09.976890+00:00",
+      "ended_utc": "2026-10-07T07:15:12.165494+00:00",
+      "stdout_sha256": "ed30621e508ded34c574383346fb7e702bc1a6ea8d35ed3fd4b592fa78cadb2f",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "insmod_once": {
+      "command": "sudo -n python3 -u - <<'PY'\nfrom pathlib import Path\nimport hashlib,subprocess,sys,stat\np=Path('/userdata/linaro/projects/fpga/RK3568/driver/pango_pci_driver_fixed_20260926.ko')\nassert Path('/proc/sys/kernel/random/boot_id').read_text().strip()=='925a0f3d-b23b-46e5-b02b-b387a380402e'\nassert hashlib.sha256(p.read_bytes()).hexdigest()=='0244c739f9758e0ab3296d14b72befbcf23050c7c02a97299531dfa514ce2861'\nr=subprocess.run(['readelf','-n',str(p)],capture_output=True);print('BUILDID_RC',r.returncode,r.stdout.decode(),r.stderr.decode());assert r.returncode==0 and b'1102cfd04acaeeea21ca4d03fe27ddbb32b7340a' in r.stdout\nep=Path('/sys/bus/pci/devices/0002:21:00.0');assert (ep/'vendor').read_text().strip()=='0x0755' and (ep/'device').read_text().strip()=='0x0755'\nassert not (ep/'driver').exists()\nassert stat.S_IMODE(Path('/userdata/detview-driving-demo/detview-driving-demo').stat().st_mode)==0o644\nr=subprocess.run(['insmod',str(p)],capture_output=True);print('INSMOD_RC',r.returncode,'STDOUT',r.stdout.decode(),'STDERR',r.stderr.decode(),'STDOUT_SHA256',hashlib.sha256(r.stdout).hexdigest(),'STDERR_SHA256',hashlib.sha256(r.stderr).hexdigest());sys.exit(r.returncode)\nPY\n",
+      "host": "192.168.10.203",
+      "rc": 0,
+      "started_utc": "2026-10-07T07:18:59.614196+00:00",
+      "ended_utc": "2026-10-07T07:19:01.472064+00:00",
+      "stdout_sha256": "8f0674ad2eb19429936be03ec7d7897b0d5cf328ebe1e8a64dc0db6fb4dc658e",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "scope": {
+      "command": "sudo -n python3 - <<'PY'\nfrom pathlib import Path\nimport subprocess,os\nprint('BOOT',Path('/proc/sys/kernel/random/boot_id').read_text())\nfor name in ['rk-pcie','rockchip-pcie']:\n p=Path('/sys/bus/platform/drivers')/name;print('DRIVER',name,[(x.name,os.path.realpath(x)) for x in p.iterdir()])\nfor p in Path('/proc/device-tree').glob('pcie@*'):\n print('PCIE_DT',p.name,[(x.name,x.read_bytes().hex()) for x in p.iterdir() if x.name in ['status','compatible','reg','linux,pci-domain','phys']])\nfor f in ['/proc/iomem','/proc/interrupts','/sys/kernel/debug/devices_deferred']:\n try:print('FILE',f,Path(f).read_text())\n except OSError as e:print(e)\nfor root in ['/usr/src','/lib/modules/6.1.99','/userdata/linaro/projects/fpga/RK3568']:\n print('SOURCE_ROOT',root)\n r=subprocess.run(['find',root,'-maxdepth','5','-name','*pcie*'],capture_output=True);print(r.returncode,r.stdout.decode(),r.stderr.decode())\nowners=[]\nfor p in Path('/proc').iterdir():\n if not p.name.isdigit():continue\n try:\n  for fd in (p/'fd').iterdir():\n   try:\n    link=os.readlink(fd)\n    if any(s in link for s in ['/dev/pango','/dev/xdma','/dev/mem','3c0800000.pcie']):owners.append((p.name,fd.name,link))\n   except OSError:pass\n  maps=(p/'maps').read_text()\n  if any(s in maps for s in ['/dev/pango','/dev/xdma','/dev/mem','3c0800000.pcie']):owners.append((p.name,'maps',maps))\n except OSError:pass\nprint('OWNERS',owners)\nPY\n",
+      "host": "192.168.10.203",
+      "rc": 0,
+      "started_utc": "2026-10-07T07:17:13.260619+00:00",
+      "ended_utc": "2026-10-07T07:17:15.855817+00:00",
+      "stdout_sha256": "1703e4389bfbcc10c00b83c2464db05ea5e3993a86a4327926c5a35fe0cafaeb",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  "next_step": "Continue separately authorized bounded functional DMA/frame validation with admission still held; do not perform further host bind/reset while endpoint is present."
+}

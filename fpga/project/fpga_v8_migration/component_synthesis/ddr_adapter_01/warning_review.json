@@ -1,0 +1,24 @@
+{
+  "scope": "Read-only review of emitted PDS diagnostics and the nine pinned source files",
+  "compile_warning_count": 19,
+  "synthesis_invocation_warning_count": 837,
+  "error_count": 0,
+  "constant_probe_loop": {"count_per_invocation": 18, "status": "Retained compiler diagnostic; no source locations or functional-equivalence proof"},
+  "unused_fifo_logic": {
+    "dangling_warning_entries": 7,
+    "actual_removed_signals": ["read SYN_CTRL.syn_almost_empty", "read SYN_CTRL.syn_almost_full", "read wr_water_level[4:0]", "read rd_water_level[4:0]", "write SYN_CTRL.syn_almost_empty", "write SYN_CTRL.syn_almost_full", "write rd_water_level[4:0]"],
+    "reason": "Adapter leaves both almost-full/empty pairs open; generated read wrapper disables both water outputs and write wrapper disables read water output",
+    "write_water_level": "Connected to adapter top and used to wait for all promised W beats before vendor AW; retained"
+  },
+  "constant_cleanup": {"constant_warning_entries": 9, "other_dangling_warning_entries": 9, "signals": ["ar_addr[3:0]", "aw_addr[3:0]", "s_bresp[0]"], "reason": "Accepted requests require 16-byte alignment; B is OKAY or SLVERR"},
+  "max_fanout_cell_not_replicated": {"count": 2, "cell": "lutcarry N112.lt_3", "net": "N112", "reported_threshold": 10000, "status": "Unresolved physical optimization diagnostic; no timing acceptance"},
+  "max_fanout_not_honored": {"count": 10, "nets": ["N106_0", "fifo_rst_1", "N138_0", "N134_0", "N117_0"], "count_per_net": 2, "status": "Unresolved physical optimization diagnostic; no RTL or constraints changed"},
+  "physical_io_excess": {"count": 1, "virtual_bits": 781, "package_pins": 285},
+  "unconstrained_virtual_outputs": 386,
+  "unconstrained_virtual_inputs": 394,
+  "latch_width_missing_module_diagnostics": 0,
+  "drm": 0,
+  "fifo_storage_mapping": "138 GTP_RAM32X2DP plus 1 GTP_RAM32X1DP, 139 distributed RAM LUTs included in 370 total LUTs",
+  "source_or_ip_edits": false,
+  "synthesized_functional_equivalence_proven": false
+}

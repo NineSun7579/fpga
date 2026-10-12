@@ -1,0 +1,19 @@
+{
+  "root_cause": "Untyped WIDTH/HEIGHT inherit packed OV5640 dimensions; self-determined WIDTH*HEIGHT truncates to zero at both 11 and 12 bits.",
+  "before": {
+    "packed11": {"adapter_total": 0, "core_total_pixels": 0, "counter_bits": 2},
+    "packed12": {"adapter_total": 0, "core_total_pixels": 0, "counter_bits": 2},
+    "default32": {"adapter_total": 307200, "core_total_pixels": 307200, "counter_bits": 19}
+  },
+  "unchanged_geometry": {"sample_columns": 160, "sample_rows": 120, "block_columns": 16, "block_rows": 12, "samples": 19200, "blocks": 192},
+  "fix": "Declare WIDTH/HEIGHT parameter integer in staged adapter and both core copies; declare TOTAL/TOTAL_PIXELS localparam integer as explicit arithmetic-width protection.",
+  "production_adapter": "Absent; no production adapter file created.",
+  "proof_before_fix": "C:/Users/NineSun/AppData/Local/Temp/motion_width_proof_nk2twmh7/width_proof.log",
+  "regression_after_fix": {
+    "core": "motion_results.log: existing sparse, dense, single-pixel and default640 cases plus direct packed11 640x480 case; both full-resolution cases complete all 16 literal oracle frames; PASS ALL block_motion_detector self-checks",
+    "adapter": "adapter_results.log: packed11 full640 geometry assertions and two continuous full frames, ABI, gaps, held VSYNC, coincident pixel0, last sample, dummy, short restart, excess tail, forced overflow recovery and link-loss reset; PASS tb_motion_stream_adapter",
+    "geometry_assertions": {"dimension_bits": 32, "total_pixels": 307200, "counter_bits": 19, "samples": 19200, "blocks": 192}
+  },
+  "vendor_verification": "Pending fresh parent build; no vendor tool launched by this subagent.",
+  "archived_failed_inputs": "Untouched."
+}

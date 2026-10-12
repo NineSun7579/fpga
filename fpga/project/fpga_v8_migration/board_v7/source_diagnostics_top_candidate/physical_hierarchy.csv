@@ -1,0 +1,69 @@
+simulation,rtl,width,clock,requirement
+/tb_elab/dut/source_diagnostics/cameras[0]/reset_pipe,source_diagnostics/cameras[0]/reset_pipe,4,axi_clk,ASYNC_REG; async assert / four-cycle release; pulse-width and recovery/removal
+/tb_elab/dut/source_diagnostics/cameras[0]/source/cr,source_diagnostics/cameras[0]/source/cr,2,cmos1_pclk,ASYNC_REG reset release
+/tb_elab/dut/source_diagnostics/cameras[0]/source/hr,source_diagnostics/cameras[0]/source/hr,2,axi_clk,ASYNC_REG reset release
+/tb_elab/dut/source_diagnostics/cameras[0]/source/request,source_diagnostics/cameras[0]/source/request,1,cmos1_pclk,source toggle to req_sync[0]
+/tb_elab/dut/source_diagnostics/cameras[0]/source/req_sync,source_diagnostics/cameras[0]/source/req_sync,3,axi_clk,ASYNC_REG; only first stage asynchronous exception
+/tb_elab/dut/source_diagnostics/cameras[0]/source/ack,source_diagnostics/cameras[0]/source/ack,1,axi_clk,ack toggle to ack_sync[0]
+/tb_elab/dut/source_diagnostics/cameras[0]/source/ack_sync,source_diagnostics/cameras[0]/source/ack_sync,2,cmos1_pclk,ASYNC_REG; only first stage asynchronous exception
+/tb_elab/dut/source_diagnostics/cameras[0]/source/sticky_overrun,source_diagnostics/cameras[0]/source/sticky_overrun,1,cmos1_pclk,status to overrun_sync[0]
+/tb_elab/dut/source_diagnostics/cameras[0]/source/overrun_sync,source_diagnostics/cameras[0]/source/overrun_sync,2,axi_clk,ASYNC_REG
+/tb_elab/dut/source_diagnostics/cameras[0]/source/mailbox,source_diagnostics/cameras[0]/source/mailbox,512,cmos1_pclk,bundled data launch; held until ack
+/tb_elab/dut/source_diagnostics/cameras[0]/source/host_bank,source_diagnostics/cameras[0]/source/host_bank,512,axi_clk,"bundled data destination; max_delay <= 2*T_axi, not masked by clock_groups/false_path"
+/tb_elab/dut/source_diagnostics/cameras[0]/source/raw_vs_d,source_diagnostics/cameras[0]/source/raw_vs_d,2,cmos1_pclk,"synchronous alignment, NOT a CDC synchronizer"
+/tb_elab/dut/source_diagnostics/cameras[0]/source/href_d,source_diagnostics/cameras[0]/source/href_d,2,cmos1_pclk,synchronous alignment
+/tb_elab/dut/source_diagnostics/cameras[0]/source/accept_d,source_diagnostics/cameras[0]/source/accept_d,2,cmos1_pclk,synchronous alignment
+/tb_elab/dut/source_diagnostics/cameras[0]/source/valid_d,source_diagnostics/cameras[0]/source/valid_d,1,cmos1_pclk,half-cycle negedge binding output to posedge; preserve real setup/hold
+/tb_elab/dut/source_diagnostics/cameras[1]/reset_pipe,source_diagnostics/cameras[1]/reset_pipe,4,axi_clk,ASYNC_REG; async assert / four-cycle release; pulse-width and recovery/removal
+/tb_elab/dut/source_diagnostics/cameras[1]/source/cr,source_diagnostics/cameras[1]/source/cr,2,cmos2_pclk,ASYNC_REG reset release
+/tb_elab/dut/source_diagnostics/cameras[1]/source/hr,source_diagnostics/cameras[1]/source/hr,2,axi_clk,ASYNC_REG reset release
+/tb_elab/dut/source_diagnostics/cameras[1]/source/request,source_diagnostics/cameras[1]/source/request,1,cmos2_pclk,source toggle to req_sync[0]
+/tb_elab/dut/source_diagnostics/cameras[1]/source/req_sync,source_diagnostics/cameras[1]/source/req_sync,3,axi_clk,ASYNC_REG; only first stage asynchronous exception
+/tb_elab/dut/source_diagnostics/cameras[1]/source/ack,source_diagnostics/cameras[1]/source/ack,1,axi_clk,ack toggle to ack_sync[0]
+/tb_elab/dut/source_diagnostics/cameras[1]/source/ack_sync,source_diagnostics/cameras[1]/source/ack_sync,2,cmos2_pclk,ASYNC_REG; only first stage asynchronous exception
+/tb_elab/dut/source_diagnostics/cameras[1]/source/sticky_overrun,source_diagnostics/cameras[1]/source/sticky_overrun,1,cmos2_pclk,status to overrun_sync[0]
+/tb_elab/dut/source_diagnostics/cameras[1]/source/overrun_sync,source_diagnostics/cameras[1]/source/overrun_sync,2,axi_clk,ASYNC_REG
+/tb_elab/dut/source_diagnostics/cameras[1]/source/mailbox,source_diagnostics/cameras[1]/source/mailbox,512,cmos2_pclk,bundled data launch; held until ack
+/tb_elab/dut/source_diagnostics/cameras[1]/source/host_bank,source_diagnostics/cameras[1]/source/host_bank,512,axi_clk,"bundled data destination; max_delay <= 2*T_axi, not masked by clock_groups/false_path"
+/tb_elab/dut/source_diagnostics/cameras[1]/source/raw_vs_d,source_diagnostics/cameras[1]/source/raw_vs_d,2,cmos2_pclk,"synchronous alignment, NOT a CDC synchronizer"
+/tb_elab/dut/source_diagnostics/cameras[1]/source/href_d,source_diagnostics/cameras[1]/source/href_d,2,cmos2_pclk,synchronous alignment
+/tb_elab/dut/source_diagnostics/cameras[1]/source/accept_d,source_diagnostics/cameras[1]/source/accept_d,2,cmos2_pclk,synchronous alignment
+/tb_elab/dut/source_diagnostics/cameras[1]/source/valid_d,source_diagnostics/cameras[1]/source/valid_d,1,cmos2_pclk,half-cycle negedge binding output to posedge; preserve real setup/hold
+/tb_elab/dut/source_diagnostics/cameras[2]/reset_pipe,source_diagnostics/cameras[2]/reset_pipe,4,axi_clk,ASYNC_REG; async assert / four-cycle release; pulse-width and recovery/removal
+/tb_elab/dut/source_diagnostics/cameras[2]/source/cr,source_diagnostics/cameras[2]/source/cr,2,cmos3_pclk,ASYNC_REG reset release
+/tb_elab/dut/source_diagnostics/cameras[2]/source/hr,source_diagnostics/cameras[2]/source/hr,2,axi_clk,ASYNC_REG reset release
+/tb_elab/dut/source_diagnostics/cameras[2]/source/request,source_diagnostics/cameras[2]/source/request,1,cmos3_pclk,source toggle to req_sync[0]
+/tb_elab/dut/source_diagnostics/cameras[2]/source/req_sync,source_diagnostics/cameras[2]/source/req_sync,3,axi_clk,ASYNC_REG; only first stage asynchronous exception
+/tb_elab/dut/source_diagnostics/cameras[2]/source/ack,source_diagnostics/cameras[2]/source/ack,1,axi_clk,ack toggle to ack_sync[0]
+/tb_elab/dut/source_diagnostics/cameras[2]/source/ack_sync,source_diagnostics/cameras[2]/source/ack_sync,2,cmos3_pclk,ASYNC_REG; only first stage asynchronous exception
+/tb_elab/dut/source_diagnostics/cameras[2]/source/sticky_overrun,source_diagnostics/cameras[2]/source/sticky_overrun,1,cmos3_pclk,status to overrun_sync[0]
+/tb_elab/dut/source_diagnostics/cameras[2]/source/overrun_sync,source_diagnostics/cameras[2]/source/overrun_sync,2,axi_clk,ASYNC_REG
+/tb_elab/dut/source_diagnostics/cameras[2]/source/mailbox,source_diagnostics/cameras[2]/source/mailbox,512,cmos3_pclk,bundled data launch; held until ack
+/tb_elab/dut/source_diagnostics/cameras[2]/source/host_bank,source_diagnostics/cameras[2]/source/host_bank,512,axi_clk,"bundled data destination; max_delay <= 2*T_axi, not masked by clock_groups/false_path"
+/tb_elab/dut/source_diagnostics/cameras[2]/source/raw_vs_d,source_diagnostics/cameras[2]/source/raw_vs_d,2,cmos3_pclk,"synchronous alignment, NOT a CDC synchronizer"
+/tb_elab/dut/source_diagnostics/cameras[2]/source/href_d,source_diagnostics/cameras[2]/source/href_d,2,cmos3_pclk,synchronous alignment
+/tb_elab/dut/source_diagnostics/cameras[2]/source/accept_d,source_diagnostics/cameras[2]/source/accept_d,2,cmos3_pclk,synchronous alignment
+/tb_elab/dut/source_diagnostics/cameras[2]/source/valid_d,source_diagnostics/cameras[2]/source/valid_d,1,cmos3_pclk,half-cycle negedge binding output to posedge; preserve real setup/hold
+/tb_elab/dut/source_diagnostics/cameras[3]/reset_pipe,source_diagnostics/cameras[3]/reset_pipe,4,axi_clk,ASYNC_REG; async assert / four-cycle release; pulse-width and recovery/removal
+/tb_elab/dut/source_diagnostics/cameras[3]/source/cr,source_diagnostics/cameras[3]/source/cr,2,cmos4_pclk,ASYNC_REG reset release
+/tb_elab/dut/source_diagnostics/cameras[3]/source/hr,source_diagnostics/cameras[3]/source/hr,2,axi_clk,ASYNC_REG reset release
+/tb_elab/dut/source_diagnostics/cameras[3]/source/request,source_diagnostics/cameras[3]/source/request,1,cmos4_pclk,source toggle to req_sync[0]
+/tb_elab/dut/source_diagnostics/cameras[3]/source/req_sync,source_diagnostics/cameras[3]/source/req_sync,3,axi_clk,ASYNC_REG; only first stage asynchronous exception
+/tb_elab/dut/source_diagnostics/cameras[3]/source/ack,source_diagnostics/cameras[3]/source/ack,1,axi_clk,ack toggle to ack_sync[0]
+/tb_elab/dut/source_diagnostics/cameras[3]/source/ack_sync,source_diagnostics/cameras[3]/source/ack_sync,2,cmos4_pclk,ASYNC_REG; only first stage asynchronous exception
+/tb_elab/dut/source_diagnostics/cameras[3]/source/sticky_overrun,source_diagnostics/cameras[3]/source/sticky_overrun,1,cmos4_pclk,status to overrun_sync[0]
+/tb_elab/dut/source_diagnostics/cameras[3]/source/overrun_sync,source_diagnostics/cameras[3]/source/overrun_sync,2,axi_clk,ASYNC_REG
+/tb_elab/dut/source_diagnostics/cameras[3]/source/mailbox,source_diagnostics/cameras[3]/source/mailbox,512,cmos4_pclk,bundled data launch; held until ack
+/tb_elab/dut/source_diagnostics/cameras[3]/source/host_bank,source_diagnostics/cameras[3]/source/host_bank,512,axi_clk,"bundled data destination; max_delay <= 2*T_axi, not masked by clock_groups/false_path"
+/tb_elab/dut/source_diagnostics/cameras[3]/source/raw_vs_d,source_diagnostics/cameras[3]/source/raw_vs_d,2,cmos4_pclk,"synchronous alignment, NOT a CDC synchronizer"
+/tb_elab/dut/source_diagnostics/cameras[3]/source/href_d,source_diagnostics/cameras[3]/source/href_d,2,cmos4_pclk,synchronous alignment
+/tb_elab/dut/source_diagnostics/cameras[3]/source/accept_d,source_diagnostics/cameras[3]/source/accept_d,2,cmos4_pclk,synchronous alignment
+/tb_elab/dut/source_diagnostics/cameras[3]/source/valid_d,source_diagnostics/cameras[3]/source/valid_d,1,cmos4_pclk,half-cycle negedge binding output to posedge; preserve real setup/hold
+/tb_elab/dut/ov5640_top/ov5640/cmos_frame_valid_r,ov5640_top/ov5640/cmos_frame_valid_r,1,cmos1_pclk,"negedge launch to diagnostic posedge; preserve half-cycle setup/hold, no added reset"
+/tb_elab/dut/ov5640_top/ov5640/cmos_frame_vsync_r,ov5640_top/ov5640/cmos_frame_vsync_r,1,cmos1_pclk,"negedge launch to diagnostic posedge; preserve half-cycle setup/hold, no added reset"
+/tb_elab/dut/cam2_ov5640_top/ov5640/cmos_frame_valid_r,cam2_ov5640_top/ov5640/cmos_frame_valid_r,1,cmos2_pclk,"negedge launch to diagnostic posedge; preserve half-cycle setup/hold, no added reset"
+/tb_elab/dut/cam2_ov5640_top/ov5640/cmos_frame_vsync_r,cam2_ov5640_top/ov5640/cmos_frame_vsync_r,1,cmos2_pclk,"negedge launch to diagnostic posedge; preserve half-cycle setup/hold, no added reset"
+/tb_elab/dut/cam3_ov5640_top/ov5640/cmos_frame_valid_r,cam3_ov5640_top/ov5640/cmos_frame_valid_r,1,cmos3_pclk,"negedge launch to diagnostic posedge; preserve half-cycle setup/hold, no added reset"
+/tb_elab/dut/cam3_ov5640_top/ov5640/cmos_frame_vsync_r,cam3_ov5640_top/ov5640/cmos_frame_vsync_r,1,cmos3_pclk,"negedge launch to diagnostic posedge; preserve half-cycle setup/hold, no added reset"
+/tb_elab/dut/cam4_ov5640_top/ov5640/cmos_frame_valid_r,cam4_ov5640_top/ov5640/cmos_frame_valid_r,1,cmos4_pclk,"negedge launch to diagnostic posedge; preserve half-cycle setup/hold, no added reset"
+/tb_elab/dut/cam4_ov5640_top/ov5640/cmos_frame_vsync_r,cam4_ov5640_top/ov5640/cmos_frame_vsync_r,1,cmos4_pclk,"negedge launch to diagnostic posedge; preserve half-cycle setup/hold, no added reset"

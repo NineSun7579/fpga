@@ -1,0 +1,124 @@
+--- audited_v2/fpga_v8_cooperative_top_v2.v
++++ candidate/fpga_v8_cooperative_top_v2_rfg01.v
+@@ -5,7 +5,7 @@
+ //`define USE_HDMI
+ 
+ 
+-module fpga_v8_cooperative_top_v2 #(
++module fpga_v8_cooperative_top_v2_rfg01 #(
+     parameter   MSI_NUM = 5,
+     parameter   AXI_ID_LEN      = 4, 
+                 AXI_ID_M_LEN    = $clog2(7) + AXI_ID_LEN,
+@@ -436,6 +436,23 @@
+ 
+     wire                              pcie_clk        ;
+     wire                              pcie_rst        ;
++    wire rfg_smlh, rfg_rdlh, rfg_admit_axi, rfg_admit_pcie;
++    wire rfg_fault_axi, rfg_fault_pcie;
++    wire rfg_idle_axi, rfg_idle_pcie;
++    fpga_v8_reset_fault_guard u_reset_fault_guard (
++        .free_clk(free_clk), .button_rst_n(button_rst_n), .perst_n(perst_n),
++        .axi_clk(axi_clk), .axi_rst(axi_rst), .ddr_init_done(ddr_init_done),
++        .startup_idle_pcie(rfg_idle_pcie),
++        .startup_idle_axi(rfg_idle_axi && v8_cap_engine_idle && !v8_cap_armed &&
++            v8_cap_bank0_state==0 && v8_cap_bank1_state==0 &&
++            !v8_coop_busy && !v8_coop_bridge_busy && !v8_coop_arbiter_busy &&
++            v8_coop_bank0_state==0 && v8_coop_bank1_state==0),
++        .pcie_clk(pcie_clk), .pcie_rst(pcie_rst),
++        .smlh_link_up(rfg_smlh), .rdlh_link_up(rfg_rdlh),
++        .fault(), .runtime_active(), .reconfiguration_required(),
++        .admit_axi(rfg_admit_axi), .admit_pcie(rfg_admit_pcie),
++        .fault_axi(rfg_fault_axi), .fault_pcie(rfg_fault_pcie)
++    );
+ 
+     wire [MSI_NUM-2 : 0]      msi_req       ;
+     wire [MSI_NUM-2 : 0]      msi_grant     ;
+@@ -443,11 +460,13 @@
+ 
+     assign msi_req = {1'd0, 1'b0, 2'b00}; //[MSIFIX 2026-09-13] freerun: xdma_req stuck high = MSI storm, camera MSI off
+ 
+-fpga_v8_pcie_fifo_h2f #(
++fpga_v8_pcie_fifo_h2f_rfg01 #(
+     .MSI_NUM(MSI_NUM)
+ )
+ pcie_fifo(    
+ 
++    .i_admit(rfg_admit_pcie), .i_admit_axi(rfg_admit_axi),
++    .startup_idle_axi(rfg_idle_axi), .startup_idle_pcie(rfg_idle_pcie),
+     .button_rst_n(button_rst_n)    ,
+ 
+     ////////////////// PCIE ////////////////
+@@ -460,8 +479,8 @@
+     .txp         (txp         )    ,
+     .ref_led     (ref_led     )    ,
+     .pclk_led    (pclk_led    )    ,
+-    // .smlh_link_up(smlh_link_up)    ,
+-    // .rdlh_link_up(rdlh_link_up)    ,
++    .smlh_link_up(rfg_smlh),
++    .rdlh_link_up(rfg_rdlh),
+ 
+     .fifo_pcie_clk(pcie_clk   )    ,
+     .fifo_pcie_rst(pcie_rst   )    ,
+@@ -1540,7 +1559,7 @@
+     .axi_clk(axi_clk),
+     .axi_rst(axi_rst),
+     .epoch_start(v8_cap_epoch_start),
+-    .lease_block(v8_cap_lease_block),
++    .lease_block(v8_cap_lease_block | !rfg_admit_axi),
+     .dma_abort(cam5_dma_abort),
+     .dma_abort_req(cam5_dma_abort_req),
+     .dma_done(cam5_dma_done),
+@@ -3098,7 +3117,7 @@
+ ) u_v8_capture_lease (
+     .clk(axi_clk),
+     .rst(axi_rst),
+-    .config_valid(v8_cap_config_valid),
++    .config_valid(v8_cap_config_valid && rfg_admit_axi),
+     .config_ready(v8_cap_config_ready),
+     .config_generation(v8_cap_config_generation),
+     .config_accept(v8_cap_config_accept),
+@@ -3117,7 +3136,7 @@
+     .bank1_state(v8_cap_bank1_state),
+     .protocol_fault(v8_cap_protocol_fault),
+     .input_valid(v8_cap_input_valid),
+-    .input_ready(v8_cap_input_ready),
++    .input_ready(v8_cap_input_ready && rfg_admit_axi),
+     .input_raw_valid(v8_cap_input_raw_valid),
+     .input_src_addr(v8_cap_input_src_addr),
+     .input_length(v8_cap_input_length),
+@@ -3158,15 +3177,16 @@
+     .rejected_release_count(v8_cap_rejected_release_count)
+ );
+ 
+-fpga_v8_cooperative_core #(
++fpga_v8_cooperative_core_rfg01 #(
+     .OUTPUT_BANK0_ADDR(32'h08000000),
+     .OUTPUT_BANK1_ADDR(32'h08200000),
+     .DDR_ADDRESS_LIMIT(32'h10000000),
+     .AXI_ID(4'd1)
+ ) u_v8_cooperative_core (
++    .session_fault(rfg_fault_axi),
+     .core_clk(axi_clk),
+     .rst_n(~axi_rst),
+-    .input_valid(v8_cap_input_valid),
++    .input_valid(v8_cap_input_valid && rfg_admit_axi),
+     .input_ready(v8_cap_input_ready),
+     .input_raw_valid(v8_cap_input_raw_valid),
+     .input_src_addr(v8_cap_input_src_addr),
+@@ -3283,14 +3303,14 @@
+     .clk(axi_clk),
+     .rst_n(~axi_rst),
+     .config_valid(v8_cap_config_valid),
+-    .config_ready(v8_cap_config_ready),
++    .config_ready(v8_cap_config_ready && rfg_admit_axi),
+     .config_generation(v8_cap_config_generation),
+     .config_accept(v8_cap_config_accept),
+     .config_reject(v8_cap_config_reject),
+     .epoch_start(v8_cap_epoch_start),
+     .armed(v8_cap_armed),
+     .config_ok(v8_cap_config_ok),
+-    .protocol_fault(v8_cap_protocol_fault),
++    .protocol_fault(v8_cap_protocol_fault | rfg_fault_axi),
+     .bank0_state(v8_cap_bank0_state),
+     .bank1_state(v8_cap_bank1_state),
+     .host_valid(v8_cap_host_valid),

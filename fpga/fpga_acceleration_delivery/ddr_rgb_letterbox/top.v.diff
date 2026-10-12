@@ -1,0 +1,260 @@
+--- source/top.v
++++ integrated/source/top.v
+@@ -429,6 +429,51 @@
+ wire [15:0]  arb2x_wstrb;
+ wire         arb2x_wlast, arb2x_wvalid;
+ wire [1:0]   arb2x_wuser;
++
++// DELIVERY: isolated cam5 DDR preprocessing integration.
++wire delivery_hold;
++wire [31:0] delivery_prev;
++wire [1:0] delivery_published;
++wire [31:0] delivery_araddr;
++wire [7:0] delivery_arlen;
++wire [2:0] delivery_arsize;
++wire [1:0] delivery_arburst;
++wire delivery_arvalid;
++wire delivery_arready;
++wire [127:0] delivery_rdata;
++wire [1:0] delivery_rresp;
++wire delivery_rlast;
++wire delivery_rvalid;
++wire delivery_rready;
++wire [31:0] delivery_awaddr;
++wire [7:0] delivery_awlen;
++wire [2:0] delivery_awsize;
++wire [1:0] delivery_awburst;
++wire delivery_awvalid;
++wire delivery_awready;
++wire [127:0] delivery_wdata;
++wire [15:0] delivery_wstrb;
++wire delivery_wlast;
++wire delivery_wvalid;
++wire delivery_wready;
++wire [1:0] delivery_bresp;
++wire delivery_bvalid;
++wire delivery_bready;
++wire [3:0] npu_reg_axi_awqos;
++wire [3:0] npu_reg_axi_awregion;
++wire [6:0] npu_reg_axi_arid;
++wire [31:0] npu_reg_axi_araddr;
++wire [7:0] npu_reg_axi_arlen;
++wire [2:0] npu_reg_axi_arsize;
++wire [1:0] npu_reg_axi_arburst;
++wire npu_reg_axi_arlock;
++wire [3:0] npu_reg_axi_arcache;
++wire [2:0] npu_reg_axi_arprot;
++wire [3:0] npu_reg_axi_arqos;
++wire [3:0] npu_reg_axi_arregion;
++wire npu_reg_axi_arvalid;
++wire npu_reg_axi_rready;
++
+ ddr_w_arb u_ddr_w_arb (
+     .clk(axi_clk), .rst(axi_rst),
+     .m0_awid    (ov5640_axi_awid    ), .m0_awaddr (ov5640_axi_awaddr ),
+@@ -494,6 +539,25 @@
+     .m5_wready  (cam6_axi_wready  ),
+     .m5_bid     (cam6_axi_bid     ), .m5_bresp  (cam6_axi_bresp  ),
+     .m5_bvalid  (cam6_axi_bvalid  ), .m5_bready (cam6_axi_bready ),
++.m6_awid(4'hd),
++.m6_awaddr(delivery_awaddr),
++.m6_awlen(delivery_awlen),
++.m6_awsize(delivery_awsize),
++.m6_awburst(delivery_awburst),
++.m6_awlock(1'b0),
++.m6_awcache(4'd0),
++.m6_awprot(3'd0),
++.m6_awvalid(delivery_awvalid),
++.m6_awready(delivery_awready),
++.m6_wdata(delivery_wdata),
++.m6_wstrb(delivery_wstrb),
++.m6_wlast(delivery_wlast),
++.m6_wvalid(delivery_wvalid),
++.m6_wready(delivery_wready),
++.m6_bid(),
++.m6_bresp(delivery_bresp),
++.m6_bvalid(delivery_bvalid),
++.m6_bready(delivery_bready),
+     .s_awid     (arb_s_awid         ), .s_awaddr (arb_s_awaddr      ),
+     .s_awlen    (arb_s_awlen        ), .s_awsize (arb_s_awsize      ),
+     .s_awburst  (arb_s_awburst      ), .s_awlock (arb_s_awlock      ),
+@@ -1789,7 +1853,7 @@
+ ) cam5_ov5640_ddr (
+     .axi_clk        (axi_clk),
+     .axi_rst        (axi_rst),
+-    .axi_cam_en     (1'b1),   // [2026-09-30] enable cam5/6 DDR write (SFP fiber channels)
++    .axi_cam_en     (!delivery_hold),   // [2026-09-30] enable cam5/6 DDR write (SFP fiber channels)
+     .dbg_fault_snapshot (cam5_diag_fault), .dbg_reject_counts (cam5_diag_rejects), .dbg_input_pixels (cam5_diag_pixels),
+     .dma_abort      (cam5_dma_abort),
+     .dma_abort_req  (cam5_dma_abort_req),
+@@ -1797,7 +1861,7 @@
+     .dma_done       (cam5_dma_done),
+     .cam_data_addr_1(32'h0180_0000),
+     .cam_data_addr_2(32'h01A0_0000),
+-    .prev_frame_base(),               // [KF-unused] output: fiber channels have no KF readback
++    .prev_frame_base(delivery_prev),               // [KF-unused] output: fiber channels have no KF readback
+     .cam_data_len   (38400),
+     .s_data         (cam5_pix),
+     .s_data_valid   (cam5_de),
+@@ -1813,7 +1877,7 @@
+     .axi_cmd_ready  (cam5_cmd_ready),
+     .dbg_axi_cnt (), .dbg_axi_num (), .dbg_zdin (), .dbg_zout (),
+     .dbg_state (cam5_diag_state), .dbg_last_cnt (), .dbg_wd_cnt (),
+-    .xdma_req  (),
++    .xdma_req  (delivery_published),
+     .xdma_ack  (2'b00)
+ );
+ 
+@@ -2428,9 +2492,9 @@
+ 
+ 
+ /////////////////////////////////////////////////////////////////////////////////////////////
+-wire [AXI_ID_LEN-1:0]   npu_reg_axi_awid    /*synthesis PAP_MARK_DEBUG="1"*/;
++wire [6:0]   npu_reg_axi_awid    /*synthesis PAP_MARK_DEBUG="1"*/;
+ wire [31:0]             npu_reg_axi_awaddr  /*synthesis PAP_MARK_DEBUG="1"*/;
+-wire [3:0]              npu_reg_axi_awlen   /*synthesis PAP_MARK_DEBUG="1"*/;
++wire [7:0]              npu_reg_axi_awlen   /*synthesis PAP_MARK_DEBUG="1"*/;
+ wire [2:0]              npu_reg_axi_awsize  /*synthesis PAP_MARK_DEBUG="1"*/;
+ wire [1:0]              npu_reg_axi_awburst /*synthesis PAP_MARK_DEBUG="1"*/;
+ wire                    npu_reg_axi_awlock  /*synthesis PAP_MARK_DEBUG="1"*/;
+@@ -2443,7 +2507,7 @@
+ wire                    npu_reg_axi_wlast   /*synthesis PAP_MARK_DEBUG="1"*/;
+ wire                    npu_reg_axi_wvalid  /*synthesis PAP_MARK_DEBUG="1"*/;
+ wire                    npu_reg_axi_wready  /*synthesis PAP_MARK_DEBUG="1"*/;
+-wire [AXI_ID_LEN-1:0]   npu_reg_axi_bid     /*synthesis PAP_MARK_DEBUG="1"*/;
++wire [6:0]   npu_reg_axi_bid     /*synthesis PAP_MARK_DEBUG="1"*/;
+ wire [1:0]              npu_reg_axi_bresp   /*synthesis PAP_MARK_DEBUG="1"*/;
+ wire                    npu_reg_axi_bvalid  /*synthesis PAP_MARK_DEBUG="1"*/;
+ wire                    npu_reg_axi_bready  /*synthesis PAP_MARK_DEBUG="1"*/;
+@@ -2600,26 +2664,26 @@
+ assign npu_s2_axi_rready   = 1'b1;
+ // [VKFS 2026-09-25] S05 (npu_s3) is driven by cam1's vip_kf_stream read master
+ // (was tied off). Keep S02/S04/S06 tied off.
+-assign npu_s4_axi_arvalid  = 1'b0;
+-assign npu_s4_axi_rready   = 1'b1;
++
++
+ // M02 (NPU register window) response inputs
+-assign npu_reg_axi_awready = 1'b1;
+-assign npu_reg_axi_wready  = 1'b1;
+-assign npu_reg_axi_bid     = {AXI_ID_LEN{1'b0}};
+-assign npu_reg_axi_bresp   = 2'b00;
+-assign npu_reg_axi_bvalid  = 1'b0;
+-wire   [AXI_ID_LEN-1:0]   npu_reg_axi_rid;
++
++
++
++
++
++wire   [6:0]   npu_reg_axi_rid;
+ wire   [AXI_DATA_LEN-1:0] npu_reg_axi_rdata;
+ wire   [1:0]              npu_reg_axi_rresp;
+ wire                      npu_reg_axi_rlast;
+ wire                      npu_reg_axi_rvalid;
+ wire                      npu_reg_axi_arready;
+-assign npu_reg_axi_arready = 1'b1;
+-assign npu_reg_axi_rid     = {AXI_ID_LEN{1'b0}};
+-assign npu_reg_axi_rdata   = {AXI_DATA_LEN{1'b0}};
+-assign npu_reg_axi_rresp   = 2'b00;
+-assign npu_reg_axi_rlast   = 1'b0;
+-assign npu_reg_axi_rvalid  = 1'b0;
++
++
++
++
++
++
+ 
+ ///////////////////////////////////////////////////////////////////////////////////////////
+ axi_crossbar_7x3 #(
+@@ -3109,4 +3173,90 @@
+ 
+ );
+ 
++assign npu_s4_axi_arid=4'hd;
++assign npu_s4_axi_araddr=delivery_araddr;
++assign npu_s4_axi_arlen=delivery_arlen[3:0];
++assign npu_s4_axi_arsize=delivery_arsize;
++assign npu_s4_axi_arburst=delivery_arburst;
++assign npu_s4_axi_arvalid=delivery_arvalid;
++assign npu_s4_axi_rready=delivery_rready;
++assign npu_s4_axi_arlock=0;
++assign npu_s4_axi_arcache=0;
++assign npu_s4_axi_arprot=0;
++assign delivery_arready=npu_s4_axi_arready;
++assign delivery_rdata=npu_s4_axi_rdata;
++assign delivery_rresp=npu_s4_axi_rresp;
++assign delivery_rlast=npu_s4_axi_rlast;
++assign delivery_rvalid=npu_s4_axi_rvalid;
++delivery_top_adapter delivery_u (
++.clk(axi_clk),.rst(axi_rst),
++.capture_hold(delivery_hold),.camera_state(cam5_diag_state),.camera_prev_base(delivery_prev),
++.camera_published(delivery_published),.camera_cmd_valid(cam5_cmd_valid),
++.camera_awvalid(cam5_axi_awvalid),.camera_wvalid(cam5_axi_wvalid),.camera_abort(cam5_dma_abort),
++.s_axi_awid(npu_reg_axi_awid),
++.s_axi_awaddr(npu_reg_axi_awaddr),
++.s_axi_awlen(npu_reg_axi_awlen),
++.s_axi_awsize(npu_reg_axi_awsize),
++.s_axi_awburst(npu_reg_axi_awburst),
++.s_axi_awlock(npu_reg_axi_awlock),
++.s_axi_awcache(npu_reg_axi_awcache),
++.s_axi_awprot(npu_reg_axi_awprot),
++.s_axi_awqos(npu_reg_axi_awqos),
++.s_axi_awregion(npu_reg_axi_awregion),
++.s_axi_awvalid(npu_reg_axi_awvalid),
++.s_axi_awready(npu_reg_axi_awready),
++.s_axi_wdata(npu_reg_axi_wdata),
++.s_axi_wstrb(npu_reg_axi_wstrb),
++.s_axi_wlast(npu_reg_axi_wlast),
++.s_axi_wvalid(npu_reg_axi_wvalid),
++.s_axi_wready(npu_reg_axi_wready),
++.s_axi_bid(npu_reg_axi_bid),
++.s_axi_bresp(npu_reg_axi_bresp),
++.s_axi_bvalid(npu_reg_axi_bvalid),
++.s_axi_bready(npu_reg_axi_bready),
++.s_axi_arid(npu_reg_axi_arid),
++.s_axi_araddr(npu_reg_axi_araddr),
++.s_axi_arlen(npu_reg_axi_arlen),
++.s_axi_arsize(npu_reg_axi_arsize),
++.s_axi_arburst(npu_reg_axi_arburst),
++.s_axi_arlock(npu_reg_axi_arlock),
++.s_axi_arcache(npu_reg_axi_arcache),
++.s_axi_arprot(npu_reg_axi_arprot),
++.s_axi_arqos(npu_reg_axi_arqos),
++.s_axi_arregion(npu_reg_axi_arregion),
++.s_axi_arvalid(npu_reg_axi_arvalid),
++.s_axi_arready(npu_reg_axi_arready),
++.s_axi_rid(npu_reg_axi_rid),
++.s_axi_rdata(npu_reg_axi_rdata),
++.s_axi_rresp(npu_reg_axi_rresp),
++.s_axi_rlast(npu_reg_axi_rlast),
++.s_axi_rvalid(npu_reg_axi_rvalid),
++.s_axi_rready(npu_reg_axi_rready),
++.m_axi_araddr(delivery_araddr),
++.m_axi_arlen(delivery_arlen),
++.m_axi_arsize(delivery_arsize),
++.m_axi_arburst(delivery_arburst),
++.m_axi_arvalid(delivery_arvalid),
++.m_axi_arready(delivery_arready),
++.m_axi_rdata(delivery_rdata),
++.m_axi_rresp(delivery_rresp),
++.m_axi_rlast(delivery_rlast),
++.m_axi_rvalid(delivery_rvalid),
++.m_axi_rready(delivery_rready),
++.m_axi_awaddr(delivery_awaddr),
++.m_axi_awlen(delivery_awlen),
++.m_axi_awsize(delivery_awsize),
++.m_axi_awburst(delivery_awburst),
++.m_axi_awvalid(delivery_awvalid),
++.m_axi_awready(delivery_awready),
++.m_axi_wdata(delivery_wdata),
++.m_axi_wstrb(delivery_wstrb),
++.m_axi_wlast(delivery_wlast),
++.m_axi_wvalid(delivery_wvalid),
++.m_axi_wready(delivery_wready),
++.m_axi_bresp(delivery_bresp),
++.m_axi_bvalid(delivery_bvalid),
++.m_axi_bready(delivery_bready)
++);
++
+ endmodule

@@ -1,0 +1,21 @@
+--- actual50K/sfp_video_tx.v
++++ candidate/sfp_video_tx.v
+@@ -94,0 +95 @@
++    reg wait_frame; // Drain continuously; resume payload only at a consumed VS blank.
+@@ -123,0 +125 @@
++            wait_frame <= `UD 1'b1;
+@@ -128 +130 @@
+-                txd <= `UD idle_word;
++                txd <= `UD (fifo_pop ? ctrl_word : idle_word);
+@@ -130,0 +133 @@
++                wait_frame <= `UD 1'b1;
+@@ -133 +136,8 @@
+-                if (!pix_pend) begin
++                if (wait_frame) begin
++                    txd <= `UD ctrl_word;
++                    txk <= `UD ctrl_k;
++                    pix_pend <= `UD 1'b0;
++                    if (head_vs && !head_de)
++                        wait_frame <= `UD 1'b0;
++                end
++                else if (!pix_pend) begin

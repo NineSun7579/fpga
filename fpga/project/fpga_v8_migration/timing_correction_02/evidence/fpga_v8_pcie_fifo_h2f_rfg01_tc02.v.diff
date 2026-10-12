@@ -1,0 +1,62 @@
+--- C:\Users\NineSun\Desktop\ov56401\project\fpga_v8_migration\whole_candidate_v3_timing_route_01\rtl\fpga_v8_pcie_fifo_h2f_rfg01.v
++++ C:\Users\NineSun\Desktop\ov56401\project\fpga_v8_migration\timing_correction_02\rtl\fpga_v8_pcie_fifo_h2f_rfg01_tc02.v
+@@ -1,4 +1,4 @@
+-module fpga_v8_pcie_fifo_h2f_rfg01 #(
++module fpga_v8_pcie_fifo_h2f_rfg01_tc02 #(
+     parameter ADDR_WIDTH = 12,
+               MSI_NUM = 5,
+ 
+@@ -229,9 +229,24 @@
+ reg rx_fifo_write_en, rx_copy_active, rx_transaction_complete;
+ reg fpga_rx_clk_en_d;
+ reg fpga_rx_done;
+-wire [31:0] rx_input_bytes = ((fpga_ddr3_length - rx_chunk_bytes) >= 16) ?
+-                            32'd16 : fpga_ddr3_length - rx_chunk_bytes;
+-wire [127:0] rx_input_mask = {128{1'b1}} >> ((32'd16-rx_input_bytes)*8);
++// TC02: capture chunk metadata at the existing RAM-copy start edge.
++// Chunk length is fixed throughout this copy. The last beat's byte count and
++// mask are local registered metadata; no 32-bit subtract/subtract/barrel-mask
++// chain connects the controller length to RX packed data on each copy edge.
++reg [28:0] rx_beats_remaining;
++reg [4:0] rx_tail_bytes;
++reg [127:0] rx_tail_mask;
++wire rx_last_input = (rx_beats_remaining == 1);
++wire [31:0] rx_input_bytes = rx_last_input ? {27'd0,rx_tail_bytes} : 32'd16;
++wire [127:0] rx_input_mask = rx_last_input ? rx_tail_mask : {128{1'b1}};
++wire [4:0] chunk_tail_bytes = (fpga_ddr3_length[3:0] == 0) ?
++                             5'd16 : {1'b0,fpga_ddr3_length[3:0]};
++wire [127:0] chunk_tail_mask;
++genvar tail_lane;
++generate for (tail_lane=0;tail_lane<16;tail_lane=tail_lane+1) begin : tc02_tail_mask
++    assign chunk_tail_mask[tail_lane*8 +: 8] =
++        (chunk_tail_bytes > tail_lane) ? 8'hff : 8'h00;
++end endgenerate
+ wire [255:0] rx_merge_data = {128'd0,rx_pack_data} |
+     ({128'd0,(fpga_rx_data & rx_input_mask)} << (rx_pack_bytes*8));
+ wire [5:0] rx_merge_bytes = {1'b0,rx_pack_bytes}+rx_input_bytes[5:0];
+@@ -243,6 +258,7 @@
+         fpga_rx_clk_en_r <= 0; fpga_rx_clk_en_d <= 0;
+         fpga_rx_addr_r <= 0; rx_cnt <= 0;
+         rx_bytes_total <= 0; rx_chunk_bytes <= 0;
++        rx_beats_remaining <= 0; rx_tail_bytes <= 0; rx_tail_mask <= 0;
+         rx_pack_data <= 0; rx_pack_bytes <= 0;
+         rx_fifo_write_en <= 0; rx_fifo_write_data <= 0;
+         rx_copy_active <= 0; rx_transaction_complete <= 0;
+@@ -255,6 +271,9 @@
+             fpga_rx_clk_en_r <= 1;
+             fpga_rx_addr_r <= 0;
+             rx_chunk_bytes <= 0;
++            rx_beats_remaining <= total_beats[28:0];
++            rx_tail_bytes <= chunk_tail_bytes;
++            rx_tail_mask <= chunk_tail_mask;
+             rx_copy_active <= 1;
+             fpga_rx_done <= 0;
+             if (rx_transaction_complete) begin
+@@ -269,6 +288,7 @@
+                 fpga_rx_addr_r <= fpga_rx_addr_r + 1'b1;
+             end
+             if (fpga_rx_clk_en_d) begin
++                rx_beats_remaining <= rx_beats_remaining - 1'b1;
+                 rx_chunk_bytes <= rx_chunk_bytes + rx_input_bytes;
+                 rx_bytes_total <= rx_bytes_total + rx_input_bytes;
+                 if (rx_merge_bytes >= 16) begin

@@ -1,0 +1,89 @@
+--- frozen/pcie_fifo.v
++++ candidate/fpga_v8_pcie_fifo_retired.v
+@@ -1,4 +1,4 @@
+-module pcie_fifo #(
++module fpga_v8_pcie_fifo_retired #(
+     parameter ADDR_WIDTH = 12,
+               MSI_NUM = 5,
+ 
+@@ -79,6 +79,69 @@
+ 
+         
+ );
++// Included as text by the isolated candidate generator, after the FIFO ports.
++// This handshake requires COORDINATED PCIe + AXI fabric/endpoint reset.
++// Independent link/CPU reset is not a supported pending-DMA cleanup path.
++wire rx_retirement_epoch_rst = axi_rst | fifo_pcie_rst;
++// Assert both new handshake domains asynchronously, release in each clock.
++(* ASYNC_REG = "TRUE" *) reg rx_retire_axi_rst1, rx_retire_axi_rst2;
++(* ASYNC_REG = "TRUE" *) reg rx_retire_pcie_rst1, rx_retire_pcie_rst2;
++always @(posedge axi_clk or posedge rx_retirement_epoch_rst) begin
++    if (rx_retirement_epoch_rst) begin
++        rx_retire_axi_rst1 <= 1'b1;
++        rx_retire_axi_rst2 <= 1'b1;
++    end else begin
++        rx_retire_axi_rst1 <= 1'b0;
++        rx_retire_axi_rst2 <= rx_retire_axi_rst1;
++    end
++end
++always @(posedge fifo_pcie_clk or posedge rx_retirement_epoch_rst) begin
++    if (rx_retirement_epoch_rst) begin
++        rx_retire_pcie_rst1 <= 1'b1;
++        rx_retire_pcie_rst2 <= 1'b1;
++    end else begin
++        rx_retire_pcie_rst1 <= 1'b0;
++        rx_retire_pcie_rst2 <= rx_retire_pcie_rst1;
++    end
++end
++reg rx_retired_toggle;
++(* ASYNC_REG = "TRUE" *) reg rx_retired_sync1, rx_retired_sync2;
++reg rx_retired_seen;
++
++// One persistent credit for each complete H2F transaction. Intermediate
++// chunks and intermediate bursts cannot produce a credit. BRESP errors still
++// retire: the host sees DeliveryKnownUnknownResponse and must read back state.
++always @(posedge axi_clk or posedge rx_retire_axi_rst2) begin
++    if (rx_retire_axi_rst2)
++        rx_retired_toggle <= 1'b0;
++    else if ((state == S_BRESP_WAIT) && (beats_remain == 32'd0) &&
++             axi_bvalid && axi_bready && (axi_bid == {AXI_ID_LEN{1'b0}}))
++        rx_retired_toggle <= ~rx_retired_toggle;
++end
++
++always @(posedge fifo_pcie_clk or posedge rx_retire_pcie_rst2) begin
++    if (rx_retire_pcie_rst2) begin
++        rx_retired_sync1 <= 1'b0;
++        rx_retired_sync2 <= 1'b0;
++    end else begin
++        rx_retired_sync1 <= rx_retired_toggle;
++        rx_retired_sync2 <= rx_retired_sync1;
++    end
++end
++
++// Consume only at final total completion; never consume at an intermediate
++// chunk. The completed toggle remains different from seen until consumed.
++// Previously consumed retirement cannot authorize a later command.
++always @(posedge fifo_pcie_clk or posedge rx_retire_pcie_rst2) begin
++    if (rx_retire_pcie_rst2)
++        rx_retired_seen <= 1'b0;
++    else if (!fpga_data_valid && !fpga_rx_done &&
++             (fpga_rx_addr_r == total_beats) &&
++             (rx_cnt == dma_total_beats) && fifo_rx_empty &&
++             (rx_retired_sync2 != rx_retired_seen))
++        rx_retired_seen <= rx_retired_sync2;
++end
++
+ 
+ 
+ //----------------------------------------
+@@ -196,7 +259,9 @@
+     end
+     else if(fpga_rx_addr_r == total_beats) begin
+         if(rx_cnt == dma_total_beats) begin
+-            fpga_rx_done <= fifo_rx_empty;
++            // Final completion needs the new transaction's last accepted B.
++            if (fifo_rx_empty && (rx_retired_sync2 != rx_retired_seen))
++                fpga_rx_done <= 1'b1;
+         end
+         else begin
+             fpga_rx_done <= 1'b1;

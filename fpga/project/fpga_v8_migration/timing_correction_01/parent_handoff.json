@@ -1,0 +1,98 @@
+{
+  "status": "RTL_FUNCTIONAL_REGRESSION_PASSED_ROUTED_TIMING_UNMEASURED",
+  "owner_directory": "C:\\Users\\NineSun\\Desktop\\ov56401\\project\\fpga_v8_migration\\timing_correction_01",
+  "parent_v3_modified": false,
+  "add_registered_sources": [
+    {
+      "file": "C:\\Users\\NineSun\\Desktop\\ov56401\\project\\fpga_v8_migration\\timing_correction_01\\rtl\\block_motion_detector_tc01.v",
+      "module": "block_motion_detector_tc01",
+      "sha256": "109a04b0714c3a0cc302686171e4776abe31351ce0ccdd19927c27d1347952ca"
+    },
+    {
+      "file": "C:\\Users\\NineSun\\Desktop\\ov56401\\project\\fpga_v8_migration\\timing_correction_01\\rtl\\ovreg_axil_decode_tc01.v",
+      "module": "ovreg_axil_decode_tc01",
+      "sha256": "8e77852f4e969984ad7e333445acc067c7cac0714f6b5adaf8156a4a4fbd5c5e"
+    }
+  ],
+  "binding_replacements": [
+    {
+      "parent_reference": "C:\\Users\\NineSun\\Desktop\\ov56401\\project\\fpga_v8_migration\\whole_candidate_v3\\rtl\\fpga_v8_cooperative_top_v2_rfg01.v",
+      "observed_sha256": "f3cedbae94f0a2189c1eb4be7c9aeddc8d413e89e2eba257f1edb7557471cccb",
+      "old_ascii": "ovreg_axil_decode ovreg_axil_decode_u",
+      "new_ascii": "ovreg_axil_decode_tc01 ovreg_axil_decode_u",
+      "expected_occurrences": 1,
+      "instruction": "Apply to the parent-owned fresh candidate copy, not frozen v2. No port or parameter changes."
+    },
+    {
+      "parent_reference": "C:\\Users\\NineSun\\Desktop\\ov56401\\project\\fpga_v8_migration\\whole_candidate_v3\\inputs\\source\\motion\\motion_stream_adapter.v",
+      "observed_sha256": "70960e885ffd390b19594b4cd258ac2de3d47180d7d1fac225e3552134103d22",
+      "old_ascii": "block_motion_detector #(",
+      "new_ascii": "block_motion_detector_tc01 #(",
+      "expected_occurrences": 1,
+      "instruction": "Apply to the parent-owned fresh candidate copy, not frozen v2. No port or parameter changes."
+    }
+  ],
+  "keep_original_definitions": "New module names are unique; originals may remain registered but are no longer instantiated on these two bindings.",
+  "clock_mhz": 131.25,
+  "fdc_edits": [],
+  "new_false_paths": [],
+  "new_hold_cuts": [],
+  "pipeline_contract": {
+    "motion_sample_update_edges": 2,
+    "motion_result_after_end_edges": 2,
+    "adapter_record_after_end_edges": 3,
+    "new_input_bubbles": 0,
+    "new_transaction_edges": 0,
+    "history_bits_per_camera": 153600,
+    "history_total_bits": 614400,
+    "new_threshold_metadata_bits_per_camera": 192
+  },
+  "setup_target_counts": {
+    "camera4_address_decode": 25,
+    "camera4_motion_reduce": 14
+  },
+  "required_parent_evidence": [
+    "Fresh compile/map/route with integrated bindings and existing rfg01 protections.",
+    "Verify effective PNR hold-repair path capacity and no Route-2037 skip.",
+    "Final slow/fast all-clock STA including setup, hold, recovery, removal and min pulse.",
+    "Confirm four 19200x8 read-first histories remain inferred RAM; FF cost is RTL metadata, not measured mapping.",
+    "Inspect new local threshold-forwarding register paths as well as former global-reduction endpoints.",
+    "Review missing IO delays separately; do not count unscored IO as timing closure."
+  ],
+  "regression_result": {
+    "status": "PASS",
+    "simulator": "C:\\modeltech64_10.6e\\win64",
+    "protected_sources": {
+      "C:\\Users\\NineSun\\Desktop\\ov56401\\project\\fpga_v8_migration\\whole_candidate_v2_route_01\\inputs\\source\\motion\\block_motion_detector.v": "d6afdc1661772d39cbeb09e90465da1141c77e2f349253c6a0e7ac290ac1f80a",
+      "C:\\Users\\NineSun\\Desktop\\ov56401\\project\\fpga_v8_migration\\whole_candidate_v2_route_01\\inputs\\source\\ov5640\\ovreg_axil_decode.v": "14bf472f39372b6ff05fce7335a11f52a271dd7738bdea9aa7d7bd0af8bc7820",
+      "C:\\Users\\NineSun\\Desktop\\ov56401\\project\\sim\\motion\\tb_block_motion_detector.sv": "f067b2fad0a513a4dd29982d86a9e8fa1e8daa9c3ee882cc95300a27a45f58b6"
+    },
+    "candidate_sources": {
+      "C:\\Users\\NineSun\\Desktop\\ov56401\\project\\fpga_v8_migration\\timing_correction_01\\rtl\\block_motion_detector_tc01.v": "109a04b0714c3a0cc302686171e4776abe31351ce0ccdd19927c27d1347952ca",
+      "C:\\Users\\NineSun\\Desktop\\ov56401\\project\\fpga_v8_migration\\timing_correction_01\\rtl\\ovreg_axil_decode_tc01.v": "8e77852f4e969984ad7e333445acc067c7cac0714f6b5adaf8156a4a4fbd5c5e"
+    },
+    "motion": "actual five-geometry oracle plus original output comparison on every active cycle",
+    "decoder": "all outputs, 65536 stimuli per LSB=7,8,9, before/after each edge",
+    "pds_invoked": false,
+    "ssh_invoked": false
+  },
+  "four_regression_result": {
+    "status": "PASS",
+    "source_hashes": {
+      "C:\\Users\\NineSun\\Desktop\\ov56401\\project\\fpga_v8_migration\\whole_candidate_v2_route_01\\inputs\\source\\motion\\motion_stream_adapter.v": "70960e885ffd390b19594b4cd258ac2de3d47180d7d1fac225e3552134103d22",
+      "C:\\Users\\NineSun\\Desktop\\ov56401\\project\\fpga_v8_migration\\whole_candidate_v2_route_01\\inputs\\source\\motion\\motion_register_bank.v": "4f59383a67efa94e396d1e4f39aba105aa3e747ce129cf52b7c9deaea9f12cba",
+      "C:\\Users\\NineSun\\Desktop\\ov56401\\project\\sim\\motion\\tb_four_motion.sv": "e2a917fc95e3f792d0f2ab287e4beaf932a9ec04ebdc67227baf3ed006732c40"
+    },
+    "candidate_sha256": "109a04b0714c3a0cc302686171e4776abe31351ce0ccdd19927c27d1347952ca",
+    "binding_artifact_sha256": "d6d4d8a31d4193f1f6dea71173c46ecae73e0c8fd02d1a51515ea8258a49915b",
+    "log": "C:\\Users\\NineSun\\Desktop\\ov56401\\project\\fpga_v8_migration\\timing_correction_01\\four_simulation\\four_motion.log",
+    "pds_invoked": false
+  },
+  "protected_protections": [
+    "No PCIe/H2F/ARM RTL changes; byte packing/strobe, 4KiB split, final B retirement remain parent sources.",
+    "No reset-fault-guard RTL changes; rfg01 startup/datafault drain remain parent sources.",
+    "No changes to camera raw DDR/NPU data path, event FIFO, history storage template or motion ABI."
+  ],
+  "no_pds": true,
+  "no_ssh": true
+}

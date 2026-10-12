@@ -1,0 +1,498 @@
+{
+  "block_motion_detector_tc01.v": {
+    "identical_parameters": true,
+    "identical_port_schema": true,
+    "ports": {
+      "bbox_max_x": [
+        "output",
+        "[((BLOCK_COLS>1)?$clog2(BLOCK_COLS):1)-1:0]"
+      ],
+      "bbox_max_y": [
+        "output",
+        "[((BLOCK_ROWS>1)?$clog2(BLOCK_ROWS):1)-1:0]"
+      ],
+      "bbox_min_x": [
+        "output",
+        "[((BLOCK_COLS>1)?$clog2(BLOCK_COLS):1)-1:0]"
+      ],
+      "bbox_min_y": [
+        "output",
+        "[((BLOCK_ROWS>1)?$clog2(BLOCK_ROWS):1)-1:0]"
+      ],
+      "bbox_valid": [
+        "output",
+        ""
+      ],
+      "block_bitmap": [
+        "output",
+        "[BLOCK_COLS*BLOCK_ROWS-1:0]"
+      ],
+      "changed_blocks": [
+        "output",
+        "[$clog2(BLOCK_COLS*BLOCK_ROWS+1)-1:0]"
+      ],
+      "changed_samples": [
+        "output",
+        "[$clog2(SAMPLE_COLS*SAMPLE_ROWS+1)-1:0]"
+      ],
+      "clk": [
+        "input",
+        ""
+      ],
+      "frame_end": [
+        "input",
+        ""
+      ],
+      "frame_sequence": [
+        "output",
+        "[31:0]"
+      ],
+      "frame_start": [
+        "input",
+        ""
+      ],
+      "pixel_rgb565": [
+        "input",
+        "[15:0]"
+      ],
+      "pixel_valid": [
+        "input",
+        ""
+      ],
+      "result_strobe": [
+        "output",
+        ""
+      ],
+      "result_valid": [
+        "output",
+        ""
+      ],
+      "rst_n": [
+        "input",
+        ""
+      ]
+    }
+  },
+  "ovreg_axil_decode_tc01.v": {
+    "identical_parameters": true,
+    "identical_port_schema": true,
+    "ports": {
+      "clk": [
+        "input",
+        ""
+      ],
+      "m0_araddr": [
+        "output",
+        "[31:0]"
+      ],
+      "m0_arready": [
+        "input",
+        ""
+      ],
+      "m0_arvalid": [
+        "output",
+        ""
+      ],
+      "m0_awaddr": [
+        "output",
+        "[31:0]"
+      ],
+      "m0_awready": [
+        "input",
+        ""
+      ],
+      "m0_awvalid": [
+        "output",
+        ""
+      ],
+      "m0_bready": [
+        "output",
+        ""
+      ],
+      "m0_bresp": [
+        "input",
+        "[1:0]"
+      ],
+      "m0_bvalid": [
+        "input",
+        ""
+      ],
+      "m0_rdata": [
+        "input",
+        "[31:0]"
+      ],
+      "m0_rready": [
+        "output",
+        ""
+      ],
+      "m0_rresp": [
+        "input",
+        "[1:0]"
+      ],
+      "m0_rvalid": [
+        "input",
+        ""
+      ],
+      "m0_wdata": [
+        "output",
+        "[31:0]"
+      ],
+      "m0_wready": [
+        "input",
+        ""
+      ],
+      "m0_wstrb": [
+        "output",
+        "[3:0]"
+      ],
+      "m0_wvalid": [
+        "output",
+        ""
+      ],
+      "m1_araddr": [
+        "output",
+        "[31:0]"
+      ],
+      "m1_arready": [
+        "input",
+        ""
+      ],
+      "m1_arvalid": [
+        "output",
+        ""
+      ],
+      "m1_awaddr": [
+        "output",
+        "[31:0]"
+      ],
+      "m1_awready": [
+        "input",
+        ""
+      ],
+      "m1_awvalid": [
+        "output",
+        ""
+      ],
+      "m1_bready": [
+        "output",
+        ""
+      ],
+      "m1_bresp": [
+        "input",
+        "[1:0]"
+      ],
+      "m1_bvalid": [
+        "input",
+        ""
+      ],
+      "m1_rdata": [
+        "input",
+        "[31:0]"
+      ],
+      "m1_rready": [
+        "output",
+        ""
+      ],
+      "m1_rresp": [
+        "input",
+        "[1:0]"
+      ],
+      "m1_rvalid": [
+        "input",
+        ""
+      ],
+      "m1_wdata": [
+        "output",
+        "[31:0]"
+      ],
+      "m1_wready": [
+        "input",
+        ""
+      ],
+      "m1_wstrb": [
+        "output",
+        "[3:0]"
+      ],
+      "m1_wvalid": [
+        "output",
+        ""
+      ],
+      "m2_araddr": [
+        "output",
+        "[31:0]"
+      ],
+      "m2_arready": [
+        "input",
+        ""
+      ],
+      "m2_arvalid": [
+        "output",
+        ""
+      ],
+      "m2_awaddr": [
+        "output",
+        "[31:0]"
+      ],
+      "m2_awready": [
+        "input",
+        ""
+      ],
+      "m2_awvalid": [
+        "output",
+        ""
+      ],
+      "m2_bready": [
+        "output",
+        ""
+      ],
+      "m2_bresp": [
+        "input",
+        "[1:0]"
+      ],
+      "m2_bvalid": [
+        "input",
+        ""
+      ],
+      "m2_rdata": [
+        "input",
+        "[31:0]"
+      ],
+      "m2_rready": [
+        "output",
+        ""
+      ],
+      "m2_rresp": [
+        "input",
+        "[1:0]"
+      ],
+      "m2_rvalid": [
+        "input",
+        ""
+      ],
+      "m2_wdata": [
+        "output",
+        "[31:0]"
+      ],
+      "m2_wready": [
+        "input",
+        ""
+      ],
+      "m2_wstrb": [
+        "output",
+        "[3:0]"
+      ],
+      "m2_wvalid": [
+        "output",
+        ""
+      ],
+      "m3_araddr": [
+        "output",
+        "[31:0]"
+      ],
+      "m3_arready": [
+        "input",
+        ""
+      ],
+      "m3_arvalid": [
+        "output",
+        ""
+      ],
+      "m3_awaddr": [
+        "output",
+        "[31:0]"
+      ],
+      "m3_awready": [
+        "input",
+        ""
+      ],
+      "m3_awvalid": [
+        "output",
+        ""
+      ],
+      "m3_bready": [
+        "output",
+        ""
+      ],
+      "m3_bresp": [
+        "input",
+        "[1:0]"
+      ],
+      "m3_bvalid": [
+        "input",
+        ""
+      ],
+      "m3_rdata": [
+        "input",
+        "[31:0]"
+      ],
+      "m3_rready": [
+        "output",
+        ""
+      ],
+      "m3_rresp": [
+        "input",
+        "[1:0]"
+      ],
+      "m3_rvalid": [
+        "input",
+        ""
+      ],
+      "m3_wdata": [
+        "output",
+        "[31:0]"
+      ],
+      "m3_wready": [
+        "input",
+        ""
+      ],
+      "m3_wstrb": [
+        "output",
+        "[3:0]"
+      ],
+      "m3_wvalid": [
+        "output",
+        ""
+      ],
+      "m4_araddr": [
+        "output",
+        "[31:0]"
+      ],
+      "m4_arready": [
+        "input",
+        ""
+      ],
+      "m4_arvalid": [
+        "output",
+        ""
+      ],
+      "m4_awaddr": [
+        "output",
+        "[31:0]"
+      ],
+      "m4_awready": [
+        "input",
+        ""
+      ],
+      "m4_awvalid": [
+        "output",
+        ""
+      ],
+      "m4_bready": [
+        "output",
+        ""
+      ],
+      "m4_bresp": [
+        "input",
+        "[1:0]"
+      ],
+      "m4_bvalid": [
+        "input",
+        ""
+      ],
+      "m4_rdata": [
+        "input",
+        "[31:0]"
+      ],
+      "m4_rready": [
+        "output",
+        ""
+      ],
+      "m4_rresp": [
+        "input",
+        "[1:0]"
+      ],
+      "m4_rvalid": [
+        "input",
+        ""
+      ],
+      "m4_wdata": [
+        "output",
+        "[31:0]"
+      ],
+      "m4_wready": [
+        "input",
+        ""
+      ],
+      "m4_wstrb": [
+        "output",
+        "[3:0]"
+      ],
+      "m4_wvalid": [
+        "output",
+        ""
+      ],
+      "rst": [
+        "input",
+        ""
+      ],
+      "s_araddr": [
+        "input",
+        "[31:0]"
+      ],
+      "s_arready": [
+        "output",
+        ""
+      ],
+      "s_arvalid": [
+        "input",
+        ""
+      ],
+      "s_awaddr": [
+        "input",
+        "[31:0]"
+      ],
+      "s_awready": [
+        "output",
+        ""
+      ],
+      "s_awvalid": [
+        "input",
+        ""
+      ],
+      "s_bready": [
+        "input",
+        ""
+      ],
+      "s_bresp": [
+        "output",
+        "[1:0]"
+      ],
+      "s_bvalid": [
+        "output",
+        ""
+      ],
+      "s_rdata": [
+        "output",
+        "[31:0]"
+      ],
+      "s_rready": [
+        "input",
+        ""
+      ],
+      "s_rresp": [
+        "output",
+        "[1:0]"
+      ],
+      "s_rvalid": [
+        "output",
+        ""
+      ],
+      "s_wdata": [
+        "input",
+        "[31:0]"
+      ],
+      "s_wready": [
+        "output",
+        ""
+      ],
+      "s_wstrb": [
+        "input",
+        "[3:0]"
+      ],
+      "s_wvalid": [
+        "input",
+        ""
+      ]
+    }
+  }
+}

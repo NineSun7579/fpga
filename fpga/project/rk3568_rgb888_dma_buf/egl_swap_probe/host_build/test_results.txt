@@ -1,0 +1,66 @@
+PASS forward env='1'
+host assertions passed
+egl_swap_probe interval_request=-3 return=0 success=0
+egl_swap_probe interval_request=0 return=9 success=1
+egl_swap_probe interval_request=1 return=9 success=1
+egl_swap_probe interval_request=42 return=9 success=1
+egl_swap_probe interval_request=-3 return=0 success=0
+egl_swap_probe wall_s=6.125000 calls=3 success=3 timed=3 invalid_clock=0 sum_ms=75.000000 max_ms=25.000000 mean_ms=25.000000 calls_per_wall_s=0.489796 swap_time_per_wall=0.012245 buckets_lt1_lt5_lt10_lt20_ge20=0,0,0,0,3 longswap_ge20ms=3
+
+PASS disabled env=None
+host assertions passed
+
+PASS disabled env='0'
+host assertions passed
+
+PASS disabled env='yes'
+host assertions passed
+
+PASS clockfail1 env='1'
+host assertions passed
+egl_swap_probe wall_s=6.050000 calls=2 success=2 timed=1 invalid_clock=1 sum_ms=25.000000 max_ms=25.000000 mean_ms=25.000000 calls_per_wall_s=0.330579 swap_time_per_wall=0.004132 buckets_lt1_lt5_lt10_lt20_ge20=0,0,0,0,1 longswap_ge20ms=1
+
+PASS clockfail2 env='1'
+host assertions passed
+egl_swap_probe wall_s=6.050000 calls=2 success=2 timed=1 invalid_clock=1 sum_ms=25.000000 max_ms=25.000000 mean_ms=25.000000 calls_per_wall_s=0.330579 swap_time_per_wall=0.004132 buckets_lt1_lt5_lt10_lt20_ge20=0,0,0,0,1 longswap_ge20ms=1
+
+PASS reentry env='1'
+host assertions passed
+egl_swap_probe wall_s=6.075000 calls=2 success=2 timed=2 invalid_clock=0 sum_ms=50.000000 max_ms=25.000000 mean_ms=25.000000 calls_per_wall_s=0.329218 swap_time_per_wall=0.008230 buckets_lt1_lt5_lt10_lt20_ge20=0,0,0,0,2 longswap_ge20ms=2
+
+PASS buckets env='1'
+host assertions passed
+egl_swap_probe wall_s=6.093000 calls=6 success=6 timed=6 invalid_clock=0 sum_ms=56.500000 max_ms=20.000000 mean_ms=9.416667 calls_per_wall_s=0.984737 swap_time_per_wall=0.009273 buckets_lt1_lt5_lt10_lt20_ge20=1,1,1,1,2 longswap_ge20ms=2
+
+PASS swapfailure env='1'
+host assertions passed
+egl_swap_probe wall_s=6.075000 calls=2 success=1 timed=2 invalid_clock=0 sum_ms=50.000000 max_ms=25.000000 mean_ms=25.000000 calls_per_wall_s=0.329218 swap_time_per_wall=0.008230 buckets_lt1_lt5_lt10_lt20_ge20=0,0,0,0,2 longswap_ge20ms=2
+
+PASS threads env='1'
+host assertions passed
+egl_swap_probe wall_s=5.025000 calls=100 success=100 timed=100 invalid_clock=0 sum_ms=3100.000000 max_ms=100.000000 mean_ms=31.000000 calls_per_wall_s=19.900498 swap_time_per_wall=0.616915 buckets_lt1_lt5_lt10_lt20_ge20=0,0,0,0,100 longswap_ge20ms=100
+egl_swap_probe wall_s=5.000000 calls=101 success=101 timed=101 invalid_clock=0 sum_ms=2525.000000 max_ms=25.000000 mean_ms=25.000000 calls_per_wall_s=20.200000 swap_time_per_wall=0.505000 buckets_lt1_lt5_lt10_lt20_ge20=0,0,0,0,101 longswap_ge20ms=101
+egl_swap_probe wall_s=5.000000 calls=99 success=99 timed=99 invalid_clock=0 sum_ms=2625.000000 max_ms=75.000000 mean_ms=26.515152 calls_per_wall_s=19.800000 swap_time_per_wall=0.525000 buckets_lt1_lt5_lt10_lt20_ge20=0,0,0,0,99 longswap_ge20ms=99
+egl_swap_probe wall_s=11.000000 calls=101 success=101 timed=101 invalid_clock=0 sum_ms=2575.000000 max_ms=75.000000 mean_ms=25.495050 calls_per_wall_s=9.181818 swap_time_per_wall=0.234091 buckets_lt1_lt5_lt10_lt20_ge20=0,0,0,0,101 longswap_ge20ms=101
+
+PASS production smoke libegl_swap_probe.so forward
+host assertions passed
+egl_swap_probe interval_request=-3 return=0 success=0
+egl_swap_probe interval_request=0 return=9 success=1
+egl_swap_probe interval_request=1 return=9 success=1
+egl_swap_probe interval_request=42 return=9 success=1
+egl_swap_probe interval_request=-3 return=0 success=0
+
+PASS production smoke libegl_swap_probe.so disabled
+host assertions passed
+
+PASS production smoke libegl_swap_probe_auto_headers.so forward
+host assertions passed
+egl_swap_probe interval_request=-3 return=0 success=0
+egl_swap_probe interval_request=0 return=9 success=1
+egl_swap_probe interval_request=1 return=9 success=1
+egl_swap_probe interval_request=42 return=9 success=1
+egl_swap_probe interval_request=-3 return=0 success=0
+
+PASS production smoke libegl_swap_probe_auto_headers.so disabled
+host assertions passed

@@ -1,0 +1,6 @@
+{
+  "command": "if ! mkdir /userdata/linaro/current_native_runtime_probe_02_6cf1b30544e1479da71ea2c1c7ff041b/workload_started 2>/dev/null; then echo REFUSE_REPEAT; exit 73; fi\n/userdata/linaro/current_native_runtime_probe_02_6cf1b30544e1479da71ea2c1c7ff041b/runtime_probe /userdata/linaro/current_native_runtime_probe_02_6cf1b30544e1479da71ea2c1c7ff041b/model/pinned.rknn /userdata/linaro/current_native_runtime_probe_02_6cf1b30544e1479da71ea2c1c7ff041b/prepared_inputs.json /userdata/linaro/current_native_runtime_probe_02_6cf1b30544e1479da71ea2c1c7ff041b > /userdata/linaro/current_native_runtime_probe_02_6cf1b30544e1479da71ea2c1c7ff041b/runtime_probe.stdout.txt 2> /userdata/linaro/current_native_runtime_probe_02_6cf1b30544e1479da71ea2c1c7ff041b/runtime_probe.stderr.txt\nrc=$?\nprintf \"%s\\n\" \"$rc\" > /userdata/linaro/current_native_runtime_probe_02_6cf1b30544e1479da71ea2c1c7ff041b/runtime_return_code.txt\nif [ \"$rc\" -eq 0 ]; then touch /userdata/linaro/current_native_runtime_probe_02_6cf1b30544e1479da71ea2c1c7ff041b/workload_success; fi\nexit \"$rc\"",
+  "return_code": 0,
+  "timeout": 600,
+  "sudo": true
+}

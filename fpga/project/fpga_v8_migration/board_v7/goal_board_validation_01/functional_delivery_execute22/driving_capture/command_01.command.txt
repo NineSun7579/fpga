@@ -1,0 +1,9 @@
+sudo -n python3 -c 'import os,json,hashlib
+from pathlib import Path
+p=Path('"'"'/proc'"'"')/str(2879)
+s=(p/'"'"'stat'"'"').read_text()
+print(json.dumps({'"'"'boot_id'"'"':Path('"'"'/proc/sys/kernel/random/boot_id'"'"').read_text().strip(),
+'"'"'exe'"'"':os.readlink(p/'"'"'exe'"'"'),'"'"'exe_sha256'"'"':hashlib.sha256((p/'"'"'exe'"'"').read_bytes()).hexdigest(),
+'"'"'argv'"'"':(p/'"'"'cmdline'"'"').read_bytes().rstrip(b'"'"'\0'"'"').split(b'"'"'\0'"'"'),
+'"'"'starttime'"'"':s.rsplit('"'"')'"'"',1)[1].split()[19]},default=lambda b:b.decode('"'"'utf-8'"'"','"'"'replace'"'"')))
+'

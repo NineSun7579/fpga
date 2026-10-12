@@ -1,0 +1,37 @@
+{
+  "top": "fpga_v8_endpoint_ctrl_synth",
+  "device": "PG2L100H",
+  "family": "Logos2",
+  "speedgrade": "-6",
+  "package": "FBG484",
+  "clock_port": "clk",
+  "clock_mhz_nominal": 150,
+  "parameters": {
+    "ID_WIDTH": 7,
+    "BASE_ADDR": 1073807360,
+    "WINDOW_BYTES": 4096,
+    "OUTPUT_BANK0_ADDR": 134217728,
+    "OUTPUT_BANK1_ADDR": 136314880,
+    "OUTPUT_LENGTH": 1228800
+  },
+  "expected_child_parameters": {
+    "endpoint": {"ID_WIDTH": 7, "BASE_ADDR": 1073807360, "WINDOW_BYTES": 4096},
+    "control": {"OUTPUT_BANK0_ADDR": 134217728, "OUTPUT_BANK1_ADDR": 136314880, "OUTPUT_LENGTH": 1228800, "DEVICE_ID": 1129271120, "VERSION": 65536}
+  },
+  "sources": [
+    {"path": "fpga_v8_endpoint_ctrl_synth.v", "bytes": 7351, "sha256": "d6abd0f29f1da0f732a1d6b624ae434789ba4b207c7aae43b58baf201758ab4c"},
+    {"path": "../../cooperative_endpoint/fpga_v8_coop_axi128_endpoint.v", "bytes": 8510, "sha256": "5ea714da5ed63168615f0f9162cb6a773a5ef5780f6fa5a33e2c3fce7cfafc1e"},
+    {"path": "../../cooperative_control/fpga_v8_coop_control_axil.v", "bytes": 15684, "sha256": "fec948ff58fbc4fb7f4e70483d8182d052aaa5932c1fd53c0d40930e72a6a2ae"}
+  ],
+  "allowed_stages": ["compile", "synthesize"],
+  "wrapper": "Verilog-2001 wiring only; all controller non-AXI ports and all endpoint upstream AXI ports exposed",
+  "intermodule_connections": "all 19 AXI-Lite signals directly connected; shared clock and reset",
+  "simulation_reference_read_only": "../../cooperative_endpoint/tb_fpga_v8_coop_axi128_endpoint.sv",
+  "simulation_evidence_read_only": "../../cooperative_endpoint/REPORT.md",
+  "testbench_gates_or_forces_included": false,
+  "production_constraints": false,
+  "vendor_ip": false,
+  "physical_io": false,
+  "board_timing_acceptance": false,
+  "integrated_with_ddr_adapter_or_core": false
+}

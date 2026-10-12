@@ -1,0 +1,34 @@
+--- from_v1
++++ candidate_v2
+@@ -1,4 +1,4 @@
+-module axi_dma_write_dma_sc_candidate
++module axi_dma_write_dma_sc_v2
+ 	#(
+ 		parameter WAIT_FOR_DATA = 0, // camera source supplies stored beat credits
+ 		parameter WD_LIMIT = 24'hFFFFFF,
+@@ -163,7 +163,24 @@
+     if(rst) available_q <= 0;
+     else available_q <= data_in_available;
+ end
+-assign max_burst_len = (((addr & 12'hfff) + (burst_len << AXI_BURST_SIZE )) >> 12)  != 0 ? (13'h1000 - (addr & 12'hfff)) >> AXI_BURST_SIZE : burst_len;
++// V2: only the proven signed 32-bit BURST_LEN/default byte-width domain.
++localparam PAGE_ARITH_13_SUPPORTED =
++    (DATA_WIDTH == 128) && (KEEP_WIDTH == 16) && (AXI_BURST_SIZE == 4) &&
++    ($bits(BURST_LEN) == 32) && (BURST_LEN >= 0) && (BURST_LEN <= 255) &&
++    !(BURST_LEN < -1);
++generate
++    if (PAGE_ARITH_13_SUPPORTED) begin : page_arith_13
++        wire [12:0] page_offset = {1'b0, addr[11:0]};
++        wire [12:0] burst_bytes = {1'b0, burst_len, 4'b0000};
++        wire [12:0] page_sum = page_offset + burst_bytes;
++        wire [12:0] page_remaining = 13'h1000 - page_offset;
++        // Keep ?: unknown-condition bit merging and the original branch test.
++        assign max_burst_len = ((page_sum >> 12) != 13'd0) ?
++                              page_remaining[11:4] : burst_len;
++    end else begin : page_arith_generic
++        assign max_burst_len = (((addr & 12'hfff) + (burst_len << AXI_BURST_SIZE )) >> 12)  != 0 ? (13'h1000 - (addr & 12'hfff)) >> AXI_BURST_SIZE : burst_len;
++    end
++endgenerate
+ always@(posedge clk)begin
+ 	if(rst == 1'b1)begin
+ 		burst_trans <= 1'b0;

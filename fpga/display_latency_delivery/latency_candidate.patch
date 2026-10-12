@@ -1,0 +1,372 @@
+--- a/src/main.cpp
++++ b/src/main.cpp
+@@ -105,6 +105,12 @@
+     timespec stamp{};
+     clock_gettime(CLOCK_MONOTONIC, &stamp);
+     return stamp.tv_sec * 1000LL + stamp.tv_nsec / 1000000;
++}
++
++static qint64 monotonicNs() {
++    timespec stamp{};
++    clock_gettime(CLOCK_MONOTONIC, &stamp);
++    return stamp.tv_sec * 1000000000LL + stamp.tv_nsec;
+ }
+ 
+ /* ---------------- dma-heap 缓冲：RGA 只能操作 dma-buf ---------------- */
+@@ -626,7 +632,7 @@
+     // All DMA submissions remain serialized; metadata uses a separate scratch.
+     int cameraRead(int camera, uint32_t ping, uint32_t pong, bool delivered, uint32_t last,
+                    void* output, uint32_t& selected, qint64& dmaNs, qint64& copyNs,
+-                   qint64& capturedMs) {
++                   qint64& capturedMs, qint64& capturedNs) {
+         if (camera < 0 || camera >= CAM_COUNT) return -1;
+         QMutexLocker lock(&dmaMutex_);
+         uint32_t a = 0, b = 0;
+@@ -641,7 +647,8 @@
+         QElapsedTimer timer; timer.start();
+         if (ioctlTmo(F2H_CMD, &op, 2) != 0) return -1;
+         dmaNs = timer.nsecsElapsed();
+-        capturedMs = monotonicMs();
++        capturedMs = monotonicMs(); // Preserve the existing analytics timestamp.
++        capturedNs = monotonicNs(); // Host DMA return, before validation/copy/analytics.
+         const uint8_t* pixels = rx_ + op.offset_addr;
+         uint32_t actual = 0;
+         memcpy(&actual, pixels + FRAME_BYTES, sizeof(actual));
+@@ -733,6 +740,7 @@
+     double fps[CAM_COUNT] = {};
+     qint64 lastCapturedMs[CAM_COUNT] = {};
+     qint64 rawCapturedMs[CAM_COUNT] = {};
++    qint64 dmaReturnedNs[CAM_COUNT] = {};
+     quint32 tags[CAM_COUNT] = {};
+     int sourceGenerations[CAM_COUNT] = {};
+     uint64_t gen = 0;                // 存下任意一帧就自增（显示侧据此推进）
+@@ -824,9 +832,9 @@
+             // cameraRead overwrites every pixel before publishing it.
+             if (!frame.isDetached()) frame = QByteArray(FRAME_BYTES, Qt::Uninitialized);
+             uint32_t selectedTag = 0;
+-            qint64 dmaNs = 0, copyNs = 0, capturedMs = 0;
++            qint64 dmaNs = 0, copyNs = 0, capturedMs = 0, capturedNs = 0;
+             const int result = dev_->cameraRead(idx, base[idx][0], base[idx][1], delivered, deliveredTag,
+-                                                frame.data(), selectedTag, dmaNs, copyNs, capturedMs);
++                                                frame.data(), selectedTag, dmaNs, copyNs, capturedMs, capturedNs);
+             if (result == 0) { msleep(6); continue; }
+             if (result == 2) { ++unstable; msleep(1); continue; }
+             if (result < 0) {
+@@ -869,6 +877,7 @@
+             frames_->have[idx] = true;
+             frames_->lastCapturedMs[idx] = completedMs;
+             frames_->rawCapturedMs[idx] = capturedMs;
++            frames_->dmaReturnedNs[idx] = capturedNs;
+             frames_->tags[idx] = selectedTag;
+             frames_->sourceGenerations[idx] = sourceGeneration;
+             ++frames_->gen;
+@@ -923,7 +932,37 @@
+         std::array<int, CAM_COUNT> cameraGenerations{};
+         std::array<qint64, CAM_COUNT> rawCapturedMs{};
+         bool hdmiFull = false;   // HDMI 满屏视图（仅 6 路 3x2 布局下由显示端采用）
++        std::array<qint64, CAM_COUNT> dmaReturnedNs{};
+     };
++    // GUI-only consumer: no publication, notification, or inference side effects.
++    // Lock order is config -> latest, matching publication's config guard.
++    int refreshDisplay(DisplayFrame& frame) {
++        QMutexLocker config(&m_configMutex);
++        const bool hdmi = m_mode.load() == CAM_COUNT && m_hdmiActive.load();
++        const int mask = m_mode.load() == CAM_COUNT ? 0x3F : (1 << m_selectedCamera.load());
++        if (!m_liveFrames || m_stop || m_paused || frame.video ||
++            frame.generation != m_sourceGeneration.load() || frame.paneMask != mask ||
++            frame.hdmiFull != hdmi || (!hdmi && frame.pane != m_selectedCamera.load())) return 0;
++        QMutexLocker latest(&m_liveFrames->mutex);
++        int refreshed = 0;
++        for (int c = 0; c < CAM_COUNT; ++c) {
++            if (!(mask & (1 << c)) || (hdmi && c < tdm::hdmiLeftCamera) ||
++                !m_liveFrames->have[c] || m_liveFrames->c[c].size() != FRAME_BYTES ||
++                m_liveFrames->sourceGenerations[c] != frame.generation ||
++                m_liveFrames->camGen[c] <= frame.cameraSequences[c]) continue;
++            frame.cameraPixels[c] = m_liveFrames->c[c]; // Owned implicit-sharing reference.
++            frame.cameraSequences[c] = m_liveFrames->camGen[c];
++            frame.capturedMs[c] = m_liveFrames->lastCapturedMs[c];
++            frame.rawCapturedMs[c] = m_liveFrames->rawCapturedMs[c];
++            frame.dmaReturnedNs[c] = m_liveFrames->dmaReturnedNs[c];
++            frame.tags[c] = m_liveFrames->tags[c];
++            frame.cameraGenerations[c] = m_liveFrames->sourceGenerations[c];
++            if (c < frame.camFps.size()) frame.camFps[c] = m_liveFrames->fps[c];
++            refreshed |= 1 << c;
++        }
++        frame.changedMask |= refreshed;
++        return refreshed;
++    }
+     DisplayFrame takeDisplay() {
+         QMutexLocker lock(&m_displayMutex);
+         DisplayFrame frame = m_latestDisplay;
+@@ -936,7 +975,63 @@
+         return m_rawSnapshot;
+     }
+     void enableRawCapture(bool enabled) { m_rawCaptureEnabled = enabled; }
++    static bool selfTestLateLatch() {
++        CameraThread source;
++        source.setSourceGeneration(7);
++        source.setMode(0);
++        source.m_liveFrames = std::make_shared<LatestFrames>();
++        auto& latest = *source.m_liveFrames;
++        latest.have[0] = true;
++        latest.c[0] = QByteArray(FRAME_BYTES, char(0x22));
++        latest.camGen[0] = 2; latest.sourceGenerations[0] = 7;
++        latest.tags[0] = 123; latest.rawCapturedMs[0] = 100;
++        latest.lastCapturedMs[0] = 101; latest.dmaReturnedNs[0] = 100123456;
++        DisplayFrame frame;
++        frame.generation = 7; frame.paneMask = 1; frame.pane = 0;
++        frame.cameraSequences[0] = 1;
++        frame.cameraPixels[0] = QByteArray(FRAME_BYTES, char(0x11));
++        frame.camFps = QVector<double>(CAM_COUNT, 0);
++        source.publishDisplay(frame);
++        const auto taken = source.takeDisplay();
++        if (source.refreshDisplay(frame) != 1 || frame.cameraSequences[0] != 2 ||
++            frame.cameraPixels[0][0] != char(0x22) || frame.tags[0] != 123 ||
++            frame.cameraGenerations[0] != 7 || frame.rawCapturedMs[0] != 100 ||
++            frame.capturedMs[0] != 101 || frame.dmaReturnedNs[0] != 100123456 ||
++            source.m_displayPending || frame.replacedBeforeTake != taken.replacedBeforeTake) return false;
++        latest.c[0].fill(char(0x33)); // Writer detaches; GUI snapshot stays intact.
++        if (frame.cameraPixels[0][0] != char(0x22) || source.refreshDisplay(frame) != 0) return false;
++        latest.camGen[0] = 3;
++        source.setPaused(true);
++        if (source.refreshDisplay(frame) != 0) return false;
++        source.setPaused(false);
++        latest.sourceGenerations[0] = 6;
++        if (source.refreshDisplay(frame) != 0) return false;
++        latest.sourceGenerations[0] = 7;
++        source.setSourceGeneration(8);
++        if (source.refreshDisplay(frame) != 0) return false;
++        source.setSourceGeneration(7);
++        source.setMode(1);
++        if (source.refreshDisplay(frame) != 0) return false;
++        source.setMode(0);
++        frame.video = true;
++        if (source.refreshDisplay(frame) != 0) return false;
++        frame.video = false;
++        if (source.refreshDisplay(frame) != 1 || frame.cameraPixels[0][0] != char(0x33)) return false;
++        source.setMode(CAM_COUNT); source.setHdmiOverride(1);
++        frame.paneMask = 0x3F; frame.hdmiFull = false;
++        if (source.refreshDisplay(frame) != 0) return false;
++        frame.hdmiFull = true;
++        latest.camGen[0] = 4;
++        latest.have[4] = true; latest.camGen[4] = 1; latest.sourceGenerations[4] = 7;
++        latest.c[4] = QByteArray(FRAME_BYTES, char(0x44));
++        if (source.refreshDisplay(frame) != (1 << 4) || frame.cameraSequences[0] != 3) return false;
++        source.m_liveFrames.reset();
++        if (source.refreshDisplay(frame) != 0 || frame.cameraPixels[4][0] != char(0x44)) return false;
++        fprintf(stderr, "DISPLAY_LATE_LATCH_SELFTEST_PASS\n");
++        return true;
++    }
+     static bool selfTestDisplay() {
++        if (!selfTestLateLatch()) return false;
+         CameraThread source;
+         source.enableRawCapture(true);
+         int notifications = 0;
+@@ -1050,7 +1145,9 @@
+         PangoDev dev;
+         if (!dev.openDev()) { emit statusMsg(QString("FATAL: ") + dev.lastErr()); return; }
+         // 六路采用运行版 camview 6 路版的 DDR 地址和帧标签，不改写 FPGA 相机寄存器。
+-        LatestFrames latest;
++        const auto latestOwner = std::make_shared<LatestFrames>();
++        LatestFrames& latest = *latestOwner;
++        { QMutexLocker lock(&m_configMutex); m_liveFrames = latestOwner; }
+         CameraWorker workers[CAM_COUNT] = {
+             CameraWorker(&dev, &latest, 1), CameraWorker(&dev, &latest, 2),
+             CameraWorker(&dev, &latest, 3), CameraWorker(&dev, &latest, 4),
+@@ -1107,6 +1204,7 @@
+             double camFps[CAM_COUNT] = {};
+             std::array<qint64, CAM_COUNT> captureTimes{};
+             std::array<qint64, CAM_COUNT> rawCaptureTimes{};
++            std::array<qint64, CAM_COUNT> dmaReturnTimes{};
+             std::array<quint32, CAM_COUNT> tags{};
+             std::array<int, CAM_COUNT> cameraGenerations{};
+             {
+@@ -1123,6 +1221,7 @@
+                     camFps[i] = latest.fps[i];
+                     captureTimes[i] = latest.lastCapturedMs[i];
+                     rawCaptureTimes[i] = latest.rawCapturedMs[i];
++                    dmaReturnTimes[i] = latest.dmaReturnedNs[i];
+                     tags[i] = latest.tags[i];
+                     cameraGenerations[i] = latest.sourceGenerations[i];
+                     if (monotonicMs() - captureTimes[i] > 1000) camFps[i] = 0;
+@@ -1214,6 +1313,7 @@
+             std::copy(camGen, camGen + CAM_COUNT, display.cameraSequences.begin());
+             display.capturedMs = captureTimes;
+             display.rawCapturedMs = rawCaptureTimes;
++            display.dmaReturnedNs = dmaReturnTimes;
+             display.tags = tags;
+             display.cameraGenerations = cameraGenerations;
+             display.hdmiFull = hdmiFull;
+@@ -1229,6 +1329,7 @@
+             w.stop();
+         for (CameraWorker &w : workers)
+             w.wait();
++        { QMutexLocker lock(&m_configMutex); m_liveFrames.reset(); }
+     }
+ 
+ private:
+@@ -1431,6 +1532,7 @@
+     }
+     QMutex m_displayMutex;
+     QMutex m_configMutex;
++    std::shared_ptr<LatestFrames> m_liveFrames; // Guarded by config; survives any GUI refresh.
+     DisplayFrame m_latestDisplay;
+     DisplayFrame m_rawSnapshot;
+     std::atomic<bool> m_rawCaptureEnabled{false};
+@@ -2693,6 +2795,7 @@
+     }
+ 
+     void submitCameras(const CameraThread::DisplayFrame& frame) {
++        m_latchFrame = frame;
+         if (m_videoMode || m_paneMask != frame.paneMask || m_pane != frame.pane) m_overlayUpdatedMs = 0;
+         const bool hdmiFull = frame.hdmiFull && frame.paneMask == 0x3F;
+         if (m_hdmiFull != hdmiFull) { m_hdmiFull = hdmiFull; m_overlayUpdatedMs = 0; }
+@@ -2707,6 +2810,8 @@
+         m_haveFrame = true;
+         update();
+     }
++
++    void setLateLatchSource(CameraThread* source) { m_latchSource = source; }
+ 
+     /* 相机线程：RGB888 合成帧（3x2 或单格），paneMask/pane 同 detview 约定 */
+     void submitComposite(const QImage &composite, int paneMask, int pane, double fps,
+@@ -2805,6 +2910,19 @@
+         for (int c = 0; c < CAM_COUNT; ++c)
+             fprintf(stderr, "[display-upload] camera=%d count=%llu bytes=%llu\n", c + 1,
+                     (unsigned long long)m_perf.cameraUploads[c], (unsigned long long)m_perf.cameraUploadBytes[c]);
++        for (int c = 0; c < CAM_COUNT; ++c) {
++            const tdm::TimingDistribution* stages[] = {&m_dmaToUpload[c], &m_dmaToDraw[c]};
++            const char* stageNames[] = {"dma_return_to_upload", "dma_return_to_draw"};
++            for (int s = 0; s < 2; ++s) {
++                const auto& v = *stages[s];
++                fprintf(stderr, "[display-latency] late_latch=%d camera=%d stage=%s count=%llu sum_ms=%.6f mean_ms=%.6f p50_le_ms=%.1f p95_le_ms=%.1f p99_le_ms=%.1f max_ms=%.6f overflow=%llu refreshed=%llu started_ms=%lld ended_ms=%lld\n",
++                        int(m_lateLatch), c + 1, stageNames[s], (unsigned long long)v.count,
++                        v.sumMs, v.mean(), v.percentile(.50), v.percentile(.95), v.percentile(.99),
++                        v.maxMs, (unsigned long long)v.overflow, (unsigned long long)m_latchRefreshes[c],
++                        (long long)m_perfStartedMs, (long long)now);
++            }
++        }
++        m_dmaToUpload = {}; m_dmaToDraw = {}; m_latchRefreshes = {};
+         m_perf = {}; m_perfStartedMs = now;
+     }
+     void setStatusLine(const QString &s) {
+@@ -2983,6 +3101,21 @@
+             return;
+         }
+ 
++        // Refresh only an already accepted display configuration. This never
++        // consumes the publisher mailbox or increments its take/replacement counts.
++        if (m_lateLatch && m_latchSource && !m_videoMode && m_haveFrame && !m_metricsPaused) {
++            const int refreshed = m_latchSource->refreshDisplay(m_latchFrame);
++            if (refreshed) {
++                m_cameraPixels = m_latchFrame.cameraPixels;
++                m_sequences = m_latchFrame.cameraSequences;
++                m_capturedMs = m_latchFrame.capturedMs;
++                m_camFps = m_latchFrame.camFps;
++                m_changedMask |= refreshed;
++                m_dirty = true;
++                for (int c = 0; c < CAM_COUNT; ++c)
++                    if (refreshed & (1 << c)) ++m_latchRefreshes[c];
++            }
++        }
+         /* 快照显示状态（采集/推理线程写，这里读） */
+         const bool videoMode = m_videoMode;
+         const int paneMask = m_paneMask, pane = m_pane;
+@@ -3045,6 +3178,9 @@
+                         if (!(mask & (1 << c)))
+                             continue;
+                         if (m_cameraPixels[c].size() != FRAME_BYTES) continue;
++                        // A paced publisher may resend a frame already late-latched.
++                        if (m_lateLatch && m_sequences[c] != 0 && m_sequences[c] == m_uploadedSequences[c] &&
++                            m_cameraTextureAllocated[c][m_cameraTextureSlot[c]]) continue;
+                         const int slot = (m_cameraTextureSlot[c] + 1) % m_textureRing;
+                         glBindTexture(GL_TEXTURE_2D, m_cameraTextures[c][slot]);
+                         if (!m_cameraTextureAllocated[c][slot]) {
+@@ -3056,6 +3192,16 @@
+                                             GL_UNSIGNED_SHORT_5_6_5, m_cameraPixels[c].constData());
+                         }
+                         m_cameraTextureSlot[c] = slot;
++                        const qint64 uploadEndNs = m_perfEnabled ? monotonicNs() : 0;
++                        const bool uniqueUpload = m_sequences[c] != 0 && m_sequences[c] != m_uploadedSequences[c];
++                        m_uploadedDmaNs[c] = m_latchFrame.dmaReturnedNs[c];
++                        m_uploadedTags[c] = m_latchFrame.tags[c];
++                        m_uploadedGenerations[c] = m_latchFrame.cameraGenerations[c];
++                        m_uploadEndNs[c] = uploadEndNs;
++                        if (m_perfEnabled && !m_metricsPaused && uniqueUpload &&
++                            (paneMask & (1 << c)) && (!m_hdmiFull || c >= tdm::hdmiLeftCamera) &&
++                            m_uploadedDmaNs[c] > 0 && uploadEndNs >= m_uploadedDmaNs[c])
++                            m_dmaToUpload[c].add((uploadEndNs - m_uploadedDmaNs[c]) / 1e6);
+                         if (m_perfEnabled) {
+                             ++m_perf.cameraUploads[c]; m_perf.cameraUploadBytes[c] += FRAME_BYTES;
+                             const qint64 uploadedAt = monotonicMs();
+@@ -3110,6 +3256,18 @@
+                 setVertices(verts, camera);
+                 glBindTexture(GL_TEXTURE_2D, m_cameraTextures[camera][m_cameraTextureSlot[camera]]);
+                 glDrawArrays(GL_TRIANGLE_STRIP, camera * 4, 4);
++                if (m_perfEnabled && !m_metricsPaused && m_uploadedSequences[camera] != 0 &&
++                    m_uploadedSequences[camera] != m_renderedSequences[camera] && m_uploadedDmaNs[camera] > 0) {
++                    const qint64 drawEndNs = monotonicNs();
++                    if (drawEndNs >= m_uploadedDmaNs[camera])
++                        m_dmaToDraw[camera].add((drawEndNs - m_uploadedDmaNs[camera]) / 1e6);
++                    if (m_latencyTrace)
++                        fprintf(stderr, "[display-latency-frame] late_latch=%d camera=%d generation=%d sequence=%llu tag=%u dma_return_ns=%lld upload_end_ns=%lld draw_end_ns=%lld\n",
++                                int(m_lateLatch), camera + 1, m_uploadedGenerations[camera],
++                                (unsigned long long)m_uploadedSequences[camera], m_uploadedTags[camera],
++                                (long long)m_uploadedDmaNs[camera], (long long)m_uploadEndNs[camera], (long long)drawEndNs);
++                }
++                m_renderedSequences[camera] = m_uploadedSequences[camera];
+             };
+             if (videoMode) {
+                 const GLfloat verts[] = {
+@@ -3651,6 +3809,16 @@
+     QVector<double> m_camFps = QVector<double>(CAM_COUNT, 0.0);
+     std::array<uint64_t, CAM_COUNT> m_sequences{}, m_uploadedSequences{};
+     std::array<qint64, CAM_COUNT> m_capturedMs{};
++    CameraThread* m_latchSource = nullptr; // Controller clears before source destruction.
++    CameraThread::DisplayFrame m_latchFrame;
++    const bool m_lateLatch = !qEnvironmentVariableIsSet("DETVIEW_LATE_LATCH") ||
++                            qEnvironmentVariableIntValue("DETVIEW_LATE_LATCH") != 0;
++    const bool m_latencyTrace = qEnvironmentVariableIntValue("DETVIEW_LATENCY_TRACE") != 0;
++    std::array<tdm::TimingDistribution, CAM_COUNT> m_dmaToUpload{}, m_dmaToDraw{};
++    std::array<uint64_t, CAM_COUNT> m_latchRefreshes{}, m_renderedSequences{};
++    std::array<qint64, CAM_COUNT> m_uploadedDmaNs{}, m_uploadEndNs{};
++    std::array<quint32, CAM_COUNT> m_uploadedTags{};
++    std::array<int, CAM_COUNT> m_uploadedGenerations{};
+     std::array<tdm::FrameRate, CAM_COUNT> m_cameraUploadRates;
+     quint64 m_videoSequence = 0, m_uploadedVideoSequence = 0;
+     qint64 m_videoReceivedMs = 0;
+@@ -3700,6 +3868,7 @@
+         m_gl->show();
+ 
+         m_camera = new CameraThread();
++        m_gl->setLateLatchSource(m_camera);
+         m_camera->enableRawCapture(m_calibrationMode);
+         if (m_calibrationMode) {
+             m_capture = new CalibrationCaptureWorker(this);
+@@ -3920,6 +4089,7 @@
+         m_camera->wait();
+         m_infer->stop();
+         m_vision->stop();
++        m_gl->setLateLatchSource(nullptr);
+         delete m_camera;
+         delete m_infer;
+         delete m_vision;
+@@ -4626,6 +4796,9 @@
+ };
+ 
+ int main(int argc, char **argv) {
++    fprintf(stderr, "[display-latency-config] late_latch=%d trace=%d clock=CLOCK_MONOTONIC start=host_dma_return end=gl_call_return\n",
++            !qEnvironmentVariableIsSet("DETVIEW_LATE_LATCH") || qEnvironmentVariableIntValue("DETVIEW_LATE_LATCH") != 0,
++            qEnvironmentVariableIntValue("DETVIEW_LATENCY_TRACE") != 0);
+     // Avoid Qt's extra deferred-update delay for the live camera display.
+     // Keep an explicit environment override for comparison or other displays.
+     if (!qEnvironmentVariableIsSet("QT_QPA_UPDATE_IDLE_TIME"))
+@@ -4671,6 +4844,8 @@
+     qRegisterMetaType<QVector<double>>("QVector<double>");
+     qRegisterMetaType<VisionFrame>("VisionFrame");
+     cv::setNumThreads(2);
++    if (app.arguments().contains("--display-latency-selftest"))
++        return CameraThread::selfTestDisplay() ? 0 : 2;
+     if (app.arguments().contains("--temporal-selftest")) return tdm::runDetectionTemporalSelfTest();
+     if (app.arguments().contains("--calibration-capture-selftest")) return runCalibrationCaptureSelfTest();
+     if (app.arguments().contains("--tracker-benchmark")) {

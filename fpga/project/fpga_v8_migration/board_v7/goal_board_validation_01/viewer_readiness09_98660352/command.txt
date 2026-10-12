@@ -1,0 +1,11 @@
+sudo -n python3 -c 'from pathlib import Path
+import hashlib,json,os
+folders=['"'"'/root/npu/yolov8n/zebra640'"'"','"'"'/root/npu/yolov8n/vehicle640'"'"','"'"'/root/npu'"'"','"'"'/root/npu/yolo11n'"'"','"'"'/root/models/yolo26_rk3568'"'"','"'"'/root/npu/tt100k'"'"','"'"'/root/npu/tt100k_yolov8n'"'"','"'"'/root/npu/lane_linknet'"'"','"'"'/root/npu/whiteboard_3cls'"'"','"'"'/root/npu/trafficlight'"'"']
+models=[]
+for d in folders:
+ for p in Path(d).glob('"'"'*.rknn'"'"'):
+  if p.name.startswith('"'"'det-'"'"') and any(s in str(p).lower() for s in ['"'"'trafficlight-16cls'"'"','"'"'wb_v4_combo'"'"']):
+   models.append({'"'"'path'"'"':str(p),'"'"'bytes'"'"':p.stat().st_size,'"'"'sha256'"'"':hashlib.sha256(p.read_bytes()).hexdigest()})
+p=Path('"'"'/userdata/detview-driving-demo/detview-driving-demo'"'"')
+print(json.dumps({'"'"'boot_id'"'"':Path('"'"'/proc/sys/kernel/random/boot_id'"'"').read_text().strip(),'"'"'models'"'"':models,'"'"'viewer'"'"':{'"'"'bytes'"'"':p.stat().st_size,'"'"'mode'"'"':oct(p.stat().st_mode&0o777),'"'"'sha256'"'"':hashlib.sha256(p.read_bytes()).hexdigest()},'"'"'xauth_exists'"'"':Path('"'"'/home/linaro/.Xauthority'"'"').exists(),'"'"'x11_socket_exists'"'"':Path('"'"'/tmp/.X11-unix/X0'"'"').exists()}))
+'

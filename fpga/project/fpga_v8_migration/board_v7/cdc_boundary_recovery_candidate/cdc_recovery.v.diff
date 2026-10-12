@@ -1,0 +1,111 @@
+--- C:\Users\NineSun\Desktop\ov56401\project\fpga_v8_migration\board_v7\cdc_boundary_candidate\cdc_order_candidate.v
++++ cdc_recovery.v
+@@ -1,10 +1,11 @@
+ // Isolated TC04 camera candidate. Pixel FIFO and video-domain behavior are TC03.
+-module cdc_order_candidate #(
+-    parameter DATA_WIDTH = 24,
++module cdc_recovery #(
++    parameter DATA_WIDTH = 16,
+     parameter DEVICE = "PG"
+ ) (
+     output reg [31:0] dbg_cdc_input, dbg_cdc_output, dbg_cdc_drop, dbg_cdc_seq,
+     output boundary_fault,
++    input system_reset,
+     input cam_clk, cam_rst,
+     input [DATA_WIDTH-1:0] s_data,
+     input s_valid, s_hsync, s_vsync,
+@@ -20,14 +21,48 @@
+     wire [2:0] token;
+     wire pixel_full;
+     wire violation = s_valid && s_vsync;
+-    wire full = pixel_full || meta_full || transport_fault || violation;
+-    wire put = event_token && !full;
++    wire full = (s_valid && pixel_full) || meta_full || transport_fault || violation;
++    // NEW input system_reset means reset of the entire DMA/DDR session.
++    // cam_rst | video_rst is NOT sufficient authorization to restart DMA.
++    wire request_reset = cam_rst | video_rst;
++    reg reset_fault;
++    always @(posedge video_clk or posedge request_reset or posedge system_reset)
++      if(system_reset) reset_fault <= 0;
++      else if(request_reset) reset_fault <= 1;
++    wire isolate = system_reset | request_reset | reset_fault | transport_fault;
++    (* async_reg="true" *) reg [2:0] cam_release, video_release;
++    always @(posedge cam_clk or posedge isolate)
++      if(isolate) cam_release<=0; else cam_release<={cam_release[1:0],1'b1};
++    always @(posedge video_clk or posedge isolate)
++      if(isolate) video_release<=0; else video_release<={video_release[1:0],1'b1};
++    wire cam_clear = !cam_release[2];
++    wire video_clear = !video_release[2];
++    (* async_reg="true" *) reg [1:0] video_ready_cam, cam_ready_video;
++    always @(posedge cam_clk or posedge isolate)
++      if(isolate) video_ready_cam<=0; else video_ready_cam<={video_ready_cam[0],video_release[2]};
++    always @(posedge video_clk or posedge isolate)
++      if(isolate) cam_ready_video<=0; else cam_ready_video<={cam_ready_video[0],cam_release[2]};
++    reg armed, saw_low;
++    always @(posedge cam_clk or posedge cam_clear)
++      if(cam_clear) begin armed<=0; saw_low<=0; end
++      else if(video_ready_cam[1]) begin
++        if(!s_vsync) saw_low<=1;
++        if(saw_low && edge_token && s_vsync) armed<=1;
++      end
++    wire source_ready = video_ready_cam[1] && !cam_clear && !isolate;
++    wire accept_epoch = armed || (saw_low && edge_token && s_vsync);
++
++    wire put = event_token && !full && source_ready && accept_epoch;
+     wire wr_en = put && s_valid;
+-    always @(posedge cam_clk or posedge cam_rst) begin
+-      if(cam_rst) begin vs_seen<=0;transport_fault<=0;end
++    always @(posedge cam_clk or posedge system_reset) begin
++      if(system_reset) transport_fault<=0;
++      else if(source_ready && accept_epoch && event_token && full) transport_fault<=1;
++    end
++    always @(posedge cam_clk or posedge cam_clear) begin
++      if(cam_clear) begin vs_seen<=0;end
+       else begin
+         vs_seen<=s_vsync;
+-        if(event_token && full) transport_fault<=1;
++
+       end
+     end
+     (* async_reg="true" *) reg [1:0] fault_sync;
+@@ -36,19 +71,19 @@
+     reg [2:0] guard_cycles;
+     wire empty;
+     wire [DATA_WIDTH-1:0] dout;
+-    wire can_take = !meta_empty && !fault_sync[1] && guard_cycles==0;
++    wire can_take = !meta_empty && !fault_sync[1] && !isolate && !video_clear && cam_ready_video[1] && guard_cycles==0;
+     wire rd_en = can_take && token[1] && (!token[2] || marker_done) && !empty;
+     // Do not raise VSYNC while a prior synchronous FIFO read is retiring.
+     wire take_marker = can_take && token[2] && !marker_done && !video_valid_r;
+-    cdc_order_meta metadata(.wc(cam_clk),.wr(cam_rst),.put(put),
+-      .din({edge_token,s_valid,s_vsync}),.full(meta_full),.rc(video_clk),.rr(video_rst),
++    cdc_order_meta metadata(.wc(cam_clk),.wr(cam_clear),.put(put),
++      .din({edge_token,s_valid,s_vsync}),.full(meta_full),.rc(video_clk),.rr(video_clear),
+       .pop(rd_en||(take_marker&&!token[1])),.head(token),.empty(meta_empty));
+     ov5640_cdc_fifo ov5640_cdc_fifo (
+-      .wr_clk(cam_clk),.wr_rst(cam_rst),.wr_en(wr_en),.wr_data(s_data),
+-      .wr_full(pixel_full),.rd_clk(video_clk),.rd_rst(video_rst),
++      .wr_clk(cam_clk),.wr_rst(cam_clear),.wr_en(wr_en),.wr_data(s_data),
++      .wr_full(pixel_full),.rd_clk(video_clk),.rd_rst(video_clear),
+       .rd_en(rd_en),.rd_data(dout),.rd_empty(empty),.almost_full(),.almost_empty());
+-    always @(posedge video_clk or posedge video_rst) begin
+-      if(video_rst) begin
++    always @(posedge video_clk or posedge video_clear) begin
++      if(video_clear) begin
+         fault_sync<=0;hsync_sync<=0;video_valid_r<=0;vs_level<=0;guard_cycles<=0;marker_done<=0;
+       end else begin
+         fault_sync<={fault_sync[0],transport_fault};
+@@ -63,10 +98,10 @@
+         end
+       end
+     end
+-    assign boundary_fault=fault_sync[1];
++    assign boundary_fault=reset_fault | transport_fault | request_reset;
+     assign video_data=dout;
+-    assign video_valid=video_valid_r;
+-    assign video_vsync=vs_level;
++    assign video_valid=video_valid_r && !isolate && !video_clear;
++    assign video_vsync=vs_level && !isolate && !video_clear;
+     assign video_hsync=hsync_sync[1];
+     reg src_vs_q, src_toggle;
+     reg [31:0] src_count, src_drop, src_seq;

@@ -1,0 +1,11 @@
+{
+  "captured_utc": "2026-10-06T23:29:30.190493+00:00",
+  "command": "python3 - <<'PY'\nimport pathlib,json,subprocess\nroot=pathlib.Path('/sys/bus/pci/devices');devices=[]\nfor dev in root.iterdir():\n try:\n  if dev.joinpath('vendor').read_text().strip()!='0x0755' or dev.joinpath('device').read_text().strip()!='0x0755':continue\n  rec={'bdf':dev.name,'driver':str(dev.joinpath('driver').resolve()),'reset_exists':dev.joinpath('reset').exists()}\n  for field in ['resource','reset_method','enable']:\n   try:rec[field]=dev.joinpath(field).read_text()\n   except OSError as error:rec[field]={'error':str(error)}\n  proc=subprocess.run(['sudo','-n','lspci','-s',dev.name,'-nnvv'],capture_output=True,text=True)\n  rec['lspci']={'stdout':proc.stdout,'stderr':proc.stderr,'returncode':proc.returncode};devices.append(rec)\n except OSError as error:devices.append({'bdf':dev.name,'error':str(error)})\ngpio={}\nfor field in ['direction','value','active_low']:\n f=pathlib.Path('/sys/class/gpio/gpio144')/field\n try:gpio[field]=f.read_text()\n except OSError as error:gpio[field]={'error':str(error)}\nresult={'boot_id':pathlib.Path('/proc/sys/kernel/random/boot_id').read_text().strip(),'devices':devices,'gpio144':gpio}\nfor key,cmd in [('uname',['uname','-a']),('gpio_debug',['sudo','-n','cat','/sys/kernel/debug/gpio']),('owners',['sudo','-n','fuser','-v','/dev/pango_pci_driver'])]:\n proc=subprocess.run(cmd,capture_output=True,text=True);result[key]={'stdout':proc.stdout,'stderr':proc.stderr,'returncode':proc.returncode}\nfor field in ['initstate','notes/.note.gnu.build-id']:\n f=pathlib.Path('/sys/module/pango_pci_driver')/field\n try:result[field]=f.read_bytes().hex() if field.startswith('notes/') else f.read_text()\n except OSError as error:result[field]={'error':str(error)}\nprint(json.dumps(result,indent=2))\nPY",
+  "exit_code": 0,
+  "stdout_sha256": "97f20c67156ec50bf946ec7d4b02b3c1491bdcd55ed18e2a0f4bf16f83c587de",
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "device_opened": false,
+  "dma_submitted": false,
+  "reset_executed": false,
+  "dma_idle_proven": false
+}

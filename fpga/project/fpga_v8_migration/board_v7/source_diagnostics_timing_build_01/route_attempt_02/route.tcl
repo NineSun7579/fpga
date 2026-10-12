@@ -1,0 +1,2 @@
+set_arch -family Logos2 -device PG2L100H -speedgrade -6 -package FBG484
+pnr -input_db_file {C:/Users/NineSun/Desktop/ov56401/project/fpga_v8_migration/board_v7/source_diagnostics_timing_build_01/device_map/v7_sdt_top_map.adf} -force_to_run -gplace_seed 2 -groute_seed 2 -optimize_multi_corner_timing -fix_hold_violation -enable_route_constraint_iterate -route_constraint_iterate_times 3 -route_constraint_slack 0 -route_constraint_max_timing_path 32 -generate_bitstream FALSE

@@ -1,0 +1,42 @@
+{
+  "format": "fpga_v8_activation_lut_affine_u8_v1",
+  "activation": "SiLU: x / (1 + exp(-x))",
+  "calibration_status": "16-road-frame development smoke calibration; not accuracy acceptance",
+  "entries": 256,
+  "input_scale": 0.06482573116526884,
+  "input_zero_point": 133,
+  "output_scale": 0.03208854081583958,
+  "output_zero_point": 9,
+  "rounding": "nearest, ties to even (numpy.rint)",
+  "clipping": "saturate rounded output code to [0, 255]",
+  "lane_byte_order": "lane i occupies bits [8*i +: 8]",
+  "table_sha256": "8a4d57a9a31717b140c1005fafd41ce0d4e4ed7c42e54537348e3989e36850ba",
+  "input_float_range": [
+    -8.621822244980756,
+    7.908739202162798
+  ],
+  "silu_float_range": [
+    -0.27842934761003046,
+    7.905833668719355
+  ],
+  "negative_input_count": 133,
+  "negative_silu_count": 133,
+  "clipped_low_count": 0,
+  "clipped_high_count": 0,
+  "unclipped_count": 256,
+  "error_units": "output float units; reconstructed u8 minus float64 SiLU",
+  "all_codes_error": {
+    "max_abs": 0.015958514312744844,
+    "mean_abs": 0.007642652756001748,
+    "rmse": 0.008895007656118444
+  },
+  "unclipped_codes_error": {
+    "max_abs": 0.015958514312744844,
+    "mean_abs": 0.007642652756001748,
+    "rmse": 0.008895007656118444
+  },
+  "task_id": 19,
+  "node": "/model.5/cv2/conv/Conv",
+  "source_model_sha256": "dc940b82d821cd67b3735539c9b9c9011ad695178f468598db79f78a13506b71",
+  "calibration_sha256": "1a2d1d8311c63748b95f722a3e819e8b24c244c7532b0e9f257694ca5af40deb"
+}

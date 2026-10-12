@@ -1,0 +1,22 @@
+Traceback (most recent call last):
+  File "C:\Users\NineSun\Desktop\ov56401\project\fpga_v8_migration\board_v7\source_diagnostics_timing_build_04\runtime\resume_compile_receipt04.py", line 45, in <module>
+    else:resume()
+         ^^^^^^^^
+  File "C:\Users\NineSun\Desktop\ov56401\project\fpga_v8_migration\board_v7\source_diagnostics_timing_build_04\runtime\resume_compile_receipt04.py", line 35, in resume
+    cp=endpoint_audit('compile',cg);sp=endpoint_audit('synthesis',sg)
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\NineSun\Desktop\ov56401\project\fpga_v8_migration\board_v7\source_diagnostics_timing_build_04\runtime\controller04.py", line 97, in endpoint_audit
+    proof=full_top_audit(stage,g,save)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\NineSun\Desktop\ov56401\project\fpga_v8_migration\board_v7\source_diagnostics_timing_build_04\runtime\libraries\endpoints.py", line 16, in full_top_audit
+    classified=classify(g);r=Resolver(g);rows=[];lookup={(x['camera'],x['chain'],x['bit']):x for x in classified['rows']}
+               ^^^^^^^^^^^
+  File "C:\Users\NineSun\Desktop\ov56401\project\fpga_v8_migration\board_v7\source_diagnostics_timing_build_04\runtime\analysis_tools\graph_adapter.py", line 185, in classify
+    row=r.bind(cam,chain,bit);rows.append(row);lookup[(cam,chain,bit)]=row
+        ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\NineSun\Desktop\ov56401\project\fpga_v8_migration\board_v7\source_diagnostics_timing_build_04\runtime\analysis_tools\graph_adapter.py", line 96, in bind
+    require(len(ds)==1,f'Unique actual Q driver required: {logical}: {ds}')
+  File "C:\Users\NineSun\Desktop\ov56401\project\fpga_v8_migration\board_v7\source_diagnostics_timing_build_04\runtime\analysis_tools\graph_adapter.py", line 27, in require
+    if not ok: raise RuntimeError(message)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+RuntimeError: Unique actual Q driver required: source_diagnostics/cameras[0].source/cr[0]: {'source_diagnostics/cameras[0].source/cr/Z[0]', 'source_diagnostics/cameras[0].source/cr_ff0/Q'}

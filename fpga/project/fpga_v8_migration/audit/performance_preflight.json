@@ -1,0 +1,49 @@
+{
+  "status": "analytic_lower_bound_not_measured_FPGA_fps",
+  "npu_clock_mhz_assumed": 150,
+  "rtl": {
+    "config_sha256": "f9c08ca2827eaf441d9a93137353b85a928c64068dd1382d20055a37e0dcd9c2",
+    "top_sha256": "9ce193ff215fdd9df767247bda7ceb1eb8c366a34519e90e011708eb9147627a",
+    "engines": [
+      {
+        "instance": "conv_para_top_inst",
+        "input_lanes": 16,
+        "output_lanes": 2,
+        "macs_per_cycle_3x3": 288,
+        "macs_per_cycle_1x1": 32
+      },
+      {
+        "instance": "conv_top_inst",
+        "input_lanes": 16,
+        "output_lanes": 2,
+        "macs_per_cycle_3x3": 288,
+        "macs_per_cycle_1x1": 32
+      }
+    ]
+  },
+  "model_macs": {
+    "1x1": 691379200,
+    "3x3": 2904883200
+  },
+  "ideal_kernel_time_ms": {
+    "1x1": 72.01866666666666,
+    "3x3": 33.62133333333333
+  },
+  "conv_only_ideal_ms": 105.63999999999999,
+  "conv_only_ideal_fps_upper_bound": 9.466111321469143,
+  "3x3_only_ideal_fps_upper_bound": 29.743020304568528,
+  "rknn_historical_mean_ms": {
+    "run_only": 21.075107,
+    "run_io": 23.266506,
+    "offline_pipeline": 36.188186
+  },
+  "3x3_only_bound_exceeds_rknn_run": true,
+  "required_3x3_macs_per_cycle_for_rknn_run": 918.8986798501189,
+  "limits": [
+    "clock is a stated assumption, not timing acceptance of a V8 candidate",
+    "assumes both existing engines have continuous useful MAC occupancy",
+    "excludes channel padding, frame dependencies, memory and every non-Conv operation",
+    "RKNN data are retained historical measurements, not simultaneous new trials"
+  ],
+  "decision": "Current convolution engine migration alone cannot establish RK3568 latency/FPS improvement; keep RKNN execution and evaluate FPGA preprocessing/transfer overlap, or redesign compute architecture."
+}

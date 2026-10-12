@@ -1,0 +1,68 @@
+--- C:\Users\NineSun\Desktop\ov56401\project\fpga_v8_migration\whole_candidate_v4_route_01\rtl\block_motion_detector_tc01.v
++++ C:\Users\NineSun\Desktop\ov56401\project\fpga_v8_migration\timing_correction_03\rtl\block_motion_detector_tc03.v
+@@ -1,6 +1,6 @@
+-// TC01: local threshold decisions registered in the existing compare stage.
+-// No extra sample, result or frame latency. Read-first history is unchanged.
+-module block_motion_detector_tc01 #(
++// TC03: qualify local row/column marks before the final bbox reduction.
++// Same compare/update/publish stages and read-first history as TC01.
++module block_motion_detector_tc03 #(
+     parameter integer WIDTH=640, HEIGHT=480,
+     parameter SAMPLE_STEP=4, BLOCK_SAMPLES_X=10, BLOCK_SAMPLES_Y=10,
+     parameter PIXEL_THRESHOLD=16, BLOCK_THRESHOLD=8,
+@@ -75,10 +75,7 @@
+     reg clear_after_publish;
+     wire clear_work=(frame_start && !end_pending) ||
+                     (publish_pending && clear_after_publish);
+-    // Forward this edge's local counter increment into the next decision.
+-    // This supports SAMPLE_STEP=1 and back-to-back hits in the same block.
+-    // Only a local counter/FF path remains; counters no longer drive the
+-    // global reduction and bbox enables in the same timing path.
++    // Forward the local increment, preserving back-to-back SAMPLE_STEP=1 hits.
+     reg [TOTAL_BLOCKS-1:0] mark_q;
+     wire [TOTAL_BLOCKS-1:0] mark_block;
+     genvar b;
+@@ -95,6 +92,25 @@
+         assign mark_block[b]=update_pending && changed_q && select_q[b] && mark_q[b];
+     end endgenerate
+     wire mark_any=|mark_block;
++    wire [BLOCK_ROWS-1:0] row_min_qual, row_max_qual;
++    wire [BLOCK_COLS-1:0] col_min_qual, col_max_qual;
++    genvar r,c;
++    generate for (r=0;r<BLOCK_ROWS;r=r+1) begin : bbox_row
++        localparam [BY_BITS-1:0] ROW=r;
++        wire row_mark=|mark_block[r*BLOCK_COLS +: BLOCK_COLS];
++        assign row_min_qual[r]=row_mark && (!bbox_work_valid || ROW<min_y_work);
++        assign row_max_qual[r]=row_mark && (!bbox_work_valid || ROW>max_y_work);
++    end
++    for (c=0;c<BLOCK_COLS;c=c+1) begin : bbox_col
++        localparam [BX_BITS-1:0] COL=c;
++        wire [BLOCK_ROWS-1:0] column_marks;
++        for (r=0;r<BLOCK_ROWS;r=r+1) begin : collect
++            assign column_marks[r]=mark_block[r*BLOCK_COLS+c];
++        end
++        wire col_mark=|column_marks;
++        assign col_min_qual[c]=col_mark && (!bbox_work_valid || COL<min_x_work);
++        assign col_max_qual[c]=col_mark && (!bbox_work_valid || COL>max_x_work);
++    end endgenerate
+     integer i;
+     always @(posedge clk or negedge rst_n) begin
+         if (!rst_n) begin
+@@ -156,11 +172,13 @@
+                     if (mark_any) begin
+                         blocks_work<=blocks_work+1'b1;
+                         bbox_work_valid<=1;
+-                        if (!bbox_work_valid || update_bx<min_x_work) min_x_work<=update_bx;
+-                        if (!bbox_work_valid || update_bx>max_x_work) max_x_work<=update_bx;
+-                        if (!bbox_work_valid || update_by<min_y_work) min_y_work<=update_by;
+-                        if (!bbox_work_valid || update_by>max_y_work) max_y_work<=update_by;
+                     end
++                    // select_q is one-hot for an accepted sample. Thus a marked
++                    // row/column has exactly update_by/update_bx as its coordinate.
++                    if (|col_min_qual) min_x_work<=update_bx;
++                    if (|col_max_qual) max_x_work<=update_bx;
++                    if (|row_min_qual) min_y_work<=update_by;
++                    if (|row_max_qual) max_y_work<=update_by;
+                 end
+             end
+             if (!frame_start) begin

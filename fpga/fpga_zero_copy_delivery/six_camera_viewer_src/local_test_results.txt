@@ -1,0 +1,50 @@
+Six-camera isolated candidate local validation (Windows host; no board/PDS)
+
+Transport, selector, ownership and RX reservation tests:
+  Prepend C:/gcc/mingw64/bin to PATH (compiler/runtime DLL dependencies).
+  C:/gcc/mingw64/bin/g++.exe -std=c++17 -Wall -Wextra -Werror
+    -DTHUMBNAIL_STANDALONE_SELFTEST thumbnail_delivery_selftest.cpp
+    -o %TEMP%/six_thumbnail_contract_selftest.exe
+  %TEMP%/six_thumbnail_contract_selftest.exe
+  SIX_THUMBNAIL_SELFTEST_PASS cases=163 failures=0
+
+Covered by the 163 cases: all six cameras and both banks, independent RAW/output
+banks, unpublished admission release after the two-second deadline, published
+sequence zero after wrap, delayed publication, full capability/support bitmap,
+idle-only selector writes, RAW source bank readback,
+freeze/source sequence/epoch identity, every MMIO failure, mode/size/source/
+destination/freeze/jobs/DMA faults, release/restore ordering, separate RAW and
+display cursors, generation reset, sequence wrap, RAW byte preservation across
+all six reusable scratch transactions, and shared RKNN input canaries.
+Unpublished admission with drain pending/flush/invalid banks cannot release.
+
+RTL evidence (Python byte-level inspection per parent AGENTS.md):
+  integrated_six/source/delivery/delivery_regs.v
+  lines 4-6: register/output bases and default dimensions
+  lines 35-47: selected RAW bank layout, publication, retirement predicates
+  lines 51-65: RGB/thumbnail destinations and internal camera hold bitmap
+  lines 84-91: freeze requires publication and 32 quiet retirement cycles
+  lines 100-139: lease admission/release, protected mode/camera/output selectors
+  lines 147-166: caps=7, camera 0..5/default 4, support=0x3f,
+    +100/+110 RAW source banks, +120 diagnostic bits (not hold bitmap)
+  Base, capabilities, camera numbering, source layout and thumbnail destinations
+  already match. Fixed bank readback, freeze predicate and no-frame interpretation.
+
+Source preservation/static layout validation:
+  python verify_source_preservation.py
+  changed baseline files: detview.pro, main.cpp
+  identical baseline files: 37
+  complete InferenceThread: byte-identical
+  RAW RGB565 converter: byte-identical
+  RAW vision packet conversion: byte-identical
+  checks: one device open, no legacy camera scratch/slot offsets, every DMA
+    operation below 2 MiB, RAW copy under the shared mutex
+  manifest: source_preservation.json
+  unified patch: viewer_changes.diff
+
+This run did not build the full Qt target or rerun Qt mailbox extraction tests.
+The full RK3568 viewer/Qt target, hardware admission timing/MMIO strobes, driver
+PZ_BEGIN behavior, native DDR payload gather, live switching, HDMI/stereo skew,
+and board measurements remain parent validation. No hardware operations occurred.
+An unpublished camera holds the shared mutex for two seconds before safely
+returning no frame; startup/disconnected-camera effects remain unmeasured.

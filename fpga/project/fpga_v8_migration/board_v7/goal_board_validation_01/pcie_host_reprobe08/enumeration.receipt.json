@@ -1,0 +1,9 @@
+{
+  "command": "sudo -n python3 - <<'PY'\nfrom pathlib import Path\nimport subprocess,os,stat,hashlib\nprint('BOOT',Path('/proc/sys/kernel/random/boot_id').read_text().strip())\nfor p in Path('/sys/bus/pci/devices').glob('*'):\n print('PCI',p.name,p.resolve(),'DRIVER',os.path.realpath(p/'driver') if (p/'driver').exists() else 'UNBOUND')\n for n in ['vendor','device','class','enable','resource','current_link_speed','current_link_width','max_link_speed','max_link_width','irq','msi_bus']:\n  try:print(n,(p/n).read_text().strip())\n  except OSError as e:print(n,str(e))\n print('MSI_IRQS',[x.name for x in (p/'msi_irqs').glob('*')])\nprint('MODULES',Path('/proc/modules').read_text())\nprint('NODES',[str(x) for x in Path('/dev').glob('*pango*')])\nprint('ADMISSION',oct(stat.S_IMODE(Path('/userdata/detview-driving-demo/detview-driving-demo').stat().st_mode)))\nfor argv in [['lspci','-nnvv'],['lspci','-t'],['dmesg'],['sha256sum','/userdata/linaro/projects/fpga/RK3568/driver/pango_pci_driver_fixed_20260926.ko'],['readelf','-n','/userdata/linaro/projects/fpga/RK3568/driver/pango_pci_driver_fixed_20260926.ko'],['modinfo','/userdata/linaro/projects/fpga/RK3568/driver/pango_pci_driver_fixed_20260926.ko']]:\n r=subprocess.run(argv,capture_output=True);print('COMMAND',argv,'RC',r.returncode);print(r.stdout.decode(errors='replace'));print(r.stderr.decode(errors='replace'))\nprint('IOMEM',Path('/proc/iomem').read_text())\nPY\n",
+  "host": "192.168.10.203",
+  "rc": 0,
+  "started_utc": "2026-10-07T07:18:16.041639+00:00",
+  "ended_utc": "2026-10-07T07:18:18.069275+00:00",
+  "stdout_sha256": "e8582e9dd365123bc5fd285296700c334181279f6ea2c6b67ddbbeb4bf06f8fc",
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+}

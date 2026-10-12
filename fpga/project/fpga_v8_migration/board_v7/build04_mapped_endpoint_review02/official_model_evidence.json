@@ -1,0 +1,73 @@
+{
+  "models": {
+    "C:\\pango\\PDS_2022.2-SP6.4\\arch\\vendor\\pango\\logos2\\common\\valence\\operator\\gate\\CLM\\gopQ.eval": {
+      "sha256": "541632e53f4242847c441fde7797e6f232afbd5d54eaa1c47dfc4bef52f21557",
+      "header_hex": "010050414e47210301002fba",
+      "readable_behavior": false
+    },
+    "C:\\pango\\PDS_2022.2-SP6.4\\arch\\vendor\\pango\\logos2\\common\\valence\\operator\\gate\\CLM\\gopLUT6Q.eval": {
+      "sha256": "ed2c6fa20a827f265b9023cc63f95413987124ee0dd2098172163f1f4866dd43",
+      "header_hex": "010050414e47210301002fba",
+      "readable_behavior": false
+    },
+    "C:\\pango\\PDS_2022.2-SP6.4\\arch\\vendor\\pango\\logos2\\common\\valence\\operator\\gate\\CLM\\gopLUT6.eval": {
+      "sha256": "afd344aab31bdf9548e855bfb0027b9605ebc2c4eab4bba0793f40957d912140",
+      "header_hex": "010050414e47210301002fba",
+      "readable_behavior": false
+    },
+    "C:\\pango\\PDS_2022.2-SP6.4\\arch\\vendor\\pango\\logos2\\common\\valence\\operator\\gate\\CLM\\gopLUT6QQ.eval": {
+      "sha256": "45864f55ee3fc07a4b5fdb5e891aafa92107a7482b619a8ed3b22a30c533dde0",
+      "header_hex": "010050414e47210301002fba",
+      "readable_behavior": false
+    },
+    "C:\\pango\\PDS_2022.2-SP6.4\\arch\\vendor\\pango\\logos2\\common\\valence\\operator\\gate\\CLM\\gopCLKROUTE.eval": {
+      "sha256": "10b38565c5e78d345dd4ff2aea0b5e10055827b56bd3d0c725a5620332025322",
+      "header_hex": "010050414e47210301002fba",
+      "readable_behavior": false
+    },
+    "C:\\pango\\PDS_2022.2-SP6.4\\arch\\vendor\\pango\\logos2\\pg2l100h\\valence\\operator\\gate\\CLM\\gopQ.eval": {
+      "sha256": "3b7e257cab6b7f2e928770fd68317df544412cea39d86bbc522567e489aa5804",
+      "header_hex": "010050414e47210301002fba",
+      "readable_behavior": false
+    },
+    "C:\\pango\\PDS_2022.2-SP6.4\\arch\\vendor\\pango\\logos2\\pg2l100h\\valence\\operator\\gate\\CLM\\gopLUT6Q.eval": {
+      "sha256": "ed2c6fa20a827f265b9023cc63f95413987124ee0dd2098172163f1f4866dd43",
+      "header_hex": "010050414e47210301002fba",
+      "readable_behavior": false
+    },
+    "C:\\pango\\PDS_2022.2-SP6.4\\arch\\vendor\\pango\\logos2\\pg2l100h\\valence\\operator\\gate\\CLM\\gopLUT6.eval": {
+      "sha256": "afd344aab31bdf9548e855bfb0027b9605ebc2c4eab4bba0793f40957d912140",
+      "header_hex": "010050414e47210301002fba",
+      "readable_behavior": false
+    },
+    "C:\\pango\\PDS_2022.2-SP6.4\\arch\\vendor\\pango\\logos2\\pg2l100h\\valence\\operator\\gate\\CLM\\gopLUT6QQ.eval": {
+      "sha256": "45864f55ee3fc07a4b5fdb5e891aafa92107a7482b619a8ed3b22a30c533dde0",
+      "header_hex": "010050414e47210301002fba",
+      "readable_behavior": false
+    },
+    "C:\\pango\\PDS_2022.2-SP6.4\\arch\\vendor\\pango\\logos2\\pg2l100h\\valence\\operator\\gate\\CLM\\gopCLKROUTE.eval": {
+      "sha256": "2f62fc1ea68e9409b3a3a4ad895b18bae6f1c8ae33820ec667ecf118059a1d73",
+      "header_hex": "010050414e47210301002fba",
+      "readable_behavior": false
+    }
+  },
+  "packing_rule": "rule gopL6Q\nbegin\n    # the suffix of the new instance name is \"_L6Q\"\n    gopQ inst1 + gopLUT6 inst2 => gopLUT6Q _L6Q\n    \n    # find other insts according to inst1 using net connections\n    seeking\n    begin\n        inst2 : D of inst1 and L6 of inst2 output\n    end\n    \n    conditions\n    begin\n        # compare with ToChar() function\n        # same_net :\n        # same_parameter :\n        # parameter :\n    end   \n    \n    constraints\n    begin\n        pair inst1 inst2\n        begin\n            # site_of_inst1 sym_of_inst1 site_of_inst2 sym_of_inst2\n            NIL NIL NIL NIL\n        end\n    end\n        \n    # default is copying    \n    parameters_mapping\n    begin\n        GRS_EN       of inst1  => GRS_EN\n        LRS_EN       of inst1  => LRS_EN\n        CEMUX_SEL    of inst1  => CEMUX_SEL  \n        RSMUX_SEL    of inst1  => RSMUX_SEL\n        QMUX_SEL     of inst1  => NIL  \n        CLK_POL   of inst1  => CLK_POL  \n        LCE_POL   of inst1  => LCE_POL   \n        LRS_POL   of inst1  => LRS_POL   \n        RS_MODE      of inst1  => RS_MODE\n        FF_RS        of inst1  => FF_RS\n        FF_INIT      of inst1  => FF_INIT\n        INIT         of inst2  => INIT\n        IMPL_MODE of inst1  => NIL\n    end \n       \n    ports_mapping\n    begin \n        D of inst1 => NIL\n        Q of inst1 => L6Q\n        L6 of inst2 => L6\n    end\nend\n\n",
+  "packing_rule_path": "C:\\pango\\PDS_2022.2-SP6.4\\arch\\vendor\\pango\\logos2\\common\\packingrule\\packingrules.txt",
+  "packing_rule_sha256": "a064ff5557978ee532936d7dca5cca4dd6e9732aabecdcff4cf788476c601707",
+  "prior_decode_basis": {
+    "C:\\Users\\NineSun\\Desktop\\ov56401\\project\\fpga_v8_migration\\board_v7\\source_diagnostics_timing_build_04\\runtime\\libraries\\endpoint_detail.py": "b71cd9f9258ccb6cb2ec32f412f9d1e221cc7cca23c33b8c35ba7f903b512faf",
+    "C:\\Users\\NineSun\\Desktop\\ov56401\\project\\fpga_v8_migration\\board_v7\\source_diagnostics_timing_build_04\\runtime\\libraries\\endpoint_logic.py": "cdd4b5d800cbbf8cfd714bac71be3906fc321265f9cbcb2cf2c5ce39c6a08bfe",
+    "C:\\Users\\NineSun\\Desktop\\ov56401\\project\\fpga_v8_migration\\board_v7\\diagnostic_sync_register_map02\\audit_packed_pairs.py": "d7e747e3f0e7551c758b26801b26a142ca3899cb3c6b97ffb637530c68f73ff8"
+  },
+  "official_GTP_models": {
+    "C:\\pango\\PDS_2022.2-SP6.4\\arch\\vendor\\pango\\verilog\\simulation\\GTP_LUT1.v": "be4eb4f5b90af66e61745172e89615d95aec9846158e2052f1222f26ed67df9b",
+    "C:\\pango\\PDS_2022.2-SP6.4\\arch\\vendor\\pango\\verilog\\simulation\\GTP_LUT2.v": "a5133f378fc5c3e4a3583838108babaa2d7d63e4bb6de0200afa4f3a34cefb83",
+    "C:\\pango\\PDS_2022.2-SP6.4\\arch\\vendor\\pango\\verilog\\simulation\\GTP_LUT3.v": "95ded581f36c0c545239e93a0de43f8ca657fda7accb6786a9a3990fbbc2a4d6",
+    "C:\\pango\\PDS_2022.2-SP6.4\\arch\\vendor\\pango\\verilog\\simulation\\GTP_LUT4.v": "f7ed2c8232da3fa9d11638676fc7394a98da9adcf71d69fa6e6081fca62cddb7",
+    "C:\\pango\\PDS_2022.2-SP6.4\\arch\\vendor\\pango\\verilog\\simulation\\GTP_LUT5.v": "7835a0cf88a3249b36615ea127eb3b32b18f4e118ce0efb70907720a140beaf9",
+    "C:\\pango\\PDS_2022.2-SP6.4\\arch\\vendor\\pango\\verilog\\simulation\\GTP_LUT6.v": "b228940718adc4a60e1a280ccf394a62e1f5a8900a641b9943de4a244d5a3a17",
+    "C:\\pango\\PDS_2022.2-SP6.4\\arch\\vendor\\pango\\verilog\\simulation\\GTP_DFF_C.v": "bade4b4e7c4d9077007b62494554ad34503996a6d6b014a895189476eaabbc16",
+    "C:\\pango\\PDS_2022.2-SP6.4\\arch\\vendor\\pango\\verilog\\simulation\\GTP_DFF_P.v": "733f506a01562932612fa5db9f3052456998f49bf39edd268bd93a42933b7ad0"
+  },
+  "limitation": "Installed gop .eval files are PANG binary models. No readable behavioral implementation or existing model decoder was found. Parameter matches and textual packing rule are structural evidence; full model-semantic acceptance remains unproven."
+}

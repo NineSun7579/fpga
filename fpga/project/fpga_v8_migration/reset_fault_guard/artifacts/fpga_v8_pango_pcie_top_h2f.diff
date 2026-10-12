@@ -1,0 +1,32 @@
+--- audited_v2/fpga_v8_pango_pcie_top_h2f.v
++++ candidate/fpga_v8_pango_pcie_top_h2f_rfg01.v
+@@ -13,10 +13,12 @@
+ // Library:
+ // Filename:pango_pcie_top.v
+ //////////////////////////////////////////////////////////////////////////////
+-module fpga_v8_pango_pcie_top_h2f #(
++module fpga_v8_pango_pcie_top_h2f_rfg01 #(
+     parameter ADDR_WIDTH = 12,
+               MSI_NUM = 5
+ )(
++
++    input wire i_admit,
+     input                       button_rst_n    ,
+     input                       perst_n         ,
+     //UART interface
+@@ -346,13 +348,14 @@
+ wire                     dma_msi_req  ;
+ wire                     dma_msi_grant;
+ 
+-fpga_v8_pcie_dma_h2f #(
++fpga_v8_pcie_dma_h2f_rfg01 #(
+     .DEVICE_TYPE            (DEVICE_TYPE            ),
+     .AXIS_SLAVE_NUM         (AXIS_SLAVE_NUM         ),
+     .ADDR_WIDTH             (ADDR_WIDTH             )
+ )
+ u_ips2l_pcie_dma
+ (
++    .i_admit(i_admit),
+     .pclk                   (pclk                   ),
+     .prst_n                 (s_pclk_rstn            ),
+     .clk                    (pclk_div2              ),  //gen1:62.5MHz,gen2:125MHz

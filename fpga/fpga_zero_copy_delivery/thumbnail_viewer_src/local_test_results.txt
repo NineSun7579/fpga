@@ -1,0 +1,35 @@
+Isolated thumbnail viewer local validation (Windows host; no board/PDS)
+
+Standalone transaction, geometry and fault validation:
+  C:/gcc/mingw64/bin/g++.exe -std=c++17 -Wall -Wextra -Werror
+    -DTHUMBNAIL_STANDALONE_SELFTEST thumbnail_delivery_selftest.cpp
+    -o thumbnail_delivery_selftest.exe
+  PATH=C:/gcc/mingw64/bin;... thumbnail_delivery_selftest.exe
+  THUMBNAIL_SELFTEST_PASS cases=66 failures=0
+
+Actual candidate Qt mailbox/late-latch methods extracted and compiled:
+  python generate_host_latch_test.py
+  C:/Qt/Tools/mingw1310_64/bin/g++.exe -std=c++17 -Wall -Wextra
+    -I C:/Qt/6.11.1/mingw_64/include
+    -I C:/Qt/6.11.1/mingw_64/include/QtCore
+    -I C:/Qt/6.11.1/mingw_64/include/QtGui thumbnail_latch_host_test.cpp
+    -L C:/Qt/6.11.1/mingw_64/lib -lQt6Core -lQt6Gui
+    -o thumbnail_latch_host_test.exe
+  PATH=C:/Qt/Tools/mingw1310_64/bin;C:/Qt/6.11.1/mingw_64/bin;...
+    thumbnail_latch_host_test.exe
+  DISPLAY_LATE_LATCH_SELFTEST_PASS
+
+Source preservation:
+  python verify_source_preservation.py
+  changed baseline files: detview.pro, main.cpp
+  identical baseline files: 37
+  complete InferenceThread: byte-identical
+  RAW RGB565 converter: byte-identical
+  RAW vision packet conversion block: byte-identical
+  manifest: source_preservation.json
+  unified patch (modified baseline + new runtime source): viewer_changes.diff
+
+Parent still must compile full RK3568 Qt5 viewer and run normal selftests,
+confirm actual PCIe native DDR payload gather, perform board switching/RAW
+vision/stereo/HDMI/six-camera checks, and measure performance. No acceleration
+or hardware correctness claim follows from these host tests.

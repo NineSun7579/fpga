@@ -1,0 +1,26 @@
+[diag] t=5.102 pango_ioctl tid=503 cmd=c0045302 selector=0 offset=0x00000000 addr=0x00000000 len=4096 ms=0.002 rc=-1 errno=12 (Cannot allocate memory) alarm=0
+[scheme2-preflight] FATAL map tx failed; tx_bytes=4096 rx_bytes=8388608; idle UNMAP confirmed, quitting; allocation failure: inspect CMA free/fragmentation and DMA mask (no DMA submitted)
+[diag] t=5.102 pango_ioctl tid=503 cmd=c0045302 selector=1 offset=0x00000000 addr=0x00000000 len=8388608 ms=0.000 rc=-1 errno=12 (Cannot allocate memory) alarm=0
+[scheme2-preflight] FATAL map rx failed; tx_bytes=4096 rx_bytes=8388608; idle UNMAP confirmed, quitting; allocation failure: inspect CMA free/fragmentation and DMA mask (no DMA submitted)
+[diag] t=5.102 pango_ioctl tid=503 cmd=c0045302 selector=0 offset=0x00000000 addr=0x00000000 len=4096 ms=0.000 rc=0 errno=0 (success) alarm=1
+[scheme2-preflight] FATAL map tx failed; tx_bytes=4096 rx_bytes=8388608; idle UNMAP confirmed, quitting; allocation failure: inspect CMA free/fragmentation and DMA mask (no DMA submitted)
+[diag] t=5.102 pango_ioctl tid=503 cmd=c0045302 selector=1 offset=0x00000000 addr=0x00000000 len=8388608 ms=0.000 rc=-1 errno=12 (Cannot allocate memory) alarm=0
+[diag] t=5.102 pango_ioctl tid=503 cmd=c0045307 selector=3 offset=0x00000000 addr=0x00000000 len=0 ms=0.000 rc=-1 errno=16 (Device or resource busy) alarm=0
+[scheme2] QUARANTINE pid=503: preflight UNMAP could not confirm idle cleanup; parent must quiesce hardware
+[scheme2] camera=1 tag=101 epoch=1 height=480 payload_bytes=921600 lease_hold_ms=1
+[scheme2] camera=2 tag=102 epoch=2 height=480 payload_bytes=921600 lease_hold_ms=0
+[scheme2] camera=3 tag=103 epoch=3 height=480 payload_bytes=921600 lease_hold_ms=1
+[scheme2] camera=4 tag=104 epoch=4 height=480 payload_bytes=921600 lease_hold_ms=2
+[scheme2] camera=5 tag=105 epoch=5 height=480 payload_bytes=921600 lease_hold_ms=1
+[scheme2] camera=6 tag=106 epoch=6 height=480 payload_bytes=921600 lease_hold_ms=1
+[scheme2] camera=1 tag=107 epoch=7 height=640 payload_bytes=1228800 lease_hold_ms=1
+[scheme2] camera=2 tag=108 epoch=8 height=640 payload_bytes=1228800 lease_hold_ms=0
+[scheme2] camera=3 tag=109 epoch=9 height=640 payload_bytes=1228800 lease_hold_ms=1
+[scheme2] camera=4 tag=110 epoch=10 height=640 payload_bytes=1228800 lease_hold_ms=0
+[scheme2] camera=5 tag=111 epoch=11 height=640 payload_bytes=1228800 lease_hold_ms=1
+[scheme2] camera=6 tag=112 epoch=12 height=640 payload_bytes=1228800 lease_hold_ms=1
+scheme2 actual preflight: TX/RX ENOMEM and interrupted MAP clean idle UNMAP; rejected cleanup preserves ownership PASS
+TIMING_CLOCK starts=0 reads=0 monotonic_checks=0 protocol_hash=11411601969267563440
+scheme2 actual PangoDev mode0 RAW/RGB acquisition + lease contract PASS (6 cameras, both geometries)
+fair actual FPGA poll yields transport to waiting metadata caller PASS (12 acquisitions)
+short hold actual RAW copy after conversion/release/default restore, disjoint DMA and sole admission PASS (12 acquisitions)

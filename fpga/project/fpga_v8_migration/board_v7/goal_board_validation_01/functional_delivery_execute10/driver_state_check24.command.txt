@@ -1,0 +1,12 @@
+sudo -n python3 -u - <<'DELIVERY10'
+from pathlib import Path
+import subprocess, json
+from pathlib import Path
+out = {}
+out['boot_id'] = Path('/proc/sys/kernel/random/boot_id').read_text().strip()
+p = subprocess.run(['lspci','-s','0002:21:00.0','-k'], capture_output=True, text=True)
+out['lspci'] = p.stdout.strip()
+out['pango_dev'] = Path('/dev/pango_pci_driver').exists()
+print('STATE ' + json.dumps(out))
+
+DELIVERY10

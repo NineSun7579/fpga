@@ -1,0 +1,23 @@
+sudo -n python3 - <<'PY'
+import os,stat,json,datetime
+from pathlib import Path
+device='/dev/pango_pci_driver'; errors=[]; owners=[]; viewers=[]
+try: target=os.stat(device).st_rdev
+except OSError as e: target=None;errors.append({'path':device,'error':type(e).__name__})
+for proc in Path('/proc').iterdir():
+ if not proc.name.isdigit():continue
+ try:
+  comm=(proc/'comm').read_text().strip()
+  if any(s in comm.lower() for s in ('detview','camview','viewer')):
+   viewers.append({'pid':int(proc.name),'comm':comm,'exe':os.readlink(proc/'exe'),'stat':(proc/'stat').read_text().strip()})
+  for fd in (proc/'fd').iterdir():
+   try:
+    info=fd.stat()
+    if target is not None and stat.S_ISCHR(info.st_mode) and info.st_rdev==target:
+     owners.append({'pid':int(proc.name),'comm':comm,'fd':fd.name,'link':os.readlink(fd),'stat':(proc/'stat').read_text().strip()})
+   except FileNotFoundError:pass
+   except OSError as e:errors.append({'path':str(fd),'error':type(e).__name__})
+ except FileNotFoundError:pass
+ except OSError as e:errors.append({'path':str(proc),'error':type(e).__name__})
+print(json.dumps({'boot_id':Path('/proc/sys/kernel/random/boot_id').read_text().strip(),'captured_utc':datetime.datetime.now(datetime.timezone.utc).isoformat(),'owners':owners,'viewers':viewers,'scan_errors':errors,'device_opened':False,'dma_idle_proven':False},indent=2))
+PY

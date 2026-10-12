@@ -1,0 +1,188 @@
+{
+  "status": "local_single_copy_and_runner_checks_passed_pending_parent_freeze",
+  "hardware_executed": false,
+  "ssh_used": false,
+  "performance_claim": false,
+  "scope": "software_input_copy_only",
+  "native_adapter_changed": false,
+  "prepare_script_edited_by_this_agent": false,
+  "prepared_tree_changed": false,
+  "protected_files_unchanged": 13,
+  "parent_owned_updates_preserved": [
+    {
+      "path": "C:\\Users\\NineSun\\Desktop\\ov56401\\project\\hardware_acceleration\\rknn_io\\prepare.py",
+      "before_sha256": "8bab5ba89379785cf8f583e5783c37afb9ac734fc5bb6a0407eafc1d3eb7d6fd",
+      "current_sha256": "1e725f365217fab77d2bc681ff583a7585c136a6f6554873ecc3bfad2cb9aae4",
+      "owner": "parent",
+      "edited_by_this_agent": false
+    },
+    {
+      "path": "C:\\Users\\NineSun\\Desktop\\ov56401\\project\\hardware_acceleration\\run_rknn.py",
+      "before_sha256": "31e920d7145189e0b41ccf265091ce8fb290ba02612ee7cc95e9bd6c667f1c28",
+      "current_sha256": "e59346b7ff51f730bca6c4fcaabca7bfd74b057781031d9de549af961ca99da7",
+      "owner": "parent",
+      "edited_by_this_agent": false
+    }
+  ],
+  "protected_before_sha256": "ffb3e2a475f5c920fd180e3c65c7e889b6fb12fbbb4a03c0c2fe108e78e45e8e",
+  "prepared_manifest_sha256_unchanged": "6a6056503838165582fdc8ab8a7d950389c96ea7608d61e336fbb745484e0110",
+  "stale_source_entries_pending_parent_freeze": [
+    "prepare.py",
+    "bench.cpp",
+    "run_target.py",
+    "README.md"
+  ],
+  "source_sha256": {
+    "bench.cpp": "2396a480265fa8c554b8841ccadccd56b3cb9533d8055785c59a17091c13910c",
+    "run_target.py": "97db85efba9a810668b1fe3f297394c0be911dd410469d93c6265985b4c53881",
+    "single_copy_input.h": "abb2e04e897c4c4c914a7df269c804b9753f02dca6e31fe13f0f66bf8f76958f",
+    "single_copy_selftest.cpp": "feda7e9c9ad75bb296cf52d31f8b82d93de5e82d13325245265695ab67708132",
+    "README.md": "580da95d4ce5e2e3005a1eddb432efe5094a4fb93c21100918c7489e68c3e9b0"
+  },
+  "new_files_parent_freeze_must_pin": [
+    "single_copy_input.h",
+    "single_copy_selftest.cpp"
+  ],
+  "copy_tests": {
+    "optimized_passed": true,
+    "asan_ubsan_passed": true,
+    "full_changing_frames_per_build": 7,
+    "unchanged_on_rejection_cases_per_build": 34,
+    "full_gray114_padding_copied": true,
+    "source_immutable": true,
+    "destination_canaries_passed": true
+  },
+  "benchmark_compile": {
+    "passed": true,
+    "warnings": false,
+    "executable_sha256": "33b1545bed8ba89a00978a4e5afa9ee301ff8e12c4d6c592e9e2aa4c7754f579",
+    "local_only": true
+  },
+  "archived_decoder": {
+    "passed": true,
+    "exact_float_elements": 536000,
+    "exact_detection_tuples": 2,
+    "fixtures": 1,
+    "does_not_certify_new_hardware": true
+  },
+  "runner_checks": {
+    "passed": true,
+    "syntax_help_passed": true,
+    "logical_certification_reference": "baseline",
+    "all_four_fixtures": true,
+    "native_timing_reference_tested": true,
+    "alternating_pairs": 16,
+    "timed_completions_per_profile": 800,
+    "original_default_profiles_and_scale_preserved": true,
+    "missing_wrong_input_hashes_rejected": true,
+    "native_copy_bitwise_failure_rejected": true,
+    "CLI_guards_passed": true,
+    "subprocess_boundaries_substituted_no_inference": true
+  },
+  "diagnostic_single_copy": {
+    "explicitly_declined": true,
+    "returncode": 3,
+    "model_loaded": false,
+    "runtime_loaded": false
+  },
+  "commands": [
+    {
+      "name": "bench_build_final",
+      "argv": [
+        "g++",
+        "-std=c++17",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-pedantic",
+        "-fPIC",
+        "-Iprepared",
+        "bench.cpp",
+        "-o",
+        "/mnt/c/Users/NineSun/Desktop/ov56401/project/hardware_acceleration/rknn_io/validation/single_copy_01/rknn_io_bench_host",
+        "-I/usr/include/x86_64-linux-gnu/qt5/QtCore",
+        "-I/usr/include/x86_64-linux-gnu/qt5",
+        "-DQT_GUI_LIB",
+        "-I/usr/include/x86_64-linux-gnu/qt5/QtGui",
+        "-DQT_CORE_LIB",
+        "-lQt5Gui",
+        "-lQt5Core",
+        "-ldl"
+      ],
+      "returncode": 0,
+      "expected_returncode": 0
+    },
+    {
+      "name": "runner_checks_wsl",
+      "argv": [
+        "python3",
+        "/mnt/c/Users/NineSun/Desktop/ov56401/project/hardware_acceleration/rknn_io/validation/single_copy_01/runner_checks.py"
+      ],
+      "returncode": 0,
+      "expected_returncode": 0
+    },
+    {
+      "name": "runner_help_wsl",
+      "argv": [
+        "python3",
+        "run_target.py",
+        "--help"
+      ],
+      "returncode": 0,
+      "expected_returncode": 0
+    },
+    {
+      "name": "diagnostic_decline",
+      "argv": [
+        "/mnt/c/Users/NineSun/Desktop/ov56401/project/hardware_acceleration/rknn_io/validation/single_copy_01/rknn_io_bench_host",
+        "--mode",
+        "native_io_single_copy",
+        "--diagnose-native"
+      ],
+      "returncode": 3,
+      "expected_returncode": 3
+    }
+  ],
+  "log_sha256": {
+    "bench_build.stderr": "2db27bb139e00cf5a0fd7e6747c92eacd84d25150e94c14b30d6b819ffac0595",
+    "bench_build.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bench_build_final.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bench_build_final.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bench_build_fixed.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bench_build_fixed.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "copy.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "copy.stdout": "c5f544a945af56166b8cdc189cab455b0d6e1ac41f0082b8f05a63ba15f8b9f1",
+    "copy_build.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "copy_build.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "copy_sanitized.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "copy_sanitized.stdout": "c5f544a945af56166b8cdc189cab455b0d6e1ac41f0082b8f05a63ba15f8b9f1",
+    "copy_sanitized_build.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "copy_sanitized_build.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "diagnostic.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "diagnostic.stdout": "40ba847098a99ccee173e02117ba9a96d190eba7881545fe993ca1ab64df4a9a",
+    "diagnostic_build.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "diagnostic_build.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "diagnostic_decline.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "diagnostic_decline.stdout": "20d77cf5179089e5651bd91ec58d3b628716189144fa520965d31f656d6dd890",
+    "runner_checks.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "runner_checks.stdout": "0ce6118308f7d9113cf789424d4ad015a994d16e93e23f22102794faff052f6a",
+    "runner_checks_wsl.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "runner_checks_wsl.stdout": "45add31ed60ea2582d68044dacee5bbf167e571c0927d9f0e3b7ba6daaab66d4",
+    "runner_help.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "runner_help.stdout": "120468410a48ac4c6217159da9b9b301bd1227739cdebe3c4f21391505fcb49e",
+    "runner_help_wsl.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "runner_help_wsl.stdout": "5a56ebdb6974a57e7e24f1722714cfe3d9633e26809b088e507ad1c5078a0841"
+  },
+  "parent_next": {
+    "freeze_required": true,
+    "fresh_target_build_required": true,
+    "candidates": [
+      "native_io_single_copy"
+    ],
+    "timing_reference": "native_io",
+    "native_query": 9,
+    "dequant_scale": "fp16",
+    "hardware_array_tuple_and_performance_pending": true,
+    "FD_import_deferred": true
+  }
+}

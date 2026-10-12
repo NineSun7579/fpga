@@ -1,0 +1,8 @@
+{
+  "captured_utc": "2026-10-06T23:36:19.005294+00:00",
+  "command": "python3 - <<'PY'\nfrom pathlib import Path\nimport json,struct\nroot=Path('/sys/firmware/devicetree/base');nodes={};handles={}\nfor f in root.rglob('phandle'):\n try:\n  raw=f.read_bytes()\n  if len(raw)==4:handles[struct.unpack('>I',raw)[0]]=f.parent\n except OSError:pass\ndef snapshot(node):\n return {'path':str(node),'properties':{f.name:f.read_bytes().hex() for f in node.iterdir() if f.is_file()}}\nfor key in (0x24,0x140):\n if key in handles:nodes[hex(key)]=snapshot(handles[key])\ngpio4=root/'gpio@fe770000';provider=None\nfor key,node in handles.items():\n if node==gpio4:provider=key\nconsumers=[]\nif provider is not None:\n needle=struct.pack('>II',provider,16)\n for f in root.rglob('*'):\n  if f.is_file() and ('gpio' in f.name or 'reset' in f.name):\n   try:\n    raw=f.read_bytes()\n    if needle in raw:consumers.append({'property':str(f),'raw_hex':raw.hex(),'node':snapshot(f.parent)})\n   except OSError:pass\nsupply_users=[]\nfor f in root.rglob('*-supply'):\n try:\n  if f.read_bytes()==struct.pack('>I',0x140):supply_users.append(str(f))\n except OSError:pass\nprint(json.dumps({'boot_id':Path('/proc/sys/kernel/random/boot_id').read_text().strip(),'providers':nodes,'gpio4_phandle':provider,'gpio4_pin16_consumers':consumers,'supply_0x140_consumers':supply_users},indent=2))\nPY",
+  "exit_code": 0,
+  "stdout_sha256": "20222d8d848b6584d1baaae90e9122026d7c4c86d281ffa91fd5252a8c87b81c",
+  "device_opened": false,
+  "reset_executed": false
+}

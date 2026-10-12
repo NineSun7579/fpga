@@ -1,0 +1,169 @@
+{
+  "status": "SCOPED_FUNCTIONAL_INPUT_BINDING_REVIEWED_NO_OVERALL_PASS",
+  "final_signoff": "PHYSICAL_GATE_PENDING",
+  "overall_pass": false,
+  "original_regression03_functional_pass": true,
+  "original_regression03_pass": false,
+  "original_regression03_freeze_pass": false,
+  "knowledge_available": false,
+  "read_only_review": true,
+  "simulation_rerun": false,
+  "trace_decompression_or_full_record_recomparison": false,
+  "pds_remote_device_dma_used": false,
+  "existing_files_modified": false,
+  "scope_counts": {
+    "build03_frozen_inventory": 741,
+    "registered_verilog": 186,
+    "compile_inputs_each": 243,
+    "compile_input_receipts_checked": 486,
+    "golden_candidate_byte_identical_each": 241,
+    "candidate_compile_inputs_identical_build03": 236,
+    "candidate_compile_inputs_attribute_inverse": 2,
+    "candidate_compile_inputs_exact_sim_views": 5,
+    "registered_direct_identical_compiled": 68,
+    "registered_attribute_inverse_compiled": 2,
+    "registered_exact_sim_view_compiled": 5,
+    "registered_copied_but_not_compiled": 1,
+    "registered_not_copied_not_compiled": 110,
+    "registered_compiled_and_hierarchy_bound": 75,
+    "registered_not_compiled_and_no_observed_hierarchy": 111,
+    "existing_checks_each": 14668,
+    "existing_trace_records_each_total": 22663089
+  },
+  "source_set_sha256": "b931125ce79f7baa27382f971c270317713c6bad6408f5d86b92af2aae52034b",
+  "registered_binding_reference": {
+    "path": "../source_diagnostics_timing_build_03/evidence/registered_source_audit.json",
+    "sha256": "8e8d30d3dca6348178095e3ed630d6aa3495dc284820bc03fd2d15b5d23405be",
+    "index_base": 0,
+    "row_count": 186,
+    "row_identity": "Each referenced immutable row supplies path, absolute_build03_path and original sha256; order equals manifest.registered_sources. This partition assigns every individual row exactly once; no unmatched row is treated as tested.",
+    "original_receipt_count_correction": "76 means candidate raw copies exist, not 76 actual compilation bindings: 70 direct inputs, 5 raw-to-view bindings, 1 unused npu_cdc_top copy. Original receipt unchanged. Actual not compiled count is 111, not 110."
+  },
+  "registered_row_partition": {
+    "DIRECT": [1,2,5,7,8,9,10,11,12,13,14,15,16,17,18,23,26,27,110,111,112,113,114,115,116,117,118,119,120,131,132,133,137,138,139,140,141,144,145,146,147,148,150,151,152,153,154,156,157,158,159,160,162,164,165,166,167,168,169,170,171,172,173,174,175,180,181,182],
+    "ATTRIBUTE": [183,184],
+    "VIEW": [176,177,178,179,185],
+    "UNCOPIED": [0,3,4,6,19,20,21,22,24,25,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,81,82,83,84,85,86,87,88,89,90,91,92,93,94,95,96,97,98,99,100,101,102,103,104,105,106,107,108,109,121,122,123,124,125,126,127,128,129,130,134,135,136,142,143,149,155,161,163],
+    "COPIED_UNUSED": [80]
+  },
+  "binding_rules": {
+    "DIRECT": "For each row.path, build03/path equals candidate/path byte-for-byte; candidate/path is listed in actual compile.f and replacement_contract; at least one defined module occurs in candidate/hierarchy.txt. Hash is immutable row.sha256, independently checked against current bytes.",
+    "ATTRIBUTE": "For each row.path, deleting ONLY exact (* syn_noprune=1 *) plus following space from build03 bytes yields actual candidate/rtl bytes. Actual module appears in hierarchy; full before/after hashes and instance identity below.",
+    "VIEW": "Raw build03/rtl/name is byte-identical to candidate/rtl/name but actual compilation input is candidate/sim_views/name. Existing sim_order.normalize transformation was reproduced in memory with output-writing tail removed and compared byte-for-byte. Raw module occurs in actual hierarchy; exact input hashes below.",
+    "COPIED_UNUSED": "Row 80 inputs/source/npu/npu_cdc_top.v exists as a raw candidate copy but is absent from actual compile.f and actual hierarchy. NOT TESTED by this regression.",
+    "UNCOPIED": "For every listed row, no candidate/path copy, no actual compile.f input, no defined module in actual hierarchy. Current bytes equal build02, which proves no source delta only. NOT TESTED by this regression; not granted equivalence by subsystem similarity or alternate tc/rfg module usage."
+  },
+  "camera_candidate": {
+    "cdc_path": "rtl/ov5640_cdc_tc04.v",
+    "build03_candidate_src_sha256": "9e4e186a43b04c2a5a446c0d7a78fbfe9beb75f3e339d22d7d160cea0b3f2625",
+    "cdc_four_actual_hierarchy_instances": true,
+    "gap_four_actual_hierarchy_instances_module": "v7_camera_gap_boolean",
+    "counter_and_gap_logic_matches_regression03_after_attribute_inverse": true,
+    "map02_old_counter_logic_substitution": false
+  },
+  "primitive_attribute_delta": [
+    {
+      "row": 184,
+      "path": "rtl/v7_sfd_candidate.v",
+      "compiled_before_and_inverse_sha256": "e4dd36babf9d42eab0bdd318f5b0b418df8e0a3d01cad9ba3103c4546a85f500",
+      "build03_after_sha256": "dd4f6327633ce7f634d71139cd92fbafdce11e2fee5780f940e476540e5b741b",
+      "exact_attribute": "(* syn_noprune=1 *) ",
+      "textual_instances": 11,
+      "elaborated_instances": 44,
+      "PE_INIT_1_GRS_TRUE": ["cr_ff0","cr_ff1","hr_ff0","hr_ff1"],
+      "CE_INIT_0_GRS_TRUE": ["ack_sync_ff0","ack_sync_ff1","req_sync_ff0","req_sync_ff1","req_sync_ff2","overrun_sync_ff0","overrun_sync_ff1"],
+      "full_file_inverse_byte_equal": true,
+      "port_init_grs_or_other_logic_delta": false
+    },
+    {
+      "row": 183,
+      "path": "rtl/v7_sdt_bus.v",
+      "compiled_before_and_inverse_sha256": "d76d3c7704b4a6aaf83f26edd835d897723ce66b0bbcc145f05054792fafbfee",
+      "build03_after_sha256": "08822426617f6b77b76780d159808798c0b11843bc1fefb3f21a6c9b6529b292",
+      "exact_attribute": "(* syn_noprune=1 *) ",
+      "textual_instances": 4,
+      "elaborated_instances": 16,
+      "PE_INIT_1_GRS_TRUE": ["reset_pipe_ff0","reset_pipe_ff1","reset_pipe_ff2","reset_pipe_ff3"],
+      "full_file_inverse_byte_equal": true,
+      "port_init_grs_or_other_logic_delta": false
+    }
+  ],
+  "sim_views": [
+    {"row":176,"name":"fpga_v8_pcie_fifo_h2f_tc02.v","raw_sha256":"08b55c01443d86c9e38cf1822af785acb89d4643be02850da0b5ba0f4d605c66","compiled_view_sha256":"76fb53a30aec8495406fced3455f109a6d4b0303d0a504ed3ca84e499f5d4211","memory_transform_byte_equal":true},
+    {"row":177,"name":"fpga_v8_pcie_dma_controller_h2f_rfg01.v","raw_sha256":"4cdb97a827f5045f94b37b9dd36dcc268e44361258db661bad0c294fbda42472","compiled_view_sha256":"1dae85b973c577348ac727c7e7cc852fd42bb4b78ca9bcfd65965ed2cc457dbc","memory_transform_byte_equal":true},
+    {"row":178,"name":"fpga_v8_pcie_dma_h2f_rfg01.v","raw_sha256":"b118fc8a39249e60230024ddabf42de6975cde933c279bcae5f21300e65e9f9e","compiled_view_sha256":"ba47843011e7fd43bd74c5707c801a8518040904213a1aaf6d439297ae50906d","memory_transform_byte_equal":true},
+    {"row":179,"name":"fpga_v8_pango_pcie_top_h2f_rfg01.v","raw_sha256":"2a36809233007d09b0f4583bfcaaed4876f56b54fa4802cec36c07edc1225351","compiled_view_sha256":"a3be4bb21e78037d0291e13ad6e6003a096b997a80605c099d7f5089b5a5775b","memory_transform_byte_equal":true},
+    {"row":185,"name":"v7_sdt_top.v","raw_sha256":"b1cb7576f0dc45cddc121b11ac58ca05419df9232b7b78dd53954c794d66a506","compiled_view_sha256":"a7095da1fc985c18fa02de2606720e9d2ed00ca4d9fb094be2572a0112a6f7ac","memory_transform_byte_equal":true}
+  ],
+  "actual_model_binding": {
+    "diagnostic_primitive_CE": 28,
+    "diagnostic_primitive_PE": 32,
+    "actual_log_loading": ["vendor.GTP_DFF_PE(fast)","vendor.GTP_DFF_CE(fast)"],
+    "vendor_library": "../source_diagnostics_top_candidate/vendor",
+    "vendor_source_filelist_origin": "C:/pango/PDS_2022.2-SP6.4/arch/vendor/pango/verilog/simulation",
+    "custom_diagnostic_primitive_or_fifo_stub_detected": false,
+    "vendor_library_rebuilt_or_entire_historical_binary_origin_certified": false,
+    "ip_model_input_scope": "Actual 243-row compilation closure and observed hierarchy only; other inventory models/branches/languages are not automatically tested. Vendor source origin is supported by existing filelists/logs, not independently reconstructed library history."
+  },
+  "existing_trace_results": [
+    {"name":"comparison.trace","records":6792,"bytes":14036839,"equal":true,"golden_and_candidate_content_sha256":"e5da4bf3e24ec027e319950d793378b336779ba3af12884e5235eb90593ec12f","xz_digits_each":0},
+    {"name":"integrated.trace","records":8323690,"bytes":1341671801,"equal":true,"golden_and_candidate_content_sha256":"787c45fb650404edbfea6e54c9e84584cec48afb0e0efe44e199b9b9e8fb3426","xz_digits_each":18397994},
+    {"name":"boolean.trace","records":14332607,"bytes":2801560737,"equal":true,"golden_and_candidate_content_sha256":"4e940b8d1af6d43cccc8e5fc94a5b834d86258c924a9e380e99146ea9c51ddbc","xz_digits_each":12}
+  ],
+  "original_map02_freeze_failures": [
+    {"path":"diagnostic_sync_register_map02/audit_comparison.py","before":"5d01c490395deb3695d22d09532d3db8007517a8477e7cdfdf599a4d4fdf5210","freeze_audit_after":"ac236bce1b0be9982eb52a6ed992c85e39c3a37c44a8201d1261c37f9092fbaf","in_actual_486_compile_inputs":false},
+    {"path":"diagnostic_sync_register_map02/audit_final.py","before":"551ee52e8fbd01d6dc4265dd921a0d4ed0d3d762084506c15aee764326f98042","freeze_audit_after":"e82637285a682028117de9455d8733fe76f5bd4a882c18c6020cc6803a45dc2d","in_actual_486_compile_inputs":false},
+    {"path":"diagnostic_sync_register_map02/controller.py","before":"079a18c5155e47b025f624cde00e0064616f9fb447a93abd8fe22eeda6404da0","freeze_audit_after":"3d2c3a6adbe87b6cd1d552f8bb9cf163201242699c14483b5d4dc5722825abd1","in_actual_486_compile_inputs":false},
+    {"path":"diagnostic_sync_register_map02/evidence/queue_latest.json","before":"bf1162775df9d883a06793e56abcda267c20ec2012c21fc57a8525d6d2e95874","freeze_audit_after":"a57cab8b46055705620c2bad2b981eead7fb10eef9e3c8c2d885ea9e2b3925e2","results_freeze_failure_string_after":"f7b8c159c4a73b6427efbc02beb28128d06bc0ec6d5b6941956e7946deb8c527","different_original_observation_values_preserved":true,"in_actual_486_compile_inputs":false},
+    {"path":"diagnostic_sync_register_map02/run.py","before":"7b61290d9d849e7963322bbdcc086ff3ce1f6a80c281ce1e3da11a8108588d75","freeze_audit_after":"53178e12cdeeda26684301e04303a5708bd6fa3c2ec9456504a832eee33bffc2","in_actual_486_compile_inputs":false}
+  ],
+  "limitations": [
+    "75 input/hierarchy bindings do not establish exhaustive path coverage or PASS of all186 registered RTL or all741 inventory files.",
+    "111 registered production sources not compiled are explicitly untested by regression03; alternate tc/rfg modules are not an equivalence proof for old variants.",
+    "USE_OV5640 selected; HDMI inactive, MEDIAN_EN/KF_EN zero, preprocess pixel pipeline commented, NPU not elaborated.",
+    "TB forces AXI/control clocks, DDR init, PCIe AXI master inputs and I2C completion; free_clk stopped.",
+    "No DDR calibration, PCIe training, full DMA frame DDR writes, end-to-end cooperative/NPU throughput or physical/timing acceptance established.",
+    "Original five-file freeze FAIL is retained; management-file non-membership in simulation inputs is not a freeze waiver.",
+    "Trace equality is adoption of hash-bound existing results and logs, not a new 22M-record comparison."
+  ],
+  "evidence_hashes_before_review": {
+    "source_diagnostics_timing_build_03/manifest.json":"8edff87277641e67e86852669499eb67dcb029a705026ea702dc3495d764b159",
+    "source_diagnostics_timing_build_03/source03hash.json":"6ebfe1e395b639357271c8fa5f390fe4903d49d174a011c7bd062bee30bd9874",
+    "source_diagnostics_timing_build_03/project.pds":"ebf60eed98118d79e1e126d1a3564816c61e434d4a8c05ce2c98e76ea4e0d300",
+    "source_diagnostics_timing_build_03/evidence/registered_source_audit.json":"8e8d30d3dca6348178095e3ed630d6aa3495dc284820bc03fd2d15b5d23405be",
+    "source_diagnostics_timing_build_03/evidence/regression03_closure_receipt.json":"eccc5ceca01761860c0c486ed9293096aa819b0fa6cfadadb080345843fcfcca",
+    "source_diagnostics_timing_build_03/evidence/attribute_inverse.json":"a788739fd109a494b093dbf43aea76ceacb5c367fd1794b71549f992f7ac8898",
+    "diagnostic_integrated_top_regression03/results.json":"d69181dea159ccf0cdf03be61cf3cb6a096961c2653cb17fa80268e0e601dde7",
+    "diagnostic_integrated_top_regression03/audit.json":"6a8fdcf28cc9dae7b447cb94753c182dc1122080418cac21b5031a4eee7d2400",
+    "diagnostic_integrated_top_regression03/freeze_audit.json":"f96715b681572bc6b5959824306fb84fc9513cebe92d14059dac35ef7d6b9fc6",
+    "diagnostic_integrated_top_regression03/replacement_contract.json":"a9a2c76962a0008d1dde8d536dffa098b9a08331d457bf1d67feb54a79ca4406",
+    "diagnostic_integrated_top_regression03/hashlog.json":"e326f2549c33e92e5c0702c70d851e072f4eff8eb30a1abe0163fb56b49d20c0",
+    "diagnostic_integrated_top_regression03/candidate/compile.f":"21c384706438f67004de12d8e797031602500ca9745bc0e13ccc512f33c12310",
+    "diagnostic_integrated_top_regression03/golden/compile.f":"c03f3c5b2b382ecf57431a97b098139dae861132e43fa9dbaf7cde9daf7bff9b",
+    "diagnostic_integrated_top_regression03/candidate/hierarchy.txt":"fe1614ddbf95bd6777f6b157d0c75e28ba8213d078e32989a42e4b9d899258f9",
+    "diagnostic_integrated_top_regression03/golden/hierarchy.txt":"8f817478013df5da1f7c3534105faee94512f1e67a898f4bb454aaffd6604edb",
+    "diagnostic_integrated_top_regression03/candidate/simulation.log":"5e9bb21ee349ed36808ab7bb38d08b39818aae8092a7b38a29da8b6f1dea4eac",
+    "diagnostic_integrated_top_regression03/golden/simulation.log":"3308c7e306f4346fd750343d2ad7f0e48bffacbb2b39c27aed3a87e0253722db",
+    "diagnostic_integrated_top_regression03/candidate/compile.log":"5a69545968acebde38f5dd8b806af8c314fa23440e80f6b3096ff197f591ab05",
+    "diagnostic_integrated_top_regression03/golden/compile.log":"e0e36c4c4c60cbfdb059835bfaf730493b0c76501228b7c404fe1509a83f0b93",
+    "diagnostic_integrated_top_regression03/candidate/tb_compile.log":"273504f20ed33f2dac657000a4e9efa351d43a49a6e9ec78468539addc0a5c2a",
+    "diagnostic_integrated_top_regression03/golden/tb_compile.log":"9c87a97cc63905c8b1c5ec784d6612c2bdb2e0e2aa5d69dff4326500cf35b7f7",
+    "diagnostic_integrated_top_regression03/candidate/vendor_binding.log":"2e8717e97a5d5f6a3f7b64948a0203788a6c1d1c48028c183de69b94a84c8aca",
+    "source_diagnostics_top_candidate/sim_order.py":"51ec409e4be65183abc25287bdfee8c11f26c634919a947d1f7dd4add619ada5",
+    "diagnostic_integrated_top_regression03/candidate/tb_sdt.sv":"fb1b6af85d0a06436e5a035e155f5f143715b9c77b875fb113bafc98ec957967",
+    "diagnostic_integrated_top_regression03/golden/tb_sdt.sv":"fb1b6af85d0a06436e5a035e155f5f143715b9c77b875fb113bafc98ec957967"
+  },
+  "final_read_only_recheck": {
+    "all_741_inventory_hashes_match_before_and_after": true,
+    "all_486_actual_compile_input_hashes_match_before_and_after": true,
+    "all_25_listed_evidence_hashes_match_before_and_after": true,
+    "after_hash_rule": "For every evidence_hashes_before_review entry, after SHA256 was re-read and is exactly the same value; no alternate after values or reset baseline were substituted.",
+    "registered_pds_and_manifest_and_receipt_order_equal": true,
+    "partition_186_complete_unique": true,
+    "per_row_predicates_and_hierarchy_verified": true,
+    "not_compiled_111_build02_byte_identical": true,
+    "original_freeze_FAIL_preserved": true,
+    "listed_sealed_evidence_hash_drift": [],
+    "artifact_integrity": "This JSON intentionally does not contain its own hash. Both new output SHA256 values are calculated and reported after the final patch."
+  }
+}

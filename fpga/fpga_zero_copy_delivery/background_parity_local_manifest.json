@@ -1,0 +1,181 @@
+{
+  "hardware_executed": false,
+  "uploaded": false,
+  "target_compiled": false,
+  "local_binary": "D:\\race\\fpga\\git\\fpga\\fpga\\fpga_zero_copy_delivery\\background_parity_local\\background_thumbnail_parity_local",
+  "binary_sha256": "45f473d6cfc3bd5a8cacd2bcec88ec7dc5dba65f5f9a8a2375aca8d8f404723a",
+  "sources_sha256": {
+    "background_thumbnail_parity.cpp": "110c4a6c8d2b43621388f8d7f1e459f3877564dfdf659973f75c86fb3702c951",
+    "background_thumbnail_reader.hpp": "bb66f6fa6ea134f52704b29a964c4137af48d2a520ea318b4a90b04eeca373a0",
+    "pcie_session.hpp": "5fa796db14f175f2f0dc6f203265b79b289f73991054a25e6cc7f1e40c54bef0",
+    "bound_rknn.hpp": "b729f9e016e27333c33c7a5d6da22304d11391ee65c25a14a50d69a9191a6268",
+    "rknn_api.h": "c48e11a6f41b451a5fd1e4ad774ea60252d3d94f78bee9b21ea3d21b21deba9a",
+    "cooperative_linux_transport/driver_abi.hpp": "89207f03748efb479419c68ec415394a5fc7272378973db6b1ff4b447ca7b884",
+    "pango_zc_uapi.h": "a1648d4f46767c6e3a1b174ee309f449bf792423e48d0ff9324332275aa46934"
+  },
+  "helper_sha256": "90eed912133609cc27b2c49fd92357d6e471e7283bb432f957724e73462f3b22",
+  "protocol_sha256": "a52c8ad0a0c2cbff909673398c610efb6059cecb30243c7fe43c266868368fb6",
+  "documentation_sha256": "dcd6c43817178b55b6aaf20363383418159464e004e1ededcddd95fe5431c8f4",
+  "checks": [
+    {
+      "command": [
+        "g++",
+        "-std=c++17",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-pthread",
+        "-I/mnt/d/race/fpga/git/fpga/fpga/fpga_zero_copy_delivery/background_parity_local",
+        "/mnt/d/race/fpga/git/fpga/fpga/fpga_zero_copy_delivery/background_parity_local/background_thumbnail_parity.cpp",
+        "-o",
+        "/mnt/d/race/fpga/git/fpga/fpga/fpga_zero_copy_delivery/background_parity_local/background_thumbnail_parity_local"
+      ],
+      "return_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "/mnt/d/race/fpga/git/fpga/fpga/fpga_zero_copy_delivery/background_parity_local/background_thumbnail_parity_local",
+        "--self-test"
+      ],
+      "return_code": 0,
+      "stdout": "{\"self_test\":true,\"hardware_executed\":false,\"pass\":true}\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "/mnt/d/race/fpga/git/fpga/fpga/fpga_zero_copy_delivery/background_parity_local/background_thumbnail_parity_local",
+        "--help"
+      ],
+      "return_code": 0,
+      "stdout": "background_thumbnail_parity [--cameras 1,2,3,4] [--count 10] [--attempts 128] [--timeout 30] [--snapshots] [--diagnostics] [--freeze-first]\n--self-test opens no device. Hardware mode requires caps exactly 31.\nEach selected physical camera requires count fresh matches in EACH bank.\n--diagnostics emits failure-only aggregate/attempt JSON to stderr (extra control reads).\n--freeze-first claims RGB RAW while enabled, then drains and matches either needed bank exactly.\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "/mnt/d/race/fpga/git/fpga/fpga/fpga_zero_copy_delivery/background_parity_local/background_thumbnail_parity_local",
+        "--cameras",
+        "1,1"
+      ],
+      "return_code": 2,
+      "stdout": "",
+      "stderr": "Duplicate camera\n"
+    },
+    {
+      "command": [
+        "/mnt/d/race/fpga/git/fpga/fpga/fpga_zero_copy_delivery/background_parity_local/background_thumbnail_parity_local",
+        "--count",
+        "9"
+      ],
+      "return_code": 2,
+      "stdout": "",
+      "stderr": "Integer out of range\n"
+    },
+    {
+      "command": [
+        "/mnt/d/race/fpga/git/fpga/fpga/fpga_zero_copy_delivery/background_parity_local/background_thumbnail_parity_local",
+        "--cameras",
+        "7"
+      ],
+      "return_code": 2,
+      "stdout": "",
+      "stderr": "Invalid camera list\n"
+    },
+    {
+      "command": [
+        "/mnt/d/race/fpga/git/fpga/fpga/fpga_zero_copy_delivery/background_parity_local/background_thumbnail_parity_local",
+        "--timeout",
+        "0"
+      ],
+      "return_code": 2,
+      "stdout": "",
+      "stderr": "Integer out of range\n"
+    },
+    {
+      "command": [
+        "/mnt/d/race/fpga/git/fpga/fpga/fpga_zero_copy_delivery/background_parity_local/background_thumbnail_parity_local",
+        "--unknown",
+        "1"
+      ],
+      "return_code": 2,
+      "stdout": "",
+      "stderr": "Unknown option --unknown\n"
+    },
+    {
+      "command": [
+        "g++",
+        "-std=c++17",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-pthread",
+        "-I/mnt/d/race/fpga/git/fpga/fpga/fpga_zero_copy_delivery/background_parity_local",
+        "-fsyntax-only",
+        "/mnt/d/race/fpga/git/fpga/fpga/fpga_zero_copy_delivery/host/thumbnail_six_parity.cpp"
+      ],
+      "return_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "g++",
+        "-std=c++17",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-pthread",
+        "-I/mnt/d/race/fpga/git/fpga/fpga/fpga_zero_copy_delivery/background_parity_local",
+        "-fsyntax-only",
+        "/mnt/d/race/fpga/git/fpga/fpga/fpga_zero_copy_delivery/host/thumbnail_parity.cpp"
+      ],
+      "return_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "g++",
+        "-std=c++17",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-pthread",
+        "-I/mnt/d/race/fpga/git/fpga/fpga/fpga_zero_copy_delivery/background_parity_local",
+        "-fsyntax-only",
+        "/mnt/d/race/fpga/git/fpga/fpga/fpga_zero_copy_delivery/host/paired_pointer.cpp"
+      ],
+      "return_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "g++",
+        "-std=c++17",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-pthread",
+        "-I/mnt/d/race/fpga/git/fpga/fpga/fpga_zero_copy_delivery/background_parity_local",
+        "-DOFFLOAD_SHARED_INPUT",
+        "-fsyntax-only",
+        "/mnt/d/race/fpga/git/fpga/fpga/fpga_zero_copy_delivery/host/paired_pointer.cpp"
+      ],
+      "return_code": 0,
+      "stdout": "",
+      "stderr": ""
+    }
+  ],
+  "target_build_command": "g++ -std=c++17 -O2 -Wall -Wextra -Werror -pthread -I. background_thumbnail_parity.cpp -o background_thumbnail_parity",
+  "limitations": [
+    "Local tests do not establish hardware pixel parity or RAW/background timing alignment.",
+    "No SSH orchestration/recovery implemented; parent owns board operations."
+  ]
+}

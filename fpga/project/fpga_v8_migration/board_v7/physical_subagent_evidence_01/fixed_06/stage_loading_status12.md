@@ -1,0 +1,9 @@
+# stage loading 进度与并行会话协调
+
+stage_help11真实shell命令列表没有read_sdc/read_fdc或独立load_constraint入口。可见define_current_design、define_scope_collection、save_adif、export_fdc，已准备stage_api12.tcl逐一读取实际帮助；不假设这些命令能改写DB。
+
+API查询首次被PDS17980/52608 guard拦住，未启动。进程父30184为run_exact11.py，运行新独立source_diagnostics_route_03/standard_flow_exact11.pds真实dev_map，并计划按顺序导出compile/synthesis、PNR、routed签核及routed覆盖。已后台等待30184自然退出后运行stage_api12，启动前仍检查全部PDS/TA/de空闲。
+
+generate_exact11.py离线修正包括：从顶层PCLK根网完整遍历buffer/inverter、补齐冻结clock.fdc的有向异步关系U减四个Camera->AXI关系、精确ACK首级端点。它仍沿用1320实体对，因此其门禁不能证明原要求1280实际对通过。
+
+synthesis_epoch10是独立的真实新综合，1280对、2048逐位mapping及clock_provenance与原1280图完全一致，无mailbox实例级compile约束。后续阶段加载试验以该副本为输入，必须在实际map/routed对象上重新核查全部路径、计数和继承，不根据Tcl符号表达式或shell exit0接受。

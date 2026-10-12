@@ -1,0 +1,7 @@
+# 静态 bank 定义字节扫描实测
+
+scan.py已实际读取FBG484封装eval、arch_schm/arch_lp eadf、IOBD eval及bankrefpins.txt，保存完整大小/hash/头部和匹配ASCII字符串偏移。四份二进制均无所查bank/pin关键词可打印字符串；该事实不证明内部数据没有BANK，不能作为正确性证据。
+
+bankrefpins.txt有六个bank参考组，已保存完整文本。参考pin不是完整bank边界，不按两个点外推所有引脚bank。内部usedIO bank成员关系和原生报告accessor仍未知。
+
+与join01分开：join01报表112行均关联pinout，其中63直接LOC→primitive PLACE，49缺直接属性关联；site_reverse_candidates从实际PLACE反查给出全部112候选位置，但还需DDR网络连接证明。两份结果均IO_gate_passed=false。

@@ -1,0 +1,55 @@
+--- from_exact09
++++ candidate_v2
+@@ -1,4 +1,4 @@
+-module axi_dma_write_tc04
++module axi_dma_write_dma_sc_v2
+ 	#(
+ 		parameter WAIT_FOR_DATA = 0, // camera source supplies stored beat credits
+ 		parameter WD_LIMIT = 24'hFFFFFF,
+@@ -163,7 +163,24 @@
+     if(rst) available_q <= 0;
+     else available_q <= data_in_available;
+ end
+-assign max_burst_len = (((addr & 12'hfff) + (burst_len << AXI_BURST_SIZE )) >> 12)  != 0 ? (13'h1000 - (addr & 12'hfff)) >> AXI_BURST_SIZE : burst_len;
++// V2: only the proven signed 32-bit BURST_LEN/default byte-width domain.
++localparam PAGE_ARITH_13_SUPPORTED =
++    (DATA_WIDTH == 128) && (KEEP_WIDTH == 16) && (AXI_BURST_SIZE == 4) &&
++    ($bits(BURST_LEN) == 32) && (BURST_LEN >= 0) && (BURST_LEN <= 255) &&
++    !(BURST_LEN < -1);
++generate
++    if (PAGE_ARITH_13_SUPPORTED) begin : page_arith_13
++        wire [12:0] page_offset = {1'b0, addr[11:0]};
++        wire [12:0] burst_bytes = {1'b0, burst_len, 4'b0000};
++        wire [12:0] page_sum = page_offset + burst_bytes;
++        wire [12:0] page_remaining = 13'h1000 - page_offset;
++        // Keep ?: unknown-condition bit merging and the original branch test.
++        assign max_burst_len = ((page_sum >> 12) != 13'd0) ?
++                              page_remaining[11:4] : burst_len;
++    end else begin : page_arith_generic
++        assign max_burst_len = (((addr & 12'hfff) + (burst_len << AXI_BURST_SIZE )) >> 12)  != 0 ? (13'h1000 - (addr & 12'hfff)) >> AXI_BURST_SIZE : burst_len;
++    end
++endgenerate
+ always@(posedge clk)begin
+ 	if(rst == 1'b1)begin
+ 		burst_trans <= 1'b0;
+@@ -242,7 +259,7 @@
+ // !burst_trans belongs only to the non-waiting branch.
+ wire wd_clear = rst || abort_r ||
+     (waiting_source ? (data_in_available != available_q) :
+-     (!burst_trans || w_progress || data_in_valid || !t_m_axi_wready));
++     (!burst_trans || data_in_valid || !t_m_axi_wready));
+ wire wd_step = !wd_clear && (wd_cnt != 24'hFFFFFF);
+ genvar wd_bit;
+ generate
+@@ -277,8 +294,9 @@
+ // BREADY is asserted only after the external final W handshake below.
+ wire b_fire = m_axi_bvalid && m_axi_bready;
+ wire failed = abort_r || abort_req || (b_fire && m_axi_bresp[1]);
+-assign abort_done = trans && failed &&
+-                    (b_fire || (abort_r && !burst_trans && !m_axi_awvalid));
++assign abort_done = trans &&
++    ((b_fire && (abort_r || abort_req || m_axi_bresp[1])) ||
++     (abort_r && !burst_trans && !m_axi_awvalid));
+ // ---------------------------------------------------------------------------------
+ 
+ stream_pipe #(

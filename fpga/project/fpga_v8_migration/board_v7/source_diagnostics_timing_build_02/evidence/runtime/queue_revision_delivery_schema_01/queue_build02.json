@@ -1,0 +1,80 @@
+{
+  "time": 1791315618.7282588,
+  "map_gate": {
+    "status": "PENDING",
+    "reason": "map01 final_result.json absent",
+    "physical_start_allowed": false
+  },
+  "busy": [
+    {
+      "ProcessId": 30600,
+      "ParentProcessId": 56904,
+      "Name": "powershell.exe",
+      "CommandLine": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.EXE -NoLogo -NoProfile -NonInteractive -Command \"python -u project/fpga_v8_migration/board_v7/source_diagnostics_timing_build_01/recover_compile_attempt.py > project/fpga_v8_migration/board_v7/source_diagnostics_timing_build_01/recovery_controller_02.log 2>&1\""
+    },
+    {
+      "ProcessId": 57416,
+      "ParentProcessId": 30600,
+      "Name": "python.exe",
+      "CommandLine": "\"C:\\Users\\NineSun\\anaconda3\\python.exe\" -u project/fpga_v8_migration/board_v7/source_diagnostics_timing_build_01/recover_compile_attempt.py"
+    },
+    {
+      "ProcessId": 38488,
+      "ParentProcessId": 56904,
+      "Name": "powershell.exe",
+      "CommandLine": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.EXE -NoLogo -NoProfile -NonInteractive -Command \"Wait-Process -Id 57416 -ErrorAction SilentlyContinue; python -u project/fpga_v8_migration/board_v7/physical_subagent_evidence_01/run_export_fdc17.py\""
+    },
+    {
+      "ProcessId": 52364,
+      "ParentProcessId": 56904,
+      "Name": "powershell.exe",
+      "CommandLine": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.EXE -NoLogo -NoProfile -NonInteractive -Command \"Wait-Process -Id 57416 -ErrorAction SilentlyContinue; python -u project/fpga_v8_migration/board_v7/physical_subagent_evidence_01/finalize_exact11.py > project/fpga_v8_migration/board_v7/physical_subagent_evidence_01/fixed_06/physical_exact_11/finalize_physical_targets.log 2>&1\""
+    },
+    {
+      "ProcessId": 4688,
+      "ParentProcessId": 56904,
+      "Name": "powershell.exe",
+      "CommandLine": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.EXE -NoLogo -NoProfile -NonInteractive -Command \"python -u project/fpga_v8_migration/board_v7/diagnostic_sync_register_map_01/run.py\""
+    },
+    {
+      "ProcessId": 49344,
+      "ParentProcessId": 4688,
+      "Name": "python.exe",
+      "CommandLine": "\"C:\\Users\\NineSun\\anaconda3\\python.exe\" -u project/fpga_v8_migration/board_v7/diagnostic_sync_register_map_01/run.py"
+    },
+    {
+      "ProcessId": 23608,
+      "ParentProcessId": 56904,
+      "Name": "powershell.exe",
+      "CommandLine": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.EXE -NoLogo -NoProfile -NonInteractive -Command \"$mappingExperiment = Get-CimInstance Win32_Process | Where-Object { $_.Name -eq 'python.exe' -and $_.CommandLine -match 'diagnostic_sync_register_map_01[/\\\\]run.py' }; if ($mappingExperiment) { Wait-Process -Id $mappingExperiment.ProcessId -ErrorAction SilentlyContinue }; python -u project/fpga_v8_migration/board_v7/diagnostic_sync_register_map_01/audit_final.py\""
+    },
+    {
+      "ProcessId": 8824,
+      "ParentProcessId": 57416,
+      "Name": "pds_shell.exe",
+      "CommandLine": "C:\\pango\\PDS_2022.2-SP6.4\\bin\\pds_shell.exe -project C:\\Users\\NineSun\\Desktop\\ov56401\\project\\fpga_v8_migration\\board_v7\\source_diagnostics_timing_build_01\\project.pds -run pnr -work_dir C:\\Users\\NineSun\\Desktop\\ov56401\\project\\fpga_v8_migration\\board_v7\\source_diagnostics_timing_build_01"
+    },
+    {
+      "ProcessId": 34304,
+      "ParentProcessId": 8824,
+      "Name": "pds_shell.exe",
+      "CommandLine": "C:\\pango\\PDS_2022.2-SP6.4\\bin\\pds_shell.exe  -action synthesize -project_file C:/Users/NineSun/Desktop/ov56401/project/fpga_v8_migration/board_v7/source_diagnostics_timing_build_01/project.pds -extract_data_key 815993422 -shared_mem_key 52ef8a5e-0b51-4599-af1d-e96b6c61e8dc8824 -parent_process_key 8824"
+    }
+  ],
+  "observers_excluded": [
+    {
+      "ProcessId": 56904,
+      "ParentProcessId": 36736,
+      "Name": "opencode.exe",
+      "CommandLine": "C:\\Users\\NineSun\\.opencode\\bin\\opencode.exe serve --service"
+    },
+    {
+      "ProcessId": 40968,
+      "ParentProcessId": 56904,
+      "Name": "powershell.exe",
+      "CommandLine": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.EXE -NoLogo -NoProfile -NonInteractive -Command \"python -u 'project/fpga_v8_migration/board_v7/source_diagnostics_timing_build_02/runtime/controller02.py' --run *> 'project/fpga_v8_migration/board_v7/source_diagnostics_timing_build_02/evidence/runtime/controller02_console.log'\""
+    }
+  ],
+  "map_controller_full_path": "diagnostic_sync_register_map_01/run.py or audit_final.py",
+  "policy": "No slot held while waiting; queued controller02 is not a prior blocker in map01"
+}

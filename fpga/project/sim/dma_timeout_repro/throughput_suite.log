@@ -1,0 +1,158 @@
+throughput_original: PASS
+# REJECT cam=1 fault=80004c82 at=689845000000
+# REJECT cam=2 fault=80004c82 at=690295000000
+# RESULT gated=0 cam=1 offered=307200 received=11264 success=0 abort=1 reject=00010000 AW=89 B=89 owner_starve=521
+# PERF cam=1 max_stored_beats=0 max_consecutive_DRM_reads=17 max_AW_to_B_cycles=445 completion_fps=0.000000
+# RESULT gated=0 cam=2 offered=307200 received=11264 success=0 abort=1 reject=00010000 AW=89 B=89 owner_starve=89
+# PERF cam=2 max_stored_beats=0 max_consecutive_DRM_reads=17 max_AW_to_B_cycles=44 completion_fps=0.000000
+# RESULT gated=0 cam=3 offered=307200 received=307200 success=1 abort=0 reject=00000000 AW=2401 B=2401 owner_starve=1778506
+# PERF cam=3 max_stored_beats=0 max_consecutive_DRM_reads=1 max_AW_to_B_cycles=1815 completion_fps=0.000000
+# PASS throughput
+throughput_phase: PASS
+# RESULT gated=1 cam=1 offered=614400 received=614400 success=2 abort=0 reject=00000000 AW=4802 B=4802 owner_starve=4802
+# PERF cam=1 max_stored_beats=16 max_consecutive_DRM_reads=1 max_AW_to_B_cycles=44 completion_fps=45.021804
+# RESULT gated=1 cam=2 offered=614400 received=614400 success=2 abort=0 reject=00000000 AW=4802 B=4802 owner_starve=4802
+# PERF cam=2 max_stored_beats=18 max_consecutive_DRM_reads=3 max_AW_to_B_cycles=44 completion_fps=45.021804
+# RESULT gated=1 cam=3 offered=614400 received=614400 success=2 abort=0 reject=00000000 AW=4802 B=4802 owner_starve=4802
+# PERF cam=3 max_stored_beats=17 max_consecutive_DRM_reads=2 max_AW_to_B_cycles=44 completion_fps=25.727331
+# PASS throughput
+throughput_stress: PASS
+# RESULT gated=1 cam=1 offered=614400 received=614400 success=2 abort=0 reject=00000000 AW=4802 B=4802 owner_starve=4802
+# PERF cam=1 max_stored_beats=19 max_consecutive_DRM_reads=4 max_AW_to_B_cycles=116 completion_fps=45.022655
+# RESULT gated=1 cam=2 offered=614400 received=614400 success=2 abort=0 reject=00000000 AW=4802 B=4802 owner_starve=4802
+# PERF cam=2 max_stored_beats=25 max_consecutive_DRM_reads=11 max_AW_to_B_cycles=115 completion_fps=45.022655
+# RESULT gated=1 cam=3 offered=614400 received=614400 success=2 abort=0 reject=00000000 AW=4802 B=4802 owner_starve=4802
+# PERF cam=3 max_stored_beats=21 max_consecutive_DRM_reads=6 max_AW_to_B_cycles=116 completion_fps=25.727338
+# PASS throughput
+throughput_regress_frame_recovery: PASS
+# PASS complete frame seq=1 all 512 pixels including (0,0), bank=00010000
+# PASS short frame at next SOF aborts, no tag/req/counter; packer/FIFOs flushed
+# PASS complete frame seq=2 all 512 pixels including (0,0), bank=00020000
+# PASS missing data watchdog abort without another SOF
+# PASS complete frame seq=3 all 512 pixels including (0,0), bank=00010000
+# PASS abort during AW stall retains AW and drains accepted burst
+# PASS complete frame seq=4 all 512 pixels including (0,0), bank=00020000
+# PASS FIFO overflow + W/B backpressure; no premature flush/publication
+# PASS complete frame seq=5 all 512 pixels including (0,0), bank=00010000
+# PASS payload BRESP error prevents tag
+# PASS complete frame seq=6 all 512 pixels including (0,0), bank=00020000
+# PASS tag BRESP error does not publish req/count/bank
+# PASS complete frame seq=7 all 512 pixels including (0,0), bank=00010000
+# PASS complete frame seq=8 all 512 pixels including (0,0), bank=00020000
+# PASS complete frame seq=9 all 512 pixels including (0,0), bank=00010000
+# PASS dirty bank request invalidated; last good bank remains valid after abort
+# PASS complete frame seq=10 all 512 pixels including (0,0), bank=00020000
+# PASS tag B backpressure longer than WD_LIMIT never publishes early
+# PASS FRAME RECOVERY success=10 abort=7 AW=61 B=61 zero-strobe filler=75
+throughput_regress_frame_recovery_vendor: PASS
+# PASS complete frame seq=1 all 16384 pixels including (0,0), bank=00010000
+# PASS short frame at next SOF aborts, no tag/req/counter; packer/FIFOs flushed
+# PASS complete frame seq=2 all 16384 pixels including (0,0), bank=00020000
+# PASS missing data watchdog abort without another SOF
+# PASS complete frame seq=3 all 16384 pixels including (0,0), bank=00010000
+# PASS abort during AW stall retains AW and drains accepted burst
+# PASS complete frame seq=4 all 16384 pixels including (0,0), bank=00020000
+# PASS FIFO overflow + W/B backpressure; no premature flush/publication
+# PASS complete frame seq=5 all 16384 pixels including (0,0), bank=00010000
+# PASS payload BRESP error prevents tag
+# PASS complete frame seq=6 all 16384 pixels including (0,0), bank=00020000
+# PASS tag BRESP error does not publish req/count/bank
+# PASS complete frame seq=7 all 16384 pixels including (0,0), bank=00010000
+# PASS complete frame seq=8 all 16384 pixels including (0,0), bank=00020000
+# PASS complete frame seq=9 all 16384 pixels including (0,0), bank=00010000
+# PASS dirty bank request invalidated; last good bank remains valid after abort
+# PASS complete frame seq=10 all 16384 pixels including (0,0), bank=00020000
+# PASS tag B backpressure longer than WD_LIMIT never publishes early
+# PASS FRAME RECOVERY success=10 abort=7 AW=1425 B=1425 zero-strobe filler=75
+throughput_regress_ledger_recovery: PASS
+# PASS healthy burst/tag/burst AW=4 B=4 W=49
+# PASS waiting AW timeout preserves valid/address/len/trans; no false done
+# PASS internal act=0 with external W stalled retains transaction and BREADY=0
+# PASS external W complete but delayed B keeps owner/trans and no done
+# PASS recovered all three cameras AW=5/1/1 B=5/1/1 W=65/16/16 DONE=4/1/1
+# PASS multi-burst timeout drains accepted burst then retires unissued remainder after B
+# PASS post-recovery single-beat command
+# PASS separate success/abort: cam1=5/0 cam2=1/0 cam3=0/2
+throughput_regress_credit_recovery: PASS
+# PASS complete frame seq=1 all 512 pixels including (0,0), bank=00010000
+# PASS short frame at next SOF aborts, no tag/req/counter; packer/FIFOs flushed
+# PASS complete frame seq=2 all 512 pixels including (0,0), bank=00020000
+# PASS missing data watchdog abort without another SOF
+# PASS complete frame seq=3 all 512 pixels including (0,0), bank=00010000
+# PASS abort during AW stall retains AW and drains accepted burst
+# PASS complete frame seq=4 all 512 pixels including (0,0), bank=00020000
+# PASS FIFO overflow + W/B backpressure; no premature flush/publication
+# PASS complete frame seq=5 all 512 pixels including (0,0), bank=00010000
+# PASS payload BRESP error prevents tag
+# PASS complete frame seq=6 all 512 pixels including (0,0), bank=00020000
+# PASS tag BRESP error does not publish req/count/bank
+# PASS complete frame seq=7 all 512 pixels including (0,0), bank=00010000
+# PASS complete frame seq=8 all 512 pixels including (0,0), bank=00020000
+# PASS complete frame seq=9 all 512 pixels including (0,0), bank=00010000
+# PASS dirty bank request invalidated; last good bank remains valid after abort
+# PASS complete frame seq=10 all 512 pixels including (0,0), bank=00020000
+# PASS tag B backpressure longer than WD_LIMIT never publishes early
+# PASS FRAME RECOVERY success=10 abort=7 AW=58 B=58 zero-strobe filler=30
+throughput_regress_rejection_diag: PASS
+# PASS complete frame seq=1 all 512 pixels including (0,0), bank=00010000
+# PASS short frame at next SOF aborts, no tag/req/counter; packer/FIFOs flushed
+# PASS complete frame seq=2 all 512 pixels including (0,0), bank=00020000
+# PASS missing data watchdog abort without another SOF
+# PASS complete frame seq=3 all 512 pixels including (0,0), bank=00010000
+# PASS abort during AW stall retains AW and drains accepted burst
+# PASS complete frame seq=4 all 512 pixels including (0,0), bank=00020000
+# PASS FIFO overflow + W/B backpressure; no premature flush/publication
+# PASS complete frame seq=5 all 512 pixels including (0,0), bank=00010000
+# PASS payload BRESP error prevents tag
+# PASS complete frame seq=6 all 512 pixels including (0,0), bank=00020000
+# PASS tag BRESP error does not publish req/count/bank
+# PASS complete frame seq=7 all 512 pixels including (0,0), bank=00010000
+# PASS complete frame seq=8 all 512 pixels including (0,0), bank=00020000
+# PASS complete frame seq=9 all 512 pixels including (0,0), bank=00010000
+# PASS dirty bank request invalidated; last good bank remains valid after abort
+# PASS complete frame seq=10 all 512 pixels including (0,0), bank=00020000
+# PASS tag B backpressure longer than WD_LIMIT never publishes early
+# PASS FRAME RECOVERY success=10 abort=7 AW=61 B=61 zero-strobe filler=75
+# PASS REJECTION DIAGNOSTICS short=13 watchdog=11 overflow=1 retained across flush; full input quota=512
+throughput_regress_rejection_diag_vendor: PASS
+# PASS complete frame seq=1 all 16384 pixels including (0,0), bank=00010000
+# PASS short frame at next SOF aborts, no tag/req/counter; packer/FIFOs flushed
+# PASS complete frame seq=2 all 16384 pixels including (0,0), bank=00020000
+# PASS missing data watchdog abort without another SOF
+# PASS complete frame seq=3 all 16384 pixels including (0,0), bank=00010000
+# PASS abort during AW stall retains AW and drains accepted burst
+# PASS complete frame seq=4 all 16384 pixels including (0,0), bank=00020000
+# PASS FIFO overflow + W/B backpressure; no premature flush/publication
+# PASS complete frame seq=5 all 16384 pixels including (0,0), bank=00010000
+# PASS payload BRESP error prevents tag
+# PASS complete frame seq=6 all 16384 pixels including (0,0), bank=00020000
+# PASS tag BRESP error does not publish req/count/bank
+# PASS complete frame seq=7 all 16384 pixels including (0,0), bank=00010000
+# PASS complete frame seq=8 all 16384 pixels including (0,0), bank=00020000
+# PASS complete frame seq=9 all 16384 pixels including (0,0), bank=00010000
+# PASS dirty bank request invalidated; last good bank remains valid after abort
+# PASS complete frame seq=10 all 16384 pixels including (0,0), bank=00020000
+# PASS tag B backpressure longer than WD_LIMIT never publishes early
+# PASS FRAME RECOVERY success=10 abort=7 AW=1425 B=1425 zero-strobe filler=75
+# PASS REJECTION DIAGNOSTICS short=13 watchdog=11 overflow=1 retained across flush; full input quota=16384
+throughput_regress_rejection_regs: PASS
+# PASS REJECTION REGISTERS actual read case; ACK/delay/enable writes preserved
+throughput_original_actual: PASS
+# REJECT cam=1 fault=80004c82 at=689291000000
+# REJECT cam=2 fault=80004c82 at=689634000000
+# RESULT gated=0 cam=1 offered=307200 received=11264 success=0 abort=1 reject=00010000 AW=89 B=89 owner_starve=640
+# PERF cam=1 max_stored_beats=0 max_consecutive_DRM_reads=17 max_AW_to_B_cycles=540 completion_fps=0.000000
+# RESULT gated=0 cam=2 offered=307200 received=11264 success=0 abort=1 reject=00010000 AW=89 B=89 owner_starve=89
+# PERF cam=2 max_stored_beats=0 max_consecutive_DRM_reads=17 max_AW_to_B_cycles=44 completion_fps=0.000000
+# RESULT gated=0 cam=3 offered=307200 received=307200 success=1 abort=0 reject=00000000 AW=2401 B=2401 owner_starve=2370486
+# PERF cam=3 max_stored_beats=0 max_consecutive_DRM_reads=1 max_AW_to_B_cycles=2383 completion_fps=0.000000
+# PASS throughput
+throughput_actual: PASS
+# RESULT gated=1 cam=1 offered=614400 received=614400 success=2 abort=0 reject=00000000 AW=4802 B=4802 owner_starve=4802
+# PERF cam=1 max_stored_beats=16 max_consecutive_DRM_reads=1 max_AW_to_B_cycles=44 completion_fps=45.022375
+# RESULT gated=1 cam=2 offered=614400 received=614400 success=2 abort=0 reject=00000000 AW=4802 B=4802 owner_starve=4802
+# PERF cam=2 max_stored_beats=17 max_consecutive_DRM_reads=3 max_AW_to_B_cycles=44 completion_fps=45.022375
+# RESULT gated=1 cam=3 offered=614400 received=614400 success=2 abort=0 reject=00000000 AW=4802 B=4802 owner_starve=4802
+# PERF cam=3 max_stored_beats=16 max_consecutive_DRM_reads=1 max_AW_to_B_cycles=44 completion_fps=25.727514
+# PASS throughput
+OVERALL PASS

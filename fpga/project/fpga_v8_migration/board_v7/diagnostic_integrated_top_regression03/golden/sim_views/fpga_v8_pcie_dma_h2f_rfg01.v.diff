@@ -1,0 +1,228 @@
+--- 
++++ 
+@@ -109,9 +109,69 @@
+     input         [ADDR_WIDTH-1:0]    fpga_rd_addr  ,
+     output        [127:0]             fpga_rd_data     
+ );
+-
+-wire        fpga_msi_pulse; // 鎺ユ敹鏉ヨ嚜 DMA Controller 鐨� MSI 鑴夊啿
++wire        fpga_msi_pulse;
+ reg         fpga_msi_r;
++reg dma_active;
++wire        [2:0]               mrd_tc;
++wire        [2:0]               mrd_attr;
++wire        [9:0]               mrd_length;
++wire        [15:0]              mrd_id;
++wire        [7:0]               mrd_tag;
++wire        [63:0]              mrd_addr;
++wire                            cpld_req_vld;
++wire                            cpld_req_rdy;
++wire                            cpld_tx_rdy;
++wire                            cpld_rcv;
++wire        [7:0]               cpld_tag;
++wire                            tag_full;
++wire                            user_define_header_flag;
++wire                            user_define_data_flag;
++wire                            mwr32_req;
++wire                            mwr32_req_ack;
++wire                            mwr64_req;
++wire                            mwr64_req_ack;
++wire                            mrd32_req;
++wire                            mrd32_req_ack;
++wire                            mrd64_req;
++wire                            mrd64_req_ack;
++wire        [10:0]              req_length;
++wire        [63:0]              req_addr;
++wire        [31:0]              req_data;
++wire                            dma_axis_slave0_trdy ;
++wire                            dma_axis_slave0_tvld ;
++wire        [127:0]             dma_axis_slave0_tdata;
++wire                            dma_axis_slave0_tlast;
++wire                            dma_axis_slave0_tuser;
++wire                            dma_axis_slave1_trdy ;
++wire                            dma_axis_slave1_tvld ;
++wire        [127:0]             dma_axis_slave1_tdata;
++wire                            dma_axis_slave1_tlast;
++wire                            dma_axis_slave1_tuser;
++wire                            dma_axis_slave2_trdy ;
++wire                            dma_axis_slave2_tvld ;
++wire        [127:0]             dma_axis_slave2_tdata;
++wire                            dma_axis_slave2_tlast;
++wire                            dma_axis_slave2_tuser;
++wire                            bar0_rd_clk_en;
++wire        [ADDR_WIDTH-1:0]    bar0_rd_addr;
++wire        [127:0]             bar0_rd_data;
++wire                            bar1_wr_en;
++wire        [ADDR_WIDTH-1:0]    bar1_wr_addr;
++wire        [127:0]             bar1_wr_data;
++wire        [15:0]              bar1_wr_byte_en;
++wire                            bar2_rd_clk_en;
++wire        [ADDR_WIDTH-1:0]    bar2_rd_addr  ;
++wire        [127:0]             bar2_rd_data  ;
++wire                            tx_restart;
++wire        [63:0]              dma_check_result;
++wire        [7:0]               cfg_pbus_num;
++wire        [4:0]               cfg_pbus_dev_num;
++wire        [2:0]               cfg_max_rd_req_size_reg;
++wire        [2:0]               cfg_max_payload_size_reg;
++
++
++ // 鎺ユ敹鏉ヨ嚜 DMA Controller 鐨� MSI 鑴夊啿
++
+ // 鎻℃墜閫昏緫锛氬皢鍗曟媿鑴夊啿灞曞�斤紝鐩村埌鏀跺埌 grant 搴旂瓟
+ always @(posedge clk or negedge rst_n) begin
+     if (!rst_n) begin
+@@ -129,7 +189,7 @@
+ assign o_fpga_msi = fpga_msi_r;
+ 
+ // DMA 鎬绘椿璺�
+-reg dma_active;
++
+ always @(posedge clk or negedge rst_n) begin
+     if (!rst_n) begin
+         dma_active <= 1'b0;
+@@ -145,76 +205,76 @@
+ 
+ //**********************************************************************
+ //from rx to tx
+-wire        [2:0]               mrd_tc;
+-wire        [2:0]               mrd_attr;
+-wire        [9:0]               mrd_length;
+-wire        [15:0]              mrd_id;
+-wire        [7:0]               mrd_tag;
+-wire        [63:0]              mrd_addr;
+-
+-wire                            cpld_req_vld;
+-wire                            cpld_req_rdy;
+-wire                            cpld_tx_rdy;
++
++
++
++
++
++
++
++
++
++
+ //cpld rcv
+-wire                            cpld_rcv;
+-wire        [7:0]               cpld_tag;
+-wire                            tag_full;
++
++
++
+ //from dma_controller to tx
+-wire                            user_define_header_flag;
+-wire                            user_define_data_flag;
++
++
+ //mwr req & ack
+-wire                            mwr32_req;
+-wire                            mwr32_req_ack;
+-wire                            mwr64_req;
+-wire                            mwr64_req_ack;
++
++
++
++
+ //mrd req & ack
+-wire                            mrd32_req;
+-wire                            mrd32_req_ack;
+-wire                            mrd64_req;
+-wire                            mrd64_req_ack;
++
++
++
++
+ //req information
+-wire        [10:0]              req_length;
+-wire        [63:0]              req_addr;
+-wire        [31:0]              req_data;
++
++
++
+ 
+ 
+ //axis_slave0 interface
+-wire                            dma_axis_slave0_trdy ;
+-wire                            dma_axis_slave0_tvld ;
+-wire        [127:0]             dma_axis_slave0_tdata;
+-wire                            dma_axis_slave0_tlast;
+-wire                            dma_axis_slave0_tuser;
++
++
++
++
++
+ //axis_slave1 interface
+-wire                            dma_axis_slave1_trdy ;
+-wire                            dma_axis_slave1_tvld ;
+-wire        [127:0]             dma_axis_slave1_tdata;
+-wire                            dma_axis_slave1_tlast;
+-wire                            dma_axis_slave1_tuser;
++
++
++
++
++
+ //axis_slave2 interface
+-wire                            dma_axis_slave2_trdy ;
+-wire                            dma_axis_slave2_tvld ;
+-wire        [127:0]             dma_axis_slave2_tdata;
+-wire                            dma_axis_slave2_tlast;
+-wire                            dma_axis_slave2_tuser;
++
++
++
++
++
+ 
+ //**********************************************************************
+ //bar0 rd interface
+-wire                            bar0_rd_clk_en;
+-wire        [ADDR_WIDTH-1:0]    bar0_rd_addr;
+-wire        [127:0]             bar0_rd_data;
++
++
++
+ //bar1 wr interface
+-wire                            bar1_wr_en;
+-wire        [ADDR_WIDTH-1:0]    bar1_wr_addr;
+-wire        [127:0]             bar1_wr_data;
+-wire        [15:0]              bar1_wr_byte_en;
++
++
++
++
+ //bar2 rd interface
+-wire                            bar2_rd_clk_en;
+-wire        [ADDR_WIDTH-1:0]    bar2_rd_addr  ;
+-wire        [127:0]             bar2_rd_data  ;
++
++
++
+ //**********************************************************************
+ //rst tlp cnt
+-wire                            tx_restart;
+-wire        [63:0]              dma_check_result;
++
++
+ //debug bus
+ //wire        [42:0]              dbg_bus_rx_ctrl;
+ //wire        [43:0]              dbg_bus_mrd_tx;
+@@ -225,10 +285,10 @@
+ //                    dbg_bus_mrd_tx, //86:43
+ //                    dbg_bus_rx_ctrl //42:0
+ //                    };
+-wire        [7:0]               cfg_pbus_num;
+-wire        [4:0]               cfg_pbus_dev_num;
+-wire        [2:0]               cfg_max_rd_req_size_reg;
+-wire        [2:0]               cfg_max_payload_size_reg;
++
++
++
++
+ ips2l_pcie_reg #(
+     .SIG_WIDTH                  (4'd8                       )
+ )

@@ -1,0 +1,340 @@
+--- frozen/src/main.cpp
++++ candidate/src/main.cpp
+@@ -2,6 +2,7 @@
+ // Cam path: OV5640 -> DDR3 ping-pong (0x00800000/0x00A00000, RGB565 640x480)
+ //           -> PCIe DMA read -> letterbox 640x640 -> RKNN model
+ #include <QApplication>
++#include <QCryptographicHash>
+ #include <QAction>
+ #include <QComboBox>
+ #include <QCheckBox>
+@@ -72,6 +73,8 @@
+ #include "stereo_demo/stereo_depth.h"
+ 
+ #include "rknn_api.h"
++#include "hardware_inference.h"
++#include "acceptance_metrics.h"
+ 
+ #include <rga/im2d.h>
+ #include <rga/rga.h>
+@@ -381,9 +384,9 @@
+         if (camera < 0 || camera >= CAM_COUNT) return -1;
+         QMutexLocker lock(&dmaMutex_);
+         uint32_t a = 0, b = 0;
+-        if (!cameraTagLocked(ping + FRAME_BYTES, a)) return -1;
++        if (!cameraTagLocked(ping + FRAME_BYTES, a, camera)) return -1;
+         transferBytes += 16;
+-        if (!cameraTagLocked(pong + FRAME_BYTES, b)) return -1;
++        if (!cameraTagLocked(pong + FRAME_BYTES, b, camera)) return -1;
+         transferBytes += 16;
+         const int bank = tdm::newestCameraBank(a, b, delivered, last);
+         if (bank < 0) return 0;
+@@ -394,6 +397,7 @@
+         op.total_length = FRAME_BYTES + 16;
+         QElapsedTimer timer; timer.start();
+         frameStartedNs = monotonicNs();
++        viewerAcceptance().frameRequest(camera, op.total_length, FRAME_BYTES);
+         if (ioctlTmo(F2H_CMD, &op, 2) != 0) return -1;
+         transferBytes += op.total_length;
+         dmaNs = timer.nsecsElapsed();
+@@ -504,11 +508,12 @@
+     uint32_t motionLastGeneration_=0;
+     qint64 motionCaptureLastUs_=0, motionCaptureMaxUs_=0, motionMaxIoctlUs_=0;
+     qint64 motionLogMs_=-1;
+-    bool cameraTagLocked(uint32_t address, uint32_t& tag) {
++    bool cameraTagLocked(uint32_t address, uint32_t& tag, int camera) {
+         DmaOp op{};
+         op.offset_addr = tdm::cameraScratchOffset;
+         op.ddr3_addr = address;
+         op.total_length = 16;
++        viewerAcceptance().tagRequest(camera, op.total_length);
+         if (ioctlTmo(F2H_CMD, &op, 2) != 0) return false;
+         memcpy(&tag, rx_ + op.offset_addr, sizeof(tag));
+         return true;
+@@ -581,6 +586,7 @@
+     double fps[CAM_COUNT] = {};
+     qint64 lastCapturedMs[CAM_COUNT] = {};
+     uint64_t gen = 0;                // 存下任意一帧就自增（显示侧据此推进）
++    uint64_t acceptanceIds[CAM_COUNT] = {};
+     uint64_t camGen[CAM_COUNT] = {}; // 每路自己的帧计数（只转换变化的那一路）
+ };
+ 
+@@ -754,6 +760,7 @@
+             frames_->lastCapturedMs[idx] = completedMs;
+             ++frames_->gen;
+             ++frames_->camGen[idx];
++            frames_->acceptanceIds[idx] = viewerAcceptance().delivered(idx);
+             frames_->fps[idx] = captureRate.rate(completedMs);
+             lock.unlock();
+             msleep(6);
+@@ -786,6 +793,7 @@
+         QVector<double> camFps;
+         bool video = false;
+         std::array<uint64_t, CAM_COUNT> cameraSequences{};
++        std::array<uint64_t, CAM_COUNT> acceptanceFrameIds{};
+         std::array<qint64, CAM_COUNT> capturedMs{};
+         quint64 videoSequence = 0;
+         std::array<QByteArray, CAM_COUNT> cameraPixels{};
+@@ -915,6 +923,7 @@
+             bool have[CAM_COUNT] = {};
+             double camFps[CAM_COUNT] = {};
+             std::array<qint64, CAM_COUNT> captureTimes{};
++            std::array<uint64_t, CAM_COUNT> acceptanceIds{};
+             {
+                 QMutexLocker lock(&latest.mutex);
+                 for (int i = 0; i < CAM_COUNT; i++)
+@@ -930,6 +939,7 @@
+                     captureTimes[i] = latest.lastCapturedMs[i];
+                     if (monotonicMs() - captureTimes[i] > 1000) camFps[i] = 0;
+                     camGen[i] = latest.camGen[i];
++                    acceptanceIds[i] = latest.acceptanceIds[i];
+                 }
+                 for (int i = 0; i < CAM_COUNT; ++i)
+                     if (have[i]) cameraPixels[i] = latest.c[i];
+@@ -993,6 +1003,7 @@
+                 fpsVec.append(camFps[i]);
+             DisplayFrame display{{}, displayGeneration, paneMask, pane, changedMask, fps, fpsVec, false};
+             display.cameraPixels = cameraPixels;
++            display.acceptanceFrameIds = acceptanceIds;
+             std::copy(camGen, camGen + CAM_COUNT, display.cameraSequences.begin());
+             display.capturedMs = captureTimes;
+             {
+@@ -1330,12 +1341,15 @@
+             ModelInfo info;
+             QByteArray bytes;
+             rknn_context context = 0;
++            std::shared_ptr<HardwareInference> native;
+             uint32_t outputs = 0;
+             // Fixed-shape attributes and descriptor storage belong to this context.
+             std::vector<rknn_tensor_attr> attrs;
+             std::vector<rknn_output> outs;
+         };
+         QVector<CachedModel> cache;
++        const QByteArray ioEnv = qgetenv("DETVIEW_RKNN_IO").trimmed();
++        const QByteArray requestedIo = ioEnv.isEmpty() ? QByteArray("legacy") : ioEnv;
+         InferencePreprocessor preprocessor;
+         int next = 0;
+         /* 诊断（DET_BENCH）：每秒统计“等帧时间”与“单次运行时间”，判断推理线程是否被饿着 */
+@@ -1373,7 +1387,10 @@
+                 diagWaitMs += QDateTime::currentMSecsSinceEpoch() - waitStart;
+ 
+             if (reload) {
+-                for (CachedModel &old : cache) rknn_destroy(old.context);
++                for (CachedModel &old : cache) {
++                    if (old.native) old.native.reset();
++                    else if (old.context) rknn_destroy(old.context);
++                }
+                 cache.clear();
+                 next = 0;
+                 for (const ModelInfo &info : selected) {
+@@ -1419,6 +1436,34 @@
+                         continue;
+                     item.outs.resize(item.outputs);
+                     resetOutputs(item.outs);
++                    const QByteArray modelSha = QCryptographicHash::hash(item.bytes, QCryptographicHash::Sha256).toHex();
++                    std::string ioReason = "legacy_requested";
++                    if (requestedIo == "native") {
++                        if (modelSha != "21451a51f680ececd9ee75bcbb4db3e4ccee05d210ef9ffef2f1b99da61a8b31" ||
++                            info.lane || info.nc != 3) {
++                            ioReason = "model_not_eligible_for_pinned_raw_DFL_adapter";
++                        } else if (qEnvironmentVariableIsSet("DET_INT8_IN")) {
++                            ioReason = "DET_INT8_IN_requires_legacy_input_semantics";
++                        } else {
++                            item.native = HardwareInference::create(item.bytes.constData(),
++                                static_cast<size_t>(item.bytes.size()), item.attrs,
++                                true, ioReason);
++                            if (item.native) {
++                                rknn_destroy(item.context);
++                                item.context = item.native->context();
++                            }
++                        }
++                    } else if (requestedIo == "native_output") {
++                        ioReason = "native_output_only_not_certified_target_runtime";
++                    } else if (requestedIo != "legacy") {
++                        ioReason = "unknown_DETVIEW_RKNN_IO_value";
++                    }
++                    fprintf(stderr, "[rknn-io] model=%s sha256=%s requested=%s actual=%s status=%s hardware_parity=unverified dequant_scale=%s reason=%s\n",
++                            qPrintable(info.path), modelSha.constData(), requestedIo.constData(),
++                            item.native ? "native" : "legacy",
++                            item.native ? "experimental" : "baseline",
++                            item.native ? "fp16" : "runtime_float_outputs",
++                            ioReason.c_str());
+                     cache.append(std::move(item));
+                     emit modelLoaded(info.path, true, QString("%1 outputs cached").arg(ioNum.n_output));
+                 }
+@@ -1437,8 +1482,35 @@
+                 if (diag) preprocessingTimer.start();
+                 const QImage* prepared = preprocessor.prepare(frame);
+                 const double preprocessingMs = diag ? preprocessingTimer.nsecsElapsed() / 1e6 : 0;
+-                const bool successful = prepared && runOnce(*prepared, item.info.path, sourceGeneration, frameId,
+-                                                           preprocessingMs, item.attrs, item.outs);
++                const bool successful = item.context && prepared && runOnce(*prepared, item.info.path, sourceGeneration, frameId,
++                    preprocessingMs, item.attrs, item.native ? item.native->outputs() : item.outs, item.native.get());
++                viewerAcceptance().inference(successful);
++                if (!successful && item.native) {
++                    // Retire a failed native context at a quiescent frame boundary.
++                    // Never rebind it, rerun the failed frame, or count fallback as success.
++                    const std::string nativeError = item.native->error();
++                    item.native.reset();
++                    item.context = 0;
++                    bool restored = rknn_init(&item.context, item.bytes.data(),
++                        static_cast<uint32_t>(item.bytes.size()), 0, nullptr) == 0;
++                    rknn_input_output_num restoredIo{};
++                    restored = restored && rknn_query(item.context, RKNN_QUERY_IN_OUT_NUM, &restoredIo, sizeof(restoredIo)) == 0 &&
++                        restoredIo.n_input == 1 && restoredIo.n_output == item.outputs;
++                    for (size_t i = 0; restored && i < item.attrs.size(); ++i) {
++                        rknn_tensor_attr attr{}; attr.index = static_cast<uint32_t>(i);
++                        restored = rknn_query(item.context, RKNN_QUERY_OUTPUT_ATTR, &attr, sizeof(attr)) == 0 &&
++                            HardwareInference::sameLogical(attr, item.attrs[i]);
++                    }
++                    if (!restored) {
++                        if (item.context) rknn_destroy(item.context);
++                        item.context = 0;
++                    }
++                    resetOutputs(item.outs);
++                    m_ctx = 0;
++                    fprintf(stderr, "[rknn-io] model=%s actual=%s reason=native_frame_failed detail=%s\n",
++                        qPrintable(item.info.path), restored ? "legacy" : "unavailable",
++                        nativeError.empty() ? "preprocessing_or_RKNN_run_failed" : nativeError.c_str());
++                }
+                 if (successful) ++successfulRuns;
+                 else {
+                     ++failedRuns;
+@@ -1451,6 +1523,7 @@
+                 }
+             } else if (hadPending) {
+                 ++failedRuns;
++                viewerAcceptance().inference(false);
+                 emit inferenceFailed(sourceGeneration, frameId);
+             }
+             const qint64 inferenceNow = monotonicMs();
+@@ -1477,7 +1550,10 @@
+                 diagTimer.restart();
+             }
+         }
+-        for (CachedModel &item : cache) rknn_destroy(item.context);
++        for (CachedModel &item : cache) {
++            if (item.native) item.native.reset();
++            else if (item.context) rknn_destroy(item.context);
++        }
+         m_ctx = 0;
+     }
+ 
+@@ -1517,7 +1593,7 @@
+ 
+     bool runOnce(const QImage &src, const QString &modelPath, int sourceGeneration, quint64 frameId,
+                  double preprocessingMs, const std::vector<rknn_tensor_attr> &attrs,
+-                 std::vector<rknn_output> &outs) {
++                 std::vector<rknn_output> &outs, HardwareInference *native) {
+         /* DET_BENCH 分段计时：定位应用内比纯 NPU 慢在哪一段
+            prep=输入拷贝, set=rknn_inputs_set, run=NPU, get=输出反量化,
+             query=0 (fixed-shape attributes cached at model load), decode=DFL+NMS,
+@@ -1563,17 +1639,24 @@
+         input.fmt = RKNN_TENSOR_NHWC;
+         QElapsedTimer timer;
+         timer.start();
+-        if (rknn_inputs_set(m_ctx, 1, &input) != 0)
++        if (native) {
++            if (!native->writeInput(input.buf, input.size)) return false;
++        } else if (rknn_inputs_set(m_ctx, 1, &input) != 0) {
+             return false;
++        }
+         if (bench) markLap(lap, tSet);
+         if (rknn_run(m_ctx, nullptr) != 0)
+             return false;
+         if (bench) markLap(lap, tRun);
+-        resetOutputs(outs);
+-        if (rknn_outputs_get(m_ctx, m_nOutput, outs.data(), nullptr) != 0) {
+-            // Preserve the existing failed-get release policy; retain no returned pointer.
++        if (native) {
++            if (!native->readOutputs()) return false;
++        } else {
+             resetOutputs(outs);
+-            return false;
++            if (rknn_outputs_get(m_ctx, m_nOutput, outs.data(), nullptr) != 0) {
++                // Preserve the existing failed-get release policy; retain no returned pointer.
++                resetOutputs(outs);
++                return false;
++            }
+         }
+         if (bench) markLap(lap, tGet);
+         // tQuery stays zero: no per-frame query or artificial timing lap.
+@@ -1584,8 +1667,10 @@
+         else
+             dets = decode(outs, attrs);
+         if (bench) markLap(lap, tDecode);
+-        rknn_outputs_release(m_ctx, m_nOutput, outs.data());
+-        resetOutputs(outs);
++        if (!native) {
++            rknn_outputs_release(m_ctx, m_nOutput, outs.data());
++            resetOutputs(outs);
++        }
+         if (bench) markLap(lap, tRel);
+         const double ms = timer.nsecsElapsed() / 1e6;
+         const int completed = ++m_completed[modelPath];
+@@ -1963,6 +2048,7 @@
+ public:
+     DetView() {
+         setTitle("detview");
++        viewerAcceptance().report();
+         fprintf(stderr, "[gpu-hud] enabled=%d\n", int(m_gpuHud));
+         fprintf(stderr, "[hud-upload] batch=%d call_bytes=%lld max_extra_percent=25\n",
+                 int(m_hudBatch), static_cast<long long>(m_hudCallPixels * 4));
+@@ -1979,6 +2065,7 @@
+         connect(this, &QOpenGLWindow::frameSwapped, this, [this] {
+             if (m_presentationEnabled) m_presentation.swapped(m_presentationClock.nsecsElapsed());
+             if (m_perfEnabled) ++m_perf.swaps;
++            viewerAcceptance().swapped(m_acceptancePaints);
+         });
+         m_textureRing = qEnvironmentVariableIsSet("DETVIEW_TEXTURE_RING") ?
+             qBound(1, qEnvironmentVariableIntValue("DETVIEW_TEXTURE_RING"), kTextureRing) : 1;
+@@ -2078,6 +2165,7 @@
+     void submitCameras(const CameraThread::DisplayFrame& frame) {
+         if (m_videoMode || m_paneMask != frame.paneMask || m_pane != frame.pane) m_overlayUpdatedMs = 0;
+         m_cameraPixels = frame.cameraPixels;
++        m_acceptanceFrameIds = frame.acceptanceFrameIds;
+         m_paneMask = frame.paneMask;
+         m_pane = frame.pane;
+         m_dispFps = frame.fps;
+@@ -2158,6 +2246,7 @@
+         if (expired || periodic) update();
+     }
+     void reportPerformance() {
++        viewerAcceptance().report();
+         if (m_presentationEnabled) reportPresentation();
+         if (!m_perfEnabled) return;
+         const qint64 now = monotonicMs();
+@@ -2357,6 +2446,7 @@
+     }
+ 
+     void paintGL() override {
++        m_acceptancePaints.beginPaint();
+         // First local / last destructor: includes every return path, after the
+         // existing paint counters, with no GL flush, finish or extra repaint.
+         struct PresentationPaintScope {
+@@ -2466,6 +2556,7 @@
+                                             GL_UNSIGNED_SHORT_5_6_5, m_cameraPixels[c].constData());
+                         }
+                         m_cameraTextureSlot[c] = slot;
++                        m_acceptanceUploadedIds[c] = m_acceptanceFrameIds[c];
+                         if (m_perfEnabled) {
+                             ++m_perf.cameraUploads[c]; m_perf.cameraUploadBytes[c] += FRAME_BYTES;
+                             const qint64 uploadedAt = monotonicMs();
+@@ -2520,6 +2611,8 @@
+                 setVertices(verts, camera);
+                 glBindTexture(GL_TEXTURE_2D, m_cameraTextures[camera][m_cameraTextureSlot[camera]]);
+                 glDrawArrays(GL_TRIANGLE_STRIP, camera * 4, 4);
++                m_acceptancePaints.drawn(camera, m_acceptanceUploadedIds[camera],
++                    m_cameraTextureAllocated[camera][m_cameraTextureSlot[camera]]);
+             };
+             if (videoMode) {
+                 const GLfloat verts[] = {
+@@ -3269,6 +3362,8 @@
+     double m_dispFps = 0;
+     QVector<double> m_camFps = QVector<double>(CAM_COUNT, 0.0);
+     std::array<uint64_t, CAM_COUNT> m_sequences{}, m_uploadedSequences{};
++    std::array<uint64_t, CAM_COUNT> m_acceptanceFrameIds{}, m_acceptanceUploadedIds{};
++    viewer_acceptance::PaintIdentities m_acceptancePaints;
+     std::array<qint64, CAM_COUNT> m_capturedMs{};
+     std::array<tdm::FrameRate, CAM_COUNT> m_cameraUploadRates;
+     quint64 m_videoSequence = 0, m_uploadedVideoSequence = 0;

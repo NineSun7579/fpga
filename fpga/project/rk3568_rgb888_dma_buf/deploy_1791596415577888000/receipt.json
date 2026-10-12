@@ -1,0 +1,206 @@
+{
+  "schema": 1,
+  "remote": "/userdata/linaro/ov56401-deploy-1791596415577888000",
+  "artifacts": {
+    "image_sha256": "81eb0c05b40eff2887f1b81770fece6beafedc25f77fd1bbfbebe487e9dbb192",
+    "rollback_sha256": "fcb2e44d5b97d9857e72610d543300e747dcc4a822e8797bbf5d5418ddd01122",
+    "module_sha256": "2631405b7bb1f8f0cabb5e219fbbef85ca72def7b4077f2dce16a53c6161462c",
+    "active_sha256": "73613d525541939ea493a9bb87eeeae10879c4a08eede36a7ee298777fb32100",
+    "helper_sha256": "9db6d63b4917ecfd29d827c5b33767c3d714bbece3b3958e9b3dba9315a108ab",
+    "entry_sha256": "a6870ab363f61096d78fd02ab8f225f9545465a98f81a00b424095bc6e7da36a",
+    "flash_helper_sha256": "dee0037d3ae5c6a27cee99f7a54a7ffe23546b821c10c929afd8ee01861f5006"
+  },
+  "arguments": {
+    "deploy": true,
+    "restore": null,
+    "execute": true,
+    "viewer_remote": "/userdata/linaro/ov56401-rgb888-viewer_build_1791595611134983200/detview_scheme2_candidate",
+    "module_remote": "/userdata/linaro/ov56401-rgb888-driver_build_1791563854046563100/pango_zc.ko",
+    "viewer_sha256": "0135f65beaff3c93bf62bb0a00133810e80a6dc40a47d3be16129a0b127c6545",
+    "baseline_owner_pid": 2141,
+    "feature_env": "DETVIEW_FPGA_INFER_RGB",
+    "verify": true,
+    "verify_env": "DETVIEW_FPGA_INFER_VERIFY",
+    "env_json": "{}",
+    "viewer_args_json": null,
+    "seconds": null
+  },
+  "phase": "candidate_running",
+  "history": [
+    {
+      "phase": "preflight",
+      "time_ns": 1791596416367136500
+    },
+    {
+      "phase": "original_backed_up",
+      "time_ns": 1791596420842184900
+    },
+    {
+      "phase": "stopping_baseline",
+      "time_ns": 1791596421786420800
+    },
+    {
+      "phase": "stopping_baseline",
+      "time_ns": 1791596424046458500
+    },
+    {
+      "phase": "baseline_retired",
+      "time_ns": 1791596477656301600
+    },
+    {
+      "phase": "removing_pci",
+      "time_ns": 1791596478833333900
+    },
+    {
+      "phase": "pci_removed",
+      "time_ns": 1791596479596114800
+    },
+    {
+      "phase": "programming_candidate",
+      "time_ns": 1791596480174942600
+    },
+    {
+      "phase": "unloading_original",
+      "time_ns": 1791596504384105100
+    },
+    {
+      "phase": "inserting_candidate",
+      "time_ns": 1791596505020838800
+    },
+    {
+      "phase": "candidate_running",
+      "time_ns": 1791596507102899800
+    },
+    {
+      "phase": "parity_retired",
+      "time_ns": 1791596540093566500
+    },
+    {
+      "phase": "candidate_running",
+      "time_ns": 1791596629830552200
+    }
+  ],
+  "baseline": {
+    "identity": {
+      "pid": 2141,
+      "starttime": "8829",
+      "sha256": "73613d525541939ea493a9bb87eeeae10879c4a08eede36a7ee298777fb32100",
+      "exe": "/userdata/detview-hdmifull/detview-hdmifull"
+    },
+    "argv": [
+      "/userdata/detview-hdmifull/detview-hdmifull",
+      "--model",
+      "MVP_accuracy_round1",
+      "--fullscreen"
+    ],
+    "env": {
+      "SHELL": "/bin/bash",
+      "SUDO_GID": "1000",
+      "SUDO_COMMAND": "/usr/bin/bash -c python3 -c 'REMOTE='\"'\"'/userdata/linaro/ov56401-original-resume-1791567539336861500'\"'\"'\n\nimport os,hashlib,subprocess,json\nexe='\"'\"'/userdata/detview-hdmifull/detview-hdmifull'\"'\"'\nassert open('\"'\"'/proc/sys/kernel/random/boot_id'\"'\"').read().strip()=='\"'\"'644568c5-2252-4240-87b0-d0810cbc4131'\"'\"','\"'\"'Boot changed; SRAM recovery required'\"'\"'\nassert hashlib.sha256(open(exe,'\"'\"'rb'\"'\"').read()).hexdigest()=='\"'\"'73613d525541939ea493a9bb87eeeae10879c4a08eede36a7ee298777fb32100'\"'\"'\nowners=subprocess.run(['\"'\"'fuser'\"'\"','\"'\"'/dev/pango_pci_driver'\"'\"'],stdout=subprocess.PIPE,stderr=subprocess.PIPE)\nassert owners.returncode==1 and not owners.stdout.strip(), '\"'\"'Device owner exists'\"'\"'\nassert open('\"'\"'/sys/module/pango_zc/refcnt'\"'\"').read().strip()=='\"'\"'0'\"'\"'\nos.makedirs(REMOTE+'\"'\"'/tmp'\"'\"')\nenv=dict(os.environ,DISPLAY='\"'\"':0'\"'\"',XAUTHORITY='\"'\"'/home/linaro/.Xauthority'\"'\"',TMPDIR=REMOTE+'\"'\"'/tmp'\"'\"',XDG_RUNTIME_DIR='\"'\"'/run/user/1000'\"'\"')\nfor key in ('\"'\"'DETVIEW_FPGA_INFER_RGB'\"'\"','\"'\"'DETVIEW_FPGA_INFER_VERIFY'\"'\"'):env.pop(key,None)\nlog=open(REMOTE+'\"'\"'/original.log'\"'\"','\"'\"'wb'\"'\"')\nprocess=subprocess.Popen([exe,'\"'\"'--model'\"'\"','\"'\"'MVP_accuracy_round1'\"'\"','\"'\"'--fullscreen'\"'\"'],cwd='\"'\"'/userdata/detview-hdmifull'\"'\"',env=env,stdin=subprocess.DEVNULL,stdout=log,stderr=subprocess.STDOUT,start_new_session=True)\nprint(json.dumps({'\"'\"'pid'\"'\"':process.pid,'\"'\"'remote'\"'\"':REMOTE,'\"'\"'scope'\"'\"':'\"'\"'unchanged original runtime restart; no programming or module swap'\"'\"'}))\n'",
+      "SUDO_USER": "linaro",
+      "PWD": "/home/linaro",
+      "LOGNAME": "root",
+      "HOME": "/root",
+      "LANG": "zh_CN.UTF-8",
+      "TERM": "unknown",
+      "USER": "root",
+      "SHLVL": "0",
+      "PATH": "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+      "SUDO_UID": "1000",
+      "MAIL": "/var/mail/root",
+      "_": "/usr/bin/python3",
+      "DISPLAY": ":0",
+      "XAUTHORITY": "/var/run/lightdm/root/:0",
+      "TMPDIR": "/userdata/linaro/ov56401-reboot-original-1791596335152960998/tmp",
+      "XDG_RUNTIME_DIR": "/run/user/1000"
+    },
+    "uid": 0,
+    "gid": 0,
+    "groups": [
+      0
+    ],
+    "cwd": "/userdata/detview-hdmifull",
+    "boot_id": "9fe7f65c-aadd-4e7e-baf9-6c44b06283e6"
+  },
+  "original_module": {
+    "module": "/userdata/linaro/ov56401-deploy-1791596415577888000/original-pango_zc.ko",
+    "sha256": "4506c0f7c3a3c6fb14315a03488ed2a9ec608a42eef7466a0c951983e91106f6"
+  },
+  "module_compatibility": {
+    "vermagic": "6.1.99 SMP mod_unload aarch64",
+    "kernel_release": "6.1.99"
+  },
+  "failure": "Remote stop failed: Traceback (most recent call last):\n  File \"/userdata/linaro/ov56401-deploy-1791596415577888000/deploy_remote_helper.py\", line 369, in <module>\n    print(json.dumps(dispatch(json.loads(sys.argv[1]))))\n                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/userdata/linaro/ov56401-deploy-1791596415577888000/deploy_remote_helper.py\", line 345, in dispatch\n    if action == 'stop': return stop(q)\n                                ^^^^^^^\n  File \"/userdata/linaro/ov56401-deploy-1791596415577888000/deploy_remote_helper.py\", line 159, in stop\n    check(not Path('/proc', str(expected['pid'])).exists(), 'PID reused; preserve state')\n  File \"/userdata/linaro/ov56401-deploy-1791596415577888000/deploy_remote_helper.py\", line 33, in check\n    raise RuntimeError(message)\nRuntimeError: PID reused; preserve state\n",
+  "candidate": {
+    "identity": {
+      "pid": 3188,
+      "starttime": "29554",
+      "sha256": "0135f65beaff3c93bf62bb0a00133810e80a6dc40a47d3be16129a0b127c6545",
+      "exe": "/userdata/linaro/ov56401-rgb888-viewer_build_1791595611134983200/detview_scheme2_candidate"
+    },
+    "env": {
+      "SHELL": "/bin/bash",
+      "SUDO_GID": "1000",
+      "SUDO_COMMAND": "/usr/bin/bash -c python3 -c 'REMOTE='\"'\"'/userdata/linaro/ov56401-original-resume-1791567539336861500'\"'\"'\n\nimport os,hashlib,subprocess,json\nexe='\"'\"'/userdata/detview-hdmifull/detview-hdmifull'\"'\"'\nassert open('\"'\"'/proc/sys/kernel/random/boot_id'\"'\"').read().strip()=='\"'\"'644568c5-2252-4240-87b0-d0810cbc4131'\"'\"','\"'\"'Boot changed; SRAM recovery required'\"'\"'\nassert hashlib.sha256(open(exe,'\"'\"'rb'\"'\"').read()).hexdigest()=='\"'\"'73613d525541939ea493a9bb87eeeae10879c4a08eede36a7ee298777fb32100'\"'\"'\nowners=subprocess.run(['\"'\"'fuser'\"'\"','\"'\"'/dev/pango_pci_driver'\"'\"'],stdout=subprocess.PIPE,stderr=subprocess.PIPE)\nassert owners.returncode==1 and not owners.stdout.strip(), '\"'\"'Device owner exists'\"'\"'\nassert open('\"'\"'/sys/module/pango_zc/refcnt'\"'\"').read().strip()=='\"'\"'0'\"'\"'\nos.makedirs(REMOTE+'\"'\"'/tmp'\"'\"')\nenv=dict(os.environ,DISPLAY='\"'\"':0'\"'\"',XAUTHORITY='\"'\"'/home/linaro/.Xauthority'\"'\"',TMPDIR=REMOTE+'\"'\"'/tmp'\"'\"',XDG_RUNTIME_DIR='\"'\"'/run/user/1000'\"'\"')\nfor key in ('\"'\"'DETVIEW_FPGA_INFER_RGB'\"'\"','\"'\"'DETVIEW_FPGA_INFER_VERIFY'\"'\"'):env.pop(key,None)\nlog=open(REMOTE+'\"'\"'/original.log'\"'\"','\"'\"'wb'\"'\"')\nprocess=subprocess.Popen([exe,'\"'\"'--model'\"'\"','\"'\"'MVP_accuracy_round1'\"'\"','\"'\"'--fullscreen'\"'\"'],cwd='\"'\"'/userdata/detview-hdmifull'\"'\"',env=env,stdin=subprocess.DEVNULL,stdout=log,stderr=subprocess.STDOUT,start_new_session=True)\nprint(json.dumps({'\"'\"'pid'\"'\"':process.pid,'\"'\"'remote'\"'\"':REMOTE,'\"'\"'scope'\"'\"':'\"'\"'unchanged original runtime restart; no programming or module swap'\"'\"'}))\n'",
+      "SUDO_USER": "linaro",
+      "PWD": "/home/linaro",
+      "LOGNAME": "root",
+      "HOME": "/root",
+      "LANG": "zh_CN.UTF-8",
+      "TERM": "unknown",
+      "USER": "root",
+      "SHLVL": "0",
+      "PATH": "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+      "SUDO_UID": "1000",
+      "MAIL": "/var/mail/root",
+      "_": "/usr/bin/python3",
+      "DISPLAY": ":0",
+      "XAUTHORITY": "/var/run/lightdm/root/:0",
+      "TMPDIR": "/userdata/linaro/ov56401-reboot-original-1791596335152960998/tmp",
+      "XDG_RUNTIME_DIR": "/run/user/1000",
+      "DETVIEW_FPGA_INFER_RGB": "1"
+    },
+    "config": "/userdata/linaro/ov56401-deploy-1791596415577888000/candidate.launch.json",
+    "log": "/userdata/linaro/ov56401-deploy-1791596415577888000/candidate.viewer.log",
+    "supervisor_log": "/userdata/linaro/ov56401-deploy-1791596415577888000/candidate.supervisor.log",
+    "identity_file": "/userdata/linaro/ov56401-deploy-1791596415577888000/candidate.identity.json",
+    "status": "/userdata/linaro/ov56401-deploy-1791596415577888000/candidate.exit.json"
+  },
+  "parity_candidate": {
+    "identity": {
+      "pid": 2976,
+      "starttime": "26141",
+      "sha256": "0135f65beaff3c93bf62bb0a00133810e80a6dc40a47d3be16129a0b127c6545",
+      "exe": "/userdata/linaro/ov56401-rgb888-viewer_build_1791595611134983200/detview_scheme2_candidate"
+    },
+    "env": {
+      "SHELL": "/bin/bash",
+      "SUDO_GID": "1000",
+      "SUDO_COMMAND": "/usr/bin/bash -c python3 -c 'REMOTE='\"'\"'/userdata/linaro/ov56401-original-resume-1791567539336861500'\"'\"'\n\nimport os,hashlib,subprocess,json\nexe='\"'\"'/userdata/detview-hdmifull/detview-hdmifull'\"'\"'\nassert open('\"'\"'/proc/sys/kernel/random/boot_id'\"'\"').read().strip()=='\"'\"'644568c5-2252-4240-87b0-d0810cbc4131'\"'\"','\"'\"'Boot changed; SRAM recovery required'\"'\"'\nassert hashlib.sha256(open(exe,'\"'\"'rb'\"'\"').read()).hexdigest()=='\"'\"'73613d525541939ea493a9bb87eeeae10879c4a08eede36a7ee298777fb32100'\"'\"'\nowners=subprocess.run(['\"'\"'fuser'\"'\"','\"'\"'/dev/pango_pci_driver'\"'\"'],stdout=subprocess.PIPE,stderr=subprocess.PIPE)\nassert owners.returncode==1 and not owners.stdout.strip(), '\"'\"'Device owner exists'\"'\"'\nassert open('\"'\"'/sys/module/pango_zc/refcnt'\"'\"').read().strip()=='\"'\"'0'\"'\"'\nos.makedirs(REMOTE+'\"'\"'/tmp'\"'\"')\nenv=dict(os.environ,DISPLAY='\"'\"':0'\"'\"',XAUTHORITY='\"'\"'/home/linaro/.Xauthority'\"'\"',TMPDIR=REMOTE+'\"'\"'/tmp'\"'\"',XDG_RUNTIME_DIR='\"'\"'/run/user/1000'\"'\"')\nfor key in ('\"'\"'DETVIEW_FPGA_INFER_RGB'\"'\"','\"'\"'DETVIEW_FPGA_INFER_VERIFY'\"'\"'):env.pop(key,None)\nlog=open(REMOTE+'\"'\"'/original.log'\"'\"','\"'\"'wb'\"'\"')\nprocess=subprocess.Popen([exe,'\"'\"'--model'\"'\"','\"'\"'MVP_accuracy_round1'\"'\"','\"'\"'--fullscreen'\"'\"'],cwd='\"'\"'/userdata/detview-hdmifull'\"'\"',env=env,stdin=subprocess.DEVNULL,stdout=log,stderr=subprocess.STDOUT,start_new_session=True)\nprint(json.dumps({'\"'\"'pid'\"'\"':process.pid,'\"'\"'remote'\"'\"':REMOTE,'\"'\"'scope'\"'\"':'\"'\"'unchanged original runtime restart; no programming or module swap'\"'\"'}))\n'",
+      "SUDO_USER": "linaro",
+      "PWD": "/home/linaro",
+      "LOGNAME": "root",
+      "HOME": "/root",
+      "LANG": "zh_CN.UTF-8",
+      "TERM": "unknown",
+      "USER": "root",
+      "SHLVL": "0",
+      "PATH": "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+      "SUDO_UID": "1000",
+      "MAIL": "/var/mail/root",
+      "_": "/usr/bin/python3",
+      "DISPLAY": ":0",
+      "XAUTHORITY": "/var/run/lightdm/root/:0",
+      "TMPDIR": "/userdata/linaro/ov56401-reboot-original-1791596335152960998/tmp",
+      "XDG_RUNTIME_DIR": "/run/user/1000",
+      "DETVIEW_FPGA_INFER_RGB": "1",
+      "DETVIEW_FPGA_INFER_VERIFY": "1"
+    },
+    "config": "/userdata/linaro/ov56401-deploy-1791596415577888000/candidate.launch.json",
+    "log": "/userdata/linaro/ov56401-deploy-1791596415577888000/candidate.viewer.log",
+    "supervisor_log": "/userdata/linaro/ov56401-deploy-1791596415577888000/candidate.supervisor.log",
+    "identity_file": "/userdata/linaro/ov56401-deploy-1791596415577888000/candidate.identity.json",
+    "status": "/userdata/linaro/ov56401-deploy-1791596415577888000/candidate.exit.json"
+  },
+  "performance_mode": true
+}

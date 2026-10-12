@@ -1,0 +1,207 @@
+[
+  {
+    "old": "module ov5640 #(",
+    "new": "module v7_sdt_binding #(",
+    "matches": 1
+  },
+  {
+    "old": ")(\n",
+    "new": ")(\n    output wire diag_clk,\n    output wire diag_reset,\n    output wire diag_raw_vsync,\n    output wire diag_raw_href,\n    output wire diag_raw_byte_accept,\n    output wire diag_capture_vsync,\n    output wire diag_capture_valid,\n",
+    "matches": 1
+  },
+  {
+    "old": "endmodule",
+    "new": "\nassign diag_clk = cam_pclk;\nassign diag_reset = !ov_rst_n | !cam_rst_n;\nassign diag_raw_vsync = capture_vsync;\nassign diag_raw_href = cam_href;\nassign diag_raw_byte_accept = cam_href;\nassign diag_capture_vsync = cmos_frame_vsync_r;\nassign diag_capture_valid = cmos_frame_valid_r;\nendmodule",
+    "matches": 1
+  },
+  {
+    "old": "module ov5640_top #(",
+    "new": "module v7_sdt_camera #(",
+    "matches": 1
+  },
+  {
+    "old": ")(\r\n",
+    "new": ")(\r\n    output wire diag_clk,\n    output wire diag_reset,\n    output wire diag_raw_vsync,\n    output wire diag_raw_href,\n    output wire diag_raw_byte_accept,\n    output wire diag_capture_vsync,\n    output wire diag_capture_valid,\n",
+    "matches": 1
+  },
+  {
+    "old": "ov5640 #(",
+    "new": "v7_sdt_binding #(",
+    "matches": 1
+  },
+  {
+    "old": ".ov_rst_n",
+    "new": ".diag_clk(diag_clk),\n        .diag_reset(diag_reset),\n        .diag_raw_vsync(diag_raw_vsync),\n        .diag_raw_href(diag_raw_href),\n        .diag_raw_byte_accept(diag_raw_byte_accept),\n        .diag_capture_vsync(diag_capture_vsync),\n        .diag_capture_valid(diag_capture_valid),\n        .ov_rst_n",
+    "matches": 1
+  },
+  {
+    "old": "module fpga_v8_cooperative_top_v2_rfg01 #(",
+    "new": "module v7_sdt_top #(",
+    "matches": 1
+  },
+  {
+    "old": "ov5640_top #(",
+    "new": "v7_sdt_camera #(",
+    "matches": 4
+  },
+  {
+    "old": ".motion_record(cam1_motion_record)",
+    "new": ".diag_clk(diag_clk[0]),\n    .diag_reset(diag_reset[0]),\n    .diag_raw_vsync(diag_raw_vsync[0]),\n    .diag_raw_href(diag_raw_href[0]),\n    .diag_raw_byte_accept(diag_raw_byte_accept[0]),\n    .diag_capture_vsync(diag_capture_vsync[0]),\n    .diag_capture_valid(diag_capture_valid[0]),\n    .motion_record(cam1_motion_record)",
+    "matches": 1
+  },
+  {
+    "old": ".motion_record(cam2_motion_record)",
+    "new": ".diag_clk(diag_clk[1]),\n    .diag_reset(diag_reset[1]),\n    .diag_raw_vsync(diag_raw_vsync[1]),\n    .diag_raw_href(diag_raw_href[1]),\n    .diag_raw_byte_accept(diag_raw_byte_accept[1]),\n    .diag_capture_vsync(diag_capture_vsync[1]),\n    .diag_capture_valid(diag_capture_valid[1]),\n    .motion_record(cam2_motion_record)",
+    "matches": 1
+  },
+  {
+    "old": ".motion_record(cam3_motion_record)",
+    "new": ".diag_clk(diag_clk[2]),\n    .diag_reset(diag_reset[2]),\n    .diag_raw_vsync(diag_raw_vsync[2]),\n    .diag_raw_href(diag_raw_href[2]),\n    .diag_raw_byte_accept(diag_raw_byte_accept[2]),\n    .diag_capture_vsync(diag_capture_vsync[2]),\n    .diag_capture_valid(diag_capture_valid[2]),\n    .motion_record(cam3_motion_record)",
+    "matches": 1
+  },
+  {
+    "old": ".motion_record(cam4_motion_record)",
+    "new": ".diag_clk(diag_clk[3]),\n    .diag_reset(diag_reset[3]),\n    .diag_raw_vsync(diag_raw_vsync[3]),\n    .diag_raw_href(diag_raw_href[3]),\n    .diag_raw_byte_accept(diag_raw_byte_accept[3]),\n    .diag_capture_vsync(diag_capture_vsync[3]),\n    .diag_capture_valid(diag_capture_valid[3]),\n    .motion_record(cam4_motion_record)",
+    "matches": 1
+  },
+  {
+    "old": "ovreg_axil_awvalid)",
+    "new": "diag_legacy_awvalid)",
+    "matches": 1
+  },
+  {
+    "old": "ovreg_axil_awready)",
+    "new": "diag_legacy_awready)",
+    "matches": 1
+  },
+  {
+    "old": "ovreg_axil_awaddr)",
+    "new": "diag_legacy_awaddr)",
+    "matches": 1
+  },
+  {
+    "old": "ovreg_axil_wvalid)",
+    "new": "diag_legacy_wvalid)",
+    "matches": 1
+  },
+  {
+    "old": "ovreg_axil_wready)",
+    "new": "diag_legacy_wready)",
+    "matches": 1
+  },
+  {
+    "old": "ovreg_axil_wdata)",
+    "new": "diag_legacy_wdata)",
+    "matches": 1
+  },
+  {
+    "old": "ovreg_axil_wstrb)",
+    "new": "diag_legacy_wstrb)",
+    "matches": 1
+  },
+  {
+    "old": "ovreg_axil_bvalid)",
+    "new": "diag_legacy_bvalid)",
+    "matches": 1
+  },
+  {
+    "old": "ovreg_axil_bready)",
+    "new": "diag_legacy_bready)",
+    "matches": 1
+  },
+  {
+    "old": "ovreg_axil_bresp)",
+    "new": "diag_legacy_bresp)",
+    "matches": 1
+  },
+  {
+    "old": "ovreg_axil_arvalid)",
+    "new": "diag_legacy_arvalid)",
+    "matches": 1
+  },
+  {
+    "old": "ovreg_axil_arready)",
+    "new": "diag_legacy_arready)",
+    "matches": 1
+  },
+  {
+    "old": "ovreg_axil_araddr)",
+    "new": "diag_legacy_araddr)",
+    "matches": 1
+  },
+  {
+    "old": "ovreg_axil_rvalid)",
+    "new": "diag_legacy_rvalid)",
+    "matches": 1
+  },
+  {
+    "old": "ovreg_axil_rready)",
+    "new": "diag_legacy_rready)",
+    "matches": 1
+  },
+  {
+    "old": "ovreg_axil_rdata)",
+    "new": "diag_legacy_rdata)",
+    "matches": 1
+  },
+  {
+    "old": "ovreg_axil_rresp)",
+    "new": "diag_legacy_rresp)",
+    "matches": 1
+  },
+  {
+    "old": "ovreg_axil_decode_tc01 ovreg_axil_decode_u (",
+    "new": "wire [3:0] diag_clk;\nwire [3:0] diag_reset;\nwire [3:0] diag_raw_vsync;\nwire [3:0] diag_raw_href;\nwire [3:0] diag_raw_byte_accept;\nwire [3:0] diag_capture_vsync;\nwire [3:0] diag_capture_valid;\nwire diag_legacy_awvalid;\nwire diag_legacy_awready;\nwire [31:0] diag_legacy_awaddr;\nwire diag_legacy_wvalid;\nwire diag_legacy_wready;\nwire [31:0] diag_legacy_wdata;\nwire [3:0] diag_legacy_wstrb;\nwire diag_legacy_bvalid;\nwire diag_legacy_bready;\nwire [1:0] diag_legacy_bresp;\nwire diag_legacy_arvalid;\nwire diag_legacy_arready;\nwire [31:0] diag_legacy_araddr;\nwire diag_legacy_rvalid;\nwire diag_legacy_rready;\nwire [31:0] diag_legacy_rdata;\nwire [1:0] diag_legacy_rresp;\nv7_sdb source_diagnostics (.clk(axi_clk), .rst(axi_rst),\n.cam_clk(diag_clk),.cam_reset(diag_reset),.raw_vsync(diag_raw_vsync),.raw_href(diag_raw_href),.raw_byte_accept(diag_raw_byte_accept),.capture_vsync(diag_capture_vsync),.capture_valid(diag_capture_valid),\n.s_awvalid(ovreg_axil_awvalid), .m_awvalid(diag_legacy_awvalid),.s_awready(ovreg_axil_awready), .m_awready(diag_legacy_awready),.s_awaddr(ovreg_axil_awaddr), .m_awaddr(diag_legacy_awaddr),.s_wvalid(ovreg_axil_wvalid), .m_wvalid(diag_legacy_wvalid),.s_wready(ovreg_axil_wready), .m_wready(diag_legacy_wready),.s_wdata(ovreg_axil_wdata), .m_wdata(diag_legacy_wdata),.s_wstrb(ovreg_axil_wstrb), .m_wstrb(diag_legacy_wstrb),.s_bvalid(ovreg_axil_bvalid), .m_bvalid(diag_legacy_bvalid),.s_bready(ovreg_axil_bready), .m_bready(diag_legacy_bready),.s_bresp(ovreg_axil_bresp), .m_bresp(diag_legacy_bresp),.s_arvalid(ovreg_axil_arvalid), .m_arvalid(diag_legacy_arvalid),.s_arready(ovreg_axil_arready), .m_arready(diag_legacy_arready),.s_araddr(ovreg_axil_araddr), .m_araddr(diag_legacy_araddr),.s_rvalid(ovreg_axil_rvalid), .m_rvalid(diag_legacy_rvalid),.s_rready(ovreg_axil_rready), .m_rready(diag_legacy_rready),.s_rdata(ovreg_axil_rdata), .m_rdata(diag_legacy_rdata),.s_rresp(ovreg_axil_rresp), .m_rresp(diag_legacy_rresp));\n\novreg_axil_decode_tc01 ovreg_axil_decode_u (",
+    "matches": 1
+  },
+  {
+    "old": "v7_sdb source_diagnostics",
+    "new": "v7_sdt_bus source_diagnostics",
+    "matches": 1
+  },
+  {
+    "old": ".s00_axi_awlen  (pcie_axi_awlen  )",
+    "new": ".s00_axi_awlen({4'b0000, pcie_axi_awlen})",
+    "matches": 1
+  },
+  {
+    "old": ".s00_axi_arlen   (pcie_axi_arlen  )",
+    "new": ".s00_axi_arlen({4'b0000, pcie_axi_arlen})",
+    "matches": 1
+  },
+  {
+    "old": ".m00_axi_bid     (                               )",
+    "new": ".m00_axi_bid     ({AXI_ID_M_LEN{1'b0}})",
+    "matches": 1
+  },
+  {
+    "old": ".m00_axi_bresp   (                               )",
+    "new": ".m00_axi_bresp   (2'b00)",
+    "matches": 1
+  },
+  {
+    "old": ".m00_axi_buser   (                               )",
+    "new": ".m00_axi_buser   (1'b0)",
+    "matches": 1
+  },
+  {
+    "old": ".m00_axi_bvalid  (                               )",
+    "new": ".m00_axi_bvalid  (1'b0)",
+    "matches": 1
+  },
+  {
+    "old": "module v7_sdb (",
+    "new": "module v7_sdt_bus (",
+    "matches": 1
+  },
+  {
+    "old": "// Never forward W ahead of AW: old decoder routes W using AW selection.",
+    "new": "// Offer AW and W together: frozen CAM requires simultaneous valid.\n // Decoder uses live AW route while AWVALID, saved route after AW handshake.",
+    "matches": 1
+  },
+  {
+    "old": "assign m_wvalid=ah && wh && !hit(wa) && wasent && !wdsent && !s_bvalid;",
+    "new": "assign m_wvalid=ah && wh && !hit(wa) && !wdsent && !s_bvalid;",
+    "matches": 1
+  }
+]

@@ -1,0 +1,39 @@
+sudo -n python3 - <<'TRIAL07_READONLY'
+"""Read-only Linux snapshot; never open DMA device or BAR resources."""
+from pathlib import Path
+import subprocess, json, datetime, hashlib, os, stat
+def utc(): return datetime.datetime.now(datetime.timezone.utc).isoformat()
+def rd(path):
+    try: return Path(path).read_text().strip()
+    except OSError as e: return {'error':str(e)}
+def command(argv):
+    start=utc()
+    p=subprocess.run(argv,capture_output=True,timeout=40)
+    return dict(argv=argv,started_utc=start,ended_utc=utc(),rc=p.returncode,stdout=p.stdout.decode(errors='replace'),stderr=p.stderr.decode(errors='replace'),stdout_sha256=hashlib.sha256(p.stdout).hexdigest(),stderr_sha256=hashlib.sha256(p.stderr).hexdigest())
+pci=[]
+for p in sorted(Path('/sys/bus/pci/devices').glob('*')):
+    pci.append(dict(bdf=p.name,realpath=str(p.resolve()),parent=p.resolve().parent.name,driver=str((p/'driver').resolve()) if (p/'driver').exists() else None,attributes={n:rd(p/n) for n in ('vendor','device','class','enable','current_link_speed','current_link_width')}))
+producer=Path('/userdata/detview-driving-demo/detview-driving-demo')
+nodes=[]
+for p in sorted(Path('/dev').glob('*pango*'))+sorted(Path('/dev').glob('*xdma*')):
+    s=p.stat(); nodes.append(dict(path=str(p),mode=oct(stat.S_IMODE(s.st_mode)),major=os.major(s.st_rdev),minor=os.minor(s.st_rdev)))
+processes=[];holders=[];errors=[]
+targets={p.stat().st_rdev for p in Path('/dev').glob('*pango*') if stat.S_ISCHR(p.stat().st_mode)}
+for p in Path('/proc').iterdir():
+    if not p.name.isdigit():continue
+    try:
+        comm=(p/'comm').read_text().strip()
+        if any(x in comm.lower() for x in ('detview','viewer','camview')):processes.append(dict(pid=p.name,comm=comm,exe=os.readlink(p/'exe'),stat=rd(p/'stat')))
+        for fd in (p/'fd').iterdir():
+            try:
+                s=fd.stat()
+                if stat.S_ISCHR(s.st_mode) and s.st_rdev in targets:holders.append(dict(pid=p.name,fd=fd.name,link=os.readlink(fd)))
+            except FileNotFoundError:pass
+        maps=(p/'maps').read_text()
+        if '/dev/pango' in maps or '/dev/xdma' in maps:holders.append(dict(pid=p.name,mapping=True))
+    except FileNotFoundError:pass
+    except OSError as e:errors.append(dict(pid=p.name,error=str(e)))
+result=dict(utc=utc(),boot_id=rd('/proc/sys/kernel/random/boot_id'),uptime=rd('/proc/uptime'),pci=pci,pci_roots=[str(p) for p in Path('/sys/devices').glob('**/pci????:??')],pci_buses=[p.name for p in Path('/sys/class/pci_bus').glob('*')],driver_nodes=nodes,modules=rd('/proc/modules'),pango_drivers=[str(p) for p in Path('/sys/bus/pci/drivers').glob('*pango*')],admission_mode=oct(stat.S_IMODE(producer.stat().st_mode)),admission_sha256=hashlib.sha256(producer.read_bytes()).hexdigest(),admission_ledger=rd('/var/lib/fpga-recovery-actual06/admission.json'),processes=processes,holders=holders,scan_errors=errors,commands=[command(['lspci','-nnvv']),command(['lspci','-t']),command(['dmesg'])],device_opened=False,bar_opened=False)
+print(json.dumps(result,indent=2))
+
+TRIAL07_READONLY

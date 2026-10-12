@@ -1,0 +1,330 @@
+[
+  {
+    "name": "ADS_Synthesis_User_Guide.htm",
+    "saved_file": "help_0.html",
+    "hits": [
+      {
+        "term": "dev_map",
+        "context": "df  文件合并传递至布局布线阶段。  \n\n  因为子层  adf  在综合时是作为黑盒使用，故此时无法得知子层  adf  中的  object  信息，故无法在  fdc  文件中对子层  adf  中的  object  做约束；  dev_map  阶段时载入子层   adf  时，会将子层  adf  中的时序约束信息清空  (top module  不受影响  )  ；故引入  scf  文件来对子层  adf  做时序约束；同样的引入  lcf  文件来对子层  adf  做位置约束和属性约束；  scf  和  lcf  文件中编写约束时，约束规则和  fdc  文件中是一致的，值得注意的是约束时  object  的层级结构与子层  adf  综合前的层级结构一致，故若要在  scf  或  lcf  文件中对子层  adf  做约束，需要知道约束对象综合前的层级结构。  \n\n  目前还不支持在  UCE  中直接对子层  adf  中的  object  做约束后保存到  scf  和  lcf  文件中，同样的打开  UCE  时也不能识别  scf  和  lcf  文件中的约束。若要在  scf  和  lcf "
+      },
+      {
+        "term": "dev_map",
+        "context": "  ，如下图  \n\n     \n\n   图 \n  5  ‑  26     应用  syn_noprune  属性  \n\n  注意： \n syn_noprune   只能将  inst  保持到综合阶段，若该  inst  没有连接，在  dev_map  还是会被优化。  \n\n  \n \n\n  &nbsp;  \n\n   5.15       syn_preserve   \n\n          该属性用于控制是否保留在综合过程中被优化的  sequential\n(registers).   \n\n   syn_preserve Values   \n\n \n\n \n \n \n   Global   \n \n \n   Object   \n \n \n \n \n  No  \n \n \n  module, port, register  \n \n \n \n\n \n\n  &nbsp;  \n\n \n\n \n \n \n   属性值   \n \n \n   作用   \n \n \n \n \n  0  \n \n \n  不保留在综合过程中被优化的  registers  \n \n \n \n \n  1  \n \n \n  保留在综合过程中被优化的  registers  \n \n \n \n\n \n\n   Synta"
+      },
+      {
+        "term": "syn_noprune",
+        "context": "          GTP_DFF #(.INIT(1'b1))  \n\n                     t2 (.CLK(CLK), .D(register[i]), .Q(register[i+1]))/*\nsynthesis syn_noprune=1 */;  \n\n              end  \n\n       endgenerate  \n\n  &nbsp;  \n\n       assign result = register[N-1];  \n\n  &nbsp;  \n\n  endmodule  \n\n  如范例中未使用该属性前，  Compile  报错，提示循环超限，如下图  \n\n     \n\n   图 \n  5  ‑  21     未应用  syn_looplimit   属性  \n\n          应用了  syn_looplimit = 4000  之后，可综合成功，如下图  \n\n     \n\n   图 \n  5  ‑  22     应用  syn_looplimit   属性  \n\n  \n \n\n  &nbsp;  \n\n   5.13       syn_maxfan   \n\n  设置  fanout  最大"
+      },
+      {
+        "term": "syn_noprune",
+        "context": "置位信号上是无效的。  \n\n  syn_maxfan  在  attribute  上设置的值的优先级是高于  option  中的  Fanout Guide  值。  \n\n  \n \n\n  &nbsp;  \n\n   5.14       syn_noprune   \n\n  该属性用于指定不要删除的  instance.  \n\n  对带有  syn_noprune  属性的  instance  ，综合工具不会对被约束的对象做优化，即使它的输入都悬空，或者输出没有驱动任何其他单元。  \n\n   syn_noprune Values   \n\n \n\n \n \n \n   Global   \n \n \n   Object   \n \n \n \n \n  No  \n \n \n  module, instance, register  \n \n \n \n\n \n\n  &nbsp;  \n\n \n\n \n \n \n   属性值   \n \n \n   作用   \n \n \n \n \n  0  \n \n \n  不保留在综合过程中被删除的  instance  \n \n \n \n \n  1  \n \n \n  保留在综合过程中被删除的  instance  \n \n \n \n\n \n\n   Syntax Spec"
+      },
+      {
+        "term": "syn_noprune",
+        "context": "高于  option  中的  Fanout Guide  值。  \n\n  \n \n\n  &nbsp;  \n\n   5.14       syn_noprune   \n\n  该属性用于指定不要删除的  instance.  \n\n  对带有  syn_noprune  属性的  instance  ，综合工具不会对被约束的对象做优化，即使它的输入都悬空，或者输出没有驱动任何其他单元。  \n\n   syn_noprune Values   \n\n \n\n \n \n \n   Global   \n \n \n   Object   \n \n \n \n \n  No  \n \n \n  module, instance, register  \n \n \n \n\n \n\n  &nbsp;  \n\n \n\n \n \n \n   属性值   \n \n \n   作用   \n \n \n \n \n  0  \n \n \n  不保留在综合过程中被删除的  instance  \n \n \n \n \n  1  \n \n \n  保留在综合过程中被删除的  instance  \n \n \n \n\n \n\n   Syntax Specification   \n\n \n\n \n \n \n  verilog  \n \n \n  object /* s"
+      },
+      {
+        "term": "syn_noprune",
+        "context": "e   \n\n  该属性用于指定不要删除的  instance.  \n\n  对带有  syn_noprune  属性的  instance  ，综合工具不会对被约束的对象做优化，即使它的输入都悬空，或者输出没有驱动任何其他单元。  \n\n   syn_noprune Values   \n\n \n\n \n \n \n   Global   \n \n \n   Object   \n \n \n \n \n  No  \n \n \n  module, instance, register  \n \n \n \n\n \n\n  &nbsp;  \n\n \n\n \n \n \n   属性值   \n \n \n   作用   \n \n \n \n \n  0  \n \n \n  不保留在综合过程中被删除的  instance  \n \n \n \n \n  1  \n \n \n  保留在综合过程中被删除的  instance  \n \n \n \n\n \n\n   Syntax Specification   \n\n \n\n \n \n \n  verilog  \n \n \n  object /* synthesis syn_noprune\n= value */;  \n \n \n \n\n \n\n   Verilog Example   \n\n        mo"
+      },
+      {
+        "term": "syn_noprune",
+        "context": "1  \n \n \n  保留在综合过程中被删除的  instance  \n \n \n \n\n \n\n   Syntax Specification   \n\n \n\n \n \n \n  verilog  \n \n \n  object /* synthesis syn_noprune\n= value */;  \n \n \n \n\n \n\n   Verilog Example   \n\n        module syn_noprune_1_ins\n(input a, b, output c);  \n\n       assign c=b;  \n\n       sub i1 (a);  \n\n  endmodule  \n\n  &nbsp;  \n\n  module sub (input a);  \n\n       leaf i2 (a,)  /* synthesis syn_noprune=1*/ ;  \n\n  endmodule  \n\n  &nbsp;  \n\n  module leaf (input a, output b) ;  \n\n       assign b = a;  \n\n  endmodule  \n\n  如范例中未使用该属性前，综合后的网表中不会保留在综合过程中被删除"
+      },
+      {
+        "term": "syn_noprune",
+        "context": "\n\n \n \n \n  verilog  \n \n \n  object /* synthesis syn_noprune\n= value */;  \n \n \n \n\n \n\n   Verilog Example   \n\n        module syn_noprune_1_ins\n(input a, b, output c);  \n\n       assign c=b;  \n\n       sub i1 (a);  \n\n  endmodule  \n\n  &nbsp;  \n\n  module sub (input a);  \n\n       leaf i2 (a,)  /* synthesis syn_noprune=1*/ ;  \n\n  endmodule  \n\n  &nbsp;  \n\n  module leaf (input a, output b) ;  \n\n       assign b = a;  \n\n  endmodule  \n\n  如范例中未使用该属性前，综合后的网表中不会保留在综合过程中被删除的  instance(leaf)  ，如下图  \n\n     \n\n   图 \n  5  ‑  25     未应用  syn_noprune  属"
+      },
+      {
+        "term": "syn_noprune",
+        "context": "n c=b;  \n\n       sub i1 (a);  \n\n  endmodule  \n\n  &nbsp;  \n\n  module sub (input a);  \n\n       leaf i2 (a,)  /* synthesis syn_noprune=1*/ ;  \n\n  endmodule  \n\n  &nbsp;  \n\n  module leaf (input a, output b) ;  \n\n       assign b = a;  \n\n  endmodule  \n\n  如范例中未使用该属性前，综合后的网表中不会保留在综合过程中被删除的  instance(leaf)  ，如下图  \n\n     \n\n   图 \n  5  ‑  25     未应用  syn_noprune  属性  \n\n          应用了  syn_noprune=1  之后，综合后的网表中会保留在综合过程中被删除的  instance(leaf)  ，如下图  \n\n     \n\n   图 \n  5  ‑  26     应用  syn_noprune  属性  \n\n  注意： \n syn_noprune   只能将  inst  保持到综合阶段，若"
+      },
+      {
+        "term": "syn_noprune",
+        "context": " b = a;  \n\n  endmodule  \n\n  如范例中未使用该属性前，综合后的网表中不会保留在综合过程中被删除的  instance(leaf)  ，如下图  \n\n     \n\n   图 \n  5  ‑  25     未应用  syn_noprune  属性  \n\n          应用了  syn_noprune=1  之后，综合后的网表中会保留在综合过程中被删除的  instance(leaf)  ，如下图  \n\n     \n\n   图 \n  5  ‑  26     应用  syn_noprune  属性  \n\n  注意： \n syn_noprune   只能将  inst  保持到综合阶段，若该  inst  没有连接，在  dev_map  还是会被优化。  \n\n  \n \n\n  &nbsp;  \n\n   5.15       syn_preserve   \n\n          该属性用于控制是否保留在综合过程中被优化的  sequential\n(registers).   \n\n   syn_preserve Values   \n\n \n\n \n \n \n   Global   \n \n \n   Object   \n \n \n \n "
+      },
+      {
+        "term": "packing",
+        "context": "/Titan2/Titan3  系列  。设置为非选中状态则不进行  LUT  的  pack  。默认为打开状态，  Logos2/Titan2/Titan3  系列外默认为置灰状态。与  shell  命令的   –enable_prepacking  功能等价。  \n\n  Automatic Read/Write Check Insertion for RAM  ：与  shell  命令中的  -rw_check_on_ram  功能等价。  \n\n  说明：当前只有简单双端口  ram  触发了  transparent_write  模式后并勾选该选项后，会插入  bypass  逻辑，保证在同一个时钟周期内，读出去的数据就是写入的数据，避免出现仿真不一致。  \n\n  Resource Sharing  ：  Resource Sharing  开关。默认是打开状态，对算数运算实现资源共享，主要是对加法（减法）运算和乘法运算进行资源共享。资源合并后可优化面积，但可能会降低时序。设置为非选中状态不进行资源共享。与  shell  命令的  -resource_sharing  功能等价。  \n\n  \nPipelining  ：  "
+      },
+      {
+        "term": "packing",
+        "context": "h  属性，不需要参数  \n \n \n \n \n  -disable_io_insertion  \n \n \n  Disable I/O Insertion  ，  switch  属性，不需要参数  \n \n \n \n \n  -enable_prepacking  \n \n \n  LUT6D pack  开关，  switch  属性，不需要参数  \n \n \n \n \n  -resource_sharing  \n \n \n  Resource Sharing  开关。  option  后的参数可设置为  true/false  ，设置为  true  时，进行资源共享，设置为  false  时，不进行资源共享  \n \n \n \n \n  -min_controlset_size  \n \n \n  调整具有同一控制端口的  FF  的最小值，  option  后的值为整型变量  \n \n \n \n \n  -retiming  \n \n \n  Retiming  开关，可在综合中通过移动寄存器的方式优化时序，  switch  属性，不需要参数  \n \n \n \n \n  --pipelining  \n \n \n  Pipelining  开关，可在综合中通过移动寄存"
+      },
+      {
+        "term": "preserve",
+        "context": " &nbsp;\n   syn  _  looplimit     \n\n  Ø &nbsp;\n   syn  _  keep  \n\n  Ø &nbsp;\n   syn  _  noprune  \n\n  Ø &nbsp;\n   syn  _  preserve  \n\n  用户通过  fdc  文件设定  attribute  ，设定方式如下：  \n\n  define_attribute &lt;ObjectName&gt; &lt;AttributeName&gt; &lt;AttributeValue&gt;  \n\n  用户在  HDL  源文件中设定  attribute   ，设定方式如下：  \n\n  (Verilog-1995 meta-comments)  \n\n  /*synthesis &lt;AttributeName&gt; = &lt;AttributeValue&gt; */  \n\n  或者   (Verilog-2001 attribute)  \n\n  (* &lt;AttributeName&gt; = &lt;AttributeValue&gt; *)  \n\n  以下是  ADS  支持的  Synthesis Att"
+      },
+      {
+        "term": "preserve",
+        "context": "性  \n\n  注意： \n syn_noprune   只能将  inst  保持到综合阶段，若该  inst  没有连接，在  dev_map  还是会被优化。  \n\n  \n \n\n  &nbsp;  \n\n   5.15       syn_preserve   \n\n          该属性用于控制是否保留在综合过程中被优化的  sequential\n(registers).   \n\n   syn_preserve Values   \n\n \n\n \n \n \n   Global   \n \n \n   Object   \n \n \n \n \n  No  \n \n \n  module, port, register  \n \n \n \n\n \n\n  &nbsp;  \n\n \n\n \n \n \n   属性值   \n \n \n   作用   \n \n \n \n \n  0  \n \n \n  不保留在综合过程中被优化的  registers  \n \n \n \n \n  1  \n \n \n  保留在综合过程中被优化的  registers  \n \n \n \n\n \n\n   Syntax Specification   \n\n \n\n \n \n \n  verilog  \n \n \n  object /* "
+      },
+      {
+        "term": "preserve",
+        "context": " \n\n  \n \n\n  &nbsp;  \n\n   5.15       syn_preserve   \n\n          该属性用于控制是否保留在综合过程中被优化的  sequential\n(registers).   \n\n   syn_preserve Values   \n\n \n\n \n \n \n   Global   \n \n \n   Object   \n \n \n \n \n  No  \n \n \n  module, port, register  \n \n \n \n\n \n\n  &nbsp;  \n\n \n\n \n \n \n   属性值   \n \n \n   作用   \n \n \n \n \n  0  \n \n \n  不保留在综合过程中被优化的  registers  \n \n \n \n \n  1  \n \n \n  保留在综合过程中被优化的  registers  \n \n \n \n\n \n\n   Syntax Specification   \n\n \n\n \n \n \n  verilog  \n \n \n  object /* synthesis syn_preserve\n= value */;  \n \n \n \n\n \n\n   Verilog Example   \n\n           "
+      },
+      {
+        "term": "preserve",
+        "context": "\n \n  保留在综合过程中被优化的  registers  \n \n \n \n\n \n\n   Syntax Specification   \n\n \n\n \n \n \n  verilog  \n \n \n  object /* synthesis syn_preserve\n= value */;  \n \n \n \n\n \n\n   Verilog Example   \n\n            module syn_preserve_1_reg (out1,out2, data, rst, clk);  \n\n       output [7:0] out1,out2;  \n\n       input [7:0] data;  \n\n       input rst,clk;  \n\n  &nbsp;  \n\n       reg [7:0] out1;  \n\n       reg [7:0] out2  /* synthesis syn_preserve=1\n*/ ;  \n\n  &nbsp;  \n\n       // create the 8-bit register  \n\n       always @(posedge clk or negedge rst )  \n"
+      },
+      {
+        "term": "preserve",
+        "context": " verilog  \n \n \n  object /* synthesis syn_preserve\n= value */;  \n \n \n \n\n \n\n   Verilog Example   \n\n            module syn_preserve_1_reg (out1,out2, data, rst, clk);  \n\n       output [7:0] out1,out2;  \n\n       input [7:0] data;  \n\n       input rst,clk;  \n\n  &nbsp;  \n\n       reg [7:0] out1;  \n\n       reg [7:0] out2  /* synthesis syn_preserve=1\n*/ ;  \n\n  &nbsp;  \n\n       // create the 8-bit register  \n\n       always @(posedge clk or negedge rst )  \n\n       begin  \n\n              if (!rst ) begin  \n\n                     out1 &l"
+      },
+      {
+        "term": "preserve",
+        "context": "t [7:0] data;  \n\n       input rst,clk;  \n\n  &nbsp;  \n\n       reg [7:0] out1;  \n\n       reg [7:0] out2  /* synthesis syn_preserve=1\n*/ ;  \n\n  &nbsp;  \n\n       // create the 8-bit register  \n\n       always @(posedge clk or negedge rst )  \n\n       begin  \n\n              if (!rst ) begin  \n\n                     out1 &lt;= 8'b0;  \n\n                     out2 &lt;= 8'b0;  \n\n              end  \n\n              else begin  \n\n                     out1 &lt;= data;  \n\n                     out2 &lt;= data;  \n\n              end  \n\n      "
+      },
+      {
+        "term": "preserve",
+        "context": "    endmodule  \n\n  如范例中未使用该属性前，综合后的网表中不会保留在综合过程中被优化的  register(out2[7:0])  ，如下图  \n\n     \n\n   图 \n  5  ‑  27     未应用  syn_preserve   属性  \n\n          应用了  syn_preserve=1  之后，综合后的网表中保留在综合过程中被优化的  register(out2[7:0])  ，如下图  \n\n     \n\n   图 \n  5  ‑  28     应用  syn_preserve   属性  \n\n   5.16       syn_ramstyle   \n\n          用于指定  inferred ram  的实现方式。  \n\n   syn_ramstyle Values   \n\n \n\n \n \n \n   Global   \n \n \n   Object   \n \n \n \n \n  Yes  \n \n \n  module, ram-signal  \n \n \n \n\n \n\n          \n\n \n\n \n \n \n   属性值   \n \n \n   作用   \n \n \n \n \n  block_ram "
+      },
+      {
+        "term": "preserve",
+        "context": "表中不会保留在综合过程中被优化的  register(out2[7:0])  ，如下图  \n\n     \n\n   图 \n  5  ‑  27     未应用  syn_preserve   属性  \n\n          应用了  syn_preserve=1  之后，综合后的网表中保留在综合过程中被优化的  register(out2[7:0])  ，如下图  \n\n     \n\n   图 \n  5  ‑  28     应用  syn_preserve   属性  \n\n   5.16       syn_ramstyle   \n\n          用于指定  inferred ram  的实现方式。  \n\n   syn_ramstyle Values   \n\n \n\n \n \n \n   Global   \n \n \n   Object   \n \n \n \n \n  Yes  \n \n \n  module, ram-signal  \n \n \n \n\n \n\n          \n\n \n\n \n \n \n   属性值   \n \n \n   作用   \n \n \n \n \n  block_ram  \n \n \n  指定  inferred RAM  可以  map  到"
+      }
+    ]
+  },
+  {
+    "name": "Pango_Design_Suite_Quick_Start_Tutorial.htm",
+    "saved_file": "help_1.html",
+    "hits": [
+      {
+        "term": "dev_map",
+        "context": "ap  ，点击  Process  菜单中的  Run  ；  \n\n  d. &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    在  Console  的  Tcl Console  窗口输入相应的  Tcl  命令  [dev_map]  后回车直接运行。  \n\n   完成以上操作，将会产生  add_map.adf   文件供下一步  Place &amp; Route  使用。将会看到如下图所示界面  :  \n\n     \n\n   图   \n  6  ‑  1  运行  Device\nMap  时的软件界面  \n\n \n\n  \n \n\n \n\n           7 &nbsp;&nbsp;&nbsp;&nbsp;    Place &amp; Route   \n\n  布局布线（  Place &amp; Route  ）根据用户约束和物理约束，对设计模块进行实际的布局及布线。  \n\n  运行  Place &amp; Route  流程有以下四种方式可以实现：  \n\n  a. &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    直接双击  Place &amp; Route  ；  \n\n "
+      }
+    ]
+  },
+  {
+    "name": "Pango_Design_Suite_User_Guide.htm",
+    "saved_file": "help_2.html",
+    "hits": [
+      {
+        "term": "dev_map",
+        "context": "具的情况下才可加载，里面记录的是与逻辑约束相关的信息，如设置属性。  Map  过后部分逻辑约束信息会转化为物理约束。  \n\n  Scf  格式文件：该格式文件里面记录的是  timing  相关的约束信息，有无综合工具均可添加，作用于  dev_map  阶段。  \n\n  Fdc  格式文件：该格式文件中包含时序和逻辑约束，是只有在使用了综合工具的情况下才可以使用。  \n\n       1) &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;\n   添加用户约束文件   \n\n  单击下图中红色按钮  \n\n     \n\n       图      2  ‑  77  添加约束文件  \n\n  或再下图中红色区域右键，点击  Add Source  菜单  \n\n     \n\n   图      2  ‑  78  右键菜单添加源文件  \n\n  出现如下界面：  \n\n  &nbsp;  \n\n     \n\n   图      2  ‑  79  添加源文件界面  \n\n  选择第三项  Add or create constraint\nsources  ，如下图：  \n\n     \n\n   图      2  ‑ "
+      },
+      {
+        "term": "dev_map",
+        "context": " Logos -device PGL50H\n-speedgrade -6 -package FBG484  \n\n  synthesize -ads -selected_syn_tool_opt 2\n-top_module add  \n\n  dev_map   \n\n  pnr   \n\n  report_timing   \n\n  gen_bit_stream  \n\n       5.3 &nbsp;&nbsp;&nbsp;    Shell   运行方式  \n\n  一、  pds  的  -file  参数可以以直接执行  tcl  脚本文件的方式来运行  PDS  软件，操作方式是在  DOS  界面键入：  \n\n  C:\\Users\\pango&gt;     C:\\pango\\PDS_2021.3\\bin\\pds.exe -file\nF:\\work\\project\\pds\\Adder\\Adder.tcl –work_dir C:\\work_dir –project_name test  \n\n  其中，  work_dir  和  project_name  是可选项。  Work_dir  指定工作目录，   project_name "
+      },
+      {
+        "term": "dev_map",
+        "context": "步骤。规则如下：  \n\n  -run compile                       运行到  Compile  \n\n  -run synthesize            运行到  Synthesize  \n\n  -run dev_map              运行到  Device\nMap  \n\n  -run pnr                              运行到  Place &amp; Route  \n\n  -run report_timing       运行到  Report\nTiming  \n\n  -run report_power       运行到  Report\nPower  \n\n  -run gen_netlist           运行到  Generate Netlist  \n\n  -run gen_bit_stream    运行到  Generate\nBit Stream  \n\n       5.4 &nbsp;&nbsp;&nbsp;    PDS   支持的命令  \n\n  语法：  command [OPTION]  …   [OPTION VALUE]  …  \n\n"
+      },
+      {
+        "term": "dev_map",
+        "context": "nst} device_name –no_check  \n\n  即命令中不会检查  inst  的名合法性，如果该  inst  存在，该命令就正常起作用，否则就会将该命令忽略  \n\n  【  export_fdc  】  :  用于将  dev_map  之后的  pcf  结果反标转换成  fdc  形式约束导出，可以指定导出的路径及文件命令  \n\n  export_fdc  –file  file_name.fdc  \n\n  此命令可支持  -no_log  ，缺省默认打印转换失败提示信息，若要关闭此打印信息  export_fdc  –file  file_name.fdc –no_log\ntrue  \n\n  &nbsp;  \n\n \n\n  \n \n\n \n\n                         6 &nbsp;&nbsp;&nbsp;&nbsp;    时序约束命令   \n\n                           6.1 &nbsp;&nbsp;&nbsp;    对象获取命令   \n\n  对象获取命令主要是用来辅助时序约束和时序报告命令，约束命令和报告命令中的  object  必须通过对象获取命令获取。获"
+      },
+      {
+        "term": "dev_map",
+        "context": ";&nbsp;&nbsp;    流程与工具软件的关系   \n\n  流程在运行时，不允许打开工具软件（已经打开的工具软件不受影响）。  \n\n  流程没有运行时，允许同时打开各工具软件，且保持其目前的流程依赖关系。如打开  PCE  时，  dev_map  及之前步骤要先运行完毕（如果打开  PCE  时没有运行至  map  ，流程会先运行至  map  ，再打开  PCE  ；打开  DE  时，  PnR  及之前步骤要先运行完毕，再打开  DE  ）。  \n\n  &nbsp;  \n\n \n\n  \n \n\n \n\n     9 &nbsp;&nbsp;&nbsp;&nbsp;\n   常用命令列表   \n\n       9.1 &nbsp;&nbsp;&nbsp;    add_constraint    指定约束文件  \n\n \n\n \n \n \n   选项   \n \n \n   &nbsp;   \n \n \n \n \n  -help  \n \n \n  打印帮助消息  \n \n \n \n \n  -copy  \n \n \n  拷贝指定的文件到本工程  \n \n \n \n \n  &nbsp;  \n \n \n  &nbsp;  \n \n \n \n \n   参数   \n \n "
+      },
+      {
+        "term": "dev_map",
+        "context": "clude  路径  \n \n \n \n \n  &nbsp;  \n \n \n  &nbsp;  \n \n \n \n\n \n\n   表      9  ‑  8   compile  \n\n       9.9 &nbsp;&nbsp;&nbsp;    dev_map    映射设计到架构  \n\n \n\n \n \n \n   选项   \n \n \n   &nbsp;   \n \n \n \n \n  -help  \n \n \n  打印帮助消息  \n \n \n \n \n  -packing_io  \n \n \n  设置  top module  的名字  \n \n \n \n \n  -detail  \n \n \n  设置工程的  include  路径  \n \n \n \n \n  -generate_inferred_clocks  \n \n \n  勾选后会对符合条件的  design  插入时钟  \n \n \n \n \n  -fanout  \n \n \n  在报告中只打印  fanout  大于该数值的  Net  或  port  对象  \n \n \n \n \n  -fanout_number  \n \n \n  在报告中打印的  fanout  数量大于  Min fanout  数值的  Net "
+      },
+      {
+        "term": "dev_map",
+        "context": "\n  -devmap_remove_dups  \n \n \n  该功能主要作用是将部分重复逻辑合并，属于面积优化选项。但是该操作同样会影响到综合阶段的复制工作，使时序性能下降。  \n \n \n \n\n \n\n   表      9  ‑  9   dev_map  \n\n       9.10 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;\n   gen_bit_stream    生成配置位流  \n\n \n\n \n \n \n   选项   \n \n \n   &nbsp;   \n \n \n \n \n  -help  \n \n \n  打印帮助消息  \n \n \n \n \n  -create_bit_file  \n \n \n  选择是否生成比特文件  \n \n \n \n \n  -create_bin_file  \n \n \n  选择是否生成无信息头的比特文件  \n \n \n \n \n  -compress_bitstream  \n \n \n  选择是否压缩位流文件  \n \n \n \n \n  -optimize_compress  \n \n \n  选择是否优化压缩位流  \n \n \n"
+      },
+      {
+        "term": "def_inst_site",
+        "context": "\n   管脚约束  \n\n   a.    编辑管脚约束文件   \n\n  管脚约束文件，能够很好地支持标准形式（不对管脚属性进行设置）约束，而管脚属性（可选项）进行设置功能也逐步完善。管脚约束有两种格式，包括  def_port  命令和  def_inst_site  命令，且两者仅是格式头（  def_port  和  def_inst_site  ）不一样，其余格式均一样。  \n\n  def_port  命令  \n\n  def_port port_name LOC=pin_loc   \n\n  [IOSTANDARD=io_standard_name]   \n\n  [SLEW=SLOW/FAST]   \n\n  [DRIVE=2/4/6/8/12/16/24]   \n\n  [PULLDOWN=TRUE/FALSE]   \n\n  [PULLUP=TRUE/FALSE]   \n\n  [KEEPER=TRUE/FALSE]   \n\n  [IODELAY=NONE/BOTH/IBUF/IFD]   \n\n  其中  port_name  是  (design  中  )  要被约束的  IO  端口的名字；  pin_loc  是芯片上的一个  pin  脚资"
+      },
+      {
+        "term": "def_inst_site",
+        "context": "，能够很好地支持标准形式（不对管脚属性进行设置）约束，而管脚属性（可选项）进行设置功能也逐步完善。管脚约束有两种格式，包括  def_port  命令和  def_inst_site  命令，且两者仅是格式头（  def_port  和  def_inst_site  ）不一样，其余格式均一样。  \n\n  def_port  命令  \n\n  def_port port_name LOC=pin_loc   \n\n  [IOSTANDARD=io_standard_name]   \n\n  [SLEW=SLOW/FAST]   \n\n  [DRIVE=2/4/6/8/12/16/24]   \n\n  [PULLDOWN=TRUE/FALSE]   \n\n  [PULLUP=TRUE/FALSE]   \n\n  [KEEPER=TRUE/FALSE]   \n\n  [IODELAY=NONE/BOTH/IBUF/IFD]   \n\n  其中  port_name  是  (design  中  )  要被约束的  IO  端口的名字；  pin_loc  是芯片上的一个  pin  脚资源位置；  io_standard_name  是各种端口标准的名字；  SLEW "
+      },
+      {
+        "term": "def_inst_site",
+        "context": "口名称为  LED1  ，将其约束到  B17  的管脚上，并对其管脚属性进行设置。内容如下：  \n\n  def_port LED1 LOC=B17 IOSTANDARD=LVCMOS18\nSLEW=FAST DRIVE=16  \n\n   def_inst_site    命令   \n\n  def_inst_site port_name pin_loc  \n\n  其中  port_name  是  (design  中  )  要被约束的  IO  端口的名字；  pin_loc  是芯片上的一个  pin  脚资源位置，支持  IOB  、  PIN  、  PAD  三种描述方式；  \n\n  实例  1  ：  \n\n  一个  counter  的用户设计中，有个时钟输入端口名为  clkin  ，用  IOB  描述方式将其约束到  IOB_9_42  的管脚上。内容如下：  \n\n  def_inst_site clkin IOB_9_42  \n\n  实例  2  ：     \n\n  一个  counter  的用户设计中，有个时钟输入端口名为  clkin  ，用  PIN  描述方式将其约束到  P1  的管脚上。内容如下：  \n\n  de"
+      },
+      {
+        "term": "def_inst_site",
+        "context": "管脚上，并对其管脚属性进行设置。内容如下：  \n\n  def_port LED1 LOC=B17 IOSTANDARD=LVCMOS18\nSLEW=FAST DRIVE=16  \n\n   def_inst_site    命令   \n\n  def_inst_site port_name pin_loc  \n\n  其中  port_name  是  (design  中  )  要被约束的  IO  端口的名字；  pin_loc  是芯片上的一个  pin  脚资源位置，支持  IOB  、  PIN  、  PAD  三种描述方式；  \n\n  实例  1  ：  \n\n  一个  counter  的用户设计中，有个时钟输入端口名为  clkin  ，用  IOB  描述方式将其约束到  IOB_9_42  的管脚上。内容如下：  \n\n  def_inst_site clkin IOB_9_42  \n\n  实例  2  ：     \n\n  一个  counter  的用户设计中，有个时钟输入端口名为  clkin  ，用  PIN  描述方式将其约束到  P1  的管脚上。内容如下：  \n\n  def_inst_site clkin P1  \n\n  "
+      },
+      {
+        "term": "def_inst_site",
+        "context": "、  PAD  三种描述方式；  \n\n  实例  1  ：  \n\n  一个  counter  的用户设计中，有个时钟输入端口名为  clkin  ，用  IOB  描述方式将其约束到  IOB_9_42  的管脚上。内容如下：  \n\n  def_inst_site clkin IOB_9_42  \n\n  实例  2  ：     \n\n  一个  counter  的用户设计中，有个时钟输入端口名为  clkin  ，用  PIN  描述方式将其约束到  P1  的管脚上。内容如下：  \n\n  def_inst_site clkin P1  \n\n  实例  3  ：     \n\n  一个  counter  的用户设计中，有个时钟输入端口名为  clkin  ，用  PAD  描述方式将其约束到  PAD1  的管脚上。内容如下：  \n\n  def_inst_site clkin PAD1  \n\n   b.    图形操作生成管脚约束文件   \n\n  软件中提供了底层  IO  约束的功能模块  package  ，当软件运行完   map  后，已经得到了底层的映射网表，可以直接操作这些底层  IO  ，实现对底层的  IO  操作。  \n\n  软"
+      },
+      {
+        "term": "def_inst_site",
+        "context": "ite clkin IOB_9_42  \n\n  实例  2  ：     \n\n  一个  counter  的用户设计中，有个时钟输入端口名为  clkin  ，用  PIN  描述方式将其约束到  P1  的管脚上。内容如下：  \n\n  def_inst_site clkin P1  \n\n  实例  3  ：     \n\n  一个  counter  的用户设计中，有个时钟输入端口名为  clkin  ，用  PAD  描述方式将其约束到  PAD1  的管脚上。内容如下：  \n\n  def_inst_site clkin PAD1  \n\n   b.    图形操作生成管脚约束文件   \n\n  软件中提供了底层  IO  约束的功能模块  package  ，当软件运行完   map  后，已经得到了底层的映射网表，可以直接操作这些底层  IO  ，实现对底层的  IO  操作。  \n\n  软件中提供了图形化的管脚约束功能，   管脚约束可由  package view  或  floorplan view  、  I/O Table  和  Design Browser  共三类视图上操作完成，其中  I/O Table  视图可单独操作，而  "
+      },
+      {
+        "term": "def_inst_site",
+        "context": "st_site clkin P1  \n\n  实例  3  ：     \n\n  一个  counter  的用户设计中，有个时钟输入端口名为  clkin  ，用  PAD  描述方式将其约束到  PAD1  的管脚上。内容如下：  \n\n  def_inst_site clkin PAD1  \n\n   b.    图形操作生成管脚约束文件   \n\n  软件中提供了底层  IO  约束的功能模块  package  ，当软件运行完   map  后，已经得到了底层的映射网表，可以直接操作这些底层  IO  ，实现对底层的  IO  操作。  \n\n  软件中提供了图形化的管脚约束功能，   管脚约束可由  package view  或  floorplan view  、  I/O Table  和  Design Browser  共三类视图上操作完成，其中  I/O Table  视图可单独操作，而  package view  或  floorplan view  和  Design Browser  视图必须配合使用，两种方式的最终结果是一致的，只是约束的操作形式不一样而已。另外  package view  或  floorplan view "
+      },
+      {
+        "term": "def_inst_site",
+        "context": "bsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;\n   布局约束  \n\n   a.    编辑布局约束文件   \n\n  编辑布局约束文件一般应用  def_inst_site  命令，格式如下：  \n\n  命令格式   ：  def_inst_site inst_name\nsite_name [ impl_name ]  \n\n  其中  inst_name  是要被约束的设计实例的名字，若其中的设计实例为  IO  类型，则其和管脚约束一致（这也是管脚约束和布局约束的联系）；   site_name  是  FPGA  芯片中器件资源的名字，如  CLMA_74_14,\nMUL_71_22  等；  impl_name  是可选项，表示对应的设计实例必须使用的基本物理单元（如  CLMA  中的  FGA,FGB, FF1  等）。  \n\n  实例  1  ：  \n\n  假设  TempInst  是设计网表中一个类型为  LUT4  的实例，想把它放到  CLMA_77_38  上。则命令为：  \n\n     def_inst_site TempInst C"
+      },
+      {
+        "term": "packing",
+        "context": "\n  Device Map   的选项设置   如下图所示：  \n\n     \n\n         图      3  ‑  23     Device Map   的选项设置  \n\n  Device Map  配置选项：  \n\n  【  Packing\nIOs with Flip-Flops  】   设置在映射  IO  时是否加   Flip-Flops  。表示是否将与  IO  端口直接相连的  FFs Pack  到相对应的  IO  端口中。此  IO  端口输入输出模式可以是  input  、  output  、  inout  。默认不选中该选项，即  FF  不和  IO Pack  在一起。  \n\n  【  Generate\nDetailed Map Report(-detail)  】   设置是否在  map  的  report  文件中打印每一个  module  实例中的资源使用率。默认不选中该选项。  \n\n  【  Minimum\nFanout To Report  】   设置在  map report  中打印  net  的  fanout  数目的最小值，目前仅针对报告中  High Fano"
+      },
+      {
+        "term": "packing",
+        "context": "  \n\n  【  Placement\nLogic Optimization  】使能优化布局性能的布局逻辑优化开关。当勾选该选项时，程序将进行逻辑优化，当前逻辑优化仅包含  LUT6D pack  功能。该选项选中时，才能对  LUT6D Packing Strategy  选项进行操作。  \n\n  【  LUT6D\nPacking Strategy  】  LUT6D\npack  功能实现策略，布局阶段使用  LUT6D  合并符合条件的  LUT  ，降低  LUT  资源，设置值可选  [0,1,2,3]  表示不同的  pack  策略。针对  PG2T390H  和  PG2T390HX  器件在原有的功能策略基础上进行了时序方面的优化，其他器件未进行优化，保持之前的逻辑策略。  \n\n  [0]  ：关闭  LUT6D pack  功能；  \n\n  [1]  ：进行  LUT6D pack  （对性能有较大影响）  \n\n  [2]  ：进行  LUT6D pack  （对性能有较小影响）  \n\n  [3]  ：进行  LUT6D pack  ，  LUT  合并数量相对较多（对性能影响适中）  \n\n  【  Planning B"
+      },
+      {
+        "term": "packing",
+        "context": "使能优化布局性能的布局逻辑优化开关。当勾选该选项时，程序将进行逻辑优化，当前逻辑优化仅包含  LUT6D pack  功能。该选项选中时，才能对  LUT6D Packing Strategy  选项进行操作。  \n\n  【  LUT6D\nPacking Strategy  】  LUT6D\npack  功能实现策略，布局阶段使用  LUT6D  合并符合条件的  LUT  ，降低  LUT  资源，设置值可选  [0,1,2,3]  表示不同的  pack  策略。针对  PG2T390H  和  PG2T390HX  器件在原有的功能策略基础上进行了时序方面的优化，其他器件未进行优化，保持之前的逻辑策略。  \n\n  [0]  ：关闭  LUT6D pack  功能；  \n\n  [1]  ：进行  LUT6D pack  （对性能有较大影响）  \n\n  [2]  ：进行  LUT6D pack  （对性能有较小影响）  \n\n  [3]  ：进行  LUT6D pack  ，  LUT  合并数量相对较多（对性能影响适中）  \n\n  【  Planning Before Place  】开启该开关后可以在布局前进行模块级别的位置规划，可以"
+      },
+      {
+        "term": "packing",
+        "context": "×  \n \n \n \n \n  Placement Logic Optimization  \n \n \n  无该选项  \n \n \n  无该选项  \n \n \n  无该选项  \n \n \n  √  \n \n \n  √  \n \n \n \n \n  LUT6D Packing Strategy  \n \n \n  无该选项  \n \n \n  无该选项  \n \n \n  无该选项  \n \n \n  PG2L200H  ：  2  \n  其他：  3  \n \n \n  3  \n \n \n \n \n  Planning Before Place  \n \n \n  无该选项  \n \n \n  无该选项  \n \n \n  无该选项  \n \n \n  PG2L200H  ：√  \n  其他：×  \n \n \n  √  \n \n \n \n \n  Router  \n \n \n  Enable Fast Router  \n \n \n  √  \n \n \n  √  \n \n \n  无该选项  \n \n \n  无该选项  \n \n \n  无该选项  \n \n \n \n \n  Fast Router Mode  \n \n \n  Auto  \n \n \n  无该选项  \n \n \n  无该选项  \n \n \n  无该选项  \n \n \n  "
+      },
+      {
+        "term": "packing",
+        "context": "sp;&nbsp;&nbsp;    dev_map    映射设计到架构  \n\n \n\n \n \n \n   选项   \n \n \n   &nbsp;   \n \n \n \n \n  -help  \n \n \n  打印帮助消息  \n \n \n \n \n  -packing_io  \n \n \n  设置  top module  的名字  \n \n \n \n \n  -detail  \n \n \n  设置工程的  include  路径  \n \n \n \n \n  -generate_inferred_clocks  \n \n \n  勾选后会对符合条件的  design  插入时钟  \n \n \n \n \n  -fanout  \n \n \n  在报告中只打印  fanout  大于该数值的  Net  或  port  对象  \n \n \n \n \n  -fanout_number  \n \n \n  在报告中打印的  fanout  数量大于  Min fanout  数值的  Net  数量的上限  \n \n \n \n \n  -override_pcf  \n \n \n  重新运行时覆盖  pcf  文件  \n \n \n \n \n  -enable_timing_commands  \n \n \n "
+      },
+      {
+        "term": "packing",
+        "context": "  和  GTP_DDC  的端口  “PADT”  必须相连，且不能和其他  inst  相连  \n \n \n  按照提示修改相应的  GTP  连接  \n \n \n \n \n  DRC 0011  \n \n \n  该问题主要原因是存在不可以  Packing  的单元，如  GTP_IODELAY  和  GTP_IBUF  必须直接相连，如果不满足规则，则会导致  Packing  失败  \n \n \n  按照提示修改相应的  GTP  连接  \n \n \n \n \n  DRC 0012  \n \n \n  该问题主要原因是  DDR  存在不可以  Packing  的单元，如  GTP_IGDES7  和  GTP_IBUF  相连不正确，如果不满足规则，则会导致  Packing  失败  \n \n \n  按照提示修改相应的  GTP  连接  \n \n \n \n \n  DRC 0013  \n \n \n  该问题主要原因是软件内部问题，  DDR  上端口  DESCLK  和  DCC  的  SAMPLE_CLK  或者  PROBE_CLK  相连时，其参数  DESCLK_SRC  需要做相应的修改  \n \n \n  按照提示修改相应的  GTP"
+      },
+      {
+        "term": "packing",
+        "context": "相应的  GTP  连接  \n \n \n \n \n  DRC 0011  \n \n \n  该问题主要原因是存在不可以  Packing  的单元，如  GTP_IODELAY  和  GTP_IBUF  必须直接相连，如果不满足规则，则会导致  Packing  失败  \n \n \n  按照提示修改相应的  GTP  连接  \n \n \n \n \n  DRC 0012  \n \n \n  该问题主要原因是  DDR  存在不可以  Packing  的单元，如  GTP_IGDES7  和  GTP_IBUF  相连不正确，如果不满足规则，则会导致  Packing  失败  \n \n \n  按照提示修改相应的  GTP  连接  \n \n \n \n \n  DRC 0013  \n \n \n  该问题主要原因是软件内部问题，  DDR  上端口  DESCLK  和  DCC  的  SAMPLE_CLK  或者  PROBE_CLK  相连时，其参数  DESCLK_SRC  需要做相应的修改  \n \n \n  按照提示修改相应的  GTP  连接  \n \n \n \n \n  DRC 0014  \n \n \n  该问题主要原因是软件内部问题，  DDR  上端口  DE"
+      },
+      {
+        "term": "packing",
+        "context": "TP_IBUF  必须直接相连，如果不满足规则，则会导致  Packing  失败  \n \n \n  按照提示修改相应的  GTP  连接  \n \n \n \n \n  DRC 0012  \n \n \n  该问题主要原因是  DDR  存在不可以  Packing  的单元，如  GTP_IGDES7  和  GTP_IBUF  相连不正确，如果不满足规则，则会导致  Packing  失败  \n \n \n  按照提示修改相应的  GTP  连接  \n \n \n \n \n  DRC 0013  \n \n \n  该问题主要原因是软件内部问题，  DDR  上端口  DESCLK  和  DCC  的  SAMPLE_CLK  或者  PROBE_CLK  相连时，其参数  DESCLK_SRC  需要做相应的修改  \n \n \n  按照提示修改相应的  GTP  连接  \n \n \n \n \n  DRC 0014  \n \n \n  该问题主要原因是软件内部问题，  DDR  上端口  DESCLK  和  DCC  的  SAMPLE_CLK  或者  PROBE_CLK  相连时，其参数  DESCLK_SRC  需要做相应的修改  \n \n \n  &nbsp;  "
+      }
+    ]
+  },
+  {
+    "name": "Physical_Constraint_Editor_User_Guide.htm",
+    "saved_file": "help_3.html",
+    "hits": [
+      {
+        "term": "def_inst_site",
+        "context": "preserve     、  select  、  group  和  close  。  \n\n  &nbsp;  \n\n   4.13.1    约束相关  \n\n  (1) constraint  命令  \n\n  constraint\n-def_inst_site  -grid_dev_instance  [-prim_dev_instance]  \n\n  或者  \n\n  constraint  -def_inst_region   -region  \n\n  中括号内容表示可选设置项。  \n\n  示例：  \n\n  constraint\n-def_inst_site  aaa  -grid_dev_instance  CLMA_5_4  \n\n  constraint\n-def_inst_site  aaa  -grid_dev_instance  CLMA_5_4  FGA  \n\n  constraint   -def_inst_region   aaa  -region  region1  \n\n   (2)\nunconstraint  命令  \n\n  unconstraint –design_instance  \n\n  上面的这条命令用于取消约束。"
+      },
+      {
+        "term": "def_inst_site",
+        "context": "  [-prim_dev_instance]  \n\n  或者  \n\n  constraint  -def_inst_region   -region  \n\n  中括号内容表示可选设置项。  \n\n  示例：  \n\n  constraint\n-def_inst_site  aaa  -grid_dev_instance  CLMA_5_4  \n\n  constraint\n-def_inst_site  aaa  -grid_dev_instance  CLMA_5_4  FGA  \n\n  constraint   -def_inst_region   aaa  -region  region1  \n\n   (2)\nunconstraint  命令  \n\n  unconstraint –design_instance  \n\n  上面的这条命令用于取消约束。  \n\n  需要注意的是：若要将  design_instance  约束到  region  区域，必须在  Region Mode  下才能成功。如果  design_instance  名字中包含  ‘[’  和  ‘]’  字符，则需要使用  ‘{ }’  将整个  design_instance"
+      },
+      {
+        "term": "def_inst_site",
+        "context": " -region  \n\n  中括号内容表示可选设置项。  \n\n  示例：  \n\n  constraint\n-def_inst_site  aaa  -grid_dev_instance  CLMA_5_4  \n\n  constraint\n-def_inst_site  aaa  -grid_dev_instance  CLMA_5_4  FGA  \n\n  constraint   -def_inst_region   aaa  -region  region1  \n\n   (2)\nunconstraint  命令  \n\n  unconstraint –design_instance  \n\n  上面的这条命令用于取消约束。  \n\n  需要注意的是：若要将  design_instance  约束到  region  区域，必须在  Region Mode  下才能成功。如果  design_instance  名字中包含  ‘[’  和  ‘]’  字符，则需要使用  ‘{ }’  将整个  design_instance  名字括起来，多个  design_instance  名字之间使用  ‘;’  进行分割。  \n\n  &nbsp;  \n\n   "
+      },
+      {
+        "term": "preserve",
+        "context": " \n \n \n \n \n  Statstics  \n \n \n  显示 region 中各类型资源数量  \n \n \n \n \n  Instances  \n \n \n  显示约束在 region 中的 design inst   \n \n \n \n \n  preserve region  \n \n \n  Statstics  \n \n \n  显示 region 中各类型资源数量  \n \n \n \n \n  gate devcie\ninst  \n \n \n  General  \n \n \n  显示 name ，  unit  ， cell ， view ， site(x,y), （ x,y ）像素坐标  \n \n \n \n \n  prim device\ninst  \n \n \n  General  \n \n \n  显示 name ， parent,unit,cell   \n \n \n \n \n  inst  \n \n \n  General  \n \n \n  显示 Cell\nParamarters ， name ， unit ， cell ， view ， file ， connected ， pin out 信息  \n \n \n \n \n  nets  \n \n \n  显示该 module "
+      },
+      {
+        "term": "preserve",
+        "context": "项来控制各个等级的  bundle nets  是否显示。  \n\n     \n\n  图 \n 4  -  26     \nBundle net   设置  \n\n  &nbsp;  \n\n   4.6 &nbsp;&nbsp;&nbsp;    preserve   约束  \n\n     4.6.1    单个  Device  设置  preserve  \n\n  在  Floorplan  界面，选中单个  Device  ，在右键菜单中选中功能  set preserve  ，即可设置  preserve  属性。  \n\n  设置了  preserve  后的  device  如下图所示：  \n\n     \n\n   图    4  ‑  27       设置  preserve  \n\n  对于单个设置了  preserve  的  device  ，也可以右键选中功能  unset preserve  ，取消设置的  preserve  属性。  \n\n     4.6.2    多个  Device  设置  preserve  \n\n  在  Floorplan  界面，选中一个区域（  region  ），右键  set preserv"
+      },
+      {
+        "term": "preserve",
+        "context": "  -  26     \nBundle net   设置  \n\n  &nbsp;  \n\n   4.6 &nbsp;&nbsp;&nbsp;    preserve   约束  \n\n     4.6.1    单个  Device  设置  preserve  \n\n  在  Floorplan  界面，选中单个  Device  ，在右键菜单中选中功能  set preserve  ，即可设置  preserve  属性。  \n\n  设置了  preserve  后的  device  如下图所示：  \n\n     \n\n   图    4  ‑  27       设置  preserve  \n\n  对于单个设置了  preserve  的  device  ，也可以右键选中功能  unset preserve  ，取消设置的  preserve  属性。  \n\n     4.6.2    多个  Device  设置  preserve  \n\n  在  Floorplan  界面，选中一个区域（  region  ），右键  set preserve  ，即可对该  region  设置  preserve  属性，即该区域内的所有  de"
+      },
+      {
+        "term": "preserve",
+        "context": ";&nbsp;    preserve   约束  \n\n     4.6.1    单个  Device  设置  preserve  \n\n  在  Floorplan  界面，选中单个  Device  ，在右键菜单中选中功能  set preserve  ，即可设置  preserve  属性。  \n\n  设置了  preserve  后的  device  如下图所示：  \n\n     \n\n   图    4  ‑  27       设置  preserve  \n\n  对于单个设置了  preserve  的  device  ，也可以右键选中功能  unset preserve  ，取消设置的  preserve  属性。  \n\n     4.6.2    多个  Device  设置  preserve  \n\n  在  Floorplan  界面，选中一个区域（  region  ），右键  set preserve  ，即可对该  region  设置  preserve  属性，即该区域内的所有  device  均设置了  preserve  属性。  \n\n  设置了  preserve  的  region  如下图所示"
+      },
+      {
+        "term": "preserve",
+        "context": "ve   约束  \n\n     4.6.1    单个  Device  设置  preserve  \n\n  在  Floorplan  界面，选中单个  Device  ，在右键菜单中选中功能  set preserve  ，即可设置  preserve  属性。  \n\n  设置了  preserve  后的  device  如下图所示：  \n\n     \n\n   图    4  ‑  27       设置  preserve  \n\n  对于单个设置了  preserve  的  device  ，也可以右键选中功能  unset preserve  ，取消设置的  preserve  属性。  \n\n     4.6.2    多个  Device  设置  preserve  \n\n  在  Floorplan  界面，选中一个区域（  region  ），右键  set preserve  ，即可对该  region  设置  preserve  属性，即该区域内的所有  device  均设置了  preserve  属性。  \n\n  设置了  preserve  的  region  如下图所示：  \n\n     \n\n     "
+      },
+      {
+        "term": "preserve",
+        "context": " 单个  Device  设置  preserve  \n\n  在  Floorplan  界面，选中单个  Device  ，在右键菜单中选中功能  set preserve  ，即可设置  preserve  属性。  \n\n  设置了  preserve  后的  device  如下图所示：  \n\n     \n\n   图    4  ‑  27       设置  preserve  \n\n  对于单个设置了  preserve  的  device  ，也可以右键选中功能  unset preserve  ，取消设置的  preserve  属性。  \n\n     4.6.2    多个  Device  设置  preserve  \n\n  在  Floorplan  界面，选中一个区域（  region  ），右键  set preserve  ，即可对该  region  设置  preserve  属性，即该区域内的所有  device  均设置了  preserve  属性。  \n\n  设置了  preserve  的  region  如下图所示：  \n\n     \n\n       图 \n  4  ‑  28       设置"
+      },
+      {
+        "term": "preserve",
+        "context": "菜单中选中功能  set preserve  ，即可设置  preserve  属性。  \n\n  设置了  preserve  后的  device  如下图所示：  \n\n     \n\n   图    4  ‑  27       设置  preserve  \n\n  对于单个设置了  preserve  的  device  ，也可以右键选中功能  unset preserve  ，取消设置的  preserve  属性。  \n\n     4.6.2    多个  Device  设置  preserve  \n\n  在  Floorplan  界面，选中一个区域（  region  ），右键  set preserve  ，即可对该  region  设置  preserve  属性，即该区域内的所有  device  均设置了  preserve  属性。  \n\n  设置了  preserve  的  region  如下图所示：  \n\n     \n\n       图 \n  4  ‑  28       设置区域  preserve  \n\n  对于区域设置了  preserve  ，也可以选中该区域  (region)  ，然后右键选中功"
+      },
+      {
+        "term": "preserve",
+        "context": "，即可设置  preserve  属性。  \n\n  设置了  preserve  后的  device  如下图所示：  \n\n     \n\n   图    4  ‑  27       设置  preserve  \n\n  对于单个设置了  preserve  的  device  ，也可以右键选中功能  unset preserve  ，取消设置的  preserve  属性。  \n\n     4.6.2    多个  Device  设置  preserve  \n\n  在  Floorplan  界面，选中一个区域（  region  ），右键  set preserve  ，即可对该  region  设置  preserve  属性，即该区域内的所有  device  均设置了  preserve  属性。  \n\n  设置了  preserve  的  region  如下图所示：  \n\n     \n\n       图 \n  4  ‑  28       设置区域  preserve  \n\n  对于区域设置了  preserve  ，也可以选中该区域  (region)  ，然后右键选中功能  unset preserve  ，取消设"
+      }
+    ]
+  },
+  {
+    "name": "Route_Constraint_Editor_User_Guide.htm",
+    "saved_file": "help_4.html",
+    "hits": [
+      {
+        "term": "dev_map",
+        "context": "Flow  中运行完  Device\nMap   ，然后在启动  RCE  的过程中会完成布局生成  place DB  并将其加载从而打开  RCE  界面。  \n\n   点击   PDS  界面工具栏中如图，所示图标，如果已经运行完  dev_map  及其之后的  action  ，则会立即打开图  2  -  3  的  RCE  启动界面；如果还未运行到  dev_map  ，则会等到  dev_map  运行结束之后打开如图  2  -  3  所示的  RCE  启动界面。  \n\n         \n\n   图      2  ‑  1  工具栏中  RCE  的启动图标  \n\n    2.2 &nbsp;&nbsp;&nbsp;      通过点击菜单栏     Tools    下的    Route\nConstraint Editor    选项打开    RCE   \n\n  另一种在  PDS  软件中打开  RCE  的方式是点击菜单栏  Tools  下的  Route Constraint Editor  选项，如图所示。     \n\n     \n\n     图   2  ‑  2   Tools  下的  R"
+      },
+      {
+        "term": "dev_map",
+        "context": "载从而打开  RCE  界面。  \n\n   点击   PDS  界面工具栏中如图，所示图标，如果已经运行完  dev_map  及其之后的  action  ，则会立即打开图  2  -  3  的  RCE  启动界面；如果还未运行到  dev_map  ，则会等到  dev_map  运行结束之后打开如图  2  -  3  所示的  RCE  启动界面。  \n\n         \n\n   图      2  ‑  1  工具栏中  RCE  的启动图标  \n\n    2.2 &nbsp;&nbsp;&nbsp;      通过点击菜单栏     Tools    下的    Route\nConstraint Editor    选项打开    RCE   \n\n  另一种在  PDS  软件中打开  RCE  的方式是点击菜单栏  Tools  下的  Route Constraint Editor  选项，如图所示。     \n\n     \n\n     图   2  ‑  2   Tools  下的  Route Constraint Editor  \n\n  点击后也是需要在  dev_map  运行完后才会打开如下图所示的启动界面"
+      },
+      {
+        "term": "dev_map",
+        "context": " \n\n   点击   PDS  界面工具栏中如图，所示图标，如果已经运行完  dev_map  及其之后的  action  ，则会立即打开图  2  -  3  的  RCE  启动界面；如果还未运行到  dev_map  ，则会等到  dev_map  运行结束之后打开如图  2  -  3  所示的  RCE  启动界面。  \n\n         \n\n   图      2  ‑  1  工具栏中  RCE  的启动图标  \n\n    2.2 &nbsp;&nbsp;&nbsp;      通过点击菜单栏     Tools    下的    Route\nConstraint Editor    选项打开    RCE   \n\n  另一种在  PDS  软件中打开  RCE  的方式是点击菜单栏  Tools  下的  Route Constraint Editor  选项，如图所示。     \n\n     \n\n     图   2  ‑  2   Tools  下的  Route Constraint Editor  \n\n  点击后也是需要在  dev_map  运行完后才会打开如下图所示的启动界面。  \n\n     \n\n   图"
+      },
+      {
+        "term": "dev_map",
+        "context": "下的  Route Constraint Editor  选项，如图所示。     \n\n     \n\n     图   2  ‑  2   Tools  下的  Route Constraint Editor  \n\n  点击后也是需要在  dev_map  运行完后才会打开如下图所示的启动界面。  \n\n     \n\n   图   2  ‑  3   PDS  中没有  RCF  文件的  Input Route\nConstraint File  \n\n  在  PDS  中启动  RCE  时，当  PDS  原工程中没有  Route\nConstraint File  （以下简称  RCF  ）文件时，在弹出的输入  RCF  文件对话框中，文本框内容为空，如下图所示。  \n\n  当  PDS  原工程中有  RCF  文件时，则弹出的输入  RCF  文件对话框的文本框内容为工程中现有的  RCF  文件，如图所示。  \n\n     \n\n       图   2  ‑  4   PDS  中有  RCF  文件的  Input Route\nConstraint File  \n\n  当  PDS  工程中  Place&amp;Route"
+      },
+      {
+        "term": "dev_map",
+        "context": "_LUT4_Z  的布线路径与  rcf  文件中约束的完全一致。  \n\n  注：第  4  步中提到的  tcl  文件的说明：  \n\n  （  1  ）注意加  pcf  和  rcf  文件的顺序和位置；  \n\n  （  2  ）  dev_map  的选项需要注意  override_pcf false  ，不要把  pcf  文件给覆盖了。  \n\n  （  3  ）  tcl  文件示例如下（以  PGL50H  为例）：  \n\n  set_arch -family Logos -device PGL50H\n-speedgrade -6 -package FBG484  \n\n  add_design -verilog\n&quot;CLM_LUT.v&quot;  \n\n  synthesize -ads\n-selected_syn_tool_opt 2   \n\n  dev_map -override_pcf false  \n\n  add_constraint &quot;1.pcf&quot;  \n\n  add_constraint &quot;1.rcf&quot;  \n\n  pnr   \n\n  report_timing   "
+      },
+      {
+        "term": "dev_map",
+        "context": "e -6 -package FBG484  \n\n  add_design -verilog\n&quot;CLM_LUT.v&quot;  \n\n  synthesize -ads\n-selected_syn_tool_opt 2   \n\n  dev_map -override_pcf false  \n\n  add_constraint &quot;1.pcf&quot;  \n\n  add_constraint &quot;1.rcf&quot;  \n\n  pnr   \n\n  report_timing   \n\n  gen_bit_stream              \n\n \n\n   \n  \n\n \n\n     免责声明   \n\n   版权声明   \n\n  本文档版权归公司所有，并保留一切权利。未经书面许可，任何公司和个人不得将此文档中的任何部分公开、转载或以其他方式披露、散发给第三方。否则，公司必将追究其法律责任。  \n\n  &nbsp;  \n\n   免责声明   \n\n  1、  本文档仅提供阶段性信息，所含内容可根据产品的实际情况随时更新，恕不另行通知。如因本文档使用不当造成的直接或间接损失，本公司不承担任何法律责任。  \n\n  2、  "
+      },
+      {
+        "term": "def_inst_site",
+        "context": "_GTP_LUT4/gateop_perm  ）和  port  （  GTP_LUT4_Z_obuf/opit_1  ）分别约束到  CLMS_290_149  的  FYA  和  P20  。保存的  pcf  文件如下：  \n\n  def_inst_site {T_GTP_LUT4/gateop}\nCLMS_290_149 FYA  \n\n  def_port {GTP_LUT4_Z} LOC=P20\nVCCIO=1.2 IOSTANDARD=LVCMOS12 SLEW=SLOW DRIVE=2 NONE=TRUE  \n\n  7  、重新运行到  pnr  ，打开  DE  ，则可以看到  nt_GTP_LUT4_Z  的布线路径与  rcf  文件中约束的完全一致。  \n\n  注：第  4  步中提到的  tcl  文件的说明：  \n\n  （  1  ）注意加  pcf  和  rcf  文件的顺序和位置；  \n\n  （  2  ）  dev_map  的选项需要注意  override_pcf false  ，不要把  pcf  文件给覆盖了。  \n\n  （  3  ）  tcl  文件示例如下（以  PGL50H  为例）：  \n\n  s"
+      }
+    ]
+  },
+  {
+    "name": "User_Constraint_Editor_User_Guide.htm",
+    "saved_file": "help_5.html",
+    "hits": [
+      {
+        "term": "dev_map",
+        "context": "LOC}  {CLMA_5_4:FGA}  \n\n  表示约束到某个具体的  LUT  上。  \n\n  &nbsp;  \n\n   2.3.4.7\nPAP_REGION   \n\n   功能   ：  PAP_REGION  是区域约束属性，  dev_map  一步会将逻辑约束文件（  .lcf  ）里的区域约束转化为物理约束文件（  .pcf  ）中的区域约束命令  def_region  和  def_inst_region  。  \n\n   对象   ：约束对象是一个库单元（  GTP  ）实例或者是  RTL  源码中定义的  module  的实例；如果仅仅定义一个区域，则不需要指定约束对象。  \n\n   属性值   ：属性值的形式是以  region  名字开头，然后加上  (x1,x2,y1,y2)  格式的坐标值，即：  \n\n  region_name(x1,x2,y1,y2)  中间允许有空格，这些坐标值表示  floorplan  坐标系中位置（  x1,y1  ）和位置（  x2,y2  ）为对角线点的矩形区域，（  x1,y1  ）表示左下角的坐标，（  x2,y2  ）表示右上角的坐标，所以要求  0 &lt;= x"
+      },
+      {
+        "term": "dev_map",
+        "context": "能同时为  0  ，并且是合法的  floorplan  坐标  \n\n   描述   ：  PAP_REGION  属性是通过  DB  文件沿着  flow  向下传递的，如果它的约束对象是一个  GTP instance  ，那么在  dev_map  的过程中，这个属性会传递给这个由该  GTP  实例转化成的所有  GOP  实例；如果约束对象是一个自定义的  module  实例，那这个  module  实例  flatten  后的所有  GTP instance  以及这些  GTP instance  在  dev_map  时转换成的所有  GOP instance  都会拥有该属性；全局的区域约束采用先声明后定义的使用方式。  \n\n   使用说明   ：在  UCE  中设置  PAP_REGION  属性时，支持对属性对象和属性值进行格式和内容方面的合法性检查。此命令只在约束文本中编写，界面操作可以在上述“  Device  界面操作”章节查看。区域约束需要遵循，先声明后使用的原则，即：先定义区域后使用该区域。     \n\n   表现形式   ：属性的约束效果在  UCE  的  Device  界面或者  PCE"
+      },
+      {
+        "term": "dev_map",
+        "context": "  GTP  实例转化成的所有  GOP  实例；如果约束对象是一个自定义的  module  实例，那这个  module  实例  flatten  后的所有  GTP instance  以及这些  GTP instance  在  dev_map  时转换成的所有  GOP instance  都会拥有该属性；全局的区域约束采用先声明后定义的使用方式。  \n\n   使用说明   ：在  UCE  中设置  PAP_REGION  属性时，支持对属性对象和属性值进行格式和内容方面的合法性检查。此命令只在约束文本中编写，界面操作可以在上述“  Device  界面操作”章节查看。区域约束需要遵循，先声明后使用的原则，即：先定义区域后使用该区域。     \n\n   表现形式   ：属性的约束效果在  UCE  的  Device  界面或者  PCE  中可以看到，指定的约束对象转换的  GOP instance  会在属性值所指定的区域被约束。  \n\n    实例    ：  \n\n  define_attribute\n{i:T_GTP_LUT5_4}  {PAP_REGION}  {region  1}  \n\n  define_glo"
+      },
+      {
+        "term": "preserve",
+        "context": "tics  栏属性  \n\n  在  Instances  栏中可以查看到该  region  中的约束对象。  \n\n     \n\n  图 \n 1  ‑  70    region   中  Instances  栏属性  \n\n  （四）  preserve  约束  \n\n   在  floorplan view    窗口中，选择需要预留的位置（某个  Device Instance  ），右键选择  Set Preserve  ，此  Instance  即变为预留的状态。在此  Device Instance  位置右键选择  unset preserve  ，则是取消预留位置。  该操作对应  PAP_SITE_PRESERVE  属性。  \n\n  下图所示为预留位置以后的  device  图形，右键菜单分别为设置  preserve  和取消  preserve  。预留以后该  device  框样式为  45  度网格线阴影类型，范围内由白色线条覆盖。下方黑体显示该  device  的名称。  \n\n     \n\n  图  1  ‑  71   \npreserve   约束  \n\n  （五）  exclusive region"
+      },
+      {
+        "term": "preserve",
+        "context": "on   中  Instances  栏属性  \n\n  （四）  preserve  约束  \n\n   在  floorplan view    窗口中，选择需要预留的位置（某个  Device Instance  ），右键选择  Set Preserve  ，此  Instance  即变为预留的状态。在此  Device Instance  位置右键选择  unset preserve  ，则是取消预留位置。  该操作对应  PAP_SITE_PRESERVE  属性。  \n\n  下图所示为预留位置以后的  device  图形，右键菜单分别为设置  preserve  和取消  preserve  。预留以后该  device  框样式为  45  度网格线阴影类型，范围内由白色线条覆盖。下方黑体显示该  device  的名称。  \n\n     \n\n  图  1  ‑  71   \npreserve   约束  \n\n  （五）  exclusive region  约束  \n\n  在  floorplan view   窗口中，选择某个  region  ，右键选择  Set Exclusive Region  和  Unset E"
+      },
+      {
+        "term": "preserve",
+        "context": "w    窗口中，选择需要预留的位置（某个  Device Instance  ），右键选择  Set Preserve  ，此  Instance  即变为预留的状态。在此  Device Instance  位置右键选择  unset preserve  ，则是取消预留位置。  该操作对应  PAP_SITE_PRESERVE  属性。  \n\n  下图所示为预留位置以后的  device  图形，右键菜单分别为设置  preserve  和取消  preserve  。预留以后该  device  框样式为  45  度网格线阴影类型，范围内由白色线条覆盖。下方黑体显示该  device  的名称。  \n\n     \n\n  图  1  ‑  71   \npreserve   约束  \n\n  （五）  exclusive region  约束  \n\n  在  floorplan view   窗口中，选择某个  region  ，右键选择  Set Exclusive Region  和  Unset Exclusive Region  ，对应为将  region  设置为  Exclusive region  和取消  Exclusiv"
+      },
+      {
+        "term": "preserve",
+        "context": "  ），右键选择  Set Preserve  ，此  Instance  即变为预留的状态。在此  Device Instance  位置右键选择  unset preserve  ，则是取消预留位置。  该操作对应  PAP_SITE_PRESERVE  属性。  \n\n  下图所示为预留位置以后的  device  图形，右键菜单分别为设置  preserve  和取消  preserve  。预留以后该  device  框样式为  45  度网格线阴影类型，范围内由白色线条覆盖。下方黑体显示该  device  的名称。  \n\n     \n\n  图  1  ‑  71   \npreserve   约束  \n\n  （五）  exclusive region  约束  \n\n  在  floorplan view   窗口中，选择某个  region  ，右键选择  Set Exclusive Region  和  Unset Exclusive Region  ，对应为将  region  设置为  Exclusive region  和取消  Exclusive region  。该操作对应  PAP_EXCLUSIVE_REGION"
+      },
+      {
+        "term": "preserve",
+        "context": "ce Instance  位置右键选择  unset preserve  ，则是取消预留位置。  该操作对应  PAP_SITE_PRESERVE  属性。  \n\n  下图所示为预留位置以后的  device  图形，右键菜单分别为设置  preserve  和取消  preserve  。预留以后该  device  框样式为  45  度网格线阴影类型，范围内由白色线条覆盖。下方黑体显示该  device  的名称。  \n\n     \n\n  图  1  ‑  71   \npreserve   约束  \n\n  （五）  exclusive region  约束  \n\n  在  floorplan view   窗口中，选择某个  region  ，右键选择  Set Exclusive Region  和  Unset Exclusive Region  ，对应为将  region  设置为  Exclusive region  和取消  Exclusive region  。该操作对应  PAP_EXCLUSIVE_REGION  属性。  \n\n  下图为设置该属性后的  Region  图形，设置该属性的  Region  样式为密集"
+      },
+      {
+        "term": "preserve",
+        "context": "右键选择  unset preserve  ，则是取消预留位置。  该操作对应  PAP_SITE_PRESERVE  属性。  \n\n  下图所示为预留位置以后的  device  图形，右键菜单分别为设置  preserve  和取消  preserve  。预留以后该  device  框样式为  45  度网格线阴影类型，范围内由白色线条覆盖。下方黑体显示该  device  的名称。  \n\n     \n\n  图  1  ‑  71   \npreserve   约束  \n\n  （五）  exclusive region  约束  \n\n  在  floorplan view   窗口中，选择某个  region  ，右键选择  Set Exclusive Region  和  Unset Exclusive Region  ，对应为将  region  设置为  Exclusive region  和取消  Exclusive region  。该操作对应  PAP_EXCLUSIVE_REGION  属性。  \n\n  下图为设置该属性后的  Region  图形，设置该属性的  Region  样式为密集实粒阴影类型，范围内由白色粒子"
+      },
+      {
+        "term": "preserve",
+        "context": "preserve  和取消  preserve  。预留以后该  device  框样式为  45  度网格线阴影类型，范围内由白色线条覆盖。下方黑体显示该  device  的名称。  \n\n     \n\n  图  1  ‑  71   \npreserve   约束  \n\n  （五）  exclusive region  约束  \n\n  在  floorplan view   窗口中，选择某个  region  ，右键选择  Set Exclusive Region  和  Unset Exclusive Region  ，对应为将  region  设置为  Exclusive region  和取消  Exclusive region  。该操作对应  PAP_EXCLUSIVE_REGION  属性。  \n\n  下图为设置该属性后的  Region  图形，设置该属性的  Region  样式为密集实粒阴影类型，范围内由白色粒子高度密集覆盖。下方黑体显示该  Region  的名称，  Region  前有标示“  RM  ：”表明该属性用于局部动态重配。  \n\n     \n\n  图  1  ‑  72   \nexclusive re"
+      },
+      {
+        "term": "preserve",
+        "context": " \n \n \n \n \n  Statstics  \n \n \n  显示 region 中各类型资源数量  \n \n \n \n \n  Instances  \n \n \n  显示约束在 region 中的 design inst   \n \n \n \n \n  preserve region  \n \n \n  Statstics  \n \n \n  显示 region 中各类型资源数量  \n \n \n \n \n  Exclusive region  \n \n \n  Statstics  \n \n \n  显示 region 中各类型资源数量  \n \n \n \n \n  gate devcie inst  \n \n \n  General  \n \n \n  显示 name ，  unit  ， cell ， view ， site(x,y), （ x,y ）像素坐标  \n \n \n \n \n  prim device inst  \n \n \n  General  \n \n \n  显示 name ， parent,unit,cell   \n \n \n \n \n  top view  \n \n \n  General  \n \n \n  显示 name ， reference name ， type ， desi"
+      }
+    ]
+  }
+]

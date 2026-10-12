@@ -1,0 +1,376 @@
+{
+  "python": "C:\\Users\\NineSun\\Desktop\\ov56401\\project\\fpga_v8_migration\\.venv\\Scripts\\python.exe",
+  "modelsim": "C:\\modeltech64_10.6e\\win64",
+  "source_sha256": {
+    "raw_preprocess/fpga_v8_raw_letterbox.v": "b1ffda1799c350973444ff3bbd6cea2288c6155426397ca8ee62c1cca7d5d1ad",
+    "raw_preprocess/fpga_v8_rgb888_pack128.v": "20b691d328b6dc43feb42b6352b169156002a3931a43d003f871fff2289613af",
+    "cooperative_axi/fpga_v8_raw_frame_axi.v": "c2bdc1a3622fa0c84fc487a9859ba27220ddad4c5d304bc4221157906c47bc6f",
+    "cooperative_control/fpga_v8_coop_control_axil.v": "fec948ff58fbc4fb7f4e70483d8182d052aaa5932c1fd53c0d40930e72a6a2ae",
+    "cooperative_arbiter/fpga_v8_ddr_write_arbiter.v": "c0982b49617f416f96d3b338df822c5ce0e0701aa8425f766da85f00a8ffc969",
+    "cooperative_core/fpga_v8_cooperative_core.v": "c94c7aa1cd97535d3bbe50239199c7595198b3f0f74aa19af26670358757064e",
+    "cooperative_core/tb_fpga_v8_cooperative_core.sv": "b24e0783ed1ae01097f1bdb0108be0af66e9e244983f363293ffe22494f49172",
+    "cooperative_core/run_tests.py": "36ee30feffa567f955c991510cdfbfc26a063e558cbdb0c678c608c157c9bb97"
+  },
+  "cases": [
+    {
+      "name": "leases_4x3",
+      "parameters": {
+        "width": 4,
+        "height": 3,
+        "out_height": 5,
+        "top": 1,
+        "mode": 0,
+        "bursts": 24,
+        "seed": 12345,
+        "outputs": [
+          1,
+          2,
+          3
+        ]
+      },
+      "pass_marker": "CORE_PASS mode=0 cycles=3993 claims=3 releases=3 publishes=3 copied_bytes=180 camera_bursts=144",
+      "seconds": 1.703,
+      "outputs": [
+        {
+          "seq": 1,
+          "compared_bytes": 60,
+          "sha256": "f35546d1a852b0546c9540ff38323bcd59a9da0da23197f49e55c99a21486257"
+        },
+        {
+          "seq": 2,
+          "compared_bytes": 60,
+          "sha256": "a51bba9ec18db827ca84c92acfbedc59b9e81980a2b0a81a324be1a518f74c25"
+        },
+        {
+          "seq": 3,
+          "compared_bytes": 60,
+          "sha256": "d438ecf8c4935a2c4355ceb70730dd7458d2ed189971085c44f15236b692b34f"
+        }
+      ],
+      "camera_compared_bytes": 36864,
+      "camera_sha256": "1cc6d324c267ccf5b2224fdf6f3bae97b249163dc682ab80551d360b18511eb3",
+      "trace_audit": {
+        "selections": 156,
+        "camera_w_words": 900,
+        "bridge_w_words": 12,
+        "b_responses": 156,
+        "reset_boundaries": 1
+      },
+      "compile_rtl": [
+        "C:\\modeltech64_10.6e\\win64\\vlog.exe",
+        "-work",
+        "work",
+        "C:\\Users\\NineSun\\Desktop\\ov56401\\project\\fpga_v8_migration\\raw_preprocess\\fpga_v8_raw_letterbox.v",
+        "C:\\Users\\NineSun\\Desktop\\ov56401\\project\\fpga_v8_migration\\raw_preprocess\\fpga_v8_rgb888_pack128.v",
+        "C:\\Users\\NineSun\\Desktop\\ov56401\\project\\fpga_v8_migration\\cooperative_axi\\fpga_v8_raw_frame_axi.v",
+        "C:\\Users\\NineSun\\Desktop\\ov56401\\project\\fpga_v8_migration\\cooperative_control\\fpga_v8_coop_control_axil.v",
+        "C:\\Users\\NineSun\\Desktop\\ov56401\\project\\fpga_v8_migration\\cooperative_arbiter\\fpga_v8_ddr_write_arbiter.v",
+        "C:\\Users\\NineSun\\Desktop\\ov56401\\project\\fpga_v8_migration\\cooperative_core\\fpga_v8_cooperative_core.v"
+      ],
+      "compile_tb": [
+        "C:\\modeltech64_10.6e\\win64\\vlog.exe",
+        "-work",
+        "work",
+        "-sv",
+        "C:\\Users\\NineSun\\Desktop\\ov56401\\project\\fpga_v8_migration\\cooperative_core\\tb_fpga_v8_cooperative_core.sv"
+      ],
+      "simulation": [
+        "C:\\modeltech64_10.6e\\win64\\vsim.exe",
+        "-c",
+        "-onfinish",
+        "stop",
+        "-voptargs=+acc",
+        "-l",
+        "transcript.log",
+        "-gWIDTH=4",
+        "-gHEIGHT=3",
+        "-gOUT_HEIGHT=5",
+        "-gTOP_ROWS=1",
+        "-gMODE=0",
+        "-gCAMERA_BURSTS=24",
+        "-gSEED=12345",
+        "work.tb_fpga_v8_cooperative_core",
+        "-do",
+        "run.do"
+      ]
+    },
+    {
+      "name": "faults_odd_1x1",
+      "parameters": {
+        "width": 1,
+        "height": 1,
+        "out_height": 6,
+        "top": 2,
+        "mode": 1,
+        "bursts": 24,
+        "seed": 98765,
+        "outputs": [
+          3
+        ]
+      },
+      "pass_marker": "CORE_PASS mode=1 cycles=3795 claims=3 releases=3 publishes=1 copied_bytes=18 camera_bursts=144",
+      "seconds": 1.609,
+      "outputs": [
+        {
+          "seq": 3,
+          "compared_bytes": 18,
+          "sha256": "92b5992309af09c932438f79a3fb4c9e8c80204b98b4ab70353bd0b0fbf2fa3c"
+        }
+      ],
+      "camera_compared_bytes": 36864,
+      "camera_sha256": "1cc6d324c267ccf5b2224fdf6f3bae97b249163dc682ab80551d360b18511eb3",
+      "trace_audit": {
+        "selections": 150,
+        "camera_w_words": 900,
+        "bridge_w_words": 6,
+        "b_responses": 150,
+        "reset_boundaries": 1
+      },
+      "compile_rtl": [
+        "C:\\modeltech64_10.6e\\win64\\vlog.exe",
+        "-work",
+        "work",
+        "C:\\Users\\NineSun\\Desktop\\ov56401\\project\\fpga_v8_migration\\raw_preprocess\\fpga_v8_raw_letterbox.v",
+        "C:\\Users\\NineSun\\Desktop\\ov56401\\project\\fpga_v8_migration\\raw_preprocess\\fpga_v8_rgb888_pack128.v",
+        "C:\\Users\\NineSun\\Desktop\\ov56401\\project\\fpga_v8_migration\\cooperative_axi\\fpga_v8_raw_frame_axi.v",
+        "C:\\Users\\NineSun\\Desktop\\ov56401\\project\\fpga_v8_migration\\cooperative_control\\fpga_v8_coop_control_axil.v",
+        "C:\\Users\\NineSun\\Desktop\\ov56401\\project\\fpga_v8_migration\\cooperative_arbiter\\fpga_v8_ddr_write_arbiter.v",
+        "C:\\Users\\NineSun\\Desktop\\ov56401\\project\\fpga_v8_migration\\cooperative_core\\fpga_v8_cooperative_core.v"
+      ],
+      "compile_tb": [
+        "C:\\modeltech64_10.6e\\win64\\vlog.exe",
+        "-work",
+        "work",
+        "-sv",
+        "C:\\Users\\NineSun\\Desktop\\ov56401\\project\\fpga_v8_migration\\cooperative_core\\tb_fpga_v8_cooperative_core.sv"
+      ],
+      "simulation": [
+        "C:\\modeltech64_10.6e\\win64\\vsim.exe",
+        "-c",
+        "-onfinish",
+        "stop",
+        "-voptargs=+acc",
+        "-l",
+        "transcript.log",
+        "-gWIDTH=1",
+        "-gHEIGHT=1",
+        "-gOUT_HEIGHT=6",
+        "-gTOP_ROWS=2",
+        "-gMODE=1",
+        "-gCAMERA_BURSTS=24",
+        "-gSEED=98765",
+        "work.tb_fpga_v8_cooperative_core",
+        "-do",
+        "run.do"
+      ]
+    },
+    {
+      "name": "common_reset_5x3",
+      "parameters": {
+        "width": 5,
+        "height": 3,
+        "out_height": 6,
+        "top": 1,
+        "mode": 2,
+        "bursts": 24,
+        "seed": 54321,
+        "outputs": [
+          5
+        ]
+      },
+      "pass_marker": "CORE_PASS mode=2 cycles=5192 claims=5 releases=1 publishes=1 copied_bytes=90 camera_bursts=144",
+      "seconds": 1.625,
+      "outputs": [
+        {
+          "seq": 5,
+          "compared_bytes": 90,
+          "sha256": "f362d1b5c12e119afac86f882e3bf60eddd1182a2a0d636d0c9593b0b0a4fb3b"
+        }
+      ],
+      "camera_compared_bytes": 36864,
+      "camera_sha256": "1cc6d324c267ccf5b2224fdf6f3bae97b249163dc682ab80551d360b18511eb3",
+      "trace_audit": {
+        "selections": 195,
+        "camera_w_words": 1173,
+        "bridge_w_words": 12,
+        "b_responses": 191,
+        "reset_boundaries": 5
+      },
+      "compile_rtl": [
+        "C:\\modeltech64_10.6e\\win64\\vlog.exe",
+        "-work",
+        "work",
+        "C:\\Users\\NineSun\\Desktop\\ov56401\\project\\fpga_v8_migration\\raw_preprocess\\fpga_v8_raw_letterbox.v",
+        "C:\\Users\\NineSun\\Desktop\\ov56401\\project\\fpga_v8_migration\\raw_preprocess\\fpga_v8_rgb888_pack128.v",
+        "C:\\Users\\NineSun\\Desktop\\ov56401\\project\\fpga_v8_migration\\cooperative_axi\\fpga_v8_raw_frame_axi.v",
+        "C:\\Users\\NineSun\\Desktop\\ov56401\\project\\fpga_v8_migration\\cooperative_control\\fpga_v8_coop_control_axil.v",
+        "C:\\Users\\NineSun\\Desktop\\ov56401\\project\\fpga_v8_migration\\cooperative_arbiter\\fpga_v8_ddr_write_arbiter.v",
+        "C:\\Users\\NineSun\\Desktop\\ov56401\\project\\fpga_v8_migration\\cooperative_core\\fpga_v8_cooperative_core.v"
+      ],
+      "compile_tb": [
+        "C:\\modeltech64_10.6e\\win64\\vlog.exe",
+        "-work",
+        "work",
+        "-sv",
+        "C:\\Users\\NineSun\\Desktop\\ov56401\\project\\fpga_v8_migration\\cooperative_core\\tb_fpga_v8_cooperative_core.sv"
+      ],
+      "simulation": [
+        "C:\\modeltech64_10.6e\\win64\\vsim.exe",
+        "-c",
+        "-onfinish",
+        "stop",
+        "-voptargs=+acc",
+        "-l",
+        "transcript.log",
+        "-gWIDTH=5",
+        "-gHEIGHT=3",
+        "-gOUT_HEIGHT=6",
+        "-gTOP_ROWS=1",
+        "-gMODE=2",
+        "-gCAMERA_BURSTS=24",
+        "-gSEED=54321",
+        "work.tb_fpga_v8_cooperative_core",
+        "-do",
+        "run.do"
+      ]
+    },
+    {
+      "name": "invalid_output_range",
+      "parameters": {
+        "width": 4,
+        "height": 3,
+        "out_height": 5,
+        "top": 1,
+        "mode": 3,
+        "bursts": 24,
+        "seed": 24680,
+        "outputs": [],
+        "bank0": "32'h10000000"
+      },
+      "pass_marker": "CORE_PASS mode=3 cycles=3784 claims=2 releases=2 publishes=0 copied_bytes=0 camera_bursts=144",
+      "seconds": 1.672,
+      "outputs": [],
+      "camera_compared_bytes": 36864,
+      "camera_sha256": "1cc6d324c267ccf5b2224fdf6f3bae97b249163dc682ab80551d360b18511eb3",
+      "trace_audit": {
+        "selections": 144,
+        "camera_w_words": 900,
+        "bridge_w_words": 0,
+        "b_responses": 144,
+        "reset_boundaries": 1
+      },
+      "compile_rtl": [
+        "C:\\modeltech64_10.6e\\win64\\vlog.exe",
+        "-work",
+        "work",
+        "C:\\Users\\NineSun\\Desktop\\ov56401\\project\\fpga_v8_migration\\raw_preprocess\\fpga_v8_raw_letterbox.v",
+        "C:\\Users\\NineSun\\Desktop\\ov56401\\project\\fpga_v8_migration\\raw_preprocess\\fpga_v8_rgb888_pack128.v",
+        "C:\\Users\\NineSun\\Desktop\\ov56401\\project\\fpga_v8_migration\\cooperative_axi\\fpga_v8_raw_frame_axi.v",
+        "C:\\Users\\NineSun\\Desktop\\ov56401\\project\\fpga_v8_migration\\cooperative_control\\fpga_v8_coop_control_axil.v",
+        "C:\\Users\\NineSun\\Desktop\\ov56401\\project\\fpga_v8_migration\\cooperative_arbiter\\fpga_v8_ddr_write_arbiter.v",
+        "C:\\Users\\NineSun\\Desktop\\ov56401\\project\\fpga_v8_migration\\cooperative_core\\fpga_v8_cooperative_core.v"
+      ],
+      "compile_tb": [
+        "C:\\modeltech64_10.6e\\win64\\vlog.exe",
+        "-work",
+        "work",
+        "-sv",
+        "C:\\Users\\NineSun\\Desktop\\ov56401\\project\\fpga_v8_migration\\cooperative_core\\tb_fpga_v8_cooperative_core.sv"
+      ],
+      "simulation": [
+        "C:\\modeltech64_10.6e\\win64\\vsim.exe",
+        "-c",
+        "-onfinish",
+        "stop",
+        "-voptargs=+acc",
+        "-l",
+        "transcript.log",
+        "-gWIDTH=4",
+        "-gHEIGHT=3",
+        "-gOUT_HEIGHT=5",
+        "-gTOP_ROWS=1",
+        "-gMODE=3",
+        "-gCAMERA_BURSTS=24",
+        "-gSEED=24680",
+        "-gBANK0=32'h10000000",
+        "work.tb_fpga_v8_cooperative_core",
+        "-do",
+        "run.do"
+      ]
+    },
+    {
+      "name": "full_640x480",
+      "parameters": {
+        "width": 640,
+        "height": 480,
+        "out_height": 640,
+        "top": 80,
+        "mode": 4,
+        "bursts": 512,
+        "seed": 13579,
+        "outputs": [
+          1
+        ]
+      },
+      "pass_marker": "CORE_PASS mode=4 cycles=1138264 claims=1 releases=1 publishes=1 copied_bytes=1228800 camera_bursts=3072",
+      "seconds": 5.485,
+      "outputs": [
+        {
+          "seq": 1,
+          "compared_bytes": 1228800,
+          "sha256": "fb04064361624702ae85783736aaca6d04564789f9e2f4b0ce71eeef991b64ec"
+        }
+      ],
+      "camera_compared_bytes": 786432,
+      "camera_sha256": "fc4aae73a490cb62ef6ebede040a6a8e2c7ca4ef53a8811347471d4ca9d560f7",
+      "trace_audit": {
+        "selections": 79872,
+        "camera_w_words": 19200,
+        "bridge_w_words": 76800,
+        "b_responses": 79872,
+        "reset_boundaries": 1
+      },
+      "compile_rtl": [
+        "C:\\modeltech64_10.6e\\win64\\vlog.exe",
+        "-work",
+        "work",
+        "C:\\Users\\NineSun\\Desktop\\ov56401\\project\\fpga_v8_migration\\raw_preprocess\\fpga_v8_raw_letterbox.v",
+        "C:\\Users\\NineSun\\Desktop\\ov56401\\project\\fpga_v8_migration\\raw_preprocess\\fpga_v8_rgb888_pack128.v",
+        "C:\\Users\\NineSun\\Desktop\\ov56401\\project\\fpga_v8_migration\\cooperative_axi\\fpga_v8_raw_frame_axi.v",
+        "C:\\Users\\NineSun\\Desktop\\ov56401\\project\\fpga_v8_migration\\cooperative_control\\fpga_v8_coop_control_axil.v",
+        "C:\\Users\\NineSun\\Desktop\\ov56401\\project\\fpga_v8_migration\\cooperative_arbiter\\fpga_v8_ddr_write_arbiter.v",
+        "C:\\Users\\NineSun\\Desktop\\ov56401\\project\\fpga_v8_migration\\cooperative_core\\fpga_v8_cooperative_core.v"
+      ],
+      "compile_tb": [
+        "C:\\modeltech64_10.6e\\win64\\vlog.exe",
+        "-work",
+        "work",
+        "-sv",
+        "C:\\Users\\NineSun\\Desktop\\ov56401\\project\\fpga_v8_migration\\cooperative_core\\tb_fpga_v8_cooperative_core.sv"
+      ],
+      "simulation": [
+        "C:\\modeltech64_10.6e\\win64\\vsim.exe",
+        "-c",
+        "-onfinish",
+        "stop",
+        "-voptargs=+acc",
+        "-l",
+        "transcript.log",
+        "-gWIDTH=640",
+        "-gHEIGHT=480",
+        "-gOUT_HEIGHT=640",
+        "-gTOP_ROWS=80",
+        "-gMODE=4",
+        "-gCAMERA_BURSTS=512",
+        "-gSEED=13579",
+        "work.tb_fpga_v8_cooperative_core",
+        "-do",
+        "run.do"
+      ]
+    }
+  ],
+  "scope": "isolated behavioral DDR integration; no PDS or board integration",
+  "verified_source_hashes_unchanged": true,
+  "total_output_compared_bytes": 1229088,
+  "total_camera_compared_bytes": 933888
+}

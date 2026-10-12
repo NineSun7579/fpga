@@ -1,0 +1,87 @@
+--cam34-selftest RC=0
+[display-config] update_idle_ms=0 texture_ring=1 publish_min_ms=24 hud_stats_ms=1000
+[ok] one 640x480 RGB888 input
+[ok] C3 occupies all left rows and C4 all right rows without padding
+[ok] black-white adjacent columns average to 128 rather than nearest-neighbor
+[ok] last columns and bottom row preserved
+[ok] missing and truncated half rejected
+[ok] fresh current-generation pair accepted
+[ok] stale half rejected
+[ok] excessive skew rejected
+[ok] old generation rejected
+[ok] future timestamp rejected
+CAM34_SELFTEST_PASS
+
+--trafficlight-selftest RC=0
+[display-config] update_idle_ms=0 texture_ring=1 publish_min_ms=24 hud_stats_ms=1000
+[ok] RKNN NHWC rectangular dimensions set exact byte count and crop
+[ok] RKNN NCHW square dimensions preserve legacy geometry
+[ok] NCHW rectangular input is also understood
+[ok] non RGB input fails closed
+[ok] unsupported network height fails closed
+[ok] batch greater than one fails closed
+[ok] unknown tensor format fails closed
+[ok] canonical crop and raw fallback preserve every RGB pixel without resize
+[ok] square models retain exactly 80 gray rows each side
+[ok] square RGB fast path keeps shared image buffer
+[ok] non RGB888 canonical frames convert then crop correctly
+[ok] unexpected source geometry and empty frames fail closed
+[ok] emission restores y+80 exactly once and leaves x unchanged
+[ok] camera viewer subtracts canonical 80 to recover capture y
+[ok] square model restoration is identity
+[ok] C3/C4 occupies every rectangular-network row without extra padding
+[ok] rectangular-network boxes recover shared 640x480 coordinates exactly once
+INFERENCE_GEOMETRY_SELFTEST_PASS
+[ok] trafficlight metadata retains all 16 stable class IDs
+[ok] shuffled raw DFL6 box64/cls16 shapes are accepted
+[ok] class count mismatch is rejected before inference
+[ok] unsupported output layout fails closed
+[ok] duplicate head and missing scale are rejected
+[ok] inconsistent output element count is rejected
+[ok] production decoder preserves overlapping different classes and suppresses same class
+[ok] class 15 logits use sigmoid and regmax16 DFL at stride 8
+[ok] rectangular grids decode stride 16 and 32 without square-height scaling
+[ok] production decode result returns to canonical viewer space
+[ok] trafficlight NMS is class aware; legacy default remains class agnostic
+[ok] production decoder retains lower-score distinct detection after more than 300 candidates
+TRAFFICLIGHT_DECODER_SELFTEST_PASS
+TRAFFICLIGHT_SELFTEST_PASS
+
+--camera-dma-selftest RC=0
+CAMERA_DMA_SELFTEST_PASS
+[display-config] update_idle_ms=0 texture_ring=1 publish_min_ms=24 hud_stats_ms=1000
+
+--frame-metrics-selftest RC=0
+FRAME_METRICS_SELFTEST_PASS (216 checks)
+[display-config] update_idle_ms=0 texture_ring=1 publish_min_ms=24 hud_stats_ms=1000
+
+--mvp-round1-selftest RC=0
+[display-config] update_idle_ms=0 texture_ring=1 publish_min_ms=24 hud_stats_ms=1000
+[mvp-round1-metadata] OK model default keeps legacy policy
+[mvp-round1-metadata] OK delivered manifest format accepted
+[mvp-round1-metadata] OK actual model bytes hashed and wrong checksum rejected
+[mvp-round1-metadata] OK unknown profile rejected
+[mvp-round1-metadata] OK old or unknown model identity rejected
+[mvp-round1-metadata] OK square input rejected
+[mvp-round1-metadata] OK class reordering rejected
+[mvp-round1-metadata] OK wrong regmax rejected
+[mvp-round1-metadata] OK missing threshold rejected without default
+[mvp-round1-metadata] OK string threshold rejected
+[mvp-round1-metadata] OK extra class threshold rejected
+[mvp-round1-metadata] OK guessed uniform thresholds rejected
+[mvp-round1-metadata] OK R1 cannot be applied to old shared detector
+[mvp-round1-metadata] OK temporary metadata directory available
+[mvp-round1-metadata] OK R1 missing sidecar rejected
+[mvp-round1-metadata] OK sidecar file parsed in production reader
+[mvp-round1-metadata] OK malformed sidecar rejected
+[mvp-round1-metadata] OK old model without sidecar stays unchanged
+MVP_ROUND1_METADATA_SELFTEST_PASS
+[mvp-round1-selftest] OK .4 person passes, .4 vehicle fails, .3 zebra passes; all five thresholds and full argmax
+[mvp-round1-selftest] OK old MVP retains uniform .25 policy
+[mvp-round1-selftest] OK production raw candidate stage retains .0012 and rejects .0009
+[mvp-round1-selftest] OK rare low-score candidate filtered only after NMS
+[mvp-round1-selftest] OK R1 IoU .7 preserves .6 overlap and different classes; legacy IoU .45
+[mvp-round1-selftest] OK global NMS top300 occurs BEFORE class thresholds (no replenishment)
+[mvp-round1-selftest] OK more than 300 overlapping candidates never truncate before NMS
+[mvp-round1-selftest] OK SHA binding rejects wrong bytes and wrong manifest identity
+MVP_ROUND1_DECODER_SELFTEST_PASS

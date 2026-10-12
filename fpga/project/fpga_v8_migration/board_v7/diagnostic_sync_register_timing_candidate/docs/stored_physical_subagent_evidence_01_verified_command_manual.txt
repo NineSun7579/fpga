@@ -1,0 +1,216 @@
+PDF PAGE 250
+ 
+常用命令列表 
+ 
+249 / 273 
+Pango Design Suite User Guide 
+-family 
+指定一个家族 
+-device 
+指定一个器件 
+-package 
+指定一个封装 
+-speedgrade 
+指定一个速度等级 
+表 9-7 set_arch 
+9.8 compile 编译用户设计 
+选项 
+ 
+-help 
+打印帮助消息 
+-top_module 
+设置top module 的名字 
+-include_path 
+设置工程的include 路径 
+ 
+ 
+表 9-8 compile 
+9.9 dev_map 映射设计到架构 
+选项 
+ 
+-help 
+打印帮助消息 
+-packing_io 
+设置top module 的名字 
+-detail 
+设置工程的include 路径 
+-generate_inferred_clocks 
+勾选后会对符合条件的design 插入时钟 
+-fanout 
+在报告中只打印fanout 大于该数值的Net 或
+port 对象 
+-fanout_number 
+在报告中打印的fanout 数量大于Min fanout
+数值的Net 数量的上限 
+-override_pcf 
+重新运行时覆盖pcf 文件 
+-enable_timing_commands 
+将OEM 注释掉的约束重新打开 
+-devmap_control_set_num 
+用于控制同一种control set 下，最小触发器的
+数目。但触发器的数目小于门限时，则将门控信号
+作为数据通路用LUT 来实现。Control set 是指触发
+器的时钟、使能信号，RST 信号。优化该控制信号
+可以增加资源使用率 
+-devmap_const_prop 
+主要用于优化输入的常量逻辑。常量逻辑主要
+是指VCC、GND 逻辑。该优化操作主要通过电路
+故有的特性，将原来的VCC、GND 断开或优化到
+最优状态。 
+-devmap_remove_dups 
+该功能主要作用是将部分重复逻辑合并，属于
+面积优化选项。但是该操作同样会影响到综合阶段
+的复制工作，使时序性能下降。 
+表 9-9 dev_map 
+
+PDF PAGE 252
+ 
+常用命令列表 
+ 
+251 / 273 
+Pango Design Suite User Guide 
+-master_configuration_clock_frequency_in_read_
+back 
+回读时钟选择 
+-disable_readback_crc 
+选择是否在回读时使能CRC 验证 
+-enable_crc_clock_in_read_back 
+使能回读CRC 时钟 
+-persist_ipal 
+控制配置完成后，内部并行端口是否保留用于
+回读 
+-bitstream_security 
+控制回读配置存储器 
+-encrypt_bitstream 
+选择是否加密位流文件 
+-select_key_type 
+配置是否使用内部KEY 
+-starting_cbc_value 
+用户手动输入初始的CBC 字符串，字符为16
+进制，输入长度为最多32 个字符 
+-input_encryption_key_file 
+选择nky 文件 
+-key_string 
+用户手动输入密钥字符串，字符为16 进制字
+符，输入长度为最多64 个字符 
+-sram_retention 
+开启SRAM retention 测试 
+表 9-10 位流 
+9.11 
+gen_netlist 生成网表 
+选项 
+ 
+-help 
+打印帮助消息 
+-func_sim_only 
+是否使能仅生成sim.v 文件 
+-sdf_annotate 
+勾选后在sim.v 中调用sdf 文件，不勾选则不
+调用 
+-process_corner 
+决定产生什么类型的sdf 文件 
+表 9-11 生成网表 
+9.12 
+pnr 布局和布线设计 
+选项 
+ 
+-help 
+打印帮助消息 
+-dc_duplication 
+勾选为自适应插入和复制逻辑单元，不勾选为
+不处理 
+-plc_decongestion 
+设置面积扩展系数 
+-gplace_seed 
+设置随机种子值 
+-gplace_times 
+设置运行多少个随机种子 
+-seed_step 
+设置种子的步长 
+-saved_outcome 
+设置保留最优的种子运行结果的数目 
+-parallel 
+设置同时执行种子的最大数目 
+-fast_router 
+勾选为使用全局布线，不勾选为不使用 
+-fast_router_mode 
+设置全局布线的模式 
+-share_router_control_signal 
+勾选为使用Control Chain，不勾选为不使用 
+
+PDF PAGE 253
+ 
+常用命令列表 
+ 
+252 / 273 
+Pango Design Suite User Guide 
+-use_global_ioclkgate 
+是否插入IOCLKGATE 
+-mode 
+pnr 运行的模式 
+-optimize_multi_corner_timing 
+控制在布局布线阶段是否要在所有的模式中
+都对design 进行优化来满足时序 
+-place_only 
+勾选表示只运行布局，不运行布线 
+-fix_hold_violation 
+勾选为修复hold 违例，不勾选则为不修复 
+-fix_hold_violation_iterations 
+最大修复hold 违例次数 
+-fix_hold_violation_threshold 
+使用该选项对slack 小于该值的时序路径进行
+Hold 时序优化 
+-fix_hold_violation_in_route 
+勾选为在布线中修复hold 违例，不勾选则为
+不修复 
+-fix_hold_violation_threshold_for_clock_path_cross_s
+rb 
+使用该选项对slack 小于该值的时序路径进行
+Hold 时序优化， 仅当对应时钟经过SRB 时生效 
+-fix_hold_violation_threshold_for_clk_tree 
+使用该选项对slack 小于该值的时序路径进行
+Hold 时序优化， 仅当对应时钟不经过SRB 时生效 
+-input_place_db_file 
+ 
+-refineplacement_cluster 
+使能详细布局过程中打包开关 
+-refineplacement_iteration 
+详细布局收敛属性 
+-plc_initial_method 
+全局布局初始化起始位置 
+-early_block_placement 
+使能Macro Instance 优先放置开关 
+-auto_dispose_macro 
+PDS 软件自适应选择宏模块优先放置开关 
+-dispose_drm_prior 
+当用户选择禁止PDS 软件自适应选择宏模块
+优先放置时，用户选择DRM 的放置顺序 
+-dispose_apm_prior 
+当用户选择禁止PDS 软件自适应选择宏模块
+优先放置时，用户选择APM 的放置顺序 
+-dispose_dram_prior 
+当用户选择禁止PDS 软件自适应选择宏模块
+优先放置时，用户选择DRAM 的放置顺序 
+-dispose_carrychain_prior 
+当用户选择禁止PDS 软件自适应选择宏模块
+优先放置时，用户独立选择Carry Chain 的放置顺
+序 
+-slack_prior_in_global_router 
+全局绕线Slack 优先模式 
+-slack_weight 
+控制时序因素在布线过程中的权重 
+-pin_cost_increasing_speed 
+拥塞Pin 增加的代价值 
+-congest_overlap_limit 
+控制拥塞布线模式下，最大布线迭代次数 
+-max_ctrl_chain_length 
+CE/RS 控制信号链最大长度 
+表 9-12 pnr 
+9.13 
+report_power 报告功耗信息 
+选项 
+ 
+-help 
+打印帮助消息 
+-tempgrade 
+温度等级 

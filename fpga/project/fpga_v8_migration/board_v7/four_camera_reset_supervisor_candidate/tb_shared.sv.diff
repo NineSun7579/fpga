@@ -1,0 +1,61 @@
+--- C:\Users\NineSun\Desktop\ov56401\project\fpga_v8_migration\board_v7\four_camera_recovery_review\tb_shared.sv
++++ tb_shared.sv
+@@ -3,7 +3,18 @@
+ reg clk=0,rst=1;
+ always #5 clk=~clk;
+ GTP_GRS GRS_INST(.GRS_N(1'b1));
+-reg [3:0] cmd=0,fault=0;
++reg [3:0] cmd=0,fault_in=0;
++wire [3:0] fault;
++reg cold_req=0;
++always @(negedge clk) cold_req<=!rst;
++wire session_fault,supervisor_cold;
++four_camera_reset_supervisor #(.CLOCK_LIMIT(10000)) supervisor(
++ .clk(clk),.epoch_reset(rst),.cold_request(cold_req),.source_clk({4{clk}}),
++ .i2c_start_en(4'hf),.cam_init_done(4'hf),.ov_rst_n(4'hf),.video_reset(rst),
++ .boundary_fault(fault_in),.capture_abort_req(4'd0),.writer_abort(4'd0),
++ .camera_session_fault(session_fault),.transport_abort(fault),.cold_system_reset(supervisor_cold));
++
++
+ wire [3:0] cr,done,ab;
+ wire [6:0] av,ar,wv,wr,wl,bv,br;
+ wire [27:0] aid,bid,ac;
+@@ -49,6 +60,7 @@
+  .s_arid(7'd0),.s_araddr(32'd0),.s_arlen(8'd0),.s_arsize(3'd4),.s_arburst(2'd1),.s_arvalid(1'b0),.s_rready(1'b0),
+  .v_awid(vaid),.v_awaddr(vaa),.v_awlen(val),.v_awvalid(vav),.v_awready(vawr),.v_wdata(vdata),.v_wstrb(vstrb),
+  .v_wready(vwr),.v_wlast(vlast),.v_wid(vid),.v_arready(1'b0),.v_rid(4'd0),.v_rdata(128'd0),.v_rlast(1'b0),.v_rvalid(1'b0),.error_flags(adapter_errors));
++reg [2:0] held_owner;
+ integer errors=0,which,j,k,aw_count,w_count,b_count,v_count,zero_count,owed;
+ integer successes[0:3],failures[0:3];
+ reg astall,wstall;reg [43:0] ahold;reg [144:0] whold;
+@@ -76,17 +88,17 @@
+ task tick; @(negedge clk);endtask
+ initial begin
+  for(which=0;which<2;which++) begin
+-  rst=1;cmd=0;fault=0;vawr=0;vwr=0;vlast=0;
+-  repeat(20)tick();rst=0;repeat(10)tick();cmd=15;
++  rst=1;cmd=0;fault_in=0;vawr=0;vwr=0;vlast=0;
++  repeat(20)tick();rst=0;repeat(40)tick();cmd=15;
+   @(posedge clk);check(cr==15,"all four command ready");tick();cmd=0;
+-  wait(w_count==3);tick();fault=(which==0?4'b0001:4'b1111);
++  wait(w_count==3);tick();fault_in=(which==0?4'b0001:4'b1111);
+   for(j=0;j<4;j++) begin
+    wait(vav);tick();vid=vaid;check(val==15,"production 16 beat burst");
+    // Vendor AW is held. Real adapter has buffered all W, but no B exists.
+    repeat(15)tick();vawr=1;tick();vawr=0;
+    for(k=0;k<16;k++) begin
+     if(k==15) begin
+-     repeat(150)tick();
++     held_owner=owner;repeat(150)begin tick();check(busy && owner==held_owner,"owner changed before actual vendor completion");end
+      check(b_count==j && aw_count==j+1 && busy,"delayed vendor last must retain shared owner beyond WD_LIMIT");
+      check((j!=0)||((successes[0]+failures[0])==0),"no fabricated first completion");
+     end
+@@ -98,7 +110,7 @@
+   repeat(25)tick();
+   check(aw_count==4&&w_count==64&&b_count==4&&v_count==64,"four camera ledger totals");
+   check(!busy&&!arb_error&&adapter_errors==0,"shared fabric retained error/owner");
+-  for(k=0;k<4;k++) check(failures[k]==((which==1||k==0)?1:0) && successes[k]==((which==0&&k!=0)?1:0),"per-camera result routing");
++  for(k=0;k<4;k++) check(failures[k]==1 && successes[k]==0,"per-camera result routing");
+   $display("REVIEW_SHARED case=%0d AW=%0d W=%0d vendorW=%0d B=%0d zero_strobe=%0d busy=%b errors=%0d",which,aw_count,w_count,v_count,b_count,zero_count,busy,errors);
+  end
+  $display("REVIEW_SHARED_DONE errors=%0d",errors);$finish;

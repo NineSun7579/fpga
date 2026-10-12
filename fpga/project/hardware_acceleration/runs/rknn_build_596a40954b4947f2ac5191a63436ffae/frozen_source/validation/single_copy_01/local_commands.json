@@ -1,0 +1,58 @@
+[
+  {
+    "name": "bench_build_final",
+    "argv": [
+      "g++",
+      "-std=c++17",
+      "-O2",
+      "-Wall",
+      "-Wextra",
+      "-pedantic",
+      "-fPIC",
+      "-Iprepared",
+      "bench.cpp",
+      "-o",
+      "/mnt/c/Users/NineSun/Desktop/ov56401/project/hardware_acceleration/rknn_io/validation/single_copy_01/rknn_io_bench_host",
+      "-I/usr/include/x86_64-linux-gnu/qt5/QtCore",
+      "-I/usr/include/x86_64-linux-gnu/qt5",
+      "-DQT_GUI_LIB",
+      "-I/usr/include/x86_64-linux-gnu/qt5/QtGui",
+      "-DQT_CORE_LIB",
+      "-lQt5Gui",
+      "-lQt5Core",
+      "-ldl"
+    ],
+    "returncode": 0,
+    "expected_returncode": 0
+  },
+  {
+    "name": "runner_checks_wsl",
+    "argv": [
+      "python3",
+      "/mnt/c/Users/NineSun/Desktop/ov56401/project/hardware_acceleration/rknn_io/validation/single_copy_01/runner_checks.py"
+    ],
+    "returncode": 0,
+    "expected_returncode": 0
+  },
+  {
+    "name": "runner_help_wsl",
+    "argv": [
+      "python3",
+      "run_target.py",
+      "--help"
+    ],
+    "returncode": 0,
+    "expected_returncode": 0
+  },
+  {
+    "name": "diagnostic_decline",
+    "argv": [
+      "/mnt/c/Users/NineSun/Desktop/ov56401/project/hardware_acceleration/rknn_io/validation/single_copy_01/rknn_io_bench_host",
+      "--mode",
+      "native_io_single_copy",
+      "--diagnose-native"
+    ],
+    "returncode": 3,
+    "expected_returncode": 3
+  }
+]

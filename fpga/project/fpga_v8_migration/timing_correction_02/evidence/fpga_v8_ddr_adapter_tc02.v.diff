@@ -1,0 +1,40 @@
+--- C:\Users\NineSun\Desktop\ov56401\project\fpga_v8_migration\whole_candidate_v3_timing_route_01\rtl\fpga_v8_ddr_adapter.v
++++ C:\Users\NineSun\Desktop\ov56401\project\fpga_v8_migration\timing_correction_02\rtl\fpga_v8_ddr_adapter_tc02.v
+@@ -1,7 +1,7 @@
+ `timescale 1ns/1ps
+ // Isolated candidate using the actual, read-only generated 16-word FIFOs.
+ // Common reset of adapter, upstream fabric and vendor controller is required.
+-module fpga_v8_ddr_adapter #(
++module fpga_v8_ddr_adapter_tc02 #(
+     parameter [31:0] DDR_ADDRESS_LIMIT = 32'h10000000
+ ) (
+     input wire clk, input wire rst_n,
+@@ -50,13 +50,24 @@
+     reg [27:0] ar_addr;
+     reg [8:0] received_r, retired_r;
+     wire [3:0] fifo_rid;
+-    wire [63:0] aw_end = {32'd0,s_awaddr} + ({56'd0,s_awlen}+64'd1)*64'd16;
+-    wire [63:0] ar_end = {32'd0,s_araddr} + ({56'd0,s_arlen}+64'd1)*64'd16;
++    // TC02: requests are aligned and contain at most 16 beats. Checking
++    // their last beat needs only a 9-bit page-local sum. With no page
++    // crossing, compare page number and last offset against a constant.
++    // Invalid limits/unaligned requests remain unaccepted, exactly as before.
++    localparam [27:0] LIMIT_LAST_BEAT = (DDR_ADDRESS_LIMIT >> 4) - 1;
+     wire limit_ok = DDR_ADDRESS_LIMIT!=0 && DDR_ADDRESS_LIMIT<=32'h10000000 && DDR_ADDRESS_LIMIT[3:0]==0;
++    wire [8:0] aw_last_in_page = {1'b0,s_awaddr[11:4]} + {5'd0,s_awlen[3:0]};
++    wire [8:0] ar_last_in_page = {1'b0,s_araddr[11:4]} + {5'd0,s_arlen[3:0]};
++    wire aw_range_ok = (s_awaddr[31:12] < LIMIT_LAST_BEAT[27:8]) ||
++        ((s_awaddr[31:12] == LIMIT_LAST_BEAT[27:8]) &&
++         (aw_last_in_page <= {1'b0,LIMIT_LAST_BEAT[7:0]}));
++    wire ar_range_ok = (s_araddr[31:12] < LIMIT_LAST_BEAT[27:8]) ||
++        ((s_araddr[31:12] == LIMIT_LAST_BEAT[27:8]) &&
++         (ar_last_in_page <= {1'b0,LIMIT_LAST_BEAT[7:0]}));
+     wire aw_ok = limit_ok && s_awlen<=15 && s_awaddr[3:0]==0 && s_awsize==4 && s_awburst==1 &&
+-                 ({1'b0,s_awaddr[11:0]}+({5'd0,s_awlen}+13'd1)*13'd16<=13'd4096) && aw_end<={32'd0,DDR_ADDRESS_LIMIT};
++                 !aw_last_in_page[8] && aw_range_ok;
+     wire ar_ok = limit_ok && s_arlen<=15 && s_araddr[3:0]==0 && s_arsize==4 && s_arburst==1 &&
+-                 ({1'b0,s_araddr[11:0]}+({5'd0,s_arlen}+13'd1)*13'd16<=13'd4096) && ar_end<={32'd0,DDR_ADDRESS_LIMIT};
++                 !ar_last_in_page[8] && ar_range_ok;
+     assign s_awready = rst_n && !write_active && !write_hold && !v_awvalid && !s_bvalid && write_fifo_empty && aw_ok;
+     assign s_wready = rst_n && write_active && !write_fifo_full && accepted_w<({5'd0,aw_len}+9'd1);
+     wire push_w = s_wvalid && s_wready;

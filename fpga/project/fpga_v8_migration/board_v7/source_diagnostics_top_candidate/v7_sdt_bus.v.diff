@@ -1,0 +1,23 @@
+--- C:\Users\NineSun\Desktop\ov56401\project\fpga_v8_migration\board_v7\source_diagnostics_bus_candidate\v7_sdb.v
++++ v7_sdt_bus.v
+@@ -1,6 +1,6 @@
+ // Isolated AXI-Lite interceptor, inserted AFTER axi_to_axi_lite and BEFORE
+ // ovreg_axil_decode_tc01. One outstanding read and one write, independently.
+-module v7_sdb (
++module v7_sdt_bus (
+  input clk, rst,
+  input [3:0] cam_clk, cam_reset, raw_vsync, raw_href, raw_byte_accept,
+  input [3:0] capture_vsync, capture_valid,
+@@ -55,9 +55,10 @@
+  assign m_awaddr=wa;
+  assign m_wdata=wd;
+  assign m_wstrb=ws;
+- // Never forward W ahead of AW: old decoder routes W using AW selection.
++ // Offer AW and W together: frozen CAM requires simultaneous valid.
++ // Decoder uses live AW route while AWVALID, saved route after AW handshake.
+  assign m_awvalid=ah && wh && !hit(wa) && !wasent && !s_bvalid;
+- assign m_wvalid=ah && wh && !hit(wa) && wasent && !wdsent && !s_bvalid;
++ assign m_wvalid=ah && wh && !hit(wa) && !wdsent && !s_bvalid;
+  assign m_bready=ah && wh && !hit(wa) && wasent && wdsent && !s_bvalid;
+  assign m_araddr=ra;
+  assign m_arvalid=rs==1;

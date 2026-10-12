@@ -1,0 +1,4 @@
+set_arch -family Logos2 -device PG2L100H -speedgrade -6 -package FBG484
+add_constraint {C:/Users/NineSun/Desktop/ov56401/project/fpga_v8_migration/board_v7/source_diagnostics_timing_build_04/evidence/runtime/mapping60_01/isolated_mapping_work/constraints/clock.fdc}
+add_constraint {C:/Users/NineSun/Desktop/ov56401/project/fpga_v8_migration/board_v7/source_diagnostics_timing_build_04/evidence/runtime/mapping60_01/isolated_mapping_work/constraints/production60.lcf}
+dev_map -force_to_run -input_db_file {C:/Users/NineSun/Desktop/ov56401/project/fpga_v8_migration/board_v7/source_diagnostics_timing_build_04/evidence/runtime/mapping60_01/isolated_mapping_work/synthesize/v7_sdt_top_syn.adf} -override_pcf true -devmap_remove_dups 0 -devmap_const_prop 0 -devmap_control_set_num 0

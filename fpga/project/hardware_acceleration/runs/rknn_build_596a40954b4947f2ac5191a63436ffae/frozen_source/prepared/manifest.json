@@ -1,0 +1,164 @@
+{
+  "schema": 1,
+  "status": "prepared_only_no_build_or_hardware_test",
+  "model_path": "/root/npu/whiteboard_3cls/det-yolov8n-3cls-wb_v4_combo-rk3568-raw-dfl6-int8.rknn",
+  "model_sha256": "21451a51f680ececd9ee75bcbb4db3e4ccee05d210ef9ffef2f1b99da61a8b31",
+  "retained_manifest_sha256": "df1b752186670f31deb1be6f45545f65c4d9e22315fa66b3d59104433c255c61",
+  "retained_main_sha256": "d3a38d77338168b6d95a8731efe99e7b443f08b0dee7bcc831d33bc544a0fd23",
+  "retained_sdk_sha256": "c48e11a6f41b451a5fd1e4ad774ea60252d3d94f78bee9b21ea3d21b21deba9a",
+  "decoder_slice_sha256": "18effb712398c338c484807b5264316029246d955ecc7e7146821827a5d7343d",
+  "constants_slice_sha256": "df9a47dc59c7988f314493834726d6a36b2ddb2da69d34c7b94b1aaae58c07e9",
+  "converter_slice_sha256": "9beb489edfd869c8c31c6d9291bea5a39efde45a64dd3b8babfe11ffc60768fb",
+  "fixture_width": 640,
+  "fixture_height": 480,
+  "model_input": "UINT8 NHWC RGB888 full 640x480 at y=80, gray114 640x640; pass_through=0",
+  "decoder": {
+    "nc": 3,
+    "xyxy": false,
+    "confidence": 0.25,
+    "iou": 0.45
+  },
+  "source_binary_binding": "Extracted verbatim from retained working source; no claim of complete original viewer compiler-input binding.",
+  "output_shapes": "Query real model; never infer four/six tensors from filename.",
+  "fixtures": [
+    {
+      "name": "bright_baseline_cam1",
+      "path": "fixtures/bright_baseline_cam1.png",
+      "kind": "png",
+      "sha256": "f914a521b554307ab90f3fa93f7233da21b22503dc9c454ad72174197b8afb86",
+      "provenance": {
+        "path": "bright_baseline_cam1.png",
+        "sha256": "f914a521b554307ab90f3fa93f7233da21b22503dc9c454ad72174197b8afb86",
+        "source": "log\\100h_motion\\baseline.png",
+        "source_sha256": "06b3286754daef4e587cd82450ad84c02f76ab83db3b1cbaefc095a0b1b10ffc",
+        "crop_xyxy": [
+          0,
+          60,
+          640,
+          540
+        ],
+        "dimensions": [
+          640,
+          480
+        ],
+        "limitation": "Screenshot crop retains camera label / display overlays; identical bytes for both harnesses."
+      },
+      "historical_reference": {
+        "path": "historical/bright_baseline_cam1_reload1_baseline.log",
+        "sha256": "40cf1c8382227c9d95019200f0a3cd6f3046668a402f7fa823754a332c8036b2",
+        "output_count": 4,
+        "count": 2,
+        "detections": [
+          {
+            "class": 1,
+            "score": 0.5865968465805054,
+            "x1": 203.9507293701172,
+            "y1": 250.82986450195312,
+            "x2": 671.06787109375,
+            "y2": 562.7693481445312
+          },
+          {
+            "class": 1,
+            "score": 0.3775693476200104,
+            "x1": 65.04812622070312,
+            "y1": 193.93479919433594,
+            "x2": 522.8167114257812,
+            "y2": 592.861083984375
+          }
+        ],
+        "historical_request_sha256": "fab34ce71434e2c3eda80817ce1775943b6979273b8ef691df12d0f027f739b6",
+        "policy": "Require exact recovered FP32 tuples from previously executed baseline fixture; fail if current runtime differs."
+      }
+    },
+    {
+      "name": "candidate_cam1",
+      "path": "fixtures/candidate_cam1.png",
+      "kind": "png",
+      "sha256": "f32cd160163a500df3885af311b23a82783b6aaad14fae2cbd4adf037d93a0ee",
+      "provenance": {
+        "path": "candidate_cam1.png",
+        "sha256": "f32cd160163a500df3885af311b23a82783b6aaad14fae2cbd4adf037d93a0ee",
+        "source": "project\\performance_100h\\candidate_ring1_unpaced.png",
+        "source_sha256": "7701625dd970d3722ea2e1842360bd11ec6306aa521b100f5ea026cb84e0bb95",
+        "crop_xyxy": [
+          0,
+          68,
+          640,
+          548
+        ],
+        "dimensions": [
+          640,
+          480
+        ],
+        "limitation": "Screenshot crop retains camera label / display overlays; identical bytes for both harnesses."
+      },
+      "historical_reference": {
+        "path": "historical/candidate_cam1_reload1_baseline.log",
+        "sha256": "3fd35cbdf1defd95131e8ed7b0727143607dd26283bc4d7069c1af0cf53ed68c",
+        "output_count": 4,
+        "count": 0,
+        "detections": [],
+        "historical_request_sha256": "fab34ce71434e2c3eda80817ce1775943b6979273b8ef691df12d0f027f739b6",
+        "policy": "Require exact recovered FP32 tuples from previously executed baseline fixture; fail if current runtime differs."
+      }
+    },
+    {
+      "name": "live_cam1_bank0_0",
+      "path": "fixtures/live_cam1_bank0_0.rgb565",
+      "kind": "rgb565_le",
+      "sha256": "d224d92ba0bd04f03dea276f0911396cccbf55b25738d5e00a019a47965dda1f",
+      "provenance": {
+        "source": "tp/quad_accept/live_cam1_bank0_0.rgb565",
+        "source_sha256": "d224d92ba0bd04f03dea276f0911396cccbf55b25738d5e00a019a47965dda1f",
+        "limitation": "Retained full camera fixture; no fresh camera/DMA access."
+      }
+    },
+    {
+      "name": "live_cam2_bank0_0",
+      "path": "fixtures/live_cam2_bank0_0.rgb565",
+      "kind": "rgb565_le",
+      "sha256": "ae5d4a53794b239f6b6d8330d7abdf42bc4599e476c3f3a49a8baea3e11a49fa",
+      "provenance": {
+        "source": "tp/quad_accept/live_cam2_bank0_0.rgb565",
+        "source_sha256": "ae5d4a53794b239f6b6d8330d7abdf42bc4599e476c3f3a49a8baea3e11a49fa",
+        "limitation": "Retained full camera fixture; no fresh camera/DMA access."
+      }
+    }
+  ],
+  "files_sha256": {
+    "prepared/fixtures/bright_baseline_cam1.png": "f914a521b554307ab90f3fa93f7233da21b22503dc9c454ad72174197b8afb86",
+    "prepared/fixtures/candidate_cam1.png": "f32cd160163a500df3885af311b23a82783b6aaad14fae2cbd4adf037d93a0ee",
+    "prepared/fixtures/live_cam1_bank0_0.rgb565": "d224d92ba0bd04f03dea276f0911396cccbf55b25738d5e00a019a47965dda1f",
+    "prepared/fixtures/live_cam2_bank0_0.rgb565": "ae5d4a53794b239f6b6d8330d7abdf42bc4599e476c3f3a49a8baea3e11a49fa",
+    "prepared/frozen/main.cpp": "d3a38d77338168b6d95a8731efe99e7b443f08b0dee7bcc831d33bc544a0fd23",
+    "prepared/frozen/vision_types.h": "07f8486e2dcc43d7ff7a65c36d804fcf5729a3e60c03de6b6259dd3fc9ca9a4d",
+    "prepared/frozen_decoder.h": "affd356db740e5dfc61d9b1accc086aed41185b2fe2d53e3b2935356a02de248",
+    "prepared/historical/bright_baseline_cam1_reload1_baseline.log": "40cf1c8382227c9d95019200f0a3cd6f3046668a402f7fa823754a332c8036b2",
+    "prepared/historical/candidate_cam1_reload1_baseline.log": "3fd35cbdf1defd95131e8ed7b0727143607dd26283bc4d7069c1af0cf53ed68c",
+    "prepared/historical/request.json": "fab34ce71434e2c3eda80817ce1775943b6979273b8ef691df12d0f027f739b6",
+    "prepared/sdk/rknn_api.h": "c48e11a6f41b451a5fd1e4ad774ea60252d3d94f78bee9b21ea3d21b21deba9a",
+    "README.md": "bb8e9517658435684c0a9f41b192dcb9bc384e56e03bb80296859c91ea1a8763",
+    "adapter_selftest.cpp": "65edc30d229371c990daf014ed1e263197d0071b21b5d0b7bffd38a9f34c4869",
+    "bench.cpp": "7cd1b73b3d3eeb39585abd28511d700b0aa68b19b73da86b7d842eb268ca3fab",
+    "diagnostic_selftest.cpp": "41061322d85c6e3654d3ac4b135fc2cdf21e5de3c1829a9c42688701ca886e03",
+    "dma_heap_import.h": "8c56714336f11c13e1a8116dc073f64f80508e0c75932869d7070f358daede34",
+    "dma_heap_import_selftest.cpp": "b9235a4fcd0bca48c822602e373186e2fa3cfa38267abd4c842d0b572f7737a0",
+    "fd_binding_policy.h": "cbab7e5ca28665ef5f9b01cc77ee785bf877e45243fdeda186826a8f3d609678",
+    "fd_binding_selftest.cpp": "1ce52c7f7293a1896550ef211e070dc2684dab0fe8aca5a29829f9cdbeb3e740",
+    "local_tests/fd_import_checks.py": "68356f323f0d17882307b3b688dd269a376062b875637080398f6a9e8886504b",
+    "native_adapter.h": "0c74970f2d895830b0b2623cbdc48c350c8d85cc098f39f7ac3b95f46421f34f",
+    "neon_selftest.cpp": "3547e226825e4506734c48e00bc24c7e784691b5a0376a7ea20deefd56708359",
+    "prepare.py": "8304f9f9f333634aab50e9bcf09710da3d6e9f1a03e34ec77d2720f2c74ed90d",
+    "rknn_io.pro": "635d0a7046c6cb4a08baa17b195ac0c9c633c364fdd98ee05128ab6a3b465207",
+    "run_target.py": "2db6745d4e4d48135bbc030f1ec2511b61a5c794552238abd47d7d51fb63a167",
+    "scale_selftest.cpp": "56edf0dbd1950199e5d76e6acfe58db865d4ea9a08bb4b046567828ce6db8d3b",
+    "single_copy_input.h": "abb2e04e897c4c4c914a7df269c804b9753f02dca6e31fe13f0f66bf8f76958f",
+    "single_copy_selftest.cpp": "feda7e9c9ad75bb296cf52d31f8b82d93de5e82d13325245265695ab67708132"
+  },
+  "hardware_pending": [
+    "runtime/driver ABI queries",
+    "native layout certification against float arrays",
+    "exact decoder tuples",
+    "completed FPS and stage wall/thread CPU measurements"
+  ]
+}

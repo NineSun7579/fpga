@@ -1,0 +1,133 @@
+--- route02/inputs/source/ov5640/ov5640_reg.v
++++ candidate/rtl/ov5640_reg.v
+@@ -242,12 +242,88 @@
+ 
+ 
+     // 锟斤拷锟斤拷一锟斤拷锟捷达拷锟斤拷锟街凤拷募拇锟斤拷锟�
+-    reg [AXI_ADDR_WIDTH-1:0] raddr_reg;
+-    always @(posedge clk) begin
+-        if (s_axi_arvalid & s_axi_arready) begin
+-            raddr_reg <= s_axi_araddr; // 锟斤拷锟街成癸拷瞬锟戒，锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟侥讹拷锟斤拷址
+-        end
+-    end
++    // P1: register priority one-hot at the original AR capture edge.
++    reg [22:0] read_select;
++    always @(posedge clk) begin
++        if (s_axi_arvalid & s_axi_arready) begin
++            case (s_axi_araddr)
++                REG_ACK: read_select <= 23'h000001;
++                REG_CAM_EN: read_select <= 23'h000002;
++                REG_CAM_ADDR_1: read_select <= 23'h000004;
++                REG_CAM_ADDR_2: read_select <= 23'h000008;
++                BASE_ADDR + 32'h190: read_select <= 23'h000010;
++                BASE_ADDR + 32'h1a0: read_select <= 23'h000020;
++                BASE_ADDR + 32'h1b0: read_select <= 23'h000040;
++                BASE_ADDR + 32'h1c0: read_select <= 23'h000080;
++                REG_DBG_CAM_WORDS: read_select <= 23'h000100;
++                REG_DBG_VSYNCS: read_select <= 23'h000200;
++                REG_DBG_ZDIN: read_select <= 23'h000400;
++                REG_DBG_ZOUT: read_select <= 23'h000800;
++                REG_DBG_BEAT_CNT: read_select <= 23'h001000;
++                REG_DBG_BEAT_LAST: read_select <= 23'h002000;
++                REG_DBG_XDMA_REQ: read_select <= 23'h004000;
++                REG_DBG_VSYNC_RAW: read_select <= 23'h008000;
++                REG_DBG_I2C_ID: read_select <= 23'h010000;
++                REG_DBG_PCLK_CNT: read_select <= 23'h020000;
++                REG_DBG_SYS: read_select <= 23'h040000;
++                REG_DBG_AXI_NOW: read_select <= 23'h080000;
++                REG_I2C_RD: read_select <= 23'h100000;
++                REG_I2C_STAT: read_select <= 23'h200000;
++                default: read_select <= 23'h400000;
++            endcase
++        end
++    end
++
++    // Sized wires retain original assignment extension/truncation.
++    // Values remain live until the original data_out_valid edge.
++    wire [AXI_ADDR_WIDTH-1:0] read_value_0 = dbg_fault_snapshot;
++    wire [AXI_ADDR_WIDTH-1:0] read_value_1 = {{AXI_ADDR_WIDTH-1{1'b0}}, cam_en};
++    wire [AXI_ADDR_WIDTH-1:0] read_value_2 = cam_addr_1;
++    wire [AXI_ADDR_WIDTH-1:0] read_value_3 = cam_addr_2;
++    wire [AXI_ADDR_WIDTH-1:0] read_value_4 = dbg_cdc_input;
++    wire [AXI_ADDR_WIDTH-1:0] read_value_5 = dbg_cdc_output;
++    wire [AXI_ADDR_WIDTH-1:0] read_value_6 = dbg_cdc_drop;
++    wire [AXI_ADDR_WIDTH-1:0] read_value_7 = dbg_cdc_seq;
++    wire [AXI_ADDR_WIDTH-1:0] read_value_8 = dbg_input_pixels;
++    wire [AXI_ADDR_WIDTH-1:0] read_value_9 = dbg_vsyncs;
++    wire [AXI_ADDR_WIDTH-1:0] read_value_10 = dbg_vsync_widths;
++    wire [AXI_ADDR_WIDTH-1:0] read_value_11 = dbg_href_raw;
++    wire [AXI_ADDR_WIDTH-1:0] read_value_12 = dbg_reject_counts;
++    wire [AXI_ADDR_WIDTH-1:0] read_value_13 = dbg_last_cnt;
++    wire [AXI_ADDR_WIDTH-1:0] read_value_14 = {{(AXI_ADDR_WIDTH-2){1'b0}}, dbg_xdma_req};
++    wire [AXI_ADDR_WIDTH-1:0] read_value_15 = dbg_vsync_raw;
++    wire [AXI_ADDR_WIDTH-1:0] read_value_16 = {dbg_wd_cnt[7:0], dbg_state[7:0], dbg_cmd_cnt[15:0]};
++    wire [AXI_ADDR_WIDTH-1:0] read_value_17 = dbg_pclk_cnt;
++    wire [AXI_ADDR_WIDTH-1:0] read_value_18 = {dbg_b_cnt[15:0], dbg_aw_cnt[15:0]};
++    wire [AXI_ADDR_WIDTH-1:0] read_value_19 = dbg_sys_status;
++    wire [AXI_ADDR_WIDTH-1:0] read_value_20 = {{(AXI_ADDR_WIDTH-8){1'b0}}, pt_rdata_lat};
++    wire [AXI_ADDR_WIDTH-1:0] read_value_21 = {{(AXI_ADDR_WIDTH-2){1'b0}}, pt_done_lat, pt_ack_lat};
++    wire [AXI_ADDR_WIDTH-1:0] read_value_22 = {AXI_ADDR_WIDTH{1'b1}};
++    wire [AXI_ADDR_WIDTH-1:0] read_mux =
++        ({AXI_ADDR_WIDTH{read_select[0]}} & read_value_0) |
++        ({AXI_ADDR_WIDTH{read_select[1]}} & read_value_1) |
++        ({AXI_ADDR_WIDTH{read_select[2]}} & read_value_2) |
++        ({AXI_ADDR_WIDTH{read_select[3]}} & read_value_3) |
++        ({AXI_ADDR_WIDTH{read_select[4]}} & read_value_4) |
++        ({AXI_ADDR_WIDTH{read_select[5]}} & read_value_5) |
++        ({AXI_ADDR_WIDTH{read_select[6]}} & read_value_6) |
++        ({AXI_ADDR_WIDTH{read_select[7]}} & read_value_7) |
++        ({AXI_ADDR_WIDTH{read_select[8]}} & read_value_8) |
++        ({AXI_ADDR_WIDTH{read_select[9]}} & read_value_9) |
++        ({AXI_ADDR_WIDTH{read_select[10]}} & read_value_10) |
++        ({AXI_ADDR_WIDTH{read_select[11]}} & read_value_11) |
++        ({AXI_ADDR_WIDTH{read_select[12]}} & read_value_12) |
++        ({AXI_ADDR_WIDTH{read_select[13]}} & read_value_13) |
++        ({AXI_ADDR_WIDTH{read_select[14]}} & read_value_14) |
++        ({AXI_ADDR_WIDTH{read_select[15]}} & read_value_15) |
++        ({AXI_ADDR_WIDTH{read_select[16]}} & read_value_16) |
++        ({AXI_ADDR_WIDTH{read_select[17]}} & read_value_17) |
++        ({AXI_ADDR_WIDTH{read_select[18]}} & read_value_18) |
++        ({AXI_ADDR_WIDTH{read_select[19]}} & read_value_19) |
++        ({AXI_ADDR_WIDTH{read_select[20]}} & read_value_20) |
++        ({AXI_ADDR_WIDTH{read_select[21]}} & read_value_21) |
++        ({AXI_ADDR_WIDTH{read_select[22]}} & read_value_22);
++
+ 
+ 
+     always @(posedge clk) begin
+@@ -259,34 +335,7 @@
+             if(data_out_valid) begin
+                 rvalid <= 1'b1;
+                 // 锟斤拷锟捷刚诧拷锟斤拷锟斤拷亩锟斤拷锟街凤拷锟斤拷锟斤拷囟锟接︼拷拇锟斤拷锟斤拷锟斤拷锟绞抵�
+-                case(raddr_reg)
+-                    REG_ACK:        rdata <= dbg_fault_snapshot; // read-only; ACK writes unchanged
+-                    REG_CAM_EN:     rdata <= {{AXI_ADDR_WIDTH-1{1'b0}}, cam_en};
+-                    REG_CAM_ADDR_1: rdata <= cam_addr_1;
+-                    REG_CAM_ADDR_2: rdata <= cam_addr_2;
+-
+-
+-
+-                    BASE_ADDR + 32'h190: rdata <= dbg_cdc_input;
+-                    BASE_ADDR + 32'h1a0: rdata <= dbg_cdc_output;
+-                    BASE_ADDR + 32'h1b0: rdata <= dbg_cdc_drop;
+-                    BASE_ADDR + 32'h1c0: rdata <= dbg_cdc_seq;
+-                    REG_DBG_CAM_WORDS: rdata <= dbg_input_pixels;
+-                    REG_DBG_VSYNCS:    rdata <= dbg_vsyncs;
+-                    REG_DBG_ZDIN:      rdata <= dbg_vsync_widths;
+-                    REG_DBG_ZOUT:      rdata <= dbg_href_raw;
+-                    REG_DBG_BEAT_CNT:  rdata <= dbg_reject_counts;
+-                    REG_DBG_BEAT_LAST: rdata <= dbg_last_cnt;
+-                    REG_DBG_XDMA_REQ:  rdata <= {{(AXI_ADDR_WIDTH-2){1'b0}}, dbg_xdma_req};
+-                    REG_DBG_VSYNC_RAW: rdata <= dbg_vsync_raw;
+-                    REG_DBG_I2C_ID:    rdata <= {dbg_wd_cnt[7:0], dbg_state[7:0], dbg_cmd_cnt[15:0]};
+-                    REG_DBG_PCLK_CNT:  rdata <= dbg_pclk_cnt;
+-                    REG_DBG_SYS:       rdata <= {dbg_b_cnt[15:0], dbg_aw_cnt[15:0]};
+-                    REG_DBG_AXI_NOW:   rdata <= dbg_sys_status;
+-                    REG_I2C_RD:        rdata <= {{(AXI_ADDR_WIDTH-8){1'b0}}, pt_rdata_lat};
+-                    REG_I2C_STAT:      rdata <= {{(AXI_ADDR_WIDTH-2){1'b0}}, pt_done_lat, pt_ack_lat};
+-                    default:        rdata <= {AXI_ADDR_WIDTH{1'b1}}; // 锟斤拷锟斤拷锟角凤拷锟斤拷址锟斤拷锟斤拷锟斤拷锟斤拷锟角ｏ拷锟斤拷锟斤拷 debug
+-                endcase
++                rdata <= read_mux;
+             end
+             else if(s_axi_rvalid & s_axi_rready)begin
+                 rvalid <= 1'b0;

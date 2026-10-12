@@ -1,0 +1,57 @@
+Startpoint  : camera_ctrl_rst_n/opit_0_L5Q_perm/CLK
+Endpoint    : cam3_ov5640_top/ov5640/i2c_dri/clk_cnt[0]/opit_0_inv_L6Q_LUT6DQL5_perm/RS
+Path Group  : free_clk
+Path Type   : min (slow corner)
+Path Class  : async timing path
+Clock Skew  :    2.831  (Capture Clock Delay - Launch Clock Delay + Clock Pessimism Removal)
+  Capture Clock Delay     :  6.772
+  Launch Clock Delay      :  3.755
+  Clock Pessimism Removal :  -0.186
+
+ Location                          Delay Type             Incr        Path         Logical Resource 
+----------------------------------------------------------------------------------------------------
+
+ Clock free_clk (rising edge)                            0.000       0.000 r                        
+ V4                                                      0.000       0.000 r       free_clk (port)  
+                                   net (fanout=1)        0.106       0.106         free_clk         
+ IOBD_372_468/PAD                                                                  free_clk_ibuf/opit_0/I
+ IOBD_372_468/DIN                  td                    0.954       1.060 r       free_clk_ibuf/opit_0/O
+                                   net (fanout=1)        0.000       1.060         free_clk_ibuf/ntD
+ IOLHR_364_468/DI                                                                  free_clk_ibuf/opit_1/DI
+ IOLHR_364_468/DI_TO_CLK           td                    0.091       1.151 r       free_clk_ibuf/opit_1/DI_TO_CLK
+                                   net (fanout=281)      2.604       3.755         nt_free_clk      
+ CLMA_33_354/CLK                                                           r       camera_ctrl_rst_n/opit_0_L5Q_perm/CLK
+
+ CLMA_33_354/CR0                   tco                   0.173       3.928 f       camera_ctrl_rst_n/opit_0_L5Q_perm/L5Q
+                                   net (fanout=221)      2.493       6.421         camera_ctrl_rst_n
+ CLMA_33_1026/RS                                                           f       cam3_ov5640_top/ov5640/i2c_dri/clk_cnt[0]/opit_0_inv_L6Q_LUT6DQL5_perm/RS
+
+ Data arrival time                                                   6.421         Logic Levels: 0  
+                                                                                   Logic: 0.173ns(6.489%), Route: 2.493ns(93.511%)
+----------------------------------------------------------------------------------------------------
+
+ Clock free_clk (rising edge)                            0.000       0.000 r                        
+ V4                                                      0.000       0.000 r       free_clk (port)  
+                                   net (fanout=1)        0.106       0.106         free_clk         
+ IOBD_372_468/PAD                                                                  free_clk_ibuf/opit_0/I
+ IOBD_372_468/DIN                  td                    1.117       1.223 r       free_clk_ibuf/opit_0/O
+                                   net (fanout=1)        0.000       1.223         free_clk_ibuf/ntD
+ IOLHR_364_468/DI                                                                  free_clk_ibuf/opit_1/DI
+ IOLHR_364_468/DI_TO_CLK           td                    0.105       1.328 r       free_clk_ibuf/opit_1/DI_TO_CLK
+                                   net (fanout=281)      5.444       6.772         nt_free_clk      
+ CLMA_33_1026/CLK                                                          r       cam3_ov5640_top/ov5640/i2c_dri/clk_cnt[0]/opit_0_inv_L6Q_LUT6DQL5_perm/CLK
+ clock pessimism                                        -0.186       6.586                          
+ clock uncertainty                                       0.000       6.586                          
+
+ Removal time                                           -0.064       6.522                          
+
+ Data required time                                                  6.522                          
+----------------------------------------------------------------------------------------------------
+ Data required time                                                  6.522                          
+ Data arrival time                                                   6.421                          
+----------------------------------------------------------------------------------------------------
+ Slack (VIOLATED)                                                   -0.101                          
+====================================================================================================
+
+====================================================================================================
+

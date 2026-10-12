@@ -1,0 +1,9 @@
+# 1280实体图跨mapped阶段实证
+
+stage_map13/result.json确认仅Device Map started/done、successfully mapped、无E/Timing4003，input_unchanged=true。map DB SHA256=19606609132adee226f240f111470b4eaf42a9c7e66c75b9a8e1f71f2a41924e。日志中的add_constraint successfully只是登记约束，不单独证明maxdelay已加载。
+
+map_audit14完成实际mapped DB导出与graph.json解析。旧resolve_manifest假定GTP_DFF实例原名，在mapped阶段失败（launch=None），失败完整保留。实际mapped包含gopQ、gopLUT6QL5Q多输出packing。例如logical mailbox[0]输出来自mailbox[1]/opit_0_L6QL5Q1/L5Q，并直接接host_bank[0]/opit_0/D。
+
+resolve_mapped14.py以保留的实际顶层net alias逐位映射launch/capture输出，检查唯一driver、寄存器输出port、实际CLK、唯一D输入sink及直连net。mapped_channel_manifest.json得到2048逻辑位、1280独立寄存器输出通道、1280 CLK->D对。保持packing多输出通道分别计数；mapped LUT读出逻辑重新求值尚未完成。
+
+mapped_timing15用上述实际mapped对象，查询min_max和report_exception，审计要求每角1280对、无额外对、全部15.238ns -datapath_only和非负slack。首次被resume_exact11.py控制器59772的PDS81460/76872 guard拒绝，未并发启动。已后台等待父控制器自然退出后串行查询及coverage审计；实际预算是否继承待该结果。未按map done授权PNR或bit。

@@ -1,0 +1,31 @@
+--- candidate_fair_viewer/main.cpp
++++ candidate_short_hold_viewer/main.cpp
+@@ -784,13 +784,6 @@
+         uint32_t rawTag = 0;
+         memcpy(&rawTag, rx_ + tdm::cameraSlotOffset(camera) + FRAME_BYTES, 4);
+         check(rawTag == sequence, "RAW commit tag differs from RGB lease");
+-        // One worker owns this camera RX slot; scratch/other camera DMA is
+-        // disjoint. Keep the FPGA camera hold and converter admission intact.
+-        lock.unlock();
+-        timer.restart();
+-        tdm::copyCameraPixels(output, rx_ + tdm::cameraSlotOffset(camera), FRAME_BYTES);
+-        copyNs = timer.nsecsElapsed();
+-        lock.relock();
+         const uint32_t jobs = reg(0x90);
+         write(0x20, 3); poll(true, jobs); validate();
+         // RGB destination is now immutable under this sole converter owner.
+@@ -803,6 +796,14 @@
+         check(reg(0xc0) == 4 && reg(0xd0) == 0 && reg(0x120) == 0 &&
+                reg(0x40) == 0x0a000000, "camera defaults restore failed");
+         lock.unlock();
++        // RAW F2H and its commit-tag check already completed under the hold.
++        // This worker owns its host RX slot until this call returns; register
++        // scratch, other cameras and RGB use disjoint slots. Copy the exact
++        // captured RAW after verified conversion/release, before publishing or
++        // constructing its same-frame golden RGB. Admission remains occupied.
++        timer.restart();
++        tdm::copyCameraPixels(output, rx_ + tdm::cameraSlotOffset(camera), FRAME_BYTES);
++        copyNs = timer.nsecsElapsed();
+         input = std::make_shared<scheme2::Input>();
+         input->fd = shared_->sharedFd; input->base = rx_; input->height = height;
+         if (scheme2::verify()) input->goldenRgb = scheme2::golden(output, height);

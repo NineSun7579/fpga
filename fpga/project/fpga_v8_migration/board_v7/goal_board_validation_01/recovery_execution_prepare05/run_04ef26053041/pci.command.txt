@@ -1,0 +1,19 @@
+python3 - <<'PY'
+from pathlib import Path
+import subprocess,json,datetime
+root=Path('/sys/bus/pci/devices'); eps=[]
+for dev in root.iterdir():
+ try:
+  if dev.joinpath('vendor').read_text().strip()=='0x0755' and dev.joinpath('device').read_text().strip()=='0x0755':eps.append(dev)
+ except OSError:pass
+result={'boot_id':Path('/proc/sys/kernel/random/boot_id').read_text().strip(),'endpoints':[]}
+for dev in eps:
+ real=dev.resolve();parent=real.parent;bdf=parent.name
+ rec={'endpoint':dev.name,'sysfs_realpath':str(real),'parent_bdf':bdf,'driver':str((dev/'driver').resolve()),'commands':{}}
+ for key,args in [('parent_lspci',['sudo','-n','lspci','-s',bdf,'-nnvv']),('endpoint_lspci',['sudo','-n','lspci','-s',dev.name,'-nnvv']),('bridge_control',['sudo','-n','setpci','-s',bdf,'BRIDGE_CONTROL']),('parent_command',['sudo','-n','setpci','-s',bdf,'COMMAND']),('endpoint_command',['sudo','-n','setpci','-s',dev.name,'COMMAND'])]:
+  start=datetime.datetime.now(datetime.timezone.utc).isoformat()
+  proc=subprocess.run(args,capture_output=True,text=True,timeout=20)
+  rec['commands'][key]={'argv':args,'started_utc':start,'ended_utc':datetime.datetime.now(datetime.timezone.utc).isoformat(),'stdout':proc.stdout,'stderr':proc.stderr,'returncode':proc.returncode}
+ result['endpoints'].append(rec)
+print(json.dumps(result,indent=2))
+PY

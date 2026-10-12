@@ -1,0 +1,42 @@
+{
+  "status": "local_compile_and_meaningful_tests_passed",
+  "board_access": false,
+  "new_hardware_certification": false,
+  "performance_claim": false,
+  "new_prepared_manifest_sha256": "dd035959d9e737a8009a184072230a24335c2cda3d86ce80cd1190d8b15b2db8",
+  "verified_pinned_files": 20,
+  "protected_prepared_files_unchanged": 11,
+  "host_executable_sha256": "fe6adbcbf824179c36a4101d9638a473b450c431b02238b9a2af2e07f749eb40",
+  "host_compile": {
+    "compiler": "WSL Ubuntu-24.04 g++",
+    "language": "c++17",
+    "flags": ["-O2", "-Wall", "-Wextra", "-pedantic", "-fPIC", "-Iprepared"],
+    "qt": "pkg-config Qt5Core Qt5Gui",
+    "source": "bench.cpp",
+    "output": "validation/rknn_io_bench_diagnostic_host",
+    "exit_code": 0,
+    "stdout": "diagnostic_build.stdout",
+    "stderr": "diagnostic_build.stderr",
+    "warnings": false,
+    "runtime_library_loaded": false
+  },
+  "tests": [
+    {"test": "scale_selftest", "exit_code": 0, "ieee_binary16_oracle_cases": 453953, "all_byte_lut_cases": 22528, "stdout": "scale_selftest.stdout", "stderr_empty": true},
+    {"test": "scale_selftest_sanitized", "exit_code": 0, "sanitizers": ["address", "undefined"], "ieee_binary16_oracle_cases": 453953, "all_byte_lut_cases": 22528, "stdout": "scale_selftest_sanitized.stdout", "stderr_empty": true},
+    {"test": "adapter_selftest_scale_lut", "exit_code": 0, "coverage": "NC1HWC2/NHWC reported padding sentinels, strict short-buffer/bounds rejection, signed/unsigned affine, FP16", "stdout": "adapter_selftest_scale_lut.stdout", "stderr_empty": true},
+    {"test": "adapter_selftest_scale_lut_sanitized", "exit_code": 0, "sanitizers": ["address", "undefined"], "stdout": "adapter_selftest_scale_lut_sanitized.stdout", "stderr_empty": true},
+    {"test": "diagnostic_selftest", "exit_code": 0, "coverage": "Comparison epsilon/NaN/size handling; immutable byte snapshot and full binding metadata hash; hash-verified downloaded failure arrays; archived native_io scale-only arithmetic and frozen decoder", "stdout": "diagnostic_selftest.stdout", "stderr_empty": true},
+    {"test": "run_target.py help/AST/manifest verification", "exit_code": 0, "coverage": "--dequant-scale parser declaration, Python syntax and all 20 current manifest hashes", "stdout": "runner_help.stdout", "stderr_empty": true}
+  ],
+  "archived_native_io_arithmetic": {
+    "parent_run": "4ad952c78e814a14b87784e51ec250de",
+    "baseline_parent_run": "892e53bcaad44f23bcb0c617dd6c77dd",
+    "fixtures": 1,
+    "exact_baseline_float_elements": 536000,
+    "exact_baseline_decoder_tuples": 2,
+    "raw_native_mapping_certified": false,
+    "method": "Recover exact q-zp from old adapter FP32 snapshots; validate queried-scale multiplication; apply scale-only fp16 LUT in new NativePlan; compare every baseline float and decode with frozen decoder. This is archived arithmetic evidence, not execution of the new binary."
+  },
+  "parent_next_configuration": {"candidates": ["native_io"], "native_query": 9, "dequant_scale": "fp16", "fixtures": "all four", "array_and_exact_tuple_gates": "unchanged", "new_target_build_required": true},
+  "helper_api": "NativePlan::make(logical, native, NativePlan::DequantScale::Fp16); default policy remains Fp32"
+}

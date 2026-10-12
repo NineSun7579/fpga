@@ -1,0 +1,83 @@
+# do frame_recovery.do
+# Model Technology ModelSim SE-64 vlog 10.6e Compiler 2018.06 Jun 23 2018
+# Start time: 15:31:26 on Oct 02,2026
+# vlog -work work_frame -sv ../../source/axi_dma/axi_dma_write.v ../../source/axi_dma/stream_pipe.v ../../source/ov5640/ov5640_ddr/ov5640_ddr.v ../../source/ov5640/ov5640_ddr/ov5640_ddr_w.v ../../source/ov5640/ov5640_ddr/ov5640_ddr_w_ctrl.v ../../source/ov5640/ov5640_ddr/ov5640_ddr_w_en.v ../dma_timeout_repro/fifo_models.sv ../dma_timeout_repro/tb_frame_recovery.sv 
+# -- Compiling module axi_dma_write
+# -- Compiling module stream_pipe
+# -- Compiling module ov5640_ddr
+# -- Compiling module ov5640_ddr_w
+# -- Compiling module ov5640_ddr_w_ctrl
+# -- Compiling module ov5640_ddr_w_en
+# -- Compiling module ov5640_ddr_fifo_DRM
+# -- Compiling module ov5640_ddr_fifo
+# -- Compiling module tb_frame_recovery
+# 
+# Top level modules:
+# 	tb_frame_recovery
+# End time: 15:31:26 on Oct 02,2026, Elapsed time: 0:00:00
+# Errors: 0, Warnings: 0
+# vsim -voptargs="+acc" work_frame.tb_frame_recovery 
+# Start time: 15:31:26 on Oct 02,2026
+# ** Warning: (vsim-8891) All optimizations are turned off because the -novopt switch is in effect. This will cause your simulation to run very slowly. If you are using this switch to preserve visibility for Debug or PLI features please see the User's Manual section on Preserving Object Visibility with vopt.
+# //  ModelSim SE-64 10.6e Jun 23 2018
+# //
+# //  Copyright 1991-2018 Mentor Graphics Corporation
+# //  All Rights Reserved.
+# //
+# //  ModelSim SE-64 and its associated documentation contain trade
+# //  secrets and commercial or financial information that are the property of
+# //  Mentor Graphics Corporation and are privileged, confidential,
+# //  and exempt from disclosure under the Freedom of Information Act,
+# //  5 U.S.C. Section 552. Furthermore, this information
+# //  is prohibited from disclosure under the Trade Secrets Act,
+# //  18 U.S.C. Section 1905.
+# //
+# Loading sv_std.std
+# Loading work_frame.tb_frame_recovery
+# Loading work_frame.ov5640_ddr
+# Loading work_frame.ov5640_ddr_w_en
+# Loading work_frame.ov5640_ddr_w
+# Loading work_frame.ov5640_ddr_fifo_DRM
+# Loading work_frame.ov5640_ddr_fifo
+# Loading work_frame.ov5640_ddr_w_ctrl
+# Loading work_frame.axi_dma_write
+# Loading work_frame.stream_pipe
+# ** Warning: (vsim-3017) ../dma_timeout_repro/tb_frame_recovery.sv(18): [TFMPC] - Too few port connections. Expected 35, found 31.
+#    Time: 0 ps  Iteration: 0  Instance: /tb_frame_recovery/camera File: ../../source/ov5640/ov5640_ddr/ov5640_ddr.v
+# ** Warning: (vsim-3722) ../dma_timeout_repro/tb_frame_recovery.sv(18): [TFMPC] - Missing connection for port 'axi_data_available'.
+# ** Warning: (vsim-3722) ../dma_timeout_repro/tb_frame_recovery.sv(18): [TFMPC] - Missing connection for port 'dbg_fault_snapshot'.
+# ** Warning: (vsim-3722) ../dma_timeout_repro/tb_frame_recovery.sv(18): [TFMPC] - Missing connection for port 'dbg_reject_counts'.
+# ** Warning: (vsim-3722) ../dma_timeout_repro/tb_frame_recovery.sv(18): [TFMPC] - Missing connection for port 'dbg_input_pixels'.
+# ** Warning: (vsim-3017) ../dma_timeout_repro/tb_frame_recovery.sv(28): [TFMPC] - Too few port connections. Expected 34, found 33.
+#    Time: 0 ps  Iteration: 0  Instance: /tb_frame_recovery/dma File: ../../source/axi_dma/axi_dma_write.v
+# ** Warning: (vsim-3722) ../dma_timeout_repro/tb_frame_recovery.sv(28): [TFMPC] - Missing connection for port 'data_in_available'.
+# PASS complete frame seq=1 all 512 pixels including (0,0), bank=00010000
+# ABORT t=6295000 state=4 pixels=13
+# PASS short frame at next SOF aborts, no tag/req/counter; packer/FIFOs flushed
+# PASS complete frame seq=2 all 512 pixels including (0,0), bank=00020000
+# ABORT t=13115000 state=4 pixels=11
+# PASS missing data watchdog abort without another SOF
+# PASS complete frame seq=3 all 512 pixels including (0,0), bank=00010000
+# ABORT t=19765000 state=4 pixels=13
+# PASS abort during AW stall retains AW and drains accepted burst
+# PASS complete frame seq=4 all 512 pixels including (0,0), bank=00020000
+# ABORT t=31345000 state=4 pixels=203
+# PASS FIFO overflow + W/B backpressure; no premature flush/publication
+# PASS complete frame seq=5 all 512 pixels including (0,0), bank=00010000
+# ABORT t=38565000 state=4 pixels=138
+# PASS payload BRESP error prevents tag
+# PASS complete frame seq=6 all 512 pixels including (0,0), bank=00020000
+# ABORT t=53415000 state=6 pixels=512
+# PASS tag BRESP error does not publish req/count/bank
+# PASS complete frame seq=7 all 512 pixels including (0,0), bank=00010000
+# PASS complete frame seq=8 all 512 pixels including (0,0), bank=00020000
+# PASS complete frame seq=9 all 512 pixels including (0,0), bank=00010000
+# ABORT t=70775000 state=4 pixels=13
+# PASS dirty bank request invalidated; last good bank remains valid after abort
+# PASS complete frame seq=10 all 512 pixels including (0,0), bank=00020000
+# PASS tag B backpressure longer than WD_LIMIT never publishes early
+# PASS FRAME RECOVERY success=10 abort=7 AW=61 B=61 zero-strobe filler=75
+# ** Note: $finish    : ../dma_timeout_repro/tb_frame_recovery.sv(164)
+#    Time: 77460 ns  Iteration: 1  Instance: /tb_frame_recovery
+# End time: 15:31:27 on Oct 02,2026, Elapsed time: 0:00:01
+# Errors: 0, Warnings: 8

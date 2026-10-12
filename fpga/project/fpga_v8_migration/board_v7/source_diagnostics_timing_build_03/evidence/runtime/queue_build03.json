@@ -1,0 +1,81 @@
+{
+  "time": 1791335531.17578,
+  "pid": 20616,
+  "map_gate": {
+    "status": "BLOCKED",
+    "reason": "map02 actual mapping final FAIL",
+    "physical_start_allowed": false,
+    "final_result_sha256": "b1acda6eed22d63e2ef74d610aeb7f3d8d983e37a9c137dbfc7e7c1dbe66bef7"
+  },
+  "busy": [
+    {
+      "ProcessId": 78388,
+      "ParentProcessId": 56904,
+      "Name": "powershell.exe",
+      "CommandLine": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.EXE -NoLogo -NoProfile -NonInteractive -Command \"Wait-Process -Id 13980,44116,55740 -ErrorAction SilentlyContinue; python -u project/fpga_v8_migration/board_v7/physical_subagent_evidence_01/run_clock_epoch25.py\""
+    },
+    {
+      "ProcessId": 81216,
+      "ParentProcessId": 56904,
+      "Name": "powershell.exe",
+      "CommandLine": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.EXE -NoLogo -NoProfile -NonInteractive -Command \"Wait-Process -Id 55740 -ErrorAction SilentlyContinue; & 'C:/Users/NineSun/anaconda3/python.exe' -u 'project/fpga_v8_migration/board_v7/diagnostic_sync_register_map02/probe_official_mapping.py'; if ($LASTEXITCODE -eq 0) { & 'C:/Users/NineSun/anaconda3/python.exe' -u 'project/fpga_v8_migration/board_v7/diagnostic_sync_register_map02/audit_comparison.py' }\""
+    },
+    {
+      "ProcessId": 33764,
+      "ParentProcessId": 56904,
+      "Name": "powershell.exe",
+      "CommandLine": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.EXE -NoLogo -NoProfile -NonInteractive -Command \"Wait-Process -Id 55740,81216,78388 -ErrorAction SilentlyContinue; $mapResultFile = 'project/fpga_v8_migration/board_v7/diagnostic_sync_register_map02/evidence/final_result.json'; if (!(Test-Path -LiteralPath $mapResultFile)) { throw 'Map02 final evidence missing; no probe launched' }; $mapResult = Get-Content -LiteralPath $mapResultFile -Raw | ConvertFrom-Json; if ($mapResult.status -eq 'FAIL') { python -u project/fpga_v8_migration/board_v7/diagnostic_sync_register_map03/run_controller.py } elseif ($mapResult.status -eq 'PASS') { Write-Output 'Map02 PASS: placement fallback not needed' } else { throw 'Map02 final audit not closed; no probe launched' }\""
+    },
+    {
+      "ProcessId": 71964,
+      "ParentProcessId": 56904,
+      "Name": "powershell.exe",
+      "CommandLine": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.EXE -NoLogo -NoProfile -NonInteractive -Command \"Wait-Process -Id 55740,81216,78388 -ErrorAction SilentlyContinue; $mapResultFile = 'project/fpga_v8_migration/board_v7/diagnostic_sync_register_map02/evidence/final_result.json'; if (!(Test-Path -LiteralPath $mapResultFile)) { throw 'Map02 final evidence missing; no probe launched' }; $mapResult = Get-Content -LiteralPath $mapResultFile -Raw | ConvertFrom-Json; if ($mapResult.status -eq 'FAIL') { python -u project/fpga_v8_migration/board_v7/diagnostic_sync_register_map03/run_controller.py --run } elseif ($mapResult.status -eq 'PASS') { Write-Output 'Map02 PASS: placement fallback not needed' } else { throw 'Map02 final audit not closed; no probe launched' }\""
+    },
+    {
+      "ProcessId": 32632,
+      "ParentProcessId": 81216,
+      "Name": "python.exe",
+      "CommandLine": "\"C:\\Users\\NineSun\\anaconda3\\python.exe\" -u project/fpga_v8_migration/board_v7/diagnostic_sync_register_map02/probe_official_mapping.py"
+    },
+    {
+      "ProcessId": 61468,
+      "ParentProcessId": 78388,
+      "Name": "python.exe",
+      "CommandLine": "\"C:\\Users\\NineSun\\anaconda3\\python.exe\" -u project/fpga_v8_migration/board_v7/physical_subagent_evidence_01/run_clock_epoch25.py"
+    },
+    {
+      "ProcessId": 32540,
+      "ParentProcessId": 61468,
+      "Name": "pds_shell.exe",
+      "CommandLine": "C:/pango/PDS_2022.2-SP6.4/bin/pds_shell.exe -project C:\\Users\\NineSun\\Desktop\\ov56401\\project\\fpga_v8_migration\\board_v7\\physical_subagent_evidence_01\\fixed_06\\clock_epoch25\\query_epoch08.pds -run synthesize -work_dir C:\\Users\\NineSun\\Desktop\\ov56401\\project\\fpga_v8_migration\\board_v7\\physical_subagent_evidence_01\\fixed_06\\clock_epoch25"
+    },
+    {
+      "ProcessId": 44564,
+      "ParentProcessId": 32540,
+      "Name": "pds_shell.exe",
+      "CommandLine": "C:\\pango\\PDS_2022.2-SP6.4\\bin\\pds_shell.exe  -action compile -part Logos2-PG2L100H-FBG484-6 -project_file C:/Users/NineSun/Desktop/ov56401/project/fpga_v8_migration/board_v7/physical_subagent_evidence_01/fixed_06/clock_epoch25/query_epoch08.pds -extract_data_key 815990713 -shared_mem_key ec0101ae-ebbe-40c7-aaf7-d54269c439e032540 -parent_process_key 32540"
+    }
+  ],
+  "observers_excluded": [
+    {
+      "ProcessId": 56904,
+      "ParentProcessId": 36736,
+      "Name": "opencode.exe",
+      "CommandLine": "C:\\Users\\NineSun\\.opencode\\bin\\opencode.exe serve --service"
+    },
+    {
+      "ProcessId": 46932,
+      "ParentProcessId": 56904,
+      "Name": "powershell.exe",
+      "CommandLine": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.EXE -NoLogo -NoProfile -NonInteractive -Command \"python -u controller03.py --run\""
+    },
+    {
+      "ProcessId": 49784,
+      "ParentProcessId": 56904,
+      "Name": "powershell.exe",
+      "CommandLine": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.EXE -NoLogo -NoProfile -NonInteractive -Command \"Wait-Process -Id 55740,20616 -ErrorAction SilentlyContinue; Get-Content 'project/fpga_v8_migration/board_v7/diagnostic_sync_register_map02/evidence/final_result.json' -ErrorAction SilentlyContinue; Get-Content 'project/fpga_v8_migration/board_v7/source_diagnostics_timing_build_03/evidence/runtime/actual_result.json' -ErrorAction SilentlyContinue\""
+    }
+  ],
+  "policy": "No global PDS slot held while waiting; prior executors and GUI/PDS/TA must exit. Basename controller03 command avoids map02 treating its prerequisite waiter as a prior executor."
+}
