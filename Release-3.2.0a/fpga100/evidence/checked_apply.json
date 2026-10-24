@@ -1,0 +1,83 @@
+{
+  "image": "D:\\race\\ov56401\\project\\cam5_resolution\\builds\\100_20261023T015913_006563Z\\project\\generate_bitstream\\top.sbit",
+  "sha256": "73736f21108a4333d032b3088d5205d15879d2d1215dde3fa91bc9832bca606e",
+  "events": [
+    {
+      "event": "gates_passed",
+      "time": 1792722566.5191913,
+      "simulations": 36,
+      "covered_sources": 24,
+      "regression": "D:\\race\\ov56401\\project\\cam5_resolution\\builds\\100_20261023T015913_006563Z\\clean_regression_36.json"
+    },
+    {
+      "event": "command",
+      "time": 1792722569.0346422,
+      "command": "sha256sum /tmp/c5diag_73736f21108a.sbit",
+      "rc": 0,
+      "output": "73736f21108a4333d032b3088d5205d15879d2d1215dde3fa91bc9832bca606e  /tmp/c5diag_73736f21108a.sbit\n"
+    },
+    {
+      "event": "command",
+      "time": 1792722569.252092,
+      "command": "cp /tmp/c5diag_73736f21108a.sbit /userdata/fpga_flash/images/c5diag_73736f21108a.sbit",
+      "rc": 0,
+      "output": ""
+    },
+    {
+      "event": "command",
+      "time": 1792722569.4707584,
+      "command": "systemctl stop detview-supervisor.service detview.service",
+      "rc": 0,
+      "output": ""
+    },
+    {
+      "event": "command",
+      "time": 1792722569.7905805,
+      "command": "python3 -u /tmp/c5_preflash_probe.py --observe-only",
+      "rc": 0,
+      "output": "=== \u5f53\u524d\u72b6\u6001 ===\n  state=4 err=0x00000000\n  phase=0(IDLE) link_bad=0 any=0 settle=0 raster=0 fault_seen=0b1 pkt=2\n  dims=0x028001e0 c6=0x028001e0 epoch=92 transaction=92 frame=8014 gen=1268216 diag=0x30020002\n"
+    },
+    {
+      "event": "epoch_before_flash",
+      "time": 1792722569.8030539,
+      "epoch": 92,
+      "next_minimum_epoch": 93
+    },
+    {
+      "event": "command",
+      "time": 1792722858.3521423,
+      "command": "fpga-ota apply /userdata/fpga_flash/images/c5diag_73736f21108a.sbit",
+      "rc": 0,
+      "output": "[2026-10-23 02:30:55] [i] \u955c\u50cf /userdata/fpga_flash/images/c5diag_73736f21108a.sbit  3791112 \u5b57\u8282  sha256=73736f21108a4333d032b3088d5205d15879d2d1215dde3fa91bc9832bca606e\n[i] \u5df2\u89e3\u7ed1 fe610000.spi\n[2026-10-23 02:30:56] [i] Flash RDID = 1c7118\n[2026-10-23 02:30:56] $ systemctl stop detview.service\n[2026-10-23 02:30:56] [i] \u5907\u4efd\u5230 /userdata/fpga_flash/backups/flash_before_20261023_023056.bin\n[2026-10-23 02:32:34] [i] \u5907\u4efd\u5b8c\u6210 sha256=89912dbb009354f1bf7c10d53e29b5ef110245254c83dd97c5328836c1c3927f\n[2026-10-23 02:32:34] [i] \u64e6\u9664\n[2026-10-23 02:32:52] [i] \u5df2\u64e6 0x0..0x3a0000\n[2026-10-23 02:32:52] [i] \u5199\u5165\n[2026-10-23 02:34:03] [i] \u5df2\u5199 3791360 \u5b57\u8282\n[2026-10-23 02:34:03] [i] \u6821\u9a8c\n[2026-10-23 02:35:43] [\u2713] \u6821\u9a8c\u901a\u8fc7\n[i] \u5df2\u91cd\u65b0\u7ed1\u5b9a fe610000.spi\n[2026-10-23 02:35:43] $ systemctl start detview.service\n[2026-10-23 02:35:43] [\u2713] detview.service is-active=True\n[2026-10-23 02:35:43] [i] \u7ed3\u679c\uff1a\u6210\u529f\uff08\u65b0\u4f4d\u6d41\u5728\u4e0b\u6b21\u91cd\u542f/\u4e0a\u7535\u540e\u751f\u6548\uff09\uff1b\u72b6\u6001\u5df2\u5199\u5165 /userdata/fpga_flash/state.json\n"
+    },
+    {
+      "event": "command",
+      "time": 1792722958.5241299,
+      "command": "fpga-ota verify /userdata/fpga_flash/images/c5diag_73736f21108a.sbit",
+      "rc": 0,
+      "output": "[i] \u5df2\u89e3\u7ed1 fe610000.spi\n[2026-10-23 02:35:44] [i] Flash RDID = 1c7118\n[2026-10-23 02:37:23] [\u2713] Flash \u4e0e /userdata/fpga_flash/images/c5diag_73736f21108a.sbit \u4e00\u81f4\n[i] \u5df2\u91cd\u65b0\u7ed1\u5b9a fe610000.spi\n"
+    },
+    {
+      "event": "command",
+      "time": 1792722959.0453095,
+      "command": "fpga-ota status",
+      "rc": 0,
+      "output": "ROOT          : /userdata/fpga_flash\nCFG_DONE      : 1\n\u671f\u671b\u955c\u50cf      : /userdata/fpga_flash/images/c5diag_73736f21108a.sbit\n\u671f\u671b SHA256   : 73736f21108a4333d032b3088d5205d15879d2d1215dde3fa91bc9832bca606e\n\u4e0a\u6b21 apply    : 2026-10-23 02:35:43  ->  ok\n\u4e0a\u6b21\u5907\u4efd      : /userdata/fpga_flash/backups/flash_before_20261023_023056.bin\nimages/       : ['c5_leasefix_ad81c854.sbit', 'c5diag_73736f21108a.sbit', 'c5diag_9d95344f.sbit', 'c5fix_2b18d608.sbit', 'c5fix_43dacd7c.sbit', 'c5fix_7a1f9bfa.sbit', 'c5fix_ffe355cd.sbit', 'current.sbit', 'incoming']\nbackups/(\u8fd15) : ['flash_before_20261022_094843.bin', 'flash_before_20261022_100125.bin', 'flash_before_20261022_122105.bin', 'flash_before_20261022_170432.bin', 'flash_before_20261023_023056.bin']\n"
+    },
+    {
+      "event": "flash_verified",
+      "time": 1792722959.0575428
+    },
+    {
+      "event": "reboot_requested",
+      "time": 1792722959.070107
+    },
+    {
+      "event": "command",
+      "time": 1792722959.2874694,
+      "command": "systemctl reboot",
+      "rc": 0,
+      "output": ""
+    }
+  ]
+}
